@@ -1,0 +1,39 @@
+name: 'Commit and push'
+description: 'Commit the already-staged changes as the CI bot and push them to the checked-out branch'
+inputs:
+    token:
+        description: 'CI bot app token, used to push and to look up the bot user id'
+        required: true
+    app-slug:
+        description: 'CI bot app slug, used to build the commit author identity'
+        required: true
+    message:
+        description: 'Commit message subject'
+        required: true
+runs:
+    using: 'composite'
+    steps:
+        - name: Commit and push
+          shell: bash
+          env:
+              GH_TOKEN: ${{ inputs.token }}
+              APP_SLUG: ${{ inputs.app-slug }}
+              MESSAGE: ${{ inputs.message }}
+          run: |
+              user_id=$(gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id)
+              git config user.name "${APP_SLUG}[bot]"
+              git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+              git commit -m "$MESSAGE"
+              # Other commits can land on the branch while the job runs, so rebase
+              # onto them and try again rather than failing the push outright.
+              for _ in 1 2 3; do
+                if git push; then
+                  exit 0
+                fi
+                if ! git pull --rebase; then
+                  echo "Could not rebase onto the updated branch, so the commit was not pushed" >&2
+                  exit 1
+                fi
+              done
+              echo "Could not push after 3 attempts" >&2
+              exit 1

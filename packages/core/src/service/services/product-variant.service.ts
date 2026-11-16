@@ -18,7 +18,7 @@ import { In, IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { ForbiddenError, UserInputError } from '../../common/error/errors';
+import { EntityNotFoundError, ForbiddenError, UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { roundMoney } from '../../common/round-money';
 import { ListQueryOptions } from '../../common/types/common-types';
@@ -59,7 +59,7 @@ import { ChannelService } from './channel.service';
 import { FacetValueService } from './facet-value.service';
 import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
-import { StockLevelService } from './stock-level.service';
+import { StockLevelReadOptions, StockLevelService } from './stock-level.service';
 import { StockMovementService } from './stock-movement.service';
 import { TaxCategoryService } from './tax-category.service';
 
@@ -187,7 +187,11 @@ export class ProductVariantService {
             .innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
                 channelId: ctx.channelId,
             })
-            .innerJoinAndSelect('productvariant.product', 'product', 'product.id = :productId', {
+            // Not selected: the join is only here to constrain the query to one Product. Selecting
+            // it would populate `productvariant.product` with a Product carrying none of its own
+            // relations, which then takes precedence over the fully-loaded one when `product` is
+            // among the requested relations.
+            .innerJoin('productvariant.product', 'product', 'product.id = :productId', {
                 productId,
             });
 
@@ -319,8 +323,19 @@ export class ProductVariantService {
      * Returns the number of saleable units of the ProductVariant, i.e. how many are available
      * for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
      * as well as the local and global `outOfStockThreshold` settings.
+     *
+     * Pass `{ lockStockLevels: true }` when the result is used to decide whether stock may be
+     * allocated. This holds a write lock on the StockLevel rows until the surrounding
+     * transaction commits, so that two concurrent checkouts cannot both pass the check and
+     * then both allocate the same units. See {@link StockLevelService.getAvailableStock}.
+     *
+     * @since 3.7.4 - Added the `options` parameter
      */
-    async getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant): Promise<number> {
+    async getSaleableStockLevel(
+        ctx: RequestContext,
+        variant: ProductVariant,
+        options?: StockLevelReadOptions,
+    ): Promise<number> {
         const { outOfStockThreshold, trackInventory } = await this.globalSettingsService.getSettings(ctx);
 
         const inventoryNotTracked =
@@ -332,6 +347,7 @@ export class ProductVariantService {
         const { stockOnHand, stockAllocated } = await this.stockLevelService.getAvailableStock(
             ctx,
             variant.id,
+            options,
         );
         const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
             ? outOfStockThreshold
@@ -386,6 +402,9 @@ export class ProductVariantService {
         input: CreateProductVariantInput[],
     ): Promise<Array<Translated<ProductVariant>>> {
         const ids: ID[] = [];
+        // No up-front stock lock here, unlike `update()`: each variant is created in this loop, so
+        // its StockLevel rows do not exist until `createSingle` inserts them and no other
+        // transaction can be holding them. The ids are not even known before the loop runs.
         for (const productInput of input) {
             const id = await this.createSingle(ctx, productInput);
             ids.push(id);
@@ -399,6 +418,16 @@ export class ProductVariantService {
         ctx: RequestContext,
         input: UpdateProductVariantInput[],
     ): Promise<Array<Translated<ProductVariant>>> {
+        // Lock every variant whose stock this call adjusts before the loop below touches any of it.
+        // The loop visits the variants in input order, and a bulk update can share variants with a
+        // concurrent settlement or order modification; taking the locks up front in the shared
+        // order is what stops the two from deadlocking. Untracked variants are included because the
+        // adjustment derives its delta from the current `stockOnHand` either way.
+        await this.stockLevelService.lockStockLevelsForVariants(
+            ctx,
+            input.filter(i => i.stockOnHand != null || i.stockLevels).map(i => i.id),
+            { includeUntrackedVariants: true },
+        );
         for (const productInput of input) {
             await this.updateSingle(ctx, productInput);
         }
@@ -483,11 +512,11 @@ export class ProductVariantService {
         // so that the variant is visible in all channels the product belongs to.
         // We reuse assignProductVariantsToChannel which handles permissions, pricing
         // (pricesIncludeTax + defaultCurrencyCode), stock-level seeding, asset assignment,
-        // and ProductVariantChannelEvent — matching the flow in
+        // option and option group assignment, and ProductVariantChannelEvent — matching the flow in
         // ProductService.assignProductsToChannel().
         const product = await this.connection.getRepository(ctx, Product).findOne({
             where: { id: input.productId },
-            relations: ['channels'],
+            relations: { channels: true },
             relationLoadStrategy: 'query',
             loadEagerRelations: false,
         });
@@ -496,51 +525,11 @@ export class ProductVariantService {
                 .map(c => c.id)
                 .filter(id => !idsAreEqual(id, ctx.channelId) && !idsAreEqual(id, defaultChannel.id));
 
-            if (additionalChannelIds.length) {
-                // Load the variant's options with their groups so we can assign them
-                // to the additional channels, matching ProductService.assignProductsToChannel()
-                const optionIds = input.optionIds || [];
-                let optionGroupIds: ID[] = [];
-                if (optionIds.length) {
-                    const variantOptions = await this.connection
-                        .getRepository(ctx, ProductOption)
-                        .find({
-                            where: { id: In(optionIds) },
-                            relations: ['group'],
-                            loadEagerRelations: false,
-                        });
-                    optionGroupIds = unique(variantOptions.map(o => o.group.id));
-                }
-
-                for (const additionalChannelId of additionalChannelIds) {
-                    await this.assignProductVariantsToChannel(ctx, {
-                        productVariantIds: [createdVariant.id],
-                        channelId: additionalChannelId,
-                    });
-
-                    // Also assign option groups and options to the target channel,
-                    // matching ProductService.assignProductsToChannel()
-                    if (optionIds.length) {
-                        await Promise.all([
-                            ...optionGroupIds.map(id =>
-                                this.channelService.assignToChannels(
-                                    ctx,
-                                    ProductOptionGroup,
-                                    id,
-                                    [additionalChannelId],
-                                ),
-                            ),
-                            ...optionIds.map(id =>
-                                this.channelService.assignToChannels(
-                                    ctx,
-                                    ProductOption,
-                                    id,
-                                    [additionalChannelId],
-                                ),
-                            ),
-                        ]);
-                    }
-                }
+            for (const additionalChannelId of additionalChannelIds) {
+                await this.assignProductVariantsToChannel(ctx, {
+                    productVariantIds: [createdVariant.id],
+                    channelId: additionalChannelId,
+                });
             }
         }
 
@@ -773,11 +762,37 @@ export class ProductVariantService {
         }
     }
 
-    async softDelete(ctx: RequestContext, id: ID | ID[]): Promise<DeletionResponse> {
+    /**
+     * @description
+     * Soft-deletes the ProductVariant(s) with the given id(s).
+     *
+     * The lookup is scoped to the active Channel, so an id which does not belong to
+     * `ctx.channelId` throws an {@link EntityNotFoundError}. Previously an unknown or
+     * out-of-channel id was silently reported as deleted.
+     *
+     * @param checkChannel - Set to `false` only for trusted internal cascades which have
+     * already verified the parent entity's Channel, such as `ProductService.softDelete`.
+     * A global Product deletion must reach every one of its variants, including any which
+     * were individually removed from the active Channel.
+     */
+    async softDelete(
+        ctx: RequestContext,
+        id: ID | ID[],
+        checkChannel: boolean = true,
+    ): Promise<DeletionResponse> {
         const ids = Array.isArray(id) ? id : [id];
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(ids) } });
+        let variants: ProductVariant[];
+        if (checkChannel) {
+            variants = await this.connection.findByIdsInChannel(ctx, ProductVariant, ids, ctx.channelId, {});
+            const missingId = ids.find(candidate => !variants.some(v => idsAreEqual(v.id, candidate)));
+            if (missingId != null) {
+                throw new EntityNotFoundError('ProductVariant', missingId);
+            }
+        } else {
+            variants = await this.connection
+                .getRepository(ctx, ProductVariant)
+                .find({ where: { id: In(ids) } });
+        }
         for (const variant of variants) {
             variant.deletedAt = new Date();
         }
@@ -874,7 +889,8 @@ export class ProductVariantService {
     /**
      * @description
      * Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
-     * {@link ProductVariantPrice} and also assign the associated Product and any Assets to the Channel too.
+     * {@link ProductVariantPrice} and also assign the associated Product, any Assets, and the variant's
+     * ProductOptions and their ProductOptionGroups to the Channel too.
      */
     async assignProductVariantsToChannel(
         ctx: RequestContext,
@@ -888,15 +904,21 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const variants = await this.connection.getRepository(ctx, ProductVariant).find({
-            where: {
-                id: In(input.productVariantIds),
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {
+                relations: { taxCategory: true, assets: true, options: { group: true } },
             },
-            relations: ['taxCategory', 'assets'],
-        });
+        );
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
         const assignedVariantIds: ID[] = [];
+        const optionIds: ID[] = [];
+        const optionGroupIds: ID[] = [];
         for (const variant of variants) {
             if (variant.deletedAt) {
                 continue;
@@ -914,8 +936,30 @@ export class ProductVariantService {
             );
             const assetIds = variant.assets?.map(a => a.assetId) || [];
             await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
+            // An active variant can still reference a soft-deleted option or group.
+            // assignToChannels throws on those, so they are skipped.
+            for (const option of variant.options ?? []) {
+                if (!option.deletedAt) {
+                    optionIds.push(option.id);
+                }
+                if (!option.group?.deletedAt) {
+                    optionGroupIds.push(option.groupId);
+                }
+            }
             assignedVariantIds.push(variant.id);
         }
+        // Also assign the variants' options and their groups, matching
+        // ProductService.assignProductsToChannel(). Otherwise `ProductOption.group`
+        // cannot be resolved in the target channel. Variants of one product share
+        // options, so the ids are de-duplicated and assigned once per call.
+        await Promise.all([
+            ...unique(optionGroupIds).map(id =>
+                this.channelService.assignToChannels(ctx, ProductOptionGroup, id, [input.channelId]),
+            ),
+            ...unique(optionIds).map(id =>
+                this.channelService.assignToChannels(ctx, ProductOption, id, [input.channelId]),
+            ),
+        ]);
         // Seed a StockLevel for each of the target channel's stock locations so that per-channel
         // inventory is usable immediately; otherwise the channel-filtered `stockLevels` field
         // resolves to `[]` in the newly-assigned channel until stock is first adjusted there.
@@ -988,17 +1032,42 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {},
+        );
+        return this.removeVariantsFromChannel(ctx, variants, input.channelId);
+    }
+
+    /**
+     * Removes the given ProductVariants from the Channel. The caller must have established that it may
+     * act on these variants: this method does not check permissions and does not scope the variants to
+     * the active Channel. `ProductService.removeProductsFromChannel()` calls it with the variants of a
+     * Product it has already loaded in the active Channel, so that the cascade removes every variant of
+     * that Product, including one which is no longer in the active Channel itself.
+     *
+     * The default-Channel guard lives here rather than in the public method, so that both callers keep
+     * it.
+     *
+     * @internal
+     */
+    async removeVariantsFromChannel(
+        ctx: RequestContext,
+        variants: ProductVariant[],
+        channelId: ID,
+    ): Promise<Array<Translated<ProductVariant>>> {
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
-        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+        if (idsAreEqual(channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(input.productVariantIds) } });
         for (const variant of variants) {
-            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [input.channelId]);
+            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [channelId]);
             await this.connection.getRepository(ctx, ProductVariantPrice).delete({
-                channelId: input.channelId,
+                channelId,
                 variant: { id: variant.id },
             });
             // If none of the ProductVariants is assigned to the Channel, remove the Channel from Product
@@ -1006,15 +1075,13 @@ export class ProductVariantService {
                 where: {
                     productId: variant.productId,
                 },
-                relations: ['channels'],
+                relations: { channels: true },
             });
             const productChannelsFromVariants = ([] as Channel[]).concat(
                 ...productVariants.map(pv => pv.channels),
             );
-            if (!productChannelsFromVariants.find(c => c.id === input.channelId)) {
-                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [
-                    input.channelId,
-                ]);
+            if (!productChannelsFromVariants.find(c => c.id === channelId)) {
+                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [channelId]);
             }
         }
         const result = await this.findByIds(
@@ -1025,9 +1092,7 @@ export class ProductVariantService {
         // whereby an event listener triggers a query which does not yet have access to the changes
         // within the current transaction.
         for (const variant of variants) {
-            await this.eventBus.publish(
-                new ProductVariantChannelEvent(ctx, variant, input.channelId, 'removed'),
-            );
+            await this.eventBus.publish(new ProductVariantChannelEvent(ctx, variant, channelId, 'removed'));
         }
         return result;
     }
@@ -1056,7 +1121,7 @@ export class ProductVariantService {
         if (
             !samplesEach(
                 optionIds,
-                activeOptions.map(g => g.options.map(o => o.id)),
+                activeOptions.map(g => g.options.filter(o => !o.deletedAt).map(o => o.id)),
             )
         ) {
             this.throwIncompatibleOptionsError(optionGroups);

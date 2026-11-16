@@ -112,43 +112,83 @@ export class Channel extends VendureEntity {
 
     @Column() pricesIncludeTax: boolean;
 
-    @ManyToMany(type => Product, product => product.channels, { onDelete: 'CASCADE' })
+    // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
+    @ManyToMany(type => Product, product => product.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     products: Product[];
 
-    @ManyToMany(type => ProductVariant, productVariant => productVariant.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => ProductVariant, productVariant => productVariant.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     productVariants: ProductVariant[];
 
-    @ManyToMany(type => FacetValue, facetValue => facetValue.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => FacetValue, facetValue => facetValue.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     facetValues: FacetValue[];
 
-    @ManyToMany(type => Facet, facet => facet.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => Facet, facet => facet.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     facets: Facet[];
 
-    @ManyToMany(type => ProductOptionGroup, pog => pog.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => ProductOptionGroup, pog => pog.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     productOptionGroups: ProductOptionGroup[];
 
-    @ManyToMany(type => ProductOption, po => po.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => ProductOption, po => po.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     productOptions: ProductOption[];
 
-    @ManyToMany(type => Collection, collection => collection.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => Collection, collection => collection.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     collections: Collection[];
 
-    @ManyToMany(type => Promotion, promotion => promotion.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => Promotion, promotion => promotion.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     promotions: Promotion[];
 
-    @ManyToMany(type => PaymentMethod, paymentMethod => paymentMethod.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => PaymentMethod, paymentMethod => paymentMethod.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     paymentMethods: PaymentMethod[];
 
-    @ManyToMany(type => ShippingMethod, shippingMethod => shippingMethod.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => ShippingMethod, shippingMethod => shippingMethod.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     shippingMethods: ShippingMethod[];
 
-    @ManyToMany(type => Customer, customer => customer.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => Customer, customer => customer.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     customers: Customer[];
 
-    @ManyToMany(type => Role, role => role.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => Role, role => role.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     roles: Role[];
 
-    @ManyToMany(type => StockLocation, stockLocation => stockLocation.channels, { onDelete: 'CASCADE' })
+    @ManyToMany(type => StockLocation, stockLocation => stockLocation.channels, {
+        onDelete: 'CASCADE',
+        onUpdate: 'NO ACTION',
+    })
     stockLocations: StockLocation[];
 
     @ManyToMany(type => ApiKey, apiKey => apiKey.channels, { onDelete: 'CASCADE' })

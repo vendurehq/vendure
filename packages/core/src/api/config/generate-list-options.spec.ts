@@ -350,4 +350,135 @@ describe('generateListOptions()', () => {
                    }`),
         );
     });
+
+    it('propagates source field descriptions to the generated sort and filter parameters', () => {
+        const input = `
+               ${COMMON_TYPES}
+               type Query {
+                   people: PersonList
+               }
+
+               type Person {
+                   """The person's full name"""
+                   name: String!
+                   """Age in years"""
+                   age: Int!
+               }
+           `;
+
+        const result = generateListOptions(buildSchema(input));
+
+        expect(printType(result.getType('PersonSortParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonSortParameter {
+                     """The person's full name"""
+                     name: SortOrder
+
+                     """Age in years"""
+                     age: SortOrder
+                   }`),
+        );
+
+        expect(printType(result.getType('PersonFilterParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonFilterParameter {
+                     """The person's full name"""
+                     name: StringOperators
+
+                     """Age in years"""
+                     age: NumberOperators
+                     _and: [PersonFilterParameter!]
+                     _or: [PersonFilterParameter!]
+                   }`),
+        );
+    });
+
+    it('propagates descriptions from a pre-existing sort and filter parameter', () => {
+        const input = `
+               ${COMMON_TYPES}
+               type Query {
+                   people: PersonList
+               }
+
+               type Person {
+                   name: String!
+               }
+
+               input PersonSortParameter {
+                   """Sort by relevance score"""
+                   score: SortOrder
+               }
+
+               input PersonFilterParameter {
+                   """Filter by nickname"""
+                   nickname: StringOperators
+               }
+           `;
+
+        const result = generateListOptions(buildSchema(input));
+
+        expect(printType(result.getType('PersonSortParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonSortParameter {
+                     """Sort by relevance score"""
+                     score: SortOrder
+                     name: SortOrder
+                   }`),
+        );
+
+        expect(printType(result.getType('PersonFilterParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonFilterParameter {
+                     """Filter by nickname"""
+                     nickname: StringOperators
+                     name: StringOperators
+                     _and: [PersonFilterParameter!]
+                     _or: [PersonFilterParameter!]
+                   }`),
+        );
+    });
+
+    it('lets a pre-declared filter/sort field win over a colliding source field, description included', () => {
+        const input = `
+               ${COMMON_TYPES}
+               type Query {
+                   people: PersonList
+               }
+
+               type Person {
+                   """Source name description"""
+                   name: String!
+               }
+
+               input PersonFilterParameter {
+                   """Overridden filter description"""
+                   name: StringOperators
+               }
+
+               input PersonSortParameter {
+                   """Overridden sort description"""
+                   name: SortOrder
+               }
+           `;
+
+        const result = generateListOptions(buildSchema(input));
+
+        expect(printType(result.getType('PersonSortParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonSortParameter {
+                     """Overridden sort description"""
+                     name: SortOrder
+                   }`),
+        );
+
+        expect(printType(result.getType('PersonFilterParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonFilterParameter {
+                     """Overridden filter description"""
+                     name: StringOperators
+                     _and: [PersonFilterParameter!]
+                     _or: [PersonFilterParameter!]
+                   }`),
+        );
+    });
 });

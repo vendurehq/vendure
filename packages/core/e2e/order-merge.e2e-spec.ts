@@ -5,6 +5,7 @@ import {
     MergeOrdersStrategy,
     Order,
     OrderMergeStrategy,
+    Product,
     RequestContext,
     UseExistingStrategy,
     UseGuestIfExistingEmptyStrategy,
@@ -43,7 +44,7 @@ class DelegateMergeStrategy implements OrderMergeStrategy {
 }
 
 type AddItemToOrderWithCustomFields = VariablesOf<typeof addItemToOrderDocument> & {
-    customFields?: { inscription?: string };
+    customFields?: { inscription?: string; relationFieldId?: string };
 };
 
 const getActiveOrderWithCustomFieldsDocument = graphql(`
@@ -91,6 +92,9 @@ const getActiveOrderWithCustomFieldsDocument = graphql(`
                 }
                 customFields {
                     inscription
+                    relationField {
+                        id
+                    }
                 }
             }
             shippingLines {
@@ -119,7 +123,15 @@ describe('Order merging', () => {
                 mergeStrategy: new DelegateMergeStrategy(),
             },
             customFields: {
-                OrderLine: [{ name: 'inscription', type: 'string' }],
+                OrderLine: [
+                    { name: 'inscription', type: 'string' },
+                    {
+                        name: 'relationField',
+                        type: 'relation',
+                        entity: Product,
+                        graphQLType: 'Product',
+                    },
+                ],
             },
         }),
     );
@@ -127,7 +139,7 @@ describe('Order merging', () => {
         await server.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
-            customerCount: 10,
+            customerCount: 14,
         });
         await adminClient.asSuperAdmin();
         const result = await adminClient.query(getCustomerListDocument);
@@ -222,8 +234,16 @@ describe('Order merging', () => {
                 customFields: line.customFields,
             })),
         ).toEqual([
-            { productVariantId: 'T_1', quantity: 1, customFields: { inscription: 'foo' } },
-            { productVariantId: 'T_1', quantity: 3, customFields: { inscription: 'bar' } },
+            {
+                productVariantId: 'T_1',
+                quantity: 1,
+                customFields: { inscription: 'foo', relationField: null },
+            },
+            {
+                productVariantId: 'T_1',
+                quantity: 3,
+                customFields: { inscription: 'bar', relationField: null },
+            },
         ]);
     });
 
@@ -386,5 +406,53 @@ describe('Order merging', () => {
         await adminClient.query(updateProductDocument, {
             input: { id: 'T_2', enabled: true },
         });
+    });
+    it('MergeOrdersStrategy preserves relation custom fields from guest order', async () => {
+        const result = await testMerge({
+            strategy: new MergeOrdersStrategy(),
+            customerEmailAddress: customers[10].emailAddress,
+            existingOrderLines: [{ productVariantId: 'T_2', quantity: 2 }],
+            guestOrderLines: [
+                { productVariantId: 'T_3', quantity: 4, customFields: { relationFieldId: 'T_1' } },
+            ],
+        });
+        const guestLine = result.lines.find(line => line.quantity === 4);
+        expect(guestLine).toBeDefined();
+        expect(guestLine?.customFields.relationField?.id).toBe('T_1');
+    });
+    it('MergeOrdersStrategy does not merge lines with different relation custom fields', async () => {
+        const result = await testMerge({
+            strategy: new MergeOrdersStrategy(),
+            customerEmailAddress: customers[12].emailAddress,
+            existingOrderLines: [
+                { productVariantId: 'T_1', quantity: 1, customFields: { relationFieldId: 'T_4' } },
+            ],
+            guestOrderLines: [
+                { productVariantId: 'T_1', quantity: 3, customFields: { relationFieldId: 'T_1' } },
+            ],
+        });
+        expect(result.lines).toHaveLength(2);
+        const existingLine = result.lines.find(line => line.customFields.relationField?.id === 'T_4');
+        const guestLine = result.lines.find(line => line.customFields.relationField?.id === 'T_1');
+        expect(existingLine).toBeDefined();
+        expect(existingLine?.quantity).toBe(1);
+        expect(guestLine).toBeDefined();
+        expect(guestLine?.quantity).toBe(3);
+    });
+    it('MergeOrdersStrategy merges lines with the same relation custom field', async () => {
+        const result = await testMerge({
+            strategy: new MergeOrdersStrategy(),
+            customerEmailAddress: customers[13].emailAddress,
+            existingOrderLines: [
+                { productVariantId: 'T_1', quantity: 1, customFields: { relationFieldId: 'T_4' } },
+            ],
+            guestOrderLines: [
+                { productVariantId: 'T_1', quantity: 3, customFields: { relationFieldId: 'T_4' } },
+            ],
+        });
+        expect(result.lines).toHaveLength(1);
+        expect(result.lines[0].productVariant.id).toBe('T_1');
+        expect(result.lines[0].quantity).toBe(3);
+        expect(result.lines[0].customFields.relationField?.id).toBe('T_4');
     });
 });

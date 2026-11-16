@@ -1,4 +1,4 @@
-{{#if isBun}}FROM oven/bun:1{{else}}FROM node:20{{/if}}
+{{#if isBun}}FROM oven/bun:1{{else}}FROM node:24{{/if}}
 
 WORKDIR /usr/src/app
 
@@ -7,3 +7,5 @@ WORKDIR /usr/src/app
 RUN {{pmCiInstall}}
 COPY . .
 RUN {{pmRunScript "build"}}
+# Set after the install and build steps, which need the dev dependencies.
+ENV NODE_ENV=production

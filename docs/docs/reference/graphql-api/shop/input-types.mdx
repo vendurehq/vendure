@@ -770,17 +770,32 @@ input NumberOperators {
   createdAt: DateOperators
   updatedAt: DateOperators
   type: StringOperators
+  """
+  The date & time that the Order was placed, i.e. the Customer
+  completed the checkout and the Order is no longer "active"
+  """
   orderPlacedAt: DateOperators
+  """A unique code for the Order"""
   code: StringOperators
   state: StringOperators
+  """An order is active as long as the payment process has not been completed"""
   active: BooleanOperators
   totalQuantity: NumberOperators
+  """
+  The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+  discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+  To get a total of all OrderLines which does not account for prorated discounts, use the
+  sum of \`OrderLine.discountedLinePrice\` values.
+  """
   subTotal: NumberOperators
+  """Same as subTotal, but inclusive of tax"""
   subTotalWithTax: NumberOperators
   currencyCode: StringOperators
   shipping: NumberOperators
   shippingWithTax: NumberOperators
+  """Equal to subTotal plus shipping"""
   total: NumberOperators
+  """The final payable amount. Equal to subTotalWithTax plus shippingWithTax"""
   totalWithTax: NumberOperators
   _and: [OrderFilterParameter!]
   _or: [OrderFilterParameter!]
@@ -830,15 +845,29 @@ input NumberOperators {
   id: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
+  """
+  The date & time that the Order was placed, i.e. the Customer
+  completed the checkout and the Order is no longer "active"
+  """
   orderPlacedAt: SortOrder
+  """A unique code for the Order"""
   code: SortOrder
   state: SortOrder
   totalQuantity: SortOrder
+  """
+  The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+  discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+  To get a total of all OrderLines which does not account for prorated discounts, use the
+  sum of \`OrderLine.discountedLinePrice\` values.
+  """
   subTotal: SortOrder
+  """Same as subTotal, but inclusive of tax"""
   subTotalWithTax: SortOrder
   shipping: SortOrder
   shippingWithTax: SortOrder
+  """Equal to subTotal plus shipping"""
   total: SortOrder
+  """The final payable amount. Equal to subTotalWithTax plus shippingWithTax"""
   totalWithTax: SortOrder
 }`}
 </GraphQLDoc>

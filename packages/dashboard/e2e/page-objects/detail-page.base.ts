@@ -1,5 +1,7 @@
 import { type Locator, type Page, expect } from '@playwright/test';
 
+import { closePopup } from '../utils/base-ui-popups.js';
+
 export interface DetailPageConfig {
     /** URL path for the "new" form, e.g. '/tax-categories/new' */
     newPath: string;
@@ -87,14 +89,18 @@ export class BaseDetailPage {
     /**
      * Select an option from a MultiSelect/Popover-based picker.
      * Unlike `selectOption` (which targets `role="option"` in a Select),
-     * this targets buttons inside a Popover — used by RoleSelector, etc.
+     * this targets options inside a Select/Popover — used by RoleSelector, etc.
      *
      * @param triggerLocator Locator for the combobox trigger button
      * @param optionText The visible text of the option to click
      */
     async selectPopoverOption(triggerLocator: Locator, optionText: string) {
         await triggerLocator.click();
-        await this.page.getByRole('button', { name: optionText, exact: true }).click();
+        await this.page.getByRole('option', { name: optionText, exact: true }).click();
+        // Multi-selects stay open after choosing an option, and the popup's backdrop would
+        // intercept the next form interaction. A filtered picker closes itself instead, and
+        // closePopup requires an open popup, so this does not suit those.
+        await closePopup(triggerLocator);
     }
 
     /** Toggle a switch field identified by its label. */

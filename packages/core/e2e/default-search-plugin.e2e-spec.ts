@@ -13,6 +13,7 @@ import {
     DefaultSearchPlugin,
     facetValueCollectionFilter,
     mergeConfig,
+    variantNameCollectionFilter,
 } from '@vendure/core';
 import {
     createErrorResultGuard,
@@ -36,12 +37,14 @@ import {
 import { channelFragment } from './graphql/fragments-admin';
 import { FragmentOf, ResultOf, VariablesOf } from './graphql/graphql-admin';
 import {
+    addOptionGroupToProductDocument,
     assignProductToChannelDocument,
     assignProductVariantToChannelDocument,
     createChannelDocument,
     createCollectionDocument,
     createFacetDocument,
     createProductDocument,
+    createProductOptionGroupDocument,
     createProductVariantsDocument,
     deleteAssetDocument,
     deleteProductDocument,
@@ -166,6 +169,24 @@ describe('Default search plugin', () => {
                 : ['Road Bike', 'Laptop 15 inch 16GB', 'Laptop 13 inch 16GB'];
 
         expect(result.search.items.map(i => i.productVariantName)).toEqual(expected);
+    }
+
+    /**
+     * Clients generated from the GraphQL schema commonly send `sort: {}` when the user has not
+     * selected a sort order. Since an empty object is truthy, this used to be treated as an
+     * explicit sort, which suppressed the relevance ordering that applies when searching by term.
+     */
+    async function testRelevanceSortingWithEmptySortObject(testProducts: TestProducts) {
+        const result = await testProducts({
+            term: 'slr',
+            groupByProduct: true,
+            sort: {},
+        });
+
+        // "Slr Camera" matches on the product name whereas "Camera Lens" only matches in the
+        // description, so the higher-scoring "Slr Camera" must come first, even though it has the
+        // higher productVariantId, which is the fallback ordering used when no score is applied.
+        expect(result.search.items.map(i => i.productName)).toEqual(['Slr Camera', 'Camera Lens']);
     }
 
     async function testMatchSearchTerm(testProducts: TestProducts) {
@@ -685,6 +706,9 @@ describe('Default search plugin', () => {
 
         it('sort price without grouping', () => testSortingNoGrouping(testProductsShop, 'price'));
 
+        it('sorts by relevance when sort is an empty object', () =>
+            testRelevanceSortingWithEmptySortObject(testProductsShop));
+
         it('omits results for disabled ProductVariants', async () => {
             await adminClient.query(updateProductVariantsDocument, {
                 input: [{ id: 'T_3', enabled: false }],
@@ -821,6 +845,9 @@ describe('Default search plugin', () => {
         it('sort name without grouping', () => testSortingNoGrouping(testProductsAdmin, 'name'));
 
         it('sort price without grouping', () => testSortingNoGrouping(testProductsAdmin, 'price'));
+
+        it('sorts by relevance when sort is an empty object', () =>
+            testRelevanceSortingWithEmptySortObject(testProductsAdmin));
 
         describe('updating the index', () => {
             it('updates index when ProductVariants are changed', async () => {
@@ -1003,6 +1030,134 @@ describe('Default search plugin', () => {
                     'Tripod',
                     'Slr Camera',
                 ]);
+            });
+
+            // #5673 — updates affecting more than 50 variants must index all of them
+            describe('updates affecting more than 50 variants', () => {
+                const variantCount = 60;
+                let productId: string;
+                const variantIds: string[] = [];
+
+                beforeAll(async () => {
+                    const { createProduct } = await adminClient.query(createProductDocument, {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Bulk product',
+                                    slug: 'bulk-product',
+                                    description: '',
+                                },
+                            ],
+                        },
+                    });
+                    productId = createProduct.id;
+                    const { createProductOptionGroup } = await adminClient.query(
+                        createProductOptionGroupDocument,
+                        {
+                            input: {
+                                code: 'bulk',
+                                translations: [{ languageCode: LanguageCode.en, name: 'Bulk' }],
+                                options: Array.from({ length: variantCount }, (_, i) => ({
+                                    code: `bulk-${i}`,
+                                    translations: [{ languageCode: LanguageCode.en, name: `${i}` }],
+                                })),
+                            },
+                        },
+                    );
+                    await adminClient.query(addOptionGroupToProductDocument, {
+                        productId,
+                        optionGroupId: createProductOptionGroup.id,
+                    });
+                    // Create the variants in two calls, so that each update-variants job
+                    // holds fewer than 50 variants and the initial index is complete.
+                    const half = variantCount / 2;
+                    for (const options of [
+                        createProductOptionGroup.options.slice(0, half),
+                        createProductOptionGroup.options.slice(half),
+                    ]) {
+                        const { createProductVariants } = await adminClient.query(
+                            createProductVariantsDocument,
+                            {
+                                input: options.map(option => ({
+                                    productId,
+                                    sku: `BULK${option.name}`,
+                                    price: 100,
+                                    optionIds: [option.id],
+                                    translations: [
+                                        {
+                                            languageCode: LanguageCode.en,
+                                            name: `Bulk variant ${option.name}`,
+                                        },
+                                    ],
+                                })),
+                            },
+                        );
+                        variantIds.push(...createProductVariants.map(v => v!.id));
+                    }
+                    await awaitRunningJobs(adminClient);
+                }, TEST_SETUP_TIMEOUT_MS);
+
+                afterAll(async () => {
+                    await adminClient.query(deleteProductDocument, { id: productId });
+                    await awaitRunningJobs(adminClient);
+                });
+
+                it('updates index for all variants when a Collection with more than 50 variants is created', async () => {
+                    const { createCollection } = await adminClient.query(createCollectionDocument, {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Bulk',
+                                    description: '',
+                                    slug: 'bulk',
+                                },
+                            ],
+                            filters: [
+                                {
+                                    code: variantNameCollectionFilter.code,
+                                    arguments: [
+                                        { name: 'operator', value: 'contains' },
+                                        { name: 'term', value: 'Bulk variant' },
+                                    ],
+                                },
+                            ],
+                        },
+                    });
+                    await awaitRunningJobs(adminClient);
+                    // add an additional check for the collection filters to update
+                    await awaitRunningJobs(adminClient);
+
+                    const result = await testProductsAdmin({
+                        collectionId: createCollection.id,
+                        groupByProduct: false,
+                    });
+                    expect(result.search.totalItems).toBe(variantCount);
+                });
+
+                it('updates index for all variants of a single updateProductVariants call', async () => {
+                    await adminClient.query(updateProductVariantsDocument, {
+                        input: variantIds.map((id, i) => ({ id, sku: `BULKUPDATED${i}` })),
+                    });
+                    await awaitRunningJobs(adminClient);
+
+                    const result = await testProductsAdmin({ term: 'BULKUPDATED', groupByProduct: false });
+                    expect(result.search.totalItems).toBe(variantCount);
+                });
+
+                it('updates index for all variants when a Product with more than 50 variants is disabled', async () => {
+                    const before = await testProductsShop({ term: 'Bulk variant', groupByProduct: false });
+                    expect(before.search.totalItems).toBe(variantCount);
+
+                    await adminClient.query(updateProductDocument, {
+                        input: { id: productId, enabled: false },
+                    });
+                    await awaitRunningJobs(adminClient);
+
+                    const after = await testProductsShop({ term: 'Bulk variant', groupByProduct: false });
+                    expect(after.search.totalItems).toBe(0);
+                });
             });
 
             it('updates index when a taxRate is changed', async () => {

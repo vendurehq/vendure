@@ -232,7 +232,7 @@ for the duration of a single request, but not across multiple requests.
 This can be especially useful in resolvers, where you may want to cache the result of a specific resolved
 field which may be requested multiple times within the same request.
 
-For example, in Vendure core, when dealing with product lists, there's a particular very hot
+For example, in the Vendure Framework, when dealing with product lists, there's a particular very hot
 code path that is used to calculate the correct prices to return for each product. As part of this
 calculation, we need to know the active tax zone, which can be expensive to calculate newly
 for each product. We use the `RequestContextCacheService` to cache the active tax zone for the

@@ -32,7 +32,11 @@ import {
     createProductDocument,
     createProductVariantsDocument,
 } from './graphql/shared-definitions';
-import { localUpdatedOrderFragment, testOrderFragment } from './graphql/shop-definitions';
+import {
+    getProductWithStockLevelDocument,
+    localUpdatedOrderFragment,
+    testOrderFragment,
+} from './graphql/shop-definitions';
 
 describe('Stock location', () => {
     const defaultStockLocationId = 'T_1';
@@ -390,15 +394,12 @@ describe('Stock location', () => {
                 }
                 // Create a StockLocation in Channel A
                 adminClient.setChannelToken(CHANNEL_A_TOKEN);
-                const { createStockLocation } = await adminClient.query(
-                    testCreateStockLocationDocument,
-                    {
-                        input: {
-                            name: 'Channel-A Location',
-                            description: 'Belongs to Channel A only',
-                        },
+                const { createStockLocation } = await adminClient.query(testCreateStockLocationDocument, {
+                    input: {
+                        name: 'Channel-A Location',
+                        description: 'Belongs to Channel A only',
                     },
-                );
+                });
                 targetLocationId = createStockLocation.id;
             });
 
@@ -421,14 +422,179 @@ describe('Stock location', () => {
 
                 // Verify the original entity in Channel A is completely unchanged.
                 adminClient.setChannelToken(CHANNEL_A_TOKEN);
-                const { stockLocations } = await adminClient.query(
-                    testGetStockLocationsListDocument,
-                );
-                const target = stockLocations.items.find(
-                    (sl: any) => sl.id === targetLocationId,
-                );
+                const { stockLocations } = await adminClient.query(testGetStockLocationsListDocument);
+                const target = stockLocations.items.find((sl: any) => sl.id === targetLocationId);
                 expect(target?.name).toBe('Channel-A Location');
                 expect(target?.description).toBe('Belongs to Channel A only');
+            });
+        });
+
+        // Repro for #3324: the MultiChannelStockLocationStrategy caches each StockLocation's
+        // channel ids for 7 days. Assigning a StockLocation to a Channel must invalidate that
+        // cache entry, otherwise the new channel sees no saleable stock until the entry expires
+        // or the server restarts.
+        describe('channelId cache invalidation (#3324)', () => {
+            const CACHE_TEST_CHANNEL_TOKEN = 'stock-loc-cache-test';
+            const CACHE_REMOVAL_CHANNEL_TOKEN = 'stock-loc-cache-removal';
+            let cacheTestChannelId: string;
+            let cacheTestLocationId: string;
+
+            // The cache delete runs in an async event subscriber, so the shop query is
+            // polled with a deadline rather than assuming a fixed delay. Returns the
+            // last observed value so a timeout produces a clear assertion failure.
+            async function pollShopStockLevel(expected: string, timeoutMs = 10_000): Promise<string> {
+                const deadline = Date.now() + timeoutMs;
+                let lastSeen = '';
+                for (;;) {
+                    const { product } = await shopClient.query(getProductWithStockLevelDocument, {
+                        id: 'T_1',
+                    });
+                    lastSeen = product?.variants[0].stockLevel ?? '';
+                    if (lastSeen === expected || Date.now() > deadline) {
+                        return lastSeen;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
+
+            beforeAll(async () => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                const { createStockLocation } = await adminClient.query(testCreateStockLocationDocument, {
+                    input: {
+                        name: 'Cache test location',
+                    },
+                });
+                cacheTestLocationId = createStockLocation.id;
+                await adminClient.query(testSetStockLevelInLocationDocument, {
+                    input: {
+                        id: 'T_1',
+                        stockLevels: [
+                            {
+                                stockLocationId: cacheTestLocationId,
+                                stockOnHand: 10,
+                            },
+                        ],
+                    },
+                });
+                const { createChannel } = await adminClient.query(createChannelDocument, {
+                    input: {
+                        code: 'cache-test-channel',
+                        token: CACHE_TEST_CHANNEL_TOKEN,
+                        defaultLanguageCode: LanguageCode.en,
+                        currencyCode: CurrencyCode.GBP,
+                        pricesIncludeTax: true,
+                        defaultShippingZoneId: 'T_1',
+                        defaultTaxZoneId: 'T_1',
+                    },
+                });
+                channelGuard.assertSuccess(createChannel);
+                cacheTestChannelId = createChannel.id;
+                await adminClient.query(assignProductToChannelDocument, {
+                    input: {
+                        channelId: cacheTestChannelId,
+                        productIds: ['T_1'],
+                    },
+                });
+            });
+
+            afterAll(() => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            });
+
+            it('saleable stock becomes visible once the StockLocation is assigned to the channel', async () => {
+                // Populate the strategy's channelId cache for the location while it is
+                // not yet assigned to the new channel
+                shopClient.setChannelToken(CACHE_TEST_CHANNEL_TOKEN);
+                const before = await shopClient.query(getProductWithStockLevelDocument, { id: 'T_1' });
+                expect(before.product?.variants[0].stockLevel).toBe('OUT_OF_STOCK');
+
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(testAssignStockLocationToChannelDocument, {
+                    input: {
+                        stockLocationIds: [cacheTestLocationId],
+                        channelId: cacheTestChannelId,
+                    },
+                });
+
+                expect(await pollShopStockLevel('IN_STOCK')).toBe('IN_STOCK');
+            });
+
+            it('saleable stock disappears once the StockLocation is removed from the channel', async () => {
+                // Fresh location + channel: this direction needs a cache entry that is
+                // first populated after assignment (warm and including the channel),
+                // which the fixtures of the assignment test above cannot provide.
+                // Ordering constraint: the location's StockLevel row is created only
+                // after the channel assignment, because any admin response that
+                // resolves variant stock in between (e.g. assignProductsToChannel)
+                // runs the strategy and would seed the cache with the pre-assignment
+                // channel list.
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                const { createStockLocation } = await adminClient.query(testCreateStockLocationDocument, {
+                    input: {
+                        name: 'Cache removal test location',
+                    },
+                });
+                const removalLocationId = createStockLocation.id;
+                const { createChannel } = await adminClient.query(createChannelDocument, {
+                    input: {
+                        code: 'cache-removal-test-channel',
+                        token: CACHE_REMOVAL_CHANNEL_TOKEN,
+                        defaultLanguageCode: LanguageCode.en,
+                        currencyCode: CurrencyCode.GBP,
+                        pricesIncludeTax: true,
+                        defaultShippingZoneId: 'T_1',
+                        defaultTaxZoneId: 'T_1',
+                    },
+                });
+                channelGuard.assertSuccess(createChannel);
+                await adminClient.query(assignProductToChannelDocument, {
+                    input: {
+                        channelId: createChannel.id,
+                        productIds: ['T_1'],
+                    },
+                });
+                await adminClient.query(testAssignStockLocationToChannelDocument, {
+                    input: {
+                        stockLocationIds: [removalLocationId],
+                        channelId: createChannel.id,
+                    },
+                });
+                await adminClient.query(testSetStockLevelInLocationDocument, {
+                    input: {
+                        id: 'T_1',
+                        stockLevels: [
+                            {
+                                stockLocationId: removalLocationId,
+                                stockOnHand: 7,
+                            },
+                        ],
+                    },
+                });
+
+                // Warm the cache with the post-assignment channel list
+                shopClient.setChannelToken(CACHE_REMOVAL_CHANNEL_TOKEN);
+                expect(await pollShopStockLevel('IN_STOCK')).toBe('IN_STOCK');
+
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(testRemoveStockLocationsFromChannelDocument, {
+                    input: {
+                        stockLocationIds: [removalLocationId],
+                        channelId: createChannel.id,
+                    },
+                });
+
+                // The removal does not touch the location's stock, so a lingering
+                // IN_STOCK below could only come from the stale cached membership
+                const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                    id: 'T_1',
+                });
+                expect(
+                    productVariant?.stockLevels.find(sl => sl.stockLocationId === removalLocationId)
+                        ?.stockOnHand,
+                ).toBe(7);
+
+                expect(await pollShopStockLevel('OUT_OF_STOCK')).toBe('OUT_OF_STOCK');
             });
         });
     });

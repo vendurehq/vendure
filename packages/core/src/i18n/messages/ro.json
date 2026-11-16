@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtrează după valori atribut",
+        "args": {
+          "facetValueIds": {
+            "label": "Valori atribut"
+          },
+          "containsAny": {
+            "label": "Conține oricare",
+            "description": "Dacă este bifat, variantele de produs trebuie să aibă cel puțin una dintre valorile atribut selectate. Dacă nu este bifat, varianta trebuie să aibă toate valorile selectate."
+          },
+          "combineWithAnd": {
+            "label": "Mod de combinare",
+            "description": "Dacă acest filtru este combinat cu alte filtre, trebuie îndeplinite toate condițiile (AND) sau este suficientă doar una dintre ele (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtrează după numele variantei de produs",
+        "args": {
+          "combineWithAnd": {
+            "label": "Mod de combinare",
+            "description": "Dacă acest filtru este combinat cu alte filtre, trebuie îndeplinite toate condițiile (AND) sau este suficientă doar una dintre ele (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Selectează manual variantele de produs",
+        "args": {
+          "variantIds": {
+            "label": "Variante de produs"
+          },
+          "combineWithAnd": {
+            "label": "Mod de combinare",
+            "description": "Dacă acest filtru este combinat cu alte filtre, trebuie îndeplinite toate condițiile (AND) sau este suficientă doar una dintre ele (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Selectează manual produsele",
+        "args": {
+          "productIds": {
+            "label": "Produse"
+          },
+          "combineWithAnd": {
+            "label": "Mod de combinare",
+            "description": "Dacă acest filtru este combinat cu alte filtre, trebuie îndeplinite toate condițiile (AND) sau este suficientă doar una dintre ele (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Duplicator implicit pentru Produse",
+        "args": {
+          "includeVariants": {
+            "label": "Include variantele"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Duplicator implicit pentru Colecții"
+      },
+      "facet-duplicator": {
+        "description": "Duplicator implicit pentru Atribute",
+        "args": {
+          "includeFacetValues": {
+            "label": "Include valorile atribut"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Duplicator implicit pentru Promoții"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Introdu manual detaliile livrării"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Un furnizor de plată fictiv destinat exclusiv testării și dezvoltării.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autorizează și decontează într-un singur pas",
+            "description": "Dacă este activat, plățile vor fi create în starea \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Furnizor de plată exemplu"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Reducere a comenzii cu o sumă fixă"
+      },
+      "order_line_fixed_discount": {
+        "description": "Reducere a orderLine cu o sumă fixă"
+      },
+      "order_percentage_discount": {
+        "description": "Reducere a comenzii cu { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Reducere de { discount }% pentru produsele cu aceste atribute"
+      },
+      "products_percentage_discount": {
+        "description": "Reducere de { discount }% pentru produsele specificate",
+        "args": {
+          "productVariantIds": {
+            "label": "Variante de produs"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Livrare gratuită"
+      },
+      "buy_x_get_y_free": {
+        "description": "Cumpără X produse, primești Y produse gratuit"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Dacă totalul comenzii este mai mare decât { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Cumpără cel puțin { minimum } produse cu atributele indicate"
+      },
+      "contains_products": {
+        "description": "Cumpără cel puțin { minimum } dintre produsele specificate",
+        "args": {
+          "productVariantIds": {
+            "label": "Variante de produs"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Clientul este membru al grupului specificat",
+        "args": {
+          "customerGroupId": {
+            "label": "Grup de clienți"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Cumpără X produse, primești Y produse gratuit",
+        "args": {
+          "variantIdsX": {
+            "label": "Cumpără amountX din aceste variante"
+          },
+          "variantIdsY": {
+            "label": "Primești amountY din aceste variante gratuit"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Calculator implicit de livrare cu tarif fix",
+        "args": {
+          "rate": {
+            "label": "Preț de livrare"
+          },
+          "includesTax": {
+            "label": "Prețul include taxa",
+            "options": {
+              "include": {
+                "label": "Include taxa"
+              },
+              "exclude": {
+                "label": "Nu include taxa"
+              },
+              "auto": {
+                "label": "Automat (în funcție de canal)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Cota de taxă"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Verificator implicit de eligibilitate pentru livrare",
+        "args": {
+          "orderMinimum": {
+            "label": "Valoare minimă a comenzii",
+            "description": "Comanda este eligibilă doar dacă totalul acesteia este mai mare sau egal cu această valoare"
+          }
+        }
+      }
+    }
+  }
+}

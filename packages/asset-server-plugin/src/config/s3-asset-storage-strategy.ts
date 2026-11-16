@@ -237,8 +237,17 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
     private async readFile(identifier: string) {
         const { GetObjectCommand } = this.AWS;
 
-        const result = await this.s3Client.send(new GetObjectCommand(this.getObjectParams(identifier)));
-        return result.Body as Readable | undefined;
+        try {
+            const result = await this.s3Client.send(new GetObjectCommand(this.getObjectParams(identifier)));
+            return result.Body as Readable | undefined;
+        } catch (err: any) {
+            const legacyParams = this.getLegacyObjectParams(identifier);
+            if (!legacyParams || !this.isNotFoundError(err)) {
+                throw err;
+            }
+            const result = await this.s3Client.send(new GetObjectCommand(legacyParams));
+            return result.Body as Readable | undefined;
+        }
     }
 
     private async writeFile(fileName: string, data: PutObjectRequest['Body'] | string | Uint8Array | Buffer) {
@@ -269,6 +278,14 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
     async deleteFile(identifier: string) {
         const { DeleteObjectCommand } = this.AWS;
         await this.s3Client.send(new DeleteObjectCommand(this.getObjectParams(identifier)));
+        const legacyParams = this.getLegacyObjectParams(identifier);
+        if (legacyParams) {
+            // `readFile` and `fileExists` both fall back to the legacy key, so leaving it in
+            // place would keep the asset readable after a delete that reported success.
+            // DeleteObject answers success for a key that is not there, so for an asset never
+            // stored under the legacy form this costs one request and changes nothing.
+            await this.s3Client.send(new DeleteObjectCommand(legacyParams));
+        }
     }
 
     async fileExists(fileName: string) {
@@ -278,15 +295,48 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
             await this.s3Client.send(new HeadObjectCommand(this.getObjectParams(fileName)));
             return true;
         } catch (err: any) {
-            return false;
+            // Every error means "treat the name as free". A bucket policy without
+            // `s3:ListBucket` makes S3 answer 403 rather than 404 for a key that is not
+            // there, and `generateUniqueName` in the core AssetService calls this on every
+            // upload, so throwing here would fail uploads that used to succeed.
+            const legacyParams = this.getLegacyObjectParams(fileName);
+            if (!legacyParams) {
+                return false;
+            }
+            try {
+                await this.s3Client.send(new HeadObjectCommand(legacyParams));
+                return true;
+            } catch {
+                return false;
+            }
         }
     }
 
     private getObjectParams(identifier: string) {
         return {
             Bucket: this.s3Config.bucket,
-            Key: path.join(identifier.replace(/^\//, '')),
+            Key: path.posix.join(identifier.replace(/^\//, '')),
         };
+    }
+
+    /**
+     * Assets written on Windows before identifiers were normalized live under keys holding
+     * backslashes. An S3 key is an opaque string, so that spelling addresses a different
+     * object and has to be named explicitly. Returns undefined when normalization leaves the
+     * key unchanged, meaning there is no second object to look for.
+     */
+    private getLegacyObjectParams(identifier: string) {
+        const params = {
+            Bucket: this.s3Config.bucket,
+            Key: path.win32.join(identifier.replace(/^\//, '')),
+        };
+        return params.Key === this.getObjectParams(identifier).Key ? undefined : params;
+    }
+
+    private isNotFoundError(err: any): boolean {
+        return (
+            err?.$metadata?.httpStatusCode === 404 || err?.name === 'NoSuchKey' || err?.name === 'NotFound'
+        );
     }
 
     private async ensureBucket(bucket = this.s3Config.bucket) {

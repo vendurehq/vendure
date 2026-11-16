@@ -2,6 +2,7 @@ import { VendureConfig } from '@vendure/core';
 
 import { AlertTestPlugin } from './alert-test-plugin';
 import { FormInputsTestPlugin } from './form-inputs-test-plugin';
+import { RefundDestinationTestPlugin } from './refund-destination-test-plugin';
 import { RelationCfPlugin } from './relation-cf-plugin';
 
 /**
@@ -31,5 +32,5 @@ export const config: VendureConfig = {
     paymentOptions: {
         paymentMethodHandlers: [],
     },
-    plugins: [FormInputsTestPlugin, AlertTestPlugin, RelationCfPlugin],
+    plugins: [FormInputsTestPlugin, AlertTestPlugin, RefundDestinationTestPlugin, RelationCfPlugin],
 };

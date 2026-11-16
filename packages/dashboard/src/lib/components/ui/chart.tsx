@@ -6,4 +6,4 @@ export {
     ChartLegend,
     ChartLegendContent,
     ChartStyle,
-} from '@vendure-io/ui/components/ui/chart';
+} from '@vendure-io/ui/components/atoms/chart';

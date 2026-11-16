@@ -1,60 +1,32 @@
 ---
 title: "Health Checks"
 metaTitle: "Health Check Endpoint for Monitoring Vendure"
-metaDescription: "How Vendure exposes a /health endpoint for monitoring system dependencies like the database and external services."
+metaDescription: "What the Vendure /health endpoint reports and how to use it as a liveness probe."
 ---
 
-Vendure exposes a **`/health`** endpoint that reports the status of critical system dependencies.
-This endpoint is essential for production deployments where load balancers, container orchestrators,
-and monitoring tools need to know whether the application is healthy and ready to serve traffic.
+Vendure exposes a **`/health`** endpoint on the server. It is a plain REST route which returns
+`{ "status": "ok" }` as soon as the application is accepting HTTP requests.
 
-## How it works
+The response is unconditional. `/health` does not check the database or any other dependency. It only
+tells you that this process is running and serving HTTP, which is what a liveness probe needs.
 
-Each configured health check strategy probes a specific dependency and reports back with a status.
-The `/health` endpoint aggregates all strategy results into a single response.
+:::warning[Changed in v3.6.0]
 
-A healthy response indicates that all dependencies are reachable and functioning correctly. If any
-strategy reports a failure, the endpoint returns an unhealthy status, signaling that the system
-may not be able to serve requests reliably.
+Before v3.6.0, `/health` ran the strategies configured in `systemOptions.healthChecks` and returned a
+503 if any of them failed. Since v3.6.0 those strategies are not executed. The strategy classes and
+`HealthCheckRegistryService` will be removed in v4.0.0. Remove any custom strategies and set
+`healthChecks: []` to silence the startup warning. See [#4441](https://github.com/vendurehq/vendure/issues/4441) for the reasoning.
 
-## Built-in strategies
+:::
 
-Vendure ships with two health check strategies out of the box:
+Checking dependencies from the application health endpoint was removed on purpose. If `/health` failed
+whenever the database was slow, an orchestrator would restart every instance at once, and restarting the
+application cannot fix the database. Monitor dependencies with their own alerting and keep the
+application probe shallow.
 
-- **`TypeORMHealthCheckStrategy`** — verifies that the database connection is alive by executing
-  a simple query. Since the database is the most critical dependency for any Vendure instance,
-  this strategy is enabled by default.
-
-- **`HttpHealthCheckStrategy`** — checks the availability of an external HTTP service. This is
-  useful when your Vendure instance depends on external APIs, such as a payment gateway or a
-  third-party inventory system.
-
-## Configuration
-
-Health checks are configured via the `systemOptions.healthChecks` property in the
-[`VendureConfig`](/reference/typescript-api/configuration/vendure-config/). You can enable or disable
-individual strategies and configure their parameters to match your infrastructure.
-
-## Use cases
-
-The `/health` endpoint serves several important operational purposes:
-
-- **Load balancer probes** — configure your load balancer to poll `/health` and route traffic
-  only to healthy instances.
-- **Container orchestration** — use the endpoint as a Kubernetes liveness or readiness probe
-  to automatically restart unhealthy pods or delay traffic until the application is ready.
-- **Monitoring dashboards** — integrate with monitoring tools to track uptime and get alerted
-  when dependencies become unreachable.
-
-## Custom strategies
-
-When your application has dependencies beyond the database and HTTP services, you can implement
-the `HealthCheckStrategy` interface to create custom checks. For example, a custom strategy might
-verify connectivity to a Redis cache, an Elasticsearch cluster, or a message broker.
-
-Custom strategies are added to the same `systemOptions.healthChecks` configuration array alongside
-the built-in strategies, and their results are included in the aggregated `/health` response.
+The worker can serve the same unconditional `/health` response. See the
+[Using Docker guide](/deployment/using-docker/#healthreadiness-checks) for how to enable it.
 
 ## Further reading
 
-- [Production configuration guide](/deployment/production-configuration/) — deploying Vendure with proper health checks and monitoring
+- [Production configuration guide](/deployment/production-configuration/)

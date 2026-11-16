@@ -31,7 +31,7 @@ function VendureBranding({ className }: Readonly<{ className?: string }>) {
                 data-vendure-branding=""
                 className={`flex items-center justify-center gap-1.5 text-muted-foreground ${className ?? ''}`}
             >
-                <IconMark className="h-3 w-3.5 shrink-0" />
+                <IconMark className="h-3 w-3.5 shrink-0 text-brand" />
                 <span className="text-xs leading-none whitespace-nowrap">
                     Vendure{' '}
                     <span className="opacity-60">v{uiConfig.version}</span>

@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="254" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="257" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -23,7 +23,7 @@ Parameters
 
 ## VitePluginVendureDashboardOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="40" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.4.0" />
 
 Options for the [vendureDashboardPlugin](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#venduredashboardplugin) Vite plugin.
 
@@ -165,6 +165,7 @@ type VitePluginVendureDashboardOptions = {
         tailwindcss?: boolean;
         configLoader?: boolean;
         viteConfig?: boolean;
+        chunkHash?: boolean;
         bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
@@ -294,14 +295,17 @@ the base `tsconfig.json` lives), so that a config file at
 `apps/server/src/vendure-config.ts` outputs to
 `{outputPath}/apps/server/src/vendure-config.js`.
 
-Defaults to the directory containing the `vendureConfigPath` file,
-which places the compiled config at the output root.
+Defaults to the deepest directory containing the `vendureConfigPath`
+file and every local file it imports. When every import sits at or
+below the config, that is the config's own directory and the compiled
+config lands at the output root; an import from above widens the root
+so nothing is emitted outside `outputPath`.
 
 
 </div>
 ## DashboardThemeOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-theme.ts" sourceLine="23" packageName="@vendure/dashboard" since="3.5.1" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-theme.ts" sourceLine="34" packageName="@vendure/dashboard" since="3.5.1" />
 
 Appearance options for the dashboard. Extends `ThemeVariables` (the
 `light`/`dark` colour-token overrides) with the ability to layer in

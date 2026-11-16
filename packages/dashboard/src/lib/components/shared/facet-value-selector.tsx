@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import {
     Command,
     CommandEmpty,
@@ -156,7 +157,7 @@ export function FacetValueSelector({
                                     </Button>
                                 </div>
                             ) : isLoading ? (
-                                <Trans>Loading...</Trans>
+                                <LoadingState variant="spinner" className="py-4" />
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-4">
                                     <div className="text-sm text-muted-foreground">

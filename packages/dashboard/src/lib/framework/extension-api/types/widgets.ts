@@ -106,4 +106,26 @@ export type DashboardWidgetDefinition = {
      * If not set, the widget will be visible to all users.
      */
     requiresPermissions?: string[];
+    /**
+     * @description
+     * Default configuration values for the widget. The effective config seen by the
+     * widget is this object merged with any per-instance overrides that the user has
+     * persisted. Widgets read and write their config via the
+     * {@link useWidgetConfig} hook.
+     *
+     * @since 3.8.0
+     */
+    defaultConfig?: Record<string, unknown>;
+    /**
+     * @description
+     * If set to `true`, the widget can be added to the Insights page multiple times.
+     * Each instance keeps its own independent layout and {@link useWidgetConfig} state,
+     * and the "Add widget" picker offers the widget even when an instance is already
+     * on the page. When `false` (the default), the widget can appear at most once and
+     * removing it simply hides it until re-added.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    allowMultipleInstances?: boolean;
 };

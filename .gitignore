@@ -400,3 +400,10 @@ package-lock.json
 
 # Agentic engineering
 plans/
+
+# Scratch files produced by the translation tooling
+missing-translations.txt
+translations.txt
+
+# Lockfile snapshot taken by scripts/typeorm/use-version.mjs
+bun.lock.typeorm-profile-backup

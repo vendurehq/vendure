@@ -12,15 +12,16 @@ export const MAX_REGEX_FILTER_LENGTH = 100;
  * catastrophic backtracking (ReDoS).
  *
  * The `regex` filter is exposed on the public Shop API and, on SQLite backends, is
- * evaluated by a synchronous JS user-defined function on the Node.js event loop. An
- * unvalidated pattern such as `(a+)+$` can therefore block the entire server. This
- * check is a conservative static analysis applied at the single parse-layer choke
- * point, so it protects all database backends regardless of how they evaluate the regex.
+ * evaluated by a synchronous JS user-defined function on the Node.js event loop, where an
+ * unvalidated pattern such as `(a+)+$` can block the entire server. This check is a cheap
+ * static analysis applied at the single parse-layer choke point, so it gives every database
+ * backend baseline protection regardless of how the regex is evaluated.
  *
- * It is a heuristic, not a proof: it reliably rejects exponential nested-quantifier
- * patterns (star height >= 2) but does not attempt to catch every pathological regex
- * (e.g. alternation-overlap such as `(a|a)+`). Combined with the length cap, it closes
- * the documented attack class while leaving legitimate filters untouched.
+ * It is a heuristic, not a proof: it reliably rejects exponential nested-quantifier patterns
+ * (star height >= 2) but does not attempt to catch every pathological regex (e.g.
+ * alternation-overlap such as `(a|a)+`). The definitive protection on the vulnerable SQLite
+ * path is the RE2 engine (see {@link createSqliteRegexpFunction}), which matches in linear
+ * time; this check remains as a light cross-backend guard and length cap.
  */
 export function assertSafeRegexFilter(pattern: string): void {
     if (pattern.length > MAX_REGEX_FILTER_LENGTH) {

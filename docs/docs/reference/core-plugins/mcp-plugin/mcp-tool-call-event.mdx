@@ -1,0 +1,25 @@
+---
+title: "McpToolCallEvent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/events/mcp-tool-call.event.ts" sourceLine="15" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Fired after a tool call is executed and its log entry is saved.
+
+Carries the request context and the persisted log entry.
+Only emitted for calls that actually ran.
+
+```ts title="Signature"
+class McpToolCallEvent extends VendureEvent {
+    constructor(ctx: RequestContext, entry: McpToolCallLog)
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>

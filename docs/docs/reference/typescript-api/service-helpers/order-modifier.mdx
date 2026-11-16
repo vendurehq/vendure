@@ -2,7 +2,7 @@
 title: "OrderModifier"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="85" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="87" packageName="@vendure/core" />
 
 This helper is responsible for modifying the contents of an Order.
 
@@ -15,8 +15,8 @@ of these Order-related methods into a more clearly-delineated set of classes.
 
 ```ts title="Signature"
 class OrderModifier {
-    constructor(connection: TransactionalConnection, configService: ConfigService, orderCalculator: OrderCalculator, paymentService: PaymentService, countryService: CountryService, stockMovementService: StockMovementService, productVariantService: ProductVariantService, customFieldRelationService: CustomFieldRelationService, promotionService: PromotionService, eventBus: EventBus, shippingCalculator: ShippingCalculator, historyService: HistoryService, translator: TranslatorService)
-    constrainQuantityToSaleable(ctx: RequestContext, variant: ProductVariant, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0) => ;
+    constructor(connection: TransactionalConnection, configService: ConfigService, orderCalculator: OrderCalculator, paymentService: PaymentService, countryService: CountryService, stockMovementService: StockMovementService, productVariantService: ProductVariantService, customFieldRelationService: CustomFieldRelationService, promotionService: PromotionService, eventBus: EventBus, shippingCalculator: ShippingCalculator, historyService: HistoryService, translator: TranslatorService, stockLevelService: StockLevelService)
+    constrainQuantityToSaleable(ctx: RequestContext, variant: ProductVariant, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0, options?: StockLevelReadOptions) => ;
     getExistingOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => Promise<OrderLine | undefined>;
     getOrCreateOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => ;
     updateOrderLineQuantity(ctx: RequestContext, orderLine: OrderLine, quantity: number, order: Order) => Promise<OrderLine>;
@@ -30,7 +30,7 @@ class OrderModifier {
 
 ### constrainQuantityToSaleable
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0, options?: <a href='/reference/typescript-api/services/stock-level-read-options#stocklevelreadoptions'>StockLevelReadOptions</a>) => `}  since="3.7.4 - Added the `options` parameter"  />
 
 Ensure that the ProductVariant has sufficient saleable stock to add the given
 quantity to an Order.
@@ -42,6 +42,9 @@ ProductVariant. This occurs when there are custom fields defined on the OrderLin
 have differing values for one or more custom fields. In this case, we need to take _all_ of these
 OrderLines into account when constraining the quantity. See https://github.com/vendurehq/vendure/issues/2702
 for more on this.
+- `options.lockStockLevels` must be `true` when the caller allocates stock in the same
+transaction based on the result, so that the check and the allocation cannot be interleaved
+with another transaction for the same ProductVariant. See `StockLevelService.getAvailableStock`.
 ### getExistingOrderLine
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, customFields?: { [key: string]: any }) => Promise<<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a> | undefined>`}   />

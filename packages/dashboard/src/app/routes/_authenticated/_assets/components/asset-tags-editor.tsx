@@ -41,7 +41,6 @@ export function AssetTagsEditor({
     const { data: tagsData } = useQuery({
         queryKey: ['tags'],
         queryFn: () => api.query(tagListDocument, { options: { take: 100 } }),
-        staleTime: 1000 * 60 * 5, // 5 minutes
     });
 
     // Create new tag mutation
@@ -112,7 +111,7 @@ export function AssetTagsEditor({
                     </span>
                 ) : (
                     selectedTags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                        <Badge key={tag} variant="default" className="flex items-center gap-1">
                             {tag}
                             {!disabled && (
                                 <button

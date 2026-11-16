@@ -91,7 +91,7 @@ git push origin master
 ## Setting up the dev environment
 
 > [!IMPORTANT]
-> The following instructions are for those who want to develop the Vendure core framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
+> The following instructions are for those who want to develop the Vendure Framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
 ### Prerequisites
 
@@ -274,7 +274,7 @@ After implementing your changes, stage the changes and commit them. Refer to the
 
 ```
 git add .
-git commit -m "type(scope): Message in present tense"
+git commit -m "type(scope): message in present tense"
 ```
 
 ### Creating a pull request
@@ -354,8 +354,12 @@ myNewApi: number;
 This repo uses [Conventional Commits](https://www.conventionalcommits.org).
 
 ```
-type(scope): Message in present tense
+type(scope): message in present tense
 ```
+
+The subject must not start with a capital letter: `@commitlint/config-conventional` rejects sentence-case,
+start-case, pascal-case and upper-case subjects.
+
 `type` may be one of:
 * **feat** (new feature)
 * **fix** (bug fix)
@@ -380,7 +384,7 @@ type(scope): Message in present tense
 If a commit affects more than one package, separate them with a comma:
 
 ```
-fix(core,common): Fix the thing
+fix(core,common): fix the thing
 ```
 
 If a commit applies to no particular package (e.g. a tooling change in the root package.json), the scope can be omitted.
@@ -394,7 +398,7 @@ Please also make your pull request against the `major` branch rather than `maste
 Example:
 
 ```
-feat(core): Add new field to Customer
+feat(core): add new field to Customer
 
 Relates to #123. This commit adds the "foo" field to the Custom entity.
 
@@ -448,7 +452,7 @@ To make a release:
 
 It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
-Next it will build all packages to ensure the distributed files are up to date.
+Next it will refresh the Platform catalog snapshot (`packages/common/src/platform-promotion-snapshot.ts`) from `https://api.vendure.io/v1/catalog`. The Core startup banner uses this snapshot. Then it will build all packages to ensure the distributed files are up to date. Do not set `VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH` for a release. Check the output for `Platform catalog snapshot updated`. If it says `Platform catalog snapshot not changed`, the release keeps the old snapshot. After the command, `git show --stat HEAD` lists the snapshot file if the catalog data changed.
 
 Finally, the command will create changelog entries for this release and create a tagged commit.
 

@@ -1,6 +1,7 @@
 import { UpdateScheduledTaskInput } from '@vendure/common/lib/generated-types';
 import { Cron } from 'croner';
 import ms, { type StringValue } from 'ms';
+import { inspect } from 'node:util';
 
 import { Injector } from '../../common';
 import { assertFound } from '../../common/utils';
@@ -122,17 +123,13 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
             );
             Logger.verbose(`Scheduled task "${task.id}" completed successfully`);
         } catch (error) {
-            let errorMessage = 'Unknown error';
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            }
-            Logger.error(`Scheduled task "${task.id}" failed with error: ${errorMessage}`);
+            Logger.error(`Scheduled task "${task.id}" failed with error: ${inspect(error)}`);
             await this.connection.rawConnection.getRepository(ScheduledTaskRecord).update(
                 { taskId: task.id },
                 {
                     lastExecutedAt: new Date(),
                     lockedAt: null,
-                    lastResult: { error: errorMessage } as any,
+                    lastResult: { error: errorLabel(error) } as any,
                 },
             );
         } finally {
@@ -356,4 +353,15 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
             this.tasks.set(taskId, { task: task.task, isRegistered: true });
         }
     }
+}
+
+/**
+ * `constructor.name` rather than `name` because a subclass which does not set `name`
+ * still inherits `'Error'` from `Error.prototype`.
+ */
+function errorLabel(error: unknown): string {
+    if (!(error instanceof Error)) {
+        return 'Unknown error';
+    }
+    return error.message || error.constructor.name;
 }

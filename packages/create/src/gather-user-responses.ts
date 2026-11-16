@@ -5,7 +5,9 @@ import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import path from 'path';
 
-import { checkCancel, isDockerAvailable, toComposeProjectName } from './helpers';
+import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
+import { checkCancel, findAvailablePort, isDockerAvailable, toComposeProjectName } from './helpers';
+import { getStorefrontStarter, STOREFRONT_STARTERS, StorefrontId } from './storefront-starters';
 import { DbType, FileSources, PackageManager, UserResponses } from './types';
 
 interface PromptAnswers {
@@ -20,10 +22,58 @@ interface PromptAnswers {
     superadminIdentifier: string | symbol;
     superadminPassword: string | symbol;
     populateProducts: boolean | symbol;
-    includeStorefront: boolean | symbol;
+    storefront?: StorefrontId;
+}
+
+async function selectStorefront(): Promise<StorefrontId | undefined> {
+    const selected = await select({
+        message: 'Would you like to include a storefront?',
+        options: [
+            { label: 'None', value: 'none' },
+            ...STOREFRONT_STARTERS.map(storefront => ({
+                label: storefront.name,
+                value: storefront.id,
+                hint: storefront.description,
+            })),
+        ],
+        initialValue: 'none' as const,
+    });
+    checkCancel(selected);
+    return selected === 'none' ? undefined : (selected as StorefrontId);
 }
 
 /* eslint-disable no-console */
+
+/**
+ * Asks whether to use SQLite or to retry Docker, and checks Docker again on each retry.
+ * Resolves to true once Docker is running, or false when the user picks SQLite.
+ */
+async function askToRetryDocker(notResponding: boolean): Promise<boolean> {
+    for (;;) {
+        const useSqlite = await select({
+            message: notResponding
+                ? 'Docker is not responding. How should we proceed?'
+                : 'We could not automatically start Docker. How should we proceed?',
+            options: [
+                { label: `Let's use SQLite as the database`, value: true },
+                {
+                    label: notResponding ? 'I have restarted Docker' : 'I have manually started Docker',
+                    value: false,
+                },
+            ],
+            initialValue: true,
+        });
+        checkCancel(useSqlite);
+        if (useSqlite) {
+            return false;
+        }
+        const { result } = await isDockerAvailable();
+        if (result === 'running') {
+            return true;
+        }
+        notResponding = result === 'not-responding';
+    }
+}
 
 export async function getQuickStartConfiguration(
     root: string,
@@ -40,43 +90,13 @@ export async function getQuickStartConfiguration(
         case 'not-found':
             usePostgres = false;
             break;
-        case 'not-running': {
-            let useSqlite = false;
-            let dockerIsNowRunning = false;
-            do {
-                const useSqliteResponse = await select({
-                    message: 'We could not automatically start Docker. How should we proceed?',
-                    options: [
-                        { label: `Let's use SQLite as the database`, value: true },
-                        { label: 'I have manually started Docker', value: false },
-                    ],
-                    initialValue: true,
-                });
-                checkCancel(useSqlite);
-                useSqlite = useSqliteResponse as boolean;
-                if (useSqlite === false) {
-                    const { result: dockerStatusManual } = await isDockerAvailable();
-                    dockerIsNowRunning = dockerStatusManual === 'running';
-                }
-            } while (dockerIsNowRunning !== true && useSqlite === false);
-            usePostgres = !useSqlite;
+        case 'not-running':
+        case 'not-responding':
+            usePostgres = await askToRetryDocker(dockerStatus === 'not-responding');
             break;
-        }
     }
 
-    const includeStorefront = await select({
-        message: 'Would you like to include the Next.js storefront?',
-        options: [
-            { label: 'No', value: false },
-            {
-                label: 'Yes',
-                value: true,
-                hint: 'Adds a ready-to-use Next.js storefront connected to your Vendure server',
-            },
-        ],
-        initialValue: false,
-    });
-    checkCancel(includeStorefront);
+    const storefront = await selectStorefront();
 
     const quickStartAnswers: PromptAnswers = {
         dbType: usePostgres ? 'postgres' : 'sqlite',
@@ -89,7 +109,7 @@ export async function getQuickStartConfiguration(
         populateProducts: true,
         superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
         superadminPassword: SUPER_ADMIN_USER_PASSWORD,
-        includeStorefront,
+        storefront,
     };
 
     const responses = {
@@ -98,7 +118,7 @@ export async function getQuickStartConfiguration(
         populateProducts: quickStartAnswers.populateProducts as boolean,
         superadminIdentifier: quickStartAnswers.superadminIdentifier as string,
         superadminPassword: quickStartAnswers.superadminPassword as string,
-        includeStorefront: includeStorefront as boolean,
+        storefront,
     };
 
     return responses;
@@ -200,19 +220,7 @@ export async function getManualConfiguration(
     });
     checkCancel(populateProducts);
 
-    const includeStorefront = await select({
-        message: 'Would you like to include the Next.js storefront?',
-        options: [
-            { label: 'No', value: false },
-            {
-                label: 'Yes',
-                value: true,
-                hint: 'Adds a ready-to-use Next.js storefront connected to your Vendure server',
-            },
-        ],
-        initialValue: false,
-    });
-    checkCancel(includeStorefront);
+    const storefront = await selectStorefront();
 
     const answers: PromptAnswers = {
         dbType,
@@ -226,7 +234,7 @@ export async function getManualConfiguration(
         superadminIdentifier,
         superadminPassword,
         populateProducts,
-        includeStorefront,
+        storefront,
     };
 
     return {
@@ -235,7 +243,7 @@ export async function getManualConfiguration(
         populateProducts: answers.populateProducts as boolean,
         superadminIdentifier: answers.superadminIdentifier as string,
         superadminPassword: answers.superadminPassword as string,
-        includeStorefront: includeStorefront as boolean,
+        storefront,
     };
 }
 
@@ -246,7 +254,7 @@ export async function getCiConfiguration(
     root: string,
     packageManager: PackageManager,
     port: number,
-    includeStorefront: boolean = false,
+    storefront?: StorefrontId,
     dbType: 'sqlite' | 'postgres' = 'sqlite',
 ): Promise<UserResponses> {
     // The postgres answers mirror the Quick Start flow, which starts the database
@@ -263,7 +271,7 @@ export async function getCiConfiguration(
         populateProducts: true,
         superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
         superadminPassword: SUPER_ADMIN_USER_PASSWORD,
-        includeStorefront,
+        storefront,
     };
 
     return {
@@ -272,7 +280,7 @@ export async function getCiConfiguration(
         populateProducts: ciAnswers.populateProducts,
         superadminIdentifier: ciAnswers.superadminIdentifier,
         superadminPassword: ciAnswers.superadminPassword,
-        includeStorefront,
+        storefront,
     };
 }
 
@@ -284,10 +292,17 @@ async function generateSources(
     answers: PromptAnswers,
     packageManager: PackageManager,
     port: number,
-): Promise<FileSources> {
+): Promise<FileSources & { storefrontPort: number }> {
     const assetPath = (fileName: string) => path.join(__dirname, '../assets', fileName);
 
     registerEscapeSingleHelper();
+
+    // create-vendure-app.ts hands this same value to the storefront's dev server, so the
+    // URLs in the generated config and the running storefront resolve to one port. Without a
+    // storefront there is nothing to point at and STOREFRONT_PORT is only a placeholder.
+    const storefrontPort = answers.storefront
+        ? await findAvailablePort(Math.max(STOREFRONT_PORT, port + 1), PORT_SCAN_RANGE)
+        : STOREFRONT_PORT;
 
     const templateContext = {
         ...answers,
@@ -298,7 +313,11 @@ async function generateSources(
         requiresConnection: answers.dbType !== 'sqlite',
         cookieSecret: randomBytes(16).toString('base64url'),
         port,
-        isMonorepo: answers.includeStorefront,
+        storefrontPort,
+        isMonorepo: answers.storefront != null,
+        storefrontName: answers.storefront
+            ? getStorefrontStarter(answers.storefront).frameworkName
+            : undefined,
         packageManager,
         isBun: packageManager === 'bun',
         needsCorepack: packageManager === 'pnpm' || packageManager === 'yarn',
@@ -321,6 +340,7 @@ async function generateSources(
         tsconfigDashboardSource: await createSourceFile('tsconfig.dashboard.hbs'),
         viteConfigSource: await createSourceFile('vite.config.hbs'),
         agentsSource: await createSourceFile('agents.hbs'),
+        storefrontPort,
     };
 }
 

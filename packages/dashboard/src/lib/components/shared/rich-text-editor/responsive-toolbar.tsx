@@ -1,20 +1,27 @@
-import { Trans } from '@lingui/react/macro';
+import { useLingui } from '@lingui/react/macro';
 import { Editor, useEditorState } from '@tiptap/react';
 import {
     BoldIcon,
+    CodeIcon,
     ImageIcon,
     ItalicIcon,
     LinkIcon,
     ListIcon,
     ListOrderedIcon,
+    LucideIcon,
+    MinusIcon,
     MoreHorizontalIcon,
     QuoteIcon,
     Redo2Icon,
+    RemoveFormattingIcon,
+    SquareCodeIcon,
     StrikethroughIcon,
     TableIcon,
+    UnderlineIcon,
     Undo2Icon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import { Button } from '../../ui/button.js';
 import {
     DropdownMenu,
@@ -25,49 +32,76 @@ import {
 } from '../../ui/dropdown-menu.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select.js';
 import { ImageDialog } from './image-dialog.js';
-import { LinkDialog } from './link-dialog.js';
+import { TableGridPicker } from './table-grid-picker.js';
+import { ToolbarButton, formatShortcut } from './toolbar-button.js';
 
 export interface ResponsiveToolbarProps {
     editor: Editor | null;
     disabled?: boolean;
+    onRequestLinkEdit: () => void;
 }
 
 interface ToolbarItem {
     id: string;
-    priority: number;
-    element: React.ReactNode;
-    action?: () => void;
+    /** Items with the same group are rendered together, separated from other groups */
+    group: number;
     label: string;
+    shortcut?: string;
+    icon: LucideIcon;
     isActive?: boolean;
+    disabled?: boolean;
+    action: () => void;
+    /** Custom renderer for the visible toolbar (e.g. the table grid picker) */
+    renderVisible?: () => React.ReactNode;
 }
 
-export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolbarProps>) {
-    const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+// Approximate widths used to decide how many buttons fit before overflowing
+const ITEM_WIDTH = 36;
+const SEPARATOR_WIDTH = 13;
+const HEADING_SELECT_WIDTH = 138;
+const OVERFLOW_BUTTON_WIDTH = 44;
+const TOOLBAR_PADDING = 16;
+
+const HEADING_ITEM_CLASSES: Record<string, string> = {
+    h1: 'text-xl font-bold',
+    h2: 'text-lg font-semibold',
+    h3: 'text-base font-semibold',
+    h4: 'text-sm font-semibold',
+    h5: 'text-xs font-semibold',
+    h6: 'text-xs font-semibold',
+};
+
+export function ResponsiveToolbar({ editor, disabled, onRequestLinkEdit }: Readonly<ResponsiveToolbarProps>) {
+    const { t } = useLingui();
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
-    const [visibleItems, setVisibleItems] = useState<string[]>([]);
-    const [overflowItems, setOverflowItems] = useState<string[]>([]);
+    const [visibleCount, setVisibleCount] = useState(Infinity);
     const toolbarRef = useRef<HTMLDivElement>(null);
 
     const editorState = useEditorState({
-        editor: editor,
-        selector: (context) => {
+        editor,
+        selector: context => {
             if (context.editor == null) {
                 return;
             }
-
             return {
                 isBold: context.editor.isActive('bold'),
                 isItalic: context.editor.isActive('italic'),
+                isUnderline: context.editor.isActive('underline'),
                 isStrike: context.editor.isActive('strike'),
+                isCode: context.editor.isActive('code'),
                 isBulletList: context.editor.isActive('bulletList'),
                 isOrderedList: context.editor.isActive('orderedList'),
+                isBlockquote: context.editor.isActive('blockquote'),
+                isCodeBlock: context.editor.isActive('codeBlock'),
                 isLink: context.editor.isActive('link'),
                 isImage: context.editor.isActive('image'),
-                isBlockquote: context.editor.isActive('blockquote'),
-                isTable: context.editor.isActive('table')
-            }
-        }
-    })
+                canSetLink: !context.editor.state.selection.empty || context.editor.isActive('link'),
+                canUndo: context.editor.can().undo(),
+                canRedo: context.editor.can().redo(),
+                canInsertTable: context.editor.can().insertTable(),
+            };
+        },
+    });
 
     const handleHeadingChange = useCallback(
         (value: string) => {
@@ -90,22 +124,18 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
         return 'paragraph';
     }, [editor]);
 
-    const headingOptions = useMemo(
-        () => [
-            { value: 'paragraph', label: <Trans>Normal</Trans> },
-            { value: 'h1', label: <Trans>Heading 1</Trans> },
-            { value: 'h2', label: <Trans>Heading 2</Trans> },
-            { value: 'h3', label: <Trans>Heading 3</Trans> },
-            { value: 'h4', label: <Trans>Heading 4</Trans> },
-            { value: 'h5', label: <Trans>Heading 5</Trans> },
-            { value: 'h6', label: <Trans>Heading 6</Trans> },
-        ],
-        [],
+    const headingItems = useMemo(
+        () => ({
+            paragraph: t`Normal`,
+            h1: t`Heading 1`,
+            h2: t`Heading 2`,
+            h3: t`Heading 3`,
+            h4: t`Heading 4`,
+            h5: t`Heading 5`,
+            h6: t`Heading 6`,
+        }),
+        [t],
     );
-
-    const canUndo = !!editor?.can().undo();
-    const canRedo = !!editor?.can().redo();
-    const canInsertTable = !!editor?.can().insertTable();
 
     const toolbarItems: ToolbarItem[] = useMemo(() => {
         if (!editor || !editorState) return [];
@@ -113,274 +143,179 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
         return [
             {
                 id: 'bold',
-                priority: 1,
-                label: 'Bold',
+                group: 1,
+                label: t`Bold`,
+                shortcut: 'mod+B',
+                icon: BoldIcon,
                 isActive: editorState.isBold,
                 action: () => editor.chain().focus().toggleBold().run(),
-                element: (
-                    <Button
-                        key="bold"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`h-8 px-2 ${editorState.isBold ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <BoldIcon className="h-4 w-4" />
-                    </Button>
-                ),
             },
             {
                 id: 'italic',
-                priority: 2,
-                label: 'Italic',
+                group: 1,
+                label: t`Italic`,
+                shortcut: 'mod+I',
+                icon: ItalicIcon,
                 isActive: editorState.isItalic,
                 action: () => editor.chain().focus().toggleItalic().run(),
-                element: (
-                    <Button
-                        key="italic"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`h-8 px-2 ${editorState.isItalic ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <ItalicIcon className="h-4 w-4" />
-                    </Button>
-                ),
+            },
+            {
+                id: 'underline',
+                group: 1,
+                label: t`Underline`,
+                shortcut: 'mod+U',
+                icon: UnderlineIcon,
+                isActive: editorState.isUnderline,
+                action: () => editor.chain().focus().toggleUnderline().run(),
             },
             {
                 id: 'strike',
-                priority: 3,
-                label: 'Strikethrough',
+                group: 1,
+                label: t`Strikethrough`,
+                shortcut: 'mod+shift+S',
+                icon: StrikethroughIcon,
                 isActive: editorState.isStrike,
                 action: () => editor.chain().focus().toggleStrike().run(),
-                element: (
-                    <Button
-                        key="strike"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().toggleStrike().run()}
-                        className={`h-8 px-2 ${editorState.isStrike ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <StrikethroughIcon className="h-4 w-4" />
-                    </Button>
-                ),
+            },
+            {
+                id: 'code',
+                group: 1,
+                label: t`Inline code`,
+                shortcut: 'mod+E',
+                icon: CodeIcon,
+                isActive: editorState.isCode,
+                action: () => editor.chain().focus().toggleCode().run(),
             },
             {
                 id: 'bulletList',
-                priority: 4,
-                label: 'Bullet List',
+                group: 2,
+                label: t`Bullet list`,
+                shortcut: 'mod+shift+8',
+                icon: ListIcon,
                 isActive: editorState.isBulletList,
                 action: () => editor.chain().focus().toggleBulletList().run(),
-                element: (
-                    <Button
-                        key="bulletList"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().toggleBulletList().run()}
-                        className={`h-8 px-2 ${editorState.isBulletList ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <ListIcon className="h-4 w-4" />
-                    </Button>
-                ),
             },
             {
                 id: 'orderedList',
-                priority: 5,
-                label: 'Ordered List',
+                group: 2,
+                label: t`Ordered list`,
+                shortcut: 'mod+shift+7',
+                icon: ListOrderedIcon,
                 isActive: editorState.isOrderedList,
                 action: () => editor.chain().focus().toggleOrderedList().run(),
-                element: (
-                    <Button
-                        key="orderedList"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                        className={`h-8 px-2 ${editorState.isOrderedList ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <ListOrderedIcon className="h-4 w-4" />
-                    </Button>
-                ),
-            },
-            {
-                id: 'link',
-                priority: 6,
-                label: 'Link',
-                isActive: editorState.isLink,
-                action: () => setLinkDialogOpen(true),
-                element: (
-                    <Button
-                        key="link"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setLinkDialogOpen(true)}
-                        className={`h-8 px-2 ${editorState.isLink ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <LinkIcon className="h-4 w-4" />
-                    </Button>
-                ),
-            },
-            {
-                id: 'image',
-                priority: 7,
-                label: 'Image',
-                isActive: editorState.isImage,
-                action: () => setImageDialogOpen(true),
-                element: (
-                    <Button
-                        key="image"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setImageDialogOpen(true)}
-                        className={`h-8 px-2 ${editorState.isImage ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <ImageIcon className="h-4 w-4" />
-                    </Button>
-                ),
             },
             {
                 id: 'blockquote',
-                priority: 8,
-                label: 'Blockquote',
+                group: 2,
+                label: t`Blockquote`,
+                shortcut: 'mod+shift+B',
+                icon: QuoteIcon,
                 isActive: editorState.isBlockquote,
                 action: () => editor.chain().focus().toggleBlockquote().run(),
-                element: (
-                    <Button
-                        key="blockquote"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                        className={`h-8 px-2 ${editorState.isBlockquote ? 'bg-accent' : ''}`}
-                        disabled={disabled}
-                    >
-                        <QuoteIcon className="h-4 w-4" />
-                    </Button>
-                ),
+            },
+            {
+                id: 'codeBlock',
+                group: 2,
+                label: t`Code block`,
+                shortcut: 'mod+alt+C',
+                icon: SquareCodeIcon,
+                isActive: editorState.isCodeBlock,
+                action: () => editor.chain().focus().toggleCodeBlock().run(),
+            },
+            {
+                id: 'link',
+                group: 3,
+                label: t`Link`,
+                icon: LinkIcon,
+                isActive: editorState.isLink,
+                disabled: !editorState.canSetLink,
+                action: onRequestLinkEdit,
+            },
+            {
+                id: 'image',
+                group: 3,
+                label: t`Image`,
+                icon: ImageIcon,
+                isActive: editorState.isImage,
+                action: () => setImageDialogOpen(true),
             },
             {
                 id: 'table',
-                priority: 9,
-                label: 'Table',
-                isActive: editorState.isTable,
+                group: 3,
+                label: t`Insert table`,
+                icon: TableIcon,
+                disabled: !editorState.canInsertTable,
                 action: () =>
                     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
-                element: (
-                    <Button
+                renderVisible: () => (
+                    <TableGridPicker
                         key="table"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .insertTable({
-                                    rows: 3,
-                                    cols: 3,
-                                    withHeaderRow: true,
-                                })
-                                .run()
-                        }
-                        className={`h-8 px-2 ${editorState.isTable ? 'bg-accent' : ''}`}
-                        disabled={disabled || !canInsertTable}
-                    >
-                        <TableIcon className="h-4 w-4" />
-                    </Button>
+                        editor={editor}
+                        disabled={disabled || !editorState.canInsertTable}
+                    />
                 ),
+            },
+            {
+                id: 'horizontalRule',
+                group: 3,
+                label: t`Horizontal rule`,
+                icon: MinusIcon,
+                action: () => editor.chain().focus().setHorizontalRule().run(),
+            },
+            {
+                id: 'clearFormatting',
+                group: 4,
+                label: t`Clear formatting`,
+                icon: RemoveFormattingIcon,
+                action: () => editor.chain().focus().unsetAllMarks().clearNodes().run(),
             },
             {
                 id: 'undo',
-                priority: 10,
-                label: 'Undo',
+                group: 5,
+                label: t`Undo`,
+                shortcut: 'mod+Z',
+                icon: Undo2Icon,
+                disabled: !editorState.canUndo,
                 action: () => editor.chain().focus().undo().run(),
-                element: (
-                    <Button
-                        key="undo"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().undo().run()}
-                        disabled={disabled || !canUndo}
-                        className="h-8 px-2"
-                    >
-                        <Undo2Icon className="h-4 w-4" />
-                    </Button>
-                ),
             },
             {
                 id: 'redo',
-                priority: 11,
-                label: 'Redo',
+                group: 5,
+                label: t`Redo`,
+                shortcut: 'mod+shift+Z',
+                icon: Redo2Icon,
+                disabled: !editorState.canRedo,
                 action: () => editor.chain().focus().redo().run(),
-                element: (
-                    <Button
-                        key="redo"
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => editor.chain().focus().redo().run()}
-                        disabled={disabled || !canRedo}
-                        className="h-8 px-2"
-                    >
-                        <Redo2Icon className="h-4 w-4" />
-                    </Button>
-                ),
             },
         ];
-    }, [editor, disabled, linkDialogOpen, imageDialogOpen, canUndo, canRedo, canInsertTable, editorState]);
+    }, [editor, editorState, disabled, onRequestLinkEdit, t]);
 
     useEffect(() => {
-        const calculateVisibleItems = () => {
+        const calculateVisibleCount = () => {
             if (!toolbarRef.current) return;
 
-            const toolbar = toolbarRef.current;
-            const toolbarWidth = toolbar.clientWidth;
-            const headingSelectWidth = 130; // Fixed width for heading select
-            const overflowButtonWidth = 40; // Width for overflow button
-            const padding = 16; // Toolbar padding
+            const available = toolbarRef.current.clientWidth - HEADING_SELECT_WIDTH - TOOLBAR_PADDING;
+            let usedWidth = 0;
+            let count = 0;
 
-            let usedWidth = headingSelectWidth + padding;
-            const visible: string[] = [];
-            const overflow: string[] = [];
+            for (let i = 0; i < toolbarItems.length; i++) {
+                const isGroupBoundary = i > 0 && toolbarItems[i].group !== toolbarItems[i - 1].group;
+                const itemWidth = ITEM_WIDTH + (isGroupBoundary ? SEPARATOR_WIDTH : 0);
+                const reservedForOverflow = i < toolbarItems.length - 1 ? OVERFLOW_BUTTON_WIDTH : 0;
 
-            // Always show heading select, so start with remaining width
-            let remainingWidth = toolbarWidth - usedWidth;
-
-            // Sort items by priority (lower number = higher priority)
-            const sortedItems = [...toolbarItems].sort((a, b) => a.priority - b.priority);
-
-            for (const item of sortedItems) {
-                const itemWidth = 40; // Approximate button width
-
-                if (remainingWidth >= itemWidth + (overflow.length === 0 ? 0 : overflowButtonWidth)) {
-                    visible.push(item.id);
-                    remainingWidth -= itemWidth;
-                } else {
-                    overflow.push(item.id);
+                if (usedWidth + itemWidth + reservedForOverflow > available) {
+                    break;
                 }
+                usedWidth += itemWidth;
+                count++;
             }
 
-            setVisibleItems(visible);
-            setOverflowItems(overflow);
+            setVisibleCount(count);
         };
 
-        calculateVisibleItems();
+        calculateVisibleCount();
 
-        const resizeObserver = new ResizeObserver(calculateVisibleItems);
+        const resizeObserver = new ResizeObserver(calculateVisibleCount);
         if (toolbarRef.current) {
             resizeObserver.observe(toolbarRef.current);
         }
@@ -388,68 +323,101 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
         return () => {
             resizeObserver.disconnect();
         };
-    }, [toolbarItems.length, editor]);
-
-    const visibleElements = toolbarItems
-        .filter(item => visibleItems.includes(item.id))
-        .sort((a, b) => a.priority - b.priority)
-        .map(item => item.element);
-
-    const overflowElements = toolbarItems.filter(item => overflowItems.includes(item.id));
+    }, [toolbarItems.length]);
 
     if (!editor) {
         return null;
     }
 
+    const visibleItems = toolbarItems.slice(0, visibleCount);
+    const overflowItems = toolbarItems.slice(visibleCount);
+
     return (
-        <div ref={toolbarRef} className="flex items-center gap-1 p-2 border-b bg-muted/30">
+        <div ref={toolbarRef} className="flex items-center gap-1 border-b bg-muted/30 p-2">
             <Select
-                items={headingOptions}
+                items={headingItems}
                 value={getCurrentHeading()}
                 onValueChange={value => value != null && handleHeadingChange(value)}
                 disabled={disabled}
             >
-                <SelectTrigger size="sm" className="w-[130px] py-1">
+                <SelectTrigger size="sm" className="w-[130px] py-1" aria-label={t`Text style`}>
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    {headingOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                    {Object.entries(headingItems).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                            <span className={HEADING_ITEM_CLASSES[value]}>{label}</span>
                         </SelectItem>
                     ))}
                 </SelectContent>
             </Select>
 
-            {visibleElements}
+            {visibleItems.map((item, index) => {
+                const Icon = item.icon;
+                const isGroupBoundary = index > 0 && item.group !== visibleItems[index - 1].group;
+                return (
+                    <Fragment key={item.id}>
+                        {isGroupBoundary && <div className="mx-0.5 h-5 w-px shrink-0 bg-border" />}
+                        {item.renderVisible ? (
+                            item.renderVisible()
+                        ) : (
+                            <ToolbarButton
+                                label={item.label}
+                                shortcut={item.shortcut}
+                                isActive={item.isActive}
+                                disabled={disabled || item.disabled}
+                                onClick={item.action}
+                            >
+                                <Icon className="h-4 w-4" />
+                            </ToolbarButton>
+                        )}
+                    </Fragment>
+                );
+            })}
 
-            {overflowElements.length > 0 && (
+            {overflowItems.length > 0 && (
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="sm" className="h-8 px-2" disabled={disabled} />}>
-                            <MoreHorizontalIcon className="h-4 w-4" />
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2"
+                                aria-label={t`More formatting options`}
+                                disabled={disabled}
+                            />
+                        }
+                    >
+                        <MoreHorizontalIcon className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {overflowElements.map((item, index) => (
-                            <div key={item.id}>
-                                <DropdownMenuItem
-                                    onClick={item.action}
-                                    disabled={disabled}
-                                    className={item.isActive ? 'bg-accent' : ''}
-                                >
-                                    <Trans>{item.label}</Trans>
-                                </DropdownMenuItem>
-                                {(index < overflowElements.length - 1 && index === 2) ||
-                                index === 4 ||
-                                index === 7 ? (
-                                    <DropdownMenuSeparator />
-                                ) : null}
-                            </div>
-                        ))}
+                        {overflowItems.map((item, index) => {
+                            const Icon = item.icon;
+                            const isGroupBoundary =
+                                index > 0 && item.group !== overflowItems[index - 1].group;
+                            return (
+                                <Fragment key={item.id}>
+                                    {isGroupBoundary && <DropdownMenuSeparator />}
+                                    <DropdownMenuItem
+                                        onClick={item.action}
+                                        disabled={disabled || item.disabled}
+                                        className={item.isActive ? 'bg-accent' : ''}
+                                    >
+                                        <Icon className="h-4 w-4" />
+                                        {item.label}
+                                        {item.shortcut && (
+                                            <span className="ml-auto text-xs text-muted-foreground">
+                                                {formatShortcut(item.shortcut)}
+                                            </span>
+                                        )}
+                                    </DropdownMenuItem>
+                                </Fragment>
+                            );
+                        })}
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
-
-            <LinkDialog editor={editor} isOpen={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} />
 
             <ImageDialog editor={editor} isOpen={imageDialogOpen} onClose={() => setImageDialogOpen(false)} />
         </div>

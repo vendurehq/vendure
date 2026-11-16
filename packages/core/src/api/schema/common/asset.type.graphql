@@ -35,7 +35,7 @@ type AssetList implements PaginatedList {
 }
 
 enum AssetType {
-    IMAGE,
-    VIDEO,
+    IMAGE
+    VIDEO
     BINARY
 }

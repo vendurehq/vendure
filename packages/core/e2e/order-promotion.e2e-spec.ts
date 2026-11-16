@@ -9,6 +9,8 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    buyXGetYFreeAction,
+    buyXGetYFreeCondition,
     containsProducts,
     customerGroup,
     defaultShippingCalculator,
@@ -20,6 +22,8 @@ import {
     minimumOrderAmount,
     orderPercentageDiscount,
     productsPercentageDiscount,
+    Promotion,
+    TransactionalConnection,
 } from '@vendure/core';
 import {
     createErrorResultGuard,
@@ -70,6 +74,7 @@ import {
     testOrderWithPaymentsFragment,
     updatedOrderFragment,
 } from './graphql/shop-definitions';
+import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 describe('Promotions applied to Orders', () => {
@@ -2218,6 +2223,93 @@ describe('Promotions applied to Orders', () => {
         });
     });
 
+    describe('promotion which applies no discount', () => {
+        const couponCode = 'NO_DISCOUNT_ON_THIS_CART';
+        let promotion: PromotionFragment;
+
+        beforeAll(async () => {
+            promotion = await createPromotion({
+                enabled: true,
+                name: '50% off item-5000 only',
+                couponCode,
+                perCustomerUsageLimit: 1,
+                conditions: [],
+                actions: [
+                    {
+                        code: productsPercentageDiscount.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            {
+                                name: 'productVariantIds',
+                                value: `["${getVariantBySlug('item-5000').id}"]`,
+                            },
+                        ],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(promotion.id);
+        });
+
+        function addGuestCustomerToOrder() {
+            return shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: 'no-discount-guest@test.com',
+                    firstName: 'No Discount',
+                    lastName: 'Customer',
+                },
+            });
+        }
+
+        it('is not added to the Order and does not consume a usage', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                // Not one of the Promotion's ProductVariants, so the action discounts nothing
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            const { setCustomerForOrder } = await addGuestCustomerToOrder();
+            orderResultGuard.assertSuccess(setCustomerForOrder);
+
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, { couponCode });
+            orderResultGuard.assertSuccess(applyCouponCode);
+
+            // The customer typed the code, so it stays on the Order even though it discounts nothing
+            expect(applyCouponCode.couponCodes).toEqual([couponCode]);
+            expect(applyCouponCode.discounts).toEqual([]);
+            const orderCode = applyCouponCode.code;
+
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderResultGuard.assertSuccess(order);
+            expect(order.state).toBe('PaymentSettled');
+
+            const { orderByCode } = await shopClient.query(getOrderPromotionsByCodeDocument, {
+                code: orderCode,
+            });
+            expect(orderByCode!.promotions).toEqual([]);
+
+            // The customer's single allowed usage is still available
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-5000').id,
+                quantity: 1,
+            });
+            const { setCustomerForOrder: setCustomerForSecondOrder } = await addGuestCustomerToOrder();
+            orderResultGuard.assertSuccess(setCustomerForSecondOrder);
+
+            const { applyCouponCode: secondUse } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode,
+            });
+            orderResultGuard.assertSuccess(secondUse);
+
+            expect(secondUse.discounts.length).toBe(1);
+            expect(secondUse.totalWithTax).toBe(3000);
+        });
+    });
+
     // https://github.com/vendurehq/vendure/issues/710
     it('removes order-level discount made invalid by removing OrderLine', async () => {
         const promotion = await createPromotion({
@@ -2411,6 +2503,114 @@ describe('Promotions applied to Orders', () => {
         });
     });
 
+    describe('updatePromotion with an action that requires a condition', () => {
+        const buyXGetYCondition = () => ({
+            code: buyXGetYFreeCondition.code,
+            arguments: [
+                { name: 'amountX', value: '1' },
+                { name: 'variantIdsX', value: JSON.stringify([getVariantBySlug('item-100').id]) },
+                { name: 'amountY', value: '1' },
+                { name: 'variantIdsY', value: JSON.stringify([getVariantBySlug('item-1000').id]) },
+            ],
+        });
+        const buyXGetYAction = { code: buyXGetYFreeAction.code, arguments: [] };
+        const requiredConditionMessage = `The PromotionAction "${buyXGetYFreeAction.code}" requires the following conditions: ${buyXGetYFreeCondition.code}`;
+
+        let buyXGetYPromotion: PromotionFragment;
+        let otherPromotion: PromotionFragment;
+
+        beforeAll(async () => {
+            buyXGetYPromotion = await createPromotion({
+                enabled: true,
+                name: 'Buy X get Y',
+                couponCode: 'BUY_X_GET_Y',
+                conditions: [buyXGetYCondition()],
+                actions: [buyXGetYAction],
+            });
+            otherPromotion = await createPromotion({
+                enabled: true,
+                name: 'Ten percent off',
+                couponCode: 'TEN_OFF',
+                conditions: [minOrderAmountCondition(0)],
+                actions: [
+                    {
+                        code: orderPercentageDiscount.code,
+                        arguments: [{ name: 'discount', value: '10' }],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(buyXGetYPromotion.id);
+            await deletePromotion(otherPromotion.id);
+        });
+
+        it(
+            'rejects replacing the required condition',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(updatePromotionDocument, {
+                        input: { id: buyXGetYPromotion.id, conditions: [minOrderAmountCondition(0)] },
+                    }),
+                requiredConditionMessage,
+            ),
+        );
+
+        it(
+            'rejects adding the action without its required condition',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(updatePromotionDocument, {
+                        input: { id: otherPromotion.id, actions: [buyXGetYAction] },
+                    }),
+                requiredConditionMessage,
+            ),
+        );
+
+        it('the coupon can still be applied', async () => {
+            const { promotion } = await adminClient.query(getPromotionDocument, { id: buyXGetYPromotion.id });
+            expect(promotion!.conditions.map(c => c.code)).toEqual([buyXGetYFreeCondition.code]);
+
+            shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-100').id,
+                quantity: 1,
+            });
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: 'BUY_X_GET_Y',
+            });
+            orderResultGuard.assertSuccess(applyCouponCode);
+            expect(applyCouponCode.couponCodes).toEqual(['BUY_X_GET_Y']);
+            const freeLine = applyCouponCode.lines.find(
+                l => l.productVariant.id === getVariantBySlug('item-1000').id,
+            );
+            expect(freeLine!.discounts.map(d => d.description)).toEqual(['Buy X get Y']);
+            expect(freeLine!.discountedUnitPriceWithTax).toBe(0);
+        });
+
+        it('a promotion already saved without the required condition can still be disabled', async () => {
+            // Writes the invalid state with the repository because updatePromotion rejects it
+            await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Promotion)
+                .update(
+                    { couponCode: 'TEN_OFF' },
+                    { actions: [{ code: buyXGetYFreeAction.code, args: [] }] },
+                );
+
+            const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+                input: { id: otherPromotion.id, enabled: false },
+            });
+            expect((updatePromotion as PromotionFragment).enabled).toBe(false);
+        });
+    });
+
     // https://github.com/vendurehq/vendure/issues/2052
     describe('multi-channel usage', () => {
         const SECOND_CHANNEL_TOKEN = 'second_channel_token';
@@ -2535,6 +2735,93 @@ describe('Promotions applied to Orders', () => {
             const result = await addItemAndApplyPromoCode();
             expect(result.discounts.length).toBe(1);
             expect(result.discounts[0].description).toBe('common-promotion-second-channel');
+        });
+    });
+
+    // #5605: recalculating an unchanged order must not cycle item promotions behind an order total condition
+    describe('item promotion with minimumOrderAmount condition', () => {
+        let promotion: PromotionFragment;
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            promotion = await createPromotion({
+                enabled: true,
+                name: '50% off items over 10000',
+                conditions: [
+                    {
+                        code: minimumOrderAmount.code,
+                        arguments: [
+                            { name: 'amount', value: '10000' },
+                            { name: 'taxInclusive', value: 'false' },
+                        ],
+                    },
+                ],
+                actions: [
+                    {
+                        code: productsPercentageDiscount.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            {
+                                name: 'productVariantIds',
+                                value: JSON.stringify([
+                                    getVariantBySlug('item-1000').id,
+                                    getVariantBySlug('item-5000').id,
+                                ]),
+                            },
+                        ],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(promotion.id);
+        });
+
+        it('keeps the same discounts on every recalculation through to payment', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 6,
+            });
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-5000').id,
+                quantity: 1,
+            });
+
+            // 6000 + 5000 meets the minimum, so the first line gets 50% off. The discounted
+            // subtotal of 8000 no longer meets it, so the second line is not discounted.
+            const { activeOrder: firstCalculation } = await shopClient.query(getActiveOrderDocument);
+            expect(firstCalculation!.subTotal).toBe(8000);
+            expect(firstCalculation!.lines.map(l => l.discounts.length)).toEqual([1, 0]);
+
+            const secondLineId = firstCalculation!.lines[1].id;
+            for (let i = 0; i < 3; i++) {
+                const { adjustOrderLine } = await shopClient.query(adjustItemQuantityDocument, {
+                    orderLineId: secondLineId,
+                    quantity: 1,
+                });
+                orderResultGuard.assertSuccess(adjustOrderLine);
+                expect(adjustOrderLine.subTotal).toBe(8000);
+                expect(adjustOrderLine.lines.map(l => l.discounts.length)).toEqual([1, 0]);
+            }
+
+            await shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: 'minimum-order-amount@test.com',
+                    firstName: 'Guest',
+                    lastName: 'Customer',
+                },
+            });
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderResultGuard.assertSuccess(order);
+            expect(order.state).toBe('PaymentSettled');
+            expect(order.subTotal).toBe(8000);
+            expect(order.subTotalWithTax).toBe(9600);
+            expect(order.lines.map(l => l.discounts.length)).toEqual([1, 0]);
+            expect(order.payments![0].amount).toBe(order.totalWithTax);
         });
     });
 

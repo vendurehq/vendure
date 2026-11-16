@@ -3,6 +3,7 @@ import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 
 import { SoftDeletable } from '../../common/types/common-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
+import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
 import { CustomAdministratorFields } from '../custom-entity-fields';
 import { User } from '../user/user.entity';
@@ -30,6 +31,10 @@ export class Administrator extends VendureEntity implements SoftDeletable, HasCu
 
     @Column()
     emailAddress: string;
+
+    @OneToOne(type => Asset, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn()
+    avatar: Asset | null;
 
     @OneToOne(type => User)
     @JoinColumn()

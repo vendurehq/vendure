@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { DeletionResult } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
+import { CustomerGroup, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -9,6 +10,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
+    createCustomerGroupDocument,
     createTaxRateDocument,
     deleteTaxRateDocument,
     getTaxRateDocument,
@@ -89,5 +91,29 @@ describe('TaxRate resolver', () => {
 
         const { taxRates } = await adminClient.query(getTaxRatesListDocument);
         expect(taxRates.items.find(x => x.id === 'T_3')).toBeUndefined();
+    });
+
+    // PR #5176: CustomerGroup.taxRates should resolve through TaxRate.customerGroup, not TaxRate.zone
+    it('CustomerGroup.taxRates relation returns the rates assigned to the group', async () => {
+        const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
+            input: { name: 'Tax Rate Group', customerIds: [] },
+        });
+        await adminClient.query(createTaxRateDocument, {
+            input: {
+                name: 'Group Tax Rate',
+                categoryId: 'T_1',
+                zoneId: 'T_2',
+                customerGroupId: createCustomerGroup.id,
+                enabled: true,
+                value: 5,
+            },
+        });
+
+        const group = await server.app
+            .get(TransactionalConnection)
+            .rawConnection.getRepository(CustomerGroup)
+            .findOne({ where: { name: 'Tax Rate Group' }, relations: { taxRates: true } });
+
+        expect(group!.taxRates.map(t => t.name)).toEqual(['Group Tax Rate']);
     });
 });

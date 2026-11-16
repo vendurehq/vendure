@@ -171,6 +171,24 @@ describe('mergeDeep()', () => {
         expect(merged.direct.child.existing).toBe('yes');
     });
 
+    // https://github.com/vendurehq/vendure/issues/5428
+    // e.g. ShippingMethod.allCheckers: each entity gets its own hash, but the values are the
+    // configured checker singletons, which reference the (cyclic) DI graph.
+    it('should not walk an instance shared by target and source', () => {
+        const singleton = new Proxy(
+            { code: 'checker' },
+            {
+                ownKeys() {
+                    throw new Error('the shared instance was walked');
+                },
+            },
+        );
+        const target = { id: 1, allCheckers: { checker: singleton } };
+        const source = { id: 1, allCheckers: { checker: singleton } };
+
+        expect(mergeDeep(target, source).allCheckers.checker).toBe(singleton);
+    });
+
     it('should handle circular objects', () => {
         const first = {
             name: 'John',

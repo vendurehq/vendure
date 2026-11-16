@@ -22,7 +22,10 @@
         </vdr-dt2-column>
         <vdr-dt2-column [heading]="'system.schedule' | translate" id="schedule">
             <ng-template let-task="item">
-                <div class="">{{ task.scheduleDescription }}</div>
+                <div class="">
+                    {{ task.scheduleDescription }}
+                    <span *ngIf="task.timezone">({{ task.timezone }})</span>
+                </div>
             </ng-template>
         </vdr-dt2-column>
         <vdr-dt2-column [heading]="'system.last-executed-at' | translate" id="last-executed-at">

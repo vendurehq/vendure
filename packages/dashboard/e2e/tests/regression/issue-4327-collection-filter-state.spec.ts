@@ -24,25 +24,40 @@ test.describe('Issue #4327: Collection filters with same type share state', () =
         await dp.fillInput('Name', 'Filter State Test Collection');
         await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
 
-        // Add first "Filter by product variant name" filter
+        const termChips = page.getByRole('button', { name: 'term' });
+        // Closed chip popovers can remain mounted (inert) in the DOM while
+        // their exit transition runs, so scope to the currently-open popup.
+        const termInput = page
+            .locator('[data-slot="popover-content"][data-open]')
+            .locator('input[name="term"]');
+
+        // Add first "Filter by product variant name" filter. The popover for the
+        // required "operator" arg auto-opens; dismiss it and edit the term chip.
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by product variant name/i }).click();
+        await page.keyboard.press('Escape');
+        await termChips.first().click();
+        await termInput.fill('shirt');
+        await page.keyboard.press('Escape');
 
-        // Fill the first filter's term input (identified by input name attribute,
-        // which comes from the configurable operation arg name and is stable)
-        const termInputs = page.locator('input[name="term"]');
-        await termInputs.first().fill('shirt');
+        // The collapsed sentence chip now shows the value
+        await expect(termChips.first()).toHaveText('shirt');
 
-        // Add second "Filter by product variant name" filter
+        // Add second "Filter by product variant name" filter with a DIFFERENT value
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by product variant name/i }).click();
-
-        // Fill the second filter's term with a DIFFERENT value
-        await page.locator('input[name="term"]').last().fill('pants');
+        await page.keyboard.press('Escape');
+        await termChips.last().click();
+        await termInput.fill('pants');
+        await page.keyboard.press('Escape');
 
         // Verify the first filter's term is still "shirt" (not overwritten by "pants")
-        await expect(termInputs.first()).toHaveValue('shirt');
+        await expect(termChips.first()).toHaveText('shirt');
         // Verify the second filter's term is "pants"
-        await expect(page.locator('input[name="term"]').last()).toHaveValue('pants');
+        await expect(termChips.last()).toHaveText('pants');
+
+        // Re-open the first filter's popover and verify its input value directly
+        await termChips.first().click();
+        await expect(termInput).toHaveValue('shirt');
     });
 });

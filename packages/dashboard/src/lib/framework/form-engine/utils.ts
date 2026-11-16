@@ -288,6 +288,151 @@ function isPersisted(entry: any): boolean {
     return !!entry && typeof entry === 'object' && entry.id != null && entry.id !== '';
 }
 
+/**
+ * @description
+ * Merges `setValuesForCreate` values into the form's default values. Objects such as `customFields`
+ * are merged key by key. Each translation row is merged onto the default row of the same language,
+ * and a row for a language with no default row is merged onto the first default row and added last.
+ * Everything else, including other arrays, replaces the default. A key set to `undefined` keeps
+ * the default.
+ */
+export function mergeStartingValues<T extends Record<string, any>>(
+    defaults: T,
+    startingValues: Record<string, any>,
+): T {
+    const result: Record<string, any> = { ...defaults };
+    for (const [key, value] of Object.entries(startingValues)) {
+        if (value === undefined) {
+            continue;
+        }
+        if (key === 'translations' && Array.isArray(value)) {
+            // react-hook-form compares rows by position, so each row must keep its default position.
+            const defaultRows: Array<Record<string, any>> = defaults.translations ?? [];
+            const otherRows = value.filter(
+                row => !defaultRows.some(d => d.languageCode === row.languageCode),
+            );
+            result[key] = [
+                ...defaultRows.map(row => {
+                    const startingRow = value.find(r => r.languageCode === row.languageCode);
+                    return startingRow ? mergeStartingValues(row, startingRow) : row;
+                }),
+                ...otherRows.map(row => mergeStartingValues(defaultRows[0] ?? {}, row)),
+            ];
+        } else {
+            result[key] =
+                isObject(value) && isObject(result[key]) ? mergeStartingValues(result[key], value) : value;
+        }
+    }
+    return result as T;
+}
+
+function isObject(value: unknown): value is Record<string, any> {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * @description
+ * Structural deep-equality check used to detect which form fields the user
+ * actually changed. Handles primitives (NaN-safe), Date, arrays and plain
+ * objects.
+ */
+export function deepEqual(a: unknown, b: unknown): boolean {
+    if (a === b) {
+        return true;
+    }
+    if (typeof a === 'number' && typeof b === 'number') {
+        // `a === b` above is false for NaN even when both operands are NaN; treat
+        // two NaNs as equal so a cleared numeric input isn't reported as changed.
+        return Number.isNaN(a) && Number.isNaN(b);
+    }
+    if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') {
+        return false;
+    }
+    if (a instanceof Date || b instanceof Date) {
+        return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
+    }
+    const aIsArray = Array.isArray(a);
+    const bIsArray = Array.isArray(b);
+    if (aIsArray !== bIsArray) {
+        return false;
+    }
+    if (aIsArray && bIsArray) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        return a.every((item, index) => deepEqual(item, b[index]));
+    }
+    const aKeys = Object.keys(a as Record<string, unknown>);
+    const bKeys = Object.keys(b as Record<string, unknown>);
+    if (aKeys.length !== bKeys.length) {
+        return false;
+    }
+    return aKeys.every(
+        key =>
+            Object.prototype.hasOwnProperty.call(b, key) &&
+            deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+    );
+}
+
+/**
+ * @description
+ * Returns the set of top-level field names that should be included in an update
+ * mutation payload: those whose value differs (deep) from the form's baseline
+ * (the entity as it was loaded), plus any field that is non-nullable in the
+ * mutation input type (e.g. `id`, or a required `translations` input) which must
+ * always be sent.
+ *
+ * This lets the form engine submit only the fields the user actually changed,
+ * so that a stale page-load value for an untouched field cannot silently
+ * overwrite a concurrent change made by another admin or via the API. The
+ * union of keys is iterated so that a field removed entirely from the submitted
+ * values (e.g. a cleared array) is still detected as changed.
+ *
+ * Comparison must be done on the raw (pre-processed) form values so that
+ * transformations applied before submission (id-stripping, empty-string→null)
+ * do not register as spurious changes. This makes it an invariant that those
+ * pre-submission transforms must never rename or add a top-level key: the
+ * returned set is matched against the processed payload, so a renamed key
+ * would be silently dropped from the update instead of raising an error.
+ */
+export function getChangedTopLevelFields(
+    submitted: Record<string, any>,
+    baseline: Record<string, any>,
+    fields: FieldInfo[],
+): Set<string> {
+    const changed = new Set<string>();
+    for (const field of fields) {
+        if (field.nullable === false) {
+            changed.add(field.name);
+        }
+    }
+    const keys = new Set<string>([...Object.keys(submitted ?? {}), ...Object.keys(baseline ?? {})]);
+    for (const key of keys) {
+        if (!deepEqual(submitted?.[key], baseline?.[key])) {
+            changed.add(key);
+        }
+    }
+    return changed;
+}
+
+/**
+ * @description
+ * Narrows an update payload down to the top-level fields the user actually changed, as computed by
+ * {@link getChangedTopLevelFields}. When `sendAll` is `true` (the default), or when no change set is
+ * available, the payload is returned unchanged. Detail pages opt into the narrowing via
+ * `sendOnlyChangedFields`, which passes `sendAll: false` here.
+ */
+export function pruneToChangedFields<T extends Record<string, any>>(
+    values: T,
+    changedFields: ReadonlySet<string> | undefined,
+    sendAll = false,
+): T {
+    if (sendAll || !changedFields) {
+        return values;
+    }
+    return Object.fromEntries(Object.entries(values).filter(([key]) => changedFields.has(key))) as T;
+}
+
 // =============================================================================
 // TYPE GUARDS FOR CONFIGURABLE FIELD DEFINITIONS
 // =============================================================================
@@ -520,6 +665,36 @@ export function isFieldDisabled(disabled?: boolean, fieldDef?: ConfigurableField
  */
 export function hasPermissionRequirement(input: ConfigurableFieldDef): boolean {
     return isCustomFieldConfig(input) && Boolean(input.requiresPermission);
+}
+
+/**
+ * Resolves the id of the input component to render for a field. An explicit `ui.component`
+ * always wins; otherwise secret fields default to the masked, revealable password input so it is
+ * visually clear the value is sensitive even to a user permitted to read it.
+ */
+export function resolveInputComponentId(input: ConfigurableFieldDef): string | undefined {
+    const explicit = input.ui?.component as string | undefined;
+    if (explicit) {
+        return explicit;
+    }
+    return input.secret === true ? 'password-form-input' : undefined;
+}
+
+/**
+ * Mirrors `SECRET_PLACEHOLDER_PREFIX` from `@vendure/common`. It is inlined rather than imported
+ * because the dashboard is a browser bundle and importing the CommonJS build of `@vendure/common`
+ * as a runtime value fails under Vite. The prefix is version-independent by design, and a unit test
+ * asserts it against the real constant so the two cannot drift apart.
+ */
+const SECRET_PLACEHOLDER_PREFIX = '__vendure_secret_unchanged_';
+
+/**
+ * Returns true when a value is a secret redaction placeholder returned by the API in place of a
+ * secret the current user is not permitted to read. Matches any Vendure version's placeholder by
+ * prefix, so the internal sentinel is never surfaced to the user.
+ */
+export function isRedactedSecretValue(value: unknown): value is string {
+    return typeof value === 'string' && value.startsWith(SECRET_PLACEHOLDER_PREFIX);
 }
 
 /**

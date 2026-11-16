@@ -54,6 +54,7 @@ export const productDetailFragment = graphql(
                 id
                 code
                 name
+                productCount
                 options {
                     id
                     code

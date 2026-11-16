@@ -51,6 +51,7 @@ import { Province } from './region/province.entity';
 import { RegionTranslation } from './region/region-translation.entity';
 import { Region } from './region/region.entity';
 import { Role } from './role/role.entity';
+import { SellerTranslation } from './seller/seller-translation.entity';
 import { Seller } from './seller/seller.entity';
 import { AnonymousSession } from './session/anonymous-session.entity';
 import { AuthenticatedSession } from './session/authenticated-session.entity';
@@ -152,5 +153,6 @@ export const coreEntitiesMap = {
     TaxRate,
     User,
     Seller,
+    SellerTranslation,
     Zone,
 };

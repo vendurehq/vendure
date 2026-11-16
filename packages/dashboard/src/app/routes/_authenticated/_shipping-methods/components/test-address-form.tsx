@@ -1,28 +1,12 @@
+import { AddressCountrySelect } from '@/vdb/components/shared/address-country-select.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/vdb/components/ui/accordion.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { LS_KEY_SHIPPING_TEST_ADDRESS } from '@/vdb/constants.js';
-import { api } from '@/vdb/graphql/api.js';
-import { graphql } from '@/vdb/graphql/graphql.js';
 import { Trans } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-
-// Query document to fetch available countries
-const getAvailableCountriesDocument = graphql(`
-    query GetAvailableCountries {
-        countries(options: { filter: { enabled: { eq: true } } }) {
-            items {
-                id
-                code
-                name
-            }
-        }
-    }
-`);
 
 export interface TestAddress {
     fullName: string;
@@ -72,13 +56,6 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
                 };
             }
         })(),
-    });
-
-    // Fetch available countries
-    const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
-        queryKey: ['availableCountries'],
-        queryFn: () => api.query(getAvailableCountriesDocument),
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
     });
 
     const previousValuesRef = useRef<string>('');
@@ -217,23 +194,7 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
                                 label={<Trans>Country</Trans>}
                                 renderFormControl={false}
                                 render={({ field }) => (
-                                    <Select
-                                        items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                        onValueChange={field.onChange}
-                                        value={field.value}
-                                        disabled={isLoadingCountries}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a country" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {countriesData?.countries.items.map(country => (
-                                                <SelectItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <AddressCountrySelect value={field.value} onChange={field.onChange} />
                                 )}
                             />
                             <FormFieldWrapper

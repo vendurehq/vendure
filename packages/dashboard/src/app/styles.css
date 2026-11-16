@@ -1,9 +1,7 @@
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/public-sans';
-@import '@fontsource-variable/geist-mono';
+@import '@vendure-io/design-tokens/css/fonts';
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import "shadcn/tailwind.css";
+@import '@vendure-io/design-tokens/css/shadcn';
 
 html[dir="rtl"] * {
     direction: rtl;
@@ -22,10 +20,13 @@ html[dir="rtl"] * {
 
 /*
  * Tailwind @theme inline block generated at build time by the themeVariablesPlugin.
- * It produces --color-*, --radius-*, --shadow-*, and --font-* mappings
- * directly from @vendure-io/design-tokens JS exports, plus dashboard-specific
- * extensions (dev-mode, brand). This keeps the dashboard in sync with the
- * design system without duplicating token values.
+ * It produces --color-*, --radius-*, --shadow-*, --font-*, and motion
+ * (--ease-*, --transition-duration-*, --animate-*) mappings directly from
+ * @vendure-io/design-tokens JS exports, plus dashboard-specific extensions
+ * (dev-mode, brand). It also emits the top-level @keyframes blocks backing the
+ * --animate-* tokens and the @utility text-style-* classes consumed by
+ * @vendure-io/ui. This keeps the dashboard in sync with the design system
+ * without duplicating token values.
  */
 @import 'virtual:admin-theme-inline';
 
@@ -50,6 +51,11 @@ html[dir="rtl"] * {
 
     #app {
         isolation: isolate;
+    }
+
+    /* Translucent so the same rule stays legible over light and dark backgrounds */
+    ::selection {
+        background-color: color-mix(in oklab, var(--brand) 30%, transparent);
     }
 
     /* Restore h-svh on sidebar-gap to prevent sidebar fixed container

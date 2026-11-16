@@ -26,6 +26,7 @@ import { Collection } from '../../../entity/collection/collection.entity';
 import { CollectionService } from '../../../service/services/collection.service';
 import { FacetValueService } from '../../../service/services/facet-value.service';
 import { ConfigurableOperationCodec } from '../../common/configurable-operation-codec';
+import { getVariantCountCollectionIds } from '../../common/get-variant-count-collection-ids';
 import { isFieldInSelection } from '../../common/is-field-in-selection';
 import { RequestContext } from '../../common/request-context';
 import { Allow } from '../../decorators/allow.decorator';
@@ -66,10 +67,17 @@ export class CollectionResolver {
         const collections = await this.collectionService.findAll(ctx, args.options || undefined, relations);
         // Cache the variant counts query promise if productVariantCount is requested,
         // allowing the DB query to start before the field resolvers are called
-        if (isFieldInSelection(info, 'productVariantCount')) {
-            const collectionIds = collections.items.map(c => c.id);
+        const collectionIds = getVariantCountCollectionIds(info, collections.items);
+        if (collectionIds) {
             const countsPromise = this.collectionService.getProductVariantCounts(ctx, collectionIds);
             this.requestContextCache.set(ctx, CacheKey.CollectionVariantCounts, countsPromise);
+        }
+        // Cache the breadcrumbs query promise if breadcrumbs is requested, so that all
+        // items in the page are resolved with a bounded number of queries rather than
+        // walking the ancestor chain independently for every row.
+        if (isFieldInSelection(info, 'breadcrumbs')) {
+            const breadcrumbsPromise = this.collectionService.getBreadcrumbsForMany(ctx, collections.items);
+            this.requestContextCache.set(ctx, CacheKey.CollectionBreadcrumbs, breadcrumbsPromise);
         }
         return collections;
     }

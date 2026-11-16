@@ -11,9 +11,11 @@ import {
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
+import { EntityNotFoundError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
+import { Customer } from '../../entity/customer/customer.entity';
 import { CustomerHistoryEntry } from '../../entity/history-entry/customer-history-entry.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
 import { OrderHistoryEntry } from '../../entity/history-entry/order-history-entry.entity';
@@ -24,6 +26,7 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { OrderState } from '../helpers/order-state-machine/order-state';
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
+import { assertOrderIsInChannel } from '../helpers/utils/order-utils';
 
 import { AdministratorService } from './administrator.service';
 export interface CustomerHistoryEntryData {
@@ -349,7 +352,9 @@ export class HistoryService {
     ) {
         const entry = await this.connection.getEntityOrThrow(ctx, OrderHistoryEntry, args.entryId, {
             where: { type: args.type },
+            relations: ['order'],
         });
+        await assertOrderIsInChannel(ctx, this.connection, entry.order.id, 'OrderHistoryEntry', args.entryId);
 
         if (args.data) {
             entry.data = args.data;
@@ -366,8 +371,21 @@ export class HistoryService {
         return newEntry;
     }
 
-    async deleteOrderHistoryEntry(ctx: RequestContext, id: ID): Promise<void> {
-        const entry = await this.connection.getEntityOrThrow(ctx, OrderHistoryEntry, id);
+    /**
+     * @description
+     * Deletes an OrderHistoryEntry. Pass `options.type` to restrict the deletion to entries of that
+     * type, which is how the `deleteOrderNote` mutation avoids deleting any other kind of entry.
+     */
+    async deleteOrderHistoryEntry(
+        ctx: RequestContext,
+        id: ID,
+        options?: { type?: HistoryEntryType },
+    ): Promise<void> {
+        const entry = await this.connection.getEntityOrThrow(ctx, OrderHistoryEntry, id, {
+            where: options?.type ? { type: options.type } : {},
+            relations: ['order'],
+        });
+        await assertOrderIsInChannel(ctx, this.connection, entry.order.id, 'OrderHistoryEntry', id);
         const deletedEntry = new OrderHistoryEntry(entry);
         await this.connection.getRepository(ctx, OrderHistoryEntry).remove(entry);
         await this.eventBus.publish(new HistoryEntryEvent(ctx, deletedEntry, 'deleted', 'order', id));
@@ -379,7 +397,9 @@ export class HistoryService {
     ) {
         const entry = await this.connection.getEntityOrThrow(ctx, CustomerHistoryEntry, args.entryId, {
             where: { type: args.type },
+            relations: ['customer'],
         });
+        await this.assertCustomerIsInChannel(ctx, entry.customer.id, args.entryId);
 
         if (args.data) {
             entry.data = args.data;
@@ -393,8 +413,21 @@ export class HistoryService {
         return newEntry;
     }
 
-    async deleteCustomerHistoryEntry(ctx: RequestContext, id: ID): Promise<void> {
-        const entry = await this.connection.getEntityOrThrow(ctx, CustomerHistoryEntry, id);
+    /**
+     * @description
+     * Deletes a CustomerHistoryEntry. Pass `options.type` to restrict the deletion to entries of that
+     * type, which is how the `deleteCustomerNote` mutation avoids deleting any other kind of entry.
+     */
+    async deleteCustomerHistoryEntry(
+        ctx: RequestContext,
+        id: ID,
+        options?: { type?: HistoryEntryType },
+    ): Promise<void> {
+        const entry = await this.connection.getEntityOrThrow(ctx, CustomerHistoryEntry, id, {
+            where: options?.type ? { type: options.type } : {},
+            relations: ['customer'],
+        });
+        await this.assertCustomerIsInChannel(ctx, entry.customer.id, id);
         const deletedEntry = new CustomerHistoryEntry(entry);
         await this.connection.getRepository(ctx, CustomerHistoryEntry).remove(entry);
         await this.eventBus.publish(new HistoryEntryEvent(ctx, deletedEntry, 'deleted', 'customer', id));
@@ -402,5 +435,17 @@ export class HistoryService {
 
     private async getAdministratorFromContext(ctx: RequestContext): Promise<Administrator | undefined> {
         return this.administratorService.resolveActorAdministrator(ctx);
+    }
+
+    /**
+     * CustomerHistoryEntry is not ChannelAware, so the parent Customer is its only Channel boundary.
+     * The error names the entry rather than the Customer, so that it cannot be used to work out
+     * which Customer ids exist in other Channels.
+     */
+    private async assertCustomerIsInChannel(ctx: RequestContext, customerId: ID, entryId: ID): Promise<void> {
+        const customer = await this.connection.findOneInChannel(ctx, Customer, customerId, ctx.channelId);
+        if (!customer) {
+            throw new EntityNotFoundError('CustomerHistoryEntry', entryId);
+        }
     }
 }

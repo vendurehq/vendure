@@ -8,9 +8,9 @@ import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import open from 'open';
 import pc from 'picocolors';
 
+import { showConsoleHint } from './console-hint';
 import {
     AUTO_RUN_DELAY_MS,
     CI_PAUSE_AFTER_CLOSE_MS,
@@ -36,7 +36,9 @@ import {
     checkNodeVersion,
     checkThatNpmCanReadCwd,
     cleanUpDockerResources,
+    createProjectRequire,
     detectPackageManager,
+    DOCKER_NOT_RESPONDING_MESSAGE,
     downloadAndExtractStorefront,
     findAvailablePort,
     getDependencies,
@@ -48,13 +50,25 @@ import {
     getYarnRcYml,
     installPackages,
     isSafeToCreateProjectIn,
+    probeDockerDaemon,
     registerTemplateHelpers,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
 } from './helpers';
 import { log, setLogLevel } from './logger';
-import { CliLogLevel, PackageManager } from './types';
+import { offerPlatformTrial } from './platform-trial';
+import {
+    configureStorefrontPackageJson,
+    getStorefrontStarter,
+    parseStorefrontId,
+    renderStorefrontEnvironment,
+    resolveCiStorefront,
+    STOREFRONT_STARTERS,
+    StorefrontId,
+    StorefrontStarter,
+} from './storefront-starters';
+import { CliLogLevel, PackageManager, UserResponses } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../package.json');
@@ -84,7 +98,16 @@ program
     .option('--verbose', 'Alias for --log-level verbose', false)
     .option('--use-npm', 'Force npm, overriding auto-detection of the package manager that invoked the CLI')
     .option('--ci', 'Runs without prompts for use in CI scenarios', false)
-    .option('--with-storefront', 'Include Next.js storefront (only used with --ci)', false)
+    .option(
+        '--storefront <starter>',
+        `Storefront to include with --ci: ${STOREFRONT_STARTERS.map(starter => starter.id).join(', ')}`,
+        parseStorefrontId,
+    )
+    .option(
+        '--with-storefront',
+        'Include the Next.js storefront with --ci. Deprecated: use --storefront nextjs',
+        false,
+    )
     .option(
         '--db <database>',
         "Database to use with --ci: 'sqlite' or 'postgres' (postgres is started via Docker)",
@@ -94,12 +117,13 @@ program
     .parse(process.argv);
 
 const options = program.opts();
+const selectedCiStorefront = resolveCiStorefront(options);
 void createVendureApp(
     projectName,
     options.useNpm,
     options.verbose ? 'verbose' : options.logLevel || 'info',
     options.ci,
-    options.withStorefront,
+    selectedCiStorefront,
     // The --db regex validates case-insensitively, but the comparisons downstream
     // are against the lowercase literals.
     options.db?.toLowerCase(),
@@ -113,7 +137,7 @@ export async function createVendureApp(
     _useNpm: boolean, // Legacy flag: forces npm, overriding package-manager auto-detection
     logLevel: CliLogLevel,
     isCi: boolean = false,
-    withStorefront: boolean = false,
+    ciStorefront?: StorefrontId,
     ciDbType: 'sqlite' | 'postgres' = 'sqlite',
 ) {
     setLogLevel(logLevel);
@@ -143,7 +167,6 @@ export async function createVendureApp(
 
     const portSpinner = spinner();
     let port: number;
-    let storefrontPort: number = STOREFRONT_PORT;
     portSpinner.start(`Establishing port...`);
     try {
         port = await findAvailablePort(SERVER_PORT, PORT_SCAN_RANGE);
@@ -177,6 +200,22 @@ export async function createVendureApp(
             { newline: 'after' },
         );
     }
+    // No spinner around this call: the quick start and manual modes prompt from here, and a
+    // running spinner erases the prompt every 80ms and takes over Ctrl+C via clack's block().
+    let configResult: UserResponses;
+    try {
+        configResult =
+            mode === 'ci'
+                ? await getCiConfiguration(root, packageManager, port, ciStorefront, ciDbType)
+                : mode === 'manual'
+                  ? await getManualConfiguration(root, packageManager, port)
+                  : await getQuickStartConfiguration(root, packageManager, port);
+    } catch (e: any) {
+        // generateSources scans for the storefront port, so an exhausted port range surfaces
+        // here rather than at the scan's own call site.
+        outro(pc.red(e.message));
+        process.exit(1);
+    }
     const {
         dbType,
         configSource,
@@ -191,33 +230,15 @@ export async function createVendureApp(
         viteConfigSource,
         agentsSource,
         populateProducts,
-        includeStorefront,
-    } =
-        mode === 'ci'
-            ? await getCiConfiguration(root, packageManager, port, withStorefront, ciDbType)
-            : mode === 'manual'
-              ? await getManualConfiguration(root, packageManager, port)
-              : await getQuickStartConfiguration(root, packageManager, port);
+        storefront: storefrontId,
+        storefrontPort,
+    } = configResult;
+    const storefront = storefrontId ? getStorefrontStarter(storefrontId) : undefined;
+    const includeStorefront = storefront != null;
+
     // Determine the server root directory (either root or apps/server for monorepo)
     const serverRoot = includeStorefront ? path.join(root, 'apps', 'server') : root;
     const storefrontRoot = path.join(root, 'apps', 'storefront');
-
-    // Find an available storefront port if including storefront
-    if (includeStorefront) {
-        const storefrontPortSpinner = spinner();
-        storefrontPortSpinner.start(`Establishing storefront port...`);
-        try {
-            // Start scanning from the higher of STOREFRONT_PORT or serverPort + 1
-            // to avoid conflicts with the server port
-            const storefrontStartPort = Math.max(STOREFRONT_PORT, port + 1);
-            storefrontPort = await findAvailablePort(storefrontStartPort, PORT_SCAN_RANGE);
-            storefrontPortSpinner.stop(`Using storefront port ${storefrontPort}`);
-        } catch (e: any) {
-            storefrontPortSpinner.stop(pc.red('Could not find an available storefront port'));
-            outro(e.message);
-            process.exit(1);
-        }
-    }
 
     process.chdir(root);
     // This check spawns `npm` itself, so it only makes sense (and only works) for npm.
@@ -264,6 +285,8 @@ export async function createVendureApp(
         const rootReadmeContent = Handlebars.compile(rootReadmeTemplate)({
             name: appName,
             packageManager,
+            storefrontName: storefront?.frameworkName,
+            storefrontDocumentationUrl: storefront?.documentationUrl,
             serverPort: port,
             storefrontPort,
             superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
@@ -307,29 +330,29 @@ export async function createVendureApp(
     // Download storefront if needed
     if (includeStorefront) {
         const storefrontSpinner = spinner();
-        storefrontSpinner.start(`Downloading Next.js storefront...`);
+        storefrontSpinner.start(`Downloading ${storefront.name} storefront...`);
         try {
-            await downloadAndExtractStorefront(storefrontRoot);
-            // Update storefront package.json name and dev script port
-            const storefrontPackageJsonPath = path.join(storefrontRoot, 'package.json');
-            const storefrontPackageJson = await fs.readJson(storefrontPackageJsonPath);
-            storefrontPackageJson.name = 'storefront';
-            if (storefrontPackageJson.scripts?.dev) {
-                storefrontPackageJson.scripts.dev = `next dev --port ${storefrontPort}`;
-            }
-            await fs.writeJson(storefrontPackageJsonPath, storefrontPackageJson, { spaces: 2 });
+            await downloadAndExtractStorefront(storefrontRoot, storefront);
 
-            // Generate storefront .env.local from template
-            const storefrontEnvTemplate = await fs.readFile(templatePath('storefront-env.hbs'), 'utf-8');
-            const storefrontEnvContent = Handlebars.compile(storefrontEnvTemplate)({
+            const storefrontSetupContext = {
+                projectName: appName,
                 serverPort: port,
                 storefrontPort,
-                name: appName,
                 revalidationSecret: randomBytes(32).toString('base64'),
-            });
-            fs.writeFileSync(path.join(storefrontRoot, '.env.local'), storefrontEnvContent);
+            };
+            const storefrontPackageJsonPath = path.join(storefrontRoot, 'package.json');
+            const storefrontPackageJson = await fs.readJson(storefrontPackageJsonPath);
+            await fs.writeJson(
+                storefrontPackageJsonPath,
+                configureStorefrontPackageJson(storefrontPackageJson, storefront, storefrontSetupContext),
+                { spaces: 2 },
+            );
+            fs.writeFileSync(
+                path.join(storefrontRoot, storefront.envFile),
+                renderStorefrontEnvironment(storefront, storefrontSetupContext),
+            );
 
-            storefrontSpinner.stop(`Downloaded Next.js storefront`);
+            storefrontSpinner.stop(`Downloaded ${storefront.name} storefront`);
         } catch (e: any) {
             storefrontSpinner.stop(pc.red(`Failed to download storefront`));
             log(e.message, { level: 'verbose' });
@@ -339,7 +362,11 @@ export async function createVendureApp(
     }
 
     // Install dependencies
-    const { dependencies, devDependencies } = getDependencies(dbType, `@${packageJson.version as string}`);
+    const { dependencies, devDependencies } = getDependencies(
+        dbType,
+        `@${packageJson.version as string}`,
+        packageManager,
+    );
 
     // Install server dependencies
     await installDependenciesWithSpinner({
@@ -415,6 +442,9 @@ export async function createVendureApp(
             .then(() => fs.ensureDir(path.join(serverRoot, 'src/plugins')))
             .then(() => fs.copyFile(assetPath('gitignore.template'), path.join(serverRoot, '.gitignore')))
             .then(() =>
+                fs.copyFile(assetPath('dockerignore.template'), path.join(serverRoot, '.dockerignore')),
+            )
+            .then(() =>
                 fs.copyFile(assetPath('tsconfig.template.json'), path.join(serverRoot, 'tsconfig.json')),
             )
             .then(() =>
@@ -433,6 +463,12 @@ export async function createVendureApp(
     // Manual mode is excluded: there the user supplies their own database connection,
     // so no Docker container is started on their behalf.
     if ((mode === 'quick' || mode === 'ci') && dbType === 'postgres') {
+        // --ci skips the Docker check in the prompts, and in quick start the daemon can
+        // stop answering while the scaffold is written. Every later step calls `docker`.
+        if ((await probeDockerDaemon()) !== 'running') {
+            outro(pc.red(DOCKER_NOT_RESPONDING_MESSAGE));
+            process.exit(1);
+        }
         // appName (the resolved directory basename) is what the docker-compose labels are
         // keyed off — the raw CLI argument may be a nested path like `apps/my-shop`.
         cleanUpDockerResources(appName);
@@ -487,21 +523,24 @@ export async function createVendureApp(
     // complex module resolution with npm workspaces and ESM packages can
     // cause false TypeScript errors. Type checking happens when users run
     // their own build/dev commands.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require(resolvePackageRootDir('ts-node', serverRoot)).register({
+    // ts-node resolves its `typescript` peer from whichever package required it, so the
+    // generated project has to be the one that requires it.
+    createProjectRequire(serverRoot)('ts-node').register({
         project: path.join(serverRoot, 'tsconfig.json'),
         transpileOnly: true,
     });
 
     let superAdminCredentials: { identifier: string; password: string } | undefined;
     try {
-        const { populate } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate')
+        // Required rather than imported, to keep this CommonJS graph off the ESM loader.
+        // See createProjectRequire.
+        const projectRequire = createProjectRequire(serverRoot);
+        const { populate } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate'),
         );
-        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index')
-        );
-        const { config } = await import(configFile);
+        const { bootstrap, generateMigration, runMigrations, DefaultLogger, LogLevel, JobQueueService } =
+            projectRequire(path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index'));
+        const { config } = projectRequire(configFile);
         const assetsDir = path.join(__dirname, '../assets');
         superAdminCredentials = config.authOptions.superadminCredentials;
         const initialDataPath = path.join(assetsDir, 'initial-data.json');
@@ -512,8 +551,40 @@ export async function createVendureApp(
                   ? LogLevel.Verbose
                   : LogLevel.Info;
 
+        // Generate an initial "baseline" migration and run it, so that a fresh project ships with a
+        // schema-creating migration from day one. This lets the very first remote deploy build its
+        // schema via migrations instead of relying on `synchronize`, which is unsafe in production.
+        //
+        // `fromEmpty` diffs against a temporary empty database, so a complete baseline is produced
+        // even if the configured database is not pristine (e.g. a re-run pointing at a database left
+        // populated by an earlier attempt) - avoiding a silently-empty migrations directory.
+        // VENDURE_RUNNING_IN_CLI makes generateMigration/runMigrations throw on failure rather than
+        // logging and continuing, so any error surfaces to the catch below instead of letting the
+        // scaffold proceed against a broken schema.
+        await checkDbConnection(config.dbConnectionOptions, serverRoot);
+        const migrationsGlob = Array.isArray(config.dbConnectionOptions.migrations)
+            ? config.dbConnectionOptions.migrations[0]
+            : undefined;
+        const migrationsDir =
+            typeof migrationsGlob === 'string'
+                ? path.dirname(migrationsGlob)
+                : path.join(serverRoot, 'src', 'migrations');
+        process.env.VENDURE_RUNNING_IN_CLI = 'true';
+        try {
+            const migrationFile = await generateMigration(config, {
+                name: 'init',
+                outputDir: migrationsDir,
+                fromEmpty: true,
+            });
+            if (!migrationFile) {
+                throw new Error('Failed to generate the initial database migration.');
+            }
+            await runMigrations(config);
+        } finally {
+            delete process.env.VENDURE_RUNNING_IN_CLI;
+        }
+
         const bootstrapFn = async () => {
-            await checkDbConnection(config.dbConnectionOptions, serverRoot);
             const _app = await bootstrap({
                 ...config,
                 apiOptions: {
@@ -522,7 +593,7 @@ export async function createVendureApp(
                 },
                 dbConnectionOptions: {
                     ...config.dbConnectionOptions,
-                    synchronize: true,
+                    synchronize: false,
                 },
                 logger: new DefaultLogger({ level: vendureLogLevel }),
                 importExportOptions: {
@@ -596,7 +667,7 @@ export async function createVendureApp(
                         name,
                         packageManager,
                         superAdminCredentials,
-                        includeStorefront,
+                        storefront,
                         serverPort: port,
                         storefrontPort,
                     });
@@ -608,6 +679,10 @@ export async function createVendureApp(
                 // before opening the window.
                 await sleep(AUTO_RUN_DELAY_MS);
                 try {
+                    // `open` is ESM-only. Requiring an ESM package at module scope throws
+                    // ERR_VM_MODULE_LINK_FAILURE under Plug'n'Play on Node 22 and kills the
+                    // CLI before it prints anything, so it is imported at the point of use.
+                    const { default: open } = await import('open');
                     await open(dashboardUrl, {
                         newInstance: true,
                     });
@@ -622,12 +697,13 @@ export async function createVendureApp(
             }
         } else {
             clearTimeout(timer);
+            await offerPlatformTrial(serverRoot, isCi);
             displayOutro({
                 root,
                 name,
                 packageManager,
                 superAdminCredentials,
-                includeStorefront,
+                storefront,
                 serverPort: port,
                 storefrontPort,
             });
@@ -696,7 +772,7 @@ interface OutroOptions {
     name: string;
     packageManager: PackageManager;
     superAdminCredentials?: { identifier: string; password: string };
-    includeStorefront?: boolean;
+    storefront?: StorefrontStarter;
     serverPort?: number;
     storefrontPort?: number;
 }
@@ -708,7 +784,7 @@ function displayOutro(outroOptions: OutroOptions) {
         name,
         packageManager,
         superAdminCredentials,
-        includeStorefront,
+        storefront,
         serverPort = SERVER_PORT,
         storefrontPort = STOREFRONT_PORT,
     } = outroOptions;
@@ -731,14 +807,14 @@ function displayOutro(outroOptions: OutroOptions) {
 
     let nextSteps: string[];
 
-    if (includeStorefront) {
+    if (storefront) {
         nextSteps = [
             `Your new Vendure project was created!`,
             pc.gray(root),
             `\n`,
             `This is a monorepo with the following apps:`,
             `  ${pc.cyan('apps/server')}     - Vendure backend`,
-            `  ${pc.cyan('apps/storefront')} - Next.js frontend`,
+            `  ${pc.cyan('apps/storefront')} - ${storefront.frameworkName} frontend`,
             `\n`,
             `Next, run:`,
             pc.gray('$ ') + pc.blue(pc.bold(`cd ${name}`)),
@@ -769,6 +845,7 @@ function displayOutro(outroOptions: OutroOptions) {
     }
 
     note(nextSteps.join('\n'), pc.green('Setup complete!'));
+    showConsoleHint();
     outro(`Happy hacking!`);
 }
 
@@ -818,7 +895,7 @@ async function copyEmailTemplates(root: string) {
     } catch (err: any) {
         log(pc.red('Failed to copy email templates.'));
         log(err);
-        process.exit(0);
+        process.exit(1);
     }
 }
 

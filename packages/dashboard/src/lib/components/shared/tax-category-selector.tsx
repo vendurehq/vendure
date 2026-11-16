@@ -32,7 +32,6 @@ export interface TaxCategorySelectorProps {
 export function TaxCategorySelector({ value, onChange }: Readonly<TaxCategorySelectorProps>) {
     const { data, isLoading, isPending, status } = useQuery({
         queryKey: ['taxCategories'],
-        staleTime: 1000 * 60 * 5,
         queryFn: () =>
             api.query(taxCategoriesDocument, {
                 options: {

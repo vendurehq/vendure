@@ -4,6 +4,7 @@ import { Omit } from '@vendure/common/lib/omit';
 
 import { RequestContext } from '../../api/common/request-context';
 import { InternalServerError } from '../../common/error/errors';
+import { getDatabaseType } from '../../connection/database-type';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Collection, FacetValue } from '../../entity';
 import { EventBus } from '../../event-bus/event-bus';
@@ -114,7 +115,7 @@ export class FulltextSearchService {
         if (this.options.searchStrategy) {
             this._searchStrategy = this.options.searchStrategy;
         } else {
-            switch (this.connection.rawConnection.options.type) {
+            switch (getDatabaseType(this.connection.rawConnection)) {
                 case 'mysql':
                 case 'mariadb':
                 case 'aurora-mysql':

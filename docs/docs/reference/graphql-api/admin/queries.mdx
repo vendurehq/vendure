@@ -996,6 +996,28 @@ type Query {
 }`}
 </GraphQLDoc>
 
+<a name="refunddestinations"></a>
+
+## refundDestinations
+
+<GraphQLDoc
+  type="query"
+  typeName="refundDestinations"
+  typeLinks={{
+    RefundDestination: '/reference/graphql-api/admin/object-types#refunddestination',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Returns the available refund destinations for the given order.
+This includes the default destination (original payment method) plus
+any custom destinations registered via RefundDestinationStrategy.
+"""
+type Query {
+  refundDestinations(orderId: ID!): [RefundDestination!]!
+}`}
+</GraphQLDoc>
+
 <a name="role"></a>
 
 ## role

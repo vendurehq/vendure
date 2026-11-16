@@ -1,30 +1,14 @@
-import { api } from '@/vdb/graphql/api.js';
-import { graphql } from '@/vdb/graphql/graphql.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
-import { Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
+import { Trans } from '@lingui/react/macro';
 import { Controller, useForm } from 'react-hook-form';
 import { Button } from '../ui/button.js';
 import { Checkbox } from '../ui/checkbox.js';
 import { FieldDescription, FieldLabel } from '../ui/field.js';
 import { Form } from '../ui/form.js';
 import { Input } from '../ui/input.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
+import { AddressCountrySelect } from './address-country-select.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
 import { CustomFieldsForm } from './custom-fields-form.js';
-
-// Query document to fetch available countries
-const getAvailableCountriesDocument = graphql(`
-    query GetAvailableCountries {
-        countries(options: { filter: { enabled: { eq: true } } }) {
-            items {
-                id
-                code
-                name
-            }
-        }
-    }
-`);
 
 const addressFormSchema = z.object({
     id: z.string(),
@@ -70,15 +54,6 @@ export function CustomerAddressForm<T>({
     hideDefaultAddressFlags = false,
     submitLabel,
 }: CustomerAddressFormProps<T>) {
-    const { t } = useLingui();
-
-    // Fetch available countries
-    const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
-        queryKey: ['availableCountries'],
-        queryFn: () => api.query(getAvailableCountriesDocument),
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    });
-
     const form = useForm<AddressFormValues>({
         resolver: zodResolver(addressFormSchema),
         defaultValues: {
@@ -186,24 +161,7 @@ export function CustomerAddressForm<T>({
                         label={<Trans>Country</Trans>}
                         renderFormControl={false}
                         render={({ field }) => (
-                            <Select
-                                items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                onValueChange={field.onChange}
-                                defaultValue={field.value || undefined}
-                                value={field.value || undefined}
-                                disabled={isLoadingCountries}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t`Select a country`} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {countriesData?.countries.items.map(country => (
-                                        <SelectItem key={country.code} value={country.code}>
-                                            {country.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <AddressCountrySelect value={field.value} onChange={field.onChange} />
                         )}
                     />
 

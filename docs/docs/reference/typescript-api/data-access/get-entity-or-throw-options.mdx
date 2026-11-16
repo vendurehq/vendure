@@ -2,19 +2,19 @@
 title: "GetEntityOrThrowOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/connection/types.ts" sourceLine="10" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/connection/types.ts" sourceLine="56" packageName="@vendure/core" />
 
 Options used by the [TransactionalConnection](/reference/typescript-api/data-access/transactional-connection#transactionalconnection) `getEntityOrThrow` method.
 
 ```ts title="Signature"
-interface GetEntityOrThrowOptions<T = any> extends FindOneOptions<T> {
+interface GetEntityOrThrowOptions<T = any> extends VendureFindOneOptions<T> {
     channelId?: ID;
     retries?: number;
     retryDelay?: number;
     includeSoftDeleted?: boolean;
 }
 ```
-* Extends: `FindOneOptions<T>`
+* Extends: [`VendureFindOneOptions`](/reference/typescript-api/data-access/vendure-find-one-options#vendurefindoneoptions)`<T>`
 
 
 

@@ -10,7 +10,7 @@ import {
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 
-import { Injector } from '../common';
+import { idsAreEqual, Injector } from '../common';
 import { InspectableJobQueueStrategy } from '../config/job-queue/inspectable-job-queue-strategy';
 import { Logger } from '../config/logger/vendure-logger';
 import { ProcessContext } from '../process-context/process-context';
@@ -66,7 +66,7 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
         }
         (job as any).retries = this.setRetries(job.queueName, job);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.jobs.set(job.id!, job);
+        this.jobs.set(this.toKey(job.id!), job);
         if (!this.unsettledJobs[job.queueName]) {
             this.unsettledJobs[job.queueName] = [];
         }
@@ -75,7 +75,8 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     async findOne(id: ID): Promise<Job | undefined> {
-        return this.jobs.get(id);
+        const job = this.jobs.get(this.toKey(id));
+        return job && this.snapshot(job);
     }
 
     async findMany(options?: JobListOptions): Promise<PaginatedList<Job>> {
@@ -87,18 +88,24 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
             if (options.filter) {
                 items = this.applyFilters(items, options.filter);
             }
-            if (options.skip || options.take) {
-                items = this.applyPagination(items, options.skip, options.take);
-            }
+        }
+        // `totalItems` is the count of all matching jobs, so it must be taken before
+        // pagination narrows `items` to a single page.
+        const totalItems = items.length;
+        if (options?.skip || options?.take) {
+            items = this.applyPagination(items, options.skip, options.take);
         }
         return {
-            items,
-            totalItems: items.length,
+            items: items.map(job => this.snapshot(job)),
+            totalItems,
         };
     }
 
     async findManyById(ids: ID[]): Promise<Job[]> {
-        return ids.map(id => this.jobs.get(id)).filter(notNullOrUndefined);
+        return ids
+            .map(id => this.jobs.get(this.toKey(id)))
+            .filter(notNullOrUndefined)
+            .map(job => this.snapshot(job));
     }
 
     async next(queueName: string, waitingJobs: Job[] = []): Promise<Job | undefined> {
@@ -123,11 +130,35 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     async update(job: Job): Promise<void> {
+        // The finders return copies, so the job passed here is not necessarily the instance held
+        // in `unsettledJobs`. Drop any existing entry for it first. Otherwise a job cancelled while
+        // PENDING stays queued and `next()` runs it anyway.
+        //
+        // The store is last-write-wins: whichever instance is passed here becomes the stored one.
+        // A snapshot written back while a job is RUNNING therefore displaces the live instance
+        // until the processing loop writes it back on its next progress report or on settlement.
+        // Cancel a running job via `cancelJob()`, which reaches the stored instance directly.
+        this.removeFromUnsettled(job);
         if (job.state === JobState.RETRYING || job.state === JobState.PENDING) {
             this.unsettledJobs[job.queueName].unshift({ job, updatedAt: new Date() });
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.jobs.set(job.id!, job);
+        this.jobs.set(this.toKey(job.id!), job);
+    }
+
+    /**
+     * Cancels the stored instance, which is the one `ActiveQueue` is processing. Cancelling a copy
+     * returned by `findOne()` is not enough: `ActiveQueue` writes the running job back on every
+     * `setProgress()`, so its next progress report would replace the cancelled copy with RUNNING.
+     */
+    async cancelJob(jobId: ID): Promise<Job | undefined> {
+        const job = this.jobs.get(this.toKey(jobId));
+        if (!job) {
+            return;
+        }
+        job.cancel();
+        await this.update(job);
+        return this.snapshot(job);
     }
 
     async removeSettledJobs(queueNames: string[] = [], olderThan?: Date): Promise<number> {
@@ -140,17 +171,62 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
                 if (olderThan) {
                     if (job.settledAt && job.settledAt < olderThan) {
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        this.jobs.delete(job.id!);
+                        this.jobs.delete(this.toKey(job.id!));
                         removed++;
                     }
                 } else {
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    this.jobs.delete(job.id!);
+                    this.jobs.delete(this.toKey(job.id!));
                     removed++;
                 }
             }
         }
         return removed;
+    }
+
+    /**
+     * Returns a copy of the given Job for the finders. Stored jobs are mutated in place while they
+     * are processed, so handing out the stored instance would let its state change underneath the
+     * caller.
+     *
+     * The `Job` constructor copies `data`. `result` and the Date fields are shared with the stored
+     * job, so mutating a copy's `result` object in place also mutates the stored one.
+     */
+    private snapshot(job: Job): Job {
+        return new Job({
+            id: job.id ?? undefined,
+            queueName: job.queueName,
+            data: job.data,
+            retries: job.retries,
+            attempts: job.attempts,
+            state: job.state,
+            progress: job.progress,
+            result: job.result,
+            error: job.error,
+            createdAt: job.createdAt,
+            startedAt: job.startedAt,
+            settledAt: job.settledAt,
+        });
+    }
+
+    /**
+     * Job ids are generated here as strings, but the Admin API resolvers pass ids through
+     * `decodeId()`, which returns a number for numeric ids. Keying the store by the string form
+     * lets both find the same job.
+     */
+    private toKey(id: ID): string {
+        return String(id);
+    }
+
+    private removeFromUnsettled(job: Job): void {
+        const queued = this.unsettledJobs[job.queueName];
+        if (!queued) {
+            return;
+        }
+        const index = queued.findIndex(item => item.job.id === job.id);
+        if (index !== -1) {
+            queued.splice(index, 1);
+        }
     }
 
     private applySort(items: Job[], sort: JobSortParameter): Job[] {
@@ -169,7 +245,11 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
                 continue;
             }
             if (operator?.eq !== undefined) {
-                items = items.filter(i => i[key] === operator.eq);
+                const eq = operator.eq;
+                items =
+                    key === 'id'
+                        ? items.filter(i => idsAreEqual(i.id, eq as ID))
+                        : items.filter(i => i[key] === eq);
             }
 
             const contains = (operator as StringOperators)?.contains;

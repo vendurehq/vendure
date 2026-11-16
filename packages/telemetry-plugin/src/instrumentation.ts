@@ -119,7 +119,7 @@ export interface SdkConfigurationOptions {
  * const config = getSdkConfiguration({
  *     config: {
  *         spanProcessors: [new BatchSpanProcessor(traceExporter)],
- *         logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+ *         logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
  *     },
  * });
  *
@@ -146,11 +146,11 @@ export function getSdkConfiguration(options?: SdkConfigurationOptions): Partial<
     const devModeAwareConfig: Partial<NodeSDKConfiguration> = options?.logToConsole
         ? {
               spanProcessors: [new SimpleSpanProcessor(new ConsoleSpanExporter())],
-              logRecordProcessors: [new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())],
+              logRecordProcessors: [new SimpleLogRecordProcessor({ exporter: new ConsoleLogRecordExporter() })],
           }
         : {
               spanProcessors: spanProcessors ?? [new BatchSpanProcessor(traceExporter)],
-              logRecordProcessors: logRecordProcessors ?? [new BatchLogRecordProcessor(logExporter)],
+              logRecordProcessors: logRecordProcessors ?? [new BatchLogRecordProcessor({ exporter: logExporter })],
           };
 
     return {

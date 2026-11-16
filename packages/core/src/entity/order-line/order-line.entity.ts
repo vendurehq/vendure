@@ -1,7 +1,7 @@
 import { Adjustment, AdjustmentType, Discount, TaxLine } from '@vendure/common/lib/generated-types';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { Column, Entity, Index, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
@@ -13,8 +13,8 @@ import { Channel } from '../channel/channel.entity';
 import { CustomOrderLineFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
-import { Order } from '../order/order.entity';
 import { OrderLineReference } from '../order-line-reference/order-line-reference.entity';
+import { Order } from '../order/order.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
 import { ShippingLine } from '../shipping-line/shipping-line.entity';
 import { Allocation } from '../stock-movement/allocation.entity';
@@ -287,19 +287,22 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         // Group discounts together, so that it does not list a new
         // discount row for each item in the line
         const groupedDiscounts = new Map<string, Discount>();
-        // A line added by an OrderModification keeps an orderPlacedQuantity of 0, so once it is
-        // cancelled there are no units left to prorate the adjustment over.
-        const proratedOverQuantity = Math.max(this.orderPlacedQuantity, this.quantity);
+        // See `getUnitAdjustmentsTotal()` for the quantity basis used per adjustment type. A
+        // quantity of 0 (e.g. a fully-cancelled line added by an OrderModification, which keeps
+        // `orderPlacedQuantity` at 0 too, per #5097) has no units left to hold a discount,
+        // regardless of what the stored adjustment amount is.
         for (const adjustment of this.adjustments) {
             const discountGroup = groupedDiscounts.get(adjustment.adjustmentSource);
-            const unitAdjustmentAmount =
-                proratedOverQuantity === 0 ? 0 : (adjustment.amount / proratedOverQuantity) * this.quantity;
+            const lineAdjustmentAmount =
+                this.quantity === 0
+                    ? 0
+                    : (adjustment.amount / this.quantityBasisFor(adjustment)) * this.quantity;
             const amount = priceIncludesTax
-                ? netPriceOf(unitAdjustmentAmount, this.taxRate)
-                : unitAdjustmentAmount;
+                ? netPriceOf(lineAdjustmentAmount, this.taxRate)
+                : lineAdjustmentAmount;
             const amountWithTax = priceIncludesTax
-                ? unitAdjustmentAmount
-                : grossPriceOf(unitAdjustmentAmount, this.taxRate);
+                ? lineAdjustmentAmount
+                : grossPriceOf(lineAdjustmentAmount, this.taxRate);
             if (discountGroup) {
                 discountGroup.amount += amount;
                 discountGroup.amountWithTax += amountWithTax;
@@ -365,6 +368,29 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     }
 
     /**
+     * @description
+     * Sets this line's quantity to `newQuantity`, rescaling its `PROMOTION`-type adjustments to
+     * match. Used where a quantity reduction bypasses `OrderCalculator` recalculation (see
+     * `OrderModifier.cancelOrderByOrderLines()`), to preserve the invariant that `PROMOTION`
+     * amounts are stored scaled to the current quantity.
+     *
+     * A `newQuantity` of 0 sets the quantity but leaves the adjustments untouched: the getters
+     * short-circuit on an empty line either way, so scaling them to zero would only erase the
+     * record of the discount that had applied, which plugins and accounting exports read back.
+     */
+    setQuantityRescalingAdjustments(newQuantity: number) {
+        if (0 < newQuantity) {
+            const scaleFactor = newQuantity / this.quantity;
+            this.adjustments = (this.adjustments ?? []).map(adjustment =>
+                adjustment.type === AdjustmentType.PROMOTION
+                    ? { ...adjustment, amount: roundMoney(adjustment.amount * scaleFactor) }
+                    : adjustment,
+            );
+        }
+        this.quantity = newQuantity;
+    }
+
+    /**
      * Clears Adjustments from all OrderItems of the given type. If no type
      * is specified, then all adjustments are removed.
      */
@@ -418,7 +444,9 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
 
     /**
      * @description
-     * The total of all price adjustments. Will typically be a negative number due to discounts.
+     * The total of all price adjustments, expressed per unit. Will typically be a negative
+     * number due to discounts. See `quantityBasisFor()` for the quantity basis used per
+     * adjustment, which differs by `AdjustmentType`.
      */
     private getUnitAdjustmentsTotal(type?: AdjustmentType): number {
         if (!this.adjustments || this.quantity === 0) {
@@ -426,13 +454,14 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         }
         return this.adjustments
             .filter(adjustment => (type ? adjustment.type === type : true))
-            .map(adjustment => adjustment.amount / Math.max(this.orderPlacedQuantity, this.quantity))
+            .map(adjustment => adjustment.amount / this.quantityBasisFor(adjustment))
             .reduce((total, a) => total + a, 0);
     }
 
     /**
      * @description
-     * The total of all price adjustments. Will typically be a negative number due to discounts.
+     * The total of all price adjustments for the whole line. Will typically be a negative number
+     * due to discounts. See `quantityBasisFor()` for the quantity basis used per adjustment.
      */
     private getLineAdjustmentsTotal(withTax: boolean, type?: AdjustmentType): number {
         if (!this.adjustments || this.quantity === 0) {
@@ -440,18 +469,38 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         }
         const sum = this.adjustments
             .filter(adjustment => (type ? adjustment.type === type : true))
-            .map(adjustment => adjustment.amount)
+            .map(adjustment => (adjustment.amount / this.quantityBasisFor(adjustment)) * this.quantity)
             .reduce((total, a) => total + a, 0);
-        const adjustedForQuantityChanges =
-            sum * (this.quantity / Math.max(this.orderPlacedQuantity, this.quantity));
         if (withTax) {
-            return this.listPriceIncludesTax
-                ? adjustedForQuantityChanges
-                : grossPriceOf(adjustedForQuantityChanges, this.taxRate);
+            return this.listPriceIncludesTax ? sum : grossPriceOf(sum, this.taxRate);
         } else {
-            return this.listPriceIncludesTax
-                ? netPriceOf(adjustedForQuantityChanges, this.taxRate)
-                : adjustedForQuantityChanges;
+            return this.listPriceIncludesTax ? netPriceOf(sum, this.taxRate) : sum;
         }
+    }
+
+    /**
+     * @description
+     * The quantity that `adjustment.amount` (a line total) should be divided by to get a correct
+     * per-unit share. `PROMOTION` adjustments are always freshly recomputed against the current
+     * `this.quantity`, so that is their basis. Other types (`DISTRIBUTED_ORDER_PROMOTION`, `OTHER`)
+     * are a per-line share of an order-level amount that is redistributed by weight on every
+     * recalculation, so their basis is pinned to `orderPlacedQuantity` - otherwise a partially
+     * cancelled/refunded line's surviving units could absorb a bigger share than they're due. See
+     * #5127 for the full reasoning.
+     */
+    private quantityBasisFor(adjustment: Adjustment): number {
+        const basis = (() => {
+            switch (adjustment.type) {
+                case AdjustmentType.PROMOTION:
+                    return this.quantity;
+                case AdjustmentType.DISTRIBUTED_ORDER_PROMOTION:
+                case AdjustmentType.OTHER:
+                default:
+                    return Math.max(this.orderPlacedQuantity, this.quantity);
+            }
+        })();
+        // An empty line has no units to divide across; every caller discards the result in that
+        // case, and 1 keeps a future caller that forgets from producing NaN (cf. #5101).
+        return basis === 0 ? 1 : basis;
     }
 }

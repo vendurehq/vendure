@@ -20,7 +20,7 @@ import path from 'path';
 export class HashedAssetNamingStrategy extends DefaultAssetNamingStrategy {
     generateSourceFileName(ctx: RequestContext, originalFileName: string, conflictFileName?: string): string {
         const filename = super.generateSourceFileName(ctx, originalFileName, conflictFileName);
-        return path.join('source', this.getHashedDir(filename), filename);
+        return path.posix.join('source', this.getHashedDir(filename), filename);
     }
     generatePreviewFileName(
         ctx: RequestContext,
@@ -28,7 +28,7 @@ export class HashedAssetNamingStrategy extends DefaultAssetNamingStrategy {
         conflictFileName?: string,
     ): string {
         const filename = super.generatePreviewFileName(ctx, originalFileName, conflictFileName);
-        return path.join('preview', this.getHashedDir(filename), filename);
+        return path.posix.join('preview', this.getHashedDir(filename), filename);
     }
 
     private getHashedDir(filename: string): string {

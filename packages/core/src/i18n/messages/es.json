@@ -5,8 +5,8 @@
     "cannot-transition-order-from-to": "No se puede cambiar el estado del pedido de \"{ fromState }\" a \"{ toState }\"",
     "cannot-transition-to-shipping-when-order-is-empty": "No se puede cambiar el estado del envío a \"ArrangingShipping\" cuando esta vacío",
     "cannot-transition-to-payment-without-customer": "No se puede cambiar el estado del pago a \"ArrangingPayment\"sin detalles del Cliente",
-    "channel-not-found":  "Ningún canal con el token \"{ token }\" existe",
-    "country-code-not-valid":  "El código de país  \"{ countryCode }\" no fue reconocido",
+    "channel-not-found": "Ningún canal con el token \"{ token }\" existe",
+    "country-code-not-valid": "El código de país  \"{ countryCode }\" no fue reconocido",
     "email-address-not-verified": "Por favor verifica este email, antes de iniciar sesión",
     "entity-has-no-translation-in-language": "Entidad traducible \"{ entityName }\" no ha sido traducida al idioma seleccionando ({ languageCode })",
     "entity-with-id-not-found": "No { entityName } con el id \"{ id }\" se ha encontrado",
@@ -34,5 +34,202 @@
     "facet-value-force-deleted": "El valor de faceta seleccionado, fue eliminnado de {products, plural, =0 {} one {1 Producto} other {# Productos}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}} and deleted",
     "facet-value-used": "El valor de faceta seleccionado, está asignado a {products, plural, =0 {} one {1 Producto} other {# Productos}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
     "zone-used-in-tax-rates": "La zona seleccionada no se puede eliminar, es usada por estas Tasas de impuestos: { taxRateNames }"
+  },
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtrar por valores de faceta",
+        "args": {
+          "facetValueIds": {
+            "label": "Valores de faceta"
+          },
+          "containsAny": {
+            "label": "Contiene cualquiera",
+            "description": "Si está marcado, las variantes de producto deben tener al menos uno de los valores de faceta seleccionados. Si no está marcado, la variante debe tener todos los valores seleccionados."
+          },
+          "combineWithAnd": {
+            "label": "Modo de combinación",
+            "description": "Si este filtro se combina con otros filtros, ¿deben cumplirse todas las condiciones (AND) o basta con una de ellas (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtrar por nombre de variante de producto",
+        "args": {
+          "combineWithAnd": {
+            "label": "Modo de combinación",
+            "description": "Si este filtro se combina con otros filtros, ¿deben cumplirse todas las condiciones (AND) o basta con una de ellas (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Seleccionar variantes de producto manualmente",
+        "args": {
+          "variantIds": {
+            "label": "Variantes de producto"
+          },
+          "combineWithAnd": {
+            "label": "Modo de combinación",
+            "description": "Si este filtro se combina con otros filtros, ¿deben cumplirse todas las condiciones (AND) o basta con una de ellas (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Seleccionar productos manualmente",
+        "args": {
+          "productIds": {
+            "label": "Productos"
+          },
+          "combineWithAnd": {
+            "label": "Modo de combinación",
+            "description": "Si este filtro se combina con otros filtros, ¿deben cumplirse todas las condiciones (AND) o basta con una de ellas (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Duplicador predeterminado para productos",
+        "args": {
+          "includeVariants": {
+            "label": "Incluir variantes"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Duplicador predeterminado para colecciones"
+      },
+      "facet-duplicator": {
+        "description": "Duplicador predeterminado para facetas",
+        "args": {
+          "includeFacetValues": {
+            "label": "Incluir valores de faceta"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Duplicador predeterminado para promociones"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Introducir manualmente los datos del envío"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Un proveedor de pago ficticio destinado únicamente a pruebas y desarrollo.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autorizar y liquidar en 1 paso",
+            "description": "Si está activado, los pagos se crearán en el estado \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Proveedor de pago de ejemplo"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Descontar un importe fijo del pedido"
+      },
+      "order_line_fixed_discount": {
+        "description": "Descontar un importe fijo de la orderLine"
+      },
+      "order_percentage_discount": {
+        "description": "Descontar un { discount }% del pedido"
+      },
+      "facet_based_discount": {
+        "description": "Descontar un { discount }% en los productos con estas facetas"
+      },
+      "products_percentage_discount": {
+        "description": "Descontar un { discount }% en los productos especificados",
+        "args": {
+          "productVariantIds": {
+            "label": "Variantes de producto"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Envío gratuito"
+      },
+      "buy_x_get_y_free": {
+        "description": "Comprar X productos y obtener Y productos gratis"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Si el total del pedido es mayor que { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Comprar al menos { minimum } productos con las facetas indicadas"
+      },
+      "contains_products": {
+        "description": "Comprar al menos { minimum } de los productos especificados",
+        "args": {
+          "productVariantIds": {
+            "label": "Variantes de producto"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "El cliente pertenece al grupo especificado",
+        "args": {
+          "customerGroupId": {
+            "label": "Grupo de clientes"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Comprar X productos y obtener Y productos gratis",
+        "args": {
+          "variantIdsX": {
+            "label": "Comprar amountX de estas variantes"
+          },
+          "variantIdsY": {
+            "label": "Obtener amountY de estas variantes gratis"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Calculadora de envío de tarifa plana predeterminada",
+        "args": {
+          "rate": {
+            "label": "Precio de envío"
+          },
+          "includesTax": {
+            "label": "El precio incluye impuestos",
+            "options": {
+              "include": {
+                "label": "Incluye impuestos"
+              },
+              "exclude": {
+                "label": "Excluye impuestos"
+              },
+              "auto": {
+                "label": "Automático (según el canal)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Tasa de impuestos"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Verificador de elegibilidad de envío predeterminado",
+        "args": {
+          "orderMinimum": {
+            "label": "Valor mínimo del pedido",
+            "description": "El pedido solo es elegible si su total es mayor o igual que este valor"
+          }
+        }
+      }
+    }
   }
 }

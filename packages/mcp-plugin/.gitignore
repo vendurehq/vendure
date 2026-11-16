@@ -1,0 +1,3 @@
+yarn-error.log
+lib
+e2e/__data__/*.sqlite

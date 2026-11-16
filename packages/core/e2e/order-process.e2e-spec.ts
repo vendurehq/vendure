@@ -44,7 +44,7 @@ describe('Order process', () => {
     const VALIDATION_ERROR_MESSAGE = 'Customer must have a company email address';
     const customOrderProcess: CustomOrderProcess<'ValidatingCustomer' | 'PaymentProcessing'> = {
         init(injector) {
-            initSpy(injector.get(TransactionalConnection).rawConnection.name);
+            initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
         transitions: {
             AddingItems: {
@@ -180,7 +180,7 @@ describe('Order process', () => {
     describe('CustomOrderProcess', () => {
         it('CustomOrderProcess is injectable', () => {
             expect(initSpy).toHaveBeenCalled();
-            expect(initSpy.mock.calls[0][0]).toBe('default');
+            expect(initSpy.mock.calls[0][0]).toBe(true);
         });
 
         it('replaced transition target', async () => {

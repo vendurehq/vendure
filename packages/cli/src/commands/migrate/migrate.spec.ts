@@ -1,6 +1,7 @@
 import { log, select } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { migrateCommandDef } from './command';
 import { migrateCommand } from './migrate';
 import {
     generateMigrationOperation,
@@ -62,7 +63,6 @@ describe('migrateCommand()', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         delete process.env.VENDURE_RUNNING_IN_CLI;
-        process.exitCode = undefined;
         consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
         vi.mocked(generateMigrationOperation).mockResolvedValue({
@@ -95,7 +95,6 @@ describe('migrateCommand()', () => {
 
     afterEach(() => {
         delete process.env.VENDURE_RUNNING_IN_CLI;
-        process.exitCode = undefined;
         consoleLogSpy.mockRestore();
     });
 
@@ -107,7 +106,6 @@ describe('migrateCommand()', () => {
         expect(commandMocks.revertMigrationRun).toHaveBeenCalledWith({
             configFile: './custom-vendure-config.ts',
         });
-        expect(process.exitCode).toBeUndefined();
         expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
     });
 
@@ -115,25 +113,14 @@ describe('migrateCommand()', () => {
         vi.mocked(select).mockResolvedValueOnce('run');
         commandMocks.runMigrationRun.mockRejectedValueOnce(new Error('interactive migration failed'));
 
-        await migrateCommand();
+        await expect(migrateCommandDef.action(undefined)).resolves.toBe(1);
 
         expect(log.error).toHaveBeenCalledWith('interactive migration failed');
-        expect(process.exitCode).toBe(1);
         expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
     });
 
     it('rejects conflicting non-interactive operations instead of silently picking one', async () => {
-        const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
-            throw new Error(`process.exit ${String(code)}`);
-        }) as never);
-
-        try {
-            await expect(migrateCommand({ generate: 'TestMigration', run: true })).rejects.toThrow(
-                'process.exit 1',
-            );
-        } finally {
-            exitSpy.mockRestore();
-        }
+        await expect(migrateCommandDef.action({ generate: 'TestMigration', run: true })).resolves.toBe(1);
 
         expect(log.error).toHaveBeenCalledWith(
             'The migrate command accepts only one operation at a time. Received: --generate, --run.',
@@ -156,15 +143,8 @@ describe('migrateCommand()', () => {
 
     it('cleans up the CLI env var when a non-interactive operation throws', async () => {
         vi.mocked(runMigrationsOperation).mockRejectedValueOnce(new Error('migration failed'));
-        const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
-            throw new Error(`process.exit ${String(code)}`);
-        }) as never);
 
-        try {
-            await expect(migrateCommand({ run: true })).rejects.toThrow('process.exit 1');
-        } finally {
-            exitSpy.mockRestore();
-        }
+        await expect(migrateCommandDef.action({ run: true })).resolves.toBe(1);
 
         expect(log.error).toHaveBeenCalledWith('migration failed');
         expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();

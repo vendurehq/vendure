@@ -1,1 +1,1 @@
-export { Label } from '@vendure-io/ui/components/ui/label';
+export { Label } from '@vendure-io/ui/components/atoms/label';

@@ -32,7 +32,6 @@ export class ProductEntityResolver {
         private collectionService: CollectionService,
         private productOptionGroupService: ProductOptionGroupService,
         private assetService: AssetService,
-        private productService: ProductService,
         private facetValueService: FacetValueService,
         private localeStringHydrator: LocaleStringHydrator,
     ) {}
@@ -109,16 +108,12 @@ export class ProductEntityResolver {
         if (product.facetValues?.length === 0) {
             return [];
         }
-        let facetValues: Array<Translated<FacetValue>>;
-        if (product.facetValues?.[0]?.channels) {
-            facetValues = product.facetValues as Array<Translated<FacetValue>>;
-        } else {
-            facetValues = await this.productService.getFacetValuesForProduct(ctx, product.id);
-        }
-        const filteredFacetValues = await this.facetValueService.findByIds(
-            ctx,
-            facetValues.map(facetValue => facetValue.id),
-        );
+        const filteredFacetValues = product.facetValues?.[0]?.channels
+            ? await this.facetValueService.findByIds(
+                  ctx,
+                  product.facetValues.map(facetValue => facetValue.id),
+              )
+            : await this.facetValueService.findByProductId(ctx, product.id);
 
         if (apiType === 'shop') {
             return filteredFacetValues.filter(fv => !fv.facet.isPrivate);

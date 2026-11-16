@@ -1,16 +1,22 @@
-import { DeletionResult, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
+import {
+    DeletionResult,
+    LanguageCode,
+    LogicalOperator,
+    SortOrder,
+} from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
-import { mergeConfig } from '@vendure/core';
+import { Asset, AssetService, ChannelService, mergeConfig, RequestContextService } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import fs from 'fs-extra';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { ResultOf } from './graphql/graphql-admin';
+import { graphql, ResultOf } from './graphql/graphql-admin';
 import {
     createAssetsDocument,
     deleteAssetDocument,
@@ -612,8 +618,9 @@ describe('Asset resolver', () => {
         });
     });
 
-    // Placed last because creating an asset advances the auto-increment id, which the
-    // hardcoded-id assertions in the tests above rely on.
+    // This block and the one after it must stay at the end of the file: each creates an asset,
+    // which advances the auto-increment id that the total-count and hardcoded-id assertions in
+    // the tests above rely on.
     describe('MIME type content validation (GHSA-88rq-mq4v-frmm)', () => {
         // An SVG that begins with an XML prolog is reported by `file-type` as the generic
         // `application/xml`, which must not cause the permitted `image/svg+xml` upload to be
@@ -635,6 +642,78 @@ describe('Asset resolver', () => {
                 source: expect.stringContaining('test.svg'),
             });
             expect(createAssets[0]).not.toHaveProperty('message');
+        });
+    });
+
+    // Guards against the default translation being saved with a null languageCode when no
+    // RequestContext is passed. https://github.com/vendurehq/vendure/issues/4651
+    describe('createFromFileStream without a RequestContext', () => {
+        const assetGuard: ErrorResultGuard<Asset> = createErrorResultGuard(input => input.id != null);
+
+        it('creates the default translation with the default Channel languageCode', async () => {
+            const assetService = server.app.get(AssetService);
+            const defaultChannel = await server.app.get(ChannelService).getDefaultChannel();
+
+            const result = await assetService.createFromFileStream(
+                Readable.from([Buffer.from('%PDF-1.4\n%%EOF\n')]),
+                'test-file.pdf',
+            );
+
+            assetGuard.assertSuccess(result);
+            expect(result.name).toBe('test-file.pdf');
+            expect(result.translations.map(t => t.languageCode)).toEqual([
+                defaultChannel.defaultLanguageCode,
+            ]);
+
+            // The returned entity carries the Channel ids the service assigned in memory, so it is
+            // also read back to check what reached the database. Both matter.
+            expect(result.channels.map(c => c.id)).toEqual([defaultChannel.id]);
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const persisted = await assetService.findOne(ctx, result.id, ['channels']);
+            expect(persisted?.channels.map(c => c.id)).toEqual([defaultChannel.id]);
+        });
+    });
+
+    // createAssets with translations and no custom fields returns the translated Asset.
+    describe('createAssets with translations', () => {
+        const createAssetsWithTranslationsDocument = graphql(`
+            mutation CreateAssetsWithTranslations($input: [CreateAssetInput!]!) {
+                createAssets(input: $input) {
+                    ... on Asset {
+                        id
+                        name
+                        languageCode
+                        translations {
+                            languageCode
+                            name
+                        }
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `);
+
+        it('returns the translated name and languageCode', async () => {
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsWithTranslationsDocument,
+                filePaths: [path.join(__dirname, 'fixtures/assets/pps1.jpg')],
+                mapVariables: filePaths => ({
+                    input: filePaths.map(() => ({
+                        file: null,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Translated name' }],
+                    })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toMatchObject({
+                name: 'Translated name',
+                languageCode: LanguageCode.en,
+                translations: [{ languageCode: LanguageCode.en, name: 'Translated name' }],
+            });
         });
     });
 });

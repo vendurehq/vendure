@@ -40,6 +40,17 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
+ * Converts a Vendure LanguageCode to a BCP 47 language tag, which `Intl` and Lingui require.
+ * Examples:
+ *   "zh_Hans" -> "zh-Hans"
+ *   "pt_BR" -> "pt-BR"
+ *   "en" -> "en"
+ */
+export function toBcp47Tag(languageCode: string): string {
+    return languageCode.replace(/_/g, '-');
+}
+
+/**
  * This is a copy of the normalizeString function from @vendure/common/lib/normalize-string.js
  * It is duplicated here due to issues importing from that package
  * inside the monorepo.

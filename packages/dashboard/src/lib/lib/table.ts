@@ -13,3 +13,7 @@ export type {
     Table as TableInstance,
     VisibilityState,
 } from '@tanstack/react-table';
+
+// Row-model factories for tables that hold all their rows in the browser and
+// switch the DataTable to client-side sorting/filtering via `setTableOptions`.
+export { getFilteredRowModel, getSortedRowModel } from '@tanstack/react-table';

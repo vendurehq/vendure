@@ -50,7 +50,7 @@ export const Route = createFileRoute('/_authenticated/_api-keys/api-keys_/$id')(
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ApiKeyDetailPage() {

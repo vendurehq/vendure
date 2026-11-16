@@ -4,4 +4,4 @@ export {
     ProgressLabel,
     ProgressTrack,
     ProgressValue,
-} from '@vendure-io/ui/components/ui/progress';
+} from '@vendure-io/ui/components/atoms/progress';

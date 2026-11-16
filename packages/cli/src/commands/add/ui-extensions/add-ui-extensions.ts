@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { PackageJson } from '../../../shared/package-json-ref';
 import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
@@ -73,7 +74,7 @@ export async function addUiExtensions(options?: AddUiExtensionsOptions): Promise
     log.info(`Detected package manager: ${packageManager}`);
     if (!packageJsonFile) {
         cancel(`Could not locate package.json file with a dependency on Vendure.`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     log.info(`Detected package.json: ${packageJsonFile}`);
     installSpinner.start(`Installing dependencies using ${packageManager}...`);

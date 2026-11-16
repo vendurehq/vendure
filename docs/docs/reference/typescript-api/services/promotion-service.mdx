@@ -2,7 +2,7 @@
 title: "PromotionService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/promotion.service.ts" sourceLine="58" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/promotion.service.ts" sourceLine="60" packageName="@vendure/core" />
 
 Contains methods relating to [Promotion](/reference/typescript-api/entities/promotion#promotion) entities.
 
@@ -10,7 +10,7 @@ Contains methods relating to [Promotion](/reference/typescript-api/entities/prom
 class PromotionService {
     availableConditions: PromotionCondition[] = [];
     availableActions: PromotionAction[] = [];
-    constructor(connection: TransactionalConnection, configService: ConfigService, channelService: ChannelService, listQueryBuilder: ListQueryBuilder, configArgService: ConfigArgService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translatableSaver: TranslatableSaver, translator: TranslatorService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, channelService: ChannelService, listQueryBuilder: ListQueryBuilder, configArgService: ConfigArgService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translatableSaver: TranslatableSaver, translator: TranslatorService, roleService: RoleService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<Promotion>, relations: RelationPaths<Promotion> = []) => Promise<PaginatedList<Promotion>>;
     findOne(ctx: RequestContext, adjustmentSourceId: ID, relations: RelationPaths<Promotion> = []) => Promise<Promotion | undefined>;
     getPromotionConditions(ctx: RequestContext) => ConfigurableOperationDefinition[];

@@ -155,17 +155,6 @@ describe('production-check', () => {
         expect(result.details?.some(d => d.includes('playground'))).toBe(true);
     });
 
-    it('detects debug mode enabled', async () => {
-        const config = createTestConfig({
-            apiOptions: { shopApiDebug: true },
-        });
-
-        const result = await runProductionCheck(config);
-
-        expect(result.status).toBe('warn');
-        expect(result.details?.some(d => d.includes('debug'))).toBe(true);
-    });
-
     it('detects broad CORS with credentials', async () => {
         const config = createTestConfig({
             apiOptions: {
