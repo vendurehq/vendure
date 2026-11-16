@@ -165,6 +165,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         zoneCacheTtl: 30000,
         taxRateCacheTtl: 30000,
         metadataModifiers: [],
+        timestampColumnType: 'timestamptz',
         slugStrategy: new DefaultSlugStrategy(),
     },
     promotionOptions: {
