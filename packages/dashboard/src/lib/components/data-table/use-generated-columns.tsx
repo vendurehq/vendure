@@ -367,9 +367,8 @@ const renderDefaultCell: CellRenderer = cellContext => cellContext.renderValue()
 
 /**
  * The value handed to a display component. A custom field's value is not on the row itself,
- * so it is read from `row.original.customFields` instead. Both the CellWrapper path and the
- * withDisplayComponentOverride path resolve it through here, because the point of resolving
- * the registry at render time is that the two paths agree.
+ * so it is read from `row.original.customFields` instead. The CellWrapper path and the
+ * withDisplayComponentOverride path both need this fallback, so it lives in one function.
  */
 function resolveCellValue(
     cellContext: CellContext<any, any>,
