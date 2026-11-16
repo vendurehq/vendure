@@ -46,8 +46,7 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
     const getFieldName = (fieldDef: CustomFieldConfig) =>
         getCustomFieldPath(getCustomFieldBaseName(fieldDef));
 
-    // A readonly relation has no `<name>Id(s)` in the form values, because readonly custom fields
-    // are not in the input types. Its related entity object(s) are at `customFields.<name>`.
+    // For a readonly relation: the path of its related entity object(s), `customFields.<name>`
     const getReadonlyRelationValuePath = (fieldDef: CustomFieldConfig) =>
         fieldDef.type === 'relation' && fieldDef.readonly ? getCustomFieldPath(fieldDef.name) : undefined;
 
@@ -238,9 +237,9 @@ function CustomFieldItem({
     const containerClassName = shouldBeFullWidth ? 'col-span-2' : '';
     const isReadonly = (fieldDef as CustomFieldConfig).readonly ?? false;
 
-    // A readonly relation has no `<name>Id(s)` in the form values, so its value is taken from its
-    // related entity object(s). Every input receives the id(s); a custom component also receives the
-    // object(s) as `relatedEntity`.
+    // A readonly relation has no `<name>Id(s)` in the form values, because readonly custom fields are
+    // not in the input types, so its value is taken from its related entity object(s). Every input
+    // receives the id(s); a custom component also receives the object(s) as `relatedEntity`.
     const isReadonlyRelation = readonlyRelationValuePath != null;
     const relatedEntity = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
     const isListField = fieldDef.list ?? false;

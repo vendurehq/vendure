@@ -79,9 +79,9 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
             options: [{ value: 'standard' }, { value: 'premium' }],
         },
-        // #4902 — readonly single relation with a custom form component: the component must
-        // receive the related entity object as `value`. Seeded directly in global-setup.ts
-        // because readonly relations cannot be set via the Admin API.
+        // #4902 — readonly single relation with a custom form component: the component receives
+        // the related entity id as `value` and the object as `relatedEntity`. Seeded directly in
+        // global-setup.ts because readonly relations cannot be set via the Admin API.
         {
             name: 'relatedAsset',
             type: 'relation',
@@ -92,7 +92,7 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Related Asset' }],
             ui: { component: 'relation-cf.related-asset' },
         },
-        // #4902 — the same for a readonly list relation: the component receives the objects.
+        // #4902 — the same for a readonly list relation: the ids as `value`, the objects as `relatedEntity`.
         {
             name: 'relatedAssets',
             type: 'relation',
