@@ -1,6 +1,7 @@
 import { RefundOrderInput } from '@vendure/common/lib/generated-types';
 import {
     CollectionFilter,
+    Customer,
     CustomFields,
     dummyPaymentHandler,
     LanguageCode,
@@ -184,6 +185,7 @@ export const e2eCustomFields: CustomFields = {
             ],
         },
     ],
+    OrderLine: [{ name: 'giftFrom', type: 'relation', entity: Customer, nullable: true }],
 };
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];

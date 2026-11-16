@@ -130,10 +130,9 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     async update(job: Job): Promise<void> {
-        // `findOne()` etc. hand out snapshots, so the job being updated is not necessarily the
-        // instance held in `unsettledJobs`. Drop any existing entry for it first, otherwise
-        // cancelling a job which is still PENDING would leave the original PENDING instance
-        // queued, and `next()` would run it despite the cancellation.
+        // The finders return copies, so the job passed here is not necessarily the instance held
+        // in `unsettledJobs`. Drop any existing entry for it first. Otherwise a job cancelled while
+        // PENDING stays queued and `next()` runs it anyway.
         //
         // The store is last-write-wins: whichever instance is passed here becomes the stored one.
         // A snapshot written back while a job is RUNNING therefore displaces the live instance
@@ -148,13 +147,9 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     /**
-     * The inherited implementation cancels the Job returned by `findOne()`, which is now a
-     * snapshot, so CANCELLED only reaches the store. `ActiveQueue` does poll the store and
-     * cancel the live job once it reads that state, but it also registers a `progress` listener
-     * which writes the live job back on every `setProgress()`: one progress report from a job
-     * which has not yet been polled reverts the store to RUNNING, the poll never sees the
-     * cancellation, and the job settles as COMPLETED. Cancelling the stored instance reaches the
-     * live job immediately, so no later progress update can revert it.
+     * Cancels the stored instance, which is the one `ActiveQueue` is processing. Cancelling a copy
+     * returned by `findOne()` is not enough: `ActiveQueue` writes the running job back on every
+     * `setProgress()`, so its next progress report would replace the cancelled copy with RUNNING.
      */
     async cancelJob(jobId: ID): Promise<Job | undefined> {
         const job = this.jobs.get(this.toKey(jobId));
@@ -190,16 +185,12 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     /**
-     * Returns a copy of the given Job. The jobs held in this strategy's store are mutated in
-     * place as they are processed (see `next()` and {@link Job} `start()`, `setProgress()`,
-     * `complete()` etc.), so returning the stored instance from the `findOne()`/`findMany()`
-     * family would hand out a reference whose state changes underneath the caller. The
-     * database-backed strategies already build a fresh Job from the persisted record on every
-     * read; this brings the in-memory strategy in line with them.
+     * Returns a copy of the given Job for the finders. Stored jobs are mutated in place while they
+     * are processed, so handing out the stored instance would let its state change underneath the
+     * caller.
      *
-     * The copy is shallow: every field which changes as a job is processed is copied by value,
-     * but `result`, `error` and the Date fields are shared with the stored job, so mutating a
-     * snapshot's `result` object in place would also mutate the stored one.
+     * The `Job` constructor copies `data`. `result` and the Date fields are shared with the stored
+     * job, so mutating a copy's `result` object in place also mutates the stored one.
      */
     private snapshot(job: Job): Job {
         return new Job({

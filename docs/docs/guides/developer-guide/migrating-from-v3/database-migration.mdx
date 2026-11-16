@@ -20,6 +20,7 @@ Back up your production data before you migrate. After you go live on v4, restor
 | Helper | Change | Preview | Second step | With `synchronize: true` |
 |---|---|---|---|---|
 | [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) | [Role assignments](/developer-guide/migrating-from-v3/role-assignments#migrating-the-data) | [`previewRoleAssignmentMigration`](/developer-guide/migrating-from-v3/role-assignments#previewing-the-migration) | [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) | Both steps run on the first v4 startup |
+| [`migrateTimestampColumnsToTimestamptz`](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz) (PostgreSQL) | [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#converting-the-columns) | [`previewTimestamptzMigration`](/developer-guide/migrating-from-v3/date-time-columns#checking-which-timezones-your-data-was-written-in) | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
 
 Each helper's guide explains what it does, how it checks its result, and any steps after go-live.
 
@@ -47,10 +48,15 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
    npx vendure migrate --generate v4-upgrade
    ```
    Running `npx vendure migrate` without flags opens an interactive menu with the same options.
-2. In the generated file, call each data-migration helper after the generated statements:
+2. On PostgreSQL, delete the generated statements which drop and re-add the date columns. They would delete every stored date. See [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#with-migrations).
+3. In the generated file, call each data-migration helper after the generated statements:
    ```ts
    import { MigrationInterface, QueryRunner } from 'typeorm';
-   import { migrateRoleAssignmentData, removeLegacyRoleData } from '@vendure/core';
+   import {
+       migrateRoleAssignmentData,
+       migrateTimestampColumnsToTimestamptz,
+       removeLegacyRoleData,
+   } from '@vendure/core';
 
    export class V4Upgrade1234567890 implements MigrationInterface {
        public async up(queryRunner: QueryRunner): Promise<any> {
@@ -58,6 +64,8 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
            // ...
 
            // --- Data-migration helpers ---
+           // PostgreSQL only: converts the date columns to timestamptz
+           await migrateTimestampColumnsToTimestamptz(queryRunner);
            await migrateRoleAssignmentData(queryRunner);
            // For a rolling deployment, leave this out and call it from a later migration
            await removeLegacyRoleData(queryRunner);
@@ -68,7 +76,7 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
        }
    }
    ```
-3. Run the migration:
+4. Run the migration:
    ```bash
    npx vendure migrate --run
    ```
@@ -82,6 +90,8 @@ On MySQL and MariaDB every DDL statement commits on its own. If the migration st
 ### With `synchronize: true`
 
 If `dbConnectionOptions.synchronize` is enabled, there is no migration to call the helpers from. Vendure runs `migrateRoleAssignmentData` and `removeLegacyRoleData` on the first v4 startup instead, in one transaction. Stop every v3 server and worker before you start v4.
+
+On PostgreSQL this does not work for the first v4 start: the date columns must be converted by a migration, so Vendure refuses to start with `synchronize: true` until they are. Set `synchronize` to `false` for the upgrade and follow [With migrations](#with-migrations). See [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#with-synchronize-true).
 
 **Done when:** Vendure v4 starts and logs each helper's result.
 

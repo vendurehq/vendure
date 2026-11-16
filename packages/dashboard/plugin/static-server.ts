@@ -4,7 +4,7 @@ import * as path from 'node:path';
 
 /**
  * @description
- * Content-hashed bundles under `/assets/` are immutable and a single page load fires
+ * Hashed bundles under `/assets/` are immutable and a single page load fires
  * ~190 chunk requests; counting them against the rate-limit bucket exhausts it within a
  * few tabs (see #4665). This predicate exempts them and is shared by both the static
  * server and the dynamic (Vite dev) proxy handler so the exemption can't drift.
@@ -17,7 +17,7 @@ export const isStaticAssetRequest = (reqPath: string): boolean => reqPath.starts
  *
  * Two concerns have to coexist under the `/assets` URL namespace:
  *
- * 1. **Vite build artifacts** — content-hashed bundles (`index-<hash>.js`, CSS, fonts,
+ * 1. **Vite build artifacts** — hashed bundles (`index-<hash>.js`, CSS, fonts,
  *    source maps) which Vite emits into the `assets` dir. A request for a hashed chunk
  *    that no longer exists (a client holding a stale `index.html` across a deploy) must
  *    return a clean `404` rather than falling through to the `index.html` history

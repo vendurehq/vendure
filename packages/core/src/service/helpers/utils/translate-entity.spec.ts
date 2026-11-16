@@ -117,6 +117,26 @@ describe('translateEntity()', () => {
 
             expect(result.customFields).toEqual({ ...productCustomFields, ...translatedCustomFields });
         });
+
+        // AssetService.createAssetInternal() built AssetTranslations with `customFields: undefined`
+        // when the input had none.
+        it('should translate when the translation customFields is undefined', () => {
+            product.customFields = { aBooleanField: true };
+            product.translations[0].customFields = undefined as any;
+            const result = translateEntity(product, [LanguageCode.en, LanguageCode.en]);
+
+            expect(result).toHaveProperty('name', PRODUCT_NAME_EN);
+            expect(result.customFields).toEqual({ aBooleanField: true });
+        });
+
+        it('should translate when the translation customFields is null', () => {
+            product.customFields = { aBooleanField: true };
+            product.translations[0].customFields = null as any;
+            const result = translateEntity(product, [LanguageCode.en, LanguageCode.en]);
+
+            expect(result).toHaveProperty('name', PRODUCT_NAME_EN);
+            expect(result.customFields).toEqual({ aBooleanField: true });
+        });
     });
 
     it('throw if there are no translations available', () => {

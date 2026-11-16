@@ -114,7 +114,11 @@ export class BaseAuthResolver {
         req: Request,
         res: Response,
     ): Promise<AdminAuthenticationResult | ShopAuthenticationResult | NotVerifiedError> {
-        const [method, data] = Object.entries(args.input)[0];
+        // Every field of AuthenticationInput is optional, so `{}` and `{ <strategy>: null }` pass validation.
+        const [method, data] = Object.entries(args.input)[0] ?? [];
+        if (!method || data == null) {
+            return new InvalidCredentialsError({ authenticationError: '' });
+        }
         const { apiType } = ctx;
         const session = await this.authService.authenticate(ctx, apiType, method, data);
         if (isGraphQlErrorResult(session)) {

@@ -136,7 +136,10 @@ export class MetricsService {
     private getDateExpression(): string {
         switch (getDatabaseType(this.connection.rawConnection)) {
             case 'postgres':
-                return `TO_CHAR(order.orderPlacedAt, 'YYYY-MM-DD')`;
+            case 'aurora-postgres':
+                // orderPlacedAt is timestamptz: TO_CHAR would otherwise use the session timezone.
+                // UTC days, as on MySQL/MariaDB (dates stored in UTC) and SQLite.
+                return `TO_CHAR(order.orderPlacedAt AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
             case 'mysql':
             case 'mariadb':
                 return `DATE_FORMAT(order.orderPlacedAt, '%Y-%m-%d')`;

@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Framework Documentation",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -37,7 +37,7 @@
           "title": "Pricing",
           "slug": "pricing",
           "file": "docs/guides/core-concepts/pricing/index.mdx",
-          "lastModified": "2026-11-13T17:00:43+01:00"
+          "lastModified": "2026-11-16T10:44:06+01:00"
         },
         {
           "title": "Products",
@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-02T12:35:06+01:00"
+          "lastModified": "2026-11-02T13:57:36+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -307,13 +307,13 @@
               "title": "Database Migration",
               "slug": "database-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/database-migration.mdx",
-              "lastModified": "2026-11-06T09:39:29Z"
+              "lastModified": "2026-11-16T10:26:57+01:00"
             },
             {
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-13T17:00:43+01:00"
+              "lastModified": "2026-11-16T10:44:06+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-06T13:14:17Z"
             }
           ],
-          "lastModified": "2026-11-09T10:53:22Z"
+          "lastModified": "2026-11-16T10:26:57+01:00"
         },
         {
           "title": "Worker & Job Queue",
@@ -1200,7 +1200,7 @@
                   "title": "Bootstrap",
                   "slug": "bootstrap",
                   "file": "docs/reference/typescript-api/common/bootstrap.mdx",
-                  "lastModified": "2026-11-11T10:16:09Z"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "CurrencyCode",
@@ -1426,7 +1426,7 @@
                   "title": "EntityOptions",
                   "slug": "entity-options",
                   "file": "docs/reference/typescript-api/configuration/entity-options.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "MergeConfig",
@@ -1450,7 +1450,7 @@
                   "title": "RuntimeVendureConfig",
                   "slug": "runtime-vendure-config",
                   "file": "docs/reference/typescript-api/configuration/runtime-vendure-config.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "SecretAccessStrategy",
@@ -1480,7 +1480,7 @@
                   "title": "SystemOptions",
                   "slug": "system-options",
                   "file": "docs/reference/typescript-api/configuration/system-options.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "TrustProxyOptions",
@@ -1492,7 +1492,7 @@
                   "title": "VendureConfig",
                   "slug": "vendure-config",
                   "file": "docs/reference/typescript-api/configuration/vendure-config.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2480,7 +2480,7 @@
                   "title": "PollingJobQueueStrategy",
                   "slug": "polling-job-queue-strategy",
                   "file": "docs/reference/typescript-api/job-queue/polling-job-queue-strategy.mdx",
-                  "lastModified": "2026-10-28T09:48:06+01:00"
+                  "lastModified": "2026-11-09T16:24:02Z"
                 },
                 {
                   "title": "SqlJobQueueStrategy",
@@ -2547,6 +2547,12 @@
                   "lastModified": "2026-11-12T12:08:18Z"
                 },
                 {
+                  "title": "FindTimestampColumnsToMigrate",
+                  "slug": "find-timestamp-columns-to-migrate",
+                  "file": "docs/reference/typescript-api/migration/find-timestamp-columns-to-migrate.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
+                },
+                {
                   "title": "FormatSlugConflicts",
                   "slug": "format-slug-conflicts",
                   "file": "docs/reference/typescript-api/migration/format-slug-conflicts.mdx",
@@ -2577,6 +2583,12 @@
                   "lastModified": "2026-11-06T10:17:03Z"
                 },
                 {
+                  "title": "MigrateTimestampColumnsToTimestamptz",
+                  "slug": "migrate-timestamp-columns-to-timestamptz",
+                  "file": "docs/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
+                },
+                {
                   "title": "MigrationDiagnostic",
                   "slug": "migration-diagnostic",
                   "file": "docs/reference/typescript-api/migration/migration-diagnostic.mdx",
@@ -2593,6 +2605,12 @@
                   "slug": "preview-role-assignment-migration",
                   "file": "docs/reference/typescript-api/migration/preview-role-assignment-migration.mdx",
                   "lastModified": "2026-11-06T10:17:03Z"
+                },
+                {
+                  "title": "PreviewTimestamptzMigration",
+                  "slug": "preview-timestamptz-migration",
+                  "file": "docs/reference/typescript-api/migration/preview-timestamptz-migration.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "RemoveLegacyRoleData",
@@ -2613,6 +2631,12 @@
                   "lastModified": "2026-11-11T15:14:50Z"
                 },
                 {
+                  "title": "RevertTimestamptzMigration",
+                  "slug": "revert-timestamptz-migration",
+                  "file": "docs/reference/typescript-api/migration/revert-timestamptz-migration.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
+                },
+                {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
@@ -2629,6 +2653,24 @@
                   "slug": "slug-conflict",
                   "file": "docs/reference/typescript-api/migration/slug-conflict.mdx",
                   "lastModified": "2026-11-12T12:08:18Z"
+                },
+                {
+                  "title": "TimestampColumnToMigrate",
+                  "slug": "timestamp-column-to-migrate",
+                  "file": "docs/reference/typescript-api/migration/timestamp-column-to-migrate.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
+                },
+                {
+                  "title": "TimestamptzMigrationOptions",
+                  "slug": "timestamptz-migration-options",
+                  "file": "docs/reference/typescript-api/migration/timestamptz-migration-options.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
+                },
+                {
+                  "title": "TimestamptzMigrationPreview",
+                  "slug": "timestamptz-migration-preview",
+                  "file": "docs/reference/typescript-api/migration/timestamptz-migration-preview.mdx",
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "TranslationTableColumnNames",
@@ -2728,7 +2770,7 @@
                   "title": "DefaultOrderItemPriceCalculationStrategy",
                   "slug": "default-order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/default-order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:45:27Z"
                 },
                 {
                   "title": "DefaultOrderPlacedStrategy",
@@ -2776,7 +2818,7 @@
                   "title": "OrderItemPriceCalculationStrategy",
                   "slug": "order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-13T16:01:44Z"
+                  "lastModified": "2026-11-16T09:45:27Z"
                 },
                 {
                   "title": "OrderLineDiscountDistributionStrategy",
@@ -2806,7 +2848,7 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-10T11:12:07Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
@@ -3856,7 +3898,7 @@
                   "title": "BootstrapWorker",
                   "slug": "bootstrap-worker",
                   "file": "docs/reference/typescript-api/worker/bootstrap-worker.mdx",
-                  "lastModified": "2026-11-11T10:16:09Z"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "VendureWorker",
@@ -4141,13 +4183,13 @@
                   "title": "McpOauthGrant",
                   "slug": "mcp-oauth-grant",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-grant.mdx",
-                  "lastModified": "2026-09-29T10:57:44+02:00"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "McpOauthGrantStatus",
                   "slug": "mcp-oauth-grant-status",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-grant-status.mdx",
-                  "lastModified": "2026-09-29T10:57:44+02:00"
+                  "lastModified": "2026-11-16T09:28:06Z"
                 },
                 {
                   "title": "McpOauthOptions",
@@ -4549,7 +4591,7 @@
                   "title": "AssetPickerDialog",
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
-                  "lastModified": "2026-09-01T11:21:59+02:00"
+                  "lastModified": "2026-11-09T12:36:50Z"
                 },
                 {
                   "title": "ChannelAvailabilityBadge",
@@ -5055,7 +5097,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-11-06T14:39:54Z"
+                  "lastModified": "2026-11-12T15:54:16Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

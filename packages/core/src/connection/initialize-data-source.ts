@@ -1,6 +1,13 @@
 import { DataSource, DataSourceOptions, EntityMetadata } from 'typeorm';
 
+import { Logger } from '../config/logger/vendure-logger';
 import { getChannelAssignmentEntities } from '../entity/channel-assignment/channel-assignment-registry';
+import {
+    findTimestampColumnsToMigrate,
+    findTimestamptzColumnsDeclaredAsTimestamp,
+} from '../migration-utils/v4_0_timestamptz';
+
+import { getDriverTimezone, isMysqlDatabase, isPostgresDatabase, isUtcTimezone } from './timezone-utils';
 
 /**
  * @description
@@ -13,6 +20,7 @@ import { getChannelAssignmentEntities } from '../entity/channel-assignment/chann
  */
 export async function initializeDataSource(options: DataSourceOptions): Promise<DataSource> {
     const dataSource = new DataSource({ ...options, synchronize: false, migrationsRun: false });
+    pinMysqlSessionTimezone(dataSource);
     await dataSource.initialize();
     try {
         alignChannelAssignmentMetadata(dataSource);
@@ -25,6 +33,7 @@ export async function initializeDataSource(options: DataSourceOptions): Promise<
             await dataSource.runMigrations({ transaction: options.migrationsTransactionMode });
         }
         if (options.synchronize) {
+            await assertDateColumnTypesMatch(dataSource);
             await dataSource.synchronize();
         }
     } catch (e) {
@@ -79,5 +88,94 @@ export function alignChannelAssignmentMetadata(dataSource: DataSource) {
             }
         }
         metadatasMap?.set(junction.target, assignment);
+    }
+}
+
+/**
+ * MySQL and MariaDB fill `createdAt`/`updatedAt` with `CURRENT_TIMESTAMP` in the session
+ * `time_zone`, while the driver writes all other dates in the TypeORM `timezone` option (Vendure
+ * default `'Z'`). When the server `time_zone` is not UTC, the two disagree (#1375). So when the
+ * driver writes UTC, every new pooled connection sets its session `time_zone` to UTC too.
+ *
+ * Exported for testing.
+ */
+export function pinMysqlSessionTimezone(dataSource: DataSource) {
+    if (!isMysqlDatabase(dataSource.options.type)) {
+        return;
+    }
+    if (!isUtcTimezone(getDriverTimezone(dataSource.options))) {
+        return;
+    }
+    const driver = dataSource.driver as any;
+    const mysql = driver.mysql;
+    // The aurora-mysql driver uses the RDS Data API and has no connection pool to hook into.
+    // checkDatabaseTimezone() warns when its session time_zone is not UTC.
+    if (!mysql || typeof mysql.createPool !== 'function') {
+        return;
+    }
+    const onConnection = (connection: any) =>
+        connection.query("SET time_zone = '+00:00'", (error?: Error) => {
+            if (error) {
+                Logger.error(
+                    `Could not set the MySQL session time_zone to UTC: ${error.message}. createdAt and ` +
+                        'updatedAt of rows written on this connection follow the server time_zone.',
+                    'TypeORM',
+                );
+            }
+        });
+    driver.mysql = Object.assign(Object.create(mysql), {
+        createPool: (...args: any[]) => {
+            const pool = mysql.createPool(...args);
+            pool.on('connection', onConnection);
+            return pool;
+        },
+        // With `replication`, the cluster creates one pool per node in `add()`, and the cluster
+        // itself emits no 'connection' event.
+        createPoolCluster: (...args: any[]) => {
+            const cluster = mysql.createPoolCluster(...args);
+            const add = cluster.add.bind(cluster);
+            cluster.add = (...addArgs: any[]) => {
+                const before = new Set(Object.keys(cluster._nodes ?? {}));
+                const result = add(...addArgs);
+                for (const [id, node] of Object.entries<any>(cluster._nodes ?? {})) {
+                    if (!before.has(id)) {
+                        node.pool?.on?.('connection', onConnection);
+                    }
+                }
+                return result;
+            };
+            return cluster;
+        },
+    });
+}
+
+/**
+ * TypeORM changes a column between `timestamp` and `timestamptz` by dropping and re-adding it, which
+ * deletes the stored dates. Refuse to synchronize while any date column's type differs from the
+ * entity metadata, e.g. on the first v4 start against a v3 database. The upgrade converts them with
+ * a migration (see the v4 "Date and time columns" guide).
+ */
+async function assertDateColumnTypesMatch(dataSource: DataSource) {
+    if (!isPostgresDatabase(dataSource.options.type)) {
+        return;
+    }
+    const queryRunner = dataSource.createQueryRunner();
+    try {
+        const mismatched = [
+            ...(await findTimestampColumnsToMigrate(queryRunner)),
+            ...(await findTimestamptzColumnsDeclaredAsTimestamp(queryRunner)),
+        ];
+        if (mismatched.length) {
+            const { table, column } = mismatched[0];
+            throw new Error(
+                `The database type of ${mismatched.length} date columns (e.g. "${table}"."${column}") differs ` +
+                    'from entityOptions.timestampColumnType. Synchronizing would drop and re-create them, ' +
+                    'which deletes their data. Set synchronize to false and run a migration which calls ' +
+                    'migrateTimestampColumnsToTimestamptz() (or revertTimestamptzMigration()). See the ' +
+                    'v4 "Date and time columns" migration guide.',
+            );
+        }
+    } finally {
+        await queryRunner.release();
     }
 }

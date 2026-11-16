@@ -24,12 +24,12 @@ import {
 import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 import { getDatabaseType, VendureDatabaseType } from '../connection/database-type';
+import { getTimestampColumnType } from '../connection/timezone-utils';
 
 import { getChannelAssignmentEntities } from './channel-assignment/channel-assignment';
+import { coreEntitiesMap } from './entities';
 import { EntityId } from './entity-id.decorator';
 import { EncryptedFieldTransformer } from './value-transformers';
-
-import { coreEntitiesMap } from './entities';
 
 /**
  * The maximum length of the "length" argument of a MySQL varchar column.
@@ -218,11 +218,14 @@ export function registerCustomFieldsForEntity(
                             onDelete,
                             onUpdate,
                             eager,
+                            nullable: nullable !== false,
                         })(instance, name);
                         JoinColumn()(instance, name);
                         // Expose the foreign key as an id property (e.g. "ownerId"), which maps
                         // to the same database column as the relation's join column.
-                        EntityId({ nullable: true })(instance, `${name}Id`);
+                        // The id column decides whether the shared column is nullable, so it must
+                        // agree with the relation.
+                        EntityId({ nullable: nullable !== false })(instance, `${name}Id`);
                         if (indexed) {
                             // TypeORM matches an index to a relation by its bare property name, which
                             // never matches a relation inside the customFields embedded.
@@ -232,7 +235,7 @@ export function registerCustomFieldsForEntity(
                 } else {
                     const options: ColumnOptions = {
                         type: getColumnType(dbEngine, customField.type, list ?? false),
-                        default: getDefault(customField, dbEngine),
+                        default: getDefault(customField, dbEngine, getTimestampColumnType(config)),
                         name,
                         nullable: nullable === false ? false : true,
                         // A channel-scoped field is unique within each Channel, by an index which
@@ -366,20 +369,37 @@ function registerIndex(instance: object, propertyName: string, unique = false): 
     }
 }
 
-function formatDefaultDatetime(dbEngine: VendureDatabaseType, datetime: any): Date | string {
+function formatDefaultDatetime(
+    dbEngine: VendureDatabaseType,
+    datetime: any,
+    timestampColumnType: 'timestamptz' | 'timestamp',
+): Date | string {
     if (!datetime) {
         return datetime;
     }
     switch (dbEngine) {
+        case 'postgres':
+        case 'aurora-postgres':
+            return formatPostgresDefaultTimestamp(new Date(datetime), timestampColumnType);
         case 'sqlite':
         case 'sqljs':
-            return DateUtils.mixedDateToUtcDatetimeString(datetime);
         case 'mysql':
-        case 'postgres':
         default:
             return DateUtils.mixedDateToUtcDatetimeString(datetime);
-        // return DateUtils.mixedDateToDate(datetime, true, true);
     }
+}
+
+/**
+ * Formats the instant as Postgres displays a column default (DateStyle ISO), because TypeORM
+ * compares defaults as text: `2026-07-15 12:00:00+00`, with fractional seconds only when non-zero.
+ * The `+00` makes a `timestamptz` default independent of the session timezone of the schema change.
+ * It also matches Postgres' display when that session is in UTC, so that schema comparison sees no
+ * change. A `timestamp` default holds UTC wall-clock time and gets no zone.
+ */
+function formatPostgresDefaultTimestamp(date: Date, timestampColumnType: 'timestamptz' | 'timestamp') {
+    const [day, time] = date.toISOString().slice(0, -1).split('T');
+    const trimmed = time.replace(/\.?0+$/, '');
+    return `${day} ${trimmed}${timestampColumnType === 'timestamptz' ? '+00' : ''}`;
 }
 
 function getColumnType(
@@ -421,7 +441,9 @@ function getColumnType(
         case 'datetime':
             switch (dbEngine) {
                 case 'postgres':
-                    return 'timestamp';
+                    // `Date` maps to `timestamp`. setTimestampColumnTypes() turns it into
+                    // `timestamptz` according to EntityOptions.timestampColumnType.
+                    return Date as any;
                 case 'mysql':
                 case 'sqlite':
                 case 'sqljs':
@@ -446,7 +468,11 @@ function getColumnType(
     return 'varchar';
 }
 
-function getDefault(customField: CustomFieldConfig, dbEngine: VendureDatabaseType) {
+function getDefault(
+    customField: CustomFieldConfig,
+    dbEngine: VendureDatabaseType,
+    timestampColumnType: 'timestamptz' | 'timestamp',
+) {
     const { name, type, list, defaultValue, nullable } = customField;
     if (list && defaultValue) {
         if (dbEngine === 'mysql') {
@@ -459,7 +485,9 @@ function getDefault(customField: CustomFieldConfig, dbEngine: VendureDatabaseTyp
         }
         return JSON.stringify(defaultValue);
     }
-    return type === 'datetime' ? formatDefaultDatetime(dbEngine, defaultValue) : defaultValue;
+    return type === 'datetime'
+        ? formatDefaultDatetime(dbEngine, defaultValue, timestampColumnType)
+        : defaultValue;
 }
 
 function assertLocaleFieldsNotSpecified(config: VendureConfig, entityName: keyof CustomFields) {
