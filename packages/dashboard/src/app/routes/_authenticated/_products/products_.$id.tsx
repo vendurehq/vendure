@@ -32,7 +32,6 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Controller } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
@@ -217,44 +216,32 @@ function ProductDetailPage() {
             <PageTitle>{creatingNewEntity ? <Trans>New product</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
-                    <div className="flex items-center gap-4">
-                        <Controller
-                            control={form.control}
-                            name="enabled"
-                            render={({ field }) => (
-                                <div
-                                    className="flex items-center gap-2"
-                                    title={
-                                        channels.length > 1
-                                            ? t`When enabled, a product is available in the shop of every channel where it is not hidden`
-                                            : t`When enabled, a product is available in the shop`
-                                    }
-                                    data-testid="product-enabled-switch"
-                                >
-                                    <label
-                                        htmlFor="product-enabled-switch-input"
-                                        className="text-sm font-medium"
-                                    >
-                                        <Trans>Enabled</Trans>
-                                    </label>
-                                    <Switch
-                                        id="product-enabled-switch-input"
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                </div>
-                            )}
-                        />
-                        <Button
-                            type="submit"
-                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                        >
-                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                        </Button>
-                    </div>
+                    <Button
+                        type="submit"
+                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                    >
+                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                    </Button>
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                <PageBlock column="side" blockId="enabled">
+                    <div data-testid="product-enabled-switch">
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="enabled"
+                            label={<Trans>Enabled</Trans>}
+                            description={
+                                channels.length > 1
+                                    ? t`When enabled, a product is available in the shop of every channel where it is not hidden`
+                                    : t`When enabled, a product is available in the shop`
+                            }
+                            render={({ field }) => (
+                                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                            )}
+                        />
+                    </div>
+                </PageBlock>
                 {channels.length > 1 && (
                     <PageBlock
                         column="side"
