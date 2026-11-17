@@ -375,8 +375,8 @@ The CLI shows a one-time code and opens your browser. Confirm the code and sign 
 than one organization, the CLI then asks which one to use, starting from the one chosen in the browser. Nothing on this
 machine needs a browser: you can open the URL on another device.
 
-Without a terminal, for example in a script, the CLI does not ask. It keeps the organization chosen in the browser and
-names it, with the `--organization` command to pick another. If Vendure Console cannot name the organization,
+Without a terminal, for example in a script, the CLI does not ask. It keeps the organization chosen in the browser, names
+it, and shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
 `vendure auth status` shows its ID and that command.
 
 To choose the organization on the command line instead, for example in a script or on a remote machine, pass its

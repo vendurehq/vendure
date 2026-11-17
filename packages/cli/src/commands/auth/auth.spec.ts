@@ -326,7 +326,7 @@ const deviceAccessToken = `e30.${Buffer.from(JSON.stringify({ exp: 4_102_444_800
 const scopedAccessToken = `e30.${Buffer.from(JSON.stringify({ exp: 4_102_444_800, org_id: 'org_2' })).toString('base64url')}.sig`;
 
 /** Vendure Console and the authentication service for one device login by a member of two organizations. */
-function deviceLoginAnswers(): typeof globalThis.fetch {
+function deviceLoginAnswers(browserOrganization: string | null = 'org_1'): typeof globalThis.fetch {
     const user = { id: 'user_01', email: 'dev@example.com', first_name: 'Ada', last_name: null };
     const answers: Record<string, (body: string | undefined) => unknown> = {
         'https://api.vendure.io/v1': () => ({
@@ -354,10 +354,10 @@ function deviceLoginAnswers(): typeof globalThis.fetch {
                       organization_id: 'org_2',
                   }
                 : {
-                      access_token: deviceAccessToken,
+                      access_token: browserOrganization ? deviceAccessToken : accessToken,
                       refresh_token: 'refresh_1',
                       user,
-                      organization_id: 'org_1',
+                      ...(browserOrganization ? { organization_id: browserOrganization } : {}),
                   },
         'https://api.vendure.io/v1/me': () => ({
             user: { id: 'user_01' },
@@ -424,12 +424,21 @@ describe('vendure auth login with more than one organization', () => {
             },
         );
 
-        expect(code).toBe(1);
-        expect(messages.at(-1)).toBe(
-            'No organization was chosen, so the login was not stored. Run `vendure auth login` again, ' +
-                'or run `vendure auth login --organization <Account identifier or name>`.',
-        );
+        expect(code).toBe(0);
+        expect(messages.at(-1)).toBe('Login cancelled. Nothing was stored.');
         expect(readStoredAuth(dependencies)).toBeUndefined();
+    });
+
+    it('says the login has none of them when the browser chose no organization, without a terminal', async () => {
+        dependencies.fetch = deviceLoginAnswers(null);
+
+        const code = await authLoginCommand({}, dependencies);
+
+        expect(code).toBe(0);
+        expect(messages.at(-1)).toBe(
+            'You belong to more than one organization, and this login uses none of them. ' +
+                'To use another, run `vendure auth login --organization <Account identifier or name>`.',
+        );
     });
 
     it('keeps the browser choice without a terminal and says how to pick another', async () => {

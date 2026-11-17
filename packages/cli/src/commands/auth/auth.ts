@@ -20,6 +20,14 @@ import { openConsoleBrowser } from '../console/authentication';
 
 const ORGANIZATION_LOGIN_COMMAND = 'vendure auth login --organization <Account identifier or name>';
 
+/** The organization prompt was cancelled, as the replace-login prompt can be. */
+class LoginCancelledError extends Error {
+    constructor() {
+        super('Login cancelled.');
+        this.name = 'LoginCancelledError';
+    }
+}
+
 export interface AuthCommandReporter {
     error(message: string): void;
     info(message: string): void;
@@ -57,24 +65,28 @@ function createDefaultDependencies(): AuthCommandDependencies {
             return isCancel(result) ? undefined : result;
         },
         selectOrganization: async (organizations, current) => {
+            // Worded and ordered as `vendure console link` asks: the browser's choice first, so Enter keeps it.
+            const isCurrent = (org: AuthOrganization) =>
+                org.workosOrganizationId === current?.workosOrganizationId;
+            const ordered = [
+                ...organizations.filter(isCurrent),
+                ...organizations.filter(org => !isCurrent(org)),
+            ];
             const result = await withInteractiveTimeout(
                 () =>
                     select({
-                        message: 'Which organization should this login use?',
-                        options: organizations.map(org => ({
+                        message: 'Which Vendure Console account do you want to use?',
+                        options: ordered.map(org => ({
                             value: org.workosOrganizationId,
-                            label: describeOrganization(org),
+                            label: `${org.name} (${org.customerAccountId})`,
                         })),
-                        initialValue: current?.workosOrganizationId,
                     }),
                 {
-                    examples: ['vendure auth login --organization <Account identifier or name>'],
+                    examples: [ORGANIZATION_LOGIN_COMMAND],
                     helpCommands: ['vendure auth login --help'],
                 },
             );
-            return isCancel(result)
-                ? undefined
-                : organizations.find(org => org.workosOrganizationId === result);
+            return isCancel(result) ? undefined : ordered.find(org => org.workosOrganizationId === result);
         },
         isNonInteractive: () => isNonInteractiveEnvironment(),
         openUrl: openConsoleBrowser,
@@ -117,9 +129,7 @@ export async function authLoginCommand(
             }
             const chosen = await deps.selectOrganization(organizations, current);
             if (!chosen) {
-                throw new Error(
-                    `No organization was chosen, so the login was not stored. Run \`vendure auth login\` again, or run \`${ORGANIZATION_LOGIN_COMMAND}\`.`,
-                );
+                throw new LoginCancelledError();
             }
             return chosen;
         },
@@ -149,6 +159,10 @@ export async function authLoginCommand(
         }
         return 0;
     } catch (error) {
+        if (error instanceof LoginCancelledError) {
+            deps.reporter.info('Login cancelled. Nothing was stored.');
+            return 0;
+        }
         if (abortController.signal.aborted) {
             deps.reporter.warn('Login interrupted.');
             return 130;
@@ -194,7 +208,10 @@ export async function authStatusCommand(
     }
     const lines = [`Logged in as ${describeLogin(status)}`];
     if (status.organization) {
-        lines.push(`Organization: ${describeOrganization(status.organization)}`);
+        const unnamed = status.organization.name
+            ? ''
+            : ` (name unknown; run \`${ORGANIZATION_LOGIN_COMMAND}\` to choose it by name)`;
+        lines.push(`Organization: ${describeOrganization(status.organization)}${unnamed}`);
     }
     if (status.accessTokenExpiresAt !== undefined) {
         lines.push(
@@ -275,13 +292,12 @@ function hasValidEnvironment(deps: AuthCommandDependencies): boolean {
     }
 }
 
-function describeOrganization(organization: StoredOrganization | AuthOrganization): string {
+function describeOrganization(organization: StoredOrganization): string {
     const { name, customerAccountId, workosOrganizationId } = organization;
     if (name && customerAccountId) {
         return `${name} (Account identifier ${customerAccountId})`;
     }
-    // Vendure Console could not name it at login.
-    return `${workosOrganizationId} (name unknown; run \`${ORGANIZATION_LOGIN_COMMAND}\` to choose it by name)`;
+    return workosOrganizationId;
 }
 
 function describeLogin(status: AuthStatus): string {

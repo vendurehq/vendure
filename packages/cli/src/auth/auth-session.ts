@@ -343,8 +343,11 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
             organizations && organizations.length > 1
                 ? await options.chooseOrganization?.(organizations, current)
                 : undefined;
-        if (chosen) {
-            organization = await scopeTo(chosen);
+        // A first device login often has no organization; with only one to choose, use it.
+        const only = !current && organizations?.length === 1 ? organizations[0] : undefined;
+        const target = chosen ?? only;
+        if (target) {
+            organization = await scopeTo(target);
         } else if (current) {
             organization = toStoredOrganization(current);
         } else {
