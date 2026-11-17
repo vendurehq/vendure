@@ -188,9 +188,8 @@ generated: true
   paymentId: ID!
   reason: String
   """
-  The amount to be refunded to this particular Payment. This was introduced in
-  v2.2.0 as the preferred way to specify the refund amount. The \`lines\`, \`shipping\` and \`adjustment\`
-  fields will be removed in a future version.
+  The amount to be refunded to this particular Payment. If no refund of the modification
+  has an amount, the whole difference in the order total is refunded to the first one.
   """
   amount: Money
 }`}
@@ -718,7 +717,6 @@ input BooleanOperators {
   code: StringOperators
   token: StringOperators
   defaultLanguageCode: StringOperators
-  currencyCode: StringOperators
   defaultCurrencyCode: StringOperators
   """Not yet used - will be implemented in a future release."""
   trackInventory: BooleanOperators
@@ -1188,8 +1186,7 @@ input CreateApiKeyInput {
   defaultLanguageCode: LanguageCode!
   availableLanguageCodes: [LanguageCode!]
   pricesIncludeTax: Boolean!
-  currencyCode: CurrencyCode
-  defaultCurrencyCode: CurrencyCode
+  defaultCurrencyCode: CurrencyCode!
   availableCurrencyCodes: [CurrencyCode!]
   trackInventory: Boolean
   outOfStockThreshold: Int
@@ -3295,7 +3292,13 @@ input NumberOperators {
   sold and fulfilled without limit.
   """
   tracksInventory: BooleanOperators
+  """
+  The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+  is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+  StockLocations of the active Channel. Use \`stockLevels\` for the per-location values.
+  """
   stockOnHand: NumberOperators
+  """The total allocated stock, counted in the same way as \`stockOnHand\`."""
   stockAllocated: NumberOperators
   outOfStockThreshold: NumberOperators
   useGlobalOutOfStockThreshold: BooleanOperators
@@ -3355,7 +3358,13 @@ input NumberOperators {
   }}
 >
 {`input ProductVariantSortParameter {
+  """
+  The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+  is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+  StockLocations of the active Channel. Use \`stockLevels\` for the per-location values.
+  """
   stockOnHand: SortOrder
+  """The total allocated stock, counted in the same way as \`stockOnHand\`."""
   stockAllocated: SortOrder
   outOfStockThreshold: SortOrder
   id: SortOrder
@@ -3619,12 +3628,14 @@ input NumberOperators {
   }}
 >
 {`input RefundOrderInput {
-  lines: [OrderLineInput!]
-  shipping: Money
-  adjustment: Money
   """
-  The amount to be refunded to this particular payment. This was introduced in v2.2.0 as the preferred way to specify the refund amount.
-  Can be as much as the total amount of the payment minus the sum of all previous refunds.
+  The OrderLines which this refund relates to. They are recorded as the RefundLines of the
+  Refund, and do not affect the amount refunded.
+  """
+  lines: [OrderLineInput!]
+  """
+  The amount to be refunded to this particular payment. Can be as much as the total amount of
+  the payment minus the sum of all previous refunds. Either \`amount\` or \`targets\` must be given.
   """
   amount: Money
   paymentId: ID!
@@ -4040,9 +4051,8 @@ input RoleAssignmentInput {
   typeName="SearchInput"
   typeLinks={{
     String: '/reference/graphql-api/admin/object-types#string',
-    ID: '/reference/graphql-api/admin/object-types#id',
-    LogicalOperator: '/reference/graphql-api/admin/enums#logicaloperator',
     FacetValueFilterInput: '/reference/graphql-api/admin/input-types#facetvaluefilterinput',
+    ID: '/reference/graphql-api/admin/object-types#id',
     Boolean: '/reference/graphql-api/admin/object-types#boolean',
     Int: '/reference/graphql-api/admin/object-types#int',
     SearchResultSortParameter: '/reference/graphql-api/admin/input-types#searchresultsortparameter',
@@ -4050,8 +4060,6 @@ input RoleAssignmentInput {
 >
 {`input SearchInput {
   term: String
-  facetValueIds: [ID!]
-  facetValueOperator: LogicalOperator
   facetValueFilters: [FacetValueFilterInput!]
   collectionId: ID
   collectionIds: [ID!]
@@ -4996,7 +5004,6 @@ input UpdateAddressInput {
   defaultLanguageCode: LanguageCode
   availableLanguageCodes: [LanguageCode!]
   pricesIncludeTax: Boolean
-  currencyCode: CurrencyCode
   defaultCurrencyCode: CurrencyCode
   availableCurrencyCodes: [CurrencyCode!]
   trackInventory: Boolean

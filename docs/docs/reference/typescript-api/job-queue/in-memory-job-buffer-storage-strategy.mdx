@@ -8,8 +8,8 @@ A [JobBufferStorageStrategy](/reference/typescript-api/job-queue/job-buffer-stor
 _not_ be used in production, since it will lose data in the event of the server
 stopping.
 
-Instead, use the [DefaultJobQueuePlugin](/reference/typescript-api/job-queue/default-job-queue-plugin#defaultjobqueueplugin) with the `useDatabaseForBuffer: true` option set,
-or the [BullMQJobQueuePlugin](/reference/core-plugins/job-queue-plugin/bull-mqjob-queue-plugin#bullmqjobqueueplugin) or another custom strategy with persistent storage.
+The [DefaultJobQueuePlugin](/reference/typescript-api/job-queue/default-job-queue-plugin#defaultjobqueueplugin) stores buffered jobs in the database (unless its
+`useDatabaseForBuffer` option is `false`), and the [BullMQJobQueuePlugin](/reference/core-plugins/job-queue-plugin/bull-mqjob-queue-plugin#bullmqjobqueueplugin) stores them in Redis.
 
 ```ts title="Signature"
 class InMemoryJobBufferStorageStrategy implements JobBufferStorageStrategy {

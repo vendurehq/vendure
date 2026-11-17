@@ -11,8 +11,6 @@ interface AssetServerOptions {
     route: string;
     assetUploadDir: string;
     assetUrlPrefix?: string | ((ctx: RequestContext, identifier: string) => string);
-    previewMaxWidth?: number;
-    previewMaxHeight?: number;
     presets?: ImageTransformPreset[];
     imageTransformStrategy?: ImageTransformStrategy | ImageTransformStrategy[];
     namingStrategy?: AssetNamingStrategy;
@@ -47,16 +45,6 @@ from a single server. In this case, the function should return a string url pref
 If not provided, the plugin will attempt to guess based off the incoming
 request and the configured route. However, in all but the simplest cases,
 this guess may not yield correct results.
-### previewMaxWidth
-
-<MemberInfo kind="property" type={`number`} default={`1600`}   />
-
-The max width in pixels of a generated preview image.
-### previewMaxHeight
-
-<MemberInfo kind="property" type={`number`} default={`1600`}   />
-
-The max height in pixels of a generated preview image.
 ### presets
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/asset-server-plugin/image-transform-preset#imagetransformpreset'>ImageTransformPreset</a>[]`}   />

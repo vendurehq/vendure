@@ -40,7 +40,7 @@ export const hasFacetValues = new PromotionCondition({
 
 ```ts title="Signature"
 class FacetValueChecker implements OnModuleInit {
-    constructor(connection: TransactionalConnection, cacheService: CacheService, eventBus?: EventBus)
+    constructor(connection: TransactionalConnection, cacheService: CacheService, eventBus: EventBus)
     onModuleInit() => any;
     hasFacetValues(orderLine: OrderLine, facetValueIds: ID[], ctx?: RequestContext) => Promise<boolean>;
 }

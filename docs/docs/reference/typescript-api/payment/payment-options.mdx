@@ -2,7 +2,7 @@
 title: "PaymentOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="1061" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="1014" packageName="@vendure/core" />
 
 Defines payment-related options in the [VendureConfig](/reference/typescript-api/configuration/vendure-config#vendureconfig).
 
@@ -10,7 +10,6 @@ Defines payment-related options in the [VendureConfig](/reference/typescript-api
 interface PaymentOptions {
     paymentMethodHandlers: PaymentMethodHandler[];
     paymentMethodEligibilityCheckers?: PaymentMethodEligibilityChecker[];
-    customPaymentProcess?: Array<PaymentProcess<any>>;
     process?: Array<PaymentProcess<any>>;
     refundProcess?: Array<RefundProcess<any>>;
     refundDestinations?: RefundDestinationStrategy[];
@@ -31,11 +30,6 @@ Defines which [PaymentMethodHandler](/reference/typescript-api/payment/payment-m
 
 Defines which [PaymentMethodEligibilityChecker](/reference/typescript-api/payment/payment-method-eligibility-checker#paymentmethodeligibilitychecker)s are available when configuring
 [PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod)s
-### customPaymentProcess
-
-<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/payment/payment-process#paymentprocess'>PaymentProcess</a><any>>`}   />
-
-
 ### process
 
 <MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/payment/payment-process#paymentprocess'>PaymentProcess</a><any>>`} default={`<a href='/reference/typescript-api/payment/default-payment-process#defaultpaymentprocess'>defaultPaymentProcess</a>`}  since="2.0.0"  />

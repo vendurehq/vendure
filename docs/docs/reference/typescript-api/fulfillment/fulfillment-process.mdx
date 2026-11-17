@@ -27,7 +27,7 @@ hook allows logic to be executed after a state change.
 For detailed description of the interface members, see the [StateMachineConfig](/reference/typescript-api/state-machine/state-machine-config#statemachineconfig) docs.
 
 ```ts title="Signature"
-interface FulfillmentProcess<State extends keyof CustomFulfillmentStates | string> extends InjectableStrategy {
+interface FulfillmentProcess<State extends keyof FulfillmentStates | string> extends InjectableStrategy {
     transitions?: Transitions<State, State | FulfillmentState> &
         Partial<Transitions<FulfillmentState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | FulfillmentState, FulfillmentTransitionData>;

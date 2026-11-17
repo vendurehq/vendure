@@ -12,7 +12,7 @@ hook allows logic to be executed after a state change.
 For detailed description of the interface members, see the [StateMachineConfig](/reference/typescript-api/state-machine/state-machine-config#statemachineconfig) docs.
 
 ```ts title="Signature"
-interface RefundProcess<State extends keyof CustomRefundStates | string> extends InjectableStrategy {
+interface RefundProcess<State extends keyof RefundStates | string> extends InjectableStrategy {
     transitions?: Transitions<State, State | RefundState> & Partial<Transitions<RefundState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | RefundState, RefundTransitionData>;
     onTransitionEnd?: OnTransitionEndFn<State | RefundState, RefundTransitionData>;

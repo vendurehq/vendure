@@ -2,7 +2,7 @@
 title: "PromotionService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/promotion.service.ts" sourceLine="60" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/promotion.service.ts" sourceLine="58" packageName="@vendure/core" />
 
 Contains methods relating to [Promotion](/reference/typescript-api/entities/promotion#promotion) entities.
 
@@ -24,7 +24,6 @@ class PromotionService {
     getActivePromotionsInChannel(ctx: RequestContext) => ;
     getActivePromotionsOnOrder(ctx: RequestContext, orderId: ID) => Promise<Promotion[]>;
     runPromotionSideEffects(ctx: RequestContext, order: Order, promotionsPre: Promotion[]) => ;
-    addPromotionsToOrder(ctx: RequestContext, order: Order) => Promise<Order>;
     getExhaustedPromotionIds(ctx: RequestContext, promotions: Promotion[], customerId?: ID) => Promise<Set<string>>;
 }
 ```
@@ -109,11 +108,6 @@ coupon code, this method will enforce that limit against the specified Customer.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, promotionsPre: <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>[]) => `}   />
 
 
-### addPromotionsToOrder
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a>>`}   />
-
-Used internally to associate a Promotion with an Order, once an Order has been placed.
 ### getExhaustedPromotionIds
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, promotions: <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>[], customerId?: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Set<string>>`}   />

@@ -9,9 +9,6 @@ This helper class is used to get a reference to the active Order from the curren
 ```ts title="Signature"
 class ActiveOrderService {
     constructor(sessionService: SessionService, orderService: OrderService, connection: TransactionalConnection, configService: ConfigService)
-    getOrderFromContext(ctx: RequestContext) => Promise<Order | undefined>;
-    getOrderFromContext(ctx: RequestContext, createIfNotExists: true) => Promise<Order>;
-    getOrderFromContext(ctx: RequestContext, createIfNotExists:  = false) => Promise<Order | undefined>;
     getActiveOrder(ctx: RequestContext, input: { [strategyName: string]: any } | undefined) => Promise<Order | undefined>;
     getActiveOrder(ctx: RequestContext, input: { [strategyName: string]: any } | undefined, createIfNotExists: true) => Promise<Order>;
     getActiveOrder(ctx: RequestContext, input: { [strategyName: string]: Record<string, any> | undefined } | undefined, createIfNotExists:  = false) => Promise<Order | undefined>;
@@ -19,25 +16,6 @@ class ActiveOrderService {
 ```
 
 <div className="members-wrapper">
-
-### getOrderFromContext
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a> | undefined>`}   />
-
-Gets the active Order object from the current Session. Optionally can create a new Order if
-no active Order exists.
-
-Intended to be used at the Resolver layer for those resolvers that depend upon an active Order
-being present.
-### getOrderFromContext
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, createIfNotExists: true) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a>>`}   />
-
-
-### getOrderFromContext
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, createIfNotExists:  = false) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a> | undefined>`}   />
-
 
 ### getActiveOrder
 

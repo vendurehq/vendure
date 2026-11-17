@@ -4,12 +4,11 @@ generated: true
 ---
 ## PageActionBar
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="428" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="427" packageName="@vendure/dashboard" since="3.3.0" />
 
 A component for displaying the main actions for a page. This should be used inside the [Page](/reference/dashboard/page-layout/page#page) component.
 
 You can add action bar items by including [ActionBarItem](/reference/dashboard/page-layout/page-action-bar#actionbaritem) components as direct children.
-For backwards compatibility, [PageActionBarLeft](/reference/dashboard/page-layout/page-action-bar#pageactionbarleft) and [PageActionBarRight](/reference/dashboard/page-layout/page-action-bar#pageactionbarright) are also supported.
 
 **Mobile behavior:** On mobile viewports, only the last inline [ActionBarItem](/reference/dashboard/page-layout/page-action-bar#actionbaritem) is
 shown (the primary action). Extension items and plain children are hidden to prevent
@@ -84,8 +83,8 @@ permissions in order for the item to render.
 
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/action-bar-item-wrapper.tsx" sourceLine="153" packageName="@vendure/dashboard" since="3.5.2" />
 
-A component for wrapping action bar items with a unique ID. This should be used inside
-the [PageActionBarRight](/reference/dashboard/page-layout/page-action-bar#pageactionbarright) component. Each item is given an `itemId` which allows
+A component for wrapping action bar items with a unique ID. This should be used as a child
+of the [PageActionBar](/reference/dashboard/page-layout/page-action-bar#pageactionbar) component. Each item is given an `itemId` which allows
 extensions to position their items relative to it using `position.itemId`.
 
 **Mobile behavior:** On mobile viewports, only the **last** inline `ActionBarItem` is
@@ -99,11 +98,11 @@ making it easy to discover the correct IDs for extension positioning.
 *Example*
 
 ```tsx
-<PageActionBarRight>
+<PageActionBar>
     <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
         <Button type="submit">Save</Button>
     </ActionBarItem>
-</PageActionBarRight>
+</PageActionBar>
 ```
 
 ```ts title="Signature"
@@ -114,67 +113,4 @@ Parameters
 ### props
 
 <MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/page-layout/page-action-bar#actionbaritemprops'>ActionBarItemProps</a>>`} />
-
-## PageActionBarLeft
-
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="586" packageName="@vendure/dashboard" since="3.3.0" />
-
-The PageActionBarLeft component is not used and will be removed in a future version.
-
-```ts title="Signature"
-function PageActionBarLeft(props: Readonly<{ children: React.ReactNode }>): void
-```
-Parameters
-
-### props
-
-<MemberInfo kind="parameter" type={`Readonly<{ children: React.ReactNode }>`} />
-
-## PageActionBarRight
-
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="826" packageName="@vendure/dashboard" since="3.3.0" />
-
-The PageActionBarRight component is used to display the right content of the action bar.
-
-*Example*
-
-```tsx
-// Old pattern (deprecated)
-<PageActionBar>
-    <PageActionBarRight>
-        <ActionBarItem itemId="save-button">
-            <Button type="submit">Update</Button>
-        </ActionBarItem>
-    </PageActionBarRight>
-</PageActionBar>
-
-// New pattern (recommended)
-<PageActionBar>
-    <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
-        <Button type="submit">Update</Button>
-    </ActionBarItem>
-</PageActionBar>
-```
-
-```ts title="Signature"
-function PageActionBarRight(props: Readonly<{
-    /**
-     * @description
-     * ActionBarItem components that will be rendered in the action bar.
-     * Each item should have a unique itemId for extension targeting.
-     */
-    children?: React.ReactNode;
-    /**
-     * @description
-     * Optional dropdown menu items. These are now extracted and rendered by PageActionBar.
-     * @deprecated Pass dropdownMenuItems directly to PageActionBar instead.
-     */
-    dropdownMenuItems?: InlineDropdownItem[];
-}>): void
-```
-Parameters
-
-### props
-
-<MemberInfo kind="parameter" type={`Readonly<{     /**      * @description      * <a href='/reference/dashboard/page-layout/page-action-bar#actionbaritem'>ActionBarItem</a> components that will be rendered in the action bar.      * Each item should have a unique itemId for extension targeting.      */     children?: React.ReactNode;     /**      * @description      * Optional dropdown menu items. These are now extracted and rendered by <a href='/reference/dashboard/page-layout/page-action-bar#pageactionbar'>PageActionBar</a>.      * @deprecated Pass dropdownMenuItems directly to <a href='/reference/dashboard/page-layout/page-action-bar#pageactionbar'>PageActionBar</a> instead.      */     dropdownMenuItems?: InlineDropdownItem[]; }>`} />
 

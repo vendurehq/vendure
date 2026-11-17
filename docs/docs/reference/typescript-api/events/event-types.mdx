@@ -134,7 +134,6 @@ This event is fired whenever a [Asset](/reference/typescript-api/entities/asset#
 ```ts title="Signature"
 class AssetEvent extends VendureEntityEvent<Asset, AssetInputTypes> {
     constructor(ctx: RequestContext, entity: Asset, type: 'created' | 'updated' | 'deleted', input?: AssetInputTypes)
-    asset: Asset
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`Asset`](/reference/typescript-api/entities/asset#asset)`, AssetInputTypes>`
@@ -142,11 +141,6 @@ class AssetEvent extends VendureEntityEvent<Asset, AssetInputTypes> {
 
 
 <div className="members-wrapper">
-
-### asset
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>`}  since="1.4"  />
-
 
 
 
@@ -359,7 +353,6 @@ or deleted.
 ```ts title="Signature"
 class CustomerAddressEvent extends VendureEntityEvent<Address, CustomerAddressInputTypes> {
     constructor(ctx: RequestContext, entity: Address, type: 'created' | 'updated' | 'deleted', input?: CustomerAddressInputTypes)
-    address: Address
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`Address`](/reference/typescript-api/entities/address#address)`, CustomerAddressInputTypes>`
@@ -367,11 +360,6 @@ class CustomerAddressEvent extends VendureEntityEvent<Address, CustomerAddressIn
 
 
 <div className="members-wrapper">
-
-### address
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/address#address'>Address</a>`}   />
-
 
 
 
@@ -386,7 +374,6 @@ or deleted.
 ```ts title="Signature"
 class CustomerEvent extends VendureEntityEvent<Customer, CustomerInputTypes> {
     constructor(ctx: RequestContext, entity: Customer, type: 'created' | 'updated' | 'deleted', input?: CustomerInputTypes)
-    customer: Customer
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`Customer`](/reference/typescript-api/entities/customer#customer)`, CustomerInputTypes>`
@@ -394,11 +381,6 @@ class CustomerEvent extends VendureEntityEvent<Customer, CustomerInputTypes> {
 
 
 <div className="members-wrapper">
-
-### customer
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>`}  since="1.4"  />
-
 
 
 
@@ -683,7 +665,6 @@ or deleted.
 ```ts title="Signature"
 class OrderEvent extends VendureEntityEvent<Order, OrderInputTypes> {
     constructor(ctx: RequestContext, order: Order, type: 'created' | 'updated' | 'deleted', input?: OrderInputTypes)
-    order: Order
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`Order`](/reference/typescript-api/entities/order#order)`, OrderInputTypes>`
@@ -691,11 +672,6 @@ class OrderEvent extends VendureEntityEvent<Order, OrderInputTypes> {
 
 
 <div className="members-wrapper">
-
-### order
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}  since="3.4.0"  />
-
 
 
 
@@ -878,7 +854,6 @@ or deleted.
 ```ts title="Signature"
 class ProductEvent extends VendureEntityEvent<Product, ProductInputTypes> {
     constructor(ctx: RequestContext, entity: Product, type: 'created' | 'updated' | 'deleted', input?: ProductInputTypes)
-    product: Product
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`Product`](/reference/typescript-api/entities/product#product)`, ProductInputTypes>`
@@ -886,11 +861,6 @@ class ProductEvent extends VendureEntityEvent<Product, ProductInputTypes> {
 
 
 <div className="members-wrapper">
-
-### product
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>`}  since="1.4"  />
-
 
 
 
@@ -988,7 +958,6 @@ or deleted.
 ```ts title="Signature"
 class ProductVariantEvent extends VendureEntityEvent<ProductVariant[], ProductVariantInputTypes> {
     constructor(ctx: RequestContext, entity: ProductVariant[], type: 'created' | 'updated' | 'deleted', input?: ProductVariantInputTypes)
-    variants: ProductVariant[]
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`ProductVariant`](/reference/typescript-api/entities/product-variant#productvariant)`[], ProductVariantInputTypes>`
@@ -996,11 +965,6 @@ class ProductVariantEvent extends VendureEntityEvent<ProductVariant[], ProductVa
 
 
 <div className="members-wrapper">
-
-### variants
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]`}  since="1.4"  />
-
 
 
 
@@ -1375,26 +1339,6 @@ class TaxRateEvent extends VendureEntityEvent<TaxRate, TaxRateInputTypes> {
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`TaxRate`](/reference/typescript-api/entities/tax-rate#taxrate)`, TaxRateInputTypes>`
-
-
-
-<div className="members-wrapper">
-
-
-
-</div>
-## TaxRateModificationEvent
-
-<GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-rate-modification-event.ts" sourceLine="13" packageName="@vendure/core" />
-
-This event is fired whenever a TaxRate is changed
-
-```ts title="Signature"
-class TaxRateModificationEvent extends VendureEvent {
-    constructor(ctx: RequestContext, taxRate: TaxRate)
-}
-```
-* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
 
 
 

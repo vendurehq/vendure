@@ -1111,9 +1111,8 @@ input PaymentInput {
   typeName="SearchInput"
   typeLinks={{
     String: '/reference/graphql-api/shop/object-types#string',
-    ID: '/reference/graphql-api/shop/object-types#id',
-    LogicalOperator: '/reference/graphql-api/shop/enums#logicaloperator',
     FacetValueFilterInput: '/reference/graphql-api/shop/input-types#facetvaluefilterinput',
+    ID: '/reference/graphql-api/shop/object-types#id',
     Boolean: '/reference/graphql-api/shop/object-types#boolean',
     Int: '/reference/graphql-api/shop/object-types#int',
     SearchResultSortParameter: '/reference/graphql-api/shop/input-types#searchresultsortparameter',
@@ -1121,8 +1120,6 @@ input PaymentInput {
 >
 {`input SearchInput {
   term: String
-  facetValueIds: [ID!]
-  facetValueOperator: LogicalOperator
   facetValueFilters: [FacetValueFilterInput!]
   collectionId: ID
   collectionIds: [ID!]

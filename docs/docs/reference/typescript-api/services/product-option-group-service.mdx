@@ -17,7 +17,6 @@ class ProductOptionGroupService {
     create(ctx: RequestContext, input: Omit<CreateProductOptionGroupInput, 'options'>) => Promise<Translated<ProductOptionGroup>>;
     update(ctx: RequestContext, input: UpdateProductOptionGroupInput) => Promise<Translated<ProductOptionGroup>>;
     delete(ctx: RequestContext, id: ID, force: boolean = false) => Promise<DeletionResponse>;
-    deleteGroupAndOptionsFromProduct(ctx: RequestContext, id: ID, productId: ID) => ;
     assignProductOptionGroupsToChannel(ctx: RequestContext, input: AssignProductOptionGroupsToChannelInput) => Promise<Array<Translated<ProductOptionGroup>>>;
     removeProductOptionGroupsFromChannel(ctx: RequestContext, input: RemoveProductOptionGroupsFromChannelInput) => Promise<
         Array<ErrorResultUnion<RemoveProductOptionGroupFromChannelResult, Translated<ProductOptionGroup>>>
@@ -69,13 +68,6 @@ that use the given ProductOptionGroup.
 
 Deletes a ProductOptionGroup. If the group is in use by any Products, the deletion
 will fail unless `force` is set to `true`.
-### deleteGroupAndOptionsFromProduct
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />
-
-Deletes the ProductOptionGroup and any associated ProductOptions. If the ProductOptionGroup
-is still referenced by a soft-deleted Product, then a soft-delete will be used to preserve
-referential integrity. Otherwise a hard-delete will be performed.
 ### assignProductOptionGroupsToChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignProductOptionGroupsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-option-group#productoptiongroup'>ProductOptionGroup</a>>>>`}   />

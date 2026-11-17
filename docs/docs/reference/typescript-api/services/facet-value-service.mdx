@@ -9,9 +9,7 @@ Contains methods relating to [FacetValue](/reference/typescript-api/entities/fac
 ```ts title="Signature"
 class FacetValueService {
     constructor(connection: TransactionalConnection, translatableSaver: TranslatableSaver, configService: ConfigService, customFieldRelationService: CustomFieldRelationService, channelService: ChannelService, eventBus: EventBus, translator: TranslatorService, listQueryBuilder: ListQueryBuilder, requestCache: RequestContextCacheService)
-    findAll(lang: LanguageCode) => Promise<Array<Translated<FacetValue>>>;
     findAll(ctx: RequestContext, lang: LanguageCode) => Promise<Array<Translated<FacetValue>>>;
-    findAll(ctxOrLang: RequestContext | LanguageCode, lang?: LanguageCode) => Promise<Array<Translated<FacetValue>>>;
     findAllList(ctx: RequestContext, options?: ListQueryOptions<FacetValue>, relations?: RelationPaths<FacetValue>) => Promise<PaginatedList<Translated<FacetValue>>>;
     findOne(ctx: RequestContext, id: ID) => Promise<Translated<FacetValue> | undefined>;
     findByIds(ctx: RequestContext, ids: ID[]) => Promise<Array<Translated<FacetValue>>>;
@@ -29,17 +27,7 @@ class FacetValueService {
 
 ### findAll
 
-<MemberInfo kind="method" type={`(lang: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />
-
-
-### findAll
-
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, lang: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />
-
-
-### findAll
-
-<MemberInfo kind="method" type={`(ctxOrLang: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a> | <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>, lang?: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />
 
 
 ### findAllList

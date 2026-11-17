@@ -32,7 +32,7 @@ defineDashboardExtension({
     pageBlocks: [],
     actionBarItems: [],
     alerts: [],
-    widgets: [],
+    insights: { widgets: [] },
     customFormComponents: {},
     dataTables: [],
     detailForms: [],
@@ -54,7 +54,7 @@ Parameters
 
 ## DashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="43" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.3.0" />
 
 This is the main interface for defining _all_ extensions to the dashboard.
 
@@ -78,7 +78,6 @@ interface DashboardExtension {
     pageBlocks?: DashboardPageBlockDefinition[];
     actionBarItems?: DashboardActionBarItem[];
     alerts?: DashboardAlertDefinition[];
-    widgets?: DashboardWidgetDefinition[];
     insights?: DashboardInsightsExtensionDefinition;
     customFormComponents?: DashboardCustomFormComponents;
     dataTables?: DashboardDataTableExtensionDefinition[];
@@ -151,11 +150,6 @@ Allows you to define custom action bar items for any page in the dashboard.
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/alerts#dashboardalertdefinition'>DashboardAlertDefinition</a>[]`}   />
 
 Allows you to define custom alerts that can be displayed in the dashboard.
-### widgets
-
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/widgets#dashboardwidgetdefinition'>DashboardWidgetDefinition</a>[]`}   />
-
-Allows you to define custom widgets for the Insights page.
 ### insights
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/define-dashboard-extension#dashboardinsightsextensiondefinition'>DashboardInsightsExtensionDefinition</a>`}  since="3.8.0"  />

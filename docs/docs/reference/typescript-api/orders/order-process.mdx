@@ -21,7 +21,7 @@ your VendureConfig.
 :::
 
 ```ts title="Signature"
-interface OrderProcess<State extends keyof CustomOrderStates | string> extends InjectableStrategy {
+interface OrderProcess<State extends keyof OrderStates | string> extends InjectableStrategy {
     transitions?: Transitions<State, State | OrderState> & Partial<Transitions<OrderState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | OrderState, OrderTransitionData>;
     onTransitionEnd?: OnTransitionEndFn<State | OrderState, OrderTransitionData>;
@@ -191,7 +191,7 @@ to enable/disable certain checks.
 
 ## OrderStates
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="21" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="12" packageName="@vendure/core" since="2.0.0" />
 
 An interface to extend the [OrderState](/reference/typescript-api/orders/order-process#orderstate) type.
 
@@ -202,7 +202,7 @@ interface OrderStates {
 ```
 ## OrderState
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="42" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="33" packageName="@vendure/core" />
 
 These are the default states of the Order process. They can be augmented and
 modified by using the [OrderOptions](/reference/typescript-api/orders/order-options#orderoptions) `process` property, and by default
@@ -219,16 +219,11 @@ the [defaultOrderProcess](/reference/typescript-api/orders/order-process#default
 - `ArrangingAdditionalPayment`
 
 ```ts title="Signature"
-type OrderState = | 'Created'
-    | 'Draft'
-    | 'AddingItems'
-    | 'Cancelled'
-    | keyof CustomOrderStates
-    | keyof OrderStates
+type OrderState = 'Created' | 'Draft' | 'AddingItems' | 'Cancelled' | keyof OrderStates
 ```
 ## OrderTransitionData
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="57" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="42" packageName="@vendure/core" />
 
 This is the object passed to the [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) state transition hooks.
 

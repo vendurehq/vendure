@@ -30,7 +30,9 @@ class GlobalSettings extends VendureEntity implements HasCustomFields {
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>[]`}   />
 
-
+The languages which are available in this Vendure instance. A Channel's
+`defaultLanguageCode` must be one of them. Each Channel selects the languages it offers in
+`Channel.availableLanguageCodes`.
 ### outOfStockThreshold
 
 <MemberInfo kind="property" type={`number`}   />

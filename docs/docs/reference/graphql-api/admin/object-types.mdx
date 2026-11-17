@@ -617,7 +617,6 @@ type CancelPaymentError {
   defaultShippingZone: Zone
   defaultLanguageCode: LanguageCode!
   availableLanguageCodes: [LanguageCode!]
-  currencyCode: CurrencyCode!
   defaultCurrencyCode: CurrencyCode!
   availableCurrencyCodes: [CurrencyCode!]!
   """Not yet used - will be implemented in a future release."""
@@ -1896,7 +1895,6 @@ scalar Float`}
   createdAt: DateTime!
   updatedAt: DateTime!
   lines: [FulfillmentLine!]!
-  summary: [FulfillmentLine!]!
   state: String!
   method: String!
   trackingCode: String
@@ -3821,7 +3819,13 @@ type PriceRange {
   sold and fulfilled without limit.
   """
   tracksInventory: Boolean!
+  """
+  The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+  is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+  StockLocations of the active Channel. Use \`stockLevels\` for the per-location values.
+  """
   stockOnHand: Int!
+  """The total allocated stock, counted in the same way as \`stockOnHand\`."""
   stockAllocated: Int!
   outOfStockThreshold: Int!
   useGlobalOutOfStockThreshold: Boolean!
@@ -4083,8 +4087,11 @@ type QuantityTooGreatError {
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
+  """Recorded for Refunds created before v4.0 only. The amount refunded is \`total\`."""
   items: Money!
+  """Recorded for Refunds created before v4.0 only. The amount refunded is \`total\`."""
   shipping: Money!
+  """Recorded for Refunds created before v4.0 only. The amount refunded is \`total\`."""
   adjustment: Money!
   total: Money!
   method: String

@@ -4,7 +4,7 @@ generated: true
 ---
 ## DefaultJobQueuePlugin
 
-<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/default-job-queue-plugin.ts" sourceLine="182" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/default-job-queue-plugin.ts" sourceLine="183" packageName="@vendure/core" />
 
 A plugin which configures Vendure to use the SQL database to persist the JobQueue jobs using the [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy). If you add this
 plugin to an existing Vendure installation, you'll need to run a [database migration](/developer-guide/migrations), since this
@@ -291,13 +291,15 @@ setRetries: (queueName, job) => {
  ```
 ### useDatabaseForBuffer
 
-<MemberInfo kind="property" type={`boolean`}  since="1.3.0"  />
+<MemberInfo kind="property" type={`boolean`} default={`true (false before v4.0)`}  since="1.3.0"  />
 
-If set to `true`, the database will be used to store buffered jobs. This is
-recommended for production.
+If set to `true`, the database is used to store buffered jobs (in the `JobRecordBuffer`
+entity), so that they survive a restart and are shared by every server instance.
 
-When enabled, a new `JobRecordBuffer` database entity will be defined which will
-require a migration when first enabling this option.
+When not set, the in-memory default `jobBufferStorageStrategy` is replaced, but a strategy
+configured in `jobQueueOptions.jobBufferStorageStrategy` is kept. `true` always replaces it.
+Set to `false` to keep buffered jobs in memory, as before v4.0. Then the `JobRecordBuffer`
+table is not defined.
 ### useNotify
 
 <MemberInfo kind="property" type={`boolean | Pick<<a href='/reference/typescript-api/job-queue/pg-notify-job-queue-strategy-config#pgnotifyjobqueuestrategyconfig'>PgNotifyJobQueueStrategyConfig</a>, 'listenerConnection' | 'safetyIntervalMs'>`} default={`false`}  since="3.8.0"  />

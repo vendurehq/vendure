@@ -11,9 +11,7 @@ class FacetService {
     constructor(connection: TransactionalConnection, facetValueService: FacetValueService, translatableSaver: TranslatableSaver, listQueryBuilder: ListQueryBuilder, configService: ConfigService, channelService: ChannelService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translator: TranslatorService, roleService: RoleService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<Facet>, relations?: RelationPaths<Facet>) => Promise<PaginatedList<Translated<Facet>>>;
     findOne(ctx: RequestContext, facetId: ID, relations?: RelationPaths<Facet>) => Promise<Translated<Facet> | undefined>;
-    findByCode(facetCode: string, lang: LanguageCode) => Promise<Translated<Facet> | undefined>;
     findByCode(ctx: RequestContext, facetCode: string, lang: LanguageCode) => Promise<Translated<Facet> | undefined>;
-    findByCode(ctxOrFacetCode: RequestContext | string, facetCodeOrLang: string | LanguageCode, lang?: LanguageCode) => Promise<Translated<Facet> | undefined>;
     findByFacetValueId(ctx: RequestContext, id: ID) => Promise<Translated<Facet> | undefined>;
     create(ctx: RequestContext, input: CreateFacetInput) => Promise<Translated<Facet>>;
     update(ctx: RequestContext, input: UpdateFacetInput) => Promise<Translated<Facet>>;
@@ -37,17 +35,7 @@ class FacetService {
 
 ### findByCode
 
-<MemberInfo kind="method" type={`(facetCode: string, lang: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
-
-
-### findByCode
-
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, facetCode: string, lang: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
-
-
-### findByCode
-
-<MemberInfo kind="method" type={`(ctxOrFacetCode: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a> | string, facetCodeOrLang: string | <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>, lang?: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
 
 
 ### findByFacetValueId

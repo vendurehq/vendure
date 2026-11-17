@@ -2,7 +2,7 @@
 title: "TestConfig"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/testing/src/config/test-config.ts" sourceLine="42" packageName="@vendure/testing" />
+<GenerationInfo sourceFile="packages/testing/src/config/test-config.ts" sourceLine="45" packageName="@vendure/testing" />
 
 A [VendureConfig](/reference/typescript-api/configuration/vendure-config#vendureconfig) object used for e2e tests. This configuration uses sqljs as the database
 and configures some special settings which are optimized for e2e tests:
@@ -12,6 +12,8 @@ to be prepended with the string `'T_'`, so ID `1` becomes `'T_1'`.
 * `logger: new NoopLogger()` Do no output logs by default
 * `assetStorageStrategy: new TestingAssetStorageStrategy()` This strategy does not actually persist any binary data to disk.
 * `assetPreviewStrategy: new TestingAssetPreviewStrategy()` This strategy is a no-op.
+* `passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 })`
+  Allows the short passwords used by test fixtures, such as `'test'` in `populateCustomers()`.
 
 ## Logging
 By default, the testConfig does not output any log messages. This is most desirable to keep a clean CI output.

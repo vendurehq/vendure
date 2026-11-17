@@ -377,7 +377,6 @@ type BuyerPrice {
   defaultShippingZone: Zone
   defaultLanguageCode: LanguageCode!
   availableLanguageCodes: [LanguageCode!]
-  currencyCode: CurrencyCode!
   defaultCurrencyCode: CurrencyCode!
   availableCurrencyCodes: [CurrencyCode!]!
   """Not yet used - will be implemented in a future release."""
@@ -1326,7 +1325,6 @@ scalar Float`}
   createdAt: DateTime!
   updatedAt: DateTime!
   lines: [FulfillmentLine!]!
-  summary: [FulfillmentLine!]!
   state: String!
   method: String!
   trackingCode: String
@@ -2974,8 +2972,11 @@ type PriceRange {
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
+  """Recorded for Refunds created before v4.0 only. The amount refunded is \`total\`."""
   items: Money!
+  """Recorded for Refunds created before v4.0 only. The amount refunded is \`total\`."""
   shipping: Money!
+  """Recorded for Refunds created before v4.0 only. The amount refunded is \`total\`."""
   adjustment: Money!
   total: Money!
   method: String

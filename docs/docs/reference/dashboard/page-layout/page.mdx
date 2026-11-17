@@ -27,9 +27,9 @@ export function MyPage() {
    <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
      <PageTitle>My Page</PageTitle>
      <PageActionBar>
-       <PageActionBarRight>
+       <ActionBarItem itemId="save-button">
          <Button>Save</Button>
-       </PageActionBarRight>
+       </ActionBarItem>
      </PageActionBar>
      <PageLayout>
        <PageBlock column="main" blockId="my-block">

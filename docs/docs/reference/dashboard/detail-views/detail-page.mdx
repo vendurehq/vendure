@@ -4,7 +4,7 @@ generated: true
 ---
 ## DetailPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="138" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="147" packageName="@vendure/dashboard" since="3.3.0" />
 
 Auto-generates a detail page with a form based on the provided query and mutation documents.
 
@@ -21,7 +21,7 @@ Parameters
 
 ## DetailPageProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="38" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="37" packageName="@vendure/dashboard" since="3.3.0" />
 
 Props to configure the [DetailPage](/reference/dashboard/detail-views/detail-page#detailpage) component.
 
@@ -36,6 +36,7 @@ interface DetailPageProps<T extends TypedDocumentNode<any, any>, C extends Typed
     updateDocument: U;
     setValuesForUpdate: (entity: ResultOf<T>[EntityField]) => VariablesOf<U>['input'];
     setValuesForCreate?: NoInfer<(params: Record<string, string>) => Partial<VariablesOf<C>['input']>>;
+    sendOnlyChangedFields?: boolean;
 }
 ```
 
@@ -89,6 +90,13 @@ A function that sets the values for the update input type based on the entity.
 A function that sets the starting values for the form when creating a new entity, based on
 the route params. It runs again only when the route params change. The starting values count
 as unsaved changes, so the submit button is enabled and leaving the page asks the user to confirm.
+### sendOnlyChangedFields
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}  since="4.0.0"  />
+
+Whether the update mutation receives only the fields the user changed. See the
+`sendOnlyChangedFields` option of [useDetailPage](/reference/dashboard/detail-views/use-detail-page#usedetailpage). Set it to `false` if your update
+mutation treats an absent field as empty rather than unchanged.
 
 
 </div>

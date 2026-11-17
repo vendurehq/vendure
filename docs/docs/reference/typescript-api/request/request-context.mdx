@@ -56,7 +56,6 @@ class RequestContext {
     currencyCode: CurrencyCode
     session: CachedSession | DeserializedCachedSession | undefined
     activeUserId: ID | undefined
-    isAuthorized: boolean
     authorizedAsOwnerOnly: boolean
     translate(key: string, variables?: { [k: string]: any }) => string;
     setReplicationMode(mode: ReplicationMode) => void;
@@ -220,11 +219,6 @@ deliberately not serialized. The class cannot tell the two apart statically, so 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | undefined`}   />
 
 
-### isAuthorized
-
-<MemberInfo kind="property" type={`boolean`}   />
-
-True if the current session is authorized to access the current resolver method.
 ### authorizedAsOwnerOnly
 
 <MemberInfo kind="property" type={`boolean`}   />
