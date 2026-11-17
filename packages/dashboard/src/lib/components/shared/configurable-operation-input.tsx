@@ -210,7 +210,7 @@ function ArgsFormGrid({ operationDefinition, value, readonly, onArgChange }: Rea
                     const argValue = value.arguments.find(a => a.name === arg.name)?.value || '';
                     return (
                         <Field key={arg.name} className="gap-2">
-                            <FieldLabel className="text-sm font-medium text-foreground">
+                            <FieldLabel>
                                 {arg.label || arg.name}
                                 {arg.required && !arg.list && (
                                     <span className="text-destructive ml-1">*</span>

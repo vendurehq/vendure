@@ -62,7 +62,7 @@ export function GenerateMissingVariantsDialog({
                 <Trans>Generate variants</Trans>
             </DialogTrigger>
             {/* Override the dialog's default `sm:max-w-md` so the 5-column form table has room. */}
-            <DialogContent className="sm:max-w-4xl">
+            <DialogContent showCloseButton className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Generate variants</Trans>

@@ -62,7 +62,7 @@ export function ApiKeySecretDialog({ open, apiKey, lookupId, onClose }: ApiKeySe
 
     return (
         <Dialog open={open} onOpenChange={handleDismissAttempt}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent showCloseButton className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle><Trans>Your API Key</Trans></DialogTitle>
                 </DialogHeader>

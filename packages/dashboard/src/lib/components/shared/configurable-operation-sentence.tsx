@@ -158,7 +158,7 @@ function ArgChip({
                 className={popoverSize === 'lg' ? 'w-[32rem] max-w-[90vw]' : 'w-80 max-w-[90vw]'}
             >
                 <Field className="gap-2">
-                    <FieldLabel className="text-sm font-medium text-foreground">
+                    <FieldLabel>
                         {label}
                         {arg.required && !arg.list && <span className="text-destructive ml-1">*</span>}
                     </FieldLabel>
