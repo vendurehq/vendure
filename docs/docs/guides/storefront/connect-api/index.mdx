@@ -20,8 +20,8 @@ If your storefront calls the Shop API from the browser and is served from a diff
 Vendure server, including a different port on `localhost`, add that origin to
 [`apiOptions.cors`](/reference/typescript-api/configuration/api-options/#cors). By default Vendure allows no
 cross-origin requests, and the browser blocks every call with a CORS error. Projects created with
-`@vendure/create` allow any origin in development and read the list from the `CORS_ORIGINS` environment
-variable otherwise. Requests made from a server, for example during server-side rendering, are not affected.
+`@vendure/create` 3.7.3 or later allow any origin in development and read the list from the `CORS_ORIGINS`
+environment variable otherwise. Projects created with an earlier version need the `cors` setting added. Requests made from a server, for example during server-side rendering, are not affected.
 
 ```ts
 apiOptions: {

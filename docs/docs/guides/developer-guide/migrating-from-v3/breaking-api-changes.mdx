@@ -89,7 +89,7 @@ Some defaults which were kept for compatibility during v3 have changed. Set the 
 
 `apiOptions.cors` now defaults to `{ origin: false, credentials: true }` (it was `{ origin: true, credentials: true }`, which let any website make credentialed requests to both APIs). The server sends no `Access-Control-Allow-Origin` header, so a browser only lets pages on the server's own origin call the API.
 
-Projects created with `@vendure/create` set `cors` themselves and are not affected. If your config does not set `cors`, these break:
+Projects created with `@vendure/create` 3.7.3 or later set `cors` themselves and are not affected. Projects created with an earlier version do not, so check your config for a `cors` entry. If it does not set `cors`, these break:
 
 - a storefront that calls the API from the browser on a different origin, including a different port in local development
 - the Dashboard Vite dev server, when you open it directly rather than through the `DashboardPlugin`

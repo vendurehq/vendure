@@ -99,7 +99,7 @@ describe('mergeConfig()', () => {
 
     it('replaces a boolean with an object', () => {
         const input: any = {
-            apiOptions: { csrfPrevention: true, cors: false },
+            apiOptions: { csrfPrevention: true, cors: true },
         };
 
         const result = mergeConfig(input, {

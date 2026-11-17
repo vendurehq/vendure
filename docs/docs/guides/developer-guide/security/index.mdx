@@ -68,7 +68,7 @@ export const config: VendureConfig = {
 };
 ```
 
-Projects created with `@vendure/create` already do this, and allow any origin when `APP_ENV=dev`.
+Projects created with `@vendure/create` 3.7.3 or later already do this, and allow any origin when `APP_ENV=dev`. Projects created with an earlier version do not set `cors`, so add it yourself.
 
 :::warning
 Do not deploy with `origin: true`. It makes the server echo back whatever `Origin` the caller sent, and
