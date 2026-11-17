@@ -1,5 +1,5 @@
 import { SUPER_ADMIN_USER_IDENTIFIER, SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
-import { mergeConfig } from '@vendure/core';
+import { defaultConfig, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -7,9 +7,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+// csrfPrevention is not set here, so this suite covers the default, which is on. testConfig()
+// allows any origin, so `cors` is set back to the core default to cover that as well.
 const config = mergeConfig(testConfig(), {
     apiOptions: {
-        csrfPrevention: true,
+        cors: defaultConfig.apiOptions.cors,
     },
     authOptions: {
         tokenMethod: 'cookie' as const,
@@ -139,6 +141,26 @@ describe('apiOptions.csrfPrevention', () => {
         expect(((await res.json()) as GraphQlResponseBody).errors).toBeUndefined();
     });
 
+    it('sends no CORS headers to another origin, by default', async () => {
+        const res = await post('application/json', JSON.stringify({ query: LOGIN_MUTATION }));
+
+        expect(res.headers.get('access-control-allow-origin')).toBeNull();
+        expect(res.headers.get('access-control-allow-credentials')).toBeNull();
+    });
+
+    it('does not approve a CORS preflight from another origin, by default', async () => {
+        const res = await fetch(ADMIN_URL, {
+            method: 'OPTIONS',
+            headers: {
+                origin: 'https://evil.example.com',
+                'access-control-request-method': 'POST',
+                'access-control-request-headers': 'content-type',
+            },
+        });
+
+        expect(res.headers.get('access-control-allow-origin')).toBeNull();
+    });
+
     describe('error responses', () => {
         // Requests which Apollo rejects before running the GraphQL pipeline are formatted by
         // Apollo itself, so they must not expose a stack trace (and with it server file paths).
@@ -181,5 +203,46 @@ describe('apiOptions.csrfPrevention', () => {
                 expect(body.errors[0].extensions.stacktrace).toBeUndefined();
             });
         }
+    });
+});
+
+describe('apiOptions.csrfPrevention with custom request headers', () => {
+    // The default is `true`, so this also checks that mergeConfig replaces it with the object.
+    const { server } = createTestEnvironment(
+        mergeConfig(config, {
+            apiOptions: {
+                csrfPrevention: { requestHeaders: ['x-my-client-header'] },
+            },
+        }),
+    );
+
+    beforeAll(async () => {
+        await server.init({
+            initialData,
+            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
+            customerCount: 1,
+        });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('allows a form content type when the client sends the configured header', async () => {
+        const res = await post('application/x-www-form-urlencoded', formBody(), {
+            'x-my-client-header': 'true',
+        });
+
+        expect(res.status).toBe(200);
+        expect(((await res.json()) as GraphQlResponseBody).errors).toBeUndefined();
+    });
+
+    it('rejects a form content type that sends only Apollo-Require-Preflight, which the list replaces', async () => {
+        const res = await post('application/x-www-form-urlencoded', formBody(), {
+            'apollo-require-preflight': 'true',
+        });
+
+        expect(res.status).toBe(400);
+        expect(await res.text()).toContain('Cross-Site Request Forgery');
     });
 });

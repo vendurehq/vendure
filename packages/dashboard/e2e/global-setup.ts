@@ -96,6 +96,12 @@ export default async function globalSetup() {
     const config = mergeConfig(defaultTestConfig, {
         apiOptions: {
             port: VENDURE_PORT,
+            // The dashboard is served from another port, and its fetch uses credentials: 'include',
+            // which needs the request origin reflected (not wildcard *) and credentials: true.
+            cors: {
+                origin: true,
+                credentials: true,
+            },
         },
         paymentOptions: {
             paymentMethodHandlers: e2ePaymentMethodHandlers,
@@ -117,14 +123,6 @@ export default async function globalSetup() {
             collectionFilters: [...defaultCollectionFilters, ...e2eCollectionFilters],
         },
     });
-
-    // mergeConfig won't replace a boolean with an object, so set CORS explicitly.
-    // The dashboard's fetch uses credentials: 'include', which requires the server
-    // to reflect the request origin (not wildcard *) and set credentials: true.
-    config.apiOptions.cors = {
-        origin: true,
-        credentials: true,
-    };
 
     const { server } = createTestEnvironment(config);
     await server.init({

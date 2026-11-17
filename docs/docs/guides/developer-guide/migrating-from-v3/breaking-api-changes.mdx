@@ -87,6 +87,41 @@ For the full list, see [Updating your code](/developer-guide/migrating-from-v3/i
 
 Some defaults which were kept for compatibility during v3 have changed. Set the old value to keep the v3 behaviour.
 
+### CORS allows no cross-origin requests
+
+`apiOptions.cors` now defaults to `{ origin: false, credentials: true }` (it was `{ origin: true, credentials: true }`, which let any website make credentialed requests to both APIs). The server sends no `Access-Control-Allow-Origin` header, so a browser only lets pages on the server's own origin call the API.
+
+Projects created with `@vendure/create` 3.7.3 or later set `cors` themselves and are not affected. Projects created with an earlier version do not, so check your config for a `cors` entry. If it does not set `cors`, these break:
+
+- a storefront that calls the API from the browser on a different origin, including a different port in local development
+- the Dashboard Vite dev server, when you open it directly rather than through the `DashboardPlugin`
+- an Admin UI or Dashboard hosted on a separate domain
+- browser calls to other routes on the server from another origin. `apiOptions.cors` applies to the whole server, so this includes plugin REST controllers, assets fetched from script, and the MCP plugin's `/mcp` and OAuth endpoints
+
+Server-side requests, for example from a server-rendered storefront, and the Dashboard served by the `DashboardPlugin` are not affected. List the origins your browsers call the API from:
+
+```ts
+apiOptions: {
+    cors: {
+        origin: ['https://storefront.example.com', 'http://localhost:3001'],
+        credentials: true,
+    },
+},
+```
+
+Setting `origin: true` restores the v3 behaviour. Use it only in local development. See [Configure CORS](/developer-guide/security/#configure-cors).
+
+### CSRF prevention is on
+
+`apiOptions.csrfPrevention` now defaults to `true` (it was `false`). The Shop and Admin APIs reject a request whose content type is `application/x-www-form-urlencoded`, `multipart/form-data` or `text/plain`, and any `GET` request, unless it sends an `Apollo-Require-Preflight` or `x-apollo-operation-name` header. This stops a cross-site HTML form from logging a visitor in as someone else (Login CSRF).
+
+Requests sent as `application/json` are unaffected. `@vendure/dashboard` and `@vendure/testing` already send the header. Check:
+
+- clients that upload files, for example a custom admin client built on `apollo-upload-client`: send `Apollo-Require-Preflight: true`
+- storefronts that send queries as `GET` for caching: send `Apollo-Require-Preflight: true`
+
+If a client cannot send either header, name a header it already sends, for example `csrfPrevention: { requestHeaders: ['x-my-client-header', 'apollo-require-preflight'] }`. Setting `csrfPrevention: false` restores the v3 behaviour, and Vendure logs a warning at startup. See [CSRF prevention](/developer-guide/security/#csrf-prevention).
+
 ### DefaultSearchPlugin indexes stock status and currency
 
 `indexStockStatus` and `indexCurrencyCode` now default to `true`, also when the plugin is used without `init()`. The `search` query gets the `inStock` field and filter, and returns prices in the currency of the request in Channels with more than one currency.
