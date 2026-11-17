@@ -153,9 +153,20 @@ export class PaymentMethodService {
             input,
             updatedPaymentMethod,
         );
-        await this.connection.getRepository(ctx, PaymentMethod).save(updatedPaymentMethod, { reload: false });
-        await this.eventBus.publish(new PaymentMethodEvent(ctx, updatedPaymentMethod, 'updated', input));
-        return assertFound(this.findOne(ctx, updatedPaymentMethod.id));
+        // The reloaded entity, as `updatedPaymentMethod` has `null` for every nullable column the
+        // input left out (see TranslatableSaver.update()).
+        const paymentMethod = await assertFound(
+            this.findOne(
+                ctx,
+                updatedPaymentMethod.id,
+                this.customFieldRelationService.getRelationPathsInInput(
+                    PaymentMethod,
+                    input,
+                ) as RelationPaths<PaymentMethod>,
+            ),
+        );
+        await this.eventBus.publish(new PaymentMethodEvent(ctx, paymentMethod, 'updated', input));
+        return paymentMethod;
     }
 
     async delete(
