@@ -142,7 +142,7 @@ export function AppLayout() {
             <AppSidebar />
             <SidebarInset render={<div />} className="overflow-hidden">
                 <AppShellHeader>
-                    <div className="flex items-center justify-start gap-2 min-w-0 overflow-hidden">
+                    <div className="flex items-center justify-start gap-1.5 min-w-0 overflow-hidden">
                         <Tooltip>
                             <TooltipTrigger render={<SidebarTrigger className="-ml-1 shrink-0" />} />
                             <TooltipContent>
