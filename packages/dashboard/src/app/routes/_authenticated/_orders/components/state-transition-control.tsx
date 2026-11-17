@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { ButtonGroup, ButtonGroupText } from '@/vdb/components/ui/button-group.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -6,9 +7,8 @@ import {
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
 import type { Tone } from '@/vdb/components/ui/status-badge.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { CircleAlert, CircleCheck, CircleDashed, CircleX, EllipsisVertical } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -34,6 +34,7 @@ export function StateTransitionControl({
     actions,
     isLoading,
 }: Readonly<StateTransitionControlProps>) {
+    const { t } = useLingui();
     const currentTone = orderStateDictionary.toneFor(currentState);
     const iconForTone: Record<Tone, ReactNode> = {
         critical: <CircleX className="h-4 w-4 text-destructive" />,
@@ -44,27 +45,36 @@ export function StateTransitionControl({
         neutral: <CircleDashed className="h-4 w-4 text-muted-foreground" />,
     };
 
+    const label = statesTranslationFunction(currentState);
+
     return (
-        <div className="flex min-w-0">
-            <div
-                className={cn(
-                    'inline-flex flex-nowrap items-center justify-start gap-1 h-8 rounded-md px-3 text-xs font-medium border border-input bg-background min-w-0',
-                    actions.length > 0 && 'rounded-r-none',
-                )}
-                title={statesTranslationFunction(currentState)}
-            >
-                <div className="flex-shrink-0">{iconForTone[currentTone]}</div>
-                <span className="truncate">{statesTranslationFunction(currentState)}</span>
-            </div>
+        <ButtonGroup className="max-w-full">
+            <ButtonGroupText className="min-w-0">
+                {iconForTone[currentTone]}
+                <span
+                    className="truncate"
+                    // Name the full state only when the label is cut off.
+                    onPointerEnter={e => {
+                        const el = e.currentTarget;
+                        el.title = el.scrollWidth > el.clientWidth ? label : '';
+                    }}
+                >
+                    {label}
+                </span>
+            </ButtonGroupText>
             {actions.length > 0 && (
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isLoading}
-                            className={cn('rounded-l-none border-l-0 shadow-none', 'bg-background')}
-                            data-testid="state-transition-trigger"
-                        />}>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                disabled={isLoading}
+                                aria-label={t`Change state`}
+                                data-testid="state-transition-trigger"
+                            />
+                        }
+                    >
                         <EllipsisVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-48">
@@ -86,6 +96,6 @@ export function StateTransitionControl({
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
-        </div>
+        </ButtonGroup>
     );
 }
