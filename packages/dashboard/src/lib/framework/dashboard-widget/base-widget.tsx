@@ -1,6 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { DashboardBaseWidgetProps } from '@/vdb/framework/extension-api/types/index.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
 import { createContext, useEffect, useRef, useState } from 'react';
 
@@ -62,22 +61,15 @@ export function DashboardBaseWidget({
         <Card
             ref={wrapperRef}
             key={`dashboard-widget-${id}`}
-            className={cn('h-full w-full flex flex-col rounded-md', !title && 'pt-6')}
+            className="h-full w-full"
         >
             {title && (
-                <CardHeader
-                    className={cn(
-                        'flex flex-col lg:flex-row  items-start lg:items-center',
-                        actions ? 'justify-between' : 'justify-start',
-                    )}
-                >
-                    <div>
-                        <CardTitle>
-                            <Trans>{title}</Trans>
-                        </CardTitle>
-                        {description && <CardDescription>{description}</CardDescription>}
-                    </div>
-                    {actions && <div className="flex items-center gap-2">{actions}</div>}
+                <CardHeader>
+                    <CardTitle>
+                        <Trans>{title}</Trans>
+                    </CardTitle>
+                    {description && <CardDescription>{description}</CardDescription>}
+                    {actions && <CardAction>{actions}</CardAction>}
                 </CardHeader>
             )}
             <CardContent ref={contentRef} className="grow">
