@@ -54,7 +54,7 @@ afterEach(() => {
     if (stdoutIsTTYDescriptor) {
         Object.defineProperty(process.stdout, 'isTTY', stdoutIsTTYDescriptor);
     } else {
-        delete (process.stdout as NodeJS.WriteStream & { isTTY?: boolean }).isTTY;
+        delete (process.stdout as { isTTY?: boolean }).isTTY;
     }
     vi.unstubAllEnvs();
 });

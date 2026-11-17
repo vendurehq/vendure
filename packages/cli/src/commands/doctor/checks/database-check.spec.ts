@@ -73,6 +73,6 @@ describe('runDatabaseCheck()', () => {
         const result = await runDatabaseCheck(config);
 
         expect(result.status).toBe('warn');
-        expect(result.details.join('\n')).toContain('Could not load "typeorm"');
+        expect(result.details?.join('\n')).toContain('Could not load "typeorm"');
     });
 });
