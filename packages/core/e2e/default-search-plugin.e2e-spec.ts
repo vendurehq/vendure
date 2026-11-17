@@ -73,8 +73,8 @@ type SearchInput = VariablesOf<typeof searchProductsAdminDocument>['input'];
 type SearchProductsShopInput = VariablesOf<typeof searchProductsShopDocument>['input'];
 type SearchProductsShopQueryVariablesExt = {
     input: SearchProductsShopInput & {
-        // This input field is dynamically added only when the `indexStockStatus` init option
-        // is set to `true`, and therefore not included in the generated type. Therefore
+        // This input field is added by the `indexStockStatus` option (on by default),
+        // and therefore not included in the generated type. Therefore
         // we need to manually patch it here.
         inStock?: boolean;
     };
@@ -83,7 +83,9 @@ type SearchProductsShopQueryVariablesExt = {
 describe('Default search plugin', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
-            plugins: [DefaultSearchPlugin.init({ indexStockStatus: true }), DefaultJobQueuePlugin],
+            // Used without `init()`, so that the default options (indexStockStatus and
+            // indexCurrencyCode on) are what is tested.
+            plugins: [DefaultSearchPlugin, DefaultJobQueuePlugin],
         }),
     );
 

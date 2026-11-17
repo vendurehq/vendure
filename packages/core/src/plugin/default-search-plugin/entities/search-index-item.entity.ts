@@ -90,10 +90,10 @@ export class SearchIndexItem {
     @EntityId({ nullable: true, storeUuidAsVarchar: true })
     productVariantAssetId: ID | null;
 
-    // Added dynamically based on the `indexStockStatus` init option.
+    // Added by the DefaultSearchPlugin unless the `indexStockStatus` option is false.
     inStock?: boolean;
-    // Added dynamically based on the `indexStockStatus` init option.
+    // Added by the DefaultSearchPlugin unless the `indexStockStatus` option is false.
     productInStock?: boolean;
-    // Added dynamically based on the `indexCurrencyCode` init option.
+    // Added by the DefaultSearchPlugin unless the `indexCurrencyCode` option is false.
     currencyCode?: CurrencyCode;
 }

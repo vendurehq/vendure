@@ -59,7 +59,6 @@ export interface DefaultSearchReindexResponse extends SearchReindexResponse {
  *   // Add an instance of the plugin to the plugins array
  *   plugins: [
  *     DefaultSearchPlugin.init({
- *       indexStockStatus: true,
  *       bufferUpdates: true,
  *     }),
  *   ],
@@ -70,6 +69,10 @@ export interface DefaultSearchReindexResponse extends SearchReindexResponse {
  */
 @VendurePlugin({
     imports: [PluginCommonModule],
+    configuration: config => {
+        DefaultSearchPlugin.addIndexColumnsToEntity();
+        return config;
+    },
     providers: [
         FulltextSearchService,
         SearchIndexService,
@@ -95,7 +98,8 @@ export interface DefaultSearchReindexResponse extends SearchReindexResponse {
     compatibility: '>0.0.0',
 })
 export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
-    static options: DefaultSearchPluginInitOptions = {};
+    static options: DefaultSearchPluginInitOptions = DefaultSearchPlugin.withDefaults({});
+    private static indexColumnsAdded = false;
 
     /** @internal */
     constructor(
@@ -106,14 +110,16 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
     ) {}
 
     static init(options: DefaultSearchPluginInitOptions): Type<DefaultSearchPlugin> {
-        this.options = options;
-        if (options.indexStockStatus === true) {
-            this.addStockColumnsToEntity();
-        }
-        if (options.indexCurrencyCode) {
-            this.addCurrencyCodeToEntity();
-        }
+        this.options = this.withDefaults(options);
         return DefaultSearchPlugin;
+    }
+
+    private static withDefaults(options: DefaultSearchPluginInitOptions): DefaultSearchPluginInitOptions {
+        return {
+            ...options,
+            indexStockStatus: options.indexStockStatus ?? true,
+            indexCurrencyCode: options.indexCurrencyCode ?? true,
+        };
     }
 
     /** @internal */
@@ -244,25 +250,24 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
     }
 
     /**
-     * If the `indexStockStatus` option is set to `true`, we dynamically add a couple of
-     * columns to the SearchIndexItem entity. This is done in this way to allow us to add
-     * support for indexing the stock status, while preventing a backwards-incompatible
-     * schema change.
+     * Adds the columns needed by the `indexStockStatus` and `indexCurrencyCode` options to the
+     * SearchIndexItem entity, unless they are turned off. Run from the `configuration` hook rather
+     * than `init()`, so that a plugin used without calling `init()` gets the columns too.
+     *
+     * @internal
      */
-    private static addStockColumnsToEntity() {
+    static addIndexColumnsToEntity() {
+        if (this.indexColumnsAdded) {
+            return;
+        }
+        this.indexColumnsAdded = true;
         const instance = new SearchIndexItem();
-        Column({ type: 'boolean', default: true })(instance, 'inStock');
-        Column({ type: 'boolean', default: true })(instance, 'productInStock');
-    }
-
-    /**
-     * If the `indexCurrencyCode` option is set to `true`, we dynamically add
-     * a column to the SearchIndexItem entity. This is done in this way to allow us to add
-     * support for indexing on the currency code, while preventing a backwards-incompatible
-     * schema change.
-     */
-    private static addCurrencyCodeToEntity() {
-        const instance = new SearchIndexItem();
-        PrimaryColumn({ type: 'varchar' })(instance, 'currencyCode');
+        if (this.options.indexStockStatus === true) {
+            Column({ type: 'boolean', default: true })(instance, 'inStock');
+            Column({ type: 'boolean', default: true })(instance, 'productInStock');
+        }
+        if (this.options.indexCurrencyCode === true) {
+            PrimaryColumn({ type: 'varchar' })(instance, 'currencyCode');
+        }
     }
 }

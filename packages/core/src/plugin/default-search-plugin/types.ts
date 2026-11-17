@@ -16,20 +16,23 @@ export interface DefaultSearchPluginInitOptions {
     /**
      * @description
      * If set to `true`, the stock status of a ProductVariant (inStock: Boolean) will
-     * be exposed in the `search` query results. Enabling this option on an existing
-     * Vendure installation will require a DB migration/synchronization.
+     * be exposed in the `search` query results, and the `search` query can filter by it.
+     * This adds the `inStock` and `productInStock` columns to the search index table.
      *
-     * @default false.
+     * @default true
      */
     indexStockStatus?: boolean;
     /**
      * @description
-     * If set to `true`, the currencyCode of the ProductVariant will be exposed in the
-     * `search` query results. Enabling this option on an existing Vendure installation
-     * will require a DB migration/synchronization.
+     * If set to `true`, the search index holds a row for every currency available in a
+     * Channel, and the `search` query results report prices in the currency of the request.
+     * This adds a `currencyCode` column to the primary key of the search index table.
+     *
+     * When `false`, results always report the Channel's default currency, which is wrong
+     * for Channels with more than one currency.
      *
      * @since 3.6.0
-     * @default false.
+     * @default true
      */
     indexCurrencyCode?: boolean;
     /**
@@ -134,8 +137,8 @@ export interface DefaultSearchPluginInitOptions {
 }
 
 /**
- * Because the `inStock` field is opt-in based on the `indexStockStatus` option,
- * it is not included by default in the generated types. Thus we manually augment
+ * Because the `inStock` field depends on the `indexStockStatus` option,
+ * it is not included in the generated types. Thus we manually augment
  * the generated type here.
  */
 export interface SearchInput extends GeneratedSearchInput {
