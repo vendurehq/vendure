@@ -6,6 +6,7 @@ import {
     getMaxRefundableQuantity,
     getRefundableQuantity,
     lineCanBeRefunded,
+    toAddressCustomFieldsInput,
     toCustomFieldsInput,
     toModifyOrderInput,
 } from './order-utils.js';
@@ -191,6 +192,45 @@ describe('toCustomFieldsInput', () => {
 
     it('returns undefined for undefined custom fields', () => {
         expect(toCustomFieldsInput(undefined, [giftFrom])).toBeUndefined();
+    });
+});
+
+// #3439 — the custom fields of an Address must be kept when it is set on a draft order
+describe('toAddressCustomFieldsInput', () => {
+    const deliveryNote = { name: 'deliveryNote', type: 'string' };
+    const verifiedAt = { name: 'verifiedAt', type: 'datetime', readonly: true };
+    const depot = { name: 'depot', type: 'relation' };
+
+    it('keeps writable fields', () => {
+        expect(toAddressCustomFieldsInput({ deliveryNote: 'Side door' }, [deliveryNote])).toEqual({
+            deliveryNote: 'Side door',
+        });
+    });
+
+    it('leaves out readonly fields, which are not part of the input', () => {
+        expect(
+            toAddressCustomFieldsInput({ deliveryNote: 'Side door', verifiedAt: '2026-01-01' }, [
+                deliveryNote,
+                verifiedAt,
+            ]),
+        ).toEqual({ deliveryNote: 'Side door' });
+    });
+
+    it('replaces a relation with its id', () => {
+        expect(toAddressCustomFieldsInput({ depot: { id: '4' } }, [depot])).toEqual({ depotId: '4' });
+    });
+
+    it('leaves out keys that are not configured custom fields', () => {
+        expect(
+            toAddressCustomFieldsInput({ deliveryNote: 'Side door', __typename: 'AddressCustomFields' }, [
+                deliveryNote,
+            ]),
+        ).toEqual({ deliveryNote: 'Side door' });
+    });
+
+    it('returns undefined when there are no custom fields', () => {
+        expect(toAddressCustomFieldsInput(undefined, [deliveryNote])).toBeUndefined();
+        expect(toAddressCustomFieldsInput(null, [deliveryNote])).toBeUndefined();
     });
 });
 

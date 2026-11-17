@@ -48,7 +48,7 @@ import {
     unsetShippingAddressForDraftOrderDocument,
 } from './orders.graphql.js';
 import { loadDraftOrder } from './utils/order-detail-loaders.js';
-import { toCustomFieldsInput } from './utils/order-utils.js';
+import { toAddressCustomFieldsInput, toCustomFieldsInput } from './utils/order-utils.js';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders_/draft/$id')({
     component: DraftOrderPage,
@@ -62,10 +62,11 @@ function DraftOrderPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const orderLineCustomFields = useCustomFieldConfig('OrderLine');
+    const addressCustomFields = useCustomFieldConfig('Address');
 
     const { entity, refreshEntity, form } = useDetailPage({
         queryDocument: addCustomFields(orderDetailDocument, {
-            includeNestedFragments: ['OrderLine', 'Fulfillment'],
+            includeNestedFragments: ['OrderLine', 'Fulfillment', 'OrderAddress'],
         }),
         setValuesForUpdate: entity => {
             return {
@@ -191,9 +192,12 @@ function DraftOrderPage() {
                     // any previously selected address if there is no default
                     let addresses: Array<ResultOf<typeof addressFragment>> = [];
                     if (order.customer) {
-                        const { customer } = await api.query(getCustomerAddressesDocument, {
-                            customerId: order.customer.id,
-                        });
+                        const { customer } = await api.query(
+                            addCustomFields(getCustomerAddressesDocument, {
+                                includeNestedFragments: ['Address'],
+                            }),
+                            { customerId: order.customer.id },
+                        );
                         addresses = customer?.addresses ?? [];
                     }
                     const defaultShippingAddress = addresses.find(address => address.defaultShippingAddress);
@@ -207,7 +211,7 @@ function DraftOrderPage() {
                         if (defaultShippingAddress) {
                             await api.mutate(setShippingAddressForDraftOrderDocument)({
                                 orderId: order.id,
-                                input: mapToAddressInput(defaultShippingAddress),
+                                input: mapToAddressInput(defaultShippingAddress, addressCustomFields),
                             });
                         } else if (entity?.shippingAddress?.streetLine1) {
                             await api.mutate(unsetShippingAddressForDraftOrderDocument)({
@@ -217,7 +221,7 @@ function DraftOrderPage() {
                         if (defaultBillingAddress) {
                             await api.mutate(setBillingAddressForDraftOrderDocument)({
                                 orderId: order.id,
-                                input: mapToAddressInput(defaultBillingAddress),
+                                input: mapToAddressInput(defaultBillingAddress, addressCustomFields),
                             });
                         } else if (entity?.billingAddress?.streetLine1) {
                             await api.mutate(unsetBillingAddressForDraftOrderDocument)({
@@ -543,7 +547,7 @@ function DraftOrderPage() {
                                 onSelect={address => {
                                     setShippingAddressForDraftOrder({
                                         orderId: entity.id,
-                                        input: mapToAddressInput(address),
+                                        input: mapToAddressInput(address, addressCustomFields),
                                     });
                                 }}
                                 onSubmitNew={async input => {
@@ -573,7 +577,7 @@ function DraftOrderPage() {
                                 onSelect={address => {
                                     setBillingAddressForDraftOrder({
                                         orderId: entity.id,
-                                        input: mapToAddressInput(address),
+                                        input: mapToAddressInput(address, addressCustomFields),
                                     });
                                 }}
                                 onSubmitNew={async input => {
@@ -599,7 +603,10 @@ function DraftOrderPage() {
     );
 }
 
-function mapToAddressInput(address: ResultOf<typeof addressFragment>) {
+function mapToAddressInput(
+    address: ResultOf<typeof addressFragment> & { customFields?: Record<string, any> | null },
+    addressCustomFields: Parameters<typeof toAddressCustomFieldsInput>[1],
+) {
     return {
         fullName: address.fullName,
         company: address.company,
@@ -612,6 +619,7 @@ function mapToAddressInput(address: ResultOf<typeof addressFragment>) {
         phoneNumber: address.phoneNumber,
         defaultShippingAddress: address.defaultShippingAddress,
         defaultBillingAddress: address.defaultBillingAddress,
+        customFields: toAddressCustomFieldsInput(address.customFields, addressCustomFields),
     };
 }
 

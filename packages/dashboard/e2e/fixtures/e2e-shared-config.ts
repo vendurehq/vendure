@@ -223,6 +223,14 @@ export const e2eCustomFields: CustomFields = {
         },
     ],
     OrderLine: [{ name: 'giftFrom', type: 'relation', entity: Customer, nullable: true }],
+    Address: [
+        {
+            name: 'deliveryNote',
+            type: 'string',
+            nullable: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Delivery Note' }],
+        },
+    ],
 };
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];
