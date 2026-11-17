@@ -2,6 +2,7 @@ import { type Locator, type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Custom fields are configured in global-setup.ts on the Product entity.
 // This suite verifies rendering of all custom field types: scalar, list, struct,
@@ -569,6 +570,61 @@ test.describe('Custom Fields', () => {
         await expect(popover).not.toBeVisible();
         await expect(triggerButton).not.toContainText('Pick a date and time');
         await expect(picker.locator('input[type="time"]')).toBeEnabled();
+    });
+
+    // #4902 — a custom form component registered for a readonly single `relation` custom field
+    // receives the related entity id as `value`, as on a writable relation. The readonly relations
+    // are seeded on the "laptop" product in global-setup.ts, with the assets T_1 and T_2.
+    test('readonly relation custom field gives its custom component the related id', async ({ page }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+
+        const badge = page.getByTestId('related-asset-cf');
+        await expect(badge).toHaveText('asset:T_1');
+
+        // Saving an unrelated change still succeeds: the readonly relation must not leak into the
+        // update mutation input, which has no such field.
+        await dp.formItem('Info URL').getByRole('textbox').fill('https://example.com/readonly-relation');
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated product/);
+
+        await expect(badge).toHaveText('asset:T_1');
+    });
+
+    // #4902 — the same for a readonly list relation: the ids as `value`.
+    test('readonly list relation custom field gives its custom component the related ids', async ({
+        page,
+    }) => {
+        await goToFirstProduct(page);
+        await expect(page.getByTestId('related-assets-cf')).toHaveText('assets:T_1,T_2');
+    });
+
+    // #4902 — the built-in relation input, whether chosen by id or by default, shows the related
+    // entity of a readonly relation, disabled. It receives the id: given the object it would look up
+    // the id "[object Object]".
+    test('readonly relation custom fields rendered by the built-in input show the related entity', async ({
+        page,
+    }) => {
+        const objectLookups: string[] = [];
+        page.on('request', request => {
+            const body = request.postData();
+            if (request.url().includes('/admin-api') && body?.includes('[object Object]')) {
+                objectLookups.push(body);
+            }
+        });
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { asset } = await client.gql(`query { asset(id: "T_1") { name } }`);
+
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+        for (const label of ['Related Asset Built In', 'Related Asset Plain']) {
+            const item = dp.formItem(label);
+            await expect(item).toContainText(asset.name);
+            // A readonly value is never saved, so the input cannot be changed.
+            await expect(item.getByRole('button', { name: 'Change selection' })).toBeDisabled();
+        }
+        expect(objectLookups).toEqual([]);
     });
 });
 

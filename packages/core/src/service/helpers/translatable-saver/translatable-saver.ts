@@ -89,6 +89,11 @@ export class TranslatableSaver {
      * @description
      * Update a translatable entity. Performs a diff of the `translations` array in order to
      * perform the correct operation on the translations.
+     *
+     * The update is partial: a property the input leaves out is not written. TypeORM then sets
+     * every nullable column which was not written to `null` on the returned entity, so do not save
+     * it again (see https://github.com/vendurehq/vendure/issues/5763), and reload the entity
+     * where its full state is needed. Set any other properties in `beforeSave`.
      */
     async update<T extends Translatable & VendureEntity>(options: UpdateTranslatableOptions<T>): Promise<T> {
         const { ctx, entityType, translationType, input, beforeSave, typeOrmSubscriberData } = options;

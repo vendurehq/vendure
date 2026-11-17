@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/ta
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import { CustomFormComponent } from '@/vdb/framework/form-engine/custom-form-component.js';
 import { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
+import { toRelationIdValue } from '@/vdb/framework/form-engine/relation-id-value.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
@@ -39,10 +40,15 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
         return fieldDef.list ? fieldDef.name + 'Ids' : fieldDef.name + 'Id';
     };
 
-    const getFieldName = (fieldDef: CustomFieldConfig) => {
-        const name = getCustomFieldBaseName(fieldDef);
-        return formPathPrefix ? `${formPathPrefix}.customFields.${name}` : `customFields.${name}`;
-    };
+    const getCustomFieldPath = (name: string) =>
+        formPathPrefix ? `${formPathPrefix}.customFields.${name}` : `customFields.${name}`;
+
+    const getFieldName = (fieldDef: CustomFieldConfig) =>
+        getCustomFieldPath(getCustomFieldBaseName(fieldDef));
+
+    // For a readonly relation: the path of its related entity object(s), `customFields.<name>`
+    const getReadonlyRelationValuePath = (fieldDef: CustomFieldConfig) =>
+        fieldDef.type === 'relation' && fieldDef.readonly ? getCustomFieldPath(fieldDef.name) : undefined;
 
     // Group custom fields by tabs
     const groupedFields = useMemo(() => {
@@ -85,6 +91,7 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
                         fieldDef={fieldDef}
                         control={control}
                         fieldName={getFieldName(fieldDef)}
+                        readonlyRelationValuePath={getReadonlyRelationValuePath(fieldDef)}
                         disabled={disabled}
                     />
                 ))}
@@ -111,6 +118,7 @@ export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled
                                 fieldDef={fieldDef}
                                 control={control}
                                 fieldName={getFieldName(fieldDef)}
+                                readonlyRelationValuePath={getReadonlyRelationValuePath(fieldDef)}
                                 disabled={disabled}
                             />
                         ))}
@@ -190,10 +198,20 @@ interface CustomFieldItemProps {
     fieldDef: ConfigurableFieldDef;
     control: Control<any>;
     fieldName: string;
+    /**
+     * For a readonly relation field: the form path of its related entity object(s).
+     */
+    readonlyRelationValuePath?: string;
     disabled?: boolean;
 }
 
-function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<CustomFieldItemProps>) {
+function CustomFieldItem({
+    fieldDef,
+    control,
+    fieldName,
+    readonlyRelationValuePath,
+    disabled,
+}: Readonly<CustomFieldItemProps>) {
     const {
         settings: { displayLanguage, contentLanguage },
     } = useUserSettings();
@@ -218,6 +236,15 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
         fieldDef.ui?.fullWidth === true || inputComponent?.metadata?.isFullWidth === true;
     const containerClassName = shouldBeFullWidth ? 'col-span-2' : '';
     const isReadonly = (fieldDef as CustomFieldConfig).readonly ?? false;
+
+    // A readonly relation has no `<name>Id(s)` in the form values, because readonly custom fields are
+    // not in the input types, so its value, the id(s), is taken from its related entity object(s).
+    const isReadonlyRelation = readonlyRelationValuePath != null;
+    const readonlyRelationObjects = isReadonlyRelation ? watch(readonlyRelationValuePath) : undefined;
+    const isListField = fieldDef.list ?? false;
+    const readonlyRelationValue = toRelationIdValue(readonlyRelationObjects, isListField) ?? (isListField ? [] : null);
+    const withReadonlyRelationValue = <F extends { value: unknown }>(field: F): F =>
+        isReadonlyRelation ? { ...field, value: readonlyRelationValue } : field;
 
     const localeFallbackPlaceholder = useMemo(
         () =>
@@ -278,7 +305,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                             fieldPath={field.name}
                             fieldState={fieldState}
                         >
-                            <CustomFormComponent fieldDef={fieldDef} {...field} />
+                            <CustomFormComponent fieldDef={fieldDef} {...withReadonlyRelationValue(field)} />
                         </CustomFieldFormItem>
                     )}
                 />
@@ -356,7 +383,11 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                         fieldPath={field.name}
                         fieldState={fieldState}
                     >
-                        <FormControlAdapter fieldDef={fieldDef} field={field} valueMode="native" />
+                        <FormControlAdapter
+                            fieldDef={fieldDef}
+                            field={withReadonlyRelationValue(field)}
+                            valueMode="native"
+                        />
                     </CustomFieldFormItem>
                 )}
             />
