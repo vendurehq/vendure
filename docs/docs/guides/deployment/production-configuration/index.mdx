@@ -44,9 +44,10 @@ export const config: VendureConfig = {
 
 ## CORS origins
 
-The default `apiOptions.cors` value is `{ origin: true, credentials: true }`. `origin: true` reflects
-the `Origin` header of any caller back as `Access-Control-Allow-Origin`, so any website can make
-cross-origin requests to your Shop and Admin APIs. Replace it with the origins you actually serve:
+The default `apiOptions.cors` value is `{ origin: false, credentials: true }`, which allows no
+cross-origin browser requests. The Dashboard served by the `DashboardPlugin` is on the same origin as
+the API, so it is not affected. A storefront or other browser client on a different origin needs that
+origin listed:
 
 ```ts
 import { VendureConfig } from '@vendure/core';
@@ -63,11 +64,10 @@ export const config: VendureConfig = {
 };
 ```
 
-Vendure logs a warning at startup if it finds the reflect-any-origin default in place. The warning is
-most important when you also set `authOptions.cookieOptions.sameSite` to `'none'` or when you use
-`tokenMethod: 'bearer'`, because neither of those relies on the `SameSite` cookie rules that otherwise
-limit the impact. See the [Security guide](/developer-guide/security/#configure-cors) for the
-full explanation.
+Do not deploy with `origin: true`, which reflects any caller's origin. Vendure logs a warning at
+startup if it finds `origin: true` together with `credentials: true`. See the
+[Security guide](/developer-guide/security/#configure-cors) for the full explanation, and for
+`apiOptions.csrfPrevention`, which is on by default.
 
 ## API hardening
 

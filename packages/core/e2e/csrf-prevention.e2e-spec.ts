@@ -7,10 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+// csrfPrevention is not set here, so this suite covers the default, which is on.
 const config = mergeConfig(testConfig(), {
-    apiOptions: {
-        csrfPrevention: true,
-    },
     authOptions: {
         tokenMethod: 'cookie' as const,
         cookieOptions: { sameSite: 'lax' as const, secret: 'csrf-prevention-e2e' },

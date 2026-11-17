@@ -91,10 +91,10 @@ export const defaultConfig: RuntimeVendureConfig = {
         shopApiValidationRules: [],
         channelTokenKey: DEFAULT_CHANNEL_TOKEN_KEY,
         cors: {
-            origin: true,
+            origin: false,
             credentials: true,
         },
-        csrfPrevention: false,
+        csrfPrevention: true,
         trustProxy: false,
         middleware: [],
         introspection: true,

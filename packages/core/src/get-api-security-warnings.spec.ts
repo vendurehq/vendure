@@ -8,12 +8,13 @@ import {
     warnAboutInsecureApiConfig,
 } from './get-api-security-warnings';
 
+// Starts from the v3 defaults, which trigger both warnings, so each test only states what it changes.
 function makeConfig(
     apiOptions: Partial<RuntimeVendureConfig['apiOptions']>,
     authOptions: Partial<RuntimeVendureConfig['authOptions']> = {},
 ) {
     return {
-        apiOptions: { cors: { origin: true, credentials: true }, ...apiOptions },
+        apiOptions: { cors: { origin: true, credentials: true }, csrfPrevention: false, ...apiOptions },
         authOptions: { tokenMethod: 'cookie', cookieOptions: { sameSite: 'lax' }, ...authOptions },
     } as Pick<RuntimeVendureConfig, 'apiOptions' | 'authOptions'>;
 }
@@ -123,6 +124,16 @@ describe('getCsrfPreventionWarning', () => {
         expect(getCsrfPreventionWarning(config, { nodeEnv: 'production' })).toBeUndefined();
     });
 
+    it('does not warn when csrfPrevention is an options object, which also turns it on', () => {
+        const config = makeConfig({ csrfPrevention: { requestHeaders: ['x-my-client-header'] } });
+        expect(getCsrfPreventionWarning(config, { nodeEnv: 'production' })).toBeUndefined();
+    });
+
+    it('does not warn when csrfPrevention is unset, since it then defaults to on', () => {
+        const config = makeConfig({ csrfPrevention: undefined });
+        expect(getCsrfPreventionWarning(config, { nodeEnv: 'production' })).toBeUndefined();
+    });
+
     it('does not warn for bearer-only deployments', () => {
         const config = makeConfig({}, { tokenMethod: 'bearer' });
         expect(getCsrfPreventionWarning(config, { nodeEnv: 'production' })).toBeUndefined();
@@ -140,23 +151,17 @@ describe('getCsrfPreventionWarning', () => {
 });
 
 describe('the shipped defaultConfig', () => {
-    it('still reflects any origin and leaves csrfPrevention off, and triggers both warnings', () => {
-        // This patch deliberately does not change either default. Tightening `cors.origin` would
-        // break every existing storefront and dev setup, and enabling `csrfPrevention` would break
-        // clients that upload files without the preflight header. Both belong to a major release.
-        expect(defaultConfig.apiOptions.cors).toEqual({ origin: true, credentials: true });
-        expect(defaultConfig.apiOptions.csrfPrevention).toBe(false);
-        expect(getCorsConfigWarning(defaultConfig, { nodeEnv: 'production' })).toMatch(
-            /Insecure CORS configuration/,
-        );
-        expect(getCsrfPreventionWarning(defaultConfig, { nodeEnv: 'production' })).toMatch(
-            /Login CSRF is possible/,
-        );
+    // Blocks cross-origin browser requests and Login CSRF out of the box.
+    it('allows no cross-origin requests and turns csrfPrevention on, and triggers neither warning', () => {
+        expect(defaultConfig.apiOptions.cors).toEqual({ origin: false, credentials: true });
+        expect(defaultConfig.apiOptions.csrfPrevention).toBe(true);
+        expect(getCorsConfigWarning(defaultConfig, { nodeEnv: 'production' })).toBeUndefined();
+        expect(getCsrfPreventionWarning(defaultConfig, { nodeEnv: 'production' })).toBeUndefined();
     });
 });
 
 describe('warnAboutInsecureApiConfig', () => {
-    it('logs both warnings for the default config', () => {
+    it('logs both warnings for the v3 defaults', () => {
         const logger = { warn: vi.fn() };
         warnAboutInsecureApiConfig(makeConfig({}), { nodeEnv: 'production', logger });
         expect(logger.warn).toHaveBeenCalledTimes(2);
