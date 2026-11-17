@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { removeReadonlyAndLocalizedCustomFields, toBcp47Tag } from './utils.js';
+import { cn, removeReadonlyAndLocalizedCustomFields, toBcp47Tag } from './utils.js';
 
 describe('removeReadonlyAndLocalizedCustomFields', () => {
     it('should return values unchanged when no customFields present', () => {
@@ -262,5 +262,20 @@ describe('toBcp47Tag', () => {
     it('should return codes without underscores unchanged', () => {
         expect(toBcp47Tag('en')).toBe('en');
         expect(toBcp47Tag('zh-Hans')).toBe('zh-Hans');
+    });
+});
+
+// OSS-1022 — the Dashboard merges classes with the design-system cn()
+describe('cn', () => {
+    it('keeps a named shadow next to a shadow colour', () => {
+        expect(cn('shadow-control', 'shadow-primary/20')).toBe('shadow-control shadow-primary/20');
+    });
+
+    it('lets the later named duration win', () => {
+        expect(cn('duration-fast', 'duration-row-enter')).toBe('duration-row-enter');
+    });
+
+    it('keeps a text style next to a text colour', () => {
+        expect(cn('text-style-body', 'text-primary')).toBe('text-style-body text-primary');
     });
 });
