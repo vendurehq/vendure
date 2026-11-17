@@ -8,7 +8,7 @@ Split into: context + Provider in one file, hook in `src/lib/hooks/` importing v
 
 ## The `@/vdb/` Path Alias
 
-Maps to `./src/lib/*`. Projects that install the package get the pre-built bundle (`dist/bundle`, built by `vite.lib.config.mts`), where `@/vdb` and `@/graphql` imports from extensions are redirected to `@vendure/dashboard` with a deprecation warning (`vite/vite-plugin-deprecated-alias.ts`). The alias still points at the source in source mode (`VENDURE_DASHBOARD_FROM_SOURCE=true`, set by the dev-server, Storybook and this package's `vite.config.mts`), and user tsconfigs still map `@/vdb/*` so that TypeScript can resolve the source types. This is why:
+Maps to `./src/lib/*`. Projects that install the package get the pre-built bundle (`dist/bundle`, built by `vite.lib.config.mts`), where `@/vdb` and `@/graphql` imports from extensions are redirected to `@vendure/dashboard` with a deprecation warning (`vite/vite-plugin-deprecated-alias.ts`). The alias still points at the source in source mode (`VENDURE_DASHBOARD_FROM_SOURCE=true`, set by the dev-server, Storybook and this package's `vite.config.mts`). Projects get their types from `dist/types` (`npm run build:types`, which rewrites `@/vdb/*` imports in the declarations to relative paths), so they don't map `@/vdb/*`. This is why:
 - Hooks in `src/lib/hooks/` must import via `@/vdb/` (not relative `../` paths)
 - Never import from `@/vdb/index.js` directly — it breaks module identity for extensions
 

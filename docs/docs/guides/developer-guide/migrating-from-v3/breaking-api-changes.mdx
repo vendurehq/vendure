@@ -130,7 +130,7 @@ An update mutation of your own must leave an absent field unchanged, which it do
 - Remove `useExperimentalBundle` and `tanstackRouterPluginOptions` from your `vite.config`. The bundle already contains the Dashboard's routes, so the TanStack Router plugin no longer runs in your project, and no longer writes `routeTree.gen.ts` into `node_modules`.
 - Hot module replacement still works for your Dashboard extensions. Changes to the Dashboard's own files inside `node_modules` are no longer picked up.
 - Import everything from `@vendure/dashboard`. Imports from the `@/vdb/*` and `@/graphql/*` aliases are deprecated. They still resolve, but now to `@vendure/dashboard`, and log a warning. An import of something that `@vendure/dashboard` does not export fails with a "missing export" error. The aliases will be removed in v5.
-- Keep the `@/vdb/*` path in your `tsconfig.json`. TypeScript needs it to resolve the types of `@vendure/dashboard`.
+- Remove the `@/vdb/*` path from your `tsconfig.json`. `@vendure/dashboard` now ships type declarations, so TypeScript no longer reads the Dashboard's source.
 
 ## Removed deprecated APIs
 

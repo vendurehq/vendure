@@ -4,6 +4,7 @@
     "jsx": "react-jsx",
     "paths": {
       "@/gql": ["../../../graphql/graphql.ts"],
+      "@vendure/dashboard": ["../../../../dashboard/src/lib/index.ts"],
       "@/vdb/*": ["../../../../dashboard/src/lib/*"]
     }
   }
