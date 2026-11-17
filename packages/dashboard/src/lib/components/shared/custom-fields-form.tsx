@@ -14,28 +14,31 @@ import { useLingui } from '@lingui/react/macro';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ResultOf } from 'gql.tada';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Control, Controller, ControllerFieldState, FieldValues, useFormContext } from 'react-hook-form';
+import { Control, Controller, ControllerFieldState, useFormContext } from 'react-hook-form';
 import { applyControlProps } from './apply-control-props.js';
 import { FormControlAdapter } from '../../framework/form-engine/form-control-adapter.js';
 import { TranslatableFormField } from './translatable-form-field.js';
 
 type CustomFieldConfig = Omit<ResultOf<typeof customFieldConfigFragment>, '__typename'>;
 
-interface CustomFieldsFormProps<TFieldValues extends FieldValues> {
+// The `control` of any react-hook-form form. Since react-hook-form 7.72.0 a form's `Control<T>`
+// is not assignable to `Control<any, any>`. Typing every member as `any` keeps the check that
+// the value is a control, and the type is still assignable to `Control<any>` where it is read.
+type AnyFormControl = { [K in keyof Control<any, any, any>]: any };
+
+interface CustomFieldsFormProps {
     entityType: string;
-    control: Control<TFieldValues, any, any>;
+    control: AnyFormControl;
     formPathPrefix?: string;
     disabled?: boolean;
 }
 
-// Generic on purpose: since react-hook-form 7.72.0, `Control._options.validate` is compared
-// contravariantly, so a form's `Control<T>` is not assignable to `Control<any, any>`.
-export function CustomFieldsForm<TFieldValues extends FieldValues>({
+export function CustomFieldsForm({
     entityType,
     control: formControl,
     formPathPrefix,
     disabled,
-}: Readonly<CustomFieldsFormProps<TFieldValues>>) {
+}: Readonly<CustomFieldsFormProps>) {
     // Custom field paths come from the server config at runtime, so they cannot be
     // checked against the form's field types.
     const control = formControl as Control<any>;

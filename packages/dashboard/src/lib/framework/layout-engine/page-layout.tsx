@@ -14,7 +14,7 @@ import { cn } from '@/vdb/lib/utils.js';
 import { useCopyToClipboard } from '@uidotdev/usehooks';
 import { CheckIcon, CopyIcon, EllipsisVerticalIcon, InfoIcon } from 'lucide-react';
 import React, { ComponentProps, useMemo, useState } from 'react';
-import { Control, FieldValues, UseFormReturn } from 'react-hook-form';
+import { Control, UseFormReturn } from 'react-hook-form';
 
 import { ActionBarItemPosition, DashboardActionBarItem } from '../extension-api/types/layout.js';
 import { ActionBarItem, ActionBarItemProps, ActionBarItemWrapper } from './action-bar-item-wrapper.js';
@@ -933,6 +933,11 @@ export function PageBlock({
     );
 }
 
+// The `control` of any react-hook-form form. Since react-hook-form 7.72.0 a form's `Control<T>`
+// is not assignable to `Control<any, any>`. Typing every member as `any` keeps the check that
+// the value is a control, and the type is still assignable to `Control<any>` where it is read.
+type AnyFormControl = { [K in keyof Control<any, any, any>]: any };
+
 /**
  * @description
  * **Status: Developer Preview**
@@ -974,16 +979,14 @@ export function FullWidthPageBlock({
  * @docsPage PageBlock
  * @since 3.3.0
  */
-// Generic on purpose: since react-hook-form 7.72.0, `Control._options.validate` is compared
-// contravariantly, so a form's `Control<T>` is not assignable to `Control<any, any>`.
-export function CustomFieldsPageBlock<TFieldValues extends FieldValues>({
+export function CustomFieldsPageBlock({
     column,
     entityType,
     control,
 }: Readonly<{
     column: 'main' | 'side';
     entityType: string;
-    control: Control<TFieldValues, any, any>;
+    control: AnyFormControl;
 }>) {
     const customFieldConfig = useCustomFieldConfig(entityType);
     const isServerConfigLoaded = useIsServerConfigLoaded();
