@@ -1,5 +1,6 @@
 import { DateRangePicker } from '@/vdb/components/date-range-picker.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import {
     DropdownMenu,
@@ -334,116 +335,95 @@ function DashboardPage() {
                     <DateRangePicker
                         dateRange={dateRange}
                         onDateRangeChange={setDateRange}
-                        className="mr-2"
                     />
                 </ActionBarItem>
                 {widgetFilters.map(filter => {
                     const FilterComponent = filter.component;
                     return (
                         <ActionBarItem key={filter.id} itemId={`widget-filter-${filter.id}`}>
-                            <div className="mr-2">
-                                <FilterComponent
-                                    value={filterValues[filter.id]}
-                                    onChange={value =>
-                                        setFilterValues(prev => ({ ...prev, [filter.id]: value }))
-                                    }
-                                />
-                            </div>
+                            <FilterComponent
+                                value={filterValues[filter.id]}
+                                onChange={value => setFilterValues(prev => ({ ...prev, [filter.id]: value }))}
+                            />
                         </ActionBarItem>
                     );
                 })}
-                {editMode && (
-                    <ActionBarItem itemId="add-widget-picker">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger render={<Button variant="outline" className="mr-2" />}>
-                                <PlusIcon className="mr-1 h-4 w-4" />
-                                <Trans>Add widget</Trans>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                {hasPickerOptions ? (
-                                    <>
-                                        {hiddenWidgets.map(widget => {
-                                            const definition = getDashboardWidget(widget.widgetId);
-                                            return (
-                                                <DropdownMenuItem
-                                                    key={widget.id}
-                                                    onClick={() => handleAddWidget(widget.id)}
-                                                >
-                                                    {definition ? i18n.t(definition.name) : widget.widgetId}
-                                                </DropdownMenuItem>
-                                            );
-                                        })}
-                                        {multiInstanceWidgets.map(definition => (
-                                            <DropdownMenuItem
-                                                key={definition.id}
-                                                onClick={() => handleAddWidgetInstance(definition.id)}
-                                            >
-                                                {i18n.t(definition.name)}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </>
-                                ) : (
-                                    <DropdownMenuItem disabled>
-                                        <Trans>No widgets to add</Trans>
-                                    </DropdownMenuItem>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </ActionBarItem>
-                )}
-                {editMode && (
-                    <ActionBarItem itemId="tidy-widgets">
-                        <Button
-                            variant="outline"
-                            className="mr-2"
-                            disabled={widgets.length === 0}
-                            onClick={handleTidy}
-                        >
-                            <Sparkles className="mr-1 h-4 w-4" />
-                            <Trans>Tidy</Trans>
-                        </Button>
-                    </ActionBarItem>
-                )}
-                {!editMode && (
-                    <ActionBarItem itemId="refresh-widgets">
-                        <Button
-                            variant="outline"
-                            className="mr-2"
-                            onClick={refresh}
-                            disabled={isRefreshing}
-                        >
-                            <RefreshCw
-                                className={isRefreshing ? 'animate-rotate mr-1 h-4 w-4' : 'mr-1 h-4 w-4'}
-                            />
-                            <Trans>Refresh</Trans>
-                        </Button>
-                    </ActionBarItem>
-                )}
-                <ActionBarItem itemId="edit-layout-button">
+                <ActionBarItem itemId="widget-actions">
                     {editMode ? (
-                        <Button variant="default" onClick={() => setEditMode(false)}>
-                            <Trans>Save Layout</Trans>
-                        </Button>
+                        <ButtonGroup>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger render={<Button variant="outline" />}>
+                                    <PlusIcon />
+                                    <Trans>Add widget</Trans>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {hasPickerOptions ? (
+                                        <>
+                                            {hiddenWidgets.map(widget => {
+                                                const definition = getDashboardWidget(widget.widgetId);
+                                                return (
+                                                    <DropdownMenuItem
+                                                        key={widget.id}
+                                                        onClick={() => handleAddWidget(widget.id)}
+                                                    >
+                                                        {definition ? i18n.t(definition.name) : widget.widgetId}
+                                                    </DropdownMenuItem>
+                                                );
+                                            })}
+                                            {multiInstanceWidgets.map(definition => (
+                                                <DropdownMenuItem
+                                                    key={definition.id}
+                                                    onClick={() => handleAddWidgetInstance(definition.id)}
+                                                >
+                                                    {i18n.t(definition.name)}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <DropdownMenuItem disabled>
+                                            <Trans>No widgets to add</Trans>
+                                        </DropdownMenuItem>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button variant="outline" disabled={widgets.length === 0} onClick={handleTidy}>
+                                <Sparkles />
+                                <Trans>Tidy</Trans>
+                            </Button>
+                        </ButtonGroup>
                     ) : (
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        aria-label={t`Edit layout`}
-                                        onClick={() => setEditMode(true)}
-                                    />
-                                }
-                            >
-                                <SquarePen />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <Trans>Edit layout</Trans>
-                            </TooltipContent>
-                        </Tooltip>
+                        <ButtonGroup>
+                            <Button variant="outline" onClick={refresh} disabled={isRefreshing}>
+                                <RefreshCw className={isRefreshing ? 'animate-rotate' : undefined} />
+                                <Trans>Refresh</Trans>
+                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label={t`Edit layout`}
+                                            onClick={() => setEditMode(true)}
+                                        />
+                                    }
+                                >
+                                    <SquarePen />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <Trans>Edit layout</Trans>
+                                </TooltipContent>
+                            </Tooltip>
+                        </ButtonGroup>
                     )}
                 </ActionBarItem>
+                {editMode && (
+                    <ActionBarItem itemId="edit-layout-button">
+                        <Button onClick={() => setEditMode(false)}>
+                            <Trans>Save Layout</Trans>
+                        </Button>
+                    </ActionBarItem>
+                )}
             </PageActionBar>
             <PageLayout>
                 <FullWidthPageBlock blockId="widgets">
