@@ -27,6 +27,7 @@ import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { z } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { channelDetailDocument, createChannelDocument, updateChannelDocument } from './channels.graphql.js';
 
@@ -80,6 +81,7 @@ function ChannelDetailPage() {
     const { refreshChannels } = useChannel();
     const { canEdit: canEditChannelColors, isAvailable: channelColorsAvailable } = useChannelColors();
 
+    const currentDefaultLanguage = useRef<string | undefined>(undefined);
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
         queryDocument: channelDetailDocument,
@@ -114,9 +116,11 @@ function ChannelDetailPage() {
         transformUpdateInput: input => {
             return {
                 ...input,
+                // Only changed fields are sent, so an unchanged default language is not in `input`.
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
-                    input.defaultLanguageCode,
+                    input.defaultLanguageCode ??
+                        (currentDefaultLanguage.current as typeof input.defaultLanguageCode),
                 ),
             };
         },
@@ -194,6 +198,7 @@ function ChannelDetailPage() {
             });
         },
     });
+    currentDefaultLanguage.current = form.getValues('defaultLanguageCode');
 
     const availableCurrencyCodes = form.watch('availableCurrencyCodes');
     const availableLanguageCodes = form.watch('availableLanguageCodes');

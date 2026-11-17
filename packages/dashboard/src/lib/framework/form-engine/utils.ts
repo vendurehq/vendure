@@ -419,8 +419,8 @@ export function getChangedTopLevelFields(
  * @description
  * Narrows an update payload down to the top-level fields the user actually changed, as computed by
  * {@link getChangedTopLevelFields}. When `sendAll` is `true` (the default), or when no change set is
- * available, the payload is returned unchanged. Detail pages opt into the narrowing via
- * `sendOnlyChangedFields`, which passes `sendAll: false` here.
+ * available, the payload is returned unchanged. Detail pages narrow the payload unless they set
+ * `sendOnlyChangedFields: false`; they pass `sendAll: false` here.
  */
 export function pruneToChangedFields<T extends Record<string, any>>(
     values: T,

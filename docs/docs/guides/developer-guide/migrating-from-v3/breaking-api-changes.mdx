@@ -81,6 +81,42 @@ Inventory tracking is resolved per stock level, then per variant, then per chann
 
 For the full list, see [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code).
 
+## Changed defaults
+
+Some defaults which were kept for compatibility during v3 have changed. Set the old value to keep the v3 behaviour.
+
+### DefaultSearchPlugin indexes stock status and currency
+
+`indexStockStatus` and `indexCurrencyCode` now default to `true`, also when the plugin is used without `init()`. The `search` query gets the `inStock` field and filter, and returns prices in the currency of the request in Channels with more than one currency.
+
+This changes the `search_index_item` table: it gets the `inStock` and `productInStock` columns, and `currencyCode` joins its primary key. The search index only holds data derived from your catalog, so in the generated migration, empty the table before the new columns are added (`DELETE FROM search_index_item`), and run a full reindex after deploying.
+
+To keep the v3 table and behaviour:
+
+```ts
+DefaultSearchPlugin.init({ indexStockStatus: false, indexCurrencyCode: false });
+```
+
+### Passwords need 8 characters
+
+The `DefaultPasswordValidationStrategy` in the default config now has a `minLength` of `8` (it was `4`). It applies when a Customer's password is set: on registration and verification, on password changes and resets, and when a Customer is created with a password. Existing passwords keep working. To keep the v3 rule:
+
+```ts
+authOptions: {
+    passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
+},
+```
+
+The `testConfig` of `@vendure/testing` keeps a `minLength` of `4`, so test fixtures with short passwords keep working.
+
+### Dashboard detail pages send only changed fields
+
+`useDetailPage` and the `DetailPage` component now default `sendOnlyChangedFields` to `true`: an update mutation receives `id`, the top-level fields the user changed and any non-nullable fields, rather than the whole form. This stops a page from overwriting a field that someone else changed since the page was loaded.
+
+An update mutation of your own must leave an absent field unchanged, which it does if it uses `patchEntity()` or the `TranslatableSaver`. If it treats an absent field as empty, or derives a stored value from several input fields, set `sendOnlyChangedFields: false` on the page. A `transformUpdateInput` function now receives the partial input, and subscribers to entity events see the partial input in `event.input`.
+
+`updatePromotion` now computes the priority score from the stored conditions and actions when the input omits them. Before, an update without `conditions` and `actions` reset the score to 0.
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.

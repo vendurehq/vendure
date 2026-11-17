@@ -90,6 +90,16 @@ export interface DetailPageProps<
      * @since 3.8.0
      */
     setValuesForCreate?: NoInfer<(params: Record<string, string>) => Partial<VariablesOf<C>['input']>>;
+    /**
+     * @description
+     * Whether the update mutation receives only the fields the user changed. See the
+     * `sendOnlyChangedFields` option of {@link useDetailPage}. Set it to `false` if your update
+     * mutation treats an absent field as empty rather than unchanged.
+     *
+     * @default true
+     * @since 4.0.0
+     */
+    sendOnlyChangedFields?: boolean;
 }
 
 export interface DetailPageFieldProps<
@@ -147,6 +157,7 @@ export function DetailPage<
     updateDocument,
     setValuesForUpdate,
     setValuesForCreate,
+    sendOnlyChangedFields,
     title,
 }: DetailPageProps<T, C, U>) {
     const params = route.useParams();
@@ -165,6 +176,7 @@ export function DetailPage<
         params: { id: params.id },
         setValuesForUpdate,
         setValuesForCreate,
+        sendOnlyChangedFields,
         onSuccess: async data => {
             toast.success('Updated successfully');
             resetForm();
