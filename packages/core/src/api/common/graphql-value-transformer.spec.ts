@@ -1,4 +1,4 @@
-import { buildSchema, GraphQLObjectType, GraphQLSchema } from 'graphql';
+import { buildSchema, GraphQLObjectType, GraphQLSchema, parse } from 'graphql';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { GraphqlValueTransformer } from './graphql-value-transformer';
@@ -66,6 +66,67 @@ describe('GraphqlValueTransformer', () => {
 
             expect(result).toEqual({
                 filter: { _and: [{ id: 'decoded:1' }, { _or: [{ id: 'decoded:2' }] }] },
+            });
+        });
+    });
+
+    describe('getOutputTypeTree()', () => {
+        let transformer: GraphqlValueTransformer;
+
+        beforeEach(() => {
+            const schema = buildSchema(`
+                type Job {
+                    id: ID!
+                }
+                type Product {
+                    id: ID!
+                    job: Job
+                }
+                type Query {
+                    product: Product
+                    jobs: [Job!]!
+                }
+            `);
+            transformer = new GraphqlValueTransformer(schema);
+        });
+
+        function markIdsWithParentType(query: string, data: Record<string, any>) {
+            const typeTree = transformer.getOutputTypeTree(parse(query));
+            transformer.transformValues(typeTree, data, (value, type, parentType) =>
+                type?.name === 'ID' ? `${parentType?.name ?? 'unknown'}:${String(value)}` : value,
+            );
+            return data;
+        }
+
+        // #5558 — the IdCodecPlugin uses the parent type to identify Job ids
+        it('passes the parent type of a field to the visitor', () => {
+            const result = markIdsWithParentType(`{ product { id job { id } } jobs { id } }`, {
+                product: { id: '1', job: { id: '2' } },
+                jobs: [{ id: '3' }],
+            });
+
+            expect(result).toEqual({
+                product: { id: 'Product:1', job: { id: 'Job:2' } },
+                jobs: [{ id: 'Job:3' }],
+            });
+        });
+
+        it('passes the parent type of fields in named and inline fragments', () => {
+            const result = markIdsWithParentType(
+                `
+                    query { product { ...ProductFields } jobs { ... on Job { id } } }
+                    fragment ProductFields on Product { id job { ...JobFields } }
+                    fragment JobFields on Job { id }
+                `,
+                {
+                    product: { id: '1', job: { id: '2' } },
+                    jobs: [{ id: '3' }],
+                },
+            );
+
+            expect(result).toEqual({
+                product: { id: 'Product:1', job: { id: 'Job:2' } },
+                jobs: [{ id: 'Job:3' }],
             });
         });
     });

@@ -711,7 +711,9 @@ const config = {
 
 :::note
 
-The `requiresPermission` property only affects the _Admin API_. Access to a custom field via the _Shop API_ is controlled by the `public` property.
+The Shop API also checks `requiresPermission`, unless the field sets `public: true`. Customers do not have admin permissions,
+so if `public` is not set, the field returns `null` in the Shop API and customers cannot set its value.
+Set `public: true` to let every Shop API user read and write the field, or `public: false` to remove it from the Shop API.
 
 If you need special logic to control access to a custom field in the Shop API, you can set `public: false` and then implement
 a custom [field resolver](/developer-guide/extend-graphql-api/#add-fields-to-existing-types) which contains the necessary logic, and returns

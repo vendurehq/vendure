@@ -1,6 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import {
+    AUTH_LOGIN_COMMAND,
     ReauthenticationRequiredError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
@@ -47,6 +48,16 @@ export interface PollOptions extends AuthOptions {
 }
 
 /**
+ * The authentication service refuses to issue an access token whose claims
+ * exceed its size limit (CLO-1083). The claims list every role and permission
+ * the user holds in the organization, so the fix is fewer roles.
+ */
+export const TOKEN_TOO_BIG = 'token_too_big';
+export const TOKEN_TOO_BIG_ADVICE =
+    'Your account holds too many roles in the organization for a sign-in token. ' +
+    'Ask an organization admin to remove the roles you do not need from your membership, then try again.';
+
+/**
  * WorkOS error codes that mean the session needs a new interactive sign-in
  * rather than a retry: an organization enforces SSO or MFA, or the user must
  * pick an organization. WorkOS reports some in `error` and some in `code`.
@@ -76,7 +87,9 @@ export async function startDeviceAuthorization(
     );
     if (!response.ok) {
         const code = await readErrorCode(response);
-        throw new Error(`Could not start the login: WorkOS answered ${describeFailure(response, code)}.`);
+        throw new Error(
+            `Could not start the login: the authentication service answered ${describeFailure(response, code)}.`,
+        );
     }
     const body: unknown = await response.json();
     if (
@@ -88,7 +101,7 @@ export async function startDeviceAuthorization(
         !isHttpsUrl(body.verification_uri_complete) ||
         !positiveNumber(body.expires_in)
     ) {
-        throw new Error('WorkOS returned a malformed device authorization.');
+        throw new Error('The authentication service returned a malformed device authorization.');
     }
     return {
         deviceCode: body.device_code,
@@ -147,7 +160,10 @@ export async function pollDeviceAuthorization(
         if (code === 'expired_token') {
             break;
         }
-        throw new Error(`The login failed: WorkOS answered ${describeFailure(response, code)}.`);
+        const advice = code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
+        throw new Error(
+            `The login failed: the authentication service answered ${describeFailure(response, code)}.${advice}`,
+        );
     }
     throw new Error('The login code expired before it was approved. Run the login again.');
 }
@@ -160,7 +176,11 @@ export async function pollDeviceAuthorization(
  * `invalid_grant` means the token is dead. The codes in
  * {@link REAUTHENTICATION_CODES} mean a new sign-in is needed. Anything else is
  * reported as possibly transient, so a wrong guess costs the user a retry
- * rather than their login.
+ * rather than their login. Every error from an answer carries its `code` and
+ * HTTP `status`.
+ *
+ * The messages of {@link SessionRefreshUnavailableError} for an answer end in
+ * `answered <code> (HTTP <status>).`.
  */
 export async function exchangeRefreshToken(
     client: WorkosClient,
@@ -191,14 +211,22 @@ export async function exchangeRefreshToken(
     }
     if (!response.ok) {
         const code = await readErrorCode(response);
+        const details = { code, status: response.status };
+        const answer = describeFailure(response, code);
         if (code === 'invalid_grant') {
-            throw new SessionRejectedError();
+            throw new SessionRejectedError(
+                `The authentication service refused to renew your CLI session: ${answer}. ` +
+                    `Run \`${AUTH_LOGIN_COMMAND}\` to sign in again.`,
+                details,
+            );
         }
         if (code && REAUTHENTICATION_CODES.has(code)) {
-            throw new ReauthenticationRequiredError(code);
+            throw new ReauthenticationRequiredError(code, response.status);
         }
+        const advice = code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
         throw new SessionRefreshUnavailableError(
-            `Could not renew the CLI session: WorkOS answered ${describeFailure(response, code)}.`,
+            `Could not renew the CLI session.${advice} The authentication service answered ${answer}.`,
+            details,
         );
     }
     try {
@@ -206,8 +234,8 @@ export async function exchangeRefreshToken(
     } catch {
         // WorkOS accepted the grant, so the refresh token is already spent.
         throw new SessionRefreshUnavailableError(
-            'WorkOS renewed the CLI session, but its answer could not be read, so the renewed session ' +
-                'was not saved. If the next command fails, run `vendure auth login`.',
+            'The authentication service renewed the CLI session, but its answer could not be read, ' +
+                'so the renewed session was not saved. If the next command fails, run `vendure auth login`.',
         );
     }
 }
@@ -250,11 +278,11 @@ function describeFailure(response: Response, code: string | undefined): string {
 
 function parseAuthentication(body: unknown): WorkosAuthentication {
     if (!isRecord(body) || !nonEmpty(body.access_token) || !nonEmpty(body.refresh_token)) {
-        throw new Error('WorkOS returned a malformed authentication response.');
+        throw new Error('The authentication service returned a malformed authentication response.');
     }
     const user = body.user;
     if (!isRecord(user) || !nonEmpty(user.id) || typeof user.email !== 'string') {
-        throw new Error('WorkOS returned an authentication response without a user.');
+        throw new Error('The authentication service returned an authentication response without a user.');
     }
     return {
         accessToken: body.access_token,

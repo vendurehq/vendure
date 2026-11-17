@@ -167,7 +167,8 @@ Populates the `price` field with the price for the specified channel.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
 
 Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
-[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product and any Assets to the Channel too.
+[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product, any Assets, and the variant's
+ProductOptions and their ProductOptionGroups to the Channel too.
 ### removeProductVariantsFromChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />

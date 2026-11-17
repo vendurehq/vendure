@@ -14,7 +14,7 @@ function useAuth(): void
 ```
 ## AuthContext
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/providers/auth.tsx" sourceLine="17" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/providers/auth.tsx" sourceLine="18" packageName="@vendure/dashboard" since="3.3.0" />
 
 Provides information about the current user & their authentication & authorization
 status.
@@ -52,7 +52,9 @@ The error message if the authentication fails.
 
 <MemberInfo kind="property" type={`boolean`}   />
 
-Whether the user is authenticated.
+Whether the user can use the Dashboard: they have an active session with access to
+at least one Channel. An Administrator without access to any Channel is not
+authenticated, as every Channel-scoped query is forbidden for them.
 ### login
 
 <MemberInfo kind="property" type={`(username: string, password: string, onSuccess?: () => void) => void`}   />

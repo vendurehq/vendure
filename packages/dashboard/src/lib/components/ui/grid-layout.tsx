@@ -22,7 +22,7 @@ export interface GridLayout {
     maxH?: number;
 }
 
-const DEFAULT_COLS = 12;
+export const DEFAULT_COLS = 12;
 
 /**
  * Returns true when the two grid items occupy any of the same cells.

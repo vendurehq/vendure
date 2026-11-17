@@ -50,7 +50,9 @@ export {
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
+    checkAuthStatus,
     getAccessToken,
+    isRenewalRefused,
     listOrganizations,
     loginWithDevice,
     logout,
@@ -65,6 +67,8 @@ export type {
     DeviceAuthorization,
     DeviceLoginOptions,
     LogoutResult,
+    RenewalError,
+    RenewalFailureDetails,
     StoredOrganization,
 } from './auth';
 export { builtinCommands } from './commands/builtins';
@@ -78,6 +82,7 @@ export type {
     ConsoleLinkHookRegistration,
     ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
+    ConsoleSessionUnavailableReason,
 } from './commands/console/console-link-hook';
 export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins';
 export type { ConsoleReporter } from './commands/console/console-reporter';

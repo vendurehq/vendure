@@ -223,7 +223,7 @@ import { PluginCommonModule, VendurePlugin } from '@vendure/core';
 export class WishlistPlugin {}
 ```
 
-The `PluginCommonModule` will be required in all plugins that you create. It contains the common services that are exposed by Vendure Core, allowing you to inject them into your plugin's services and resolvers.
+The `PluginCommonModule` will be required in all plugins that you create. It contains the common services that are exposed by the Vendure Framework, allowing you to inject them into your plugin's services and resolvers.
 
 ### Step 2: Define an entity
 
@@ -505,7 +505,7 @@ export const shopApiExtensions = gql`
 
 :::note
 
-The `graphql-tag` package is a dependency of the Vendure core package. Depending on the package manager you are using, you may need to install it separately with `yarn add graphql-tag` or `npm install graphql-tag`.
+The `graphql-tag` package is a dependency of the `@vendure/core` package. Depending on the package manager you are using, you may need to install it separately with `yarn add graphql-tag` or `npm install graphql-tag`.
 
 :::
 
@@ -610,7 +610,7 @@ More information about resolvers can be found in the [NestJS docs](https://docs.
 
 ### Step 7: Specify compatibility
 
-Since Vendure v2.0.0, it is possible for a plugin to specify which versions of Vendure core it is compatible with. This is especially important if the plugin is intended to be made publicly available via npm or another package registry.
+Since Vendure v2.0.0, it is possible for a plugin to specify which versions of the Vendure Framework it is compatible with. This is especially important if the plugin is intended to be made publicly available via npm or another package registry.
 
 The compatibility is specified via the `compatibility` property in the plugin metadata:
 
@@ -622,7 +622,7 @@ The compatibility is specified via the `compatibility` property in the plugin me
 export class WishlistPlugin {}
 ```
 
-The value of this property is a [semver range](https://docs.npmjs.com/about-semantic-versioning) which specifies the range of compatible versions. In this case, we are saying that this plugin is compatible with any version of Vendure core which is `>= 2.0.0 < 3.0.0`.
+The value of this property is a [semver range](https://docs.npmjs.com/about-semantic-versioning) which specifies the range of compatible versions. In this case, we are saying that this plugin is compatible with any version of the Vendure Framework which is `>= 2.0.0 < 3.0.0`.
 
 ### Step 8: Add the plugin to the VendureConfig
 

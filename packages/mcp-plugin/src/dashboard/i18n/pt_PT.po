@@ -309,3 +309,23 @@ msgstr ""
 
 msgid "The shop endpoint is disabled (shopAccess: 'disabled')."
 msgstr ""
+
+#. js-lingui-explicit-id
+msgid "MCP Server"
+msgstr "MCP Server"
+
+#. js-lingui-explicit-id
+msgid "Overview"
+msgstr ""
+
+#. js-lingui-explicit-id
+msgid "Tools"
+msgstr "Ferramentas"
+
+#. js-lingui-explicit-id
+msgid "Activity"
+msgstr ""
+
+#. js-lingui-explicit-id
+msgid "Grants"
+msgstr ""

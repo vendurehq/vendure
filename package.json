@@ -22,7 +22,7 @@
     "docs:build": "bun run docs:generate-typescript-docs && bun run docs:generate-graphql-docs",
     "codegen": "tsc -p scripts/codegen/plugins && ts-node scripts/codegen/generate-graphql-types.ts && bun run codegen:gql-tada",
     "codegen:gql-tada": "ts-node scripts/codegen/generate-gql-tada-types.ts",
-    "version": "bun install && bun run check-imports && bun run check-angular-versions && bun run build && bun run check-core-type-defs && bun run generate-changelog && git add CHANGELOG* && git add */version.ts && git add bun.lock",
+    "version": "bun install && bun run check-imports && bun run check-angular-versions && bun run --cwd packages/common generate-platform-promotion-snapshot && bun run build && bun run check-core-type-defs && bun run generate-changelog && git add CHANGELOG* && git add */version.ts && git add bun.lock && git add packages/common/src/platform-promotion-snapshot.ts",
     "test": "lerna run test --stream --no-bail",
     "e2e": "lerna run e2e --stream --no-bail",
     "build": "lerna run build",

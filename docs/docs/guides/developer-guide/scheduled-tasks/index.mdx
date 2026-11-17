@@ -101,7 +101,7 @@ export const generateSitemapTask = new ScheduledTask({
     // This is the function that will be executed per the schedule.
     async execute({injector, params}) {
         // Using `injector.get()` we can grab an instance of _any_ provider defined in the
-        // Vendure core as well as by our plugins.
+        // Vendure Framework as well as by our plugins.
         const sitemapService = injector.get(SitemapService);
 
         // For most service methods, we'll need to pass a RequestContext object.

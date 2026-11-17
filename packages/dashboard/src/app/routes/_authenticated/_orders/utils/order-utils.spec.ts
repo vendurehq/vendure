@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { Order } from './order-types.js';
-import { getMaxRefundableQuantity, getRefundableQuantity, lineCanBeRefunded } from './order-utils.js';
+import {
+    canCancelOrderWithoutRefund,
+    getMaxRefundableQuantity,
+    getRefundableQuantity,
+    lineCanBeRefunded,
+    toCustomFieldsInput,
+    toModifyOrderInput,
+} from './order-utils.js';
 
 // #4728 — refund dialog must reflect quantities/items changed during order modification.
 // Lines added or increased while the order is in `Modifying` keep `orderPlacedQuantity` at
@@ -64,6 +71,67 @@ describe('lineCanBeRefunded', () => {
     });
 });
 
+describe('canCancelOrderWithoutRefund', () => {
+    function placedOrder(overrides: Record<string, unknown> = {}): Order {
+        return {
+            type: 'Regular',
+            active: false,
+            state: 'PaymentAuthorized',
+            nextStates: ['PaymentSettled', 'Cancelled', 'Modifying', 'ArrangingAdditionalPayment'],
+            payments: [{ state: 'Authorized' }],
+            ...overrides,
+        } as any;
+    }
+
+    it('allows cancelling a placed order whose only payment is authorized', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder())).toBe(true);
+    });
+
+    it('allows cancelling an order awaiting an additional payment with only an authorized payment', () => {
+        const order = placedOrder({
+            state: 'ArrangingAdditionalPayment',
+            nextStates: ['PaymentAuthorized', 'PaymentSettled', 'Cancelled'],
+        });
+        expect(canCancelOrderWithoutRefund(order)).toBe(true);
+    });
+
+    it('ignores payments which never settled', () => {
+        const order = placedOrder({
+            payments: [{ state: 'Declined' }, { state: 'Cancelled' }, { state: 'Authorized' }],
+        });
+        expect(canCancelOrderWithoutRefund(order)).toBe(true);
+    });
+
+    it('does not allow it when a payment is settled, because the order can be refunded', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ payments: [{ state: 'Settled' }] }))).toBe(false);
+        expect(
+            canCancelOrderWithoutRefund(
+                placedOrder({ payments: [{ state: 'Authorized' }, { state: 'Settled' }] }),
+            ),
+        ).toBe(false);
+    });
+
+    it('does not allow it when the order cannot move to Cancelled', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ state: 'Cancelled', nextStates: [] }))).toBe(false);
+        expect(
+            canCancelOrderWithoutRefund(
+                placedOrder({ state: 'Modifying', nextStates: ['PaymentAuthorized'] }),
+            ),
+        ).toBe(false);
+    });
+
+    it('does not allow it for active orders', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ active: true, state: 'ArrangingPayment' }))).toBe(
+            false,
+        );
+    });
+
+    it('does not allow it for seller and aggregate orders', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ type: 'Seller', payments: [] }))).toBe(false);
+        expect(canCancelOrderWithoutRefund(placedOrder({ type: 'Aggregate' }))).toBe(false);
+    });
+});
+
 describe('getMaxRefundableQuantity', () => {
     it('returns the current quantity for a line added after placement', () => {
         const order = orderWithRefunds([]);
@@ -83,5 +151,60 @@ describe('getMaxRefundableQuantity', () => {
     it('never returns a negative quantity', () => {
         const order = orderWithRefunds([{ orderLineId: 'L1', quantity: 2 }]);
         expect(getMaxRefundableQuantity(order, line({ orderPlacedQuantity: 2, quantity: 0 }))).toBe(0);
+    });
+});
+
+describe('toCustomFieldsInput', () => {
+    const giftFrom = { name: 'giftFrom', type: 'relation' };
+    const giftTags = { name: 'giftTags', type: 'relation', list: true };
+    const note = { name: 'note', type: 'string' };
+
+    it('replaces a single relation with its id', () => {
+        expect(toCustomFieldsInput({ giftFrom: { id: '3', name: 'x' } }, [giftFrom])).toEqual({
+            giftFromId: '3',
+        });
+    });
+
+    it('converts a null relation to a null id', () => {
+        expect(toCustomFieldsInput({ giftFrom: null }, [giftFrom])).toEqual({ giftFromId: null });
+    });
+
+    it('replaces a list relation with its ids', () => {
+        expect(toCustomFieldsInput({ giftTags: [{ id: '1' }, { id: '2' }] }, [giftTags])).toEqual({
+            giftTagsIds: ['1', '2'],
+        });
+        expect(toCustomFieldsInput({ giftTags: null }, [giftTags])).toEqual({ giftTagsIds: null });
+    });
+
+    it('leaves non-relation fields unchanged', () => {
+        expect(toCustomFieldsInput({ note: 'hi', giftFrom: null }, [note, giftFrom])).toEqual({
+            note: 'hi',
+            giftFromId: null,
+        });
+    });
+
+    it('keeps a value already set under the input name', () => {
+        expect(toCustomFieldsInput({ giftFrom: { id: '3' }, giftFromId: '7' }, [giftFrom])).toEqual({
+            giftFromId: '7',
+        });
+    });
+
+    it('returns undefined for undefined custom fields', () => {
+        expect(toCustomFieldsInput(undefined, [giftFrom])).toBeUndefined();
+    });
+});
+
+describe('toModifyOrderInput', () => {
+    it('converts the custom fields of adjusted and added lines', () => {
+        const input = {
+            orderId: '1',
+            dryRun: true,
+            adjustOrderLines: [{ orderLineId: 'L1', quantity: 2, customFields: { giftFrom: { id: '3' } } }],
+            addItems: [{ productVariantId: 'V1', quantity: 1, customFields: { giftFrom: null } }],
+        } as any;
+        const result = toModifyOrderInput(input, [{ name: 'giftFrom', type: 'relation' }]) as any;
+        expect(result.adjustOrderLines[0].customFields).toEqual({ giftFromId: '3' });
+        expect(result.addItems[0].customFields).toEqual({ giftFromId: null });
+        expect(input.adjustOrderLines[0].customFields).toEqual({ giftFrom: { id: '3' } });
     });
 });

@@ -10,6 +10,7 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import pc from 'picocolors';
 
+import { showConsoleHint } from './console-hint';
 import {
     AUTO_RUN_DELAY_MS,
     CI_PAUSE_AFTER_CLOSE_MS,
@@ -37,6 +38,7 @@ import {
     cleanUpDockerResources,
     createProjectRequire,
     detectPackageManager,
+    DOCKER_NOT_RESPONDING_MESSAGE,
     downloadAndExtractStorefront,
     findAvailablePort,
     getDependencies,
@@ -48,12 +50,14 @@ import {
     getYarnRcYml,
     installPackages,
     isSafeToCreateProjectIn,
+    probeDockerDaemon,
     registerTemplateHelpers,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
 } from './helpers';
 import { log, setLogLevel } from './logger';
+import { offerPlatformTrial } from './platform-trial';
 import {
     configureStorefrontPackageJson,
     getStorefrontStarter,
@@ -438,6 +442,9 @@ export async function createVendureApp(
             .then(() => fs.ensureDir(path.join(serverRoot, 'src/plugins')))
             .then(() => fs.copyFile(assetPath('gitignore.template'), path.join(serverRoot, '.gitignore')))
             .then(() =>
+                fs.copyFile(assetPath('dockerignore.template'), path.join(serverRoot, '.dockerignore')),
+            )
+            .then(() =>
                 fs.copyFile(assetPath('tsconfig.template.json'), path.join(serverRoot, 'tsconfig.json')),
             )
             .then(() =>
@@ -456,6 +463,12 @@ export async function createVendureApp(
     // Manual mode is excluded: there the user supplies their own database connection,
     // so no Docker container is started on their behalf.
     if ((mode === 'quick' || mode === 'ci') && dbType === 'postgres') {
+        // --ci skips the Docker check in the prompts, and in quick start the daemon can
+        // stop answering while the scaffold is written. Every later step calls `docker`.
+        if ((await probeDockerDaemon()) !== 'running') {
+            outro(pc.red(DOCKER_NOT_RESPONDING_MESSAGE));
+            process.exit(1);
+        }
         // appName (the resolved directory basename) is what the docker-compose labels are
         // keyed off — the raw CLI argument may be a nested path like `apps/my-shop`.
         cleanUpDockerResources(appName);
@@ -684,6 +697,7 @@ export async function createVendureApp(
             }
         } else {
             clearTimeout(timer);
+            await offerPlatformTrial(serverRoot, isCi);
             displayOutro({
                 root,
                 name,
@@ -831,6 +845,7 @@ function displayOutro(outroOptions: OutroOptions) {
     }
 
     note(nextSteps.join('\n'), pc.green('Setup complete!'));
+    showConsoleHint();
     outro(`Happy hacking!`);
 }
 
@@ -880,7 +895,7 @@ async function copyEmailTemplates(root: string) {
     } catch (err: any) {
         log(pc.red('Failed to copy email templates.'));
         log(err);
-        process.exit(0);
+        process.exit(1);
     }
 }
 

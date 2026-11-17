@@ -194,4 +194,19 @@ describe('Globally installed CLI plugins E2E', () => {
             expect.objectContaining({ packageName, scope: 'project', status: 'enabled' }),
         ]);
     });
+
+    // A plugin enabled for the project is not named in the unknown-command hint.
+    it('does not suggest enabling a plugin globally that the project already enables', async () => {
+        globalInstall = createSimulatedGlobalInstall(['cloud-cli-plugin']);
+        project = createTestProject('unknown-command-hint');
+        installCliPluginFixture(project, 'cloud-cli-plugin');
+
+        const result = await globalInstall.runCliCommand(['bogus'], { cwd: project.projectDir });
+
+        expect(result.stderr).toContain('Unknown command "bogus"');
+        expect(result.stderr).not.toContain('not enabled');
+        expect(result.stderr).not.toContain('plugins add');
+        expect(result.stderr).not.toContain('provides CLI commands');
+        expect(result.exitCode).toBe(1);
+    });
 });

@@ -35,6 +35,24 @@ will compile the TypeScript sources and build the Dashboard into the `/dist` dir
 For production, there are many possibilities which depend on your operational requirements as well as your production
 hosting environment.
 
+### APP_ENV and NODE_ENV
+
+The `.env` file is for local development. It sets `APP_ENV=dev`, which turns on API debug mode, allows any
+CORS origin and enables the EmailPlugin dev mailbox at `/mailbox`. The dev mailbox has no authentication, and in
+dev mode no emails are sent. Do not deploy with `APP_ENV=dev`. In production, leave `APP_ENV` unset or set it to
+`production`, set `NODE_ENV=production`, and set the other variables from `.env` in your hosting environment.
+
+`.env` is listed in `.gitignore` and `.dockerignore`, so it is not committed and not copied into the Docker image.
+
+Outside dev mode the EmailPlugin writes emails to `static/email/test-emails` and does not send them. Configure an
+[email transport](https://docs.vendure.io/reference/core-plugins/email-plugin/) in `src/vendure-config.ts` before
+you go live.
+
+When `NODE_ENV` is `production`, Vendure refuses to start if `SUPERADMIN_PASSWORD` is the default `superadmin`.
+Vendure uses `SUPERADMIN_PASSWORD` to set the password only when it creates the superadmin user. If the database
+already has that user, for example because you created it in development, changing `SUPERADMIN_PASSWORD` does not
+change its password. Change it in the Dashboard instead.
+
 ### CORS origins
 
 Set the `CORS_ORIGINS` environment variable to a comma-separated list of the origins your browsers call
@@ -64,14 +82,16 @@ We've included a sample [Dockerfile](./Dockerfile) which you can build with the 
 docker build -t vendure .
 ```
 
-This builds an image and tags it with the name "vendure". We can then run it with:
+This builds an image and tags it with the name "vendure". The image does not contain `.env`, so create a
+`.env.production` file with the same variables, set `APP_ENV=production` in it and replace the development values.
+We can then run the image with:
 
 ```
 # Run the server
-docker run -dp 3000:3000 -e "DB_HOST=host.docker.internal" --name vendure-server vendure {{pmRunScript "start:server"}}
+docker run -dp 3000:3000 --env-file .env.production -e "DB_HOST=host.docker.internal" --name vendure-server vendure {{pmRunScript "start:server"}}
 
 # Run the worker
-docker run -dp 3000:3000 -e "DB_HOST=host.docker.internal" --name vendure-worker vendure {{pmRunScript "start:worker"}}
+docker run -d --env-file .env.production -e "DB_HOST=host.docker.internal" --name vendure-worker vendure {{pmRunScript "start:worker"}}
 ```
 
 Here is a breakdown of the command used above:
@@ -79,7 +99,9 @@ Here is a breakdown of the command used above:
 - `docker run` - run the image we created with `docker build`
 - `-dp 3000:3000` - the `-d` flag means to run in "detached" mode, so it runs in the background and does not take
 control of your terminal. `-p 3000:3000` means to expose port 3000 of the container (which is what Vendure listens
-on by default) as port 3000 on your host machine.
+on by default) as port 3000 on your host machine. The worker command has no `-p` option, because the worker does not
+serve HTTP requests and the server container already uses port 3000.
+- `--env-file .env.production` - loads the environment variables from `.env.production` into the container.
 - `-e "DB_HOST=host.docker.internal"` - the `-e` option allows you to define environment variables. In this case we
 are setting the `DB_HOST` to point to a special DNS name that is created by Docker desktop which points to the IP of
 the host machine. Note that `host.docker.internal` only exists in a Docker Desktop environment and thus should only be

@@ -56,16 +56,25 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: AdjustStockInput) {
-        // The stock read below only sees locations in the active channel, but the write below does
-        // not, so we check the location here to avoid silently overwriting another channel's stock.
+        // The write sets an absolute stockOnHand, so the read must hold the row lock until the tool's
+        // transaction commits. Otherwise a concurrent adjustment would be overwritten. See #5652
+        // It comes before any other read: on MySQL and MariaDB the first plain read fixes the snapshot
+        // which core's write later looks the row up in, so that snapshot must not predate the lock.
+        let current = await this.findLockedStockLevel(ctx, input);
+        // The locked stock read above and the write below are not limited to the active channel, so we
+        // check the location here to avoid silently overwriting another channel's stock.
         const location = await this.stockLocationService.findOne(ctx, input.locationId);
         if (!location) {
             throw new UserInputError(
                 `Stock location ${input.locationId} is not available in the active channel.`,
             );
         }
-        const levels = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
-        const current = levels.find(level => idsAreEqual(level.stockLocationId, input.locationId));
+        if (!current) {
+            // On Postgres a locked read which waited for another transaction does not return a row that
+            // transaction inserted, so the first stock at a location would be read as 0. A second read
+            // sees it. If there is still no row, core creates it with a stockOnHand of 0.
+            current = await this.findLockedStockLevel(ctx, input);
+        }
         const stockOnHand = (current?.stockOnHand ?? 0) + input.delta;
         if (stockOnHand < GRAPHQL_INT_MIN || stockOnHand > GRAPHQL_INT_MAX) {
             throw new UserInputError(
@@ -86,5 +95,10 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
         ]);
         const updated = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
         return { stockLevels: updated.map(level => this.serializer.stockLevel(level)) };
+    }
+
+    private async findLockedStockLevel(ctx: RequestContext, input: AdjustStockInput) {
+        const levels = await this.stockLevelService.getLockedStockLevelsForVariant(ctx, input.variantId);
+        return levels.find(level => idsAreEqual(level.stockLocationId, input.locationId));
     }
 }

@@ -529,11 +529,20 @@ export function PaginatedListDataTable<
         includeSelectionColumn,
     });
     const columnVisibility = getColumnVisibility(columns, defaultColumnVisibility, customFieldColumnNames);
+    // DataTable owns column visibility and reports it via onColumnVisibilityChange. Mirror it
+    // here so the list query selects every visible column, including when the caller does
+    // not persist visibility.
+    const [liveColumnVisibility, setLiveColumnVisibility] = React.useState<VisibilityState>();
+    const handleColumnVisibilityChange = (table: Table<any>, visibility: VisibilityState) => {
+        setLiveColumnVisibility(visibility);
+        onColumnVisibilityChange?.(table, visibility);
+    };
+    const effectiveColumnVisibility = { ...columnVisibility, ...liveColumnVisibility };
     // Get the actual visible columns and only fetch those
     const visibleColumns = columns
         // Filter out invisible columns, but _always_ select "id"
         // because it is usually needed.
-        .filter(c => columnVisibility[c.id as string] !== false || c.id === 'id')
+        .filter(c => effectiveColumnVisibility[c.id as string] !== false || c.id === 'id')
         .map(c => ({
             name: c.id as string,
             isCustomField: (c.meta as any)?.isCustomField ?? false,
@@ -615,7 +624,7 @@ export function PaginatedListDataTable<
                     onPageChange={onPageChange}
                     onSortChange={onSortChange}
                     onFilterChange={onFilterChange}
-                    onColumnVisibilityChange={onColumnVisibilityChange}
+                    onColumnVisibilityChange={handleColumnVisibilityChange}
                     onSearchTermChange={onSearchTermChange ? term => setSearchTerm(term) : undefined}
                     searchPlaceholder={searchPlaceholder}
                     defaultColumnVisibility={columnVisibility}

@@ -163,10 +163,12 @@ export type TypedCustomListFieldConfig<
     T extends CustomFieldType,
     C extends CustomField,
 > = BaseTypedCustomFieldConfig<T, C> & {
-    list?: true;
+    list: true;
     defaultValue?: Array<DefaultValueType<T>>;
     validate?: (
         value: Array<DefaultValueType<T>>,
+        injector: Injector,
+        ctx: RequestContext,
     ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
 };
 
@@ -223,6 +225,10 @@ export type RelationCustomFieldConfig = TypedCustomFieldConfig<
     /**
      * @description
      * Whether the relation is always loaded together with the owning entity.
+     *
+     * Not allowed on a relation to the entity the field is defined on, such as a Product field
+     * pointing at Product: TypeORM would follow it without end, so config validation rejects it at
+     * startup. A longer cycle of eager relations, such as A → B → A, is not detected.
      */
     eager?: RelationOptions['eager'];
 };
@@ -251,9 +257,11 @@ export type TypedStructListFieldConfig<
     T extends StructFieldType,
     C extends GraphQLStructField,
 > = BaseTypedStructFieldConfig<T, C> & {
-    list?: true;
+    list: true;
     validate?: (
         value: Array<DefaultValueType<T>>,
+        injector: Injector,
+        ctx: RequestContext,
     ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
 };
 

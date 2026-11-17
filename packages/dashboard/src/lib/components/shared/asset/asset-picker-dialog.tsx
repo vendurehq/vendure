@@ -12,7 +12,8 @@ import { getDashboardActionBarItems } from '@/vdb/framework/layout-engine/layout
 import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
-import { useLingui } from '@lingui/react/macro';
+import { plural } from '@lingui/core/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -55,7 +56,8 @@ interface AssetPickerDialogProps {
     initialSelectedAssets?: Asset[];
     /**
      * @description
-     * The title of the dialog.
+     * The title of the dialog. Defaults to "Select Assets", or "Select Asset" when
+     * `multiSelect` is false.
      */
     title?: string;
     /**
@@ -82,7 +84,7 @@ export function AssetPickerDialog({
     onSelect,
     multiSelect = false,
     initialSelectedAssets = [],
-    title = 'Select Assets',
+    title,
     pageId,
 }: AssetPickerDialogProps) {
     const [selectedAssets, setSelectedAssets] = useState<Asset[]>(initialSelectedAssets);
@@ -107,12 +109,25 @@ export function AssetPickerDialog({
             const createdAssets = result.createAssets.filter(asset => asset.__typename === 'Asset');
             const failedAssets = result.createAssets.filter(asset => asset.__typename !== 'Asset');
             if (createdAssets.length > 0) {
-                toast.success(t`Uploaded ${createdAssets.length} assets`);
+                toast.success(
+                    plural(createdAssets.length, {
+                        one: 'Uploaded # asset',
+                        other: 'Uploaded # assets',
+                    }),
+                );
             }
             if (failedAssets.length > 0) {
-                toast.error(t`Failed to upload ${failedAssets.length} assets`, {
-                    description: failedAssets.map(asset => ('message' in asset ? asset.message : '')).join(', '),
-                });
+                toast.error(
+                    plural(failedAssets.length, {
+                        one: 'Failed to upload # asset',
+                        other: 'Failed to upload # assets',
+                    }),
+                    {
+                        description: failedAssets
+                            .map(asset => ('message' in asset ? asset.message : ''))
+                            .join(', '),
+                    },
+                );
             }
             void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
         },
@@ -130,6 +145,10 @@ export function AssetPickerDialog({
         [createAssets],
     );
 
+    // A caller-supplied title keeps its English singular replace; only the default is translated.
+    const defaultTitle = multiSelect ? <Trans>Select Assets</Trans> : <Trans>Select Asset</Trans>;
+    const callerTitle = multiSelect ? title : title?.replace('Assets', 'Asset');
+
     const handleConfirm = () => {
         onSelect(selectedAssets);
         onClose();
@@ -140,9 +159,13 @@ export function AssetPickerDialog({
             <PageContext.Provider value={pageContextValue}>
                 <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] p-0 flex flex-col">
                     <DialogHeader className="px-6 pt-6">
-                        <DialogTitle>{multiSelect ? title : title.replace('Assets', 'Asset')}</DialogTitle>
+                        <DialogTitle>{title === undefined ? defaultTitle : callerTitle}</DialogTitle>
                         <DialogDescription className="sr-only">
-                            {multiSelect ? 'Browse and select one or more assets' : 'Browse and select an asset'}
+                            {multiSelect ? (
+                                <Trans>Browse and select one or more assets</Trans>
+                            ) : (
+                                <Trans>Browse and select an asset</Trans>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -167,12 +190,18 @@ export function AssetPickerDialog({
                             </PermissionGuard>
                         ))}
                         <Button variant="outline" onClick={onClose}>
-                            Cancel
+                            <Trans>Cancel</Trans>
                         </Button>
                         <Button onClick={handleConfirm} disabled={selectedAssets.length === 0}>
-                            {selectedAssets.length > 0 && multiSelect
-                                ? `Select ${selectedAssets.length} Asset${selectedAssets.length > 1 ? 's' : ''}`
-                                : 'Select Asset'}
+                            {selectedAssets.length > 0 && multiSelect ? (
+                                <Plural
+                                    value={selectedAssets.length}
+                                    one="Select # Asset"
+                                    other="Select # Assets"
+                                />
+                            ) : (
+                                <Trans>Select Asset</Trans>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

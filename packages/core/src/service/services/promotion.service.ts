@@ -171,6 +171,20 @@ export class PromotionService {
         if (!hasConditions && !hasCouponCode) {
             return new MissingConditionsError();
         }
+        const conditions = input.conditions
+            ? this.configArgService.parseInputList(
+                  'PromotionCondition',
+                  input.conditions,
+                  promotion.conditions,
+              )
+            : promotion.conditions;
+        const actions = input.actions
+            ? this.configArgService.parseInputList('PromotionAction', input.actions, promotion.actions)
+            : promotion.actions;
+        // Skipped when neither is sent, so a promotion stored without a required condition can still be disabled
+        if (input.conditions || input.actions) {
+            this.validateRequiredConditions(conditions, actions);
+        }
         const updatedPromotion = await this.translatableSaver.update({
             ctx,
             input,
@@ -179,18 +193,10 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = this.configArgService.parseInputList(
-                        'PromotionCondition',
-                        input.conditions,
-                        promotion.conditions,
-                    );
+                    p.conditions = conditions;
                 }
                 if (input.actions) {
-                    p.actions = this.configArgService.parseInputList(
-                        'PromotionAction',
-                        input.actions,
-                        promotion.actions,
-                    );
+                    p.actions = actions;
                 }
             },
         });

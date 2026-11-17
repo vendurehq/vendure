@@ -1,5 +1,6 @@
 import { type Page, type Response, expect, test } from '@playwright/test';
 
+import { VENDURE_PORT } from '../../constants.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
@@ -142,8 +143,9 @@ test.describe('Orders', () => {
         await page.getByRole('button', { name: /Select customer/i }).click();
         await page.getByPlaceholder('Search customers...').fill('hayden');
         // CommandItems have role="option"; wait for search results to load
-        await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
-        await page.getByRole('option').first().click();
+        const haydenOption = page.getByRole('option').filter({ hasText: /hayden/i });
+        await expect(haydenOption.first()).toBeVisible({ timeout: 5_000 });
+        await haydenOption.first().click();
         // Wait for the set-customer mutation to complete and re-render
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
 
@@ -187,6 +189,55 @@ test.describe('Orders', () => {
         // After completion, navigates to the regular order detail page
         await expect(page).toHaveURL(/\/orders\/[^/]+$/, { timeout: 10_000 });
         await expect(page).not.toHaveURL(/\/draft\//);
+    });
+
+    // #5696 — a relation custom field must be sent by its input name when adjusting a draft order line
+    test('should adjust a draft order line quantity when the line has a relation custom field', async ({
+        page,
+    }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { createDraftOrder } = await client.gql(`mutation { createDraftOrder { id } }`);
+        const orderId: string = createDraftOrder.id;
+        const { productVariants } = await client.gql(
+            `query { productVariants(options: { take: 1 }) { items { id } } }`,
+        );
+        const { customers } = await client.gql(`query { customers(options: { take: 1 }) { items { id } } }`);
+        const customerId: string = customers.items[0].id;
+        await client.gql(
+            `
+            mutation ($orderId: ID!, $variantId: ID!, $customerId: ID!) {
+                addItemToDraftOrder(orderId: $orderId, input: {
+                    productVariantId: $variantId, quantity: 1, customFields: { giftFromId: $customerId }
+                }) { ... on Order { id } ... on ErrorResult { errorCode message } }
+            }
+        `,
+            { orderId, variantId: productVariants.items[0].id, customerId },
+        );
+
+        await page.goto(`/orders/draft/${orderId}`);
+        const quantityInput = page.getByTestId('order-line-quantity').first();
+        await expect(quantityInput).toBeVisible({ timeout: 10_000 });
+
+        const adjustResponse = page.waitForResponse(
+            resp => resp.request().postData()?.includes('mutation AdjustDraftOrderLine(') ?? false,
+        );
+        await quantityInput.fill('2');
+        await quantityInput.press('Enter');
+
+        const body = await (await adjustResponse).json();
+        expect(body.errors).toBeUndefined();
+        expect(body.data.adjustDraftOrderLine.__typename).toBe('Order');
+
+        // The relation must survive the quantity change rather than being cleared
+        const { order } = await client.gql(
+            `query ($id: ID!) { order(id: $id) { lines { quantity customFields { giftFrom { id } } } } }`,
+            { id: orderId },
+        );
+        expect(order.lines[0].quantity).toBe(2);
+        expect(order.lines[0].customFields.giftFrom?.id).toBe(customerId);
     });
 
     // #5253 — eligible shipping methods must refresh after a line is added, without
@@ -659,6 +710,29 @@ test.describe('Orders', () => {
         await expect(recalculateCheckbox).not.toBeChecked();
         await recalculateCheckbox.click();
         await expect(recalculateCheckbox).toBeChecked();
+    });
+
+    // #5696 — a relation custom field must be sent by its input name when previewing a modification
+    test('should preview a quantity change on a line with a relation custom field', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({ timeout: 10_000 });
+
+        const quantityInput = page.getByTestId('order-line-quantity').first();
+        await quantityInput.fill('2');
+        await quantityInput.press('Enter');
+
+        const previewResponse = page.waitForResponse(
+            resp => resp.request().postData()?.includes('mutation ModifyOrder(') ?? false,
+        );
+        await page.getByRole('button', { name: /Preview/i }).click();
+
+        const body = await (await previewResponse).json();
+        expect(body.errors).toBeUndefined();
+        expect(body.data.modifyOrder.__typename).toBe('Order');
     });
 
     // #3389 — existing tax descriptions should be available when adding a surcharge
@@ -1507,6 +1581,98 @@ test.describe('Orders', () => {
             // The history should contain payment-related entries
             await expect(page.getByText(/Payment/i).first()).toBeVisible();
         });
+
+        test('should cancel an order whose only payment is authorized', async ({ page }) => {
+            test.setTimeout(90_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createAuthorizedOrder(page, client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByTestId('order-state-control')).toContainText(/Payment authorized/i, {
+                timeout: 10_000,
+            });
+
+            await cancelOrderFromActionBar(page);
+
+            await expect(page.getByTestId('order-state-control')).toContainText(/Cancelled/i, {
+                timeout: 10_000,
+            });
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { state totalWithTax payments { state } } }`,
+                { id: orderId },
+            );
+            expect(order.state).toBe('Cancelled');
+            expect(order.totalWithTax).toBe(0);
+            expect(order.payments.map((p: { state: string }) => p.state)).toEqual(['Authorized']);
+            await expect(page.getByTestId('action-bar-dropdown-trigger')).toHaveCount(0);
+        });
+
+        test('should cancel an order awaiting an additional payment when only an authorized payment exists', async ({
+            page,
+        }) => {
+            test.setTimeout(90_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createAuthorizedOrder(page, client, { awaitAdditionalPayment: true });
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByTestId('order-state-control')).toContainText(
+                /Arranging additional payment/i,
+                { timeout: 10_000 },
+            );
+
+            await cancelOrderFromActionBar(page);
+
+            await expect(page.getByTestId('order-state-control')).toContainText(/Cancelled/i, {
+                timeout: 10_000,
+            });
+            const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { state } }`, {
+                id: orderId,
+            });
+            expect(order.state).toBe('Cancelled');
+        });
+
+        test('should cancel an order with an authorized payment on a mobile viewport', async ({ page }) => {
+            test.setTimeout(90_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createAuthorizedOrder(page, client);
+
+            await page.setViewportSize({ width: 600, height: 900 });
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByTestId('order-state-control')).toContainText(/Payment authorized/i, {
+                timeout: 10_000,
+            });
+
+            await cancelOrderFromActionBar(page);
+
+            await expect(page.getByTestId('order-state-control')).toContainText(/Cancelled/i, {
+                timeout: 10_000,
+            });
+        });
+
+        test('should offer refund and cancel rather than cancel when a payment is settled', async ({
+            page,
+        }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+            await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+            await actionBarEllipsis.click();
+
+            const menu = page.locator('[data-slot="dropdown-menu-content"]');
+            await expect(menu.getByRole('menuitem', { name: /Refund/i })).toBeVisible();
+            await expect(menu.getByRole('menuitem', { name: /^Cancel order$/i })).toHaveCount(0);
+        });
     });
 });
 
@@ -1793,6 +1959,172 @@ async function createModifyingOrder(page: Page): Promise<string> {
     );
 
     return orderId;
+}
+
+async function createAuthorizedOrder(
+    page: Page,
+    client: VendureAdminClient,
+    options: { awaitAdditionalPayment?: boolean } = {},
+): Promise<string> {
+    const methodCode = 'test-authorize-payment';
+    const { paymentMethods } = await client.gql(
+        `query ($code: String!) { paymentMethods(options: { filter: { code: { eq: $code } } }) { items { id } } }`,
+        { code: methodCode },
+    );
+    if (paymentMethods.items.length === 0) {
+        await client.gql(
+            `
+            mutation ($code: String!) {
+                createPaymentMethod(input: {
+                    code: $code
+                    enabled: true
+                    handler: {
+                        code: "dummy-payment-handler",
+                        arguments: [{ name: "automaticSettle", value: "false" }]
+                    }
+                    translations: [{ languageCode: en, name: "Test Authorize Payment", description: "" }]
+                }) { id }
+            }
+        `,
+            { code: methodCode },
+        );
+    }
+
+    const { productVariants } = await client.gql(
+        `query { productVariants(options: { take: 1, filter: { enabled: { eq: true } } }) { items { id } } }`,
+    );
+
+    let shopToken: string | null = null;
+    const shopGql = async (query: string, variables?: Record<string, unknown>) => {
+        const response = await page.request.post(`http://localhost:${VENDURE_PORT}/shop-api`, {
+            headers: shopToken ? { Authorization: `Bearer ${shopToken}` } : {},
+            data: { query, variables },
+        });
+        shopToken = response.headers()['vendure-auth-token'] ?? shopToken;
+        const json = await response.json();
+        if (json.errors?.length) {
+            throw new Error(`Shop API error: ${String(json.errors[0].message)}`);
+        }
+        const failure = Object.values<{ errorCode?: string; message?: string }>(json.data).find(
+            result => result?.errorCode,
+        );
+        if (failure) {
+            throw new Error(`Shop API ${String(failure.errorCode)}: ${String(failure.message)}`);
+        }
+        return json.data;
+    };
+
+    await shopGql(
+        `mutation ($id: ID!) {
+            addItemToOrder(productVariantId: $id, quantity: 1) {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { id: productVariants.items[0].id },
+    );
+    await shopGql(
+        `mutation {
+            setCustomerForOrder(input: {
+                emailAddress: "authorized-order@example.com", firstName: "Authorized", lastName: "Order"
+            }) { ... on Order { id } ... on ErrorResult { errorCode message } }
+        }`,
+    );
+    await shopGql(
+        `mutation {
+            setOrderShippingAddress(input: {
+                fullName: "Test User", streetLine1: "123 Main St", city: "London", countryCode: "GB"
+            }) { ... on Order { id } ... on ErrorResult { errorCode message } }
+        }`,
+    );
+    const { eligibleShippingMethods } = await shopGql(`query { eligibleShippingMethods { id } }`);
+    await shopGql(
+        `mutation ($ids: [ID!]!) {
+            setOrderShippingMethod(shippingMethodId: $ids) {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { ids: [eligibleShippingMethods[0].id] },
+    );
+    await shopGql(
+        `mutation {
+            transitionOrderToState(state: "ArrangingPayment") {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+    );
+    const { addPaymentToOrder } = await shopGql(
+        `mutation ($method: String!) {
+            addPaymentToOrder(input: { method: $method, metadata: {} }) {
+                ... on Order { id state } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { method: methodCode },
+    );
+    const orderId: string = addPaymentToOrder.id;
+
+    if (options.awaitAdditionalPayment) {
+        const transition = async (state: string) => {
+            const { transitionOrderToState } = await client.gql(
+                `
+                mutation ($id: ID!, $state: String!) {
+                    transitionOrderToState(id: $id, state: $state) {
+                        ... on Order { id state }
+                        ... on OrderStateTransitionError { errorCode message transitionError }
+                    }
+                }
+            `,
+                { id: orderId, state },
+            );
+            if (transitionOrderToState?.errorCode) {
+                throw new Error(
+                    `transition to ${state} failed: ${String(transitionOrderToState.errorCode)} ${String(transitionOrderToState.message)}`,
+                );
+            }
+        };
+        await transition('Modifying');
+        const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { lines { id } } }`, {
+            id: orderId,
+        });
+        const { modifyOrder } = await client.gql(
+            `
+            mutation ($input: ModifyOrderInput!) {
+                modifyOrder(input: $input) {
+                    ... on Order { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }
+        `,
+            {
+                input: {
+                    dryRun: false,
+                    orderId,
+                    adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 2 }],
+                },
+            },
+        );
+        if (modifyOrder.errorCode) {
+            throw new Error(
+                `modifyOrder failed: ${String(modifyOrder.errorCode)} ${String(modifyOrder.message)}`,
+            );
+        }
+        await transition('ArrangingAdditionalPayment');
+    }
+
+    return orderId;
+}
+
+async function cancelOrderFromActionBar(page: Page) {
+    const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+    await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+    await actionBarEllipsis.click();
+
+    const menu = page.locator('[data-slot="dropdown-menu-content"]');
+    await expect(menu.getByRole('menuitem', { name: /Refund/i })).toHaveCount(0);
+    await menu.getByRole('menuitem', { name: /^Cancel order$/i }).click();
+
+    const dialog = page.locator('[role="alertdialog"]');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: /^Cancel order$/i }).click();
 }
 
 /**

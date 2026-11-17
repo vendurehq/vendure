@@ -6,6 +6,7 @@ import { addCodegen } from './codegen/add-codegen';
 import { addDashboard } from './dashboard/add-dashboard';
 import { addEntity } from './entity/add-entity';
 import { addJobQueue } from './job-queue/add-job-queue';
+import { addPlatform } from './platform/add-platform';
 import { createNewPlugin } from './plugin/create-new-plugin';
 import { addService } from './service/add-service';
 
@@ -18,6 +19,14 @@ export const addCommandDef: CliCommandDefinition = {
             long: '--config <path>',
             description: 'Specify the path to a custom Vendure config file',
             required: false,
+        },
+        {
+            // First, so it is the default entry of the interactive menu.
+            long: '--platform',
+            description: 'Vendure Platform features (B2B, advanced search, ...), free trial',
+            required: false,
+            interactiveId: 'add-platform',
+            interactiveFn: addPlatform,
         },
         {
             short: '-p',

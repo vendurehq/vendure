@@ -10,6 +10,7 @@ import { addCommandDef } from './command';
 import { addDashboard } from './dashboard/add-dashboard';
 import { addEntity } from './entity/add-entity';
 import { addJobQueue } from './job-queue/add-job-queue';
+import { addPlatform } from './platform/add-platform';
 import { createNewPlugin } from './plugin/create-new-plugin';
 import { addService } from './service/add-service';
 import { addUiExtensions } from './ui-extensions/add-ui-extensions';
@@ -17,6 +18,8 @@ import { addUiExtensions } from './ui-extensions/add-ui-extensions';
 const cancelledMessage = 'Add feature cancelled.';
 
 export interface AddOptions {
+    /** Link to Vendure Console, start the Platform trial and install Platform */
+    platform?: boolean;
     /** Create a new plugin with the given name */
     plugin?: string;
     /** Add a new entity class with the given name */
@@ -69,7 +72,9 @@ export async function addCommand(options?: AddOptions) {
 async function handleNonInteractiveMode(options: AddOptions) {
     try {
         // Route to the appropriate function based on which flag was set
-        if (options.plugin) {
+        if (options.platform) {
+            await addPlatform();
+        } else if (options.plugin) {
             // Validate that a plugin name was provided
             if (typeof options.plugin !== 'string' || !options.plugin.trim()) {
                 throw new Error('Plugin name is required. Usage: vendure add -p <plugin-name>');
@@ -284,7 +289,9 @@ async function handleInteractiveMode() {
             ?.filter(opt => opt.interactiveId && opt.interactiveFn)
             .map(opt => ({
                 value: opt.interactiveId as string,
-                label: `${pc.blue(opt.interactiveCategory as string)} ${opt.description}`,
+                label: opt.interactiveCategory
+                    ? `${pc.blue(opt.interactiveCategory)} ${opt.description}`
+                    : opt.description,
                 fn: opt.interactiveFn as () => Promise<any>,
             })) ?? [];
 

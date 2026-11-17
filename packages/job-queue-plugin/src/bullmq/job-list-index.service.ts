@@ -30,6 +30,8 @@ export class JobListIndexService {
     private queue: Queue | undefined;
     private queueEvents: QueueEvents | undefined;
     private readonly indexOperationChains = new Map<string, Promise<void>>();
+    private migration: Promise<void> | undefined;
+    private closing = false;
     private allStates: JobType[] = [
         'wait',
         'active',
@@ -58,15 +60,21 @@ export class JobListIndexService {
             prefix: getPrefix(this.options),
         });
         this.setupEventListeners();
-        void this.migrateExistingJobs();
+        this.migration = this.migrateExistingJobs().catch((e: Error) =>
+            Logger.error(`Failed to migrate jobs: ${e.message}`, loggerCtx, e.stack),
+        );
     }
 
     /**
      * @description
-     * Closes the QueueEvents connection. Should be called when the strategy is destroyed.
+     * Closes the QueueEvents connection and waits for the migration and index operations which
+     * are still running, so that the strategy can then close the Redis connection they use.
+     * Should be called when the strategy is destroyed.
      */
     async close() {
+        this.closing = true;
         await this.queueEvents?.close();
+        await Promise.allSettled([this.migration, ...this.indexOperationChains.values()]);
     }
 
     private setupEventListeners() {
@@ -194,6 +202,9 @@ export class JobListIndexService {
 
         // Get all jobs from each state
         for (const state of this.allStates) {
+            if (this.closing) {
+                break;
+            }
             if (counts[state] > 0) {
                 Logger.debug(`Processing ${counts[state]} jobs in ${state} state`, loggerCtx);
                 if (!this.queue) {
@@ -206,7 +217,7 @@ export class JobListIndexService {
                     const queue = this.queue;
                     const jobIds = await queue.getRanges([state], 0, counts[state]);
                     const jobs: Array<Pick<Job, 'id' | 'name' | 'timestamp'>> = [];
-                    for (let i = 0; i < jobIds.length; i += this.BATCH_SIZE) {
+                    for (let i = 0; i < jobIds.length && !this.closing; i += this.BATCH_SIZE) {
                         const batch = jobIds.slice(i, i + this.BATCH_SIZE);
                         const metadata = await Promise.all(
                             batch.map(id => this.redis.hmget(queue.toKey(id), 'name', 'timestamp')),

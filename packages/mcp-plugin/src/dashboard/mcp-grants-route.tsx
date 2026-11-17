@@ -15,7 +15,7 @@ export const mcpGrantsRoute: DashboardRouteDefinition = {
         sectionId: 'mcp-server',
         id: 'mcp-server-grants',
         url: '/mcp-server/grants',
-        title: 'Grants',
+        title: /* i18n*/ 'Grants',
         order: 400,
         requiresPermission: 'ReadMcpServer',
     },

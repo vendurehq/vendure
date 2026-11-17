@@ -986,6 +986,11 @@ export function PageBlock({
     );
 }
 
+// The `control` of any react-hook-form form. Since react-hook-form 7.72.0 a form's `Control<T>`
+// is not assignable to `Control<any, any>`. Typing every member as `any` keeps the check that
+// the value is a control, and the type is still assignable to `Control<any>` where it is read.
+type AnyFormControl = { [K in keyof Control<any, any, any>]: any };
+
 /**
  * @description
  * **Status: Developer Preview**
@@ -1034,7 +1039,7 @@ export function CustomFieldsPageBlock({
 }: Readonly<{
     column: 'main' | 'side';
     entityType: string;
-    control: Control<any, any>;
+    control: AnyFormControl;
 }>) {
     const customFieldConfig = useCustomFieldConfig(entityType);
     const isServerConfigLoaded = useIsServerConfigLoaded();

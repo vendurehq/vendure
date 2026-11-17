@@ -82,9 +82,11 @@ export function createCliConfigDir(temporaryDirectories: string[]): string {
     return directory;
 }
 
-/** Console's `GET /v1/projects`, trimmed to the fields the CLI reads plus one it ignores. */
+/** Console's `GET /v1/projects`, trimmed to the fields the CLI reads. */
 export function projectList(
-    projects: Array<{ id: string; name: string; state?: string }> = [{ id: PROJECT_ID, name: 'Storefront' }],
+    projects: Array<{ id: string; name: string; state?: string; slug?: string }> = [
+        { id: PROJECT_ID, name: 'Storefront' },
+    ],
 ): unknown[] {
     return projects.map(project => ({ state: 'active', slug: project.name.toLowerCase(), ...project }));
 }

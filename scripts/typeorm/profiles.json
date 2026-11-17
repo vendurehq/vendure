@@ -8,7 +8,7 @@
             "better-sqlite3": "11.10.0"
         },
         "1": {
-            "typeorm": "1.1.0",
+            "typeorm": "1.1.2",
             "@nestjs/typeorm": "12.0.1",
             "better-sqlite3": "12.11.1"
         }

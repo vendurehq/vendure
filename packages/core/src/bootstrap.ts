@@ -47,6 +47,7 @@ import {
 } from './plugin/plugin-metadata';
 import { getPluginStartupMessages } from './plugin/plugin-utils';
 import { setProcessContext } from './process-context/process-context';
+import { logStartupBanner } from './startup-banner';
 import { isTelemetryDisabled } from './telemetry/helpers/is-telemetry-disabled.helper';
 import { VENDURE_VERSION } from './version';
 import { VendureWorker } from './worker/vendure-worker';
@@ -251,6 +252,7 @@ export async function bootstrap(
     await app.listen(port, hostname || '');
     app.enableShutdownHooks();
     logWelcomeMessage(config);
+    logStartupBanner('server');
     await app.get(EventBus).publish(new BootstrappedEvent());
     return app;
 }
@@ -303,6 +305,7 @@ export async function bootstrapWorker(
     workerApp.enableShutdownHooks();
     await validateDbTablesForWorker(workerApp);
     Logger.info('Vendure Worker is ready');
+    logStartupBanner('worker');
     await workerApp.get(EventBus).publish(new BootstrappedEvent());
     return new VendureWorker(workerApp);
 }

@@ -364,6 +364,11 @@ msgstr "Сигурни ли сте, че искате да изтриете то
 #~ msgid "Light"
 #~ msgstr "Светло"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
+msgstr "{0, plural, one {Преместване на # колекция в избраната колекция} other {Преместване на # колекции в избраната колекция}}"
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Всички ресурси работят"
@@ -440,6 +445,7 @@ msgid "No widgets to add"
 msgstr "Няма уиджети за добавяне"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -775,6 +781,10 @@ msgstr "Преместване на колекции"
 msgid "Roles"
 msgstr "Роли"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "This cancels every item in the order and releases the allocated stock. No payment is refunded or cancelled."
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Grid view"
 msgstr "Изглед мрежа"
@@ -898,6 +908,13 @@ msgstr ""
 msgid "Successfully updated channel"
 msgstr "Каналът е актуализиран успешно"
 
+#. placeholder {0}: lines.length
+#. placeholder {0}: summary.count
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
+msgid "{0, plural, one {# item} other {# items}}"
+msgstr "{0, plural, one {# артикул} other {# артикула}}"
+
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
 msgstr "Покажи по-малко"
@@ -1007,11 +1024,9 @@ msgstr "Сигурни ли сте, че искате да изтриете та
 msgid "Fulfillment created"
 msgstr "Създадено изпълнение"
 
-#. placeholder {0}: testResult.length
-#. placeholder {1}: testResult.length !== 1 ? 's' : ''
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
-msgid "Found {0} eligible shipping method{1}"
-msgstr "Намерен е {0} отговарящ на условията метод за доставка{1}"
+#~ msgid "Found {0} eligible shipping method{1}"
+#~ msgstr "Намерен е {0} отговарящ на условията метод за доставка{1}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
@@ -1281,8 +1296,8 @@ msgid "Table settings"
 msgstr "Настройки на таблицата"
 
 #: src/lib/components/layout/nav-user.tsx
-msgid "Explore Platform & Cloud"
-msgstr "Разгледайте Platform & Cloud"
+#~ msgid "Explore Platform & Cloud"
+#~ msgstr "Разгледайте Platform & Cloud"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 5 seconds"
@@ -1384,6 +1399,11 @@ msgstr "API Keys"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Search {name}..."
 msgstr "Търсене на {name}..."
+
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+msgstr "{0, plural, one {Сигурни ли сте, че искате да премахнете # държава от тази зона?} other {Сигурни ли сте, че искате да премахнете # държави от тази зона?}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1545,6 +1565,11 @@ msgstr "Наличност"
 msgid "No sales for this period"
 msgstr "Няма продажби за този период"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Asset"
+msgstr "Избери ресурс"
+
 #: src/lib/components/shared/customer-selector.tsx
 msgid "No customers found"
 msgstr "Няма намерени клиенти"
@@ -1702,6 +1727,11 @@ msgstr "Успешно актуализирана промоция"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Неуспешно отменяне на {rejected} задача} other {Неуспешно отменяне на {rejected} задачи}}"
 
+#. placeholder {0}: failedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Failed to upload # asset} other {Failed to upload # assets}}"
+msgstr "{0, plural, one {Неуспешно качване на # ресурс} other {Неуспешно качване на # ресурса}}"
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "We couldn't load these metrics"
 msgstr "Не успяхме да заредим тези метрики"
@@ -1783,6 +1813,11 @@ msgstr "Назад"
 msgid "+ {leftOver} more"
 msgstr "+ още {leftOver}"
 
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
+msgstr "{0, plural, one {Премахната # държава от зоната} other {Премахнати # държави от зоната}}"
+
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Use as the default billing address"
 msgstr "Използвайте като адрес за фактуриране по подразбиране"
@@ -1852,6 +1887,10 @@ msgstr "Филтри"
 #~ msgid "Last 7 days"
 #~ msgstr "Последните 7 дни"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#~ msgid "selected collection"
+#~ msgstr "избраната колекция"
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Customer Groups"
@@ -1906,10 +1945,9 @@ msgstr "Създаден"
 msgid "Loading addresses..."
 msgstr "Адресите се зареждат..."
 
-#. placeholder {0}: collectionsToMove.length === 1 ? 'this collection' : `${collectionsToMove.length} collections`
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Select a target collection to move {0} to."
-msgstr "Изберете целева колекция, към която да преместите {0}."
+#~ msgid "Select a target collection to move {0} to."
+#~ msgstr "Изберете целева колекция, към която да преместите {0}."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
@@ -1972,6 +2010,7 @@ msgstr "Вмъкни таблица {row} на {col}"
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
@@ -2164,6 +2203,11 @@ msgstr "Неуспешно актуализиране на данъчната к
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "Възстановяването е приключено успешно"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, =1 {Select a target collection to move this collection to.} other {Select a target collection to move # collections to.}}"
+msgstr "{0, plural, =1 {Изберете целева колекция, към която да преместите тази колекция.} other {Изберете целева колекция, към която да преместите # колекции.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -2911,10 +2955,9 @@ msgstr "Размер, цвят и т.н."
 msgid "Browse facets"
 msgstr "Преглед на атрибути"
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} items"
-msgstr ""
+#~ msgid "{0} items"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
@@ -3174,6 +3217,10 @@ msgstr "Преизчисляване на доставката"
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "Изберете кои опции да се прилагат към съществуващия вариант „{0}“"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "{totalItems, plural, one {# asset found} other {# assets found}}"
+msgstr "{totalItems, plural, one {Намерен # ресурс} other {Намерени # ресурса}}"
+
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
@@ -3222,6 +3269,7 @@ msgstr "Повтори"
 msgid "Select a role"
 msgstr "Изберете роля"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
@@ -3322,6 +3370,11 @@ msgstr "Опции на продукта"
 msgid "Select country"
 msgstr "Изберете държава"
 
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection to the top level} other {Moving # collections to the top level}}"
+msgstr "{0, plural, one {Преместване на # колекция на най-горното ниво} other {Преместване на # колекции на най-горното ниво}}"
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund only partially completed"
 msgstr ""
@@ -3360,8 +3413,13 @@ msgid "Failed to remove customer from group"
 msgstr "Неуспешно премахване на клиент от групата"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 property"
-msgstr ""
+#~ msgid "1 property"
+#~ msgstr ""
+
+#. placeholder {0}: testResult.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
+msgid "{0, plural, one {Found # eligible shipping method} other {Found # eligible shipping methods}}"
+msgstr "{0, plural, one {Намерен е # отговарящ на условията метод за доставка} other {Намерени са # отговарящи на условията метода за доставка}}"
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Upload failed (HTTP {detail})"
@@ -3493,11 +3551,9 @@ msgstr "Вчера"
 #~ msgid "Option name"
 #~ msgstr "Име на опцията"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr "Сигурни ли сте, че искате да премахнете {0} {1} от тази зона?"
+#~ msgid "Are you sure you want to remove {0} {1} from this zone?"
+#~ msgstr "Сигурни ли сте, че искате да премахнете {0} {1} от тази зона?"
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -4263,9 +4319,17 @@ msgstr "Създаване на нов вариант на продукт с о�
 msgid "Private facets are not visible in the shop"
 msgstr "Частните аспекти не се виждат в магазина"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select an asset"
+msgstr "Разгледайте и изберете ресурс"
+
 #: src/lib/components/shared/tax-category-selector.tsx
 msgid "Select a tax category"
 msgstr "Изберете данъчна категория"
+
+#: src/lib/components/layout/nav-user.tsx
+msgid "Plans"
+msgstr ""
 
 #~ msgid "fulfillmentState.Created"
 #~ msgstr "Създадено"
@@ -4454,6 +4518,11 @@ msgstr "Нов канал"
 msgid "Option Group Name"
 msgstr "Име на група опции"
 
+#. placeholder {0}: selectedAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Select # Asset} other {Select # Assets}}"
+msgstr "{0, plural, one {Избери # ресурс} other {Избери # ресурса}}"
+
 #: src/lib/components/data-input/combination-mode-input.tsx
 msgid "AND"
 msgstr "И"
@@ -4613,12 +4682,9 @@ msgstr "Изберете следващо състояние"
 msgid "No alerts"
 msgstr "Няма сигнали"
 
-#. placeholder {0}: collectionsToMove.length
-#. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
-#. placeholder {2}: selectedCollectionId === topLevelCollectionId ? 'top level' : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Moving {0} collection{1} into {2}"
-msgstr "Преместване на {0} колекция{1} в {2}"
+#~ msgid "Moving {0} collection{1} into {2}"
+#~ msgstr "Преместване на {0} колекция{1} в {2}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
@@ -4727,6 +4793,11 @@ msgstr "Улица 2"
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Global view deleted successfully"
 msgstr "Глобалният изглед е изтрит успешно"
+
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx
+msgid "{0, plural, one {# property} other {# properties}}"
+msgstr "{0, plural, one {# свойство} other {# свойства}}"
 
 #: src/app/routes/_authenticated/index.tsx
 #~ msgid "Edit Layout"
@@ -5085,11 +5156,9 @@ msgstr "Тестване методите за доставка"
 msgid "Payment settled successfully"
 msgstr "Плащането е приключено успешно"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Removed {0} {1} from zone"
-msgstr "Премахнати {0} {1} от зоната"
+#~ msgid "Removed {0} {1} from zone"
+#~ msgstr "Премахнати {0} {1} от зоната"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -5789,10 +5858,9 @@ msgstr "Склад на ръка"
 msgid "New address"
 msgstr ""
 
-#. placeholder {0}: summary.count
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "{0} properties"
-msgstr ""
+#~ msgid "{0} properties"
+#~ msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
 msgid "Filter by {columnId}"
@@ -5963,6 +6031,11 @@ msgstr "Добавете тагове..."
 #~ msgid "Failed to create product option group"
 #~ msgstr "Неуспешно създаване на група опции за продукти"
 
+#. placeholder {0}: createdAssets.length
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "{0, plural, one {Uploaded # asset} other {Uploaded # assets}}"
+msgstr "{0, plural, one {Качен # ресурс} other {Качени # ресурса}}"
+
 #. placeholder {0}: selectedIds.length
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "{0} items selected"
@@ -6075,10 +6148,9 @@ msgstr "Данъчни ставки"
 msgid "Failed to remove customers from group"
 msgstr "Неуспешно премахване на клиенти от групата"
 
-#. placeholder {0}: failedAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Failed to upload {0} assets"
-msgstr ""
+#~ msgid "Failed to upload {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"
@@ -6228,6 +6300,12 @@ msgstr "Запазих този API key"
 msgid "Configure available languages for your store and channels"
 msgstr "Конфигурирайте наличните езици за вашия магазин и канали"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully created product"
 msgstr "Успешно създаден продукт"
@@ -6349,6 +6427,10 @@ msgstr "пр. данък:"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Successfully added option value"
 msgstr "Успешно добавена стойност на опцията"
+
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#~ msgid "top level"
+#~ msgstr "най-горното ниво"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
@@ -6636,8 +6718,8 @@ msgid "Language"
 msgstr "Език"
 
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
-msgid "1 item"
-msgstr ""
+#~ msgid "1 item"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "New Collection"
@@ -6646,6 +6728,10 @@ msgstr "Нова колекция"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund and cancel order"
 msgstr "Възстановяване и анулиране на поръчка"
+
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Select Assets"
+msgstr "Избери ресурси"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -6733,10 +6819,9 @@ msgstr "Успешно актуализиран аспект"
 msgid "Strikethrough"
 msgstr "Зачертан"
 
-#. placeholder {0}: createdAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
-msgid "Uploaded {0} assets"
-msgstr ""
+#~ msgid "Uploaded {0} assets"
+#~ msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
@@ -7058,6 +7143,10 @@ msgstr ""
 #~ msgid "Yesterday"
 #~ msgstr "Вчера"
 
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
+msgid "Browse and select one or more assets"
+msgstr "Разгледайте и изберете един или повече ресурса"
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "Колекциите се зареждат..."
@@ -7278,6 +7367,10 @@ msgstr "Добавете плащане към поръчката"
 #~ msgid "Loading..."
 #~ msgstr "Зареждане..."
 
+#: src/lib/providers/auth.tsx
+msgid "You do not have access to any channel"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Създайте варианти за комбинациите от опции, които все още не съществуват. Комбинациите, които вече съществуват, са показани за контекст и не могат да бъдат редактирани."
@@ -7338,13 +7431,18 @@ msgid "Failed to add customer to group"
 msgstr "Неуспешно добавяне на клиент към групата"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
-msgstr ""
+#~ msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Manage variants"
 msgstr "Управление на варианти"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into {destination}} other {Moving # collections into {destination}}}"
+msgstr "{0, plural, one {Преместване на # колекция в: {destination}} other {Преместване на # колекции в: {destination}}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied global view \"{viewName}\""
@@ -7362,6 +7460,11 @@ msgstr ""
 #: src/lib/framework/defaults.ts
 msgid "Zones"
 msgstr "Зони"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Failed to cancel order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_sellers/sellers.tsx
 #: src/lib/components/shared/seller-selector.tsx
@@ -7384,6 +7487,10 @@ msgstr "Процес на поръчката"
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "Телефонен номер"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Keep order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx

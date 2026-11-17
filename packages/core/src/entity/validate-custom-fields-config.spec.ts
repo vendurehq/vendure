@@ -211,6 +211,22 @@ describe('validateCustomFieldsConfig()', () => {
         ]);
     });
 
+    it('rejects an eager relation to the entity it is defined on', () => {
+        const config: CustomFields = {
+            Product: [
+                { name: 'related', type: 'relation', entity: coreEntitiesMap.Product, eager: true },
+                { name: 'lazyRelated', type: 'relation', entity: coreEntitiesMap.Product },
+                { name: 'variant', type: 'relation', entity: coreEntitiesMap.ProductVariant, eager: true },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity custom field "related" is an eager relation to Product itself, which TypeORM cannot load. Remove "eager: true".',
+        ]);
+    });
+
     it('rejects an index on a list field assembled dynamically', () => {
         const fields = [{ name: 'tags', type: 'string', list: true, index: true }];
         const config: CustomFields = { Product: fields as CustomFields['Product'] };

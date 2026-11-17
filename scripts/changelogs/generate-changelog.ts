@@ -40,6 +40,12 @@ const VALID_SCOPES: string[] = [
     'telemetry-plugin',
 ];
 
+/**
+ * The default conventional-commits header pattern, plus `,` in the scope so that commits such as
+ * `feat(core,dashboard): ...` are parsed instead of silently dropped.
+ */
+const HEADER_PATTERN = /^(\w*)(?:\(([\w$.\-*/, ]*)\))?: (.*)$/;
+
 const mainTemplate = fs.readFileSync(path.join(__dirname, 'template.hbs'), 'utf-8');
 const commitTemplate = fs.readFileSync(path.join(__dirname, 'commit.hbs'), 'utf-8');
 
@@ -55,6 +61,12 @@ function generateChangelogForPackage() {
     conventionalChangelogCore(
         {
             transform: (commit: any, context: any) => {
+                restoreReappliedCommit(commit);
+                if (commit.revert) {
+                    // Kept so that the writer's `ignoreReverted` can drop the commit it reverts when
+                    // both are in the release. Reverts themselves are removed in `finalizeContext`.
+                    return context(null, commit);
+                }
                 const includeCommit = VALID_TYPES.includes(commit.type) && scopeIsValid(commit.scope);
                 if (includeCommit) {
                     return context(null, commit);
@@ -69,11 +81,14 @@ function generateChangelogForPackage() {
             version: require('../../lerna.json').version,
         },
         null,
-        null,
+        { headerPattern: HEADER_PATTERN },
         {
             mainTemplate,
             commitPartial: commitTemplate,
             finalizeContext(context: any, options: any, commits: any) {
+                context.commitGroups = context.commitGroups
+                    .map((group: any) => ({ ...group, commits: group.commits.filter((c: any) => !c.revert) }))
+                    .filter((group: any) => group.commits.length);
                 context.commitGroups.forEach(addHeaderToCommitGroup);
                 return context;
             },
@@ -88,6 +103,31 @@ function generateChangelogForPackage() {
                     fs.unlinkSync(tempFile);
                 });
         });
+}
+
+/**
+ * A commit that reverts a revert re-applies the original change, but its own header matches no
+ * conventional-commit type, so it would be dropped. Treat it as the original commit instead.
+ * It takes one of three forms:
+ * - `Revert "Revert "<header>""`, from `git revert` on older git. The parser also records
+ *   which revert it undoes, in `commit.revert`.
+ * - `Reapply "<header>"`, from `git revert` on newer git.
+ * - `Revert "Revert "<header>"" (#123)`, from GitHub's Revert button.
+ */
+function restoreReappliedCommit(commit: any) {
+    const originalHeader =
+        commit.revert?.header?.match(/^Revert "(.*)"$/)?.[1] ??
+        commit.header
+            ?.match(/^(?:Reapply "(.*)"|Revert "Revert "(.*)""(?: \(#\d+\))?)$/)
+            ?.slice(1)
+            .find(Boolean);
+    const parsed = originalHeader?.match(HEADER_PATTERN);
+    if (!parsed) {
+        return;
+    }
+    [, commit.type, commit.scope, commit.subject] = parsed;
+    commit.header = originalHeader;
+    commit.revert = null;
 }
 
 function scopeIsValid(scope?: string): boolean {

@@ -12,7 +12,7 @@ defineDashboardExtension({
     navSections: [
         {
             id: 'mcp-server',
-            title: 'MCP Server',
+            title: /* i18n*/ 'MCP Server',
             icon: PlugIcon,
             // order 250 lands below the core "System" section, which is at 200.
             placement: 'bottom',

@@ -10,6 +10,7 @@ import * as codegenModule from './codegen/add-codegen';
 import { addCommandDef } from './command';
 import * as entityModule from './entity/add-entity';
 import * as jobQueueModule from './job-queue/add-job-queue';
+import * as platformModule from './platform/add-platform';
 import * as pluginModule from './plugin/create-new-plugin';
 import * as serviceModule from './service/add-service';
 import * as uiExtensionsModule from './ui-extensions/add-ui-extensions';
@@ -62,6 +63,9 @@ vi.mock('./codegen/add-codegen', () => ({
 }));
 vi.mock('./api-extension/add-api-extension', () => ({
     addApiExtension: vi.fn(),
+}));
+vi.mock('./platform/add-platform', () => ({
+    addPlatform: vi.fn(),
 }));
 vi.mock('./ui-extensions/add-ui-extensions', () => ({
     addUiExtensions: vi.fn(),
@@ -306,6 +310,48 @@ describe('add command', () => {
             await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalledWith('scaffold failed');
+        });
+
+        // OSS-893: the Platform entry is first, so it is the default selection.
+        it('offers the Platform entry first in the menu', async () => {
+            const { select } = await import('@clack/prompts');
+
+            await addCommandDef.action(undefined);
+
+            const { options } = vi.mocked(select).mock.calls[0][0];
+            expect(options[0]).toEqual({
+                value: 'add-platform',
+                label: 'Vendure Platform features (B2B, advanced search, ...), free trial',
+            });
+            expect(options.slice(1).map(option => option.value)).toEqual([
+                'create-new-plugin',
+                'add-entity',
+                'add-service',
+                'add-job-queue',
+                'add-codegen',
+                'add-api-extension',
+                'add-dashboard',
+            ]);
+        });
+
+        it('runs the Platform flow when the Platform entry is selected', async () => {
+            const { select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('add-platform' as never);
+            vi.mocked(platformModule.addPlatform).mockResolvedValueOnce({
+                project: undefined,
+                modifiedSourceFiles: [],
+            });
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(0);
+
+            expect(platformModule.addPlatform).toHaveBeenCalled();
+        });
+
+        it('runs the Platform flow for --platform', async () => {
+            await expect(addCommandDef.action({ platform: true })).resolves.toBe(0);
+
+            expect(platformModule.addPlatform).toHaveBeenCalled();
+            expect(mockCreateNewPlugin).not.toHaveBeenCalled();
         });
 
         it('returns success after an interactive scaffold completes', async () => {

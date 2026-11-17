@@ -12,3 +12,14 @@ declare module 'i18next-icu' {
 declare module 'i18next-fs-backend' {
     // default
 }
+
+// Only used by e2e/migrate-command.e2e-spec.ts. A stub avoids adding @types/better-sqlite3
+// as a dependency for one test call site.
+declare module 'better-sqlite3' {
+    class Database {
+        constructor(filename: string);
+        exec(sql: string): this;
+        close(): this;
+    }
+    export default Database;
+}

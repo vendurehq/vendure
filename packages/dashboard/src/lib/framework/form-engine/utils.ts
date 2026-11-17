@@ -24,6 +24,8 @@ import { UseFormReturn } from 'react-hook-form';
 
 import { FieldInfo } from '../document-introspection/get-document-structure.js';
 
+import { toRelationIdValue } from './relation-id-value.js';
+
 /**
  * Transforms relation fields in an entity, extracting IDs from relation objects.
  * This is primarily used for custom fields of type "ID".
@@ -59,17 +61,16 @@ export function transformRelationFields<E extends Record<string, any>>(fields: F
                     const propertyAccessorKey = customField.name.replace(/Ids$/, '');
                     const relationValue = sourceCustomFields[propertyAccessorKey];
 
-                    if (relationValue === null) {
-                        customFieldsCopy[relationField] = null;
-                    } else if (Array.isArray(relationValue)) {
-                        customFieldsCopy[relationField] = relationValue.map((v: { id: string }) => v.id);
+                    const ids = toRelationIdValue(relationValue, true);
+                    if (ids !== undefined) {
+                        customFieldsCopy[relationField] = ids;
                     }
                     delete customFieldsCopy[propertyAccessorKey];
                 } else {
                     // For single fields, the accessor is the field name without the "Id" suffix
                     const propertyAccessorKey = customField.name.replace(/Id$/, '');
                     const relationValue = sourceCustomFields[propertyAccessorKey];
-                    customFieldsCopy[relationField] = relationValue === null ? null : relationValue?.id;
+                    customFieldsCopy[relationField] = toRelationIdValue(relationValue, false);
                     delete customFieldsCopy[propertyAccessorKey];
                 }
             }

@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
-import { requireFromProject, requireProjectCore } from '../../../shared/project-core';
+import { requireFromProjectCore, requireProjectCore } from '../../../shared/project-core';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 import { type SchemaOptions } from '../schema';
@@ -19,13 +19,13 @@ export async function generateSchema(options: SchemaOptions) {
     // different copy here would give the two of them separate singletons, so
     // the config written below would not be the config read back.
     const core = requireProjectCore();
-    // The project's GraphQL, for the same reason as core, and for one more: the
-    // schema these functions are given was built by the project's copy. Two
-    // physical copies of the same version do not recognise each other's types,
-    // so printing a project schema with the CLI's copy fails with "Cannot use
-    // GraphQLObjectType from another module or realm".
+    // The GraphQL that the project's core uses, for the same reason as core,
+    // and for one more: the schema these functions are given was built by
+    // core's copy. Two physical copies of the same version do not recognise
+    // each other's types, so printing a core schema with any other copy fails
+    // with "Cannot use GraphQLObjectType from another module or realm".
     const { getIntrospectionQuery, graphqlSync, printSchema } =
-        requireFromProject<typeof import('graphql')>('graphql');
+        requireFromProjectCore<typeof import('graphql')>('graphql');
     core.resetConfig();
     try {
         const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
@@ -39,7 +39,7 @@ export async function generateSchema(options: SchemaOptions) {
             apiType === 'shop' ? core.VENDURE_SHOP_API_TYPE_PATHS : core.VENDURE_ADMIN_API_TYPE_PATHS;
 
         const runtimeConfig = await core.runPluginConfigurations(core.getConfig() as any);
-        const { GraphQLTypesLoader } = requireFromProject<{
+        const { GraphQLTypesLoader } = requireFromProjectCore<{
             GraphQLTypesLoader: new () => GraphQLTypesLoaderType;
         }>('@nestjs/graphql');
         const typesLoader = new GraphQLTypesLoader();

@@ -21,7 +21,7 @@ A randomly generated UUID that identifies your Vendure installation. This ID is:
 
 - Generated using `crypto.randomUUID()` (not derived from any system information)
 - Stored primarily in the database (via the internal Settings Store), with a filesystem fallback at `.vendure/.installation-id` in your project root
-- Used only to deduplicate telemetry events
+- Used to deduplicate telemetry events and, for a project linked to Vendure Console, to attribute them to the Console Project (see [Linked projects](#linked-projects))
 
 ### Version Information
 
@@ -114,6 +114,22 @@ The following data is explicitly **not** collected:
 - CORS origin lists, API paths, or database connection details
 - Custom strategy class names (only the config path that was customized)
 - Any personally identifiable information (PII)
+
+## Linked projects
+
+When you run [`vendure console link`](/guides/developer-guide/cli/#telemetry-attribution), the CLI sends the
+installation ID to Vendure Console. Console then attributes the telemetry of this installation to the linked Console
+Project. For a linked project, telemetry is not anonymous: Vendure can see which Project the data comes from. Linking
+is your consent to this.
+
+The telemetry events do not change. Only a linked installation is attributed. A project that was never linked sends
+anonymous telemetry, as before. `vendure console unlink` tells Console to stop the attribution, and `vendure console
+status` shows whether the current link attributes telemetry. If the unlink request to Console fails, the CLI still
+removes the local link, and Console continues to attribute telemetry from this installation until the attribution is
+removed. Set `VENDURE_DISABLE_TELEMETRY=true` to stop telemetry in that case.
+
+`VENDURE_DISABLE_TELEMETRY=true` turns telemetry off for linked and unlinked projects. With this variable set,
+`vendure console link` does not send an installation ID.
 
 ## How We Use This Data
 

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+    isRenewalRefused,
     NotLoggedInError,
     ReauthenticationRequiredError,
     SessionLockUnavailableError,
@@ -13,6 +14,7 @@ import {
 } from './auth-errors';
 import { AuthOptions } from './auth-options';
 import {
+    checkAuthStatus,
     getAccessToken,
     listOrganizations,
     loginWithDevice,
@@ -287,7 +289,7 @@ describe('loginWithDevice', () => {
 
         await expect(
             loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Acme' }),
-        ).rejects.toThrow(/More than one.*\n.*11111111/s);
+        ).rejects.toThrow(/More than one of your Customer Accounts is named "Acme"[\s\S]*11111111/);
         expect(readStoredAuth(options)).toBeUndefined();
     });
 
@@ -301,7 +303,7 @@ describe('loginWithDevice', () => {
                 viewer(),
             ]);
             await expect(loginWithDevice({ ...options, fetch: run.fetch, organization })).rejects.toThrow(
-                /not an active member.*Example GmbH/s,
+                /not an active member[\s\S]*Example GmbH/,
             );
         }
         expect(readStoredAuth(options)).toBeUndefined();
@@ -343,7 +345,7 @@ describe('loginWithDevice', () => {
         await expect(
             loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Example GmbH' }),
         ).rejects.toThrow(
-            'Example GmbH requires a new sign-in through WorkOS (sso_required). Run `vendure auth login` without --organization and choose Example GmbH in the browser.',
+            'Example GmbH requires a new sign-in (sso_required). Run `vendure auth login` without --organization and choose Example GmbH in the browser.',
         );
         expect(readStoredAuth(options)).toBeUndefined();
     });
@@ -536,6 +538,61 @@ describe('refreshAccessToken', () => {
         expect(readStoredAuth(options)).toBeUndefined();
     });
 
+    // OSS-930: an invalid_grant refusal showed no code.
+    it('names the code of a refused refresh token and attaches code and status', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
+
+        const error = await refreshAccessToken(failed, { ...options, fetch: workos.fetch }).catch(e => e);
+
+        expect(error).toBeInstanceOf(SessionRejectedError);
+        expect(error.message).toBe(
+            'The authentication service refused to renew your CLI session: invalid_grant (HTTP 400). ' +
+                'Run `vendure auth login` to sign in again.',
+        );
+        expect(error).toMatchObject({ code: 'invalid_grant', status: 400, nextStep: 'vendure auth login' });
+    });
+
+    it('attaches code and status to a refusal it keeps the login for', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_client' } }]);
+
+        const error = await refreshAccessToken(failed, { ...options, fetch: workos.fetch }).catch(e => e);
+
+        expect(error).toBeInstanceOf(SessionRefreshUnavailableError);
+        expect(error).toMatchObject({ code: 'invalid_client', status: 400 });
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+    });
+
+    it('sets no code or status when the authentication service cannot be reached', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+
+        const fetch = (() => Promise.reject(new Error('offline'))) as typeof globalThis.fetch;
+
+        const error = await refreshAccessToken(failed, { ...options, fetch }).catch(e => e);
+
+        expect(error).toBeInstanceOf(SessionRefreshUnavailableError);
+        expect(error.message).toBe('Could not reach the authentication service to renew your CLI session.');
+        expect(error.code).toBeUndefined();
+        expect(error.status).toBeUndefined();
+    });
+
+    // CLO-1083: the renewal fails the same way as the login when the user holds too many roles.
+    it('says what to do when the renewed token would be too big', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'token_too_big' } }]);
+
+        await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toThrow(
+            'Could not renew the CLI session. Your account holds too many roles in the organization for a ' +
+                'sign-in token. Ask an organization admin to remove the roles you do not need from your membership, then try again. ' +
+                'The authentication service answered token_too_big (HTTP 400).',
+        );
+    });
+
     it('keeps the login on a transient failure', async () => {
         const failed = accessToken(3600);
         writeStoredAuth(storedAuth({ accessToken: failed }), options);
@@ -629,8 +686,9 @@ describe('refreshAccessToken', () => {
 
         expect(error).toBeInstanceOf(ReauthenticationRequiredError);
         expect(error.code).toBe(code);
+        expect(error.status).toBe(403);
         expect(error.message).toBe(
-            `WorkOS requires you to sign in again (${code}). Run \`vendure auth login\`.`,
+            `The authentication service requires you to sign in again (${code}). Run \`vendure auth login\`.`,
         );
         expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
     });
@@ -641,7 +699,7 @@ describe('refreshAccessToken', () => {
         const workos = fakeWorkos([{ status: 429, body: { code: 'rate_limit_exceeded' } }]);
 
         await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toThrow(
-            'Could not renew the CLI session: WorkOS answered rate_limit_exceeded (HTTP 429).',
+            'Could not renew the CLI session. The authentication service answered rate_limit_exceeded (HTTP 429).',
         );
     });
 
@@ -673,6 +731,96 @@ describe('refreshAccessToken', () => {
             expect(workos.requests).toHaveLength(0);
         },
     );
+});
+
+describe('checkAuthStatus', () => {
+    it('renews the login and reports it as renewable', async () => {
+        writeStoredAuth(storedAuth(), options);
+        const renewed = accessToken(300);
+        const workos = fakeWorkos([authentication(renewed, 'refresh_2', 'org_1')]);
+
+        const status = await checkAuthStatus({ ...options, fetch: workos.fetch });
+
+        expect(status).toMatchObject({ loggedIn: true, renewable: true, user: { email: USER.email } });
+        expect(status.renewalError).toBeUndefined();
+        expect(status.accessTokenExpiresAt).toBe(NOW + 300_000);
+        expect(workos.requests[0].body).toMatchObject({
+            refresh_token: 'refresh_1',
+            organization_id: 'org_1',
+        });
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_2');
+    });
+
+    it('reports a refused refresh token as not renewable and removes the login', async () => {
+        writeStoredAuth(storedAuth(), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
+
+        const status = await checkAuthStatus({ ...options, fetch: workos.fetch });
+
+        expect(status).toMatchObject({
+            loggedIn: false,
+            renewable: false,
+            user: { email: USER.email },
+            renewalError: { code: 'invalid_grant', status: 400 },
+        });
+        expect(readStoredAuth(options)).toBeUndefined();
+    });
+
+    it('reports a renewal refused for another reason as not renewable and keeps the login', async () => {
+        writeStoredAuth(storedAuth({ clientId: 'client_01FAKE' }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_client' } }]);
+
+        const status = await checkAuthStatus({ ...options, fetch: workos.fetch });
+
+        expect(status).toMatchObject({
+            loggedIn: false,
+            renewable: false,
+            renewalError: { code: 'invalid_client', status: 400 },
+        });
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+    });
+
+    it('keeps reporting the login when the renewal cannot be checked', async () => {
+        writeStoredAuth(storedAuth(), options);
+        const workos = fakeWorkos([{ status: 503, body: { error: 'service_unavailable' } }]);
+
+        const status = await checkAuthStatus({ ...options, fetch: workos.fetch });
+
+        expect(status).toMatchObject({
+            loggedIn: true,
+            renewalError: { code: 'service_unavailable', status: 503 },
+        });
+        expect(status.renewable).toBeUndefined();
+    });
+
+    it('makes no request without a login', async () => {
+        const workos = fakeWorkos([]);
+
+        await expect(checkAuthStatus({ ...options, fetch: workos.fetch })).resolves.toMatchObject({
+            loggedIn: false,
+        });
+        expect(workos.requests).toHaveLength(0);
+    });
+});
+
+describe('isRenewalRefused', () => {
+    it.each([
+        [new SessionRejectedError(), true],
+        [new ReauthenticationRequiredError('sso_required', 403), true],
+        [new SessionRefreshUnavailableError('refused', { code: 'invalid_client', status: 400 }), true],
+        [new SessionRefreshUnavailableError('too big', { code: 'token_too_big', status: 400 }), true],
+        [new SessionRefreshUnavailableError('no code', { status: 403 }), false],
+        [new SessionRefreshUnavailableError('timeout', { status: 408 }), false],
+        [
+            new SessionRefreshUnavailableError('rate limited', { code: 'rate_limit_exceeded', status: 429 }),
+            false,
+        ],
+        [new SessionRefreshUnavailableError('outage', { status: 503 }), false],
+        [new SessionRefreshUnavailableError(), false],
+        [new Error('anything else'), false],
+    ])('%s -> %s', (error, refused) => {
+        expect(isRenewalRefused(error)).toBe(refused);
+    });
 });
 
 describe('logout', () => {
@@ -732,5 +880,126 @@ describe('logout', () => {
             );
         });
         expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+    });
+});
+
+describe('separate config directories', () => {
+    let otherDir: string;
+    let other: AuthOptions;
+    let otherStored: StoredAuth;
+    let otherBefore: string;
+
+    const authFile = (dir: string) => path.join(dir, 'auth.json');
+
+    beforeEach(() => {
+        otherDir = mkdtempSync(path.join(tmpdir(), 'vendure-auth-other-'));
+        other = { env: { VENDURE_CLI_CONFIG_DIR: otherDir }, now: () => NOW };
+        otherStored = storedAuth({ accessToken: accessToken(3600, { sid: 'b' }), refreshToken: 'refresh_b' });
+        writeStoredAuth(otherStored, other);
+        otherBefore = fs.readFileSync(authFile(otherDir), 'utf-8');
+    });
+
+    afterEach(() => {
+        fs.removeSync(otherDir);
+    });
+
+    async function expectOtherLoginIntact() {
+        await expect(getAccessToken(other)).resolves.toBe(otherStored.accessToken);
+        expect(fs.readFileSync(authFile(otherDir), 'utf-8')).toBe(otherBefore);
+        expect(fs.readdirSync(otherDir)).toEqual(['auth.json']);
+    }
+
+    it('keeps the other login when one logs out', async () => {
+        const stored = storedAuth();
+        writeStoredAuth(stored, options);
+        const workos = fakeWorkos([{ status: 204, body: null }]);
+
+        await logout({ ...options, fetch: workos.fetch });
+
+        expect(workos.requests).toHaveLength(1);
+        expect(workos.requests[0].authorization).toBe(`Bearer ${stored.accessToken}`);
+
+        expect(fs.existsSync(authFile(configDir))).toBe(false);
+        await expectOtherLoginIntact();
+    });
+
+    it('keeps the other login when WorkOS refuses one refresh token', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
+
+        await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toBeInstanceOf(
+            SessionRejectedError,
+        );
+
+        expect(workos.requests[0].body.refresh_token).toBe('refresh_1');
+        expect(fs.existsSync(authFile(configDir))).toBe(false);
+        await expectOtherLoginIntact();
+    });
+
+    it('renews a login in one directory and writes only that directory', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10) }), options);
+        const renewed = accessToken(300);
+        const workos = fakeWorkos([authentication(renewed, 'refresh_2', 'org_1')]);
+
+        await expect(getAccessToken({ ...options, fetch: workos.fetch })).resolves.toBe(renewed);
+
+        expect(readStoredAuth(options)).toMatchObject({ accessToken: renewed, refreshToken: 'refresh_2' });
+        expect(workos.requests[0].body.refresh_token).toBe('refresh_1');
+        await expectOtherLoginIntact();
+    });
+
+    it('renews both at once, each with its own refresh token', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_a' }), options);
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_b' }), other);
+        const renewedA = accessToken(300, { sid: 'a' });
+        const renewedB = accessToken(300, { sid: 'b' });
+        const workosA = fakeWorkos([authentication(renewedA, 'refresh_a2', 'org_1')]);
+        const workosB = fakeWorkos([authentication(renewedB, 'refresh_b2', 'org_1')]);
+
+        const [tokenA, tokenB] = await Promise.all([
+            getAccessToken({ ...options, fetch: workosA.fetch }),
+            getAccessToken({ ...other, fetch: workosB.fetch }),
+        ]);
+
+        expect(tokenA).toBe(renewedA);
+        expect(tokenB).toBe(renewedB);
+        expect(workosA.requests.map(r => r.body.refresh_token)).toEqual(['refresh_a']);
+        expect(workosB.requests.map(r => r.body.refresh_token)).toEqual(['refresh_b']);
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_a2');
+        expect(readStoredAuth(other)?.refreshToken).toBe('refresh_b2');
+    });
+
+    it('renews one while a renewal in the other is still waiting on WorkOS', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_a' }), options);
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10), refreshToken: 'refresh_b' }), other);
+        const renewedA = accessToken(300, { sid: 'a' });
+        const renewedB = accessToken(300, { sid: 'b' });
+        const workosA = fakeWorkos([authentication(renewedA, 'refresh_a2', 'org_1')]);
+        const workosB = fakeWorkos([authentication(renewedB, 'refresh_b2', 'org_1')]);
+        let release!: () => void;
+        const released = new Promise<void>(resolve => (release = resolve));
+        let started!: () => void;
+        const aStarted = new Promise<void>(resolve => (started = resolve));
+        const heldFetch = (async (url: string, init: RequestInit) => {
+            started();
+            await released;
+            return workosA.fetch(url, init);
+        }) as typeof globalThis.fetch;
+
+        const pendingA = getAccessToken({ ...options, fetch: heldFetch });
+        await aStarted;
+        const { waitMs } = SESSION_LOCK_OPTIONS;
+        SESSION_LOCK_OPTIONS.waitMs = 20;
+        try {
+            await expect(getAccessToken({ ...other, fetch: workosB.fetch })).resolves.toBe(renewedB);
+        } finally {
+            SESSION_LOCK_OPTIONS.waitMs = waitMs;
+            release();
+        }
+
+        await expect(pendingA).resolves.toBe(renewedA);
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_a2');
+        expect(readStoredAuth(other)?.refreshToken).toBe('refresh_b2');
     });
 });

@@ -15,7 +15,7 @@ export const mcpToolsRoute: DashboardRouteDefinition = {
         sectionId: 'mcp-server',
         id: 'mcp-server-tools',
         url: '/mcp-server/tools',
-        title: 'Tools',
+        title: /* i18n*/ 'Tools',
         order: 200,
         requiresPermission: 'ReadMcpServer',
     },

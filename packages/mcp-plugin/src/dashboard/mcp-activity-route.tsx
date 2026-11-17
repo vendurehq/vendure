@@ -15,7 +15,7 @@ export const mcpActivityRoute: DashboardRouteDefinition = {
         sectionId: 'mcp-server',
         id: 'mcp-server-activity',
         url: '/mcp-server/activity',
-        title: 'Activity',
+        title: /* i18n*/ 'Activity',
         order: 300,
         requiresPermission: 'ReadMcpServer',
     },

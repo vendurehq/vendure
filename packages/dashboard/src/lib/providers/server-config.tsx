@@ -264,13 +264,14 @@ export interface ServerConfig {
 
 // create a provider for the global settings
 export const ServerConfigProvider = ({ children }: { children: React.ReactNode }) => {
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const queryKey = ['getServerConfig', user?.id];
     const { data } = useQuery({
         queryKey,
         queryFn: () => api.query(getServerConfigDocument),
         retry: false,
-        enabled: !!user?.id,
+        // Like the Channel queries, the server config needs access to a Channel. See #5617
+        enabled: isAuthenticated,
         // The server config rarely changes during a session (it's driven by
         // VendureConfig at boot time). Treat it as session-stable so we don't
         // re-fetch on every reconnect, which would cause flashes of empty

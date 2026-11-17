@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /**
  * @description
- * A constant which holds the current version of the Vendure core. You can use
+ * A constant which holds the current version of the Vendure Framework. You can use
  * this when your code needs to know the version of Vendure which is running.
  *
  * @example
