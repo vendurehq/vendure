@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'path';
 import { ConfigEnv, Plugin, UserConfig } from 'vite';
 
-import { singletonSharedDepNames } from './lib-externals.js';
+import { reactRuntimeDepNames, singletonSharedDepNames } from './lib-externals.js';
 import { DashboardMode } from './types.js';
 
 export interface ViteConfigPluginOptions {
@@ -129,6 +129,10 @@ export function viteConfigPlugin({
                     // this the dashboard's provider and an extension's hook can
                     // bind to different module instances — issue #4919.
                     ...(mode === 'bundle' ? singletonSharedDepNames : []),
+                    // In a project the bundle is in node_modules, where Vite doesn't discover
+                    // missing dependencies, so the CommonJS React packages it imports must be
+                    // pre-bundled here. See lib-externals.ts.
+                    ...(mode === 'bundle' ? reactRuntimeDepNames : []),
                 ],
             };
             return config;
