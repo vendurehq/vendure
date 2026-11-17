@@ -1420,7 +1420,7 @@
                   "title": "EntityId Decorator",
                   "slug": "entity-id-decorator",
                   "file": "docs/reference/typescript-api/configuration/entity-id-decorator.mdx",
-                  "lastModified": "2026-11-11T15:14:50Z"
+                  "lastModified": "2026-11-17T08:59:18Z"
                 },
                 {
                   "title": "EntityIdStrategy",
@@ -1908,7 +1908,7 @@
                   "title": "Order",
                   "slug": "order",
                   "file": "docs/reference/typescript-api/entities/order.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-17T08:59:18Z"
                 },
                 {
                   "title": "OrderableAsset",
@@ -2016,7 +2016,7 @@
                   "title": "ProductVariantPrice",
                   "slug": "product-variant-price",
                   "file": "docs/reference/typescript-api/entities/product-variant-price.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-17T08:59:18Z"
                 },
                 {
                   "title": "Promotion",
@@ -2595,6 +2595,12 @@
                   "lastModified": "2026-10-11T09:39:19+02:00"
                 },
                 {
+                  "title": "EntityIdForeignKeyMigrationResult",
+                  "slug": "entity-id-foreign-key-migration-result",
+                  "file": "docs/reference/typescript-api/migration/entity-id-foreign-key-migration-result.mdx",
+                  "lastModified": "2026-11-17T08:59:18Z"
+                },
+                {
                   "title": "FindSlugConflicts",
                   "slug": "find-slug-conflicts",
                   "file": "docs/reference/typescript-api/migration/find-slug-conflicts.mdx",
@@ -2665,6 +2671,12 @@
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
                   "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "PrepareEntityIdForeignKeys",
+                  "slug": "prepare-entity-id-foreign-keys",
+                  "file": "docs/reference/typescript-api/migration/prepare-entity-id-foreign-keys.mdx",
+                  "lastModified": "2026-11-17T08:59:18Z"
                 },
                 {
                   "title": "PreviewRoleAssignmentMigration",
