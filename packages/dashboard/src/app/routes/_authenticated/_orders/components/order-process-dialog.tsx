@@ -82,7 +82,6 @@ export function OrderProcessDialog({ currentState }: Readonly<OrderProcessDialog
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 flex-shrink-0"
                         aria-label={t`View order process`}
                     />
                 }
