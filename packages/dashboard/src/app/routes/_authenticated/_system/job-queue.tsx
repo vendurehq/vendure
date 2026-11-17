@@ -60,7 +60,7 @@ function formatDuration(ms: number): string {
 
 // Job-queue state dictionary. PENDING is a queued job waiting on the worker
 // (neutral, not warning); RUNNING is actively executing (progress — renders a
-// pulsing dot); RETRYING needs attention (warning); FAILED is a hard failure
+// spinner); RETRYING needs attention (warning); FAILED is a hard failure
 // (critical); CANCELLED is a terminal outcome, not a failure (neutral).
 const jobStateDictionary = defineStateEntries({
     PENDING: { tone: 'neutral', defaultLabel: 'Pending' },
@@ -203,12 +203,11 @@ function JobQueuePage() {
                         const state = STATES.find(s => s.value === row.original.state);
                         return (
                             <div className="flex items-center gap-2">
-                                <StatusBadge tone={jobStateDictionary.toneFor(row.original.state)}>
-                                    {/* RUNNING renders the progress tone's pulsing dot, so the
-                                        static state icon would be redundant — omit it there. */}
-                                    {state && row.original.state !== 'RUNNING' && (
-                                        <state.icon className="size-3" />
-                                    )}
+                                <StatusBadge
+                                    tone={jobStateDictionary.toneFor(row.original.state)}
+                                    // RUNNING keeps the progress tone's spinner.
+                                    icon={state && row.original.state !== 'RUNNING' ? <state.icon /> : undefined}
+                                >
                                     {row.original.state}
                                 </StatusBadge>
                                 {row.original.state === 'RUNNING' && (
