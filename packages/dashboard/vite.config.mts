@@ -27,13 +27,9 @@ export default ({ mode }: { mode: string }) => {
         process.env.VENDURE_DASHBOARD_FROM_SOURCE = 'true';
     }
 
-    const vendureConfigPath =
-        process.env.VENDURE_CONFIG_PATH ??
-        (process.env.VITEST
-            ? // This should always be used for running the tests
-              './sample-vendure-config.ts'
-            : // This one might be changed to '../dev-server/dev-config.ts' to test ui extensions
-              './sample-vendure-config.ts');
+    // The tests always use the sample config. To try UI extensions in local development, set
+    // VENDURE_CONFIG_PATH, e.g. to '../dev-server/dev-config.ts'.
+    const vendureConfigPath = process.env.VENDURE_CONFIG_PATH ?? './sample-vendure-config.ts';
 
     return defineConfig({
         optimizeDeps: {

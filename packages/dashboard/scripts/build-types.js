@@ -45,7 +45,7 @@ for (const file of walk(outRoot)) {
     }
     const content = fs.readFileSync(file, 'utf-8');
     const updated = content.replace(aliasImport, (_match, prefix, quote, target) => {
-        let relative = path.relative(path.dirname(file), path.join(outLib, target)).replace(/\\/g, '/');
+        let relative = path.relative(path.dirname(file), path.join(outLib, target)).replaceAll('\\', '/');
         if (!relative.startsWith('.')) {
             relative = `./${relative}`;
         }

@@ -21,7 +21,7 @@ const DEPRECATED_ALIAS = /^@\/(vdb|graphql)(\/|$)/;
  * Only used in `bundle` mode. In `source` mode the aliases point at the source, which is
  * what the dashboard's own source imports through.
  *
- * @deprecated Will be removed in v5. Import from `@vendure/dashboard` instead.
+ * The aliases are deprecated, and this plugin will be removed with them in v5.
  */
 export function deprecatedAliasPlugin({ packageRoot }: { packageRoot: string }): Plugin {
     const warnedImporters = new Set<string>();
