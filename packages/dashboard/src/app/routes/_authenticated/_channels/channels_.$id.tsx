@@ -104,6 +104,10 @@ function ChannelDetailPage() {
                 customFields: entity.customFields,
             };
         },
+        // `CreateChannelInput.defaultCurrencyCode` is non-nullable, so the form would otherwise
+        // preselect the first currency there is. It has to come from the available currencies
+        // instead, which are empty on a new channel.
+        setValuesForCreate: () => ({ defaultCurrencyCode: null as any }),
         transformCreateInput: input => {
             return {
                 ...input,
@@ -136,6 +140,8 @@ function ChannelDetailPage() {
                 .extend({
                     code: z.string().min(1, { message: t`This field is required` }),
                     token: z.string().min(1, { message: t`This field is required` }),
+                    // Left empty on a new channel; the check below says why it must be filled in.
+                    defaultCurrencyCode: z.string().nullish(),
                     ...(creatingNewEntity
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
