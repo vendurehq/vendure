@@ -26,6 +26,7 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -36,7 +37,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Settings2, Trash } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Controller } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -158,19 +159,22 @@ function ProductVariantDetailPage() {
                 customFields: entity.customFields,
             };
         },
-        transformUpdateInput: input => {
-            // Only send stock levels the admin actually edited — see getChangedStockLevels
-            // and #4803 for why resending unchanged stock is destructive.
-            const changedStockLevels = getChangedStockLevels(
-                input.stockLevels,
-                originalStockLevelsRef.current,
-            );
-            if (changedStockLevels.length === 0) {
-                const { stockLevels: _omittedStockLevels, ...rest } = input;
-                return rest;
-            }
-            return { ...input, stockLevels: changedStockLevels };
-        },
+        transformUpdateInput: dropUnchangedTranslationRows(
+            (): UseFormReturn<any> => form,
+            (input: VariablesOf<typeof updateProductVariantDocument>['input']) => {
+                // Only send stock levels the admin actually edited — see getChangedStockLevels
+                // and #4803 for why resending unchanged stock is destructive.
+                const changedStockLevels = getChangedStockLevels(
+                    input.stockLevels,
+                    originalStockLevelsRef.current,
+                );
+                if (changedStockLevels.length === 0) {
+                    const { stockLevels: _omittedStockLevels, ...rest } = input;
+                    return rest;
+                }
+                return { ...input, stockLevels: changedStockLevels };
+            },
+        ),
         params: { id: params.id },
         onSuccess: data => {
             toast.success(
