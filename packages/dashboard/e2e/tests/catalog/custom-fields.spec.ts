@@ -572,15 +572,29 @@ test.describe('Custom Fields', () => {
         await expect(picker.locator('input[type="time"]')).toBeEnabled();
     });
 
+    /** The names of the assets T_1 and T_2, which global-setup.ts links to the readonly relations. */
+    async function getAssetNames(page: Page): Promise<[string, string]> {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { a, b } = await client.gql(
+            `query { a: asset(id: "T_1") { name } b: asset(id: "T_2") { name } }`,
+        );
+        return [a.name, b.name];
+    }
+
     // #4902 — a custom form component registered for a readonly single `relation` custom field
-    // receives the related entity id as `value`, as on a writable relation. The readonly relations
-    // are seeded on the "laptop" product in global-setup.ts, with the assets T_1 and T_2.
-    test('readonly relation custom field gives its custom component the related id', async ({ page }) => {
+    // receives the related entity id as `value`, and the related entity object as `relatedEntity`.
+    // The readonly relations are seeded on the "laptop" product in global-setup.ts, with the assets
+    // T_1 and T_2.
+    test('readonly relation custom field gives its custom component the id and the related entity', async ({
+        page,
+    }) => {
+        const [asset1] = await getAssetNames(page);
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const badge = page.getByTestId('related-asset-cf');
-        await expect(badge).toHaveText('asset:T_1');
+        await expect(badge).toHaveText(`asset:T_1:${asset1} value:T_1`);
 
         // Saving an unrelated change still succeeds: the readonly relation must not leak into the
         // update mutation input, which has no such field.
@@ -588,15 +602,18 @@ test.describe('Custom Fields', () => {
         await dp.clickUpdate();
         await dp.expectSuccessToast(/Successfully updated product/);
 
-        await expect(badge).toHaveText('asset:T_1');
+        await expect(badge).toHaveText(`asset:T_1:${asset1} value:T_1`);
     });
 
-    // #4902 — the same for a readonly list relation: the ids as `value`.
-    test('readonly list relation custom field gives its custom component the related ids', async ({
+    // #4902 — the same for a readonly list relation: the ids as `value`, the objects as `relatedEntity`.
+    test('readonly list relation custom field gives its custom component the ids and the related entities', async ({
         page,
     }) => {
+        const [asset1, asset2] = await getAssetNames(page);
         await goToFirstProduct(page);
-        await expect(page.getByTestId('related-assets-cf')).toHaveText('assets:T_1,T_2');
+        await expect(page.getByTestId('related-assets-cf')).toHaveText(
+            `assets:T_1:${asset1},T_2:${asset2} value:T_1,T_2`,
+        );
     });
 
     // #4902 — the built-in relation input, whether chosen by id or by default, shows the related
