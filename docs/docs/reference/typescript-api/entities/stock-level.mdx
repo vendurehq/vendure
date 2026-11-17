@@ -10,7 +10,6 @@ at a particular [StockLocation](/reference/typescript-api/entities/stock-locatio
 ```ts title="Signature"
 class StockLevel extends VendureEntity implements HasCustomFields {
     constructor(input: DeepPartial<StockLevel>)
-    @Index()
     @ManyToOne(type => ProductVariant, productVariant => productVariant.stockLevels, { onDelete: 'CASCADE' })
     productVariant: ProductVariant;
     @EntityId()
