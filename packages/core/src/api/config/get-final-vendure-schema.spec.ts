@@ -93,3 +93,17 @@ describe('getFinalVendureSchema() with composed plugins', () => {
         expect(fromFlattened).toEqual(fromRaw);
     });
 });
+
+describe('getFinalVendureSchema() SDL output', () => {
+    afterEach(() => {
+        resetConfig();
+    });
+
+    // #5080 — the Dashboard reads `@nonBlank` from the printed schema
+    it('keeps the @nonBlank directive on input fields', async () => {
+        const schema = await generateAdminSchema([ParentPlugin]);
+
+        expect(schema).toContain('directive @nonBlank on INPUT_FIELD_DEFINITION');
+        expect(schema).toMatch(/input ProductTranslationInput \{[^}]*name: String @nonBlank/);
+    });
+});

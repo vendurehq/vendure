@@ -17,18 +17,18 @@ type Mutation {
 input ProvinceTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
 }
 
 input CreateProvinceInput {
-    code: String!
+    code: String! @nonBlank
     translations: [ProvinceTranslationInput!]!
     enabled: Boolean!
 }
 
 input UpdateProvinceInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     translations: [ProvinceTranslationInput!]
     enabled: Boolean
 }

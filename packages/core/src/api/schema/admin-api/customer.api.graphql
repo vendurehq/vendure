@@ -65,7 +65,7 @@ input UpdateCustomerInput {
     firstName: String
     lastName: String
     phoneNumber: String
-    emailAddress: String
+    emailAddress: String @nonBlank
 }
 
 input CustomerFilterParameter {

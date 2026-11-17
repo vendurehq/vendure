@@ -28,9 +28,9 @@ type Mutation {
 input AdministratorListOptions
 
 input CreateAdministratorInput {
-    firstName: String!
-    lastName: String!
-    emailAddress: String!
+    firstName: String! @nonBlank
+    lastName: String! @nonBlank
+    emailAddress: String! @nonBlank
     password: String!
     "Grants the Roles on the active Channel. Cannot be combined with roleAssignments."
     roleIds: [ID!]
@@ -43,9 +43,9 @@ input CreateAdministratorInput {
 
 input UpdateAdministratorInput {
     id: ID!
-    firstName: String
-    lastName: String
-    emailAddress: String
+    firstName: String @nonBlank
+    lastName: String @nonBlank
+    emailAddress: String @nonBlank
     password: String
     """
     Replaces the User's Roles on the active Channel: Roles held there but absent from the list
@@ -59,8 +59,8 @@ input UpdateAdministratorInput {
 }
 
 input UpdateActiveAdministratorInput {
-    firstName: String
-    lastName: String
-    emailAddress: String
+    firstName: String @nonBlank
+    lastName: String @nonBlank
+    emailAddress: String @nonBlank
     password: String
 }

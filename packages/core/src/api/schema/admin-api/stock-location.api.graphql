@@ -25,13 +25,13 @@ type StockLocationList implements PaginatedList {
 }
 
 input CreateStockLocationInput {
-    name: String!
+    name: String! @nonBlank
     description: String
 }
 
 input UpdateStockLocationInput {
     id: ID!
-    name: String
+    name: String @nonBlank
     description: String
 }
 

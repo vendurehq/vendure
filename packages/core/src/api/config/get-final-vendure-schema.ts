@@ -1,6 +1,6 @@
 import { GraphQLTypesLoader } from '@nestjs/graphql';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
-import { buildSchema, concatAST, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
+import { buildSchema, concatAST, extendSchema, GraphQLSchema } from 'graphql/index';
 import path from 'path';
 
 import {
@@ -26,6 +26,7 @@ import {
     addServerConfigCustomFields,
     addShippingMethodQuoteCustomFields,
 } from './graphql-custom-fields';
+import { printSchemaWithDirectives } from './print-schema-with-directives';
 
 type GetSchemaOptions = {
     config: RuntimeVendureConfig;
@@ -78,7 +79,7 @@ export async function getFinalVendureSchema(
     let schema = buildSchema(typeDefs);
     schema = buildSchemaFromVendureConfig(schema, config, apiType);
     if (options.output === 'sdl') {
-        return printSchema(schema);
+        return printSchemaWithDirectives(schema);
     } else {
         return schema;
     }

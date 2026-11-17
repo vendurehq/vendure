@@ -33,12 +33,12 @@ input PaymentMethodListOptions
 input PaymentMethodTranslationInput {
     id: ID
     languageCode: LanguageCode!
-    name: String
+    name: String @nonBlank
     description: String
 }
 
 input CreatePaymentMethodInput {
-    code: String!
+    code: String! @nonBlank
     enabled: Boolean!
     checker: ConfigurableOperationInput
     handler: ConfigurableOperationInput!
@@ -47,7 +47,7 @@ input CreatePaymentMethodInput {
 
 input UpdatePaymentMethodInput {
     id: ID!
-    code: String
+    code: String @nonBlank
     enabled: Boolean
     checker: ConfigurableOperationInput
     handler: ConfigurableOperationInput

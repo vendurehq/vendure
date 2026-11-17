@@ -20,6 +20,11 @@ export interface FieldInfo {
     list: boolean;
     isPaginatedList: boolean;
     isScalar: boolean;
+    /**
+     * Set for input fields with the `@nonBlank` directive, which must not be empty or
+     * whitespace-only.
+     */
+    nonBlank?: boolean;
     typeInfo?: FieldInfo[];
 }
 
@@ -585,6 +590,7 @@ function getInputTypeFields(name: string): FieldInfo[] {
             list: fieldInfo[2],
             isPaginatedList: fieldInfo[3],
             isScalar,
+            ...(fieldInfo[4] ? { nonBlank: true } : {}),
             typeInfo: !isScalar && !isEnum ? getInputTypeFields(type) : undefined,
         };
     });

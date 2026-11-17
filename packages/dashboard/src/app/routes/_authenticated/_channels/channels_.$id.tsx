@@ -131,8 +131,8 @@ function ChannelDetailPage() {
         extendSchema: schema =>
             schema
                 .extend({
-                    code: z.string().min(1, { message: t`This field is required` }),
-                    token: z.string().min(1, { message: t`This field is required` }),
+                    code: z.string().regex(/\S/, { message: t`This field is required` }),
+                    token: z.string().regex(/\S/, { message: t`This field is required` }),
                     ...(creatingNewEntity
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
@@ -231,8 +231,10 @@ function ChannelDetailPage() {
                             control={form.control}
                             name="code"
                             label={<Trans>Code</Trans>}
+                            // Like `token`, `extendSchema` shows an inline error for a blank code, which
+                            // the browser's own validation would block from showing.
                             render={({ field }) => (
-                                <Input placeholder="" {...field} disabled={codeIsDefault} />
+                                <Input placeholder="" {...field} disabled={codeIsDefault} required={false} />
                             )}
                         />
                         <div></div>
@@ -245,7 +247,9 @@ function ChannelDetailPage() {
                                     The token is used to specify the channel when making API requests.
                                 </Trans>
                             }
-                            render={({ field }) => <Input placeholder="" {...field} />}
+                            // `extendSchema` already rejects a blank token with an inline error, which
+                            // the browser's own validation would block from showing.
+                            render={({ field }) => <Input placeholder="" {...field} required={false} />}
                         />
                         <FormFieldWrapper
                             control={form.control}

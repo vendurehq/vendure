@@ -266,7 +266,7 @@ input OrderLineInput {
 }
 
 input SurchargeInput {
-    description: String!
+    description: String! @nonBlank
     sku: String
     price: Money!
     priceIncludesTax: Boolean!
