@@ -1,6 +1,6 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useGroupedPermissions } from '@/vdb/hooks/use-grouped-permissions.js';
@@ -113,96 +113,87 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
     );
 
     return (
-        <TooltipProvider>
-            <div className="flex flex-col items-start gap-2 w-full">
-                <div className="rounded-md border w-full">
-                    {!showAll && !hasGranted ? (
-                        <p className="p-4 text-sm text-muted-foreground">
-                            <Trans>The assigned roles grant no permissions on this channel.</Trans>
-                        </p>
-                    ) : (
-                        rows.map((row, idx) => {
-                            const anyGranted = row.permissions.some(permission => permission.granted);
-                            const isSingleNonCrud =
-                                row.permissions.length === 1 && row.permissions[0].name === row.label;
-                            return (
-                                <div
-                                    key={row.label}
-                                    className={cn(
-                                        'flex flex-wrap items-center gap-x-4 gap-y-2 p-3',
-                                        idx !== rows.length - 1 && 'border-b',
+        <div className="flex flex-col items-start gap-2 w-full">
+            <div className="rounded-xl border w-full">
+                {!showAll && !hasGranted ? (
+                    <p className="p-4 text-sm text-muted-foreground">
+                        <Trans>The assigned roles grant no permissions on this channel.</Trans>
+                    </p>
+                ) : (
+                    rows.map((row, idx) => {
+                        const anyGranted = row.permissions.some(permission => permission.granted);
+                        const isSingleNonCrud =
+                            row.permissions.length === 1 && row.permissions[0].name === row.label;
+                        return (
+                            <div
+                                key={row.label}
+                                className={cn(
+                                    'flex flex-wrap items-center gap-x-4 gap-y-2 p-3',
+                                    idx !== rows.length - 1 && 'border-b',
+                                )}
+                            >
+                                <div className="flex items-center gap-2 w-56 shrink-0">
+                                    {anyGranted ? (
+                                        <Check className="h-4 w-4 text-success shrink-0" />
+                                    ) : (
+                                        <Minus className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                                     )}
-                                >
-                                    <div className="flex items-center gap-2 w-56 shrink-0">
-                                        {anyGranted ? (
-                                            <Check className="h-4 w-4 text-success shrink-0" />
-                                        ) : (
-                                            <Minus className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                                        )}
-                                        {isSingleNonCrud ? (
-                                            <Tooltip>
-                                                <TooltipTrigger
-                                                    render={
-                                                        <span
-                                                            className={cn(
-                                                                'text-sm font-medium cursor-default break-words',
-                                                                !anyGranted && 'text-muted-foreground',
-                                                            )}
-                                                        />
-                                                    }
-                                                >
-                                                    {i18n.t(row.label)}
-                                                </TooltipTrigger>
-                                                {permissionTooltip(row.permissions[0], anyGranted)}
-                                            </Tooltip>
-                                        ) : (
-                                            <span
-                                                className={cn(
-                                                    'text-sm font-medium break-words',
-                                                    !anyGranted && 'text-muted-foreground',
-                                                )}
+                                    {isSingleNonCrud ? (
+                                        <Tooltip>
+                                            <TooltipTrigger
+                                                render={
+                                                    <span
+                                                        className={cn(
+                                                            'text-sm font-medium cursor-default break-words',
+                                                            !anyGranted && 'text-muted-foreground',
+                                                        )}
+                                                    />
+                                                }
                                             >
                                                 {i18n.t(row.label)}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {!isSingleNonCrud && (
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {row.permissions.map(permission => (
-                                                <Tooltip key={permission.name}>
-                                                    <TooltipTrigger render={<span className="inline-flex" />}>
-                                                        <Badge
-                                                            variant={
-                                                                permission.granted ? 'default' : 'outline'
-                                                            }
-                                                            className={cn(
-                                                                'cursor-default',
-                                                                !permission.granted &&
-                                                                    'border-dashed text-muted-foreground opacity-60',
-                                                            )}
-                                                        >
-                                                            {actionLabel(permission.name)}
-                                                        </Badge>
-                                                    </TooltipTrigger>
-                                                    {permissionTooltip(permission, permission.granted)}
-                                                </Tooltip>
-                                            ))}
-                                        </div>
+                                            </TooltipTrigger>
+                                            {permissionTooltip(row.permissions[0], anyGranted)}
+                                        </Tooltip>
+                                    ) : (
+                                        <span
+                                            className={cn(
+                                                'text-sm font-medium break-words',
+                                                !anyGranted && 'text-muted-foreground',
+                                            )}
+                                        >
+                                            {i18n.t(row.label)}
+                                        </span>
                                     )}
                                 </div>
-                            );
-                        })
-                    )}
-                </div>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAll(current => !current)}
-                >
-                    {showAll ? <Trans>Show granted only</Trans> : <Trans>Show all permissions</Trans>}
-                </Button>
+                                {!isSingleNonCrud && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {row.permissions.map(permission => (
+                                            <Tooltip key={permission.name}>
+                                                <TooltipTrigger render={<span className="inline-flex" />}>
+                                                    <Badge
+                                                        variant={permission.granted ? 'default' : 'outline'}
+                                                        className={cn(
+                                                            'cursor-default',
+                                                            !permission.granted &&
+                                                                'border-dashed text-muted-foreground opacity-60',
+                                                        )}
+                                                    >
+                                                        {actionLabel(permission.name)}
+                                                    </Badge>
+                                                </TooltipTrigger>
+                                                {permissionTooltip(permission, permission.granted)}
+                                            </Tooltip>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
             </div>
-        </TooltipProvider>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll(current => !current)}>
+                {showAll ? <Trans>Show granted only</Trans> : <Trans>Show all permissions</Trans>}
+            </Button>
+        </div>
     );
 }
