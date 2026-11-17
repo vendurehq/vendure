@@ -33,6 +33,17 @@ describe('package manager detection', () => {
         expect(addDevDependencyCommand(dir, '@vendure/cloud')).toBe(command);
     });
 
+    it('adds to a pnpm workspace root with -w, and to a member without it', () => {
+        const root = makeTempDir();
+        fs.writeFileSync(path.join(root, 'pnpm-lock.yaml'), '');
+        fs.writeFileSync(path.join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'apps/*'\n");
+        const member = path.join(root, 'apps', 'server');
+        fs.ensureDirSync(member);
+
+        expect(addDevDependencyCommand(root, '@vendure/cloud')).toBe('pnpm add -D -w @vendure/cloud');
+        expect(addDevDependencyCommand(member, '@vendure/cloud')).toBe('pnpm add -D @vendure/cloud');
+    });
+
     it('finds the lockfile at a workspace root above the project', () => {
         const root = makeTempDir();
         fs.writeFileSync(path.join(root, 'pnpm-lock.yaml'), '');

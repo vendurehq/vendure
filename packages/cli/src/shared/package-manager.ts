@@ -39,9 +39,16 @@ export function detectProjectPackageManager(projectDir: string): PackageManager 
     return found ?? 'npm';
 }
 
-/** The command that adds `packageName` to the devDependencies of the project in `projectDir`. */
+/**
+ * The command that adds `packageName` to the devDependencies of the project in `projectDir`.
+ * pnpm refuses to add to a workspace root unless told to with `-w`.
+ */
 export function addDevDependencyCommand(projectDir: string, packageName: string): string {
     const packageManager = detectProjectPackageManager(projectDir);
-    const add = packageManager === 'npm' ? 'npm install' : `${packageManager} add`;
-    return `${add} -D ${packageName}`;
+    if (packageManager === 'npm') {
+        return `npm install -D ${packageName}`;
+    }
+    const workspaceRoot =
+        packageManager === 'pnpm' && fs.existsSync(path.join(projectDir, 'pnpm-workspace.yaml'));
+    return `${packageManager} add -D${workspaceRoot ? ' -w' : ''} ${packageName}`;
 }
