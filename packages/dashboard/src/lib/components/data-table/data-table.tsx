@@ -567,7 +567,7 @@ export function DataTable<TData>({
                                 placeholder={searchPlaceholder ?? t`Search...`}
                                 value={searchTerm}
                                 onChange={event => handleSearchChange(event.target.value)}
-                                className="h-8 w-full @sm/table:w-64"
+                                className="w-full @sm/table:w-64"
                             />
                         )}
                         {(onFilterChange != null || hasFacetedFilters) && (

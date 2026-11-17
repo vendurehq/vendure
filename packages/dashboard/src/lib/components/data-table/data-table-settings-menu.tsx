@@ -51,7 +51,7 @@ export function DataTableSettingsMenu<TData>({
                             render={
                                 <Button
                                     variant="outline"
-                                    size="icon-sm"
+                                    size="icon"
                                     data-testid="dt-column-settings-trigger"
                                 />
                             }

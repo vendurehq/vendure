@@ -92,7 +92,7 @@ export function DataTableBulkActions<TData>({
             </span>
             <DropdownMenu>
                 <DropdownMenuTrigger
-                    render={<Button variant="outline" size="sm" className="h-8 shadow-none" />}
+                    render={<Button variant="outline" />}
                 >
                     <Trans>Actions</Trans>
                     <ChevronDown className="ml-1 h-4 w-4" />
@@ -124,7 +124,7 @@ export function DataTableBulkActions<TData>({
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="sm" className="h-8" onClick={() => table.resetRowSelection()}>
+            <Button variant="ghost" onClick={() => table.resetRowSelection()}>
                 <X className="h-4 w-4" />
                 <Trans>Reset selection</Trans>
             </Button>

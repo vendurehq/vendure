@@ -41,7 +41,7 @@ export function AddFilterMenu({
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DropdownMenu>
                 <DropdownMenuTrigger
-                    render={<Button variant="outline" size="sm" data-testid="dt-add-filter-trigger" />}
+                    render={<Button variant="outline" data-testid="dt-add-filter-trigger" />}
                 >
                     <PlusIcon />
                     <Trans>Filter</Trans>
