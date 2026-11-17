@@ -5079,7 +5079,7 @@
                   "title": "PaginatedListDataTable",
                   "slug": "paginated-list-data-table",
                   "file": "docs/reference/dashboard/list-views/paginated-list-data-table.mdx",
-                  "lastModified": "2026-10-08T09:25:09Z"
+                  "lastModified": "2026-11-17T15:49:22Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -5131,7 +5131,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-11-12T15:54:16Z"
+                  "lastModified": "2026-11-17T15:49:22Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
