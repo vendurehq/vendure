@@ -22,8 +22,9 @@ const PORT = 5188;
  *
  * Opt-in (`RUN_BUNDLE_AUDIT=true`, set by `npm run audit:bundle`): it boots a
  * real Vite dev server with cold dep-optimization, which is too slow and load-
- * sensitive to run in the standard unit suite. The artifact-level guard in
- * `bundle-singleton.spec.ts` runs on every push instead.
+ * sensitive to run in the standard unit suite. CI runs it in the dashboard e2e
+ * job. The artifact-level guard in `bundle-singleton.spec.ts` runs with the unit
+ * tests.
  */
 describe.skipIf(process.env.RUN_BUNDLE_AUDIT !== 'true')('bundle singleton dev serving', () => {
     let libJs: string;
