@@ -97,7 +97,7 @@
           "title": "Orders",
           "slug": "orders",
           "file": "docs/guides/core-concepts/orders/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Fulfillment",
@@ -163,7 +163,7 @@
           "title": "Healthchecks",
           "slug": "healthchecks",
           "file": "docs/guides/core-concepts/healthchecks/index.mdx",
-          "lastModified": "2026-09-08T16:41:57+02:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Auth",
@@ -236,7 +236,7 @@
           "title": "Custom Fields",
           "slug": "custom-fields",
           "file": "docs/guides/developer-guide/custom-fields/index.mdx",
-          "lastModified": "2026-11-16T15:24:07+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Secret Fields",
@@ -254,7 +254,7 @@
           "title": "Events",
           "slug": "events",
           "file": "docs/guides/developer-guide/events/index.mdx",
-          "lastModified": "2026-09-02T14:43:03+02:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Migrations",
@@ -313,13 +313,13 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-16T14:01:12+01:00"
+              "lastModified": "2026-11-17T11:14:10+01:00"
             },
             {
               "title": "Storefront Migration",
               "slug": "storefront-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/storefront-migration.mdx",
-              "lastModified": "2026-11-16T17:03:49+01:00"
+              "lastModified": "2026-11-17T11:14:10+01:00"
             },
             {
               "title": "Role Assignments",
@@ -328,13 +328,13 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-17T09:58:25+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Worker & Job Queue",
           "slug": "worker-job-queue",
           "file": "docs/guides/developer-guide/worker-job-queue/index.mdx",
-          "lastModified": "2026-10-28T09:48:06+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Settings Store",
@@ -376,7 +376,7 @@
           "title": "Channel Aware",
           "slug": "channel-aware",
           "file": "docs/guides/developer-guide/channel-aware/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Translatable",
@@ -544,7 +544,7 @@
           "title": "Extending Overview",
           "slug": "extending-overview",
           "file": "docs/guides/extending-the-dashboard/extending-overview/index.mdx",
-          "lastModified": "2026-11-05T13:13:02+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Public API & Imports",
@@ -629,7 +629,7 @@
               "title": "Insights Widgets",
               "slug": "insights-widgets",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/insights-widgets.mdx",
-              "lastModified": "2026-07-16T09:10:19+02:00"
+              "lastModified": "2026-11-17T11:14:10+01:00"
             },
             {
               "title": "History Entries",
@@ -706,7 +706,7 @@
           "title": "Migration",
           "slug": "migration",
           "file": "docs/guides/extending-the-dashboard/migration/index.mdx",
-          "lastModified": "2026-11-05T13:13:02+01:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Custom Providers",
@@ -791,7 +791,7 @@
           "title": "Using Docker",
           "slug": "using-docker",
           "file": "docs/guides/deployment/using-docker.mdx",
-          "lastModified": "2026-09-08T16:41:57+02:00"
+          "lastModified": "2026-11-17T11:14:10+01:00"
         },
         {
           "title": "Horizontal Scaling",
