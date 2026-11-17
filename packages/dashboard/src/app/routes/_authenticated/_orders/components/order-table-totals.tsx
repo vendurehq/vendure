@@ -20,10 +20,10 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
             {order.surcharges?.length > 0
                 ? order.surcharges.map((surcharge, index) => (
                       <TableRow key={`${surcharge.description}-${index}`} className="hover:bg-transparent">
-                          <TableCell colSpan={columnCount - 1} className="h-12">
+                          <TableCell colSpan={columnCount - 1}>
                               <Trans>Surcharge</Trans>: {surcharge.description}
                           </TableCell>
-                          <TableCell colSpan={1} className="h-12">
+                          <TableCell colSpan={1} className="text-end">
                               <MoneyGrossNet
                                   priceWithTax={surcharge.priceWithTax}
                                   price={surcharge.price}
@@ -36,10 +36,10 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
             {order.discounts?.length > 0
                 ? order.discounts.map((discount, index) => (
                       <TableRow key={`${discount.description}-${index}`} className="hover:bg-transparent">
-                          <TableCell colSpan={columnCount - 1} className="h-12">
+                          <TableCell colSpan={columnCount - 1}>
                               <Trans>Discount</Trans>: {discount.description}
                           </TableCell>
-                          <TableCell colSpan={1} className="h-12">
+                          <TableCell colSpan={1} className="text-end">
                               <MoneyGrossNet
                                   priceWithTax={discount.amountWithTax}
                                   price={discount.amount}
@@ -50,10 +50,10 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                   ))
                 : null}
             <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columnCount - 1} className="h-12">
+                <TableCell colSpan={columnCount - 1}>
                     <Trans>Sub total</Trans>
                 </TableCell>
-                <TableCell colSpan={1} className="h-12">
+                <TableCell colSpan={1} className="text-end">
                     <MoneyGrossNet
                         priceWithTax={order.subTotalWithTax}
                         price={order.subTotal}
@@ -62,7 +62,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                 </TableCell>
             </TableRow>
             <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columnCount - 1} className="h-12">
+                <TableCell colSpan={columnCount - 1}>
                     <div className="flex flex-wrap gap-1">
                         <div>
                             <Trans>Shipping</Trans>
@@ -77,7 +77,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                         ))}
                     </div>
                 </TableCell>
-                <TableCell colSpan={1} className="h-12">
+                <TableCell colSpan={1} className="text-end">
                     <MoneyGrossNet
                         priceWithTax={order.shippingWithTax}
                         price={order.shipping}
@@ -86,10 +86,10 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                 </TableCell>
             </TableRow>
             <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columnCount - 1} className="h-12 font-bold">
+                <TableCell colSpan={columnCount - 1} className="font-bold">
                     <Trans>Total</Trans>
                 </TableCell>
-                <TableCell colSpan={1} className="h-12 font-bold">
+                <TableCell colSpan={1} className="text-end font-bold">
                     <MoneyGrossNet
                         priceWithTax={order.totalWithTax}
                         price={order.total}

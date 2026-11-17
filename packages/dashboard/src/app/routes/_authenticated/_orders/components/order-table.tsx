@@ -13,7 +13,7 @@ import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Trans } from '@lingui/react/macro';
 import { EllipsisVertical } from 'lucide-react';
-import { Fragment, useMemo } from 'react';
+import { Fragment, ReactNode, useMemo } from 'react';
 
 import { orderDetailDocument, orderLineFragment } from '../orders.graphql.js';
 
@@ -26,6 +26,11 @@ type OrderLineFragment = ResultOf<typeof orderLineFragment>;
 export interface OrderTableProps {
     order: OrderFragment;
     pageId: string;
+}
+
+// Numbers align to the end of their column, header included.
+function NumericCell({ children }: Readonly<{ children: ReactNode }>) {
+    return <div className="text-end">{children}</div>;
 }
 
 // Factory function to create customizeColumns with inline components
@@ -56,12 +61,20 @@ function createCustomizeColumns(currencyCode: string) {
             },
         },
         unitPriceWithTax: {
-            header: () => <Trans>Unit price</Trans>,
+            header: () => (
+                <NumericCell>
+                    <Trans>Unit price</Trans>
+                </NumericCell>
+            ),
             accessorKey: 'unitPriceWithTax',
             cell: ({ row }: { row: any }) => {
                 const value = row.original.unitPriceWithTax;
                 const netValue = row.original.unitPrice;
-                return <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />;
+                return (
+                    <NumericCell>
+                        <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />
+                    </NumericCell>
+                );
             },
         },
         fulfillmentLines: {
@@ -77,45 +90,82 @@ function createCustomizeColumns(currencyCode: string) {
             ),
         },
         quantity: {
-            header: () => <Trans>Quantity</Trans>,
+            header: () => (
+                <NumericCell>
+                    <Trans>Quantity</Trans>
+                </NumericCell>
+            ),
             accessorKey: 'quantity',
+            cell: ({ row }: { row: any }) => (
+                <NumericCell>
+                    <span className="tabular-nums">{row.original.quantity}</span>
+                </NumericCell>
+            ),
         },
         unitPrice: {
-            cell: ({ row }: { row: any }) => <Money currency={currencyCode} value={row.original.unitPrice} />,
+            cell: ({ row }: { row: any }) => (
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.unitPrice} />
+                </NumericCell>
+            ),
         },
         proratedUnitPrice: {
             cell: ({ row }: { row: any }) => (
-                <Money currency={currencyCode} value={row.original.proratedUnitPrice} />
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.proratedUnitPrice} />
+                </NumericCell>
             ),
         },
         proratedUnitPriceWithTax: {
             cell: ({ row }: { row: any }) => (
-                <Money currency={currencyCode} value={row.original.proratedUnitPriceWithTax} />
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.proratedUnitPriceWithTax} />
+                </NumericCell>
             ),
         },
         linePrice: {
-            cell: ({ row }: { row: any }) => <Money currency={currencyCode} value={row.original.linePrice} />,
+            cell: ({ row }: { row: any }) => (
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.linePrice} />
+                </NumericCell>
+            ),
         },
         discountedLinePrice: {
             cell: ({ row }: { row: any }) => (
-                <Money currency={currencyCode} value={row.original.discountedLinePrice} />
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.discountedLinePrice} />
+                </NumericCell>
             ),
         },
         lineTax: {
-            cell: ({ row }: { row: any }) => <Money currency={currencyCode} value={row.original.lineTax} />,
+            cell: ({ row }: { row: any }) => (
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.lineTax} />
+                </NumericCell>
+            ),
         },
         linePriceWithTax: {
-            header: () => <Trans>Total</Trans>,
+            header: () => (
+                <NumericCell>
+                    <Trans>Total</Trans>
+                </NumericCell>
+            ),
             accessorKey: 'linePriceWithTax',
             cell: ({ row }: { row: any }) => {
                 const value = row.original.linePriceWithTax;
                 const netValue = row.original.linePrice;
-                return <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />;
+                return (
+                    <NumericCell>
+                        <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />
+                    </NumericCell>
+                );
             },
         },
         discountedLinePriceWithTax: {
             cell: ({ row }: { row: any }) => (
-                <Money currency={currencyCode} value={row.original.discountedLinePriceWithTax} />
+                <NumericCell>
+                    <Money currency={currencyCode} value={row.original.discountedLinePriceWithTax} />
+                </NumericCell>
             ),
         },
         discounts: {
