@@ -261,9 +261,8 @@ describe('PageLayout', () => {
         const markup = renderWithOriginal();
 
         expect(markup).toContain('Block title');
-        expect(markup).toContain(
-            'data-slot="card-description" class="text-muted-foreground text-sm">Supporting description</div>',
-        );
+        // The description renders as the card description; its classes belong to the design system.
+        expect(markup).toMatch(/data-slot="card-description"[^>]*>Supporting description<\/div>/);
     });
 
     // A directly-authored full-width block must render inside PageLayout on desktop. Regression:
