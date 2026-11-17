@@ -14,6 +14,27 @@ You can explore the Shop API by opening the GraphQL Playground in your browser a
 server is running locally.
 :::
 
+## Allow your storefront's origin
+
+If your storefront calls the Shop API from the browser and is served from a different origin to the
+Vendure server, including a different port on `localhost`, add that origin to
+[`apiOptions.cors`](/reference/typescript-api/configuration/api-options/#cors). By default Vendure allows no
+cross-origin requests, and the browser blocks every call with a CORS error. Projects created with
+`@vendure/create` allow any origin in development and read the list from the `CORS_ORIGINS` environment
+variable otherwise. Requests made from a server, for example during server-side rendering, are not affected.
+
+```ts
+apiOptions: {
+    cors: {
+        origin: ['http://localhost:3001', 'https://storefront.example.com'],
+        credentials: true,
+    },
+},
+```
+
+If you send queries as `GET`, for example so that a CDN can cache them, also send an
+`Apollo-Require-Preflight: true` header. See [CSRF prevention](/developer-guide/security/#csrf-prevention).
+
 ## Select a GraphQL client
 
 GraphQL requests are made over HTTP, so you can use any HTTP client such as the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to make requests to the Shop API. However, there are also a number of specialized GraphQL clients which can make working with GraphQL APIs easier. Here are some popular options:

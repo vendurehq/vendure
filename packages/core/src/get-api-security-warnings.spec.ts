@@ -151,7 +151,6 @@ describe('getCsrfPreventionWarning', () => {
 });
 
 describe('the shipped defaultConfig', () => {
-    // Blocks cross-origin browser requests and Login CSRF out of the box.
     it('allows no cross-origin requests and turns csrfPrevention on, and triggers neither warning', () => {
         expect(defaultConfig.apiOptions.cors).toEqual({ origin: false, credentials: true });
         expect(defaultConfig.apiOptions.csrfPrevention).toBe(true);

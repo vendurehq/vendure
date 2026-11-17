@@ -94,6 +94,7 @@ Projects created with `@vendure/create` set `cors` themselves and are not affect
 - a storefront that calls the API from the browser on a different origin, including a different port in local development
 - the Dashboard Vite dev server, when you open it directly rather than through the `DashboardPlugin`
 - an Admin UI or Dashboard hosted on a separate domain
+- browser calls to other routes on the server from another origin. `apiOptions.cors` applies to the whole server, so this includes plugin REST controllers, assets fetched from script, and the MCP plugin's `/mcp` and OAuth endpoints
 
 Server-side requests, for example from a server-rendered storefront, and the Dashboard served by the `DashboardPlugin` are not affected. List the origins your browsers call the API from:
 

@@ -190,8 +190,8 @@ export interface ApiOptions {
     cors?: boolean | CorsOptions;
     /**
      * @description
-     * Apollo Server's built-in CSRF prevention on both the Shop API and the Admin API. It is on by
-     * default.
+     * Enables Apollo Server's built-in CSRF prevention on both the Shop API and the Admin API. It is on
+     * by default.
      *
      * When enabled, Apollo rejects any request whose `content-type` is one that a browser lets an
      * HTML form or a simple `fetch` send without a preflight, namely
@@ -216,8 +216,10 @@ export interface ApiOptions {
      *
      * Passing an object instead of `true` replaces the list of headers which permit an operation,
      * which by default is `x-apollo-operation-name` and `apollo-require-preflight`. Use this when a
-     * client cannot be changed to send either of those: name a header the client already sends, for
-     * example `{ requestHeaders: ['x-my-client-header'] }`, rather than turning the protection off.
+     * client cannot be changed to send either of those: add a header the client already sends, for
+     * example `{ requestHeaders: ['x-my-client-header', 'apollo-require-preflight'] }`, rather than
+     * turning the protection off. Keep `apollo-require-preflight` in the list, since
+     * `@vendure/dashboard` and `@vendure/testing` send only that header.
      *
      * Setting it to `false` turns the protection off and makes Login CSRF possible for cookie
      * sessions, and Vendure logs a warning at startup when you do. Bearer-only deployments are not
