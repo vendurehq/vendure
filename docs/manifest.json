@@ -307,7 +307,7 @@
               "title": "Database Migration",
               "slug": "database-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/database-migration.mdx",
-              "lastModified": "2026-11-16T14:01:12+01:00"
+              "lastModified": "2026-11-17T09:58:25+01:00"
             },
             {
               "title": "Breaking API Changes",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-16T14:01:12+01:00"
+          "lastModified": "2026-11-17T09:58:25+01:00"
         },
         {
           "title": "Worker & Job Queue",
