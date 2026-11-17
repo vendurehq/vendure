@@ -41,7 +41,15 @@ html[dir="rtl"] * {
 
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        @apply border-border outline-ring;
+    }
+
+    /* The design-tokens focus ring: 2px, solid, 2px outside, in the ring
+       colour, for every element a component does not style itself. A
+       component's own focus-visible classes win. */
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
     }
 
     body {
