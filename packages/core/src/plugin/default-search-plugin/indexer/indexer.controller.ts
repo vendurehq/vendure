@@ -36,9 +36,9 @@ import {
     VariantChannelMessageData,
 } from '../types';
 
-import { POSTGRES_MAX_INDEXED_TEXT_BYTES, truncateToUtf8Bytes } from './constrain-indexed-text';
 import { dedupeSearchIndexItems } from './index-item-utils';
 import { MutableRequestContext } from './mutable-request-context';
+import { POSTGRES_MAX_INDEXED_TEXT_BYTES, truncateToUtf8Bytes } from './truncate-to-utf8-bytes';
 
 export const BATCH_SIZE = 1000;
 export const productRelations = [

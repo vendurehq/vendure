@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { truncateToUtf8Bytes } from './constrain-indexed-text';
+import { truncateToUtf8Bytes } from './truncate-to-utf8-bytes';
 
 describe('truncateToUtf8Bytes()', () => {
     const maxBytes = 10;
