@@ -92,13 +92,14 @@ export interface DefaultJobQueueOptions {
     setRetries?: (queueName: string, job: Job) => number;
     /**
      * @description
-     * If set to `true`, the database will be used to store buffered jobs. This is
-     * recommended for production.
+     * If set to `true`, the database is used to store buffered jobs (in the `JobRecordBuffer`
+     * entity), so that they survive a restart and are shared by every server instance.
      *
-     * When enabled, a new `JobRecordBuffer` database entity will be defined which will
-     * require a migration when first enabling this option.
+     * Set to `false` to keep buffered jobs in memory, as before v4.0. Then the `JobRecordBuffer`
+     * table is not defined.
      *
      * @since 1.3.0
+     * @default true (false before v4.0)
      */
     useDatabaseForBuffer?: boolean;
     /**

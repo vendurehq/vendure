@@ -97,6 +97,10 @@ To keep the v3 table and behaviour:
 DefaultSearchPlugin.init({ indexStockStatus: false, indexCurrencyCode: false });
 ```
 
+### DefaultJobQueuePlugin buffers jobs in the database
+
+`useDatabaseForBuffer` now defaults to `true`, so buffered jobs (for example the search index updates of `bufferUpdates`) are stored in the `job_record_buffer` table. They survive a restart and are shared by every server instance. The generated migration creates the table. To keep the in-memory buffer, set `DefaultJobQueuePlugin.init({ useDatabaseForBuffer: false })`.
+
 ### Passwords need 8 characters
 
 The `DefaultPasswordValidationStrategy` in the default config now has a `minLength` of `8` (it was `4`). It applies when a Customer's password is set: on registration and verification, on password changes and resets, and when a Customer is created with a password. Existing passwords keep working. To keep the v3 rule:

@@ -182,7 +182,7 @@ import { DefaultJobQueueOptions } from './types';
 @VendurePlugin({
     imports: [PluginCommonModule],
     entities: () =>
-        DefaultJobQueuePlugin.options.useDatabaseForBuffer === true
+        DefaultJobQueuePlugin.options.useDatabaseForBuffer !== false
             ? [JobRecord, JobRecordBuffer]
             : [JobRecord],
     configuration: config => {
@@ -209,7 +209,7 @@ import { DefaultJobQueueOptions } from './types';
                   ...(typeof useNotify === 'object' ? useNotify : {}),
               })
             : new SqlJobQueueStrategy(strategyConfig);
-        if (DefaultJobQueuePlugin.options.useDatabaseForBuffer === true) {
+        if (DefaultJobQueuePlugin.options.useDatabaseForBuffer !== false) {
             config.jobQueueOptions.jobBufferStorageStrategy = new SqlJobBufferStorageStrategy();
         }
         config.schedulerOptions.tasks.push(

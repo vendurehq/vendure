@@ -5,9 +5,11 @@ import {
     DefaultJobQueuePlugin,
     Injector,
     Job,
+    JobRecordBuffer,
     mergeConfig,
     PollingJobQueueStrategy,
     PollingJobQueueStrategyConfig,
+    SqlJobBufferStorageStrategy,
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
@@ -338,6 +340,22 @@ describe('SqlJobQueueStrategy next()', () => {
                 await backoffStrategy.stop(queueName, process);
                 backoffStrategy.destroy();
             }
+        });
+    });
+
+    // Since v4.0 the DefaultJobQueuePlugin stores buffered jobs in the database by default
+    describe('job buffer', () => {
+        it('stores buffered jobs in the database by default', async () => {
+            const bufferStrategy = server.app.get(ConfigService).jobQueueOptions.jobBufferStorageStrategy;
+            expect(bufferStrategy).toBeInstanceOf(SqlJobBufferStorageStrategy);
+
+            const bufferId = 'test-default-buffer';
+            await bufferStrategy.add(bufferId, new Job({ queueName: 'test-buffered', data: { tag: 'a' } }));
+            expect(await connection.getRepository(JobRecordBuffer).countBy({ bufferId })).toBe(1);
+
+            const flushed = await bufferStrategy.flush([bufferId]);
+            expect(flushed[bufferId].map(job => job.data)).toEqual([{ tag: 'a' }]);
+            expect(await connection.getRepository(JobRecordBuffer).countBy({ bufferId })).toBe(0);
         });
     });
 });
