@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 export type DraftOrderStatusProps = Readonly<{
     hasCustomer: boolean;
@@ -29,7 +29,6 @@ export function DraftOrderStatus({
         completeDraftDisabledReason = t`Only draft orders can be completed`;
     }
 
-    const Icon = isCompleteDraftDisabled ? AlertTriangle : CheckCircle;
     const title = isCompleteDraftDisabled ? (
         <Trans>Order draft isn't ready to be completed</Trans>
     ) : (
@@ -37,8 +36,10 @@ export function DraftOrderStatus({
     );
 
     return (
-        <Alert variant={isCompleteDraftDisabled ? 'destructive' : 'default'}>
-            <Icon className={isCompleteDraftDisabled ? '' : 'stroke-success'} />
+        <Alert
+            variant={isCompleteDraftDisabled ? 'destructive' : 'default'}
+            icon={isCompleteDraftDisabled ? undefined : <CheckCircle className="stroke-success" />}
+        >
             <AlertTitle className={isCompleteDraftDisabled ? '' : 'text-success'}>{title}</AlertTitle>
             {completeDraftDisabledReason ? (
                 <AlertDescription>{completeDraftDisabledReason}</AlertDescription>
