@@ -14,7 +14,8 @@ import {
 import { getToolbarItemRegistry } from '@/vdb/framework/toolbar/toolbar-extensions.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { formatShortcut } from '@/vdb/keyboard-shortcut.js';
-import { Outlet } from '@tanstack/react-router';
+import { pageEnterClassName } from '@vendure-io/ui/components/molecules/app-shell';
+import { Outlet, useRouterState } from '@tanstack/react-router';
 import React from 'react';
 import { Alerts } from '../shared/alerts.js';
 import { DevModeToolbarItemWrapper } from './toolbar-item-wrapper.js';
@@ -136,6 +137,21 @@ function ToolbarItems() {
     );
 }
 
+/**
+ * Wraps the page content in the design-system page-enter motion: the page fades
+ * in and rises into place. Keyed to the pathname, so it runs once per
+ * navigation; a re-render or a search-param change (a tab, a filter) does not
+ * replay it. The header and sidebar sit outside, so they stay still.
+ */
+function PageEnter({ children }: Readonly<{ children: React.ReactNode }>) {
+    const pathname = useRouterState({ select: s => s.location.pathname });
+    return (
+        <div key={pathname} data-slot="page-enter" className={pageEnterClassName}>
+            {children}
+        </div>
+    );
+}
+
 export function AppLayout() {
     return (
         <SidebarProvider className="h-svh">
@@ -162,7 +178,9 @@ export function AppLayout() {
                 <AppShellMain>
                     <div className="container mx-auto">
                         <CustomProviders location={'layout'}>
-                            <Outlet />
+                            <PageEnter>
+                                <Outlet />
+                            </PageEnter>
                         </CustomProviders>
                     </div>
                 </AppShellMain>
