@@ -240,6 +240,20 @@ describe('unknown command help', () => {
             );
         });
 
+        it('gives the project check reason when the project copy is not a usable plugin', () => {
+            const options = makeMachine({
+                global: { installed: [], enabled: ['@example/cloud'] },
+                project: { installed: [['@example/cloud']] },
+            });
+            const pluginDir = path.join(options.cwd ?? '', 'node_modules', '@example', 'cloud');
+            fs.writeJsonSync(path.join(pluginDir, 'package.json'), { name: '@example/cloud' });
+
+            expect(unknownCommandHelp('cloud', options, new Map(), notInstalled(options))).toContain(
+                `@example/cloud is enabled globally but cannot be enabled for ${options.cwd}: ` +
+                    'Does not declare vendure.cliPlugin in its package.json',
+            );
+        });
+
         it('gives the reason outside a project', () => {
             const options = makeMachine({ global: { installed: [], enabled: ['@example/cloud'] } });
             const failure = notInstalled(options)[0];

@@ -37,7 +37,9 @@ export async function runProjectCheck(configFlag?: string): Promise<CheckResult>
     }
 
     const allDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    const vendureDeps = Object.keys(allDeps).filter(dep => dep.startsWith('@vendure/') || dep === 'vendure');
+    const vendureDeps = Object.keys(allDeps).filter(
+        dep => dep.startsWith('@vendure/') || dep === 'vendure',
+    );
 
     // If no vendure deps at root, check monorepo subdirectories
     let vendurePackageJsonPath: string | null = null;

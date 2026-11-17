@@ -75,9 +75,13 @@ export function globalPluginNotInstalledHelp(
         return `${packageName} is enabled globally but could not be found. ${failure.reason}`;
     }
     const enable = pluginsCommandFor('add', packageName, 'project');
-    if (project.check(packageName) === undefined) {
-        return `${packageName} is enabled globally but not for ${project.origin}. Enable it with: ${enable}`;
+    if (!project.resolvePackage(packageName)) {
+        const install = addDevDependencyCommand(project.origin, packageName);
+        return `${packageName} is enabled globally but not installed in ${project.origin}. Install it with: ${install} && ${enable}`;
     }
-    const install = addDevDependencyCommand(project.origin, packageName);
-    return `${packageName} is enabled globally but not installed in ${project.origin}. Install it with: ${install} && ${enable}`;
+    const ineligible = project.check(packageName);
+    if (ineligible) {
+        return `${packageName} is enabled globally but cannot be enabled for ${project.origin}: ${ineligible}`;
+    }
+    return `${packageName} is enabled globally but not for ${project.origin}. Enable it with: ${enable}`;
 }
