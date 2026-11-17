@@ -103,6 +103,7 @@ to correctly resolve imports of GraphQL types & interpret JSX in your dashboard 
             // This line allows TypeScript to properly resolve internal
             // Vendure Dashboard imports, which is necessary for
             // type safety in your dashboard extensions.
+            // It is for types only: import from `@vendure/dashboard` in your code.
             // This path assumes a root-level tsconfig.json file.
             // You may need to adjust it if your project structure is different.
             "@/vdb/*": [

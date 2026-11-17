@@ -42,13 +42,16 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: `npx vite build && npx vite preview --port ${VITE_PORT}`,
+        // Tests the pre-built bundle, as projects that install the package get it. The app is
+        // built into its own directory so that `dist/bundle` is not emptied by the build.
+        command: `npm run build:lib && npx vite build --outDir dist/e2e && npx vite preview --outDir dist/e2e --port ${VITE_PORT}`,
         port: VITE_PORT,
         cwd: path.join(__dirname, '..'),
         reuseExistingServer: !process.env.CI,
         env: {
             VITE_ADMIN_API_PORT: String(VENDURE_PORT),
             VITE_ADMIN_API_HOST: 'http://localhost',
+            VITE_DASHBOARD_BUNDLE: 'true',
             VENDURE_CONFIG_PATH: path.join(__dirname, 'fixtures/e2e-vendure-config.ts'),
             // Build with the bundled Platform catalog snapshot, not the live catalog.
             VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH: 'true',

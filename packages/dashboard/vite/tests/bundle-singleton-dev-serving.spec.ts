@@ -69,7 +69,7 @@ async function startDevServer(): Promise<{ port: number; stop: () => void }> {
         detached: true,
         env: {
             ...process.env,
-            VITE_USE_EXPERIMENTAL_BUNDLE: 'true',
+            VITE_DASHBOARD_BUNDLE: 'true',
             VENDURE_CONFIG_PATH: fixtureConfig,
             VITE_ADMIN_API_PORT: '3000',
         },
@@ -77,7 +77,7 @@ async function startDevServer(): Promise<{ port: number; stop: () => void }> {
 
     const stop = () => {
         try {
-            process.kill(-child.pid!, 'SIGTERM');
+            process.kill(-child.pid, 'SIGTERM');
         } catch {
             // already gone
         }

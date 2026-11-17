@@ -36,6 +36,8 @@ const config: StorybookConfig = {
         },
     },
     async viteFinal(config) {
+        // Stories render the dashboard's source components, so serve the source rather than the bundle.
+        process.env.VENDURE_DASHBOARD_FROM_SOURCE = 'true';
         const vendureConfigPath = pathToFileURL(resolve(__dirname, '../sample-vendure-config.ts'));
 
         return {

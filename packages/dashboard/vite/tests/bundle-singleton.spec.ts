@@ -9,8 +9,7 @@ import { auditBundleSingletons, BundleSingletonAudit } from './utils/bundle-sing
 const packageRoot = join(__dirname, '..', '..');
 
 /**
- * Guards the singleton-sharing contract of the experimental pre-built bundle
- * (`useExperimentalBundle`). A context/singleton library frozen into the bundle
+ * Guards the singleton-sharing contract of the pre-built bundle. A context/singleton library frozen into the bundle
  * AND re-bundled by a consumer's extension build exists as two live module
  * instances at runtime, which breaks React Context identity — the "No
  * QueryClient set" family of bugs. See issue #4919 and vite/lib-externals.ts.

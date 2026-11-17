@@ -12,8 +12,8 @@ import { Plugin } from 'vite';
  * `dashboardTailwindSourcePlugin` adds a `@source` for the bundle, so the
  * dashboard's own utility classes are generated along with the extension ones.
  *
- * Active only when `useExperimentalBundle` is enabled on
- * {@link vendureDashboardPlugin}. The bundle is generated at publish time by
+ * Active in `bundle` mode, which is the only mode outside the Vendure repo (see
+ * `DashboardMode`). The bundle is generated at publish time by
  * `vite.lib.config.mts` and shipped inside the npm package.
  */
 export function bundleEntryPlugin(): Plugin {
