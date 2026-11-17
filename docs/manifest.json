@@ -272,7 +272,7 @@
           "title": "Security",
           "slug": "security",
           "file": "docs/guides/developer-guide/security/index.mdx",
-          "lastModified": "2026-11-06T07:11:36Z"
+          "lastModified": "2026-11-17T19:55:26+01:00"
         },
         {
           "title": "API Keys",
@@ -313,13 +313,13 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-17T16:48:24+01:00"
+              "lastModified": "2026-11-17T19:55:26+01:00"
             },
             {
               "title": "Storefront Migration",
               "slug": "storefront-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/storefront-migration.mdx",
-              "lastModified": "2026-11-17T11:14:10+01:00"
+              "lastModified": "2026-11-17T19:55:26+01:00"
             },
             {
               "title": "Role Assignments",
@@ -730,7 +730,7 @@
           "title": "Connect API",
           "slug": "connect-api",
           "file": "docs/guides/storefront/connect-api/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-17T19:55:26+01:00"
         },
         {
           "title": "Codegen",
@@ -785,7 +785,7 @@
           "title": "Production Configuration",
           "slug": "production-configuration",
           "file": "docs/guides/deployment/production-configuration/index.mdx",
-          "lastModified": "2026-08-26T14:25:41+02:00"
+          "lastModified": "2026-11-17T19:55:26+01:00"
         },
         {
           "title": "Using Docker",
