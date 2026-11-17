@@ -6,6 +6,7 @@ import { I18nProvider } from '@/vdb/providers/i18n-provider.js';
 import { ServerConfigProvider } from '@/vdb/providers/server-config.js';
 import { ThemeProvider } from '@/vdb/providers/theme-provider.js';
 import { UserSettingsProvider } from '@/vdb/providers/user-settings.js';
+import { TooltipProvider } from '@/vdb/components/ui/tooltip.js';
 import { CustomProviders } from '@/vdb/framework/extension-api/custom-providers.js';
 import { keepPreviousData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -37,9 +38,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                                 <FormatBridge>
                                     <ChannelProvider>
                                         <AlertsProvider>
-                                            <CustomProviders location={'app'}>
-                                                {children}
-                                            </CustomProviders>
+                                            {/* One provider, so moving between triggers opens the next tooltip at once. */}
+                                            <TooltipProvider>
+                                                <CustomProviders location={'app'}>{children}</CustomProviders>
+                                            </TooltipProvider>
                                         </AlertsProvider>
                                     </ChannelProvider>
                                 </FormatBridge>
