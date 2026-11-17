@@ -1050,7 +1050,7 @@ describe('Custom fields', () => {
             expect(eligibleShippingMethods.length).toBeGreaterThan(0);
             expect(eligiblePaymentMethods.length).toBeGreaterThan(0);
             for (const quote of [...eligibleShippingMethods, ...eligiblePaymentMethods]) {
-                expect(quote.customFields?.privateNote).toBeUndefined();
+                expect(quote.customFields).toEqual({});
             }
         });
 
@@ -1072,7 +1072,7 @@ describe('Custom fields', () => {
 
             expect(taxCategories.items.length).toBeGreaterThan(0);
             for (const taxCategory of taxCategories.items) {
-                expect(taxCategory.customFields?.internalNote).toBeUndefined();
+                expect(taxCategory.customFields).toEqual({});
             }
         });
 
