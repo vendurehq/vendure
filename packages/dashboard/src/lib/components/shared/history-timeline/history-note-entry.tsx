@@ -9,7 +9,7 @@ import {
 import { Separator } from '@/vdb/components/ui/separator.js';
 import { HistoryEntry, HistoryEntryProps } from '@/vdb/framework/history-entry/history-entry.js';
 import { Trans } from '@lingui/react/macro';
-import { MoreVerticalIcon, PencilIcon, TrashIcon } from 'lucide-react';
+import { EllipsisIcon, PencilIcon, TrashIcon } from 'lucide-react';
 
 interface HistoryNoteEntryProps extends Readonly<HistoryEntryProps> {
     onEditNote?: (noteId: string, note: string, isPrivate: boolean) => void;
@@ -29,11 +29,13 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                 {onEditNote && onDeleteNote && (
                     <div className="flex items-center gap-2">
                         <Badge variant={entry.isPublic ? 'outline' : 'default'} className="text-xs">
-                            {entry.isPublic ? 'Public' : 'Private'}
+                            {entry.isPublic ? <Trans>Public</Trans> : <Trans>Private</Trans>}
                         </Badge>
                         <DropdownMenu>
-                            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="h-6 w-6 p-0" />}>
-                                    <MoreVerticalIcon className="h-3 w-3" />
+                            <DropdownMenuTrigger
+                                render={<Button variant="ghost" size="sm" className="h-6 w-6 p-0" />}
+                            >
+                                <EllipsisIcon className="h-3 w-3" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem
