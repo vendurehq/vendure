@@ -6,6 +6,6 @@
   "exclude": [
     "dist/**/*",
     "src/**/*.template.tsx",
-    "**/fixtures/**/*"
+    "src/commands/**/fixtures/**/*"
   ]
 }
