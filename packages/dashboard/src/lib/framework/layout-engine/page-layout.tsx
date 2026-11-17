@@ -8,6 +8,7 @@ import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confi
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Form } from '@/vdb/components/ui/form.js';
+import { IdChip } from '@/vdb/components/ui/id-chip.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
@@ -17,9 +18,8 @@ import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { usePlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import { useIsServerConfigLoaded } from '@/vdb/hooks/use-server-config.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { useCopyToClipboard } from '@uidotdev/usehooks';
-import { CheckIcon, CopyIcon, EllipsisVerticalIcon, InfoIcon } from 'lucide-react';
-import React, { ComponentProps, useMemo, useState } from 'react';
+import { MoreHorizontalIcon } from 'lucide-react';
+import React, { ComponentProps, useMemo } from 'react';
 import { Control, UseFormReturn } from 'react-hook-form';
 
 import { ActionBarItemPosition, DashboardActionBarItem } from '../extension-api/types/layout.js';
@@ -42,7 +42,7 @@ import {
 } from '@/vdb/components/ui/page-header.js';
 import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provider.js';
 import { PageContext, PageContextValue } from '@/vdb/framework/layout-engine/page-provider.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { getLockedPageCard } from '../platform-promotion/locked-capabilities.js';
 import { getDashboardActionBarItems, getDashboardPageBlocks } from './layout-extensions.js';
 import { LocationWrapper } from './location-wrapper.js';
@@ -528,10 +528,7 @@ export function PageActionBar({
                         ))}
                     {/* Merged ActionBarItem children (filtered on mobile) */}
                     {visibleMergedItems.map((mergedItem, index) => renderMergedItem(mergedItem, index))}
-                    {actionBarDropdownItems.length > 0 && (
-                        <PageActionBarDropdown items={actionBarDropdownItems} page={page} />
-                    )}
-                    <EntityInfoDropdown entity={page.entity} />
+                    <PageActionBarMenu items={actionBarDropdownItems} page={page} />
                 </div>
             )}
             {platformPromotionAction.dialog}
@@ -661,91 +658,6 @@ function mergeAndSortActionBarItems(
     return result;
 }
 
-function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
-    const [copiedField, setCopiedField] = useState<string | null>(null);
-    const [, copy] = useCopyToClipboard();
-    const { formatDate } = useLocalFormat();
-
-    const handleCopy = async (text: string, field: string) => {
-        await copy(text);
-        setCopiedField(field);
-        setTimeout(() => setCopiedField(null), 2000);
-    };
-
-    if (!entity?.id) {
-        return null;
-    }
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground"
-                        data-testid="entity-info-trigger"
-                    />
-                }
-            >
-                <InfoIcon className="w-4 h-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuGroup>
-                    <DropdownMenuLabel>
-                        <Trans>Entity Information</Trans>
-                    </DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <div className="px-3 py-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">ID</span>
-                        <div className="flex items-center gap-1">
-                            <span className="text-sm font-mono">{entity.id}</span>
-                            <button
-                                onClick={() => handleCopy(entity.id, 'id')}
-                                className="p-1 hover:bg-muted rounded-sm transition-colors"
-                            >
-                                {copiedField === 'id' ? (
-                                    <CheckIcon className="h-3 w-3 text-success" />
-                                ) : (
-                                    <CopyIcon className="h-3 w-3" />
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                {entity.createdAt && (
-                    <>
-                        <DropdownMenuSeparator />
-                        <div className="px-3 py-2">
-                            <div className="text-sm">
-                                <div className="font-medium text-muted-foreground">
-                                    <Trans>Created</Trans>
-                                </div>
-                                <div className="text-xs">{formatDate(entity.createdAt)}</div>
-                            </div>
-                        </div>
-                    </>
-                )}
-                {entity.updatedAt && (
-                    <>
-                        <DropdownMenuSeparator />
-                        <div className="px-3 py-2">
-                            <div className="text-sm">
-                                <div className="font-medium text-muted-foreground">
-                                    <Trans>Updated</Trans>
-                                </div>
-                                <div className="text-xs">{formatDate(entity.updatedAt)}</div>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
-
 function PageActionBarItem({
     item,
     page,
@@ -757,34 +669,79 @@ function PageActionBarItem({
     );
 }
 
-function PageActionBarDropdown({
+/**
+ * The ⋯ menu at the end of the action bar. It holds the page's rare actions (inline
+ * `dropdownMenuItems` and extension dropdown items) and, below them, the ID and dates
+ * of the page entity.
+ */
+function PageActionBarMenu({
     items,
     page,
 }: Readonly<{ items: DashboardActionBarItem[]; page: PageContextValue }>) {
     const { hasPermissions } = usePermissions();
+    const { formatDate } = useLocalFormat();
+    const { t } = useLingui();
     // Filter by permission up front so an under-permissioned user never sees an
-    // empty overflow menu (or its ⋮ trigger). Items without a `requiresPermission`
-    // are always visible.
+    // empty menu. Items without a `requiresPermission` are always visible.
     const visibleItems = items.filter(item => {
         const required = item.requiresPermission ?? [];
         return hasPermissions(Array.isArray(required) ? required : [required]);
     });
+    const entity = page.entity;
+    const hasEntityInfo = !!entity?.id;
 
-    if (visibleItems.length === 0) {
+    if (visibleItems.length === 0 && !hasEntityInfo) {
         return null;
     }
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
-                render={<Button variant="ghost" size="icon" data-testid="action-bar-dropdown-trigger" />}
+                render={
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t`More actions`}
+                        data-testid="action-bar-dropdown-trigger"
+                    />
+                }
             >
-                <EllipsisVerticalIcon className="w-4 h-4" />
+                <MoreHorizontalIcon />
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent className="min-w-56">
                 {visibleItems.map((item, index) => (
                     <item.component key={item.pageId + index} context={page} />
                 ))}
+                {visibleItems.length > 0 && hasEntityInfo && <DropdownMenuSeparator />}
+                {hasEntityInfo && (
+                    <DropdownMenuGroup data-testid="entity-info">
+                        <DropdownMenuLabel>
+                            <Trans>Entity information</Trans>
+                        </DropdownMenuLabel>
+                        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 px-2 pb-1.5 text-sm">
+                            <dt className="text-muted-foreground">ID</dt>
+                            <dd className="justify-self-end">
+                                <IdChip value={String(entity.id)} copyLabel={t`Copy ID`} copiedLabel={t`Copied`} />
+                            </dd>
+                            {entity.createdAt && (
+                                <>
+                                    <dt className="text-muted-foreground">
+                                        <Trans>Created</Trans>
+                                    </dt>
+                                    <dd className="justify-self-end tabular-nums">{formatDate(entity.createdAt)}</dd>
+                                </>
+                            )}
+                            {entity.updatedAt && (
+                                <>
+                                    <dt className="text-muted-foreground">
+                                        <Trans>Updated</Trans>
+                                    </dt>
+                                    <dd className="justify-self-end tabular-nums">{formatDate(entity.updatedAt)}</dd>
+                                </>
+                            )}
+                        </dl>
+                    </DropdownMenuGroup>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
