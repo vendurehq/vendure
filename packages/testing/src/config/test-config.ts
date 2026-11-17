@@ -3,6 +3,7 @@ import {
     DefaultAssetNamingStrategy,
     defaultConfig,
     DefaultLogger,
+    DefaultPasswordValidationStrategy,
     mergeConfig,
     NoopLogger,
     VendureConfig,
@@ -26,6 +27,8 @@ const logger = process.env.LOG ? new DefaultLogger() : new NoopLogger();
  * * `logger: new NoopLogger()` Do no output logs by default
  * * `assetStorageStrategy: new TestingAssetStorageStrategy()` This strategy does not actually persist any binary data to disk.
  * * `assetPreviewStrategy: new TestingAssetPreviewStrategy()` This strategy is a no-op.
+ * * `passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 })`
+ *   Allows the short passwords used by test fixtures, such as `'test'` in `populateCustomers()`.
  *
  * ## Logging
  * By default, the testConfig does not output any log messages. This is most desirable to keep a clean CI output.
@@ -53,6 +56,7 @@ export const testConfig: Required<VendureConfig> = mergeConfig(defaultConfig, {
         cookieOptions: {
             secret: 'some-secret',
         },
+        passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
     },
     dbConnectionOptions: {
         type: 'sqljs',

@@ -126,7 +126,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         shopApiKeyStrategy: new RandomBytesApiKeyStrategy(),
         customPermissions: [],
         passwordHashingStrategy: new BcryptPasswordHashingStrategy(),
-        passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
+        passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 8, maxLength: 72 }),
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
         customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),

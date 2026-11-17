@@ -4,6 +4,7 @@ import {
     defaultConfig,
     DefaultJobQueuePlugin,
     DefaultLogger,
+    DefaultPasswordValidationStrategy,
     DefaultSearchPlugin,
     dummyPaymentHandler,
     InMemorySessionCacheStrategy,
@@ -61,6 +62,11 @@ export function getLoadTestConfig(
         authOptions: {
             tokenMethod,
             requireVerification: false,
+            // The populated test customers use the password 'test'.
+            passwordValidationStrategy: new DefaultPasswordValidationStrategy({
+                minLength: 4,
+                maxLength: 72,
+            }),
             sessionCacheStrategy: new InMemorySessionCacheStrategy(),
         },
         importExportOptions: {

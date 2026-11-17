@@ -5,12 +5,8 @@ import { PasswordValidationStrategy } from './password-validation-strategy';
 /**
  * @description
  * The DefaultPasswordValidationStrategy allows you to specify a minimum length and/or
- * a regular expression to match passwords against. The default `maxLength` is `72`.
- *
- * TODO:
- * By default, the `minLength` will be set to `4`. This is rather permissive and is only
- * this way in order to reduce the risk of backward-compatibility breaks. In the next major version
- * this default will be made more strict.
+ * a regular expression to match passwords against. The default config uses a `minLength` of `8`
+ * (it was `4` before v4.0) and a `maxLength` of `72`.
  *
  * @docsCategory auth
  * @since 1.5.0

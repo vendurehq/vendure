@@ -5,6 +5,7 @@ import { ADMIN_API_PATH, API_PORT, SHOP_API_PATH } from '@vendure/common/lib/sha
 import {
     DefaultJobQueuePlugin,
     DefaultLogger,
+    DefaultPasswordValidationStrategy,
     DefaultSchedulerPlugin,
     DefaultSearchPlugin,
     dummyPaymentHandler,
@@ -81,6 +82,8 @@ export const devConfig: VendureConfig = {
         disableAuth: false,
         tokenMethod: ['bearer', 'cookie', 'api-key'] as const,
         requireVerification: true,
+        // The populated test customers use the password 'test'.
+        passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
         customPermissions: [],
         cookieOptions: {
             secret: 'abc',
