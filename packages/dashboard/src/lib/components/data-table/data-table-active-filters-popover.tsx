@@ -22,7 +22,7 @@ export function ActiveFiltersPopover({
 }: Readonly<ActiveFiltersPopoverProps>) {
     return (
         <Popover>
-            <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8 border-dashed" />}>
+            <PopoverTrigger render={<Button variant="outline" size="sm" className="border-dashed" />}>
                 <Filter className="h-4 w-4" />
                 <Trans>Active filters</Trans>
                 <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">

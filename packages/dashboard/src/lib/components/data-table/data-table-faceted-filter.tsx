@@ -2,6 +2,8 @@ import { Column } from '@tanstack/react-table';
 import { FilterIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { Button } from '@/vdb/components/ui/button.js';
+import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
@@ -53,38 +55,28 @@ export function FacetedFilterChip({
     valueLabel?: string;
     onClear?: () => void;
 }>) {
+    const { t } = useLingui();
     const TriggerIcon = Icon ?? FilterIcon;
     const hasValue = valueLabel != null;
-    return (
-        <div
-            className={cn(
-                'inline-flex items-center h-8 rounded-md border border-input bg-background text-sm',
-                !hasValue && 'border-dashed',
-            )}
+    const trigger = (
+        <PopoverTrigger
+            render={<Button variant="outline" size="sm" className={cn(!hasValue && 'border-dashed')} />}
         >
-            <PopoverTrigger
-                render={
-                    <button
-                        className={cn(
-                            'flex gap-1 items-center cursor-pointer px-2 py-1 hover:bg-accent/50 rounded-l-md transition-colors',
-                            !hasValue && 'rounded-r-md',
-                        )}
-                    />
-                }
-            >
-                <TriggerIcon className="size-3 text-muted-foreground flex-shrink-0" />
-                <span className="max-w-[200px] truncate">{title}</span>
-                {hasValue && <span className="max-w-[200px] truncate text-muted-foreground">{valueLabel}</span>}
-            </PopoverTrigger>
-            {hasValue && onClear && (
-                <button
-                    className="flex items-center justify-center h-full px-1.5 border-l border-input hover:bg-accent/50 rounded-r-md transition-colors"
-                    onClick={onClear}
-                >
-                    <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-            )}
-        </div>
+            <TriggerIcon />
+            <span className="max-w-[200px] truncate">{title}</span>
+            {hasValue && <span className="max-w-[200px] truncate text-muted-foreground">{valueLabel}</span>}
+        </PopoverTrigger>
+    );
+    if (!hasValue || !onClear) {
+        return trigger;
+    }
+    return (
+        <ButtonGroup>
+            {trigger}
+            <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={onClear}>
+                <XIcon />
+            </Button>
+        </ButtonGroup>
     );
 }
 

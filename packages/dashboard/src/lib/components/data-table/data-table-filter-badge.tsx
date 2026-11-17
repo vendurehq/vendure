@@ -1,6 +1,8 @@
+import { Button } from '@/vdb/components/ui/button.js';
+import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Filter, XIcon } from 'lucide-react';
 import { HumanReadableOperator, Operator } from './human-readable-operator.js';
 import { ColumnDataType } from './types.js';
@@ -18,32 +20,27 @@ export function DataTableFilterBadge({
     dataType: ColumnDataType;
     currencyCode: string;
 }) {
+    const { t } = useLingui();
     const { getTranslatedFieldName } = useDynamicTranslations();
     const [operator, value] = Object.entries(filter.value as Record<string, unknown>)[0];
     return (
-        <div className="inline-flex items-center h-8 rounded-md border border-input bg-background text-sm">
-            <button
-                className="flex gap-1 items-center cursor-pointer px-2 py-1 hover:bg-accent/50 rounded-l-md transition-colors"
-                onClick={() => onClick?.(filter)}
-            >
-                <Filter size="12" className="text-muted-foreground flex-shrink-0" />
+        <ButtonGroup>
+            <Button variant="outline" size="sm" onClick={() => onClick?.(filter)}>
+                <Filter />
                 <span className="max-w-[200px] truncate" title={filter.id}>
                     {getTranslatedFieldName(filter.id)}
                 </span>
-                <span className="text-muted-foreground flex-shrink-0">
+                <span className="text-muted-foreground">
                     <HumanReadableOperator operator={operator as Operator} mode="short" />
                 </span>
                 <span className="max-w-[200px] truncate">
                     <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} />
                 </span>
-            </button>
-            <button
-                className="flex items-center justify-center h-full px-1.5 border-l border-input hover:bg-accent/50 rounded-r-md transition-colors"
-                onClick={() => onRemove(filter)}
-            >
-                <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-        </div>
+            </Button>
+            <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={() => onRemove(filter)}>
+                <XIcon />
+            </Button>
+        </ButtonGroup>
     );
 }
 
