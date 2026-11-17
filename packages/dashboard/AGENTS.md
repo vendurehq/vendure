@@ -45,7 +45,9 @@ Don't flip these back unless you've thought through the flicker implications.
 
 ## Bundle and Source Modes
 
-`vendureDashboardPlugin` serves the pre-built bundle unless `VENDURE_DASHBOARD_FROM_SOURCE=true` (see `DashboardMode` in `vite/types.ts`). In bundle mode it throws if `dist/bundle/lib.js` is missing: run `npm run build:lib`. The Playwright e2e suite builds and tests the bundle (`VITE_DASHBOARD_BUNDLE=true`).
+`vendureDashboardPlugin` serves the pre-built bundle unless `VENDURE_DASHBOARD_FROM_SOURCE=true` (see `DashboardMode` in `vite/types.ts`). In bundle mode it throws if `dist/bundle/lib.js` is missing: run `npm run build:lib`. The Playwright e2e suite builds and tests the bundle (`VITE_DASHBOARD_BUNDLE=true`), into `e2e/.dist`.
+
+The package entry (`main`, `exports["."]`) is `dist/bundle/lib.js`, and `files` publishes only the source that bundle mode reads at runtime: `src/app/styles.css`, the `.po` catalogs and `src/lib/graphql/graphql.ts`. Source mode aliases `@vendure/dashboard` to `src/lib/index.ts`. In a project the bundle is in node_modules, where Vite doesn't discover missing dependencies, so every package the bundle imports must be in `optimizeDeps.include` (checked by `bundle-singleton.spec.ts`).
 
 ## Testing
 

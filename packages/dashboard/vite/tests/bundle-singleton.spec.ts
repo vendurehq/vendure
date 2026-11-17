@@ -104,7 +104,8 @@ function formatAuditTable(audit: BundleSingletonAudit): string {
 }
 
 async function writeAuditReport(audit: BundleSingletonAudit): Promise<void> {
-    const outDir = join(packageRoot, 'dist');
+    // Outside `dist`, so that the report is never published with the package
+    const outDir = join(packageRoot, 'vite/tests/__temp');
     await mkdir(outDir, { recursive: true });
     await writeFile(
         join(outDir, 'bundle-singleton-audit.json'),

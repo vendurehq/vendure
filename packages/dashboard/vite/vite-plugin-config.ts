@@ -68,6 +68,9 @@ export function viteConfigPlugin({
                               // The dashboard's own source imports its modules through these.
                               '@/vdb': path.resolve(packageRoot, './src/lib'),
                               '@/graphql': path.resolve(packageRoot, './src/lib/graphql'),
+                              // The package entry is the bundle. Extension code must get the
+                              // source that the app is served from, or there are two copies.
+                              '@vendure/dashboard': path.resolve(packageRoot, './src/lib/index.ts'),
                           }
                         : {
                               // Redirect imports of `@vendure/dashboard` (from extension code)

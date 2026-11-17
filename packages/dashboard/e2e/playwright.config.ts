@@ -43,8 +43,9 @@ export default defineConfig({
     ],
     webServer: {
         // Tests the pre-built bundle, as projects that install the package get it. The app is
-        // built into its own directory so that `dist/bundle` is not emptied by the build.
-        command: `npm run build:lib && npx vite build --outDir dist/e2e && npx vite preview --outDir dist/e2e --port ${VITE_PORT}`,
+        // built outside `dist`, so that the build does not empty `dist/bundle` and the app is
+        // never published with the package.
+        command: `npm run build:lib && npx vite build --outDir e2e/.dist && npx vite preview --outDir e2e/.dist --port ${VITE_PORT}`,
         port: VITE_PORT,
         cwd: path.join(__dirname, '..'),
         reuseExistingServer: !process.env.CI,

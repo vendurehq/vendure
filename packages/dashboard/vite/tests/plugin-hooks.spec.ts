@@ -996,11 +996,12 @@ describe('bundleEntryPlugin', () => {
 describe('viteConfigPlugin: modes', () => {
     const packageRoot = '/fake/dashboard';
 
-    it('source mode: no @vendure/dashboard alias', () => {
+    // The package entry is the bundle, so extension code would otherwise load a second copy
+    it('source mode: aliases @vendure/dashboard to the source entry', () => {
         const plugin = viteConfigPlugin({ packageRoot, mode: 'source' });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
-        expect(aliases['@vendure/dashboard']).toBeUndefined();
+        expect(aliases['@vendure/dashboard']).toBe(path.resolve(packageRoot, './src/lib/index.ts'));
     });
 
     it('bundle mode (default): adds Vite resolve alias @vendure/dashboard -> dist/bundle/lib.js', () => {
