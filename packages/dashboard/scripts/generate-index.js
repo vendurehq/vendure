@@ -8,7 +8,11 @@ const __dirname = path.dirname(__filename);
 const TARGET_DIRS = ['components', 'framework', 'hooks', 'lib', 'graphql'];
 // Modules which live under a TARGET_DIR but are internal, so must not reach the public
 // entry point. Paths are relative to src/lib and use forward slashes.
-const EXCLUDED_PATHS = ['framework/nav-menu/resolve-nav-menu.ts', 'hooks/use-admin-custom-fields.ts'];
+const EXCLUDED_PATHS = [
+    'framework/nav-menu/resolve-nav-menu.ts',
+    'hooks/use-admin-custom-fields.ts',
+    'framework/form-engine/relation-id-value.ts',
+];
 const LIB_DIR = path.join(__dirname, '..', 'src', 'lib');
 const INDEX_FILE = path.join(LIB_DIR, 'index.ts');
 

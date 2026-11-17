@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/ta
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import { CustomFormComponent } from '@/vdb/framework/form-engine/custom-form-component.js';
 import { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
-import { toRelationIdValue } from '@/vdb/framework/form-engine/utils.js';
+import { toRelationIdValue } from '@/vdb/framework/form-engine/relation-id-value.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
