@@ -44,6 +44,17 @@ describe('bundle singleton duplication', () => {
         ).toEqual([]);
     });
 
+    // The project builds the dashboard's styles.css with its own Tailwind and theme plugins,
+    // and public/ is served from the package root, so the bundle has nothing but JavaScript.
+    it('contains only JavaScript', async () => {
+        const bundleDir = join(packageRoot, 'dist/bundle');
+        const files = [
+            ...(await readdir(bundleDir)),
+            ...(await readdir(join(bundleDir, 'chunks'))).map(f => `chunks/${f}`),
+        ];
+        expect(files.filter(f => f !== 'chunks' && !f.endsWith('.js'))).toEqual([]);
+    });
+
     // In a project the bundle is in node_modules, where Vite doesn't discover missing
     // dependencies. An external that is not pre-bundled reaches the browser raw, and a
     // CommonJS one then fails to load (e.g. react-dom/client: "does not provide an export
