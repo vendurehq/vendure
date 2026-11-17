@@ -95,6 +95,8 @@ export interface DefaultJobQueueOptions {
      * If set to `true`, the database is used to store buffered jobs (in the `JobRecordBuffer`
      * entity), so that they survive a restart and are shared by every server instance.
      *
+     * When not set, the in-memory default `jobBufferStorageStrategy` is replaced, but a strategy
+     * configured in `jobQueueOptions.jobBufferStorageStrategy` is kept. `true` always replaces it.
      * Set to `false` to keep buffered jobs in memory, as before v4.0. Then the `JobRecordBuffer`
      * table is not defined.
      *

@@ -5,10 +5,10 @@ import { isRedisInstance, RedisConnection } from 'bullmq';
 import { BULLMQ_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { BullMQPluginOptions } from './types';
 
-type RedisHealthResult = Record<string, { status: 'up' | 'down' }>;
+type RedisHealthResult = Record<string, { status: 'up' }>;
 
 /**
- * Checks that Redis can be reached when the BullMQJobQueueStrategy starts.
+ * Checks that Redis can be reached when the BullMQJobQueueStrategy starts. Throws if it cannot.
  */
 @Injectable()
 export class RedisHealthIndicator {
@@ -70,6 +70,6 @@ export class RedisHealthIndicator {
         if (pingResult === 'PONG') {
             return { [key]: { status: 'up' } };
         }
-        throw new Error('Redis failed');
+        throw new Error('Could not connect to Redis');
     }
 }

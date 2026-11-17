@@ -1,5 +1,6 @@
 import { Type } from '@vendure/common/lib/shared-types';
 
+import { InMemoryJobBufferStorageStrategy } from '../../job-queue/job-buffer/in-memory-job-buffer-storage-strategy';
 import { PluginCommonModule } from '../plugin-common.module';
 import { VendurePlugin } from '../vendure-plugin';
 
@@ -209,7 +210,14 @@ import { DefaultJobQueueOptions } from './types';
                   ...(typeof useNotify === 'object' ? useNotify : {}),
               })
             : new SqlJobQueueStrategy(strategyConfig);
-        if (DefaultJobQueuePlugin.options.useDatabaseForBuffer !== false) {
+        // By default only the in-memory default is replaced, so that a JobBufferStorageStrategy
+        // configured by the project is kept. `useDatabaseForBuffer: true` always replaces it.
+        const { useDatabaseForBuffer } = DefaultJobQueuePlugin.options;
+        const bufferStrategy = config.jobQueueOptions.jobBufferStorageStrategy;
+        if (
+            useDatabaseForBuffer === true ||
+            (useDatabaseForBuffer !== false && bufferStrategy instanceof InMemoryJobBufferStorageStrategy)
+        ) {
             config.jobQueueOptions.jobBufferStorageStrategy = new SqlJobBufferStorageStrategy();
         }
         config.schedulerOptions.tasks.push(

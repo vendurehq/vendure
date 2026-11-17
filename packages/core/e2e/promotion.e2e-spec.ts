@@ -20,6 +20,7 @@ import {
     E2E_DEFAULT_CHANNEL_TOKEN,
     type ErrorResultGuard,
 } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { channelFragment, promotionFragment } from './graphql/fragments-admin';
@@ -285,6 +286,37 @@ describe('Promotion resolver', () => {
         expect(await getPriorityScore()).toBe(12);
 
         await adminClient.query(updatePromotionDocument, { input: { id: promotion.id, enabled: true } });
+    });
+
+    // A stored condition whose code is no longer configured (e.g. its plugin was removed) must not
+    // stop a partial update such as disabling the promotion
+    it('updatePromotion without conditions or actions works with an unregistered stored condition', async () => {
+        const repository = server.app.get(TransactionalConnection).rawConnection.getRepository(Promotion);
+        const promotionId = promotion.id.replace('T_', '');
+        const stored = await repository.findOneByOrFail({ id: promotionId });
+        const originalConditions = stored.conditions;
+        await repository.update(promotionId, {
+            conditions: [...originalConditions, { code: 'removed_condition', args: [] }],
+        });
+        try {
+            const { updatePromotion } = await adminClient.query(
+                gql`
+                    mutation ($input: UpdatePromotionInput!) {
+                        updatePromotion(input: $input) {
+                            ... on Promotion {
+                                id
+                                enabled
+                            }
+                        }
+                    }
+                `,
+                { input: { id: promotion.id, enabled: false } },
+            );
+            expect(updatePromotion).toEqual({ id: promotion.id, enabled: false });
+            expect((await repository.findOneByOrFail({ id: promotionId })).priorityScore).toBe(12);
+        } finally {
+            await repository.update(promotionId, { conditions: originalConditions, enabled: true });
+        }
     });
 
     it('updatePromotion return error result with empty conditions and no couponCode', async () => {

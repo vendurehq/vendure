@@ -474,7 +474,7 @@ const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string)
                 subtitle={`${item.defaultLanguageCode} • ${item.defaultCurrencyCode} • ${item.pricesIncludeTax ? 'Inc. Tax' : 'Ex. Tax'}`}
                 placeholderLetter="CH"
                 rounded
-                tooltipText={`${item.code} (${item.defaultLanguageCode}, ${item.currencyCode})`}
+                tooltipText={`${item.code} (${item.defaultLanguageCode}, ${item.defaultCurrencyCode})`}
             />
         ),
     }),

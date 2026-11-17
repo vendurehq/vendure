@@ -99,7 +99,7 @@ DefaultSearchPlugin.init({ indexStockStatus: false, indexCurrencyCode: false });
 
 ### DefaultJobQueuePlugin buffers jobs in the database
 
-`useDatabaseForBuffer` now defaults to `true`, so buffered jobs (for example the search index updates of `bufferUpdates`) are stored in the `job_record_buffer` table. They survive a restart and are shared by every server instance. The generated migration creates the table. To keep the in-memory buffer, set `DefaultJobQueuePlugin.init({ useDatabaseForBuffer: false })`.
+`useDatabaseForBuffer` now defaults to `true`, so buffered jobs (for example the search index updates of `bufferUpdates`) are stored in the `job_record_buffer` table. They survive a restart and are shared by every server instance. The generated migration creates the table. A `jobBufferStorageStrategy` you configured yourself is kept. To keep the in-memory buffer, set `DefaultJobQueuePlugin.init({ useDatabaseForBuffer: false })`.
 
 ### Passwords need 8 characters
 

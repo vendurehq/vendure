@@ -823,15 +823,6 @@ export class OrderModifier {
         return noChanges;
     }
 
-    /**
-     * @description
-     * Because a Refund's amount is calculated based on the orderItems changed, plus shipping change,
-     * we need to make sure the amount gets adjusted to match any changes caused by other factors,
-     * i.e. promotions that were previously active but are no longer.
-     *
-     * TODO: Deprecated - can be removed once we remove support for the "shipping" & "adjustment" input
-     * fields for refunds.
-     */
     private getOrderPayments(ctx: RequestContext, orderId: ID): Promise<Payment[]> {
         return this.connection.getRepository(ctx, Payment).find({
             relations: { refunds: true },

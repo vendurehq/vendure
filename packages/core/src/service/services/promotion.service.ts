@@ -189,9 +189,11 @@ export class PromotionService {
             entityType: Promotion,
             translationType: PromotionTranslation,
             beforeSave: async p => {
-                // Scored from the merged operations, so that an update which omits `conditions` or
-                // `actions` keeps their share of the score.
-                p.priorityScore = this.calculatePriorityScore(conditions, actions);
+                // Rescored only when the operations change, and from the merged operations, so that an
+                // update which omits `conditions` or `actions` keeps their share of the score.
+                if (input.conditions || input.actions) {
+                    p.priorityScore = this.calculatePriorityScore(conditions, actions);
+                }
                 if (input.conditions) {
                     p.conditions = conditions;
                 }
@@ -528,11 +530,14 @@ export class PromotionService {
         conditions: Array<{ code: string }> | null | undefined,
         actions: Array<{ code: string }> | null | undefined,
     ): number {
-        const operations = [
-            ...(conditions ?? []).map(c => this.configArgService.getByCode('PromotionCondition', c.code)),
-            ...(actions ?? []).map(a => this.configArgService.getByCode('PromotionAction', a.code)),
-        ];
-        return operations.reduce((score, op) => score + op.priorityValue, 0);
+        // Stored operations may use a code which is no longer configured (e.g. after a plugin was
+        // removed). Such an operation adds nothing to the score, rather than failing the update.
+        const priorityValueOf = (type: 'PromotionCondition' | 'PromotionAction', code: string) =>
+            this.configArgService.getDefinitions(type).find(def => def.code === code)?.priorityValue ?? 0;
+        return [
+            ...(conditions ?? []).map(c => priorityValueOf('PromotionCondition', c.code)),
+            ...(actions ?? []).map(a => priorityValueOf('PromotionAction', a.code)),
+        ].reduce((score, value) => score + value, 0);
     }
 
     private validateRequiredConditions(
