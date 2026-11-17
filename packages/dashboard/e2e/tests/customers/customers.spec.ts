@@ -178,7 +178,7 @@ test.describe('Address form country dropdown', () => {
 
     async function openAddressCountrySelect(page: Page) {
         await page.goto(`/customers/${customerId}`);
-        await page.getByRole('button', { name: 'Edit Address' }).click();
+        await page.getByRole('button', { name: 'Edit', exact: true }).first().click();
         return page.getByRole('dialog', { name: 'Edit Address' }).getByRole('combobox', { name: 'Country' });
     }
 
