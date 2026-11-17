@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
+import { detectPackageManagerIn } from '../../../shared/package-manager';
 import { detectMonorepoStructure, findPackageJsonWithDependency } from '../../../utilities/monorepo-utils';
 import { CheckResult } from '../types';
 
@@ -36,9 +37,7 @@ export async function runProjectCheck(configFlag?: string): Promise<CheckResult>
     }
 
     const allDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    const vendureDeps = Object.keys(allDeps).filter(
-        dep => dep.startsWith('@vendure/') || dep === 'vendure',
-    );
+    const vendureDeps = Object.keys(allDeps).filter(dep => dep.startsWith('@vendure/') || dep === 'vendure');
 
     // If no vendure deps at root, check monorepo subdirectories
     let vendurePackageJsonPath: string | null = null;
@@ -67,7 +66,7 @@ export async function runProjectCheck(configFlag?: string): Promise<CheckResult>
     // 4. Detect package manager
     // In a monorepo, lockfiles live at the root, not in the subpackage
     const lockfileSearchDir = monorepoInfo.isMonorepo && monorepoInfo.root ? monorepoInfo.root : cwd;
-    const packageManager = detectPackageManager(lockfileSearchDir);
+    const packageManager = detectPackageManagerIn(lockfileSearchDir) ?? 'unknown';
     details.push(`Package manager: ${packageManager}`);
 
     // Check for lockfile consistency
@@ -104,22 +103,6 @@ export async function runProjectCheck(configFlag?: string): Promise<CheckResult>
         details,
         packageManager,
     };
-}
-
-function detectPackageManager(cwd: string): string {
-    if (fs.existsSync(path.join(cwd, 'bun.lockb')) || fs.existsSync(path.join(cwd, 'bun.lock'))) {
-        return 'bun';
-    }
-    if (fs.existsSync(path.join(cwd, 'yarn.lock'))) {
-        return 'yarn';
-    }
-    if (fs.existsSync(path.join(cwd, 'pnpm-lock.yaml'))) {
-        return 'pnpm';
-    }
-    if (fs.existsSync(path.join(cwd, 'package-lock.json'))) {
-        return 'npm';
-    }
-    return 'unknown';
 }
 
 function detectLockfiles(cwd: string): string[] {
