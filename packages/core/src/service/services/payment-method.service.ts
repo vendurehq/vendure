@@ -155,7 +155,16 @@ export class PaymentMethodService {
         );
         // The reloaded entity, as `updatedPaymentMethod` has `null` for every nullable column the
         // input left out (see TranslatableSaver.update()).
-        const paymentMethod = await assertFound(this.findOne(ctx, updatedPaymentMethod.id));
+        const paymentMethod = await assertFound(
+            this.findOne(
+                ctx,
+                updatedPaymentMethod.id,
+                this.customFieldRelationService.getRelationPathsInInput(
+                    PaymentMethod,
+                    input,
+                ) as RelationPaths<PaymentMethod>,
+            ),
+        );
         await this.eventBus.publish(new PaymentMethodEvent(ctx, paymentMethod, 'updated', input));
         return paymentMethod;
     }

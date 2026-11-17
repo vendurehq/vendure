@@ -197,7 +197,17 @@ export class ShippingMethodService {
         );
         // The reloaded entity, as `updatedShippingMethod` has `null` for every nullable column the
         // input left out (see TranslatableSaver.update()).
-        const updated = await assertFound(this.findOne(ctx, shippingMethod.id));
+        const updated = await assertFound(
+            this.findOne(
+                ctx,
+                shippingMethod.id,
+                false,
+                this.customFieldRelationService.getRelationPathsInInput(
+                    ShippingMethod,
+                    input,
+                ) as RelationPaths<ShippingMethod>,
+            ),
+        );
         await this.eventBus.publish(new ShippingMethodEvent(ctx, updated, 'updated', input));
         return updated;
     }

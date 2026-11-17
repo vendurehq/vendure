@@ -9,11 +9,13 @@ import {
     CustomFields,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
+    EventBus,
     Facet,
     FacetValue,
     Logger,
     manualFulfillmentHandler,
     mergeConfig,
+    PaymentMethodEvent,
     Product,
     productIdCollectionFilter,
     ProductOption,
@@ -27,6 +29,7 @@ import {
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
+import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -1723,6 +1726,20 @@ describe('Custom field relations', () => {
                 `);
                 expect(updatePaymentMethod.customFields.single).toEqual({ id: 'T_3' });
                 expect(updatePaymentMethod.customFields.primitive).toBe('test');
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5763
+            it('the PaymentMethodEvent of an update holds the relations the input sets', async () => {
+                const eventPromise = firstValueFrom(server.app.get(EventBus).ofType(PaymentMethodEvent));
+                await adminClient.query(gql`
+                    mutation {
+                        updatePaymentMethod(input: { id: "${paymentMethodId}", customFields: { singleId: "T_3" } }) {
+                            id
+                        }
+                    }
+                `);
+                const event = await eventPromise;
+                expect(String((event.entity.customFields as any).single?.id)).toBe('3');
             });
 
             // https://github.com/vendurehq/vendure/issues/5763
