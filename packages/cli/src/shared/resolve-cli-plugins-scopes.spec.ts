@@ -8,6 +8,7 @@ import {
     CliInstallLocation,
     discoverCliPlugins,
     findCliInstallLocation,
+    getCliPluginScope,
     PackageJsonLike,
     resolveCliPlugins,
 } from './resolve-cli-plugins';
@@ -149,6 +150,21 @@ describe('CLI plugin scopes', () => {
         expect(result.failures[0].reason).toContain('not a direct dependency');
     });
 
+    // CLO-1562: `plugins add` for a package the project does not have named a
+    // listing that did not exist instead of the missing install.
+    it('says a package is not installed, with the install command for the project', () => {
+        const project = makeProject({ dependencies: { '@vendure/core': '*' } });
+        fs.writeFileSync(path.join(project.root, 'bun.lock'), '');
+
+        const reason = getCliPluginScope('project', { cwd: project.root, scopes: ['project'] })?.check(
+            '@example/cloud',
+        );
+
+        expect(reason).toBe(
+            `@example/cloud is not installed in ${project.root}. Install it with: bun add -D @example/cloud`,
+        );
+    });
+
     it('requires a plugin declaration in a selected project dependency', () => {
         const project = makeProject({
             dependencies: { '@vendure/core': '*', '@example/tools': '*' },
@@ -207,6 +223,22 @@ describe('CLI plugin scopes', () => {
         expect(failures).toHaveLength(1);
         expect(failures[0].scope).toBe('global');
         expect(failures[0].reason).toContain('could not be resolved');
+        expect(failures[0].notInstalled).toBe(true);
+    });
+
+    it('does not call an installed package that fails to load "not installed"', () => {
+        const globalRoot = makeTempDir('vendure-scope-global-');
+        installPlugin(globalRoot, '@example/cloud', 'cloud');
+        fs.writeFileSync(
+            path.join(globalRoot, 'node_modules/@example/cloud/cli-plugin.js'),
+            'throw new Error("boom");',
+        );
+        const env = makeGlobalEnv({ plugins: ['@example/cloud'], roots: [globalRoot] });
+
+        const { failures } = resolveCliPlugins({ env });
+
+        expect(failures).toHaveLength(1);
+        expect(failures[0].notInstalled).toBe(false);
     });
 
     it('reports a malformed global config as a scope problem, not a broken package', () => {

@@ -11,6 +11,7 @@ import {
 import { ProjectCliPluginConfig } from './cli-command-definition';
 import { mergeEnvPluginNames, readGlobalCliConfig } from './cli-global-plugin-config';
 import { assertCliPlugin, CliPlugin } from './cli-plugin';
+import { addDevDependencyCommand, detectProjectPackageManager } from './package-manager';
 import { walkUp } from './project-validation';
 
 export interface PackageJsonLike {
@@ -42,6 +43,11 @@ export interface CliPluginLoadFailure {
     reason: string;
     /** Which allowlist listed it. */
     scope: CliPluginScopeKind;
+    /**
+     * True when the scope could not find the package at all, as opposed to
+     * finding it and failing to load it.
+     */
+    notInstalled: boolean;
 }
 
 /**
@@ -420,7 +426,13 @@ function owningScopes(scopes: PluginScope[]): Map<string, PluginScope> {
 
 /** Loads one package, recording either the plugin or the reason it could not be. */
 function loadInto(result: CliPluginLoadResult, scope: PluginScope, packageName: string): void {
-    const fail = (reason: string) => result.failures.push({ packageName, reason, scope: scope.kind });
+    const fail = (reason: string) =>
+        result.failures.push({
+            packageName,
+            reason,
+            scope: scope.kind,
+            notInstalled: !scope.resolvePackage(packageName),
+        });
 
     const ineligible = scope.check(packageName);
     if (ineligible) {
@@ -860,20 +872,37 @@ function getProjectPluginContext(options: ResolveCliPluginsOptions): ProjectPlug
 }
 
 /**
- * The project scope's eligibility rule: a listed package must be a direct
- * dependency and must resolve. Whether it then declares a usable plugin entry
- * is the same question in every scope, so {@link checkDeclaresPlugin} answers
- * that part for all of them.
+ * The project scope's eligibility rule: a package must be a direct dependency
+ * and must resolve. Whether it then declares a usable plugin entry is the same
+ * question in every scope, so {@link checkDeclaresPlugin} answers that part for
+ * all of them.
+ *
+ * `plugins add` runs this before the package is listed anywhere, so the
+ * messages say what is missing rather than where the package is listed.
  */
 function checkEnabledPluginStatically(
     packageName: string,
     context: ProjectPluginContext,
 ): string | undefined {
-    if (!context.directDependencyOrigins.has(packageName)) {
-        return `Listed in vendure.cli.plugins but is not a direct dependency of ${context.projectRoot}`;
+    const { projectRoot } = context;
+    const isDirect = context.directDependencyOrigins.has(packageName);
+    const isResolvable = context.resolvePackage(packageName) !== null;
+    if (!isDirect && !isResolvable) {
+        return `${packageName} is not installed in ${projectRoot}. Install it with: ${addDevDependencyCommand(
+            projectRoot,
+            packageName,
+        )}`;
     }
-    if (!context.resolvePackage(packageName)) {
-        return `Listed in vendure.cli.plugins but could not be resolved from ${context.projectRoot}. Check that it is installed.`;
+    if (!isDirect) {
+        return `${packageName} is not a direct dependency of ${projectRoot}. Add it with: ${addDevDependencyCommand(
+            projectRoot,
+            packageName,
+        )}`;
+    }
+    if (!isResolvable) {
+        return `${packageName} is a dependency of ${projectRoot} but is not installed. Run ${detectProjectPackageManager(
+            projectRoot,
+        )} install`;
     }
     return undefined;
 }
