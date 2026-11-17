@@ -2,6 +2,7 @@ import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/gene
 import {
     Asset,
     CustomFields,
+    dummyPaymentHandler,
     Logger,
     mergeConfig,
     OrderService,
@@ -9,9 +10,11 @@ import {
     ProductService,
     RequestContext,
     RequestContextService,
+    TaxCategory,
     TransactionalConnection,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import gql from 'graphql-tag';
 import { fail } from 'node:assert';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -32,6 +35,9 @@ const validateListInjectorSpy = vi.fn();
 const customConfig = mergeConfig(testConfig(), {
     dbConnectionOptions: {
         timezone: 'Z',
+    },
+    paymentOptions: {
+        paymentMethodHandlers: [dummyPaymentHandler],
     },
     customFields: {
         Product: [
@@ -217,6 +223,10 @@ const customConfig = mergeConfig(testConfig(), {
             { name: 'secretKey2', type: 'string', defaultValue: '', public: false, internal: false },
         ],
         OrderLine: [{ name: 'validateInt', type: 'int', min: 0, max: 10 }],
+        // Only non-public, or only internal, custom fields: customFields has the JSON type
+        ShippingMethod: [{ name: 'privateNote', type: 'string', public: false, nullable: true }],
+        PaymentMethod: [{ name: 'privateNote', type: 'string', public: false, nullable: true }],
+        TaxCategory: [{ name: 'internalNote', type: 'string', internal: true, nullable: true }],
         Role: [{ name: 'note', type: 'string', nullable: true }],
         ProductVariantPrice: [
             {
@@ -980,6 +990,90 @@ describe('Custom fields', () => {
 
             collectionGuard.assertSuccess(collection);
             expect(collection.customFields).toBe(null);
+        });
+
+        it('does not return non-public custom fields of shipping and payment method quotes', async () => {
+            await adminClient.query(
+                gql`
+                    mutation ($input: UpdateShippingMethodInput!) {
+                        updateShippingMethod(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { id: 'T_1', translations: [], customFields: { privateNote: 'shipping-note' } } },
+            );
+            await adminClient.query(
+                gql`
+                    mutation ($input: CreatePaymentMethodInput!) {
+                        createPaymentMethod(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        code: 'custom-fields-test',
+                        enabled: true,
+                        handler: {
+                            code: dummyPaymentHandler.code,
+                            arguments: [{ name: 'automaticSettle', value: 'true' }],
+                        },
+                        translations: [{ languageCode: LanguageCode.en, name: 'Test' }],
+                        customFields: { privateNote: 'payment-note' },
+                    },
+                },
+            );
+            await shopClient.asAnonymousUser();
+            await shopClient.query(gql`
+                mutation {
+                    addItemToOrder(productVariantId: "T_1", quantity: 1) {
+                        ... on Order {
+                            id
+                        }
+                    }
+                }
+            `);
+            const { eligibleShippingMethods, eligiblePaymentMethods } = await shopClient.query(gql`
+                query {
+                    eligibleShippingMethods {
+                        id
+                        customFields
+                    }
+                    eligiblePaymentMethods {
+                        id
+                        customFields
+                    }
+                }
+            `);
+
+            expect(eligibleShippingMethods.length).toBeGreaterThan(0);
+            expect(eligiblePaymentMethods.length).toBeGreaterThan(0);
+            for (const quote of [...eligibleShippingMethods, ...eligiblePaymentMethods]) {
+                expect(quote.customFields?.privateNote).toBeUndefined();
+            }
+        });
+
+        it('does not return internal custom fields in the Admin API', async () => {
+            await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(TaxCategory)
+                .update(1, { customFields: { internalNote: 'internal-note' } } as any);
+            const { taxCategories } = await adminClient.query(gql`
+                query {
+                    taxCategories {
+                        items {
+                            id
+                            customFields
+                        }
+                    }
+                }
+            `);
+
+            expect(taxCategories.items.length).toBeGreaterThan(0);
+            for (const taxCategory of taxCategories.items) {
+                expect(taxCategory.customFields?.internalNote).toBeUndefined();
+            }
         });
 
         // On an entity with no custom fields, customFields is typed JSON. It must not include the
