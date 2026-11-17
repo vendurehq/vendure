@@ -18,7 +18,10 @@ export class GlobalSettings extends VendureEntity implements HasCustomFields {
     }
 
     /**
-     * @deprecated use `Channel.availableLanguageCodes`
+     * @description
+     * The languages which are available in this Vendure instance. A Channel's
+     * `defaultLanguageCode` must be one of them. Each Channel selects the languages it offers in
+     * `Channel.availableLanguageCodes`.
      */
     @Column('simple-array')
     availableLanguages: LanguageCode[];
