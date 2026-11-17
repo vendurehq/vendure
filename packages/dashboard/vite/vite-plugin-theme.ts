@@ -1,11 +1,13 @@
 import {
     animation,
     brand,
+    darkShadows,
     darkTheme,
     duration,
     easing,
     fontFamily,
     keyframes,
+    lightShadows,
     lightTheme,
     radii,
     shadows,
@@ -83,9 +85,19 @@ const dashboardDarkExtensions: ThemeColors = {
     'font-mono': fontFamily.mono,
 };
 
+/**
+ * Themed shadows (`overlay`, `control`, `scrolled`) differ between light and
+ * dark, so they are runtime variables in `:root` and `.dark` (`--shadow-<key>`),
+ * like the colours. A custom theme overrides them with the same keys, e.g.
+ * `light: { 'shadow-overlay': '…' }`.
+ */
+function toShadowVariables(themed: Record<string, string>): ThemeColors {
+    return Object.fromEntries(Object.entries(themed).map(([key, value]) => [`shadow-${key}`, value]));
+}
+
 const defaultVariables: ThemeVariables = {
-    light: { ...lightTheme, ...dashboardLightExtensions },
-    dark: { ...darkTheme, ...dashboardDarkExtensions },
+    light: { ...lightTheme, ...toShadowVariables(lightShadows), ...dashboardLightExtensions },
+    dark: { ...darkTheme, ...toShadowVariables(darkShadows), ...dashboardDarkExtensions },
 };
 
 /**
@@ -140,6 +152,13 @@ function generateThemeInlineBlock(): string {
     // Shadows — direct values from token definitions
     const shadowLines = Object.entries(shadows).map(([key, value]) => `    --shadow-${key}: ${value};`);
 
+    // Themed shadows — var() indirection to the :root/.dark variables, so the
+    // `shadow-overlay`, `shadow-control` and `shadow-scrolled` utilities follow
+    // the active theme and any custom theme override
+    const themedShadowLines = Object.keys(lightShadows).map(
+        key => `    --shadow-${key}: var(--shadow-${key});`,
+    );
+
     // Fonts — use var() indirection so user overrides via themeVariablesPlugin
     // options are picked up (the :root block sets --font-* from dashboardExtensions)
     const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
@@ -174,6 +193,7 @@ function generateThemeInlineBlock(): string {
         ...colorLines,
         ...radiusLines,
         ...shadowLines,
+        ...themedShadowLines,
         ...fontLines,
         ...easingLines,
         ...durationLines,

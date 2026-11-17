@@ -238,6 +238,34 @@ describe('themeVariablesPlugin', () => {
         expect(result).not.toContain('--ease-inOut');
     });
 
+    // OSS-982 — the themed shadows are runtime variables per theme
+    it('writes the themed shadows into :root and .dark and maps them in @theme inline', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme';\n@import 'virtual:admin-theme-inline';`;
+        const result: string = callTransform(plugin, css, '/app/styles.css');
+        const darkStart = result.indexOf('.dark');
+        const root = result.slice(0, darkStart);
+        const dark = result.slice(darkStart, result.indexOf('@theme inline'));
+        for (const key of ['overlay', 'control', 'scrolled']) {
+            expect(root).toContain(`--shadow-${key}:`);
+            expect(dark).toContain(`--shadow-${key}:`);
+            expect(result).toContain(`--shadow-${key}: var(--shadow-${key});`);
+        }
+        expect(root).not.toContain('--shadow-overlay: 0 0 0 1px oklch(1 0 0');
+        expect(dark).toContain('--shadow-overlay: 0 0 0 1px oklch(1 0 0');
+    });
+
+    it('lets a custom theme override a themed shadow', () => {
+        const plugin = themeVariablesPlugin({
+            theme: { light: { 'shadow-overlay': 'none' }, dark: { 'shadow-control': 'none' } },
+        });
+        const css = `@import 'virtual:admin-theme';`;
+        const result: string = callTransform(plugin, css, '/app/styles.css');
+        const darkStart = result.indexOf('.dark');
+        expect(result.slice(0, darkStart)).toContain('--shadow-overlay: none;');
+        expect(result.slice(darkStart)).toContain('--shadow-control: none;');
+    });
+
     // OSS-1063 — `@vendure-io/ui` reads kebab-case motion names
     it('kebab-cases camelCase duration and animation keys and keyframe names', () => {
         const plugin = themeVariablesPlugin({});
