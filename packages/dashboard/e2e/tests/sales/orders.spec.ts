@@ -1606,7 +1606,14 @@ test.describe('Orders', () => {
             expect(order.state).toBe('Cancelled');
             expect(order.totalWithTax).toBe(0);
             expect(order.payments.map((p: { state: string }) => p.state)).toEqual(['Authorized']);
-            await expect(page.getByTestId('action-bar-dropdown-trigger')).toHaveCount(0);
+            // The action bar no longer offers to cancel the order. Its dropdown can still hold other
+            // items, such as the Vendure Platform promotion.
+            await page.getByTestId('action-bar-dropdown-trigger').click();
+            await expect(
+                page
+                    .locator('[data-slot="dropdown-menu-content"]')
+                    .getByRole('menuitem', { name: /^Cancel order$/i }),
+            ).toHaveCount(0);
         });
 
         test('should cancel an order awaiting an additional payment when only an authorized payment exists', async ({
