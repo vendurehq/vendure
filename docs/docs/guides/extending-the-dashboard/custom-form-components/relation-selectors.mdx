@@ -32,6 +32,7 @@ import {
     SingleRelationInput,
     createRelationSelectorConfig,
     graphql,
+    isFieldDisabled,
     ResultOf,
     DashboardFormComponentProps,
 } from '@vendure/dashboard';
@@ -65,12 +66,25 @@ const productConfig = createRelationSelectorConfig({
     }),
 });
 
-export function ProductSelectorComponent({ value, onChange, disabled }: DashboardFormComponentProps) {
+export function ProductSelectorComponent({ value, onChange, disabled, fieldDef }: DashboardFormComponentProps) {
     return (
-        <SingleRelationInput value={value} onChange={onChange} config={productConfig} disabled={disabled} />
+        <SingleRelationInput
+            value={value}
+            onChange={onChange}
+            config={productConfig}
+            // Also disabled for a readonly custom field
+            disabled={isFieldDisabled(disabled, fieldDef)}
+        />
     );
 }
 ```
+
+:::info[What `props.value` contains for a relation custom field]
+For a relation custom field, `props.value` is the related entity's **id**, or an array of ids for a `list: true`
+field, whether the field is writable or readonly. That is what `SingleRelationInput` and `MultiRelationInput`
+consume via `value`/`onChange`. A readonly field is only for display: pass `isFieldDisabled(disabled, fieldDef)`
+as `disabled`, as above, so the input cannot be changed.
+:::
 
 ### Multi Selection
 
