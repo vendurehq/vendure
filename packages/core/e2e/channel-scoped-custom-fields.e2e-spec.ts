@@ -322,7 +322,7 @@ describe('Channel-scoped custom fields (#490)', () => {
                     code,
                     token,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.USD,
+                    defaultCurrencyCode: CurrencyCode.USD,
                     pricesIncludeTax: false,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',
