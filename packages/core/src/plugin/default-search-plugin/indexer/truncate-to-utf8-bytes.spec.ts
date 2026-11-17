@@ -11,6 +11,10 @@ describe('truncateToUtf8Bytes()', () => {
         expect(result).not.toContain('�');
     }
 
+    it('returns an empty string unchanged', () => {
+        expect(truncateToUtf8Bytes('', maxBytes)).toBe('');
+    });
+
     it('returns input under the limit unchanged', () => {
         expect(truncateToUtf8Bytes('abc', maxBytes)).toBe('abc');
     });
@@ -21,10 +25,14 @@ describe('truncateToUtf8Bytes()', () => {
         expect(truncateToUtf8Bytes(input, maxBytes)).toBe(input);
     });
 
-    for (const [label, char] of [
-        ['2-byte', 'é'],
-        ['3-byte', '€'],
-        ['4-byte', '😀'],
+    it('returns an empty string when the limit is smaller than the first char', () => {
+        expect(truncateToUtf8Bytes('😀', 3)).toBe('');
+    });
+
+    for (const [label, char, expectedRun] of [
+        ['2-byte', 'é', 'ééééé'],
+        ['3-byte', '€', '€€€'],
+        ['4-byte', '😀', '😀😀'],
     ]) {
         it(`drops a ${label} char which straddles the limit`, () => {
             const input = 'a'.repeat(maxBytes - 1) + char + 'b';
@@ -37,8 +45,7 @@ describe('truncateToUtf8Bytes()', () => {
             const input = char.repeat(maxBytes);
             const result = truncateToUtf8Bytes(input, maxBytes);
             expectValidTruncation(input, result);
-            const charBytes = Buffer.byteLength(char, 'utf8');
-            expect(result).toBe(char.repeat(Math.floor(maxBytes / charBytes)));
+            expect(result).toBe(expectedRun);
         });
     }
 });
