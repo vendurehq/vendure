@@ -36,17 +36,15 @@ function getCustomFieldsClasses(entities: Array<Type<any>>): Array<Type<any>> {
 }
 
 function setEntityIdColumnTypes(entityIdStrategy: EntityIdStrategy<any>, entities: Array<Type<any>>) {
-    const columnDataType = entityIdStrategy.primaryKeyType === 'increment' ? 'int' : 'varchar';
+    // Every @EntityId column holds the primary key of some entity, so it gets the type of that
+    // primary key. A column which is also the join column of a relation would get it from TypeORM
+    // anyway, but a column without a relation would otherwise differ.
+    const isUuid = entityIdStrategy.primaryKeyType === 'uuid';
     for (const EntityCtor of entities) {
         const columnConfig = getIdColumnsFor(EntityCtor);
         for (const { name, options, entity } of columnConfig) {
             Column({
-                // A column referencing a primary key gets its type (and, via
-                // alignChannelAssignmentMetadata(), its length) from that key, as junction columns do
-                type:
-                    options?.matchPrimaryKeyType && entityIdStrategy.primaryKeyType === 'uuid'
-                        ? 'uuid'
-                        : columnDataType,
+                type: isUuid ? (options?.storeUuidAsVarchar ? 'varchar' : 'uuid') : 'int',
                 nullable: (options && options.nullable) || false,
                 primary: (options && options.primary) || false,
             })(entity, name);

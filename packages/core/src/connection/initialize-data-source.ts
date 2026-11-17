@@ -2,6 +2,7 @@ import { DataSource, DataSourceOptions, EntityMetadata } from 'typeorm';
 
 import { Logger } from '../config/logger/vendure-logger';
 import { getChannelAssignmentEntities } from '../entity/channel-assignment/channel-assignment-registry';
+import { assertEntityIdColumnsMigrated } from '../migration-utils/v4_0_entity_id_foreign_keys';
 import {
     findTimestampColumnsToMigrate,
     findTimestamptzColumnsDeclaredAsTimestamp,
@@ -34,6 +35,7 @@ export async function initializeDataSource(options: DataSourceOptions): Promise<
         }
         if (options.synchronize) {
             await assertDateColumnTypesMatch(dataSource);
+            await assertEntityIdColumnsReady(dataSource);
             await dataSource.synchronize();
         }
     } catch (e) {
@@ -147,6 +149,20 @@ export function pinMysqlSessionTimezone(dataSource: DataSource) {
             return cluster;
         },
     });
+}
+
+/**
+ * Refuse to synchronize a v3 database until the v4 entity id migration has run: synchronizing would
+ * drop and re-create the id columns whose type changes under the UUID strategy, and could not add
+ * the new foreign keys while rows refer to deleted rows. See prepareEntityIdForeignKeys().
+ */
+async function assertEntityIdColumnsReady(dataSource: DataSource) {
+    const queryRunner = dataSource.createQueryRunner();
+    try {
+        await assertEntityIdColumnsMigrated(queryRunner);
+    } finally {
+        await queryRunner.release();
+    }
 }
 
 /**

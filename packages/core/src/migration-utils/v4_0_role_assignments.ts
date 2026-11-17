@@ -711,7 +711,7 @@ export function qualifiedTableName(queryRunner: QueryRunner, table: string): str
  * Escapes a table name from {@link qualifiedTableName} for raw SQL, the schema and the table
  * separately.
  */
-function escTable(queryRunner: QueryRunner, qualifiedName: string): string {
+export function escTable(queryRunner: QueryRunner, qualifiedName: string): string {
     return qualifiedName
         .split('.')
         .map(part => queryRunner.connection.driver.escape(part))

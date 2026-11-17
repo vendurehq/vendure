@@ -1,0 +1,95 @@
+---
+title: "Id Columns and Foreign Keys"
+metaTitle: "Vendure v4 Id Columns and Foreign Keys - Migration Guide"
+metaDescription: "Vendure v4 adds foreign keys to order.taxZoneId and product_variant_price.channelId, and gives id columns the uuid type with UUID ids. How to prepare the data before the migration adds them."
+order: 9
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+Vendure v4 adds two foreign keys that v3 lacked. With UUID ids, it also gives some id columns the `uuid` type. The database can only add the foreign keys once no row refers to a deleted row, so a helper cleans up first.
+
+<Callout type="warning">
+Upgrade with `synchronize: false` and call the helper **before** the generated statements of your v4 migration. Vendure v4 refuses to synchronize the schema until it has run.
+</Callout>
+
+## What changes
+
+| Column | v3 | v4 |
+|---|---|---|
+| `order.taxZoneId` | No foreign key | Foreign key to `zone`. Deleting a Zone sets it to `NULL`. |
+| `product_variant_price.channelId` | No foreign key | Foreign key to `channel`. Deleting a Channel deletes its prices, as `ChannelService.delete()` already did. |
+| The id columns of `search_index_item` | No foreign key | Unchanged. The search index is rebuilt from the catalog, and keeps `varchar` ids with UUID ids. |
+
+Both new foreign keys get an index.
+
+With the `UuidIdStrategy`, `order.taxZoneId` and `product_variant_price.channelId` were `varchar` in v3, unlike the `uuid` primary keys they hold. The same applies to any `@EntityId()` column of a plugin entity which is not the join column of a relation. In v4 they are `uuid`. This changes the schema on PostgreSQL, and on MariaDB 10.7 and later, which have a native `uuid` type. On MySQL and SQLite, a `uuid` column is stored as `varchar`, so nothing changes. With integer ids (the default), the column types do not change.
+
+To keep a plugin column as `varchar`, for example in a table you rebuild rather than migrate, declare it with `@EntityId({ storeUuidAsVarchar: true })`. The search index does this.
+
+The entities get the matching relations: `Order.taxZone` and `ProductVariantPrice.channel`. The `taxZoneId` and `channelId` properties are unchanged.
+
+## Migrating the data
+
+[`prepareEntityIdForeignKeys`](/reference/typescript-api/migration/prepare-entity-id-foreign-keys) does two things:
+
+1. **Converts the column types** (UUID ids on PostgreSQL and MariaDB 10.7+ only). It changes each column to `uuid` in place, keeping its data. It finds the columns from your entities, so it converts those of plugin entities too. Every value must be a UUID or `NULL`; otherwise the helper stops and names the column.
+2. **Removes references to deleted rows**, which the foreign keys would reject:
+   - An Order whose `taxZoneId` refers to a deleted Zone gets `taxZoneId = NULL`. This value only records the Zone that the last tax calculation used. If the Order is still active, its next calculation uses the active tax Zone, just as it would after any Zone change.
+   - A ProductVariantPrice of a deleted Channel is deleted. Nothing could read or change these prices any more.
+
+It logs and returns the number of rows it changed. It honours the `entityPrefix` of your connection options and, on PostgreSQL, the `schema` option, and it is safe to run again.
+
+### With migrations
+
+Call the helper from your v4 migration, **before** the generated statements:
+
+```ts
+import { prepareEntityIdForeignKeys } from '@vendure/core';
+
+export class V4Upgrade1234567890 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        // Must run before the generated statements, which add the foreign keys
+        await prepareEntityIdForeignKeys(queryRunner);
+
+        // --- Auto-generated DDL ---
+        // ...
+    }
+}
+```
+
+With UUID ids on PostgreSQL or MariaDB 10.7+, the generated migration drops and re-adds the columns whose type changes, for example:
+
+```sql
+ALTER TABLE "order" DROP COLUMN "taxZoneId"
+ALTER TABLE "order" ADD "taxZoneId" uuid
+```
+
+<Callout type="danger">
+Delete these statements from the generated migration, for each column the helper converts: `order.taxZoneId`, `product_variant_price.channelId`, and those of your plugin entities. They would delete the data that the helper has just converted, including the Channel of every price. Keep the statements which create the indexes and add the foreign keys.
+</Callout>
+
+If a plugin column is part of a composite primary key, the generated migration also changes the primary key around it. It drops the key, re-creates it without the column, drops and re-adds the column, and then drops and re-creates the key with the column again. Delete these primary key statements as well: `DROP CONSTRAINT "PK_…"` and `ADD CONSTRAINT "PK_…" PRIMARY KEY (…)` on PostgreSQL, `DROP PRIMARY KEY` and `ADD PRIMARY KEY (…)` on MariaDB. With the column kept, the shortened key would reject rows that differ only in that column.
+
+**Done when:** the migration succeeds, the helper has logged its result, and Vendure v4 starts.
+
+### With `synchronize: true`
+
+Set `dbConnectionOptions.synchronize` to `false` for the upgrade, and run the helper from a migration as described above. You can switch `synchronize` back on afterwards.
+
+If you leave `synchronize` on, Vendure v4 refuses to start while the helper has work left: while rows refer to deleted rows, or, with UUID ids on PostgreSQL or MariaDB 10.7+, while the columns are not yet `uuid`. Synchronizing would otherwise fail on the foreign keys, or drop and re-create the columns and delete their data. Write a migration by hand which only calls the helper, and run it with `npx vendure migrate --run`. On the next start, `synchronize` adds the foreign keys. See [If you already started v4 with `synchronize: true`](/developer-guide/migrating-from-v3/database-migration#if-you-already-started-v4-with-synchronize-true).
+
+### During a rolling deployment
+
+A v3 server can still delete a Zone or Channel after the helper has run, but the foreign keys then apply to it as well: the database sets `taxZoneId` to `NULL`, or deletes the prices. The search index keeps its column types, so search on v3 servers is not affected.
+
+With UUID ids on PostgreSQL, v3 code which runs `MIN()` or `MAX()` on a plugin column the helper converts fails until that server runs v4. See [Updating your code](#updating-your-code).
+
+## Updating your code
+
+| If your code… | Do this |
+|---|---|
+| Deletes Zones or Channels with raw SQL, or in a migration | Nothing. The database now sets `order.taxZoneId` to `NULL` and deletes the Channel's prices itself. |
+| Inserts ProductVariantPrices or sets `Order.taxZoneId` to the id of a row which does not exist (for example in test fixtures) | Use the id of an existing Channel or Zone. The database rejects the row otherwise. |
+| Has a plugin entity with an `@EntityId()` column that is not the join column of a relation, on UUID ids | The helper converts the column to `uuid`. On PostgreSQL and MariaDB 10.7+, delete the generated statements which drop and re-add it, and any primary key statements around it. To keep it `varchar` instead, use `@EntityId({ storeUuidAsVarchar: true })`. |
+| Runs SQL with `MIN()` or `MAX()` on such a column, on PostgreSQL with UUID ids | PostgreSQL has no `MIN` or `MAX` for `uuid`. Aggregate the column as text, e.g. `MIN("t"."productVariantId"::text)`, or keep the column `varchar` with `storeUuidAsVarchar`. |

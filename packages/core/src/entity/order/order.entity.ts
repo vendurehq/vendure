@@ -33,6 +33,7 @@ import { Payment } from '../payment/payment.entity';
 import { Promotion } from '../promotion/promotion.entity';
 import { ShippingLine } from '../shipping-line/shipping-line.entity';
 import { Surcharge } from '../surcharge/surcharge.entity';
+import { Zone } from '../zone/zone.entity';
 
 /**
  * @description
@@ -186,6 +187,17 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
     ): Promise<Partial<CustomOrderFields> | undefined> {
         return readChannelCustomFields(ctx, Order, this, options);
     }
+
+    /**
+     * @description
+     * The Zone used for the tax calculation the last time the Order was calculated. It is
+     * set to `null` if that Zone is deleted, so the next calculation applies the active tax Zone.
+     *
+     * @since 4.0.0
+     */
+    @Index()
+    @ManyToOne(type => Zone, { onDelete: 'SET NULL' })
+    taxZone?: Zone | null;
 
     @EntityId({ nullable: true })
     taxZoneId?: ID;

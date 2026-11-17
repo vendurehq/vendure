@@ -15,17 +15,19 @@ export class SearchIndexItem {
         }
     }
 
-    @EntityId({ primary: true })
+    // The id columns keep `varchar` with UUID ids: the index is rebuilt rather than migrated, and
+    // search strategies aggregate them with MIN and MAX, which PostgreSQL lacks for `uuid`.
+    @EntityId({ primary: true, storeUuidAsVarchar: true })
     productVariantId: ID;
 
     @PrimaryColumn('varchar')
     languageCode: LanguageCode;
 
-    @EntityId({ primary: true })
+    @EntityId({ primary: true, storeUuidAsVarchar: true })
     channelId: ID;
 
     @Index()
-    @EntityId()
+    @EntityId({ storeUuidAsVarchar: true })
     productId: ID;
 
     @Column()
@@ -82,10 +84,10 @@ export class SearchIndexItem {
     @Column('simple-json', { nullable: true })
     productVariantPreviewFocalPoint?: { x: number; y: number } | null;
 
-    @EntityId({ nullable: true })
+    @EntityId({ nullable: true, storeUuidAsVarchar: true })
     productAssetId: ID | null;
 
-    @EntityId({ nullable: true })
+    @EntityId({ nullable: true, storeUuidAsVarchar: true })
     productVariantAssetId: ID | null;
 
     // Added dynamically based on the `indexStockStatus` init option.
