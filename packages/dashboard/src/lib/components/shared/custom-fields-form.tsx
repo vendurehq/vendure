@@ -22,14 +22,27 @@ import { TranslatableFormField } from './translatable-form-field.js';
 
 type CustomFieldConfig = Omit<ResultOf<typeof customFieldConfigFragment>, '__typename'>;
 
+// The `control` of any react-hook-form form. Since react-hook-form 7.72.0 a form's `Control<T>`
+// is not assignable to `Control<any, any>`. Typing every member as `any` keeps the check that
+// the value is a control, and the type is still assignable to `Control<any>` where it is read.
+type AnyFormControl = { [K in keyof Control<any, any, any>]: any };
+
 interface CustomFieldsFormProps {
     entityType: string;
-    control: Control<any, any>;
+    control: AnyFormControl;
     formPathPrefix?: string;
     disabled?: boolean;
 }
 
-export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled }: Readonly<CustomFieldsFormProps>) {
+export function CustomFieldsForm({
+    entityType,
+    control: formControl,
+    formPathPrefix,
+    disabled,
+}: Readonly<CustomFieldsFormProps>) {
+    // Custom field paths come from the server config at runtime, so they cannot be
+    // checked against the form's field types.
+    const control = formControl as Control<any>;
     const { t } = useLingui();
     const customFields = useCustomFieldConfig(entityType);
 
