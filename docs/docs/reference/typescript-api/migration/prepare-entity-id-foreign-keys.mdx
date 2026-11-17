@@ -1,0 +1,40 @@
+---
+title: "PrepareEntityIdForeignKeys"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_entity_id_foreign_keys.ts" sourceLine="82" packageName="@vendure/core" since="4.0.0" />
+
+v4.0 data migration for the new foreign keys on `order.taxZoneId` and
+`product_variant_price.channelId`, and for the type of `@EntityId()` columns (#2318).
+
+Call it from your v4 migration **before** the generated statements, which add the foreign keys.
+It does two things:
+
+1. With the UUID id strategy on PostgreSQL, or on MariaDB 10.7+ (which has a native `uuid` type),
+   it converts the `@EntityId()` columns which v3 created as `varchar` to `uuid`, keeping their
+   data. These are `order.taxZoneId`, `product_variant_price.channelId`, and any such column of a
+   plugin entity. The generated migration drops and re-adds these columns instead, which deletes
+   their data, so delete those statements from it. On other databases, and with integer ids, the
+   column types do not change.
+2. It removes the references to deleted rows, which the foreign keys would reject:
+   - `order.taxZoneId` of a deleted Zone is set to `NULL`. The next tax calculation of the
+     Order then uses the active tax Zone, as it would for any Zone change.
+   - The ProductVariantPrices of a deleted Channel are deleted. Vendure deletes them along
+     with the Channel, so these could not be read or changed anyway.
+
+The columns to convert are found from the entity metadata of the connection, so the migration
+must run with your Vendure config, as `npx vendure migrate` does. The counts are returned and
+logged. Table names honour the `entityPrefix` of the connection options and, on Postgres, the
+`schema` option. It can be run again: it skips work which is done.
+
+Vendure v4 refuses to synchronize the schema until it has run.
+
+```ts title="Signature"
+function prepareEntityIdForeignKeys(queryRunner: QueryRunner): Promise<EntityIdForeignKeyMigrationResult>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+

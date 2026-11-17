@@ -2,7 +2,7 @@
 title: "ProductVariantPrice"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/product-variant/product-variant-price.entity.ts" sourceLine="20" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/product-variant/product-variant-price.entity.ts" sourceLine="21" packageName="@vendure/core" />
 
 A ProductVariantPrice is a Channel-specific price for a ProductVariant. For every Channel to
 which a ProductVariant is assigned, there will be a corresponding ProductVariantPrice entity.
@@ -11,6 +11,9 @@ which a ProductVariant is assigned, there will be a corresponding ProductVariant
 class ProductVariantPrice extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<ProductVariantPrice>)
     @Money() price: number;
+    @Index()
+    @ManyToOne(type => Channel, { onDelete: 'CASCADE' })
+    channel: Channel;
     @EntityId({ nullable: true }) channelId: ID;
     @Column('varchar')
     currencyCode: CurrencyCode;
@@ -35,6 +38,11 @@ class ProductVariantPrice extends VendureEntity implements HasCustomFields {
 <MemberInfo kind="property" type={`number`}   />
 
 
+### channel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`}  since="4.0.0"  />
+
+The Channel this price applies in. The price is deleted along with the Channel.
 ### channelId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
