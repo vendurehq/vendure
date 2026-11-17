@@ -21,11 +21,8 @@ async function getErrorMessages(client: { query: (q: any) => Promise<any> }, que
 describe('HardenPlugin', () => {
     const { server, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
-            // Turned on so that there is something for `apiMode: 'prod'` to turn off; both
-            // default to false, so leaving them unset would prove nothing.
+            // Turned on so that there is something for `apiMode: 'prod'` to turn off.
             apiOptions: {
-                adminApiPlayground: true,
-                shopApiPlayground: true,
                 introspection: true,
             },
             plugins: [HardenPlugin.init({ maxQueryComplexity: 100, apiMode: 'prod' })],
@@ -89,12 +86,10 @@ describe('HardenPlugin', () => {
     });
 
     describe("apiMode: 'prod'", () => {
-        it('turns off introspection and the GraphQL landing page', () => {
+        it('turns off introspection', () => {
             const configService = server.app.get(ConfigService);
 
             expect(configService.apiOptions.introspection).toBe(false);
-            expect(configService.apiOptions.adminApiPlayground).toBe(false);
-            expect(configService.apiOptions.shopApiPlayground).toBe(false);
         });
     });
 

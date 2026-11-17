@@ -28,13 +28,4 @@ export class CustomerAddressEvent extends VendureEntityEvent<Address, CustomerAd
     ) {
         super(entity, type, ctx, input);
     }
-
-    /**
-     * Return an address field to become compatible with the
-     * deprecated old version of CustomerAddressEvent
-     * @deprecated Use `entity` instead
-     */
-    get address(): Address {
-        return this.entity;
-    }
 }

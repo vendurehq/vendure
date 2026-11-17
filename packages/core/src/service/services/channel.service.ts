@@ -416,15 +416,11 @@ export class ChannelService {
         ctx: RequestContext,
         input: CreateChannelInput,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
-        const defaultCurrencyCode = input.defaultCurrencyCode || input.currencyCode;
-        if (!defaultCurrencyCode) {
-            throw new UserInputError('Either a defaultCurrencyCode or currencyCode must be provided');
-        }
+        const { defaultCurrencyCode } = input;
         const channel = new Channel({
             ...input,
             defaultCurrencyCode,
-            availableCurrencyCodes:
-                input.availableCurrencyCodes ?? (defaultCurrencyCode ? [defaultCurrencyCode] : []),
+            availableCurrencyCodes: input.availableCurrencyCodes ?? [defaultCurrencyCode],
             availableLanguageCodes: input.availableLanguageCodes ?? [input.defaultLanguageCode],
         });
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
@@ -501,11 +497,8 @@ export class ChannelService {
             updatedChannel.seller = seller;
         }
         await this.assertIdentityScopeUnchanged(ctx, updatedChannel, originalIdentityScope);
-        if (input.currencyCode) {
-            updatedChannel.defaultCurrencyCode = input.currencyCode;
-        }
-        if (input.currencyCode || input.defaultCurrencyCode) {
-            const newCurrencyCode = input.defaultCurrencyCode || input.currencyCode;
+        if (input.defaultCurrencyCode) {
+            const newCurrencyCode = input.defaultCurrencyCode;
             updatedChannel.availableCurrencyCodes = unique([
                 ...updatedChannel.availableCurrencyCodes,
                 updatedChannel.defaultCurrencyCode,

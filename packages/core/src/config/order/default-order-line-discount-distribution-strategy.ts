@@ -26,9 +26,10 @@ import { OrderLineDiscountDistributionStrategy } from './order-line-discount-dis
  * @since 3.7.0
  */
 export class DefaultOrderLineDiscountDistributionStrategy implements OrderLineDiscountDistributionStrategy {
-    // TODO (next major): consider making a placement-stable strategy (weighting lines by their
-    // originally-placed quantity) the default, so that refunds reconcile with the order total for
-    // unconditional order-level promotions. See https://github.com/vendure-ecommerce/vendure/issues/4811
+    // A placement-stable default (weighting lines by their originally-placed quantity) was considered
+    // for v4 and rejected: it is right for fixed-amount order discounts (#4811), but under-discounts
+    // the remaining lines for percentage discounts, whose amount already shrinks with a removed line.
+    // getWeight() does not receive the promotion, so a strategy cannot tell the two apart.
     getWeight(ctx: RequestContext, line: OrderLine, order: Order): number {
         return line.quantity !== 0 ? line.proratedLinePriceWithTax : 0;
     }

@@ -2,13 +2,13 @@ import { OrderType } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import {
     ChannelService,
-    CustomOrderProcess,
     idsAreEqual,
     Order,
     orderItemsAreDelivered,
     orderItemsArePartiallyDelivered,
     orderItemsArePartiallyShipped,
     orderItemsAreShipped,
+    OrderProcess,
     OrderService,
     RequestContext,
     RequestContextService,
@@ -21,7 +21,7 @@ let orderService: OrderService;
 let channelService: ChannelService;
 let requestContextService: RequestContextService;
 
-export const multivendorOrderProcess: CustomOrderProcess<any> = {
+export const multivendorOrderProcess: OrderProcess<any> = {
     init(injector) {
         connection = injector.get(TransactionalConnection);
         orderService = injector.get(OrderService);

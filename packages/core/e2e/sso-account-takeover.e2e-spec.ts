@@ -123,7 +123,7 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
     // Runs first, while the victim is still SSO-only (no native method yet).
     it('an invalid password is rejected the same way as for a non-existent email (no enumeration oracle)', async () => {
         await shopClient.asAnonymousUser();
-        const tooShort = 'x'; // below the default password minLength of 4
+        const tooShort = 'x'; // below the password minLength of 4 used by testConfig
         const { registerCustomerAccount: existing } = await shopClient.query(registerAccountDocument, {
             input: { emailAddress: victimEmail, password: tooShort },
         });

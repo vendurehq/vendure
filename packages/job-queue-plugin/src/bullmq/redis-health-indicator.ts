@@ -1,17 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { HealthCheckError, HealthIndicator, HealthIndicatorResult, Logger } from '@vendure/core';
+import { Logger } from '@vendure/core';
 import { isRedisInstance, RedisConnection } from 'bullmq';
 
 import { BULLMQ_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { BullMQPluginOptions } from './types';
 
+type RedisHealthResult = Record<string, { status: 'up' }>;
+
+/**
+ * Checks that Redis can be reached when the BullMQJobQueueStrategy starts. Throws if it cannot.
+ */
 @Injectable()
-export class RedisHealthIndicator extends HealthIndicator {
+export class RedisHealthIndicator {
     private timeoutTimer: any;
-    constructor(@Inject(BULLMQ_PLUGIN_OPTIONS) private options: BullMQPluginOptions) {
-        super();
-    }
-    async isHealthy(key: string, timeoutMs = 5000): Promise<HealthIndicatorResult> {
+    constructor(@Inject(BULLMQ_PLUGIN_OPTIONS) private options: BullMQPluginOptions) {}
+
+    async isHealthy(key: string, timeoutMs = 5000): Promise<RedisHealthResult> {
         // A supplied instance belongs to the caller, so `shared` stops `close()` from quitting it.
         // `shared` is only passed for an instance: bullmq before 5.38 takes it as a positional
         // boolean, where any options object is truthy and would leave our own connection open.
@@ -63,11 +67,9 @@ export class RedisHealthIndicator extends HealthIndicator {
             );
         }
 
-        const result = this.getStatus(key, pingResult === 'PONG');
-
         if (pingResult === 'PONG') {
-            return result;
+            return { [key]: { status: 'up' } };
         }
-        throw new HealthCheckError('Redis failed', result);
+        throw new Error('Could not connect to Redis');
     }
 }

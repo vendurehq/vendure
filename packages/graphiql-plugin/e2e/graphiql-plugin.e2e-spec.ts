@@ -15,10 +15,6 @@ describe('GraphiQLPlugin', () => {
     let configService: ConfigService;
 
     const config = mergeConfig(testConfig(), {
-        apiOptions: {
-            adminApiPlayground: true,
-            shopApiPlayground: true,
-        },
         plugins: [GraphiqlPlugin.init()],
     });
     const { server, adminClient } = createTestEnvironment(config);
@@ -42,13 +38,6 @@ describe('GraphiQLPlugin', () => {
 
     afterAll(async () => {
         await server.destroy();
-    });
-
-    describe('configuration', () => {
-        it('should disable GraphQL playground in config', async () => {
-            expect(configService.apiOptions.adminApiPlayground).toBe(false);
-            expect(configService.apiOptions.shopApiPlayground).toBe(false);
-        });
     });
 
     describe('GraphiQLService', () => {

@@ -10,12 +10,12 @@ Vendure exposes a **`/health`** endpoint on the server. It is a plain REST route
 The response is unconditional. `/health` does not check the database or any other dependency. It only
 tells you that this process is running and serving HTTP, which is what a liveness probe needs.
 
-:::warning[Changed in v3.6.0]
+:::warning[Removed in v4.0.0]
 
 Before v3.6.0, `/health` ran the strategies configured in `systemOptions.healthChecks` and returned a
-503 if any of them failed. Since v3.6.0 those strategies are not executed. The strategy classes and
-`HealthCheckRegistryService` will be removed in v4.0.0. Remove any custom strategies and set
-`healthChecks: []` to silence the startup warning. See [#4441](https://github.com/vendurehq/vendure/issues/4441) for the reasoning.
+503 if any of them failed. v3.6.0 stopped running them, and v4.0.0 removed `systemOptions.healthChecks`,
+`HealthCheckStrategy`, `HttpHealthCheckStrategy`, `TypeORMHealthCheckStrategy`,
+`HealthCheckRegistryService` and the `HealthIndicator` types. See [#4441](https://github.com/vendurehq/vendure/issues/4441) for the reasoning.
 
 :::
 

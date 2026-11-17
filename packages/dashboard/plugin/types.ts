@@ -17,10 +17,6 @@ export type DashboardMetricSummaryEntry = {
 
 export interface DashboardMetricSummaryInput {
     types: DashboardMetricType[];
-    /**
-     * @deprecated Metrics are calculated on every request.
-     */
-    refresh?: boolean;
     startDate: string;
     endDate: string;
 }

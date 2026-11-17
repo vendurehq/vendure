@@ -26,8 +26,16 @@ type ProductVariant implements Node {
     sold and fulfilled without limit.
     """
     tracksInventory: Boolean!
-    stockOnHand: Int! @deprecated(reason: "use stockLevels")
-    stockAllocated: Int! @deprecated(reason: "use stockLevels")
+    """
+    The total stock on hand, as reported by the configured StockLocationStrategy. By default this
+    is the sum over all StockLevels; the MultiChannelStockLocationStrategy counts only the
+    StockLocations of the active Channel. Use `stockLevels` for the per-location values.
+    """
+    stockOnHand: Int!
+    """
+    The total allocated stock, counted in the same way as `stockOnHand`.
+    """
+    stockAllocated: Int!
     outOfStockThreshold: Int!
     useGlobalOutOfStockThreshold: Boolean!
     prices: [ProductVariantPrice!]!

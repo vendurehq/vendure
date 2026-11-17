@@ -150,7 +150,7 @@ export class Test1664Plugin implements OnApplicationBootstrap {
             return;
         }
 
-        const defaultChannel = await this.connection.getRepository(Channel).findOne({
+        const defaultChannel = await this.connection.rawConnection.getRepository(Channel).findOne({
             relations: { defaultShippingZone: true, defaultTaxZone: true },
             where: {
                 code: DEFAULT_CHANNEL_CODE,

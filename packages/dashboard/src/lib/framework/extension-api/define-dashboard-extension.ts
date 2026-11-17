@@ -99,7 +99,7 @@ export function executeDashboardExtensionCallbacks() {
  *     pageBlocks: [],
  *     actionBarItems: [],
  *     alerts: [],
- *     widgets: [],
+ *     insights: { widgets: [] },
  *     customFormComponents: {},
  *     dataTables: [],
  *     detailForms: [],
@@ -127,8 +127,8 @@ export function defineDashboardExtension(extension: DashboardExtension) {
         // Register layout extensions (action bar items and page blocks)
         registerLayoutExtensions(extension.actionBarItems, extension.pageBlocks);
 
-        // Register insights extensions; deprecated top-level `widgets` is merged with `insights.widgets`.
-        registerInsightsExtensions(extension.insights, extension.widgets);
+        // Register insights extensions (widgets, widget exclusions and filters)
+        registerInsightsExtensions(extension.insights);
 
         // Register form component extensions for custom fields and configurable operation arguments
         registerFormComponentExtensions(extension.customFormComponents);

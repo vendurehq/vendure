@@ -15,8 +15,7 @@ import {
     UpdatePromotionResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull, Raw } from 'typeorm';
+import { IsNull, Raw } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -29,7 +28,6 @@ import {
     CouponCodeLimitError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { AdjustmentSource } from '../../common/types/adjustment-source';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
@@ -140,7 +138,7 @@ export class PromotionService {
             entityType: Promotion,
             translationType: PromotionTranslation,
             beforeSave: async p => {
-                p.priorityScore = this.calculatePriorityScore(input);
+                p.priorityScore = this.calculatePriorityScore(input.conditions, input.actions);
                 p.conditions = conditions;
                 p.actions = actions;
                 await this.channelService.assignToCurrentChannel(p, ctx);
@@ -191,7 +189,11 @@ export class PromotionService {
             entityType: Promotion,
             translationType: PromotionTranslation,
             beforeSave: async p => {
-                p.priorityScore = this.calculatePriorityScore(input);
+                // Rescored only when the operations change, and from the merged operations, so that an
+                // update which omits `conditions` or `actions` keeps their share of the score.
+                if (input.conditions || input.actions) {
+                    p.priorityScore = this.calculatePriorityScore(conditions, actions);
+                }
                 if (input.conditions) {
                     p.conditions = conditions;
                 }
@@ -355,24 +357,6 @@ export class PromotionService {
                 await activePost.activate(ctx, order);
             }
         }
-    }
-
-    /**
-     * @description
-     * Used internally to associate a Promotion with an Order, once an Order has been placed.
-     *
-     * @deprecated This method is no longer used and will be removed in v2.0
-     */
-    async addPromotionsToOrder(ctx: RequestContext, order: Order): Promise<Order> {
-        const allPromotionIds = order.discounts.map(
-            a => AdjustmentSource.decodeSourceId(a.adjustmentSource).id,
-        );
-        const promotionIds = unique(allPromotionIds);
-        const promotions = await this.connection
-            .getRepository(ctx, Promotion)
-            .find({ where: { id: In(promotionIds) } });
-        order.promotions = promotions;
-        return this.connection.getRepository(ctx, Order).save(order);
     }
 
     /**
@@ -542,14 +526,18 @@ export class PromotionService {
         return completedCount + pendingCount;
     }
 
-    private calculatePriorityScore(input: CreatePromotionInput | UpdatePromotionInput): number {
-        const conditions = input.conditions
-            ? input.conditions.map(c => this.configArgService.getByCode('PromotionCondition', c.code))
-            : [];
-        const actions = input.actions
-            ? input.actions.map(c => this.configArgService.getByCode('PromotionAction', c.code))
-            : [];
-        return [...conditions, ...actions].reduce((score, op) => score + op.priorityValue, 0);
+    private calculatePriorityScore(
+        conditions: Array<{ code: string }> | null | undefined,
+        actions: Array<{ code: string }> | null | undefined,
+    ): number {
+        // Stored operations may use a code which is no longer configured (e.g. after a plugin was
+        // removed). Such an operation adds nothing to the score, rather than failing the update.
+        const priorityValueOf = (type: 'PromotionCondition' | 'PromotionAction', code: string) =>
+            this.configArgService.getDefinitions(type).find(def => def.code === code)?.priorityValue ?? 0;
+        return [
+            ...(conditions ?? []).map(c => priorityValueOf('PromotionCondition', c.code)),
+            ...(actions ?? []).map(a => priorityValueOf('PromotionAction', a.code)),
+        ].reduce((score, value) => score + value, 0);
     }
 
     private validateRequiredConditions(

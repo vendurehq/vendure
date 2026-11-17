@@ -675,7 +675,6 @@ export const channelFragment = graphql(`
         id
         code
         token
-        currencyCode
         availableCurrencyCodes
         defaultCurrencyCode
         defaultLanguageCode

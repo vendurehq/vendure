@@ -65,12 +65,6 @@ import { GraphiqlPluginOptions } from './types';
             useFactory: () => GraphiqlPlugin.options,
         },
     ],
-    configuration: config => {
-        // disable GraphQL playground in config
-        config.apiOptions.adminApiPlayground = false;
-        config.apiOptions.shopApiPlayground = false;
-        return config;
-    },
     exports: [GraphiQLService],
     compatibility: '^3.0.0',
 })

@@ -165,17 +165,17 @@ export interface DetailPageOptions<
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     /**
      * @description
-     * By default an update mutation sends the full form payload. Set this to `true` to instead send
-     * only the fields the user actually changed, so that an untouched field's stale page-load value
-     * cannot silently overwrite a concurrent change made by another admin or via the API.
+     * By default an update mutation sends only the top-level fields the user actually changed (plus
+     * non-nullable fields), so that an untouched field's stale page-load value cannot silently
+     * overwrite a concurrent change made by another admin or via the API. `transformUpdateInput`
+     * receives this partial input.
      *
-     * Only enable this for a detail page whose update mutation is patch-style: an absent field must
-     * be left unchanged, and no persisted value may be *derived* from the (now partial) input.
-     * Vendure's built-in Product, Collection and ProductVariant update paths satisfy this; a
-     * resolver that recomputes a field from the input — as `updatePromotion` does for
-     * `priorityScore` — does not, and would corrupt that field when it is omitted.
+     * This requires an update mutation which is patch-style: an absent field must be left unchanged,
+     * and no persisted value may be *derived* from the (now partial) input. All of Vendure's
+     * built-in update mutations used by detail pages satisfy this. Set it to `false` to send the
+     * full form payload, for example for a custom mutation which treats an absent field as empty.
      *
-     * @default false
+     * @default true (false before v4.0)
      * @since 3.8.0
      */
     sendOnlyChangedFields?: boolean;
@@ -337,7 +337,7 @@ export function useDetailPage<
         transformCreateVariables,
         transformUpdateInput,
         extendSchema,
-        sendOnlyChangedFields,
+        sendOnlyChangedFields = true,
         params,
         entityField,
         entityName,
@@ -417,10 +417,9 @@ export function useDetailPage<
                 const variables = { input: finalInput } as VariablesOf<C>;
                 createMutation.mutate(transformCreateVariables?.(variables) ?? variables);
             } else {
-                // When the page opts in via `sendOnlyChangedFields`, send only the fields the user
-                // actually changed (plus non-nullable fields, which `changedFields` always
+                // Unless the page opts out via `sendOnlyChangedFields: false`, send only the fields the
+                // user actually changed (plus non-nullable fields, which `changedFields` always
                 // includes), so an untouched field's stale value cannot overwrite a concurrent edit.
-                // The default keeps sending the full payload, which is safe for any update resolver.
                 const prunedValues = pruneToChangedFields(
                     filteredValues,
                     meta?.changedFields,

@@ -198,7 +198,7 @@ describe('Per-channel enabled for Products and ProductVariants (#3777)', () => {
                     code,
                     token,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.USD,
+                    defaultCurrencyCode: CurrencyCode.USD,
                     pricesIncludeTax: false,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',

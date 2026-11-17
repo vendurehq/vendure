@@ -15,7 +15,7 @@ import { ProductChannelEvent } from '../../event-bus/events/product-channel-even
 import { ProductEvent } from '../../event-bus/events/product-event';
 import { ProductVariantChannelEvent } from '../../event-bus/events/product-variant-channel-event';
 import { ProductVariantEvent } from '../../event-bus/events/product-variant-event';
-import { TaxRateModificationEvent } from '../../event-bus/events/tax-rate-modification-event';
+import { TaxRateEvent } from '../../event-bus/events/tax-rate-event';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { PluginCommonModule } from '../plugin-common.module';
 import { VendurePlugin } from '../vendure-plugin';
@@ -59,7 +59,6 @@ export interface DefaultSearchReindexResponse extends SearchReindexResponse {
  *   // Add an instance of the plugin to the plugins array
  *   plugins: [
  *     DefaultSearchPlugin.init({
- *       indexStockStatus: true,
  *       bufferUpdates: true,
  *     }),
  *   ],
@@ -70,6 +69,10 @@ export interface DefaultSearchReindexResponse extends SearchReindexResponse {
  */
 @VendurePlugin({
     imports: [PluginCommonModule],
+    configuration: config => {
+        DefaultSearchPlugin.addIndexColumnsToEntity();
+        return config;
+    },
     providers: [
         FulltextSearchService,
         SearchIndexService,
@@ -95,7 +98,8 @@ export interface DefaultSearchReindexResponse extends SearchReindexResponse {
     compatibility: '>0.0.0',
 })
 export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
-    static options: DefaultSearchPluginInitOptions = {};
+    static options: DefaultSearchPluginInitOptions = DefaultSearchPlugin.withDefaults({});
+    private static indexColumnsAdded = false;
 
     /** @internal */
     constructor(
@@ -106,38 +110,40 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
     ) {}
 
     static init(options: DefaultSearchPluginInitOptions): Type<DefaultSearchPlugin> {
-        this.options = options;
-        if (options.indexStockStatus === true) {
-            this.addStockColumnsToEntity();
-        }
-        if (options.indexCurrencyCode) {
-            this.addCurrencyCodeToEntity();
-        }
+        this.options = this.withDefaults(options);
         return DefaultSearchPlugin;
+    }
+
+    private static withDefaults(options: DefaultSearchPluginInitOptions): DefaultSearchPluginInitOptions {
+        return {
+            ...options,
+            indexStockStatus: options.indexStockStatus ?? true,
+            indexCurrencyCode: options.indexCurrencyCode ?? true,
+        };
     }
 
     /** @internal */
     async onApplicationBootstrap() {
         this.eventBus.ofType(ProductEvent).subscribe(event => {
             if (event.type === 'deleted') {
-                return this.searchIndexService.deleteProduct(event.ctx, event.product);
+                return this.searchIndexService.deleteProduct(event.ctx, event.entity);
             } else {
-                return this.searchIndexService.updateProduct(event.ctx, event.product);
+                return this.searchIndexService.updateProduct(event.ctx, event.entity);
             }
         });
         this.eventBus.ofType(ProductVariantEvent).subscribe(event => {
             if (event.type === 'deleted') {
-                return this.searchIndexService.deleteVariant(event.ctx, event.variants);
+                return this.searchIndexService.deleteVariant(event.ctx, event.entity);
             } else {
-                return this.searchIndexService.updateVariants(event.ctx, event.variants);
+                return this.searchIndexService.updateVariants(event.ctx, event.entity);
             }
         });
         this.eventBus.ofType(AssetEvent).subscribe(event => {
             if (event.type === 'updated') {
-                return this.searchIndexService.updateAsset(event.ctx, event.asset);
+                return this.searchIndexService.updateAsset(event.ctx, event.entity);
             }
             if (event.type === 'deleted') {
-                return this.searchIndexService.deleteAsset(event.ctx, event.asset);
+                return this.searchIndexService.deleteAsset(event.ctx, event.entity);
             }
         });
         this.eventBus.ofType(ProductChannelEvent).subscribe(event => {
@@ -196,15 +202,18 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
             });
 
         this.eventBus
-            .ofType(TaxRateModificationEvent)
+            .ofType(TaxRateEvent)
             // The delay prevents a "TransactionNotStartedError" (in SQLite/sqljs) by allowing any existing
             // transactions to complete before a new job is added to the queue (assuming the SQL-based
             // JobQueueStrategy).
             // TODO: should be able to remove owing to f0fd6625
-            .pipe(delay(1))
+            .pipe(
+                filter(event => event.type !== 'deleted'),
+                delay(1),
+            )
             .subscribe(event => {
                 const defaultTaxZone = event.ctx.channel.defaultTaxZone;
-                if (defaultTaxZone && idsAreEqual(defaultTaxZone.id, event.taxRate.zone.id)) {
+                if (defaultTaxZone && idsAreEqual(defaultTaxZone.id, event.entity.zone.id)) {
                     return this.searchIndexService.reindex(event.ctx);
                 }
             });
@@ -212,7 +221,7 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
         // A Channel's trackInventory decides whether its INHERIT variants are in stock.
         this.eventBus
             .ofType(ChannelTrackInventoryEvent)
-            // See the TaxRateModificationEvent subscription above.
+            // See the TaxRateEvent subscription above.
             .pipe(delay(1))
             .subscribe(event => this.searchIndexService.reindex(event.ctx.copy(event.channel)));
 
@@ -241,25 +250,26 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
     }
 
     /**
-     * If the `indexStockStatus` option is set to `true`, we dynamically add a couple of
-     * columns to the SearchIndexItem entity. This is done in this way to allow us to add
-     * support for indexing the stock status, while preventing a backwards-incompatible
-     * schema change.
+     * Adds the columns needed by the `indexStockStatus` and `indexCurrencyCode` options to the
+     * SearchIndexItem entity, unless they are turned off. Run from the `configuration` hook rather
+     * than `init()`, so that a plugin used without calling `init()` gets the columns too.
+     *
+     * @internal
      */
-    private static addStockColumnsToEntity() {
+    static addIndexColumnsToEntity() {
+        if (this.indexColumnsAdded) {
+            return;
+        }
+        this.indexColumnsAdded = true;
         const instance = new SearchIndexItem();
-        Column({ type: 'boolean', default: true })(instance, 'inStock');
-        Column({ type: 'boolean', default: true })(instance, 'productInStock');
-    }
-
-    /**
-     * If the `indexCurrencyCode` option is set to `true`, we dynamically add
-     * a column to the SearchIndexItem entity. This is done in this way to allow us to add
-     * support for indexing on the currency code, while preventing a backwards-incompatible
-     * schema change.
-     */
-    private static addCurrencyCodeToEntity() {
-        const instance = new SearchIndexItem();
-        PrimaryColumn({ type: 'varchar' })(instance, 'currencyCode');
+        if (this.options.indexStockStatus === true) {
+            Column({ type: 'boolean', default: true })(instance, 'inStock');
+            Column({ type: 'boolean', default: true })(instance, 'productInStock');
+        }
+        if (this.options.indexCurrencyCode === true) {
+            // ISO 4217 codes are 3 characters. The explicit length keeps the composite primary key
+            // within MySQL's 3072-byte limit when the ids are uuids (varchar(255) each).
+            PrimaryColumn({ type: 'varchar', length: 3 })(instance, 'currencyCode');
+        }
     }
 }

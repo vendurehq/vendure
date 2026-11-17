@@ -725,14 +725,14 @@ describe('Orders resolver', () => {
             ]);
         });
 
-        it('order.fulfillments.summary', async () => {
+        it('order.fulfillments.lines', async () => {
             const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: orderId,
             });
 
-            expect(order?.fulfillments?.sort(sortById).map(pick(['id', 'state', 'summary']))).toEqual([
-                { id: f1Id, state: 'Pending', summary: [{ orderLine: { id: 'T_3' }, quantity: 1 }] },
-                { id: f2Id, state: 'Cancelled', summary: [{ orderLine: { id: 'T_4' }, quantity: 3 }] },
+            expect(order?.fulfillments?.sort(sortById).map(pick(['id', 'state', 'lines']))).toEqual([
+                { id: f1Id, state: 'Pending', lines: [{ orderLine: { id: 'T_3' }, quantity: 1 }] },
+                { id: f2Id, state: 'Cancelled', lines: [{ orderLine: { id: 'T_4' }, quantity: 3 }] },
             ]);
         });
 
@@ -1421,8 +1421,7 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
-                    shipping: 0,
-                    adjustment: 0,
+                    amount: 100,
                     paymentId,
                 },
             });
@@ -1432,7 +1431,7 @@ describe('Orders resolver', () => {
             expect(refundOrder.errorCode).toBe(ErrorCode.REFUND_ORDER_STATE_ERROR);
         });
 
-        it('returns error result if no amount and no shipping', async () => {
+        it('returns error result if no amount', async () => {
             const { order } = await adminClient.query(getOrderDocument, {
                 id: orderId,
             });
@@ -1446,8 +1445,6 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 0 })),
-                    shipping: 0,
-                    adjustment: 0,
                     paymentId,
                 },
             });
@@ -1466,8 +1463,7 @@ describe('Orders resolver', () => {
                 await adminClient.query(refundOrderDocument, {
                     input: {
                         lines: [],
-                        shipping: 100,
-                        adjustment: 0,
+                        amount: 100,
                         paymentId: 'T_999',
                     },
                 });
@@ -1481,8 +1477,7 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: 100,
-                    adjustment: 0,
+                    amount: 100,
                     paymentId: 'T_1',
                 },
             });
@@ -1499,16 +1494,15 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: order!.shippingWithTax,
-                    adjustment: 0,
+                    amount: order!.totalWithTax,
                     reason: 'foo',
                     paymentId,
                 },
             });
             refundGuard.assertSuccess(refundOrder);
 
-            expect(refundOrder.shipping).toBe(order!.shippingWithTax);
-            expect(refundOrder.items).toBe(order!.subTotalWithTax);
+            expect(refundOrder.shipping).toBe(0);
+            expect(refundOrder.items).toBe(0);
             expect(refundOrder.total).toBe(order!.totalWithTax);
             expect(refundOrder.transactionId).toBe(null);
             expect(refundOrder.state).toBe('Pending');
@@ -1607,8 +1601,7 @@ describe('Orders resolver', () => {
             const { refundOrder: refund1 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: shippingWithTax,
-                    adjustment: 0,
+                    amount: totalWithTax,
                     reason: 'foo',
                     paymentId: paymentIdForRefund,
                 },
@@ -1623,8 +1616,7 @@ describe('Orders resolver', () => {
             const { refundOrder: refund2 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: shippingWithTax2,
-                    adjustment: 0,
+                    amount: totalWithTax2,
                     reason: 'foo',
                     paymentId: paymentId2,
                 },
@@ -1658,8 +1650,7 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: shippingWithTax3,
-                    adjustment: 0,
+                    amount: totalWithTax3,
                     reason: 'foo',
                     paymentId: paymentId3,
                 },
@@ -1741,8 +1732,6 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: [],
-                    shipping: 0,
-                    adjustment: 0,
                     amount: 999999,
                     paymentId,
                 },
@@ -1765,8 +1754,6 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: [],
-                    shipping: 0,
-                    adjustment: 0,
                     amount: refundAmount,
                     paymentId,
                 },
@@ -1920,6 +1907,11 @@ describe('Orders resolver', () => {
             productInOrder = result.product;
         });
 
+        async function getSecondPaymentId() {
+            const { order } = await adminClient.query(getOrderWithPaymentsDocument, { id: orderId });
+            return order!.payments!.sort(sortById)[1].id;
+        }
+
         it('adds a partial payment', async () => {
             await proceedToArrangingPayment(shopClient, 2);
             const { addPaymentToOrder: order } = await shopClient.query(addPaymentDocument, {
@@ -1977,13 +1969,18 @@ describe('Orders resolver', () => {
             const { order } = await adminClient.query(getOrderDocument, {
                 id: orderId,
             });
+            const payment2Id = await getSecondPaymentId();
+            const refundAmount = productInOrder!.variants[0].priceWithTax;
+            // A refund larger than one Payment is split over several with explicit targets.
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
-                    shipping: 0,
-                    adjustment: 0,
                     reason: 'first refund',
                     paymentId: payment1Id,
+                    targets: [
+                        { paymentId: payment1Id, amount: PARTIAL_PAYMENT_AMOUNT },
+                        { paymentId: payment2Id, amount: refundAmount - PARTIAL_PAYMENT_AMOUNT },
+                    ],
                 },
             });
             refundGuard.assertSuccess(refundOrder);
@@ -2011,10 +2008,10 @@ describe('Orders resolver', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
-                    shipping: order!.shippingWithTax,
-                    adjustment: 0,
+                    amount: order!.totalWithTax - order!.lines[0].unitPriceWithTax,
                     reason: 'second refund',
-                    paymentId: payment1Id,
+                    // The first Payment has been fully refunded, so the rest is drawn from the second.
+                    paymentId: await getSecondPaymentId(),
                 },
             });
             refundGuard.assertSuccess(refundOrder);
@@ -2269,8 +2266,7 @@ describe('Orders resolver', () => {
             const { refundOrder: refund1 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
-                    shipping: 0,
-                    adjustment: 0,
+                    amount: order.lines[0].unitPriceWithTax,
                     reason: 'foo',
                     paymentId: paymentId4,
                 },
@@ -2280,8 +2276,7 @@ describe('Orders resolver', () => {
             const { refundOrder: refund2 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
-                    shipping: 0,
-                    adjustment: 0,
+                    amount: order.lines[0].unitPriceWithTax,
                     reason: 'foo',
                     paymentId: paymentId4,
                 },

@@ -101,7 +101,7 @@ describe('Relation custom fields and Channels', () => {
                     code: 'second',
                     token: SECOND_CHANNEL_TOKEN,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.USD,
+                    defaultCurrencyCode: CurrencyCode.USD,
                     pricesIncludeTax: true,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',

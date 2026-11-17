@@ -250,67 +250,6 @@ export class ProductOptionGroupService {
 
     /**
      * @description
-     * Deletes the ProductOptionGroup and any associated ProductOptions. If the ProductOptionGroup
-     * is still referenced by a soft-deleted Product, then a soft-delete will be used to preserve
-     * referential integrity. Otherwise a hard-delete will be performed.
-     *
-     * @deprecated Use {@link ProductOptionGroupService.delete} instead.
-     */
-    async deleteGroupAndOptionsFromProduct(ctx: RequestContext, id: ID, productId: ID) {
-        const optionGroup = await this.connection.getEntityOrThrow(ctx, ProductOptionGroup, id, {
-            relationLoadStrategy: 'query',
-            loadEagerRelations: false,
-            relations: ['options', 'products'],
-        });
-        const deletedOptionGroup = new ProductOptionGroup(optionGroup);
-        const inUseByActiveProducts = await this.isInUseByOtherProducts(ctx, optionGroup, productId);
-        if (inUseByActiveProducts > 0) {
-            return {
-                result: DeletionResult.NOT_DELETED,
-                message: ctx.translate('message.product-option-group-used', {
-                    code: optionGroup.code,
-                    count: inUseByActiveProducts,
-                }),
-            };
-        }
-
-        const optionsToDelete = optionGroup.options && optionGroup.options.filter(group => !group.deletedAt);
-
-        for (const option of optionsToDelete) {
-            const { result, message } = await this.productOptionService.delete(ctx, option.id);
-            if (result === DeletionResult.NOT_DELETED) {
-                await this.connection.rollBackTransaction(ctx);
-                return { result, message };
-            }
-        }
-        const hasOptionsWhichAreInUse = await this.groupOptionsAreInUse(ctx, optionGroup);
-        if (hasOptionsWhichAreInUse > 0) {
-            // soft delete
-            optionGroup.deletedAt = new Date();
-            await this.connection.getRepository(ctx, ProductOptionGroup).save(optionGroup, { reload: false });
-        } else {
-            // hard delete
-            const product = await this.connection.getRepository(ctx, Product).findOne({
-                relationLoadStrategy: 'query',
-                loadEagerRelations: false,
-                where: { id: productId },
-                relations: { optionGroups: true },
-            });
-            if (product) {
-                product.optionGroups = product.optionGroups.filter(og => !idsAreEqual(og.id, id));
-                await this.connection.getRepository(ctx, Product).save(product, { reload: false });
-            }
-
-            await this.connection.getRepository(ctx, ProductOptionGroup).remove(optionGroup);
-        }
-        await this.eventBus.publish(new ProductOptionGroupEvent(ctx, deletedOptionGroup, 'deleted', id));
-        return {
-            result: DeletionResult.DELETED,
-        };
-    }
-
-    /**
-     * @description
      * Assigns ProductOptionGroups to the specified Channel
      */
     async assignProductOptionGroupsToChannel(
@@ -445,21 +384,6 @@ export class ProductOptionGroupService {
         }
 
         return results;
-    }
-
-    private async isInUseByOtherProducts(
-        ctx: RequestContext,
-        productOptionGroup: ProductOptionGroup,
-        targetProductId: ID,
-    ): Promise<number> {
-        return this.connection
-            .getRepository(ctx, Product)
-            .createQueryBuilder('product')
-            .leftJoin('product.optionGroups', 'optionGroup')
-            .where('product.deletedAt IS NULL')
-            .andWhere('optionGroup.id = :id', { id: productOptionGroup.id })
-            .andWhere('product.id != :productId', { productId: targetProductId })
-            .getCount();
     }
 
     private async groupOptionsAreInUse(ctx: RequestContext, productOptionGroup: ProductOptionGroup) {

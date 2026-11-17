@@ -538,16 +538,6 @@ export class RequestContext {
 
     /**
      * @description
-     * True if the current session is authorized to access the current resolver method.
-     *
-     * @deprecated Use `userHasPermissions()` method instead.
-     */
-    get isAuthorized(): boolean {
-        return this._isAuthorized;
-    }
-
-    /**
-     * @description
      * True if the current anonymous session is only authorized to operate on entities that
      * are owned by the current session.
      */

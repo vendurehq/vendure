@@ -505,7 +505,7 @@ describe('Duplicating entities', () => {
                         code: 'second-channel',
                         token: 'second-channel',
                         defaultLanguageCode: LanguageCode.en,
-                        currencyCode: CurrencyCode.USD,
+                        defaultCurrencyCode: CurrencyCode.USD,
                         pricesIncludeTax: false,
                         defaultShippingZoneId: 'T_1',
                         defaultTaxZoneId: 'T_1',

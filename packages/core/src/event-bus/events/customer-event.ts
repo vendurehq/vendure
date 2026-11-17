@@ -28,14 +28,4 @@ export class CustomerEvent extends VendureEntityEvent<Customer, CustomerInputTyp
     ) {
         super(entity, type, ctx, input);
     }
-
-    /**
-     * Return a customer field to become compatible with the
-     * deprecated old version of CustomerEvent
-     * @deprecated Use `entity` instead
-     * @since 1.4
-     */
-    get customer(): Customer {
-        return this.entity;
-    }
 }

@@ -258,8 +258,8 @@ class TestResolver {
 
     @Query()
     async verify() {
-        const admins = await this.connection.getRepository(Administrator).find();
-        const users = await this.connection.getRepository(User).find();
+        const admins = await this.connection.rawConnection.getRepository(Administrator).find();
+        const users = await this.connection.rawConnection.getRepository(User).find();
         return {
             admins,
             users,
@@ -361,7 +361,7 @@ export class TransactionTestPlugin implements OnApplicationBootstrap {
             if (administrator.emailAddress?.includes(TRIGGER_ATTEMPTED_READ_EMAIL)) {
                 TransactionTestPlugin.callHandler();
                 // note the ctx is not passed here, so we are not inside the ongoing transaction
-                const adminRepository = this.connection.getRepository(Administrator);
+                const adminRepository = this.connection.rawConnection.getRepository(Administrator);
                 try {
                     await adminRepository.findOneOrFail({ where: { id: administrator.id } });
                 } catch (e: any) {

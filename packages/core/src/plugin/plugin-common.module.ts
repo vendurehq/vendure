@@ -5,7 +5,6 @@ import { ConfigModule } from '../config/config.module';
 import { ConnectionModule } from '../connection/connection.module';
 import { DataImportModule } from '../data-import/data-import.module';
 import { EventBusModule } from '../event-bus/event-bus.module';
-import { HealthCheckModule } from '../health-check/health-check.module';
 import { I18nModule } from '../i18n/i18n.module';
 import { JobQueueModule } from '../job-queue/job-queue.module';
 import { ProcessContextModule } from '../process-context/process-context.module';
@@ -23,7 +22,6 @@ import { ServiceModule } from '../service/service.module';
  * * `ServiceModule` allowing the injection of any of the various entity services such as ProductService, OrderService etc.
  * * `ConfigModule`, allowing the injection of the ConfigService.
  * * `JobQueueModule`, allowing the injection of the {@link JobQueueService}.
- * * `HealthCheckModule`, allowing the injection of the {@link HealthCheckRegistryService}.
  *
  * @docsCategory plugin
  */
@@ -34,7 +32,6 @@ import { ServiceModule } from '../service/service.module';
         ConnectionModule.forPlugin(),
         ServiceModule,
         JobQueueModule,
-        HealthCheckModule,
         CacheModule,
         I18nModule,
         ProcessContextModule,
@@ -46,7 +43,6 @@ import { ServiceModule } from '../service/service.module';
         ConnectionModule.forPlugin(),
         ServiceModule,
         JobQueueModule,
-        HealthCheckModule,
         CacheModule,
         I18nModule,
         ProcessContextModule,

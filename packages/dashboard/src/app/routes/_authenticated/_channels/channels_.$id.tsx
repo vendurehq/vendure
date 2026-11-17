@@ -27,6 +27,7 @@ import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { z } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { channelDetailDocument, createChannelDocument, updateChannelDocument } from './channels.graphql.js';
 
@@ -80,6 +81,7 @@ function ChannelDetailPage() {
     const { refreshChannels } = useChannel();
     const { canEdit: canEditChannelColors, isAvailable: channelColorsAvailable } = useChannelColors();
 
+    const currentDefaultLanguage = useRef<string | undefined>(undefined);
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
         queryDocument: channelDetailDocument,
@@ -102,10 +104,13 @@ function ChannelDetailPage() {
                 customFields: entity.customFields,
             };
         },
+        // `CreateChannelInput.defaultCurrencyCode` is non-nullable, so the form would otherwise
+        // preselect the first currency there is. It has to come from the available currencies
+        // instead, which are empty on a new channel.
+        setValuesForCreate: () => ({ defaultCurrencyCode: null as any }),
         transformCreateInput: input => {
             return {
                 ...input,
-                currencyCode: undefined,
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
                     input.defaultLanguageCode,
@@ -115,9 +120,11 @@ function ChannelDetailPage() {
         transformUpdateInput: input => {
             return {
                 ...input,
+                // Only changed fields are sent, so an unchanged default language is not in `input`.
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
-                    input.defaultLanguageCode,
+                    input.defaultLanguageCode ??
+                        (currentDefaultLanguage.current as typeof input.defaultLanguageCode),
                 ),
             };
         },
@@ -133,6 +140,8 @@ function ChannelDetailPage() {
                 .extend({
                     code: z.string().min(1, { message: t`This field is required` }),
                     token: z.string().min(1, { message: t`This field is required` }),
+                    // Left empty on a new channel; the check below says why it must be filled in.
+                    defaultCurrencyCode: z.string().nullish(),
                     ...(creatingNewEntity
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
@@ -143,11 +152,9 @@ function ChannelDetailPage() {
                         : {}),
                 })
                 // The currency pair is checked together, because whether a default is valid depends
-                // entirely on the available list it has to come from. `defaultCurrencyCode` is
-                // nullable in the schema but ChannelService.create throws a raw UserInputError
-                // unless it is given (this page always sends `currencyCode: undefined`), and a
-                // supplied available list is saved verbatim without checking it contains the
-                // default — so both halves have to be caught here.
+                // entirely on the available list it has to come from. A supplied available list is
+                // saved verbatim without checking it contains the default, so both halves have to
+                // be caught here.
                 //
                 // Unlike the fields above this is not limited to create: an existing channel always
                 // has both, so an update can only reach these states by actively breaking them.
@@ -197,6 +204,7 @@ function ChannelDetailPage() {
             });
         },
     });
+    currentDefaultLanguage.current = form.getValues('defaultLanguageCode');
 
     const availableCurrencyCodes = form.watch('availableCurrencyCodes');
     const availableLanguageCodes = form.watch('availableLanguageCodes');

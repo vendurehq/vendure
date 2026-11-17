@@ -6,14 +6,6 @@ import { Refund } from '../../../entity/refund/refund.entity';
  * @description
  * An interface to extend standard {@link RefundState}.
  *
- * @deprecated use RefundStates
- */
-export interface CustomRefundStates {}
-
-/**
- * @description
- * An interface to extend standard {@link RefundState}.
- *
  * @docsCategory payment
  */
 export interface RefundStates {}
@@ -24,7 +16,7 @@ export interface RefundStates {}
  *
  * @docsCategory payment
  */
-export type RefundState = 'Pending' | 'Settled' | 'Failed' | keyof CustomRefundStates | keyof RefundStates;
+export type RefundState = 'Pending' | 'Settled' | 'Failed' | keyof RefundStates;
 
 /**
  * @description

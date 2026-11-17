@@ -121,12 +121,14 @@ input CancelOrderInput {
 }
 
 input RefundOrderInput {
-    lines: [OrderLineInput!] @deprecated(reason: "Use the `amount` field instead")
-    shipping: Money @deprecated(reason: "Use the `amount` field instead")
-    adjustment: Money @deprecated(reason: "Use the `amount` field instead")
     """
-    The amount to be refunded to this particular payment. This was introduced in v2.2.0 as the preferred way to specify the refund amount.
-    Can be as much as the total amount of the payment minus the sum of all previous refunds.
+    The OrderLines which this refund relates to. They are recorded as the RefundLines of the
+    Refund, and do not affect the amount refunded.
+    """
+    lines: [OrderLineInput!]
+    """
+    The amount to be refunded to this particular payment. Can be as much as the total amount of
+    the payment minus the sum of all previous refunds. Either `amount` or `targets` must be given.
     """
     amount: Money
     paymentId: ID!
@@ -208,9 +210,8 @@ input AdministratorRefundInput {
     paymentId: ID!
     reason: String
     """
-    The amount to be refunded to this particular Payment. This was introduced in
-    v2.2.0 as the preferred way to specify the refund amount. The `lines`, `shipping` and `adjustment`
-    fields will be removed in a future version.
+    The amount to be refunded to this particular Payment. If no refund of the modification
+    has an amount, the whole difference in the order total is refunded to the first one.
     """
     amount: Money
 }

@@ -24,14 +24,4 @@ export class ProductEvent extends VendureEntityEvent<Product, ProductInputTypes>
     ) {
         super(entity, type, ctx, input);
     }
-
-    /**
-     * Return a product field to become compatible with the
-     * deprecated old version of ProductEvent
-     * @deprecated Use `entity` instead
-     * @since 1.4
-     */
-    get product(): Product {
-        return this.entity;
-    }
 }

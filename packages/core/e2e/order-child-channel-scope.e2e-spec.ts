@@ -199,7 +199,7 @@ describe('Order child entity channel scoping', () => {
                 code: 'channel-b',
                 token: SECOND_CHANNEL_TOKEN,
                 defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.USD,
+                defaultCurrencyCode: CurrencyCode.USD,
                 pricesIncludeTax: true,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',
@@ -276,8 +276,7 @@ describe('Order child entity channel scoping', () => {
         const { refundOrder } = await adminClient.query(refundOrderDocument, {
             input: {
                 lines: [{ orderLineId: orderALineId, quantity: 1 }],
-                shipping: 0,
-                adjustment: 0,
+                amount: 100,
                 paymentId: paymentAId,
             },
         });
@@ -393,8 +392,7 @@ describe('Order child entity channel scoping', () => {
                 await adminClient.query(refundOrderDocument, {
                     input: {
                         lines: [],
-                        shipping: 100,
-                        adjustment: 0,
+                        amount: 100,
                         paymentId: paymentAId,
                     },
                 });
@@ -407,8 +405,7 @@ describe('Order child entity channel scoping', () => {
                 await adminClient.query(refundOrderDocument, {
                     input: {
                         lines: [{ orderLineId: orderALineId, quantity: 1 }],
-                        shipping: 0,
-                        adjustment: 0,
+                        amount: 100,
                         paymentId: paymentAId,
                     },
                 });
@@ -563,8 +560,7 @@ describe('Order child entity channel scoping', () => {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: [{ orderLineId: orderALineId, quantity: 1 }],
-                    shipping: 0,
-                    adjustment: 0,
+                    amount: 100,
                     paymentId: paymentAId,
                 },
             });

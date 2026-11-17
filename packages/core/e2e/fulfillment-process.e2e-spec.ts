@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ErrorCode } from '@vendure/common/lib/generated-types';
 import {
-    CustomFulfillmentProcess,
     defaultFulfillmentProcess,
+    FulfillmentProcess,
     manualFulfillmentHandler,
     mergeConfig,
     TransactionalConnection,
@@ -40,7 +40,7 @@ describe('Fulfillment process', () => {
         input => !!input.id,
     );
     const VALIDATION_ERROR_MESSAGE = 'Fulfillment must have a tracking code';
-    const customOrderProcess: CustomFulfillmentProcess<'AwaitingPickup'> = {
+    const customOrderProcess: FulfillmentProcess<'AwaitingPickup'> = {
         init(injector) {
             initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
@@ -69,7 +69,7 @@ describe('Fulfillment process', () => {
         },
     };
 
-    const customOrderProcess2: CustomFulfillmentProcess<'AwaitingPickup'> = {
+    const customOrderProcess2: FulfillmentProcess<'AwaitingPickup'> = {
         transitions: {
             AwaitingPickup: {
                 to: ['Cancelled'],
@@ -163,7 +163,7 @@ describe('Fulfillment process', () => {
         await server.destroy();
     });
 
-    describe('CustomFulfillmentProcess', () => {
+    describe('FulfillmentProcess', () => {
         it('is injectable', () => {
             expect(initSpy).toHaveBeenCalled();
             expect(initSpy.mock.calls[0][0]).toBe(true);

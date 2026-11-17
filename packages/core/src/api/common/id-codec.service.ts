@@ -15,9 +15,7 @@ export class IdCodecService {
      */
     readonly transformJobIds: boolean;
     constructor(configService: ConfigService) {
-        this.idCodec = new IdCodec(
-            configService.entityOptions.entityIdStrategy ?? configService.entityIdStrategy,
-        );
+        this.idCodec = new IdCodec(configService.entityOptions.entityIdStrategy);
         const jobQueueStrategy = configService.jobQueueOptions.jobQueueStrategy as
             | Partial<InspectableJobQueueStrategy>
             | undefined;

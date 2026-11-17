@@ -68,7 +68,7 @@ describe('populate() function', () => {
             input: {
                 code: 'Channel 2',
                 token: 'channel-2',
-                currencyCode: CurrencyCode.EUR,
+                defaultCurrencyCode: CurrencyCode.EUR,
                 defaultLanguageCode: LanguageCode.en,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_2',

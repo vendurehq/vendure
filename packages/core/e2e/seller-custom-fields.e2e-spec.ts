@@ -235,7 +235,7 @@ describe('Seller with localized custom fields', () => {
                     token: 'fresh-foods-token',
                     defaultLanguageCode: LanguageCode.en,
                     availableLanguageCodes: [LanguageCode.en, LanguageCode.de],
-                    currencyCode: 'USD',
+                    defaultCurrencyCode: 'USD',
                     pricesIncludeTax: true,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',

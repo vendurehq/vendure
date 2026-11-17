@@ -191,8 +191,6 @@ export type Channel = Node & {
   availableLanguageCodes?: Maybe<Array<LanguageCode>>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
-  /** @deprecated Use defaultCurrencyCode instead */
-  currencyCode: CurrencyCode;
   customFields?: Maybe<Scalars['JSON']['output']>;
   defaultCurrencyCode: CurrencyCode;
   defaultLanguageCode: LanguageCode;
@@ -1232,8 +1230,6 @@ export type Fulfillment = Node & {
   lines: Array<FulfillmentLine>;
   method: Scalars['String']['output'];
   state: Scalars['String']['output'];
-  /** @deprecated Use the `lines` field instead */
-  summary: Array<FulfillmentLine>;
   trackingCode?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -3232,6 +3228,7 @@ export type RefreshCustomerVerificationResult = NativeAuthStrategyError | Succes
 
 export type Refund = Node & {
   __typename?: 'Refund';
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
@@ -3241,12 +3238,14 @@ export type Refund = Node & {
    */
   destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
   metadata?: Maybe<Scalars['JSON']['output']>;
   method?: Maybe<Scalars['String']['output']>;
   paymentId: Scalars['ID']['output'];
   reason?: Maybe<Scalars['String']['output']>;
+  /** Recorded for Refunds created before v4.0 only. The amount refunded is `total`. */
   shipping: Scalars['Money']['output'];
   state: Scalars['String']['output'];
   total: Scalars['Money']['output'];
@@ -3348,10 +3347,6 @@ export type SearchInput = {
   collectionSlug?: InputMaybe<Scalars['String']['input']>;
   collectionSlugs?: InputMaybe<Array<Scalars['String']['input']>>;
   facetValueFilters?: InputMaybe<Array<FacetValueFilterInput>>;
-  /** @deprecated Use `facetValueFilters` instead */
-  facetValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** @deprecated Use `facetValueFilters` instead */
-  facetValueOperator?: InputMaybe<LogicalOperator>;
   groupByProduct?: InputMaybe<Scalars['Boolean']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   sort?: InputMaybe<SearchResultSortParameter>;

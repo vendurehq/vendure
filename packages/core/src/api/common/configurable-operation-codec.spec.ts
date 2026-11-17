@@ -28,8 +28,7 @@ const testCondition = new PromotionCondition({
 
 function createCodec(idStrategy: EntityIdStrategy<any>): ConfigurableOperationCodec {
     const configService = new MockConfigService() as unknown as ConfigService;
-    (configService as any).entityIdStrategy = idStrategy;
-    (configService as any).entityOptions = {};
+    (configService as any).entityOptions = { entityIdStrategy: idStrategy };
     configService.promotionOptions.promotionConditions = [testCondition];
     const idCodecService = new IdCodecService(configService);
     return new ConfigurableOperationCodec(configService, idCodecService);

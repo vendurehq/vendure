@@ -138,7 +138,7 @@ class PluginAddToCartTool implements McpToolHandler<{ variantId: string }> {
     ) {}
 
     async execute(ctx: RequestContext, input: { variantId: string }) {
-        const order = await this.activeOrderService.getOrderFromContext(ctx, true);
+        const order = await this.activeOrderService.getActiveOrder(ctx, undefined, true);
         const result = await this.orderService.addItemToOrder(ctx, order.id, input.variantId, 1);
         return isGraphQlErrorResult(result) ? result : { currencyCode: result.currencyCode };
     }

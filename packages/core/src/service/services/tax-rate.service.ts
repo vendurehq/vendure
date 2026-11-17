@@ -24,7 +24,6 @@ import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
 import { Zone } from '../../entity/zone/zone.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { TaxRateEvent } from '../../event-bus/events/tax-rate-event';
-import { TaxRateModificationEvent } from '../../event-bus/events/tax-rate-modification-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -128,7 +127,6 @@ export class TaxRateService {
         const newTaxRate = await this.connection.getRepository(ctx, TaxRate).save(taxRate);
         await this.customFieldRelationService.updateRelations(ctx, TaxRate, input, newTaxRate);
         await this.updateActiveTaxRates(ctx);
-        await this.eventBus.publish(new TaxRateModificationEvent(ctx, newTaxRate));
         await this.eventBus.publish(new TaxRateEvent(ctx, newTaxRate, 'created', input));
         return assertFound(this.findOne(ctx, newTaxRate.id));
     }
@@ -164,7 +162,6 @@ export class TaxRateService {
         // TaxRate when updating its own tax rate cache.
         await this.connection.commitOpenTransaction(ctx);
 
-        await this.eventBus.publish(new TaxRateModificationEvent(ctx, updatedTaxRate));
         await this.eventBus.publish(new TaxRateEvent(ctx, updatedTaxRate, 'updated', input));
 
         return assertFound(this.findOne(ctx, taxRate.id));

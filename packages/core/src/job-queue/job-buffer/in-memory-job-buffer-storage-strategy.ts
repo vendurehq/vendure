@@ -8,8 +8,8 @@ import { JobBufferStorageStrategy } from './job-buffer-storage-strategy';
  * _not_ be used in production, since it will lose data in the event of the server
  * stopping.
  *
- * Instead, use the {@link DefaultJobQueuePlugin} with the `useDatabaseForBuffer: true` option set,
- * or the {@link BullMQJobQueuePlugin} or another custom strategy with persistent storage.
+ * The {@link DefaultJobQueuePlugin} stores buffered jobs in the database (unless its
+ * `useDatabaseForBuffer` option is `false`), and the {@link BullMQJobQueuePlugin} stores them in Redis.
  *
  * @since 1.3.0
  * @docsCategory JobQueue

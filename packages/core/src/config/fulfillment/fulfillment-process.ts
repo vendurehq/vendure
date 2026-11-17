@@ -6,8 +6,8 @@ import {
 } from '../../common/finite-state-machine/types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import {
-    CustomFulfillmentStates,
     FulfillmentState,
+    FulfillmentStates,
     FulfillmentTransitionData,
 } from '../../service/helpers/fulfillment-state-machine/fulfillment-state';
 
@@ -23,22 +23,12 @@ import {
  * @docsCategory fulfillment
  * @since 2.0.0
  */
-export interface FulfillmentProcess<State extends keyof CustomFulfillmentStates | string>
-    extends InjectableStrategy {
+export interface FulfillmentProcess<
+    State extends keyof FulfillmentStates | string,
+> extends InjectableStrategy {
     transitions?: Transitions<State, State | FulfillmentState> &
         Partial<Transitions<FulfillmentState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | FulfillmentState, FulfillmentTransitionData>;
     onTransitionEnd?: OnTransitionEndFn<State | FulfillmentState, FulfillmentTransitionData>;
     onTransitionError?: OnTransitionErrorFn<State | FulfillmentState>;
 }
-
-/**
- * @description
- * Used to define extensions to or modifications of the default fulfillment process.
- *
- * For detailed description of the interface members, see the {@link StateMachineConfig} docs.
- *
- * @deprecated Use FulfillmentProcess
- */
-export interface CustomFulfillmentProcess<State extends keyof CustomFulfillmentStates | string>
-    extends FulfillmentProcess<State> {}

@@ -745,7 +745,7 @@ describe('AuthenticationStrategy', () => {
                             code: token,
                             token,
                             defaultLanguageCode: LanguageCode.en,
-                            currencyCode: CurrencyCode.USD,
+                            defaultCurrencyCode: CurrencyCode.USD,
                             pricesIncludeTax: true,
                             defaultShippingZoneId: 'T_1',
                             defaultTaxZoneId: 'T_1',

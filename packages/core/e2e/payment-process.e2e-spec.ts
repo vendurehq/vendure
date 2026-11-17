@@ -3,6 +3,7 @@
 import { ErrorCode } from '@vendure/common/lib/generated-types';
 import {
     defaultOrderProcess,
+    defaultPaymentProcess,
     LanguageCode,
     mergeConfig,
     type Order,
@@ -147,7 +148,7 @@ describe('Payment process', () => {
             },
             paymentOptions: {
                 paymentMethodHandlers: [testPaymentHandler],
-                customPaymentProcess: [customPaymentProcess],
+                process: [defaultPaymentProcess, customPaymentProcess],
             },
         }),
     );
@@ -180,7 +181,7 @@ describe('Payment process', () => {
         await server.destroy();
     });
 
-    it('CustomPaymentProcess is injectable', () => {
+    it('PaymentProcess is injectable', () => {
         expect(initSpy).toHaveBeenCalled();
         expect(initSpy.mock.calls[0][0]).toBe(true);
     });

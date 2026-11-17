@@ -454,7 +454,6 @@ export interface ListPageProps<
  *     Button,
  *     DashboardRouteDefinition,
  *     ListPage,
- *     PageActionBarRight,
  *     DetailPageButton,
  * } from '@vendure/dashboard';
  * import { Link } from '@tanstack/react-router';
@@ -520,12 +519,10 @@ export interface ListPageProps<
  *                 },
  *             }}
  *         >
- *             <PageActionBarRight>
- *                 <Button render={<Link to="./new" />}>
- *                     <PlusIcon className="mr-2 h-4 w-4" />
- *                     New article
- *                 </Button>
- *             </PageActionBarRight>
+ *             <Button render={<Link to="./new" />}>
+ *                 <PlusIcon className="mr-2 h-4 w-4" />
+ *                 New article
+ *             </Button>
  *         </ListPage>
  *     ),
  * };

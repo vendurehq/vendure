@@ -29,14 +29,16 @@ defineDashboardExtension({
         },
     },
     routes: [reviewList, reviewDetail, routeWithoutAuth],
-    widgets: [
-        {
-            id: 'custom-widget',
-            name: 'Custom Widget',
-            component: CustomWidget,
-            defaultSize: { w: 3, h: 3 },
-        },
-    ],
+    insights: {
+        widgets: [
+            {
+                id: 'custom-widget',
+                name: 'Custom Widget',
+                component: CustomWidget,
+                defaultSize: { w: 3, h: 3 },
+            },
+        ],
+    },
     actionBarItems: [
         {
             pageId: 'product-detail',

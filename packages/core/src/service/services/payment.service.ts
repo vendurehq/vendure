@@ -3,7 +3,6 @@ import { ManualPaymentInput, RefundOrderInput } from '@vendure/common/lib/genera
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { DeepPartial, ID, JsonCompatible } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { In } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { InternalServerError, UserInputError } from '../../common/error/errors';
@@ -25,7 +24,6 @@ import { RefundDestinationStrategy } from '../../config/payment/refund-destinati
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { PaymentMethod } from '../../entity/payment-method/payment-method.entity';
@@ -350,14 +348,18 @@ export class PaymentService {
      * @description
      * Creates one or more Refunds against the Payments of the given Order.
      *
-     * By default the refund is drawn from the specified Payment, and if the amount to be refunded
-     * exceeds that Payment's remaining refundable balance (in the case of multiple payments on a
-     * single Order), the outstanding amount is refunded against the next available Payment.
+     * By default `input.amount` is drawn from the specified Payment, and must not exceed that
+     * Payment's remaining refundable balance.
      *
      * Alternatively, `input.targets` may be used to split the refund explicitly over several
      * Payments and/or {@link RefundDestinationStrategy} destinations. Every target is resolved and
      * validated before any Refund is created, so an invalid target rejects the whole operation
      * without any funds having been moved.
+     *
+     * Without `input.amount` or `input.targets`, `options.total` is refunded instead: it is drawn
+     * from the specified Payment, and whatever exceeds that Payment's remaining refundable balance
+     * (in the case of multiple payments on a single Order) is refunded against the next available
+     * Payment. Order modification uses this to refund the difference in the order total.
      *
      * When creating a Refund in the context of an Order, it is
      * preferable to use the {@link OrderService} `refundOrder()` method, which performs additional
@@ -368,6 +370,7 @@ export class PaymentService {
         input: RefundOrderInput,
         order: Order,
         selectedPayment: Payment,
+        options?: { total?: number },
     ): Promise<
         Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError
     > {
@@ -375,9 +378,9 @@ export class PaymentService {
             relations: REFUND_ORDER_RELATIONS,
         });
         const useTargets = 0 < (input.targets?.length ?? 0);
-        const { total, orderLinesTotal } = useTargets
-            ? { total: summate(input.targets ?? [], 'amount'), orderLinesTotal: 0 }
-            : await this.getRefundAmount(ctx, input);
+        const total = useTargets
+            ? summate(input.targets ?? [], 'amount')
+            : (input.amount ?? options?.total ?? 0);
 
         const targets = await this.resolveRefundTargets(
             ctx,
@@ -400,7 +403,6 @@ export class PaymentService {
                     order,
                     orderWithRefunds,
                     targets[i],
-                    orderLinesTotal,
                     i,
                 );
             } catch (e: any) {
@@ -452,7 +454,6 @@ export class PaymentService {
         order: Order,
         orderWithRefunds: Order,
         target: ResolvedRefundTarget,
-        orderLinesTotal: number,
         index: number,
     ): Promise<{ refund: Refund; transitionError?: RefundStateTransitionError }> {
         let refund = new Refund({
@@ -463,11 +464,11 @@ export class PaymentService {
             destination: target.strategy ? target.strategy.code : null,
             state: 'Pending',
             metadata: {},
-            items: orderLinesTotal, // deprecated
-            // These columns are not nullable, so the deprecated inputs default to zero when
-            // omitted. A refund specified via `amount` or `targets` does not use them at all.
-            adjustment: input.adjustment ?? 0, // deprecated
-            shipping: input.shipping ?? 0, // deprecated
+            // The amount of a Refund is always its `total`. These columns only hold a breakdown for
+            // Refunds created before v4.0.
+            items: 0,
+            adjustment: 0,
+            shipping: 0,
         });
         const createRefundResult = target.strategy
             ? await target.strategy.createRefund(
@@ -734,37 +735,6 @@ export class PaymentService {
     private getPaymentRefundTotal(payment: Payment): number {
         const nonFailedRefunds = payment.refunds?.filter(refund => refund.state !== 'Failed') ?? [];
         return summate(nonFailedRefunds, 'total');
-    }
-
-    private async getRefundAmount(
-        ctx: RequestContext,
-        input: RefundOrderInput,
-    ): Promise<{ orderLinesTotal: number; total: number }> {
-        if (input.amount) {
-            // This is the new way of getting the refund amount
-            // after v2.2.0. It allows full control over the refund.
-            return { orderLinesTotal: 0, total: input.amount };
-        }
-
-        // This is the pre-v2.2.0 way of getting the refund amount.
-        // It calculates the refund amount based on the order lines to be refunded
-        // plus shipping and adjustment amounts. It is complex and prevents full
-        // control over refund amounts, especially when multiple payment methods
-        // are involved.
-        // It is deprecated and will be removed in a future version.
-        let refundOrderLinesTotal = 0;
-        const inputLines = input.lines || [];
-        const orderLines = await this.connection
-            .getRepository(ctx, OrderLine)
-            .find({ where: { id: In(inputLines.map(l => l.orderLineId)) } });
-        for (const line of inputLines) {
-            const orderLine = orderLines.find(l => idsAreEqual(l.id, line.orderLineId));
-            if (orderLine && 0 < orderLine.orderPlacedQuantity) {
-                refundOrderLinesTotal += line.quantity * orderLine.proratedUnitPriceWithTax;
-            }
-        }
-        const total = refundOrderLinesTotal + (input.shipping ?? 0) + (input.adjustment ?? 0);
-        return { orderLinesTotal: refundOrderLinesTotal, total };
     }
 
     /**

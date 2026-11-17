@@ -72,10 +72,7 @@ export interface HardenPluginOptions {
     hideFieldSuggestions?: boolean;
     /**
      * @description
-     * When set to `'prod'`, the plugin will disable dev-mode features of the GraphQL APIs:
-     *
-     * - introspection
-     * - the GraphQL landing page served at the API paths
+     * When set to `'prod'`, the plugin will disable introspection of the GraphQL APIs.
      *
      * @default 'prod'
      */

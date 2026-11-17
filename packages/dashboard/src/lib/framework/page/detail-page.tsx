@@ -20,7 +20,6 @@ import {
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
@@ -91,6 +90,16 @@ export interface DetailPageProps<
      * @since 3.8.0
      */
     setValuesForCreate?: NoInfer<(params: Record<string, string>) => Partial<VariablesOf<C>['input']>>;
+    /**
+     * @description
+     * Whether the update mutation receives only the fields the user changed. See the
+     * `sendOnlyChangedFields` option of {@link useDetailPage}. Set it to `false` if your update
+     * mutation treats an absent field as empty rather than unchanged.
+     *
+     * @default true
+     * @since 4.0.0
+     */
+    sendOnlyChangedFields?: boolean;
 }
 
 export interface DetailPageFieldProps<
@@ -148,6 +157,7 @@ export function DetailPage<
     updateDocument,
     setValuesForUpdate,
     setValuesForCreate,
+    sendOnlyChangedFields,
     title,
 }: DetailPageProps<T, C, U>) {
     const params = route.useParams();
@@ -166,6 +176,7 @@ export function DetailPage<
         params: { id: params.id },
         setValuesForUpdate,
         setValuesForCreate,
+        sendOnlyChangedFields,
         onSuccess: async data => {
             toast.success('Updated successfully');
             resetForm();
@@ -188,14 +199,12 @@ export function DetailPage<
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{title(entity)}</PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                    >
-                        <Trans>Update</Trans>
-                    </Button>
-                </PageActionBarRight>
+                <Button
+                    type="submit"
+                    disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                >
+                    <Trans>Update</Trans>
+                </Button>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">

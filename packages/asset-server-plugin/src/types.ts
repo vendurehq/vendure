@@ -109,22 +109,6 @@ export interface AssetServerOptions {
     assetUrlPrefix?: string | ((ctx: RequestContext, identifier: string) => string);
     /**
      * @description
-     * The max width in pixels of a generated preview image.
-     *
-     * @default 1600
-     * @deprecated Use `previewStrategy: new SharpAssetPreviewStrategy({ maxWidth })` instead
-     */
-    previewMaxWidth?: number;
-    /**
-     * @description
-     * The max height in pixels of a generated preview image.
-     *
-     * @default 1600
-     * @deprecated Use `previewStrategy: new SharpAssetPreviewStrategy({ maxHeight })` instead
-     */
-    previewMaxHeight?: number;
-    /**
-     * @description
      * An array of additional {@link ImageTransformPreset} objects.
      */
     presets?: ImageTransformPreset[];

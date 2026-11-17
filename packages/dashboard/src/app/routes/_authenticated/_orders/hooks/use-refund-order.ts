@@ -422,8 +422,6 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
                     lines: refundLines,
                     reason,
                     paymentId: selectedTargets[0].paymentId,
-                    shipping: 0,
-                    adjustment: 0,
                     targets: selectedTargets.map(target => ({
                         paymentId: target.paymentId,
                         amount: target.amountToRefund,

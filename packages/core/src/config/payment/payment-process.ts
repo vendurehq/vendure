@@ -6,8 +6,8 @@ import {
 } from '../../common/finite-state-machine/types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import {
-    CustomPaymentStates,
     PaymentState,
+    PaymentStates,
     PaymentTransitionData,
 } from '../../service/helpers/payment-state-machine/payment-state';
 
@@ -30,20 +30,9 @@ import {
  * @docsCategory payment
  * @since 2.0.0
  */
-export interface PaymentProcess<State extends keyof CustomPaymentStates | string> extends InjectableStrategy {
+export interface PaymentProcess<State extends keyof PaymentStates | string> extends InjectableStrategy {
     transitions?: Transitions<State, State | PaymentState> & Partial<Transitions<PaymentState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | PaymentState, PaymentTransitionData>;
     onTransitionEnd?: OnTransitionEndFn<State | PaymentState, PaymentTransitionData>;
     onTransitionError?: OnTransitionErrorFn<State | PaymentState>;
 }
-
-/**
- * @description
- * Used to define extensions to or modifications of the default payment process.
- *
- * For detailed description of the interface members, see the {@link StateMachineConfig} docs.
- *
- * @deprecated use PaymentProcess
- */
-export interface CustomPaymentProcess<State extends keyof CustomPaymentStates | string>
-    extends PaymentProcess<State> {}

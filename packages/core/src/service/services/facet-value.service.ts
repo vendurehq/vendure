@@ -55,39 +55,19 @@ export class FacetValueService {
         private requestCache: RequestContextCacheService,
     ) {}
 
-    /**
-     * @deprecated Use {@link FacetValueService.findAll findAll(ctx, lang)} instead
-     */
-    findAll(lang: LanguageCode): Promise<Array<Translated<FacetValue>>>;
-    findAll(ctx: RequestContext, lang: LanguageCode): Promise<Array<Translated<FacetValue>>>;
-    findAll(
-        ctxOrLang: RequestContext | LanguageCode,
-        lang?: LanguageCode,
-    ): Promise<Array<Translated<FacetValue>>> {
-        const [repository, languageCode, channelLanguageCode] =
-            ctxOrLang instanceof RequestContext
-                ? [
-                      this.connection.getRepository(ctxOrLang, FacetValue),
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                      lang!,
-                      ctxOrLang.channel.defaultLanguageCode,
-                  ]
-                : [this.connection.rawConnection.getRepository(FacetValue), ctxOrLang, undefined];
-        const globalDefaultLanguageCode = this.configService.defaultLanguageCode;
+    findAll(ctx: RequestContext, lang: LanguageCode): Promise<Array<Translated<FacetValue>>> {
+        const repository = this.connection.getRepository(ctx, FacetValue);
+        const languageCodes: [LanguageCode, ...LanguageCode[]] = [
+            lang,
+            ctx.channel.defaultLanguageCode,
+            this.configService.defaultLanguageCode,
+        ];
         return repository
             .find({
                 relations: { facet: true },
             })
             .then(facetValues =>
-                facetValues.map(facetValue =>
-                    translateDeep(
-                        facetValue,
-                        channelLanguageCode
-                            ? [languageCode, channelLanguageCode, globalDefaultLanguageCode]
-                            : [languageCode, globalDefaultLanguageCode],
-                        ['facet'],
-                    ),
-                ),
+                facetValues.map(facetValue => translateDeep(facetValue, languageCodes, ['facet'])),
             );
     }
 

@@ -175,8 +175,6 @@ input FacetValueFilterInput {
 
 input SearchInput {
     term: String
-    facetValueIds: [ID!] @deprecated(reason: "Use `facetValueFilters` instead")
-    facetValueOperator: LogicalOperator @deprecated(reason: "Use `facetValueFilters` instead")
     facetValueFilters: [FacetValueFilterInput!]
     collectionId: ID
     collectionIds: [ID!]

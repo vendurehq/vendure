@@ -22,10 +22,6 @@ function createTestConfig(overrides: Record<string, any> = {}): any {
         },
         apiOptions: {
             introspection: false,
-            adminApiPlayground: false,
-            shopApiPlayground: false,
-            adminApiDebug: false,
-            shopApiDebug: false,
             cors: {
                 origin: 'https://example.com',
                 credentials: true,
@@ -142,17 +138,6 @@ describe('production-check', () => {
 
         expect(result.status).toBe('warn');
         expect(result.details?.some(d => d.includes('introspection'))).toBe(true);
-    });
-
-    it('detects playground enabled', async () => {
-        const config = createTestConfig({
-            apiOptions: { adminApiPlayground: true },
-        });
-
-        const result = await runProductionCheck(config);
-
-        expect(result.status).toBe('warn');
-        expect(result.details?.some(d => d.includes('playground'))).toBe(true);
     });
 
     it('detects broad CORS with credentials', async () => {

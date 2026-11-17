@@ -33,7 +33,6 @@ import { TranslateErrorResultInterceptor } from './middleware/translate-error-re
         configureGraphQLModule(configService => ({
             apiType: 'shop',
             apiPath: configService.apiOptions.shopApiPath,
-            playground: configService.apiOptions.shopApiPlayground,
             typePaths: VENDURE_SHOP_API_TYPE_PATHS,
             resolverModule: ShopApiModule,
             validationRules: configService.apiOptions.shopApiValidationRules,
@@ -41,7 +40,6 @@ import { TranslateErrorResultInterceptor } from './middleware/translate-error-re
         configureGraphQLModule(configService => ({
             apiType: 'admin',
             apiPath: configService.apiOptions.adminApiPath,
-            playground: configService.apiOptions.adminApiPlayground,
             typePaths: VENDURE_ADMIN_API_TYPE_PATHS,
             resolverModule: AdminApiModule,
             validationRules: configService.apiOptions.adminApiValidationRules,

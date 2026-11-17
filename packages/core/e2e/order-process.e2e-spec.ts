@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ErrorCode, HistoryEntryType } from '@vendure/common/lib/generated-types';
 import {
-    CustomOrderProcess,
     defaultOrderProcess,
     HistoryService,
     mergeConfig,
     Order,
+    OrderProcess,
     OrderService,
     OrderState,
     RequestContextService,
@@ -42,7 +42,7 @@ const transitionErrorSpy = vi.fn();
 
 describe('Order process', () => {
     const VALIDATION_ERROR_MESSAGE = 'Customer must have a company email address';
-    const customOrderProcess: CustomOrderProcess<'ValidatingCustomer' | 'PaymentProcessing'> = {
+    const customOrderProcess: OrderProcess<'ValidatingCustomer' | 'PaymentProcessing'> = {
         init(injector) {
             initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
@@ -80,7 +80,7 @@ describe('Order process', () => {
         },
     };
 
-    const customOrderProcess2: CustomOrderProcess<'ValidatingCustomer'> = {
+    const customOrderProcess2: OrderProcess<'ValidatingCustomer'> = {
         transitions: {
             ValidatingCustomer: {
                 to: ['Cancelled'],
@@ -96,7 +96,7 @@ describe('Order process', () => {
     // test enables it for the duration of its run.
     let failOnTransitionEndForState: string | null = null;
     const ROLLBACK_FAILURE_MESSAGE = 'simulated onTransitionEnd failure';
-    const failingOrderProcess: CustomOrderProcess<never> = {
+    const failingOrderProcess: OrderProcess<never> = {
         transitions: {},
         onTransitionEnd(fromState, toState) {
             if (failOnTransitionEndForState === toState) {
@@ -182,8 +182,8 @@ describe('Order process', () => {
         });
     });
 
-    describe('CustomOrderProcess', () => {
-        it('CustomOrderProcess is injectable', () => {
+    describe('OrderProcess', () => {
+        it('OrderProcess is injectable', () => {
             expect(initSpy).toHaveBeenCalled();
             expect(initSpy.mock.calls[0][0]).toBe(true);
         });

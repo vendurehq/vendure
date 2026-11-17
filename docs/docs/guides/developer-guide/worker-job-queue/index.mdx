@@ -302,7 +302,7 @@ class ProductVideoService implements OnModuleInit {
                 // returns a new URL of the transcoded video, which we can then
                 // associate with the Product via the customFields.
                 const result = await transcode(job.data.videoUrl);
-                await this.connection.getRepository(Product).save({
+                await this.connection.rawConnection.getRepository(Product).save({
                     id: job.data.productId,
                     customFields: {
                         videoUrl: result.url,

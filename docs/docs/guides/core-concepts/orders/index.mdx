@@ -343,10 +343,10 @@ export const myOrderProcess: OrderProcess<OrderState> = {
 To make your custom states compatible with standard services you should declare your new states in the following way:
 
 ```ts title="src/plugins/tax-id/types.ts"
-import { CustomOrderStates } from '@vendure/core';
+import { OrderStates } from '@vendure/core';
 
 declare module '@vendure/core' {
-  interface CustomOrderStates {
+  interface OrderStates {
     ValidatingCustomer: never;
   }
 }

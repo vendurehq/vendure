@@ -562,7 +562,7 @@ describe('Stock control: granular trackInventory', () => {
                     code: 'channel-b',
                     token: CHANNEL_B_TOKEN,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.GBP,
+                    defaultCurrencyCode: CurrencyCode.GBP,
                     pricesIncludeTax: true,
                     defaultShippingZoneId: 'T_1',
                     defaultTaxZoneId: 'T_1',

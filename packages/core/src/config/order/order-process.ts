@@ -7,8 +7,8 @@ import {
 } from '../../common/finite-state-machine/types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import {
-    CustomOrderStates,
     OrderState,
+    OrderStates,
     OrderTransitionData,
 } from '../../service/helpers/order-state-machine/order-state';
 
@@ -32,18 +32,9 @@ import {
  * @docsPage OrderProcess
  * @docsWeight 0
  */
-export interface OrderProcess<State extends keyof CustomOrderStates | string> extends InjectableStrategy {
+export interface OrderProcess<State extends keyof OrderStates | string> extends InjectableStrategy {
     transitions?: Transitions<State, State | OrderState> & Partial<Transitions<OrderState | State>>;
     onTransitionStart?: OnTransitionStartFn<State | OrderState, OrderTransitionData>;
     onTransitionEnd?: OnTransitionEndFn<State | OrderState, OrderTransitionData>;
     onTransitionError?: OnTransitionErrorFn<State | OrderState>;
 }
-
-/**
- * @description
- * Used to define extensions to or modifications of the default order process.
- *
- * @deprecated Use OrderProcess
- */
-export interface CustomOrderProcess<State extends keyof CustomOrderStates | string>
-    extends OrderProcess<State> {}

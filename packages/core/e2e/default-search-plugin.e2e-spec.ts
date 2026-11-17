@@ -4,7 +4,6 @@ import {
     GlobalFlag,
     JobState,
     LanguageCode,
-    LogicalOperator,
     SortOrder,
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
@@ -74,8 +73,8 @@ type SearchInput = VariablesOf<typeof searchProductsAdminDocument>['input'];
 type SearchProductsShopInput = VariablesOf<typeof searchProductsShopDocument>['input'];
 type SearchProductsShopQueryVariablesExt = {
     input: SearchProductsShopInput & {
-        // This input field is dynamically added only when the `indexStockStatus` init option
-        // is set to `true`, and therefore not included in the generated type. Therefore
+        // This input field is added by the `indexStockStatus` option (on by default),
+        // and therefore not included in the generated type. Therefore
         // we need to manually patch it here.
         inStock?: boolean;
     };
@@ -84,7 +83,9 @@ type SearchProductsShopQueryVariablesExt = {
 describe('Default search plugin', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
-            plugins: [DefaultSearchPlugin.init({ indexStockStatus: true }), DefaultJobQueuePlugin],
+            // Used without `init()`, so that the default options (indexStockStatus and
+            // indexCurrencyCode on) are what is tested.
+            plugins: [DefaultSearchPlugin, DefaultJobQueuePlugin],
         }),
     );
 
@@ -221,8 +222,7 @@ describe('Default search plugin', () => {
 
     async function testMatchFacetIdsAnd(testProducts: TestProducts) {
         const result = await testProducts({
-            facetValueIds: ['T_1', 'T_2'],
-            facetValueOperator: LogicalOperator.AND,
+            facetValueFilters: [{ and: 'T_1' }, { and: 'T_2' }],
             groupByProduct: true,
         });
 
@@ -238,8 +238,7 @@ describe('Default search plugin', () => {
 
     async function testMatchFacetIdsOr(testProducts: TestProducts) {
         const result = await testProducts({
-            facetValueIds: ['T_1', 'T_5'],
-            facetValueOperator: LogicalOperator.OR,
+            facetValueFilters: [{ or: ['T_1', 'T_5'] }],
             groupByProduct: true,
         });
 
@@ -321,9 +320,7 @@ describe('Default search plugin', () => {
 
     async function testMatchFacetValueFiltersWithFacetIdsOr(testProducts: TestProducts) {
         const result = await testProducts({
-            facetValueIds: ['T_2', 'T_3'],
-            facetValueOperator: LogicalOperator.OR,
-            facetValueFilters: [{ and: 'T_1' }],
+            facetValueFilters: [{ or: ['T_2', 'T_3'] }, { and: 'T_1' }],
             groupByProduct: true,
         });
 
@@ -343,9 +340,7 @@ describe('Default search plugin', () => {
 
     async function testMatchFacetValueFiltersWithFacetIdsAnd(testProducts: TestProducts) {
         const result = await testProducts({
-            facetValueIds: ['T_1'],
-            facetValueFilters: [{ and: 'T_3' }],
-            facetValueOperator: LogicalOperator.AND,
+            facetValueFilters: [{ and: 'T_1' }, { and: 'T_3' }],
             groupByProduct: true,
         });
 
@@ -991,7 +986,10 @@ describe('Default search plugin', () => {
                     },
                 });
                 await awaitRunningJobs(adminClient);
-                const result = await testProductsAdmin({ facetValueIds: ['T_2'], groupByProduct: true });
+                const result = await testProductsAdmin({
+                    facetValueFilters: [{ and: 'T_2' }],
+                    groupByProduct: true,
+                });
                 expect(result.search.items.map(i => i.productName)).toEqual([
                     'Curvy Monitor',
                     'Gaming PC',
@@ -1002,14 +1000,17 @@ describe('Default search plugin', () => {
             });
 
             it('updates index when a Product is deleted', async () => {
-                const { search } = await testProductsAdmin({ facetValueIds: ['T_2'], groupByProduct: true });
+                const { search } = await testProductsAdmin({
+                    facetValueFilters: [{ and: 'T_2' }],
+                    groupByProduct: true,
+                });
                 expect(search.items.map(i => i.productId)).toEqual(['T_2', 'T_3', 'T_4', 'T_5', 'T_6']);
                 await adminClient.query(deleteProductDocument, {
                     id: 'T_5',
                 });
                 await awaitRunningJobs(adminClient);
                 const { search: search2 } = await testProductsAdmin({
-                    facetValueIds: ['T_2'],
+                    facetValueFilters: [{ and: 'T_2' }],
                     groupByProduct: true,
                 });
                 expect(search2.items.map(i => i.productId)).toEqual(['T_2', 'T_3', 'T_4', 'T_6']);
@@ -1644,7 +1645,7 @@ describe('Default search plugin', () => {
                         token: SECOND_CHANNEL_TOKEN,
                         defaultLanguageCode: LanguageCode.en,
                         availableLanguageCodes: [LanguageCode.en, LanguageCode.de, LanguageCode.zh],
-                        currencyCode: CurrencyCode.GBP,
+                        defaultCurrencyCode: CurrencyCode.GBP,
                         pricesIncludeTax: true,
                         defaultTaxZoneId: 'T_1',
                         defaultShippingZoneId: 'T_1',
@@ -2184,7 +2185,7 @@ describe('Default search plugin', () => {
                     code: 'stock-test-channel',
                     token: STOCK_CHANNEL_TOKEN,
                     defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.GBP,
+                    defaultCurrencyCode: CurrencyCode.GBP,
                     pricesIncludeTax: true,
                     defaultTaxZoneId: 'T_2',
                     defaultShippingZoneId: 'T_1',

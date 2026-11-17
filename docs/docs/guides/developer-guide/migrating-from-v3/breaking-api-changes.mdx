@@ -27,6 +27,9 @@ rg -n "CUSTOMER_ROLE_CODE|CUSTOMER_ROLE_DESCRIPTION|user_roles_role|role_channel
 rg -n "createApiKeyUser\(|createAdministratorAndUser\(|implements SessionCacheStrategy"
 rg -n "roleIds" -g "*.graphql" -g "*.ts" -g "*.tsx"
 rg -n "trackInventory|StockLocationStrategy|getAvailableStock\(|createCancellationsForOrderLines"
+rg -n "ApiPlayground|ApiDebug|healthChecks|HealthCheck|HealthIndicator|TaxRateModificationEvent|TtlCache"
+rg -n "customFulfillmentProcess|customPaymentProcess|Custom(Order|Payment|Fulfillment|Refund)(Process|States)"
+rg -n "getOrderFromContext|addPromotionsToOrder|deleteGroupAndOptionsFromProduct|\.isAuthorized\b"
 ```
 
 | Match | What to do |
@@ -38,6 +41,7 @@ rg -n "trackInventory|StockLocationStrategy|getAvailableStock\(|createCancellati
 | `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
 | `implements SessionCacheStrategy` | Check that it stores `globalPermissions`. See [Sessions and permission checks](/developer-guide/migrating-from-v3/role-assignments#sessions-and-permission-checks). |
 | `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
+| Anything matched by the last three searches | See [Removed deprecated APIs](#removed-deprecated-apis). |
 
 **Done when:** every match is updated, and `npx tsc --noEmit` passes.
 
@@ -76,6 +80,103 @@ Inventory tracking is resolved per stock level, then per variant, then per chann
 - `StockMovementEvent` subscribers can receive a movement split into a tracked and an untracked row.
 
 For the full list, see [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code).
+
+## Changed defaults
+
+Some defaults which were kept for compatibility during v3 have changed. Set the old value to keep the v3 behaviour.
+
+### DefaultSearchPlugin indexes stock status and currency
+
+`indexStockStatus` and `indexCurrencyCode` now default to `true`, also when the plugin is used without `init()`. The `search` query gets the `inStock` field and filter, and returns prices in the currency of the request in Channels with more than one currency.
+
+This changes the `search_index_item` table: it gets the `inStock` and `productInStock` columns, and `currencyCode` joins its primary key. The search index only holds data derived from your catalog, so in the generated migration, empty the table before the new columns are added (`DELETE FROM search_index_item`), and run a full reindex after deploying.
+
+To keep the v3 table and behaviour:
+
+```ts
+DefaultSearchPlugin.init({ indexStockStatus: false, indexCurrencyCode: false });
+```
+
+### DefaultJobQueuePlugin buffers jobs in the database
+
+`useDatabaseForBuffer` now defaults to `true`, so buffered jobs (for example the search index updates of `bufferUpdates`) are stored in the `job_record_buffer` table. They survive a restart and are shared by every server instance. The generated migration creates the table. A `jobBufferStorageStrategy` you configured yourself is kept. To keep the in-memory buffer, set `DefaultJobQueuePlugin.init({ useDatabaseForBuffer: false })`.
+
+### Passwords need 8 characters
+
+The `DefaultPasswordValidationStrategy` in the default config now has a `minLength` of `8` (it was `4`). It applies when a Customer's password is set: on registration and verification, on password changes and resets, and when a Customer is created with a password. Existing passwords keep working. To keep the v3 rule:
+
+```ts
+authOptions: {
+    passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
+},
+```
+
+The `testConfig` of `@vendure/testing` keeps a `minLength` of `4`, so test fixtures with short passwords keep working.
+
+### Dashboard detail pages send only changed fields
+
+`useDetailPage` and the `DetailPage` component now default `sendOnlyChangedFields` to `true`: an update mutation receives `id`, the top-level fields the user changed and any non-nullable fields, rather than the whole form. This stops a page from overwriting a field that someone else changed since the page was loaded.
+
+An update mutation of your own must leave an absent field unchanged, which it does if it uses `patchEntity()` or the `TranslatableSaver`. If it treats an absent field as empty, or derives a stored value from several input fields, set `sendOnlyChangedFields: false` on the page. A `transformUpdateInput` function now receives the partial input, and subscribers to entity events see the partial input in `event.input`.
+
+`updatePromotion` now computes the priority score from the stored conditions and actions when the input omits them. Before, an update without `conditions` and `actions` reset the score to 0.
+
+## Removed deprecated APIs
+
+These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.
+
+| Removed | Use instead |
+|---|---|
+| `apiOptions.adminApiPlayground`, `apiOptions.shopApiPlayground` | The [GraphiQL plugin](/reference/core-plugins/graphiql-plugin/) |
+| `apiOptions.adminApiDebug`, `apiOptions.shopApiDebug` | Nothing. They have had no effect since v3.8.0. |
+| `systemOptions.healthChecks`, `HealthCheckStrategy`, `HttpHealthCheckStrategy`, `TypeORMHealthCheckStrategy`, `HealthCheckRegistryService`, `HealthIndicator`, `HealthCheckError` and the `HealthIndicator*` types | Health checks in your infrastructure. `/health` still returns `{ "status": "ok" }`. See [Health checks](/core-concepts/healthchecks/). |
+| BullMQ `RedisHealthCheckStrategy` | Health checks in your infrastructure |
+| Top-level `entityIdStrategy` in the VendureConfig, and `ConfigService.entityIdStrategy` | `entityOptions.entityIdStrategy` |
+| `shippingOptions.customFulfillmentProcess` | `shippingOptions.process`. Keep `defaultFulfillmentProcess` in the array. |
+| `paymentOptions.customPaymentProcess` | `paymentOptions.process`. Keep `defaultPaymentProcess` in the array. |
+| `CustomOrderProcess`, `CustomPaymentProcess`, `CustomFulfillmentProcess`, `CustomRefundProcess` | `OrderProcess`, `PaymentProcess`, `FulfillmentProcess`, `RefundProcess` |
+| `CustomOrderStates`, `CustomPaymentStates`, `CustomFulfillmentStates`, `CustomRefundStates` | Declare your states on `OrderStates`, `PaymentStates`, `FulfillmentStates`, `RefundStates` |
+| `TransactionalConnection.getRepository(Entity)` without a `RequestContext` | `getRepository(ctx, Entity)`, or `rawConnection.getRepository(Entity)` outside a request |
+| `TtlCache` | `CacheService` |
+| `FacetService.findByCode(code, lang)` | `findByCode(ctx, code, lang)` |
+| `FacetValueService.findAll(lang)` | `findAll(ctx, lang)` |
+| `PromotionService.addPromotionsToOrder()` | Nothing. It was not used. |
+| `ProductOptionGroupService.deleteGroupAndOptionsFromProduct()` | `ProductOptionGroupService.delete()` |
+| `ActiveOrderService.getOrderFromContext()` | `ActiveOrderService.getActiveOrder(ctx, undefined, createIfNotExists)` |
+| `SettingsStoreService` `get`, `getMany`, `set` and `setMany` with `ctx` as the last argument | Pass `ctx` as the first argument |
+| `SettingsStoreService.hasPermission()` | `hasReadPermission()` and `hasWritePermission()` |
+| `RequestContext.isAuthorized` | `RequestContext.userHasPermissions()` |
+| `TaxRateModificationEvent` | `TaxRateEvent`. It is also published on delete, so check `event.type`. |
+| `AssetEvent.asset`, `CustomerEvent.customer`, `CustomerAddressEvent.address`, `OrderEvent.order`, `ProductEvent.product`, `ProductVariantEvent.variants` | `event.entity` |
+
+`FacetValueChecker` must be obtained from the injector (`injector.get(FacetValueChecker)`). Creating it with `new` no longer works without an `EventBus`.
+
+### Plugins and Dashboard
+
+| Removed | Use instead |
+|---|---|
+| `AssetServerPlugin` options `previewMaxWidth` and `previewMaxHeight` | `previewStrategy: new SharpAssetPreviewStrategy({ maxWidth, maxHeight })` |
+| `BullMQJobQueuePlugin` options `setRetries` and `setBackoff` | `setJobOptions`, returning `attempts` (retries + 1) and `backoff` |
+| `MockDataService.populateCustomers()` in `@vendure/testing` | `MockDataService.getCustomers()`, or the `populateCustomers()` function |
+| The top-level `widgets` option of `defineDashboardExtension()` | `insights.widgets` |
+| `PageActionBarLeft` and `PageActionBarRight` | Put `ActionBarItem` components (or buttons) directly inside `PageActionBar`, and pass `dropdownMenuItems` to `PageActionBar` |
+| `isStructFieldConfig` | `isStructCustomFieldConfig` |
+| `setWidgetLayout()` of the user settings context | `saveWidgetInstanceLayouts()` |
+| The `refresh` field of `DashboardMetricSummaryInput` | Nothing. Metrics are calculated on every request. |
+
+### GraphQL API
+
+| Removed | Use instead |
+|---|---|
+| `SearchInput.facetValueIds` and `SearchInput.facetValueOperator` (Shop and Admin API) | `SearchInput.facetValueFilters`. `facetValueIds: [a, b]` with `AND` becomes `[{ and: a }, { and: b }]`; with `OR` it becomes `[{ or: [a, b] }]`. |
+| `Channel.currencyCode` (Shop and Admin API) | `Channel.defaultCurrencyCode` |
+| `currencyCode` on `CreateChannelInput` and `UpdateChannelInput` | `defaultCurrencyCode`. It is now required on `CreateChannelInput`. |
+| `Fulfillment.summary` (Shop and Admin API) | `Fulfillment.lines` |
+| `RefundOrderInput.shipping` and `RefundOrderInput.adjustment` | `RefundOrderInput.amount`, or `targets` to split a refund over several Payments |
+
+`refundOrder` no longer works out the amount from `lines`, `shipping` and `adjustment`. Give the amount with `amount` or `targets`; without either, it returns a `NothingToRefundError`. `lines` is still accepted and records which OrderLines the refund relates to. An `amount` must fit within the selected Payment: to refund more than one Payment holds, use `targets`. Before v4 a line-based refund was split over the Order's Payments automatically.
+
+`Refund.items`, `Refund.shipping` and `Refund.adjustment` are kept for Refunds created before v4.0, and are 0 for Refunds created since. In `modifyOrder`, a refund without an `amount` still refunds the whole difference in the order total, and still draws on the Order's other Payments if the selected one does not cover it.
 
 ## Next steps
 

@@ -1056,7 +1056,7 @@ export const getOrderFulfillmentsDocument = graphql(`
                 state
                 nextStates
                 method
-                summary {
+                lines {
                     orderLine {
                         id
                     }

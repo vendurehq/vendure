@@ -31,8 +31,7 @@ input CreateChannelInput {
     defaultLanguageCode: LanguageCode!
     availableLanguageCodes: [LanguageCode!]
     pricesIncludeTax: Boolean!
-    currencyCode: CurrencyCode @deprecated(reason: "Use defaultCurrencyCode instead")
-    defaultCurrencyCode: CurrencyCode
+    defaultCurrencyCode: CurrencyCode!
     availableCurrencyCodes: [CurrencyCode!]
     trackInventory: Boolean
     outOfStockThreshold: Int
@@ -48,7 +47,6 @@ input UpdateChannelInput {
     defaultLanguageCode: LanguageCode
     availableLanguageCodes: [LanguageCode!]
     pricesIncludeTax: Boolean
-    currencyCode: CurrencyCode @deprecated(reason: "Use defaultCurrencyCode instead")
     defaultCurrencyCode: CurrencyCode
     availableCurrencyCodes: [CurrencyCode!]
     trackInventory: Boolean

@@ -26,10 +26,10 @@ import { DefaultPasswordValidationStrategy } from './auth/default-password-valid
 import { DefaultVerificationTokenStrategy } from './auth/default-verification-token-strategy';
 import { NativeAuthenticationStrategy } from './auth/native-authentication-strategy';
 import { defaultCollectionFilters } from './catalog/default-collection-filters';
+import { DefaultProductVariantBuyerPriceStrategy } from './catalog/default-product-variant-buyer-price-strategy';
 import { DefaultProductVariantPriceCalculationStrategy } from './catalog/default-product-variant-price-calculation-strategy';
 import { DefaultProductVariantPriceSelectionStrategy } from './catalog/default-product-variant-price-selection-strategy';
 import { DefaultProductVariantPriceUpdateStrategy } from './catalog/default-product-variant-price-update-strategy';
-import { DefaultProductVariantBuyerPriceStrategy } from './catalog/default-product-variant-buyer-price-strategy';
 import { DefaultStockDisplayStrategy } from './catalog/default-stock-display-strategy';
 import { MultiChannelStockLocationStrategy } from './catalog/multi-channel-stock-location-strategy';
 import { AutoIncrementIdStrategy } from './entity/auto-increment-id-strategy';
@@ -84,13 +84,9 @@ export const defaultConfig: RuntimeVendureConfig = {
         hostname: '',
         port: 3000,
         adminApiPath: 'admin-api',
-        adminApiPlayground: false,
-        adminApiDebug: false,
         adminListQueryLimit: 1000,
         adminApiValidationRules: [],
         shopApiPath: 'shop-api',
-        shopApiPlayground: false,
-        shopApiDebug: false,
         shopListQueryLimit: 100,
         shopApiValidationRules: [],
         channelTokenKey: DEFAULT_CHANNEL_TOKEN_KEY,
@@ -104,7 +100,6 @@ export const defaultConfig: RuntimeVendureConfig = {
         introspection: true,
         apolloServerPlugins: [],
     },
-    entityIdStrategy: new AutoIncrementIdStrategy(),
     authOptions: {
         disableAuth: false,
         tokenMethod: 'cookie',
@@ -131,7 +126,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         shopApiKeyStrategy: new RandomBytesApiKeyStrategy(),
         customPermissions: [],
         passwordHashingStrategy: new BcryptPasswordHashingStrategy(),
-        passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
+        passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 8, maxLength: 72 }),
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
         customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),
@@ -178,7 +173,6 @@ export const defaultConfig: RuntimeVendureConfig = {
         shippingEligibilityCheckers: [defaultShippingEligibilityChecker],
         shippingCalculators: [defaultShippingCalculator],
         shippingLineAssignmentStrategy: new DefaultShippingLineAssignmentStrategy(),
-        customFulfillmentProcess: [],
         process: [defaultFulfillmentProcess],
         fulfillmentHandlers: [manualFulfillmentHandler],
     },
@@ -204,7 +198,6 @@ export const defaultConfig: RuntimeVendureConfig = {
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],
         paymentMethodHandlers: [],
-        customPaymentProcess: [],
         process: [defaultPaymentProcess],
         refundProcess: [defaultRefundProcess],
         refundDestinations: [],
@@ -272,7 +265,6 @@ export const defaultConfig: RuntimeVendureConfig = {
     plugins: [],
     systemOptions: {
         cacheStrategy: new InMemoryCacheStrategy({ cacheSize: 10_000 }),
-        healthChecks: [],
         errorHandlers: [],
         instrumentationStrategy: new NoopInstrumentationStrategy(),
         encryptionStrategy: new DefaultEncryptionStrategy(),

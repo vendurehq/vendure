@@ -178,12 +178,7 @@ import { AssetServerOptions, ImageTransformPreset } from './types';
     configuration: async config => {
         const options = AssetServerPlugin.options;
         const storageStrategyFactory = options.storageStrategyFactory || defaultAssetStorageStrategyFactory;
-        config.assetOptions.assetPreviewStrategy =
-            options.previewStrategy ??
-            new SharpAssetPreviewStrategy({
-                maxWidth: options.previewMaxWidth,
-                maxHeight: options.previewMaxHeight,
-            });
+        config.assetOptions.assetPreviewStrategy = options.previewStrategy ?? new SharpAssetPreviewStrategy();
         config.assetOptions.assetStorageStrategy = await storageStrategyFactory(options);
         config.assetOptions.assetNamingStrategy = options.namingStrategy || new HashedAssetNamingStrategy();
         return config;

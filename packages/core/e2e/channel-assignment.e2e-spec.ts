@@ -72,7 +72,7 @@ describe('Channel assignment entities', () => {
                 code: 'assignment-b',
                 token: 'assignment-b-token',
                 defaultLanguageCode: LanguageCode.en,
-                currencyCode: CurrencyCode.USD,
+                defaultCurrencyCode: CurrencyCode.USD,
                 pricesIncludeTax: false,
                 defaultShippingZoneId: 'T_1',
                 defaultTaxZoneId: 'T_1',

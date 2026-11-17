@@ -63,10 +63,10 @@ describe('Default search plugin with UUIDs', () => {
         await server.destroy();
     });
 
-    it('can filter by facetValueIds', async () => {
+    it('can filter by facetValueFilters', async () => {
         const result = await shopClient.query(searchProductsShopDocument, {
             input: {
-                facetValueIds: [plantsFacetValue.id],
+                facetValueFilters: [{ and: plantsFacetValue.id }],
                 groupByProduct: true,
                 sort: { name: SortOrder.ASC },
             },

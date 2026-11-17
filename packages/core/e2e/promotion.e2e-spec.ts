@@ -6,13 +6,21 @@ import {
     Permission,
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
-import { ConfigService, type PromotionAction, PromotionCondition, PromotionOrderAction } from '@vendure/core';
+import {
+    ConfigService,
+    Promotion,
+    type PromotionAction,
+    PromotionCondition,
+    PromotionOrderAction,
+    TransactionalConnection,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
     E2E_DEFAULT_CHANNEL_TOKEN,
     type ErrorResultGuard,
 } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { channelFragment, promotionFragment } from './graphql/fragments-admin';
@@ -225,7 +233,7 @@ describe('Promotion resolver', () => {
     // #4700 — updatePromotion should not double-decode ID args in actions
     it('updatePromotion with ID list args in actions', async () => {
         const configService = server.app.get(ConfigService);
-        const decodeIdSpy = vi.spyOn(configService.entityIdStrategy, 'decodeId');
+        const decodeIdSpy = vi.spyOn(configService.entityOptions.entityIdStrategy, 'decodeId');
 
         const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
             input: {
@@ -257,6 +265,58 @@ describe('Promotion resolver', () => {
         }
 
         decodeIdSpy.mockRestore();
+    });
+
+    // A partial update must keep the priorityScore, which is derived from the conditions and actions
+    it('updatePromotion without conditions or actions keeps the priorityScore', async () => {
+        const getPriorityScore = async () => {
+            const entity = await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Promotion)
+                .findOneByOrFail({ id: promotion.id.replace('T_', '') });
+            return entity.priorityScore;
+        };
+        // Two conditions (priorityValue 1 each) and one action (priorityValue 10)
+        expect(await getPriorityScore()).toBe(12);
+
+        const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+            input: { id: promotion.id, enabled: false },
+        });
+        updatePromotionGuard.assertSuccess(updatePromotion);
+        expect(await getPriorityScore()).toBe(12);
+
+        await adminClient.query(updatePromotionDocument, { input: { id: promotion.id, enabled: true } });
+    });
+
+    // A stored condition whose code is no longer configured (e.g. its plugin was removed) must not
+    // stop a partial update such as disabling the promotion
+    it('updatePromotion without conditions or actions works with an unregistered stored condition', async () => {
+        const repository = server.app.get(TransactionalConnection).rawConnection.getRepository(Promotion);
+        const promotionId = promotion.id.replace('T_', '');
+        const stored = await repository.findOneByOrFail({ id: promotionId });
+        const originalConditions = stored.conditions;
+        await repository.update(promotionId, {
+            conditions: [...originalConditions, { code: 'removed_condition', args: [] }],
+        });
+        try {
+            const { updatePromotion } = await adminClient.query(
+                gql`
+                    mutation ($input: UpdatePromotionInput!) {
+                        updatePromotion(input: $input) {
+                            ... on Promotion {
+                                id
+                                enabled
+                            }
+                        }
+                    }
+                `,
+                { input: { id: promotion.id, enabled: false } },
+            );
+            expect(updatePromotion).toEqual({ id: promotion.id, enabled: false });
+            expect((await repository.findOneByOrFail({ id: promotionId })).priorityScore).toBe(12);
+        } finally {
+            await repository.update(promotionId, { conditions: originalConditions, enabled: true });
+        }
     });
 
     it('updatePromotion return error result with empty conditions and no couponCode', async () => {
@@ -309,7 +369,7 @@ describe('Promotion resolver', () => {
                     token: SECOND_CHANNEL_TOKEN,
                     defaultLanguageCode: LanguageCode.en,
                     pricesIncludeTax: true,
-                    currencyCode: CurrencyCode.EUR,
+                    defaultCurrencyCode: CurrencyCode.EUR,
                     defaultTaxZoneId: 'T_1',
                     defaultShippingZoneId: 'T_2',
                 },
@@ -559,6 +619,7 @@ function generateTestCondition(code: string): PromotionCondition {
         description: [{ languageCode: LanguageCode.en, value: `description for ${code}` }],
         args: { arg: { type: 'int' } },
         check: () => true,
+        priorityValue: 1,
     });
 }
 
@@ -570,5 +631,6 @@ function generateTestAction(code: string): PromotionAction<any> {
         execute: () => {
             return 42;
         },
+        priorityValue: 10,
     });
 }

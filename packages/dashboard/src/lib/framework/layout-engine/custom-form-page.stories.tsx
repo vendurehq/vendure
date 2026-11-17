@@ -8,15 +8,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RouterContextProvider } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { createDemoRoute } from '../../../../.storybook/providers.js';
-import {
-    DetailFormGrid,
-    Page,
-    PageActionBar,
-    PageActionBarRight,
-    PageBlock,
-    PageLayout,
-    PageTitle,
-} from './page-layout.js';
+import { DetailFormGrid, Page, PageActionBar, PageBlock, PageLayout, PageTitle } from './page-layout.js';
 
 // Sample GraphQL query for a product detail
 const productFragment = graphql(`
@@ -98,11 +90,9 @@ export const ProductCustomForm: Story = {
                         <Trans>Product: Wireless Headphones</Trans>
                     </PageTitle>
                     <PageActionBar>
-                        <PageActionBarRight>
-                            <Button type="submit" disabled={!form.formState.isDirty}>
-                                <Trans>Save Changes</Trans>
-                            </Button>
-                        </PageActionBarRight>
+                        <Button type="submit" disabled={!form.formState.isDirty}>
+                            <Trans>Save Changes</Trans>
+                        </Button>
                     </PageActionBar>
                     <PageLayout>
                         <PageBlock
@@ -210,14 +200,12 @@ export const ComplexCustomForm: Story = {
                         <Trans>Product: Premium Laptop</Trans>
                     </PageTitle>
                     <PageActionBar>
-                        <PageActionBarRight>
-                            <Button variant="outline" type="button">
-                                <Trans>Cancel</Trans>
-                            </Button>
-                            <Button type="submit" disabled={!form.formState.isDirty}>
-                                <Trans>Save Changes</Trans>
-                            </Button>
-                        </PageActionBarRight>
+                        <Button variant="outline" type="button">
+                            <Trans>Cancel</Trans>
+                        </Button>
+                        <Button type="submit" disabled={!form.formState.isDirty}>
+                            <Trans>Save Changes</Trans>
+                        </Button>
                     </PageActionBar>
                     <PageLayout>
                         <PageBlock
