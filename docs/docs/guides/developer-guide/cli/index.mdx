@@ -1553,6 +1553,16 @@ the last entry of a single list win. A package enabled in both is loaded once,
 from the project, so the copy pinned alongside the project's code is the one
 that runs.
 
+A package in the machine-wide list that the CLI cannot find is not reported at
+startup, since a project that does not use it is not broken. It is named only
+when a command is unknown, with the commands that install it and enable it for
+the current project:
+
+```text
+Unknown command "cloud".
+@vendure/cloud is enabled globally but not installed in /path/to/server. Install it with: bun add -D @vendure/cloud && vendure plugins add @vendure/cloud
+```
+
 `vendure plugins` shows which list each package came from:
 
 ```bash
