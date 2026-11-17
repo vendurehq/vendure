@@ -1,9 +1,12 @@
 import {
     CustomOrderProcess,
     defaultOrderProcess,
+    EventBus,
+    HistoryEntryEvent,
     mergeConfig,
-    OrderLine,
-    TransactionalConnection,
+    OrderLineEvent,
+    OrderStateTransitionEvent,
+    StockMovementEvent,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
@@ -20,18 +23,19 @@ import { proceedToArrangingPayment } from './utils/test-order-utils';
 /**
  * OrderService.cancelOrder() cancels the lines (and writes stock movements) before it transitions the
  * Order to Cancelled. When an OrderProcess refuses that transition, nothing may be changed: not the
- * lines, not the stock, not the state.
+ * lines, not the stock, not the state, and no event may reach subscribers.
  */
-let cancelGuard: 'refuse' | 'refuseWithFalse' | 'requireZeroSubTotal' | 'requireLinesCancelledInDb' =
-    'refuse';
+let cancelGuard:
+    | 'refuse'
+    | 'refuseWithFalse'
+    | 'requireZeroSubTotal'
+    | 'requireZeroTotal'
+    | 'requireLinesCancelled'
+    | 'setCustomField' = 'refuse';
 let cancelGuardCalls = 0;
-let connection: TransactionalConnection;
 
 const guardCancelProcess: CustomOrderProcess<never> = {
-    init(injector) {
-        connection = injector.get(TransactionalConnection);
-    },
-    async onTransitionStart(fromState, toState, { ctx, order }) {
+    onTransitionStart(fromState, toState, { order }) {
         if (toState !== 'Cancelled') {
             return;
         }
@@ -43,12 +47,13 @@ const guardCancelProcess: CustomOrderProcess<never> = {
                 return false;
             case 'requireZeroSubTotal':
                 return order.subTotalWithTax === 0 ? undefined : 'The order still has a subtotal';
-            case 'requireLinesCancelledInDb': {
-                const lines = await connection
-                    .getRepository(ctx, OrderLine)
-                    .find({ where: { order: { id: order.id } } });
-                return lines.every(l => l.quantity === 0) ? undefined : 'The lines are not cancelled';
-            }
+            case 'requireZeroTotal':
+                return order.totalWithTax === 0 ? undefined : 'The order still has a total';
+            case 'requireLinesCancelled':
+                return order.lines.every(l => l.quantity === 0) ? undefined : 'The lines are not cancelled';
+            case 'setCustomField':
+                (order.customFields as { cancelledBy?: string }).cancelledBy = 'guard';
+                return;
         }
     },
 };
@@ -80,6 +85,20 @@ const GET_ORDER = gql`
             lines {
                 id
                 quantity
+            }
+        }
+    }
+`;
+
+const GET_ORDER_TOTALS = gql`
+    query GetOrderTotals($id: ID!) {
+        order(id: $id) {
+            id
+            state
+            shippingWithTax
+            totalWithTax
+            customFields {
+                cancelledBy
             }
         }
     }
@@ -123,6 +142,9 @@ describe('cancelOrder refused by an OrderProcess', () => {
             orderOptions: {
                 process: [defaultOrderProcess, guardCancelProcess],
             },
+            customFields: {
+                Order: [{ name: 'cancelledBy', type: 'string', nullable: true }],
+            },
             paymentOptions: {
                 paymentMethodHandlers: [testSuccessfulPaymentMethod],
             },
@@ -145,6 +167,17 @@ describe('cancelOrder refused by an OrderProcess', () => {
         });
         await adminClient.asSuperAdmin();
         await adminClient.query(TRACK_VARIANT_INVENTORY, { id: 'T_1' });
+        const eventBus = server.app.get(EventBus);
+        eventBus.ofType(OrderLineEvent).subscribe(e => events.push(`OrderLineEvent:${e.type}`));
+        eventBus
+            .ofType(StockMovementEvent)
+            .subscribe(e => e.stockMovements.forEach(m => events.push(`StockMovementEvent:${m.type}`)));
+        eventBus
+            .ofType(HistoryEntryEvent)
+            .subscribe(e => events.push(`HistoryEntryEvent:${(e.input as { type: string }).type}`));
+        eventBus
+            .ofType(OrderStateTransitionEvent)
+            .subscribe(e => events.push(`OrderStateTransitionEvent:${e.fromState}->${e.toState}`));
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -153,10 +186,24 @@ describe('cancelOrder refused by an OrderProcess', () => {
 
     let orderId: string;
     let lineId: string;
+    const events: string[] = [];
+
+    // Subscribers receive events after the transaction commits, so give them a moment to arrive.
+    async function eventsPublishedBy(work: () => Promise<unknown>): Promise<string[]> {
+        events.length = 0;
+        await work();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return [...events];
+    }
 
     async function getHistoryTypes(id: string): Promise<string[]> {
         const { order } = await adminClient.query(GET_ORDER_HISTORY_TYPES, { id });
         return order.history.items.map((i: any) => i.type);
+    }
+
+    // Only the committed partial cancel of one unit may leave an ORDER_CANCELLATION entry.
+    function historyCancellations(types: string[]): number {
+        return types.filter(t => t === 'ORDER_CANCELLATION').length;
     }
 
     async function placeOrder(quantity: number) {
@@ -181,13 +228,16 @@ describe('cancelOrder refused by an OrderProcess', () => {
         const stockBefore = await getStock();
         expect(stockBefore.stockAllocated).toBe(2);
 
-        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } }));
+        });
         expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
         expect(cancelOrder.transitionError).toBe('This order has been released to the kitchen');
+        expect(published).toEqual([]);
 
         const { order } = await adminClient.query(GET_ORDER, { id: orderId });
         expect(order.state).toBe('PaymentSettled');
-        // Expected: a refused cancel changes nothing.
         expect(order.lines.map((l: any) => l.quantity)).toEqual([2]);
         expect(order.totalWithTax).toBe(placedOrder.totalWithTax);
         expect(await getStock()).toEqual(stockBefore);
@@ -208,15 +258,20 @@ describe('cancelOrder refused by an OrderProcess', () => {
     it('leaves the Order lines untouched when the given lines would cancel every line', async () => {
         const stockBefore = await getStock();
 
-        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, {
-            input: { orderId, lines: [{ orderLineId: lineId, quantity: 1 }] },
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+                input: { orderId, lines: [{ orderLineId: lineId, quantity: 1 }] },
+            }));
         });
         expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+        expect(published).toEqual([]);
 
         const { order } = await adminClient.query(GET_ORDER, { id: orderId });
         expect(order.state).toBe('PaymentSettled');
         expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
         expect(await getStock()).toEqual(stockBefore);
+        expect(historyCancellations(await getHistoryTypes(orderId))).toBe(1);
     });
 
     it('returns the validation error rather than the transition error for invalid lines', async () => {
@@ -230,48 +285,117 @@ describe('cancelOrder refused by an OrderProcess', () => {
         cancelGuard = 'refuseWithFalse';
         const stockBefore = await getStock();
 
-        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } }));
+        });
         expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+        expect(cancelOrder.transitionError).toBe(
+            'Cannot transition Order from "PaymentSettled" to "Cancelled"',
+        );
+        expect(published).toEqual([]);
 
         const { order } = await adminClient.query(GET_ORDER, { id: orderId });
         expect(order.state).toBe('PaymentSettled');
         expect(order.lines.map((l: any) => l.quantity)).toEqual([1]);
         expect(await getStock()).toEqual(stockBefore);
+        expect(historyCancellations(await getHistoryTypes(orderId))).toBe(1);
     });
 
     it('checks the transition against the Order totals after the cancellation', async () => {
         cancelGuard = 'requireZeroSubTotal';
 
-        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } });
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId } }));
+        });
         expect(cancelOrder.state).toBe('Cancelled');
+        expect(published).toEqual([
+            'StockMovementEvent:RELEASE',
+            'OrderLineEvent:cancelled',
+            'HistoryEntryEvent:ORDER_CANCELLATION',
+            'OrderStateTransitionEvent:PaymentSettled->Cancelled',
+            'HistoryEntryEvent:ORDER_STATE_TRANSITION',
+        ]);
 
         const { order } = await adminClient.query(GET_ORDER, { id: orderId });
         expect(order.lines.map((l: any) => l.quantity)).toEqual([0]);
         expect((await getStock()).stockAllocated).toBe(0);
     });
 
-    it('runs the guards once, against the cancelled lines as saved in the database', async () => {
-        cancelGuard = 'requireLinesCancelledInDb';
+    it('runs the guards once, against the Order with the cancellation applied', async () => {
+        cancelGuard = 'requireLinesCancelled';
         cancelGuardCalls = 0;
         const secondOrderId = await placeOrder(1);
 
-        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId: secondOrderId } });
+        let cancelOrder: any;
+        await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId: secondOrderId } }));
+        });
         expect(cancelOrder.state).toBe('Cancelled');
         expect(cancelGuardCalls).toBe(1);
         expect(await getHistoryTypes(secondOrderId)).toContain('ORDER_CANCELLATION');
     });
 
+    it('checks the transition against the shipping cancellation', async () => {
+        cancelGuard = 'requireZeroTotal';
+        const thirdOrderId = await placeOrder(1);
+
+        let refused: any;
+        const publishedOnRefusal = await eventsPublishedBy(async () => {
+            ({ cancelOrder: refused } = await adminClient.query(CANCEL_ORDER, {
+                input: { orderId: thirdOrderId },
+            }));
+        });
+        expect(refused.transitionError).toBe('The order still has a total');
+        expect(publishedOnRefusal).toEqual([]);
+
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+                input: { orderId: thirdOrderId, cancelShipping: true },
+            }));
+        });
+        expect(cancelOrder.state).toBe('Cancelled');
+        expect(published).toContain('OrderStateTransitionEvent:PaymentSettled->Cancelled');
+        const { order } = await adminClient.query(GET_ORDER_TOTALS, { id: thirdOrderId });
+        expect(order.shippingWithTax).toBe(0);
+        expect(order.totalWithTax).toBe(0);
+    });
+
+    it('saves the changes onTransitionStart makes to the Order', async () => {
+        cancelGuard = 'setCustomField';
+        const fourthOrderId = await placeOrder(1);
+
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, { input: { orderId: fourthOrderId } }));
+        });
+        expect(cancelOrder.state).toBe('Cancelled');
+        expect(published).toContain('OrderStateTransitionEvent:PaymentSettled->Cancelled');
+        const { order } = await adminClient.query(GET_ORDER_TOTALS, { id: fourthOrderId });
+        expect(order.customFields.cancelledBy).toBe('guard');
+    });
+
     it('returns the refusal as an error result for an active Order', async () => {
         cancelGuard = 'refuse';
-        const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
-            productVariantId: 'T_1',
-            quantity: 1,
+        let addItemToOrder: any;
+        // Let the events from creating the Order arrive before the cancel is observed.
+        await eventsPublishedBy(async () => {
+            ({ addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            }));
         });
 
-        const { cancelOrder } = await adminClient.query(CANCEL_ORDER, {
-            input: { orderId: addItemToOrder.id },
+        let cancelOrder: any;
+        const published = await eventsPublishedBy(async () => {
+            ({ cancelOrder } = await adminClient.query(CANCEL_ORDER, {
+                input: { orderId: addItemToOrder.id },
+            }));
         });
         expect(cancelOrder.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+        expect(published).toEqual([]);
 
         const { order } = await adminClient.query(GET_ORDER, { id: addItemToOrder.id });
         expect(order.state).toBe('AddingItems');
