@@ -267,7 +267,9 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
             Column({ type: 'boolean', default: true })(instance, 'productInStock');
         }
         if (this.options.indexCurrencyCode === true) {
-            PrimaryColumn({ type: 'varchar' })(instance, 'currencyCode');
+            // ISO 4217 codes are 3 characters. The explicit length keeps the composite primary key
+            // within MySQL's 3072-byte limit when the ids are uuids (varchar(255) each).
+            PrimaryColumn({ type: 'varchar', length: 3 })(instance, 'currencyCode');
         }
     }
 }
