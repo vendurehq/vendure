@@ -158,9 +158,6 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
                 }));
             } else {
                 let normalizedCustomFields: Record<string, any> | undefined = customFields;
-                if (normalizedCustomFields) {
-                    delete normalizedCustomFields.__entityId__;
-                }
                 if (normalizedCustomFields && Object.keys(normalizedCustomFields).length === 0) {
                     normalizedCustomFields = undefined;
                 }

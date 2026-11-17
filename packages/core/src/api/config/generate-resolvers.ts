@@ -210,29 +210,48 @@ function generateCustomFieldResolvers(
         // for them would lead to an Apollo error on bootstrap.
         const excludeFromShopApi = ['GlobalSettings'].includes(entityName);
 
+        // The custom field values which an API exposes. A field resolver cannot hide a value when
+        // `customFields` has the `JSON` type (an entity whose custom fields are all hidden from the
+        // API), so the result only holds these keys. An entity with no configured custom fields
+        // passes its `customFields` through: a plugin entity may declare its own.
+        const exposedKeys = (fields: CustomFieldConfig[]) =>
+            customFields.length === 0
+                ? undefined
+                : fields.flatMap(f =>
+                      isRelationalType(f) && f.list !== true ? [f.name, `${f.name}Id`] : [f.name],
+                  );
+        const adminKeys = exposedKeys(customFields.filter(f => f.internal !== true));
+        const shopKeys = exposedKeys(customFields.filter(f => f.internal !== true && f.public !== false));
+
         // In order to resolve the relations in the CustomFields type, we need
         // access to the entity id. Therefore, we attach it to the resolved value
         // so that it is available to the `relationResolver` below.
-        const customFieldResolver: IFieldResolver<any, any> = (source: any) => {
-            return {
-                ...source.customFields,
-                [ENTITY_ID_KEY]: source.id,
+        const customFieldResolver =
+            (keys: string[] | undefined): IFieldResolver<any, any> =>
+            (source: any) => {
+                const result: Record<string, unknown> = keys ? {} : { ...source.customFields };
+                for (const key of keys ?? []) {
+                    if (source.customFields && key in source.customFields) {
+                        result[key] = source.customFields[key];
+                    }
+                }
+                // Both keys are internal. They are non-enumerable, so field resolvers can read them
+                // but the `JSON` scalar leaves them out of the response.
+                Object.defineProperty(result, ENTITY_ID_KEY, { value: source.id, enumerable: false });
                 // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
                 // pass the real VendureEntity to strategies, rather than this customFields wrapper.
-                [ENTITY_KEY]: source,
+                Object.defineProperty(result, ENTITY_KEY, { value: source, enumerable: false });
+                return result;
             };
-        };
-        const resolverObject = {
-            customFields: customFieldResolver,
-        };
-        adminResolvers[entityName] = resolverObject;
+        adminResolvers[entityName] = { customFields: customFieldResolver(adminKeys) };
         if (!excludeFromShopApi) {
-            shopResolvers[entityName] = resolverObject;
+            const shopResolverObject = { customFields: customFieldResolver(shopKeys) };
+            shopResolvers[entityName] = shopResolverObject;
             if (entityName === 'ShippingMethod') {
-                shopResolvers.ShippingMethodQuote = resolverObject;
+                shopResolvers.ShippingMethodQuote = shopResolverObject;
             }
             if (entityName === 'PaymentMethod') {
-                shopResolvers.PaymentMethodQuote = resolverObject;
+                shopResolvers.PaymentMethodQuote = shopResolverObject;
             }
         }
         for (const fieldDef of customFields) {
