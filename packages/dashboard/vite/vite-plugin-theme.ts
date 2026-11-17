@@ -145,7 +145,9 @@ function generateThemeInlineBlock(): string {
     const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
 
     // Motion — easing curves, transition durations and named animations, emitted
-    // as direct values (like radius/shadows). v2 `@vendure-io/ui` atoms reference
+    // as direct values (like radius/shadows). The token keys are camelCase; the
+    // CSS names are kebab-case, as `@vendure-io/ui` reads them (`rowEnter` →
+    // `--transition-duration-row-enter`, `livePulse` → `--animate-live-pulse`). v2 `@vendure-io/ui` atoms reference
     // these as CSS variables via arbitrary utilities (e.g.
     // `duration-(--transition-duration-fast)`, `ease-(--ease-out)`) and via the
     // `animate-*` utilities, so the custom properties must exist in the theme.
@@ -153,9 +155,11 @@ function generateThemeInlineBlock(): string {
         ([key, value]) => `    --ease-${camelToKebab(key)}: ${value};`,
     );
     const durationLines = Object.entries(duration).map(
-        ([key, value]) => `    --transition-duration-${key}: ${value};`,
+        ([key, value]) => `    --transition-duration-${camelToKebab(key)}: ${value};`,
     );
-    const animationLines = Object.entries(animation).map(([key, value]) => `    --animate-${key}: ${value};`);
+    const animationLines = Object.entries(animation).map(
+        ([key, value]) => `    --animate-${camelToKebab(key)}: ${value};`,
+    );
 
     // Dashboard-specific tokens not present in the base design-tokens.
     // `brand`/`brand-foreground` are published by @vendure-io/design-tokens v2
@@ -190,7 +194,7 @@ function generateKeyframesBlocks(): string {
             const stepBlocks = Object.entries(steps as Record<string, Record<string, string>>)
                 .map(([selector, props]) => `    ${selector} {\n${cssDeclarations(props, '        ')}\n    }`)
                 .join('\n');
-            return `@keyframes ${name} {\n${stepBlocks}\n}`;
+            return `@keyframes ${camelToKebab(name)} {\n${stepBlocks}\n}`;
         })
         .join('\n\n');
 }

@@ -238,6 +238,20 @@ describe('themeVariablesPlugin', () => {
         expect(result).not.toContain('--ease-inOut');
     });
 
+    // OSS-1063 — `@vendure-io/ui` reads kebab-case motion names
+    it('kebab-cases camelCase duration and animation keys and keyframe names', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result: string = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--transition-duration-row-enter:');
+        expect(result).toContain('--animate-live-pulse: live-pulse ');
+        expect(result).toContain('@keyframes live-pulse {');
+        expect(result).toContain('@keyframes spin-slow {');
+        expect(result).not.toMatch(/--transition-duration-[a-z]*[A-Z]/);
+        expect(result).not.toMatch(/--animate-[a-z]*[A-Z]/);
+        expect(result).not.toMatch(/@keyframes [a-z]*[A-Z]/);
+    });
+
     it('emits top-level @keyframes blocks with kebab-cased CSS properties', () => {
         const plugin = themeVariablesPlugin({});
         const css = `@import 'virtual:admin-theme-inline';`;
