@@ -21,7 +21,7 @@ let DefaultJobQueuePlugin: typeof DefaultJobQueuePluginType;
 beforeAll(async () => {
     // The plugin module reads the global config when it is loaded
     await ensureConfigLoaded();
-    ({ DefaultJobQueuePlugin } = await import('./default-job-queue-plugin'));
+    ({ DefaultJobQueuePlugin } = await import('./default-job-queue-plugin.js'));
 });
 
 async function configureWith(options: DefaultJobQueueOptions, bufferStrategy: JobBufferStorageStrategy) {
