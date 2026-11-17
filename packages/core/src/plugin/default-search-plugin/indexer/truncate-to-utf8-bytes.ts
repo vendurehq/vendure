@@ -17,6 +17,7 @@ export function truncateToUtf8Bytes(value: string, maxBytes: number): string {
     const bytes = Buffer.from(value, 'utf8');
     let end = maxBytes;
     // Continuation bytes match 10xxxxxx. Step back until `end` is at the first byte of a character.
+    // eslint-disable-next-line no-bitwise
     while (end > 0 && (bytes[end] & 0xc0) === 0x80) {
         end--;
     }
