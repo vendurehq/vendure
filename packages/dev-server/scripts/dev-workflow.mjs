@@ -281,9 +281,10 @@ async function buildPrerequisites(env) {
     ];
 
     console.log('Building dev-server prerequisites...');
-    for (const [label, cwd] of builds) {
+    for (const [label] of builds) {
         console.log(`\nBuilding ${label}...`);
-        await runForeground(packageManager, ['run', '--cwd', cwd, 'build']);
+        // Plugin packages get their build target from Nx and have no build script.
+        await runForeground(packageManager, ['x', 'nx', 'run', `${label}:build`]);
     }
 
     console.log('\nBuilding the Dashboard Vite plugin...');
