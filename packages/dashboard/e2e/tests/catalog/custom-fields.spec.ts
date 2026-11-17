@@ -251,6 +251,29 @@ test.describe('Custom Fields', () => {
         await expect(dp.formItem('Priority').getByRole('combobox')).toContainText('high');
     });
 
+    // #5408 — an update submits only the translation rows with an edited field. A localized custom
+    // field lives inside a translation row, so editing only that field must still submit the row.
+    test('should save a localized custom field when it is the only change', async ({ page }) => {
+        await goToFirstProduct(page);
+        const productId = new URL(page.url()).pathname.split('/').pop() as string;
+        const dp = detailPage(page);
+        const seoTitle = `SEO title ${Date.now()}`;
+
+        await page.locator('[data-slot="tabs-trigger"]', { hasText: 'SEO' }).click();
+        await dp.fillInput('SEO Title', seoTitle);
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated product/);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { product } = await client.gql(
+            `query ($id: ID!) { product(id: $id) { translations { languageCode customFields { seoTitle } } } }`,
+            { id: productId },
+        );
+        const en = product.translations.find((t: { languageCode: string }) => t.languageCode === 'en');
+        expect(en?.customFields.seoTitle).toBe(seoTitle);
+    });
+
     // ─── String list (tag-style input) ───────────────────────────────────
 
     test('should render a string list field with tag input', async ({ page }) => {
