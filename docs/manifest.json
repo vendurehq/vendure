@@ -3108,7 +3108,7 @@
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-17T15:01:49Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3242,7 +3242,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-10-19T19:00:30Z"
+                  "lastModified": "2026-11-17T15:01:49Z"
                 },
                 {
                   "title": "OrderTestingService",
