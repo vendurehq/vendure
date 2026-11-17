@@ -1,15 +1,15 @@
 import fs from 'fs-extra';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, SpawnSyncReturns } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-    PROJECT_LINK_IGNORE_CONTENTS,
-    PROJECT_LINK_KEEP_MANIFEST,
     applyProjectLinkGitignoreRules,
     ensureProjectLinkGitignore,
     getProjectLinkGitignorePath,
+    PROJECT_LINK_IGNORE_CONTENTS,
+    PROJECT_LINK_KEEP_MANIFEST,
 } from './project-link-gitignore';
 
 const temporaryDirectories: string[] = [];
@@ -110,7 +110,7 @@ function expectGitIgnored(root: string, relativePath: string, ignored: boolean):
     expect(result.status, result.stderr).toBe(ignored ? 0 : 1);
 }
 
-function runGit(root: string, args: string[]): ReturnType<typeof spawnSync> {
+function runGit(root: string, args: string[]): SpawnSyncReturns<string> {
     const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
     if (result.status !== 0 && args[0] !== 'check-ignore') {
         throw new Error(result.stderr);

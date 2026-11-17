@@ -127,8 +127,8 @@ describe('registerCommands() with nested commands', () => {
             },
         };
 
-        await runCli([command], [], ['inspect'], name =>
-            name === 'example' ? [{ pluginId: '@example/plugin', extension }] : [],
+        await runCli([command], [], ['inspect'], <T>(name: string) =>
+            name === 'example' ? [{ pluginId: '@example/plugin', extension: extension as T }] : [],
         );
 
         expect(received).toEqual({ pluginId: '@example/plugin', extension });
