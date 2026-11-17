@@ -2,14 +2,14 @@
 title: "ExternalAuthenticationService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="29" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="31" packageName="@vendure/core" />
 
 This is a helper service which exposes methods related to looking up and creating Users based on an
 external [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy).
 
 ```ts title="Signature"
 class ExternalAuthenticationService {
-    constructor(connection: TransactionalConnection, roleAssignmentService: RoleAssignmentService, historyService: HistoryService, customerService: CustomerService, administratorService: AdministratorService, channelService: ChannelService, roleService: RoleService)
+    constructor(connection: TransactionalConnection, roleAssignmentService: RoleAssignmentService, historyService: HistoryService, customerService: CustomerService, administratorService: AdministratorService, channelService: ChannelService, roleService: RoleService, identityScopeService: IdentityScopeService)
     findCustomerUser(ctx: RequestContext, strategy: string, externalIdentifier: string, checkCurrentChannelOnly:  = true) => Promise<User | undefined>;
     findAdministratorUser(ctx: RequestContext, strategy: string, externalIdentifier: string) => Promise<User | undefined>;
     createCustomerAndUser(ctx: RequestContext, config: {
@@ -63,9 +63,10 @@ class ExternalAuthenticationService {
 Looks up a User based on their identifier from an external authentication
 provider, ensuring this User is associated with a Customer account.
 
-By default, only customers in the currently-active Channel will be checked.
-By passing `false` as the `checkCurrentChannelOnly` argument, _all_ channels
-will be checked.
+The lookup is always limited to Customers in the identity scope of the active Channel (see
+[IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy)), because the same external identity can belong to a different
+Customer in each scope. By default the Customer must also be a member of the active Channel.
+Pass `false` as the `checkCurrentChannelOnly` argument to accept any Channel in the scope.
 ### findAdministratorUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, strategy: string, externalIdentifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />
@@ -118,15 +119,19 @@ await externalAuthenticationService.setAdministratorAvatar(ctx, user.id, {
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, strategy: string, externalIdentifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />
 
-
+Looks up any User, customer or administrator, by an external identity.
 ### createUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, config: {             strategy: string;             externalIdentifier: string;         }) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a>>`}   />
 
 Looks up a User based on their identifier from an external authentication
 provider. Creates the user if does not exist. Unlike `findCustomerUser` and `findAdministratorUser`,
-this method does not enforce that the User is associated with a Customer or
-Administrator account.
+this method does not enforce that the User is associated with an Administrator account.
+
+Customer Users are never returned: with a non-global [IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy) one external
+identity can belong to a different customer User in each identity scope, and an Administrator
+attached to one of them would share its login. Use `findCustomerUser` and `createCustomerAndUser`
+for customers.
 
 
 </div>

@@ -20,6 +20,7 @@ const CUSTOMIZABLE_STRATEGY_PATHS: Record<string, string[]> = {
         'shopApiKeyStrategy',
         'entityAccessControlStrategy',
         'customerChannelAssignmentStrategy',
+        'identityScopeStrategy',
     ],
     assetOptions: ['assetNamingStrategy', 'assetStorageStrategy', 'assetPreviewStrategy'],
     catalogOptions: [

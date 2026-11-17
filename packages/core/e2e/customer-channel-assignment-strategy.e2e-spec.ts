@@ -18,6 +18,7 @@ import {
     addItemToOrderDocument,
     getActiveCustomerDocument,
     getProductsTake3Document,
+    setCustomerDocument,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
@@ -145,6 +146,24 @@ describe('CustomerChannelAssignmentStrategy', () => {
             throw new Error(`addItemToOrder failed: ${JSON.stringify(addItemToOrder)}`);
         }
         expect(addItemToOrder.customer).toBeNull();
+        expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
+    });
+
+    // The session is still signed in on a declined channel, so it is not a guest session and
+    // cannot check out as one. This records the contract described on
+    // CustomerChannelAssignmentStrategy.
+    it('a signed-in customer cannot check out on a no-autojoin channel', async () => {
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+        await shopClient.asUserWithCredentials(customer.emailAddress, 'test');
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+            input: { emailAddress: customer.emailAddress, firstName: 'Some', lastName: 'One' },
+        });
+        expect(setCustomerForOrder).toEqual(
+            expect.objectContaining({ errorCode: 'ALREADY_LOGGED_IN_ERROR' }),
+        );
         expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
     });
 

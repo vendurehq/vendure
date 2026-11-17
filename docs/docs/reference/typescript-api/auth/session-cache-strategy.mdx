@@ -4,7 +4,7 @@ generated: true
 ---
 ## SessionCacheStrategy
 
-<GenerationInfo sourceFile="packages/core/src/config/session-cache/session-cache-strategy.ts" sourceLine="197" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/session-cache/session-cache-strategy.ts" sourceLine="207" packageName="@vendure/core" />
 
 This strategy defines how sessions get cached. Since most requests will need the Session
 object for permissions data, it can become a bottleneck to go to the database and do a multi-join
@@ -212,6 +212,7 @@ type CachedSessionUser = {
     verified: boolean;
     channelPermissions: UserChannelPermissions[];
     globalPermissions?: Permission[];
+    customerIdentityScope?: string | null;
 }
 ```
 
@@ -244,12 +245,20 @@ type CachedSessionUser = {
 Permissions the user holds on every Channel, including Channels created after this
 session was cached. Populated for SuperAdmin users, whose effective permissions are
 derived at check time rather than fanned out per Channel.
+### customerIdentityScope
+
+<MemberInfo kind="property" type={`string | null`}  since="4.0.0"  />
+
+The identity scope of the User's Customer, or `null` if the User has no Customer. On a
+Channel in another scope the session is treated as anonymous: the same email address may be
+a different Customer there. See [IdentityScopeStrategy](/reference/typescript-api/auth/identity-scope-strategy#identityscopestrategy). Missing only on entries cached
+before v4.0, whose scope is then looked up.
 
 
 </div>
 ## CachedSession
 
-<GenerationInfo sourceFile="packages/core/src/config/session-cache/session-cache-strategy.ts" sourceLine="53" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/session-cache/session-cache-strategy.ts" sourceLine="63" packageName="@vendure/core" />
 
 A simplified representation of a Session which is easy to
 store.

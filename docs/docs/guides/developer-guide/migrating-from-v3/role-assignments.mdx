@@ -355,11 +355,12 @@ In v3 the Customer role was assigned to every Channel, so a Customer of Channel 
 
 With the default `CustomerChannelAssignmentStrategy`, nothing changes for the shopper: a signed-in Customer becomes a member of a Channel on their first request there, and that first request already succeeds.
 
-With a [`CustomerChannelAssignmentStrategy`](/reference/typescript-api/auth/customer-channel-assignment-strategy) that declines the assignment, customer-scoped operations on that Channel now fail:
+With a [`CustomerChannelAssignmentStrategy`](/reference/typescript-api/auth/customer-channel-assignment-strategy) that declines the assignment, the Customer is not a member of that Channel:
 
-- The error is a thrown `ForbiddenError` (GraphQL error code `FORBIDDEN`), not an `ErrorResult`.
+- Operations which need `Authenticated`, such as `me`, fail with a thrown `ForbiddenError` (GraphQL error code `FORBIDDEN`), not an `ErrorResult`.
+- `activeCustomer` returns `null`, and an Order started there has no Customer. `setCustomerForOrder` returns an `AlreadyLoggedInError`, because the session is still signed in.
 - Public operations on the Channel, such as product queries, still work for the same session.
-- The default Channel is never gated. Every signed-in Customer keeps `Authenticated` there.
+- The strategy is never consulted on the default Channel: every signed-in Customer becomes a member there. If you configure an [`IdentityScopeStrategy`](/core-concepts/customers/#separate-customer-bases-per-channel) that gives the default Channel its own customer base, Customers of other scopes hold nothing there.
 
 In v3, a declining strategy only meant the membership was not saved, and the request went through. If Customers should keep access to such a Channel, add the memberships before migrating. The [preview](#previewing-the-migration) lists, per Channel, how many Customers lose access.
 
