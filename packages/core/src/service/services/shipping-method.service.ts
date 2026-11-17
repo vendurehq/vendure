@@ -166,9 +166,6 @@ export class ShippingMethodService {
             input: omit(input, ['checker', 'calculator']),
             entityType: ShippingMethod,
             translationType: ShippingMethodTranslation,
-            // Set everything in the one partial save. A second save of the returned object would
-            // write `null` to every nullable column the input left out, because TypeORM sets them
-            // on the object after the first save. https://github.com/vendurehq/vendure/issues/5763
             beforeSave: sm => {
                 if (input.checker) {
                     sm.checker = this.configArgService.parseInput(
@@ -198,8 +195,11 @@ export class ShippingMethodService {
             input,
             updatedShippingMethod,
         );
-        await this.eventBus.publish(new ShippingMethodEvent(ctx, updatedShippingMethod, 'updated', input));
-        return assertFound(this.findOne(ctx, shippingMethod.id));
+        // The reloaded entity, as `updatedShippingMethod` has `null` for every nullable column the
+        // input left out (see TranslatableSaver.update()).
+        const updated = await assertFound(this.findOne(ctx, shippingMethod.id));
+        await this.eventBus.publish(new ShippingMethodEvent(ctx, updated, 'updated', input));
+        return updated;
     }
 
     async softDelete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {

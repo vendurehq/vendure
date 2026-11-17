@@ -153,11 +153,11 @@ export class PaymentMethodService {
             input,
             updatedPaymentMethod,
         );
-        // Do not save `updatedPaymentMethod` again. After the partial save, TypeORM has set every
-        // nullable column the input left out to `null` on this object, so a second save would write
-        // those nulls. https://github.com/vendurehq/vendure/issues/5763
-        await this.eventBus.publish(new PaymentMethodEvent(ctx, updatedPaymentMethod, 'updated', input));
-        return assertFound(this.findOne(ctx, updatedPaymentMethod.id));
+        // The reloaded entity, as `updatedPaymentMethod` has `null` for every nullable column the
+        // input left out (see TranslatableSaver.update()).
+        const paymentMethod = await assertFound(this.findOne(ctx, updatedPaymentMethod.id));
+        await this.eventBus.publish(new PaymentMethodEvent(ctx, paymentMethod, 'updated', input));
+        return paymentMethod;
     }
 
     async delete(
