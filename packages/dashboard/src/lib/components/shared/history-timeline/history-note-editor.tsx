@@ -38,7 +38,7 @@ export function HistoryNoteEditor({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent showCloseButton>
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Edit Note</Trans>

@@ -88,7 +88,7 @@ export function AddProductVariantDialog({
                 <Plus className="mr-2 h-4 w-4" />
                 <Trans>Add variant</Trans>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent showCloseButton>
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Add product variant</Trans>

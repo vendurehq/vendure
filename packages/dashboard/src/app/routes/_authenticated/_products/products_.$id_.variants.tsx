@@ -129,7 +129,7 @@ function AddOptionValueDialog({
             <DialogTrigger render={<Button size="icon" variant="ghost" />}>
                 <Plus className="h-3 w-3" />
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent showCloseButton>
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Add option value to {groupName}</Trans>

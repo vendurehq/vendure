@@ -98,7 +98,7 @@ export function useTransitionOrderToState(orderId: string | undefined) {
         };
         return (
             <Dialog open={selectStateOpen} onOpenChange={setSelectStateOpen}>
-                <DialogContent>
+                <DialogContent showCloseButton>
                     <DialogHeader>
                         <DialogTitle>
                             <Trans>Select next state</Trans>
