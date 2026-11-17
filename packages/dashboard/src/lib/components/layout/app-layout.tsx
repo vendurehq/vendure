@@ -142,9 +142,13 @@ function ToolbarItems() {
  * in and rises into place. Keyed to the pathname, so it runs once per
  * navigation; a re-render or a search-param change (a tab, a filter) does not
  * replay it. The header and sidebar sit outside, so they stay still.
+ *
+ * The key is the resolved pathname, not the pending one: while the next route
+ * loads, the router still renders the previous page. A key change at that point
+ * would remount the previous page and re-run its mount effects.
  */
 function PageEnter({ children }: Readonly<{ children: React.ReactNode }>) {
-    const pathname = useRouterState({ select: s => s.location.pathname });
+    const pathname = useRouterState({ select: s => (s.resolvedLocation ?? s.location).pathname });
     return (
         <div key={pathname} data-slot="page-enter" className={pageEnterClassName}>
             {children}
