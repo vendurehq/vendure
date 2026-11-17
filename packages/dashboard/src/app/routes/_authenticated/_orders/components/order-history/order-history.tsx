@@ -5,6 +5,7 @@ import { HistoryTimelineWithGrouping } from '@/vdb/components/shared/history-tim
 import { useHistoryNoteEditor } from '@/vdb/components/shared/history-timeline/use-history-note-editor.js';
 import { HistoryEntryItem } from '@/vdb/framework/extension-api/types/index.js';
 import { HistoryEntry, HistoryEntryProps } from '@/vdb/framework/history-entry/history-entry.js';
+
 import {
     OrderCancellationComponent,
     OrderCustomerUpdatedComponent,
@@ -20,7 +21,7 @@ import { orderHistoryUtils } from './order-history-utils.js';
 
 interface OrderHistoryProps {
     order: OrderHistoryOrderDetail;
-    historyEntries: Array<HistoryEntryItem>;
+    historyEntries: HistoryEntryItem[];
     onAddNote: (note: string, isPrivate: boolean) => void;
     onUpdateNote?: (entryId: string, note: string, isPrivate: boolean) => void;
     onDeleteNote?: (entryId: string) => void;

@@ -28,8 +28,7 @@ function buildBaseRouteTree() {
     return routeTree;
 }
 
-function runHook() {
-    const routeTree = buildBaseRouteTree();
+function runHook(routeTree = buildBaseRouteTree()) {
     let routeIds: string[] = [];
     function Probe() {
         routeIds = Object.keys(useExtendedRouter(routeTree, {}).routesById);
@@ -80,6 +79,64 @@ describe('useExtendedRouter route collisions', () => {
         const routeIds = runHook();
 
         expect(routeIds).toContain('/_authenticated/my-page');
+        expect(warn).not.toHaveBeenCalled();
+    });
+});
+
+// #5451 — the hook changed the shared base route tree, so a second run reported false collisions
+describe('useExtendedRouter base route tree', () => {
+    let warn: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+        extensionRoutes.clear();
+        warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+        extensionRoutes.clear();
+    });
+
+    it('does not change the base route tree', () => {
+        extensionRoutes.set('/my-page', { path: '/my-page', component: () => null } as any);
+        extensionRoutes.set('/public', {
+            path: '/public',
+            authenticated: false,
+            component: () => null,
+        } as any);
+        const routeTree = buildBaseRouteTree();
+        const authenticatedRoute = routeTree.children.find((r: any) => r.id === '/_authenticated');
+        const rootChildren = routeTree.children;
+        const rootChildIds = rootChildren.map((r: any) => r.id);
+        const authenticatedChildren = authenticatedRoute.children;
+        const authenticatedChildIds = authenticatedChildren.map((r: any) => r.id);
+
+        const routeIds = runHook(routeTree);
+
+        expect(routeIds).toContain('/_authenticated/my-page');
+        expect(routeIds).toContain('/public');
+        expect(routeTree.children).toBe(rootChildren);
+        expect(routeTree.children.map((r: any) => r.id)).toEqual(rootChildIds);
+        expect(authenticatedRoute.children).toBe(authenticatedChildren);
+        expect(authenticatedRoute.children.map((r: any) => r.id)).toEqual(authenticatedChildIds);
+    });
+
+    // StrictMode and HMR run the hook again with the same base route tree.
+    it('does not warn when the hook runs again with the same base route tree', () => {
+        extensionRoutes.set('/my-page', { path: '/my-page', component: () => null } as any);
+        extensionRoutes.set('/public', {
+            path: '/public',
+            authenticated: false,
+            component: () => null,
+        } as any);
+        const routeTree = buildBaseRouteTree();
+
+        const firstRouteIds = runHook(routeTree);
+        const secondRouteIds = runHook(routeTree);
+
+        expect(secondRouteIds).toEqual(firstRouteIds);
+        expect(secondRouteIds).toContain('/_authenticated/my-page');
+        expect(secondRouteIds).toContain('/public');
         expect(warn).not.toHaveBeenCalled();
     });
 });

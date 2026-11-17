@@ -17,6 +17,7 @@ import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { assertFound, idsAreEqual } from '../../common/utils';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { CustomerGroup } from '../../entity/customer-group/customer-group.entity';
 import { Customer } from '../../entity/customer/customer.entity';
@@ -64,7 +65,10 @@ export class CustomerGroupService {
     ): Promise<CustomerGroup | undefined> {
         return this.connection
             .getRepository(ctx, CustomerGroup)
-            .findOne({ where: { id: customerGroupId }, relations })
+            .findOne({
+                where: { id: customerGroupId },
+                relations: findOptionsArrayToObject<CustomerGroup>(relations ?? []),
+            })
             .then(result => result ?? undefined);
     }
 

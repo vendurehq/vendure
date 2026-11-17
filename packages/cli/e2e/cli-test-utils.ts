@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+import { stripAnsi } from '../src/shared/strip-ansi';
 
 export interface CliTestProject {
     projectDir: string;
@@ -11,8 +14,20 @@ export interface CliTestProject {
     fileExists: (relativePath: string) => boolean;
     runCliCommand: (
         args: string[],
-        options?: { expectError?: boolean },
-    ) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+        options?: { expectError?: boolean; env?: Record<string, string> },
+    ) => Promise<CliCommandResult>;
+}
+
+export interface CliCommandResult {
+    /** Output with any colour removed. Assert against this. */
+    stdout: string;
+    /** Errors with any colour removed. Assert against this. */
+    stderr: string;
+    exitCode: number;
+    /** Output as the CLI wrote it, for a test about colour itself. */
+    rawStdout: string;
+    /** Errors as the CLI wrote them, for a test about colour itself. */
+    rawStderr: string;
 }
 
 /**
@@ -22,7 +37,7 @@ export function createTestProject(projectName: string = 'test-project'): CliTest
     const projectDir = join(
         tmpdir(),
         'vendure-cli-e2e',
-        `${projectName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        `${projectName}-${Date.now()}-${randomBytes(6).toString('hex')}`,
     );
 
     // Create project directory
@@ -98,17 +113,21 @@ export const config: VendureConfig = {
         fileExists: (relativePath: string) => {
             return existsSync(join(projectDir, relativePath));
         },
-        runCliCommand: async (args: string[], options: { expectError?: boolean } = {}) => {
+        runCliCommand: async (
+            args: string[],
+            options: { expectError?: boolean; env?: Record<string, string> } = {},
+        ) => {
             return new Promise((resolve, reject) => {
                 // Use the built CLI from the dist directory
                 const cliPath = join(__dirname, '..', 'dist', 'cli.js');
 
-                const child = spawn('node', [cliPath, ...args], {
+                const child = spawn(process.execPath, [cliPath, ...args], {
                     cwd: projectDir,
                     env: {
                         ...process.env,
                         // Ensure we don't inherit any CLI environment variables
                         VENDURE_RUNNING_IN_CLI: undefined,
+                        ...options.env,
                     },
                     stdio: ['pipe', 'pipe', 'pipe'],
                 });
@@ -130,7 +149,13 @@ export const config: VendureConfig = {
                     if (!options.expectError && exitCode !== 0) {
                         reject(new Error(`CLI command failed with exit code ${exitCode}. stderr: ${stderr}`));
                     } else {
-                        resolve({ stdout, stderr, exitCode });
+                        resolve({
+                            stdout: stripAnsi(stdout),
+                            stderr: stripAnsi(stderr),
+                            exitCode,
+                            rawStdout: stdout,
+                            rawStderr: stderr,
+                        });
                     }
                 });
 
@@ -143,6 +168,91 @@ export const config: VendureConfig = {
             });
         },
     };
+}
+
+const CLI_PACKAGE_DIR = join(__dirname, '..');
+const CLI_PLUGIN_FIXTURES_DIR = join(__dirname, 'fixtures', 'cli-plugins');
+
+/**
+ * Copies a CLI plugin fixture into the test project's node_modules, declares it
+ * as a direct dependency and, unless `enable` is false, lists it in
+ * `vendure.cli.plugins` so the CLI actually loads it.
+ *
+ * Returns the package name of the installed plugin.
+ */
+export function installCliPluginFixture(
+    project: CliTestProject,
+    fixtureName: string,
+    { enable = true }: { enable?: boolean } = {},
+): string {
+    const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
+    const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8')).name as string;
+    const targetDir = join(project.projectDir, 'node_modules', ...packageName.split('/'));
+
+    cpSync(fixtureDir, targetDir, { recursive: true });
+    linkCliPackage(project);
+
+    updatePackageJson(project, packageJson => {
+        packageJson.dependencies = { ...packageJson.dependencies, [packageName]: '1.0.0' };
+        if (enable) {
+            const vendure = packageJson.vendure ?? {};
+            const cli = vendure.cli ?? {};
+            packageJson.vendure = {
+                ...vendure,
+                cli: { ...cli, plugins: [...(cli.plugins ?? []), packageName] },
+            };
+        }
+    });
+
+    return packageName;
+}
+
+/**
+ * Makes `require('@vendure/cli')` resolve from the test project, so a plugin
+ * fixture uses the same public API a real plugin package would.
+ *
+ * Also adds `@vendure/cli` to the project's devDependencies, which is how
+ * `resolveCliProjectRoot` recognises the temp directory as the project root.
+ * Without it plugin discovery walks past the project and finds nothing.
+ *
+ * The link points at the real package directory. `cleanup()` removes it with
+ * `rmSync`, which unlinks the symlink rather than following it, so the
+ * repository is not touched.
+ */
+function linkCliPackage(project: CliTestProject): void {
+    const scopeDir = join(project.projectDir, 'node_modules', '@vendure');
+    const linkPath = join(scopeDir, 'cli');
+    if (!existsSync(linkPath)) {
+        mkdirSync(scopeDir, { recursive: true });
+        symlinkSync(CLI_PACKAGE_DIR, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+    }
+    updatePackageJson(project, packageJson => {
+        packageJson.devDependencies = { ...packageJson.devDependencies, '@vendure/cli': '*' };
+    });
+}
+
+function updatePackageJson(project: CliTestProject, mutate: (packageJson: any) => void): void {
+    const packageJson = JSON.parse(project.readFile('package.json'));
+    mutate(packageJson);
+    project.writeFile('package.json', JSON.stringify(packageJson, null, 2));
+}
+
+/**
+ * Reads back a `PREFIX {json}` line that a plugin fixture printed.
+ */
+export function readMarker<T = any>(stdout: string, prefix: string): T {
+    const line = stdout
+        .split('\n')
+        .map(l => l.trim())
+        .find(l => l.startsWith(`${prefix} `));
+    if (!line) {
+        throw new Error(`No ${prefix} line in CLI output:\n${stdout}`);
+    }
+    return JSON.parse(line.slice(prefix.length + 1)) as T;
+}
+
+export function readEnabledCliPlugins(project: CliTestProject): string[] {
+    return JSON.parse(project.readFile('package.json')).vendure?.cli?.plugins ?? [];
 }
 
 /**
@@ -196,4 +306,126 @@ export async function waitFor(
     }
 
     throw new Error(`Condition not met within ${timeoutMs}ms`);
+}
+
+export interface SimulatedGlobalInstall {
+    /** The installed `@vendure/cli` directory, for asserting what is beside it. */
+    cliDir: string;
+    /** Runs the globally installed CLI from `cwd`. */
+    runCliCommand: (
+        args: string[],
+        options?: { cwd?: string; env?: Record<string, string> },
+    ) => Promise<CliCommandResult>;
+    /** The machine-wide `cli.json` the CLI will read. */
+    configPath: string;
+    /** A directory with no project in it, to run from. */
+    emptyDir: string;
+    cleanup: () => void;
+}
+
+/**
+ * Builds a layout that looks to the CLI like a global npm installation:
+ * `<prefix>/lib/node_modules/@vendure/cli` with the named plugin fixtures as
+ * its siblings, and no project anywhere above it.
+ *
+ * The CLI is copied rather than symlinked, because it resolves its own location
+ * through `realpath` — a symlink would lead back to the repository, where the
+ * enclosing directory is not a global `node_modules` and the whole point of the
+ * test would be lost. Its dependencies are linked in, since only the package's
+ * own location matters here.
+ */
+export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedGlobalInstall {
+    const prefix = join(
+        tmpdir(),
+        'vendure-cli-e2e',
+        `global-${Date.now()}-${randomBytes(6).toString('hex')}`,
+    );
+    const globalNodeModules = join(prefix, 'lib', 'node_modules');
+    const cliDir = join(globalNodeModules, '@vendure', 'cli');
+    mkdirSync(cliDir, { recursive: true });
+
+    cpSync(join(CLI_PACKAGE_DIR, 'dist'), join(cliDir, 'dist'), { recursive: true });
+    cpSync(join(CLI_PACKAGE_DIR, 'package.json'), join(cliDir, 'package.json'));
+    linkDeclaredDependencies(cliDir);
+
+    for (const fixtureName of fixtureNames) {
+        const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
+        const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'))
+            .name as string;
+        cpSync(fixtureDir, join(globalNodeModules, ...packageName.split('/')), { recursive: true });
+    }
+    // Plugin fixtures require('@vendure/cli'), which resolves to the sibling
+    // copy, exactly as it would for a real global install.
+
+    const configDir = join(prefix, 'config');
+    const emptyDir = join(prefix, 'empty');
+    mkdirSync(configDir, { recursive: true });
+    mkdirSync(emptyDir, { recursive: true });
+
+    return {
+        cliDir,
+        configPath: join(configDir, 'cli.json'),
+        emptyDir,
+        cleanup: () => rmSync(prefix, { recursive: true, force: true }),
+        runCliCommand: (args, options = {}) =>
+            new Promise((resolve, reject) => {
+                const child = spawn(process.execPath, [join(cliDir, 'dist', 'cli.js'), ...args], {
+                    cwd: options.cwd ?? emptyDir,
+                    env: {
+                        ...process.env,
+                        VENDURE_RUNNING_IN_CLI: undefined,
+                        VENDURE_CLI_CONFIG_DIR: configDir,
+                        ...options.env,
+                    },
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                });
+                let stdout = '';
+                let stderr = '';
+                child.stdout?.on('data', data => (stdout += data.toString()));
+                child.stderr?.on('data', data => (stderr += data.toString()));
+                child.on('close', code =>
+                    resolve({
+                        stdout: stripAnsi(stdout),
+                        stderr: stripAnsi(stderr),
+                        exitCode: code ?? 0,
+                        rawStdout: stdout,
+                        rawStderr: stderr,
+                    }),
+                );
+                child.on('error', reject);
+            }),
+    };
+}
+
+/**
+ * Links only the packages `@vendure/cli` declares as production dependencies,
+ * which is what `npm install -g @vendure/cli` would put beside it.
+ *
+ * Linking the repository's whole `node_modules` instead would let the CLI
+ * import anything the monorepo happens to have hoisted — `typeorm`, `graphql`,
+ * `@vendure/core` — and a global installation has none of those. The tests
+ * would then prove only that the CLI can find a package, never that a real
+ * installation ships it.
+ *
+ * Each link points at the package's real location, so its own transitive
+ * dependencies still resolve from there: Node resolves a symlink before
+ * looking for `node_modules`, so a linked package behaves exactly as an
+ * installed one, while the CLI's own lookups see only what is linked.
+ */
+function linkDeclaredDependencies(cliDir: string): void {
+    const { dependencies } = JSON.parse(readFileSync(join(CLI_PACKAGE_DIR, 'package.json'), 'utf-8')) as {
+        dependencies: Record<string, string>;
+    };
+    const repoModules = join(CLI_PACKAGE_DIR, '..', '..', 'node_modules');
+    const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+
+    for (const packageName of Object.keys(dependencies)) {
+        const source = join(repoModules, ...packageName.split('/'));
+        if (!existsSync(source)) {
+            continue;
+        }
+        const target = join(cliDir, 'node_modules', ...packageName.split('/'));
+        mkdirSync(join(target, '..'), { recursive: true });
+        symlinkSync(source, target, linkType);
+    }
 }

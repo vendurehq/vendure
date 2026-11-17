@@ -110,7 +110,7 @@ export class FacetService {
         facetCodeOrLang: string | LanguageCode,
         lang?: LanguageCode,
     ): Promise<Translated<Facet> | undefined> {
-        const relations = ['values', 'values.facet'];
+        const relations = { values: { facet: true } };
         const [repository, facetCode, languageCode, channelLanguageCode] =
             ctxOrFacetCode instanceof RequestContext
                 ? [
@@ -298,7 +298,7 @@ export class FacetService {
             Facet,
             input.facetIds,
             ctx.channelId,
-            { relations: ['values'] },
+            { relations: { values: true } },
         );
         const valuesToAssign = facetsToAssign.reduce(
             (values, facet) => [...values, ...facet.values],
@@ -349,7 +349,7 @@ export class FacetService {
             Facet,
             input.facetIds,
             ctx.channelId,
-            { relations: ['values'] },
+            { relations: { values: true } },
         );
 
         const results: Array<ErrorResultUnion<RemoveFacetFromChannelResult, Facet>> = [];

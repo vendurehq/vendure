@@ -1,4 +1,5 @@
 import { useAllBulkActions } from '@/vdb/components/data-table/use-all-bulk-actions.js';
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { DisplayComponent } from '@/vdb/framework/component-registry/display-component.js';
 import {
     FieldInfo,
@@ -22,12 +23,13 @@ import {
     AccessorFnColumnDef,
     AccessorKeyColumnDef,
     CellContext,
+    ColumnDef,
     createColumnHelper,
+    flexRender,
     Row,
 } from '@tanstack/react-table';
 import { EllipsisIcon, TrashIcon } from 'lucide-react';
-import { memo, useMemo } from 'react';
-import { toast } from '@/vdb/components/ui/sonner.js';
+import { memo, useMemo, type ReactNode } from 'react';
 import {
     AdditionalColumns,
     AllItemFieldKeys,
@@ -100,6 +102,7 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
 } {
     const { pageId } = usePage();
     const pageBlock = usePageBlock();
+    const { t } = useLingui();
     const columnHelper = createColumnHelper<PaginatedListItemFields<T>>();
     const allBulkActions = useAllBulkActions(bulkActions ?? []);
 
@@ -122,22 +125,10 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             customFieldColumnNames.push(...customFieldFields.map(field => field.name));
         }
 
-        // The registry is read here rather than at cell-render time, so a column keeps
-        // whichever renderer was chosen when this memo last ran. Extensions register
-        // during executeDashboardExtensionCallbacks(), which completes before any data
-        // table mounts, so the answer is settled by the time a column is generated.
-        const resolveDisplayComponent = (columnId: string) => {
-            const displayComponentId =
-                pageId && pageBlock?.blockId
-                    ? generateDisplayComponentKey(pageId, pageBlock.blockId, columnId)
-                    : undefined;
-            return {
-                displayComponentId,
-                registeredDisplayComponent: displayComponentId
-                    ? getDisplayComponent(displayComponentId)
-                    : undefined,
-            };
-        };
+        const getDisplayComponentId = (columnId: string) =>
+            pageId && pageBlock?.blockId
+                ? generateDisplayComponentKey(pageId, pageBlock.blockId, columnId)
+                : undefined;
 
         const queryBasedColumns = columnConfigs.map(({ fieldInfo, isCustomField }) => {
             const customConfig = customizeColumns?.[fieldInfo.name as unknown as AllItemFieldKeys<T>] ?? {};
@@ -151,20 +142,19 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             const { header, meta, cell: customCell, ...customConfigRest } = customConfig;
             const enableColumnFilter =
                 (fieldInfo.isScalar || isEnumType(fieldInfo.type)) && !facetedFilters?.[fieldInfo.name];
-            // A component registered via addDisplayComponent() takes precedence over a
-            // core-supplied `cell` function (e.g. the Money cell on price columns). Without
-            // this, registering an override for such a column silently does nothing.
-            const { displayComponentId, registeredDisplayComponent } = resolveDisplayComponent(
-                fieldInfo.name,
-            );
+            const displayComponentId = getDisplayComponentId(fieldInfo.name);
 
-            // Where nothing is registered, a custom cell function is used directly rather
-            // than through CellWrapper, which is what keeps the cell from unmounting on
-            // every table re-render. Everything else goes through CellWrapper, which renders
-            // the registered component or the default display for the field type.
+            // A component registered via addDisplayComponent() takes precedence over a
+            // core-supplied `cell` function (e.g. the Money cell on price columns). Both
+            // paths look the registry up at cell-render time, so a registration made after
+            // the column was generated applies on the table's next render.
+            //
+            // Only the custom-cell branch gets a cached wrapper. The CellWrapper arrow below
+            // is a fresh function on every memo run, and flexRender() makes that function the
+            // cell's component type, so those cells remount whenever the memo recomputes.
             const cellFn =
-                typeof customCell === 'function' && !registeredDisplayComponent
-                    ? customCell
+                typeof customCell === 'function'
+                    ? withDisplayComponentOverride(customCell, displayComponentId)
                     : (cellContext: CellContext<any, any>) => (
                           <CellWrapper
                               cellContext={cellContext}
@@ -199,19 +189,19 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             if (!id) {
                 throw new Error('Column id is required');
             }
-            const RegisteredDisplayComponent = resolveDisplayComponent(id).registeredDisplayComponent;
+            const displayComponentId = getDisplayComponentId(id);
 
             finalColumns.push(
                 columnHelper.accessor(id as any, {
                     enableColumnFilter: false,
                     ...column,
-                    ...(RegisteredDisplayComponent
+                    // Outside a page block there is no registry key, so the column keeps its own
+                    // `cell`, or TanStack's default when it has none.
+                    ...(displayComponentId
                         ? {
-                              cell: (cellContext: CellContext<any, any>) => (
-                                  <RegisteredDisplayComponent
-                                      value={cellContext.cell.getValue()}
-                                      {...cellContext}
-                                  />
+                              cell: withDisplayComponentOverride(
+                                  column.cell ?? renderDefaultCell,
+                                  displayComponentId,
                               ),
                           }
                         : {}),
@@ -244,17 +234,23 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
         }
 
         if (includeSelectionColumn) {
-            // Add the row selection column
+            // Add the row selection column, following the v2 data-table molecule's
+            // selection treatment: the checkbox is floated over a zero-width cell
+            // and stays hidden until the row is hovered, keyboard-focused, or
+            // carries a checked/indeterminate state — so an idle table reads as
+            // content, not a selection grid. The gutter it needs is folded into
+            // the leading data column's left padding by the DataTable renderer, so
+            // an empty selection reserves no visible column.
             finalColumns.unshift({
                 id: 'selection',
                 accessorKey: 'selection',
                 header: ({ table }) => (
                     <Checkbox
-                        className="mx-1"
-                        checked={table.getIsAllRowsSelected()}
-                        onCheckedChange={checked =>
-                            table.toggleAllRowsSelected(checked)
-                        }
+                        className="absolute top-1/2 left-2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-hover/header-row:opacity-100 focus-visible:opacity-100 data-checked:opacity-100 data-indeterminate:opacity-100"
+                        checked={table.getIsAllPageRowsSelected()}
+                        indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
+                        onCheckedChange={checked => table.toggleAllPageRowsSelected(!!checked)}
+                        aria-label={t`Select all rows`}
                     />
                 ),
                 enableColumnFilter: false,
@@ -262,9 +258,11 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
                 cell: ({ row }) => {
                     return (
                         <Checkbox
-                            className="mx-1"
+                            className="absolute top-1/2 left-2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 data-checked:opacity-100"
                             checked={row.getIsSelected()}
-                            onCheckedChange={(checked) => row.toggleSelected(!!checked)}
+                            disabled={!row.getCanSelect()}
+                            onCheckedChange={checked => row.toggleSelected(!!checked)}
+                            aria-label={t`Select row`}
                         />
                     );
                 },
@@ -306,8 +304,10 @@ function getRowActions(
         cell: ({ row, table }) => {
             return (
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon" data-testid="dt-row-actions-trigger" />}>
-                            <EllipsisIcon />
+                    <DropdownMenuTrigger
+                        render={<Button variant="ghost" size="icon" data-testid="dt-row-actions-trigger" />}
+                    >
+                        <EllipsisIcon />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="min-w-56">
                         {hasRowActions && (
@@ -322,28 +322,29 @@ function getRowActions(
                                 ))}
                             </DropdownMenuGroup>
                         )}
-                        {hasBulkActions && bulkActionGroups?.map((group, groupIndex) => {
-                            if (group.actions.length === 0) return null;
-                            const showSeparator = hasRowActions || groupIndex > 0;
-                            return (
-                                <div key={`group-${groupIndex}`}>
-                                    {showSeparator && <DropdownMenuSeparator />}
-                                    <DropdownMenuGroup>
-                                        {group.label && <DropdownMenuLabel>{group.label}</DropdownMenuLabel>}
-                                        {group.actions.map((action, index) => (
-                                            <action.component
-                                                key={`bulk-action-${groupIndex}-${index}`}
-                                                selection={[row.original]}
-                                                table={table}
-                                            />
-                                        ))}
-                                    </DropdownMenuGroup>
-                                </div>
-                            );
-                        })}
-                        {deleteMutation && (hasRowActions || hasBulkActions) && (
-                            <DropdownMenuSeparator />
-                        )}
+                        {hasBulkActions &&
+                            bulkActionGroups?.map((group, groupIndex) => {
+                                if (group.actions.length === 0) return null;
+                                const showSeparator = hasRowActions || groupIndex > 0;
+                                return (
+                                    <div key={`group-${groupIndex}`}>
+                                        {showSeparator && <DropdownMenuSeparator />}
+                                        <DropdownMenuGroup>
+                                            {group.label && (
+                                                <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                                            )}
+                                            {group.actions.map((action, index) => (
+                                                <action.component
+                                                    key={`bulk-action-${groupIndex}-${index}`}
+                                                    selection={[row.original]}
+                                                    table={table}
+                                                />
+                                            ))}
+                                        </DropdownMenuGroup>
+                                    </div>
+                                );
+                            })}
+                        {deleteMutation && (hasRowActions || hasBulkActions) && <DropdownMenuSeparator />}
                         {deleteMutation && (
                             <DropdownMenuGroup>
                                 <DeleteMutationRowAction deleteMutation={deleteMutation} row={row} />
@@ -354,6 +355,87 @@ function getRowActions(
             );
         },
     };
+}
+
+type CellRenderer = (cellContext: CellContext<any, any>) => ReactNode;
+
+// Copied from @tanstack/table-core 8.21 `_getDefaultColumnDef`, used when an additional
+// column supplies no `cell` of its own. Setting it explicitly means a `defaultColumn.cell`
+// passed to the table does not reach these columns, and an upgrade of TanStack's own default
+// does not either.
+const renderDefaultCell: CellRenderer = cellContext => cellContext.renderValue()?.toString?.() ?? null;
+
+/**
+ * The value handed to a display component. A custom field's value is not on the row itself,
+ * so it is read from `row.original.customFields` instead. The CellWrapper path and the
+ * withDisplayComponentOverride path both need this fallback, so it lives in one function.
+ */
+function resolveCellValue(
+    cellContext: CellContext<any, any>,
+    isCustomField: boolean | undefined,
+    fieldName: string | undefined,
+): any {
+    const { cell, row } = cellContext;
+    return (
+        cell.getValue() ??
+        (isCustomField ? (row.original as any)?.customFields?.[fieldName as string] : undefined)
+    );
+}
+
+const overrideCellCache = new WeakMap<CellRenderer, Map<string, CellRenderer>>();
+const stringOverrideCellCache = new Map<string, CellRenderer>();
+
+/**
+ * Wraps a cell so that a component registered via addDisplayComponent() is looked up when
+ * the cell renders, not when the column is generated. A lookup at generation time would
+ * keep a stale answer for as long as the column memo is reused.
+ *
+ * TanStack's flexRender() renders a function cell as a component, so the wrapper's identity
+ * is its component type. Wrappers are cached per cell and key so that a stable `cell`
+ * yields a stable wrapper, and the cell does not unmount when the column memo recomputes.
+ */
+function withDisplayComponentOverride(
+    cell: ColumnDef<any>['cell'],
+    displayComponentId: string | undefined,
+): ColumnDef<any>['cell'] {
+    if (!displayComponentId) {
+        return cell;
+    }
+    const render = (cellContext: CellContext<any, any>, fallback: ColumnDef<any>['cell']) => {
+        const RegisteredDisplayComponent = getDisplayComponent(displayComponentId);
+        if (RegisteredDisplayComponent) {
+            const { column } = cellContext;
+            const value = resolveCellValue(
+                cellContext,
+                (column.columnDef.meta as { isCustomField?: boolean } | undefined)?.isCustomField,
+                column.id,
+            );
+            return <RegisteredDisplayComponent value={value} {...cellContext} />;
+        }
+        return flexRender(fallback, cellContext);
+    };
+    // A string cell is cached too: once a display component is registered, the wrapper is the
+    // component type above it, and a fresh wrapper would remount it on every memo run.
+    if (typeof cell !== 'function') {
+        const stringKey = `${displayComponentId}\u0000${String(cell)}`;
+        let wrappedString = stringOverrideCellCache.get(stringKey);
+        if (!wrappedString) {
+            wrappedString = (cellContext: CellContext<any, any>) => render(cellContext, cell);
+            stringOverrideCellCache.set(stringKey, wrappedString);
+        }
+        return wrappedString;
+    }
+    let byKey = overrideCellCache.get(cell);
+    if (!byKey) {
+        byKey = new Map();
+        overrideCellCache.set(cell, byKey);
+    }
+    let wrapped = byKey.get(displayComponentId);
+    if (!wrapped) {
+        wrapped = (cellContext: CellContext<any, any>) => render(cellContext, cell);
+        byKey.set(displayComponentId, wrapped);
+    }
+    return wrapped;
 }
 
 function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: FieldInfo }) {
@@ -367,7 +449,7 @@ function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: 
         if (fieldInfo.name === 'enabled') {
             return <DisplayComponent id="vendure:booleanBadge" value={value} />;
         } else {
-            return <DisplayComponent id="vendure:booleanCheckbox" value={value} />;
+            return <DisplayComponent id="vendure:booleanYesNoBadge" value={value} />;
         }
     }
     if (fieldInfo.type === 'Asset') {
@@ -394,10 +476,7 @@ const CellWrapper = memo(function CellWrapper({
     isCustomField: boolean;
     displayComponentId?: string;
 }) {
-    const { cell, row } = cellContext;
-    const cellValue = cell.getValue();
-    const value =
-        cellValue ?? (isCustomField ? (row.original as any)?.customFields?.[fieldInfo.name] : undefined);
+    const value = resolveCellValue(cellContext, isCustomField, fieldInfo.name);
 
     const CustomDisplayComponent = displayComponentId && getDisplayComponent(displayComponentId);
 
@@ -452,10 +531,10 @@ function DeleteMutationRowAction({
     return (
         <AlertDialog>
             <AlertDialogTrigger nativeButton={false} render={<DropdownMenuItem closeOnClick={false} />}>
-                    <div className="flex items-center gap-2">
-                        <TrashIcon className="w-4 h-4" />
-                        <Trans>Delete</Trans>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <TrashIcon className="w-4 h-4" />
+                    <Trans>Delete</Trans>
+                </div>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>

@@ -15,6 +15,7 @@ npm install bullmq@^5.4.2
 
 ```ts title="Signature"
 class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
+    readonly useEntityIdStrategyForJobIds = false;
     init(injector: Injector) => Promise<void>;
     destroy() => ;
     add(job: Job<Data>) => Promise<Job<Data>>;
@@ -32,6 +33,11 @@ class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
 
 <div className="members-wrapper">
+
+### useEntityIdStrategyForJobIds
+
+<MemberInfo kind="property" type={``}   />
+
 
 ### init
 

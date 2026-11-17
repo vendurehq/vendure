@@ -1,0 +1,170 @@
+---
+title: "PlatformPromotion"
+generated: true
+---
+## PlatformTier
+
+<GenerationInfo sourceFile="packages/common/src/platform-promotion.ts" sourceLine="13" packageName="@vendure/common" since="3.8.1" />
+
+A Vendure Platform plan tier. A capability's `tier` is the lowest tier that grants it.
+
+```ts title="Signature"
+type PlatformTier = 'starter' | 'growth' | 'scale' | 'enterprise'
+```
+## DashboardPromotionCapabilityV1
+
+<GenerationInfo sourceFile="packages/common/src/platform-promotion.ts" sourceLine="23" packageName="@vendure/common" since="3.8.1" />
+
+The commercial copy for one Platform capability, as served by the Vendure catalog.
+
+```ts title="Signature"
+interface DashboardPromotionCapabilityV1 {
+    key: string;
+    tier: PlatformTier;
+    title: string;
+    summary: string;
+    benefits: [string, string, string];
+    cta: 'trial' | 'sales';
+}
+```
+
+<div className="members-wrapper">
+
+### key
+
+<MemberInfo kind="property" type={`string`}   />
+
+The capability key, for example `org.accounts`.
+### tier
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/extensions-api/platform-promotion#platformtier'>PlatformTier</a>`}   />
+
+
+### title
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### summary
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### benefits
+
+<MemberInfo kind="property" type={`[string, string, string]`}   />
+
+Exactly 3 lines.
+### cta
+
+<MemberInfo kind="property" type={`'trial' | 'sales'`}   />
+
+`trial` for Starter, Growth and Scale. `sales` for Enterprise.
+
+
+</div>
+## DashboardPromotionV1
+
+<GenerationInfo sourceFile="packages/common/src/platform-promotion.ts" sourceLine="54" packageName="@vendure/common" since="3.8.1" />
+
+Version 1 of the `dashboardPromotion` field of `GET https://api.vendure.io/v1/catalog`.
+It holds the Dashboard placements of the Vendure Platform plugins, and the commercial
+copy for each capability.
+
+```ts title="Signature"
+interface DashboardPromotionV1 {
+    version: 1;
+    navSections: Array<{
+        id: string;
+        label: string;
+        /**
+         * @description
+         * The PascalCase name of a lucide-react icon, without the `Icon` suffix, for example `ShieldCheck`.
+         */
+        icon: string;
+        placement: 'top' | 'bottom';
+        order: number;
+    }>;
+    navItems: Array<{
+        capability: string;
+        sectionId: string;
+        id: string;
+        label: string;
+        url: string;
+        /**
+         * @description
+         * Items with no `order` sort after the ordered items, by title.
+         */
+        order?: number;
+        page: { kind: 'list' | 'detail'; title: string; columns?: string[]; fields?: string[] };
+        /**
+         * @description
+         * `true` on one navigation item per promoted capability. Only these
+         * show in the Dashboard navigation as locked items.
+         */
+        promoted: boolean;
+    }>;
+    pageBlocks: Array<{
+        capability: string;
+        pageId: string;
+        blockId: string;
+        column: 'main' | 'side';
+        position?: { blockId: string; order: 'before' | 'after' | 'replace' };
+        title: string;
+    }>;
+    actions: Array<{ capability: string; pageId: string; label: string }>;
+    capabilities: DashboardPromotionCapabilityV1[];
+}
+```
+
+<div className="members-wrapper">
+
+### version
+
+<MemberInfo kind="property" type={`1`}   />
+
+
+### navSections
+
+<MemberInfo kind="property" type={`Array<{         id: string;         label: string;         /**          * @description          * The PascalCase name of a lucide-react icon, without the \`Icon\` suffix, for example \`ShieldCheck\`.          */         icon: string;         placement: 'top' | 'bottom';         order: number;     }>`}   />
+
+
+### navItems
+
+<MemberInfo kind="property" type={`Array<{         capability: string;         sectionId: string;         id: string;         label: string;         url: string;         /**          * @description          * Items with no \`order\` sort after the ordered items, by title.          */         order?: number;         page: { kind: 'list' | 'detail'; title: string; columns?: string[]; fields?: string[] };         /**          * @description          * \`true\` on one navigation item per promoted capability. Only these          * show in the Dashboard navigation as locked items.          */         promoted: boolean;     }>`}   />
+
+
+### pageBlocks
+
+<MemberInfo kind="property" type={`Array<{         capability: string;         pageId: string;         blockId: string;         column: 'main' | 'side';         position?: { blockId: string; order: 'before' | 'after' | 'replace' };         title: string;     }>`}   />
+
+
+### actions
+
+<MemberInfo kind="property" type={`Array<{ capability: string; pageId: string; label: string }>`}   />
+
+
+### capabilities
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/extensions-api/platform-promotion#dashboardpromotioncapabilityv1'>DashboardPromotionCapabilityV1</a>[]`}   />
+
+The copy for each capability that a nav item, page block or action names.
+
+
+</div>
+## isDashboardPromotionV1
+
+<GenerationInfo sourceFile="packages/common/src/platform-promotion.ts" sourceLine="118" packageName="@vendure/common" since="3.8.1" />
+
+Returns `true` when `value` has all required fields of [DashboardPromotionV1](/reference/typescript-api/extensions-api/platform-promotion#dashboardpromotionv1).
+The snapshot generator does not use a payload that fails this check.
+
+```ts title="Signature"
+function isDashboardPromotionV1(value: unknown): value is DashboardPromotionV1
+```
+Parameters
+
+### value
+
+<MemberInfo kind="parameter" type={`unknown`} />
+

@@ -5,4 +5,4 @@ export {
     PopoverHeader,
     PopoverTitle,
     PopoverTrigger,
-} from '@vendure-io/ui/components/ui/popover';
+} from '@vendure-io/ui/components/atoms/popover';

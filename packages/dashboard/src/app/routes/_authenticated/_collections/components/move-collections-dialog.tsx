@@ -15,7 +15,7 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { api } from '@/vdb/graphql/api.js';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { ChevronRight, Folder, FolderOpen, Search } from 'lucide-react';
 
 import { collectionListForMoveDocument, moveCollectionDocument } from '../collections.graphql.js';
@@ -72,20 +72,31 @@ function TargetAlert({
     topLevelCollectionId,
     collectionNameCache,
 }: Readonly<TargetAlertProps>) {
+    const destination = selectedCollectionId && collectionNameCache.current.get(selectedCollectionId);
     return (
         <Alert className={selectedCollectionId ? 'border-primary/30 bg-primary/10' : 'opacity-50'}>
             <Folder className="h-4 w-4" />
             <AlertDescription>
-                {selectedCollectionId ? (
-                    <Trans>
-                        Moving {collectionsToMove.length} collection
-                        {collectionsToMove.length === 1 ? '' : 's'} into{' '}
-                        {selectedCollectionId === topLevelCollectionId
-                            ? 'top level'
-                            : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'}
-                    </Trans>
-                ) : (
+                {!selectedCollectionId ? (
                     <Trans>Select a destination collection</Trans>
+                ) : selectedCollectionId === topLevelCollectionId ? (
+                    <Plural
+                        value={collectionsToMove.length}
+                        one="Moving # collection to the top level"
+                        other="Moving # collections to the top level"
+                    />
+                ) : destination ? (
+                    <Plural
+                        value={collectionsToMove.length}
+                        one={`Moving # collection into ${destination}`}
+                        other={`Moving # collections into ${destination}`}
+                    />
+                ) : (
+                    <Plural
+                        value={collectionsToMove.length}
+                        one="Moving # collection into the selected collection"
+                        other="Moving # collections into the selected collection"
+                    />
                 )}
             </AlertDescription>
         </Alert>
@@ -374,13 +385,11 @@ export function MoveCollectionsDialog({
                         <Trans>Move Collections</Trans>
                     </DialogTitle>
                     <DialogDescription>
-                        <Trans>
-                            Select a target collection to move{' '}
-                            {collectionsToMove.length === 1
-                                ? 'this collection'
-                                : `${collectionsToMove.length} collections`}{' '}
-                            to.
-                        </Trans>
+                        <Plural
+                            value={collectionsToMove.length}
+                            _1="Select a target collection to move this collection to."
+                            other="Select a target collection to move # collections to."
+                        />
                     </DialogDescription>
                 </DialogHeader>
                 <div className="px-6 py-3 bg-muted/50 border-y shrink-0">

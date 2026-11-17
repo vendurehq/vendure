@@ -3,6 +3,7 @@ import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     Page,
     PageActionBar,
@@ -10,17 +11,18 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
+import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
-import { Pencil, RotateCcw, User } from 'lucide-react';
-import { useCallback, useMemo, useRef } from 'react';
+import { Ban, Pencil, RotateCcw, User } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -28,20 +30,27 @@ import {
     setOrderCustomFieldsDocument,
     transitionOrderToStateDocument,
 } from '../orders.graphql.js';
-import { OrderProcessDialog } from './order-process-dialog.js';
-import { canAddFulfillment, canRefundOrder, shouldShowAddManualPaymentButton } from '../utils/order-utils.js';
+import {
+    canAddFulfillment,
+    canCancelOrderWithoutRefund,
+    canRefundOrder,
+    shouldShowAddManualPaymentButton,
+} from '../utils/order-utils.js';
+
 
 import { AddManualPaymentDialog } from './add-manual-payment-dialog.js';
+import { CancelOrderDialog } from './cancel-order-dialog.js';
 import { FulfillOrderDialog } from './fulfill-order-dialog.js';
 import { FulfillmentDetails } from './fulfillment-details.js';
 import { OrderAddress } from './order-address.js';
 import { OrderHistoryContainer } from './order-history/order-history-container.js';
 import { orderHistoryQueryKey } from './order-history/use-order-history.js';
+import { OrderProcessDialog } from './order-process-dialog.js';
 import { OrderTable } from './order-table.js';
 import { OrderTaxSummary } from './order-tax-summary.js';
 import { PaymentDetails } from './payment-details.js';
 import { RefundOrderDialog, RefundOrderDialogRef } from './refund-order-dialog.js';
-import { getTypeForState, StateTransitionControl } from './state-transition-control.js';
+import { StateTransitionControl } from './state-transition-control.js';
 import { useTransitionOrderToState } from './use-transition-order-to-state.js';
 
 export type OrderDetail = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
@@ -74,6 +83,7 @@ export function OrderDetailShared({
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { getTranslatedOrderState } = useDynamicTranslations();
+    const isMobile = useIsMobile();
 
     const { form, submitHandler, entity, refreshEntity } = useDetailPage({
         pageId,
@@ -106,6 +116,7 @@ export function OrderDetailShared({
 
     const customFieldConfig = useCustomFieldConfig('Order');
     const refundDialogRef = useRef<RefundOrderDialogRef>(null);
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
     const refreshPage = useCallback(async () => {
         if (!entity) return;
@@ -123,7 +134,8 @@ export function OrderDetailShared({
             .filter((state: string) => state !== 'Modifying')
             .map((state: string) => ({
                 label: t`Transition to ${getTranslatedOrderState(state)}`,
-                type: getTypeForState(state),
+                tone: orderStateDictionary.toneFor(state),
+                destructive: isDestructiveTransition(state),
                 onClick: async () => {
                     const transitionError = await transitionToState(state);
                     if (transitionError) {
@@ -175,6 +187,18 @@ export function OrderDetailShared({
         [],
     );
 
+    const CancelMenuItem = useCallback(
+        () => (
+            <PermissionGuard requires={['UpdateOrder']}>
+                <DropdownMenuItem onClick={() => setCancelDialogOpen(true)}>
+                    <Ban className="w-4 h-4" />
+                    <Trans>Cancel order</Trans>
+                </DropdownMenuItem>
+            </PermissionGuard>
+        ),
+        [],
+    );
+
     if (!entity) {
         return null;
     }
@@ -183,16 +207,30 @@ export function OrderDetailShared({
     const showAddPaymentButton = shouldShowAddManualPaymentButton(entity);
     const showFulfillButton = canAddFulfillment(entity);
     const showRefundOption = canRefundOrder(entity);
+    const showCancelOption = canCancelOrderWithoutRefund(entity);
+    const orderStateControl = (
+        <div className="flex items-center gap-1.5" data-testid="order-state-control">
+            <StateTransitionControl
+                currentState={entity.state}
+                statesTranslationFunction={getTranslatedOrderState}
+                actions={stateTransitionActions}
+                isLoading={transitionOrderToStateMutation.isPending}
+            />
+            <OrderProcessDialog currentState={entity.state} />
+        </div>
+    );
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{titleSlot?.(entity) || <DefaultOrderTitle entity={entity} />}</PageTitle>
             <PageActionBar
-                    dropdownMenuItems={[
-                        ...(nextStates.includes('Modifying') ? [{ component: ModifyMenuItem }] : []),
-                        ...(showRefundOption ? [{ component: RefundMenuItem }] : []),
-                    ]}
-                >
+                dropdownMenuItems={[
+                    ...(nextStates.includes('Modifying') ? [{ component: ModifyMenuItem }] : []),
+                    ...(showRefundOption ? [{ component: RefundMenuItem }] : []),
+                    ...(showCancelOption ? [{ component: CancelMenuItem }] : []),
+                ]}
+            >
+                {!isMobile && <ActionBarItem itemId="order-state-control">{orderStateControl}</ActionBarItem>}
                 {showAddPaymentButton && (
                     <ActionBarItem itemId="add-payment-button" requiresPermission={['UpdateOrder']}>
                         <AddManualPaymentDialog
@@ -223,14 +261,26 @@ export function OrderDetailShared({
                     />
                 )}
             </PageActionBar>
+            {showCancelOption && (
+                <CancelOrderDialog
+                    orderId={entity.id}
+                    open={cancelDialogOpen}
+                    onOpenChange={setCancelDialogOpen}
+                    onSettled={() => {
+                        void refreshPage();
+                    }}
+                />
+            )}
             <PageLayout>
+                {isMobile && (
+                    <PageBlock column="side" blockId="state">
+                        {orderStateControl}
+                    </PageBlock>
+                )}
                 {/* Main Column Blocks */}
                 {beforeOrderTable?.(entity)}
-                <PageBlock column="main" blockId="order-table">
+                <PageBlock column="main" blockId="order-table" layout="bare">
                     <OrderTable order={entity} pageId={pageId} />
-                </PageBlock>
-                <PageBlock column="main" blockId="tax-summary" title={<Trans>Tax summary</Trans>}>
-                    <OrderTaxSummary order={entity} />
                 </PageBlock>
                 {customFieldConfig?.length ? (
                     <PageBlock column="main" blockId="custom-fields">
@@ -246,33 +296,47 @@ export function OrderDetailShared({
                     </PageBlock>
                 ) : null}
                 <PageBlock column="main" blockId="payment-details" title={<Trans>Payment details</Trans>}>
-                    <div className="grid lg:grid-cols-2 gap-4">
+                    <div className="space-y-3">
                         {entity?.payments?.map((payment: any) => (
-                            <PaymentDetails
-                                key={payment.id}
-                                payment={payment}
-                                currencyCode={entity.currencyCode}
-                                onSuccess={refreshPage}
-                            />
+                            <div key={payment.id} className="rounded-lg bg-muted/30 p-4">
+                                <PaymentDetails
+                                    payment={payment}
+                                    currencyCode={entity.currencyCode}
+                                    onSuccess={refreshPage}
+                                />
+                            </div>
                         ))}
                     </div>
+                </PageBlock>
+                <PageBlock
+                    column="main"
+                    blockId="fulfillment-details"
+                    title={<Trans>Fulfillment details</Trans>}
+                >
+                    {entity.fulfillments?.length ? (
+                        <div className="space-y-3">
+                            {entity.fulfillments.map((fulfillment: any) => (
+                                <div key={fulfillment.id} className="rounded-lg bg-muted/30 p-4">
+                                    <FulfillmentDetails
+                                        order={entity}
+                                        fulfillment={fulfillment}
+                                        onSuccess={() => {
+                                            void refreshPage();
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-muted-foreground text-sm">
+                            <Trans>No fulfillments</Trans>
+                        </div>
+                    )}
                 </PageBlock>
                 <PageBlock column="main" blockId="order-history" title={<Trans>Order history</Trans>}>
                     <OrderHistoryContainer orderId={orderId} />
                 </PageBlock>
-
                 {/* Side Column Blocks */}
-                <PageBlock column="side" blockId="state">
-                    <div className="flex items-center gap-1.5">
-                        <StateTransitionControl
-                            currentState={entity?.state}
-                            statesTranslationFunction={getTranslatedOrderState}
-                            actions={stateTransitionActions}
-                            isLoading={transitionOrderToStateMutation.isPending}
-                        />
-                        <OrderProcessDialog currentState={entity!.state} />
-                    </div>
-                </PageBlock>
                 <PageBlock column="side" blockId="customer" title={<Trans>Customer</Trans>}>
                     {entity?.customer ? (
                         <Button variant="outline" render={<Link to={`/customers/${entity.customer.id}`} />}>
@@ -303,29 +367,8 @@ export function OrderDetailShared({
                         )}
                     </div>
                 </PageBlock>
-                <PageBlock
-                    column="side"
-                    blockId="fulfillment-details"
-                    title={<Trans>Fulfillment details</Trans>}
-                >
-                    {entity?.fulfillments?.length && entity.fulfillments.length > 0 ? (
-                        <div className="space-y-2">
-                            {entity?.fulfillments?.map((fulfillment: any) => (
-                                <FulfillmentDetails
-                                    key={fulfillment.id}
-                                    order={entity}
-                                    fulfillment={fulfillment}
-                                    onSuccess={() => {
-                                        void refreshPage();
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-muted-foreground text-sm">
-                            <Trans>No fulfillments</Trans>
-                        </div>
-                    )}
+                <PageBlock column="side" blockId="tax-summary" title={<Trans>Tax summary</Trans>}>
+                    <OrderTaxSummary order={entity} />
                 </PageBlock>
             </PageLayout>
         </Page>

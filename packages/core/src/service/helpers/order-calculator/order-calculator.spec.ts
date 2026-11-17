@@ -450,6 +450,82 @@ describe('OrderCalculator', () => {
                 });
             });
 
+            describe('item discount behind an order total condition, calculated repeatedly (#5605)', () => {
+                const createPromotion = (minimum: number) =>
+                    new Promotion({
+                        id: 1,
+                        name: '50% off each item over a minimum',
+                        conditions: [
+                            {
+                                code: orderTotalCondition.code,
+                                args: [{ name: 'minimum', value: minimum.toString() }],
+                            },
+                        ],
+                        promotionConditions: [orderTotalCondition],
+                        actions: [
+                            {
+                                code: percentageItemAction.code,
+                                args: [{ name: 'discount', value: '50' }],
+                            },
+                        ],
+                        promotionActions: [percentageItemAction],
+                    });
+
+                async function calculateRepeatedly(listPrices: number[], minimum: number, passes: number) {
+                    const ctx = createRequestContext({ pricesIncludeTax: false });
+                    const order = createOrder({
+                        ctx,
+                        lines: listPrices.map(listPrice => ({
+                            listPrice,
+                            taxCategory: taxCategoryStandard,
+                            quantity: 1,
+                        })),
+                    });
+                    const promotion = createPromotion(minimum);
+                    const results: Array<{ subTotal: number; discounted: boolean[] }> = [];
+                    for (let i = 0; i < passes; i++) {
+                        await orderCalculator.applyPriceAdjustments(ctx, order, [promotion]);
+                        results.push({
+                            subTotal: order.subTotal,
+                            discounted: order.lines.map(line => line.adjustments.length > 0),
+                        });
+                    }
+                    return results;
+                }
+
+                it('only the first line is discounted and the result does not change', async () => {
+                    const results = await calculateRepeatedly([6000, 5000], 10000, 6);
+
+                    for (const result of results) {
+                        expect(result).toEqual({ subTotal: 8000, discounted: [true, false] });
+                    }
+                });
+
+                it('both lines are discounted and the result does not change', async () => {
+                    const results = await calculateRepeatedly([5000, 6000], 8500, 6);
+
+                    for (const result of results) {
+                        expect(result).toEqual({ subTotal: 5500, discounted: [true, true] });
+                    }
+                });
+
+                it('a minimum which is never reached applies no discount on any pass', async () => {
+                    const results = await calculateRepeatedly([6000, 5000], 20000, 3);
+
+                    for (const result of results) {
+                        expect(result).toEqual({ subTotal: 11000, discounted: [false, false] });
+                    }
+                });
+
+                it('a minimum which stays satisfied discounts every line on every pass', async () => {
+                    const results = await calculateRepeatedly([6000, 5000], 1000, 3);
+
+                    for (const result of results) {
+                        expect(result).toEqual({ subTotal: 5500, discounted: [true, true] });
+                    }
+                });
+            });
+
             // https://github.com/vendurehq/vendure/issues/5127 (continuation of #3098)
             describe('quantity reduced below orderPlacedQuantity after recalculation (#5127)', () => {
                 const promotion = new Promotion({

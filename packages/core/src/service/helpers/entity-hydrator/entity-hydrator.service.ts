@@ -5,6 +5,7 @@ import { SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError } from '../../../common/error/errors';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
@@ -136,7 +137,9 @@ export class EntityHydrator {
                 hydratedQb.setFindOptions({
                     relationLoadStrategy: 'query',
                     where: { id: target.id },
-                    relations: missingRelations.filter(relationPath => !joinedRelations.has(relationPath)),
+                    relations: findOptionsArrayToObject(
+                        missingRelations.filter(relationPath => !joinedRelations.has(relationPath)),
+                    ),
                 });
                 const hydrated = await hydratedQb.getOne();
                 const propertiesToAdd = unique(missingRelations.map(relation => relation.split('.')[0]));

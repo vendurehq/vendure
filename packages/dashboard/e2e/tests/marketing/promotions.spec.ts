@@ -77,6 +77,41 @@ test.describe('Promotions CRUD', () => {
         await expect(page).toHaveURL(/\/promotions\/[^/]+$/);
     });
 
+    test('should edit a condition arg via the sentence chip popover', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.search('E2E Test Promotion');
+        await lp.clickEntity('E2E Test Promotion');
+        await expect(page).toHaveURL(/\/promotions\/[^/]+$/);
+
+        const dp = detailPage(page);
+
+        // The condition renders as a sentence with the amount and active
+        // channel currency as a chip (default value 100 minor units → $1.00).
+        const amountChip = page.getByRole('button', { name: 'amount' });
+        await expect(amountChip).toHaveText('$1.00');
+
+        // Edit the amount in the chip popover — changes apply live.
+        // (MoneyInput does not forward the name attribute, so locate the
+        // input via its labelled field wrapper.)
+        await amountChip.click();
+        await page
+            .locator('[data-slot="field"]')
+            .filter({ hasText: 'amount' })
+            .getByRole('textbox')
+            .fill('50');
+        await page.keyboard.press('Escape');
+        await expect(amountChip).toHaveText('$50.00');
+
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated promotion/);
+
+        // The edited value persists across a reload
+        await page.reload();
+        await expect(page.getByRole('button', { name: 'amount' })).toHaveText('$50.00');
+    });
+
     test('should update the promotion', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();

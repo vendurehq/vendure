@@ -38,6 +38,14 @@ uplinks:
 
 
 packages:
+  # Packages from this monorepo. No proxy: a range such as ^3.8.1-ci.0 would otherwise
+  # also match an upstream 3.8.1-master-* nightly, and npm would install that instead of
+  # the version that lerna just published. The first matching entry wins, so this one
+  # must stay above '@*/*'.
+  '@vendure/*':
+    access: $all
+    publish: $all
+
   '@*/*':
     # scoped packages
     access: $all

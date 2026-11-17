@@ -9,4 +9,4 @@ export {
     DrawerPortal,
     DrawerTitle,
     DrawerTrigger,
-} from '@vendure-io/ui/components/ui/drawer';
+} from '@vendure-io/ui/components/atoms/drawer';

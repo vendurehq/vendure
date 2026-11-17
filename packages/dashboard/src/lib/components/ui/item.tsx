@@ -9,4 +9,4 @@ export {
     ItemMedia,
     ItemSeparator,
     ItemTitle,
-} from '@vendure-io/ui/components/ui/item';
+} from '@vendure-io/ui/components/atoms/item';

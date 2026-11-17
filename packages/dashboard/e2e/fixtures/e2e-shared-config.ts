@@ -1,4 +1,14 @@
-import { CollectionFilter, CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
+import { RefundOrderInput } from '@vendure/common/lib/generated-types';
+import {
+    Asset,
+    CollectionFilter,
+    Customer,
+    CustomFields,
+    dummyPaymentHandler,
+    LanguageCode,
+    RefundDestinationStrategy,
+    RequestContext,
+} from '@vendure/core';
 
 /**
  * Custom fields and payment handlers used by global-setup.ts to configure
@@ -68,6 +78,59 @@ export const e2eCustomFields: CustomFields = {
             nullable: true,
             label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
             options: [{ value: 'standard' }, { value: 'premium' }],
+        },
+        // #4902 — readonly single relation with a custom form component: the component receives
+        // the related entity id as `value`. Seeded directly in global-setup.ts because readonly
+        // relations cannot be set via the Admin API.
+        {
+            name: 'relatedAsset',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset' }],
+            ui: { component: 'relation-cf.related-asset' },
+        },
+        // #4902 — the same for a readonly list relation: the component receives the ids as `value`.
+        {
+            name: 'relatedAssets',
+            type: 'relation',
+            entity: Asset,
+            list: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Assets' }],
+            ui: { component: 'relation-cf.related-assets' },
+        },
+        // #4902 — readonly relations rendered by the built-in relation input, chosen by id and by
+        // default. The built-in input receives the related entity id, not the object.
+        {
+            name: 'relatedAssetBuiltIn',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset Built In' }],
+            ui: { component: 'relation-form-input' },
+        },
+        {
+            name: 'relatedAssetPlain',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset Plain' }],
+        },
+        {
+            // Used by the #4741 tests in catalog/custom-fields.spec.ts. Nullable, and the
+            // pattern accepts the empty default, so other product tests are unaffected.
+            name: 'numericCode',
+            type: 'string',
+            nullable: true,
+            pattern: '^[0-9]*$',
+            label: [{ languageCode: LanguageCode.en, value: 'Numeric Code' }],
         },
         // ── SEO tab ──
         {
@@ -159,9 +222,59 @@ export const e2eCustomFields: CustomFields = {
             ],
         },
     ],
+    OrderLine: [{ name: 'giftFrom', type: 'relation', entity: Customer, nullable: true }],
 };
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];
+
+/**
+ * A refund destination which always succeeds, used to exercise the non-default destination
+ * branch of the refund dialog.
+ */
+class TestStoreCreditDestination implements RefundDestinationStrategy {
+    readonly code = 'store-credit';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as store credit' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(
+        _ctx: RequestContext,
+        _input: RefundOrderInput,
+        amount: number,
+        _order: unknown,
+        _payment: unknown,
+        args?: any,
+    ) {
+        return {
+            state: 'Settled' as const,
+            transactionId: `sc-${Date.now()}`,
+            // `args` carries whatever the destination's dashboard component produced, so the
+            // tests can confirm it survived the round trip.
+            metadata: { storeCreditAmount: amount, args: args ?? null },
+        };
+    }
+}
+
+/**
+ * A refund destination whose external service always fails, used to exercise the dialog's handling
+ * of a multi-target refund which fails after an earlier target has already been refunded.
+ */
+class TestFailingVoucherDestination implements RefundDestinationStrategy {
+    readonly code = 'failing-voucher';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as voucher (always fails)' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(): never {
+        throw new Error('Voucher service unavailable');
+    }
+}
+
+export const e2eRefundDestinations = [new TestStoreCreditDestination(), new TestFailingVoucherDestination()];
 
 /**
  * A collection filter with a string list argument, used to reproduce #4987:

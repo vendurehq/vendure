@@ -2,6 +2,7 @@ import { type Locator, type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Custom fields are configured in global-setup.ts on the Product entity.
 // This suite verifies rendering of all custom field types: scalar, list, struct,
@@ -536,35 +537,196 @@ test.describe('Custom Fields', () => {
         await expect(reloadedDim.locator('dd').filter({ hasText: '10' })).toBeVisible();
     });
 
-    // #4393 — datetime picker should have a "Now" button
-    test('datetime picker should display a "Now" button', async ({ page }) => {
+    // #4393 — the v2 datetime picker should expose both date and time controls
+    test('datetime picker should display date and time controls', async ({ page }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const releaseDateItem = dp.formItem('Release Date');
-        await releaseDateItem.getByRole('button').first().click();
+        const picker = releaseDateItem.locator('[data-slot="date-time-picker"]');
+        await expect(picker.locator('input[type="time"]')).toBeVisible();
+        await picker.getByRole('button').first().click();
 
         const popover = page.locator('[data-slot="popover-content"]');
         await expect(popover).toBeVisible();
-        const nowButton = popover.getByRole('button', { name: 'Now' });
-        await expect(nowButton).toBeVisible();
+        await expect(popover.locator('[data-slot="calendar"]')).toBeVisible();
     });
 
-    // #4393 — clicking "Now" should set the datetime and close the popover
-    test('datetime "Now" button should set date and close popover', async ({ page }) => {
+    // #4393 — selecting a date should set the datetime and close the popover
+    test('datetime date selection should set a value and close the popover', async ({ page }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const releaseDateItem = dp.formItem('Release Date');
-        const triggerButton = releaseDateItem.getByRole('button').first();
-        await expect(triggerButton).toContainText('MM/DD/YYYY');
+        const picker = releaseDateItem.locator('[data-slot="date-time-picker"]');
+        const triggerButton = picker.getByRole('button').first();
+        await expect(triggerButton).toContainText('Pick a date and time');
 
         await triggerButton.click();
         const popover = page.locator('[data-slot="popover-content"]');
         await expect(popover).toBeVisible();
-        await popover.getByRole('button', { name: 'Now' }).click();
+        await popover.locator('[data-slot="calendar"] button[data-day]:not([disabled])').first().click();
 
         await expect(popover).not.toBeVisible();
-        await expect(triggerButton).not.toContainText('MM/DD/YYYY');
+        await expect(triggerButton).not.toContainText('Pick a date and time');
+        await expect(picker.locator('input[type="time"]')).toBeEnabled();
+    });
+
+    // #4902 — a custom form component registered for a readonly single `relation` custom field
+    // receives the related entity id as `value`, as on a writable relation. The readonly relations
+    // are seeded on the "laptop" product in global-setup.ts, with the assets T_1 and T_2.
+    test('readonly relation custom field gives its custom component the related id', async ({ page }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+
+        const badge = page.getByTestId('related-asset-cf');
+        await expect(badge).toHaveText('asset:T_1');
+
+        // Saving an unrelated change still succeeds: the readonly relation must not leak into the
+        // update mutation input, which has no such field.
+        await dp.formItem('Info URL').getByRole('textbox').fill('https://example.com/readonly-relation');
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated product/);
+
+        await expect(badge).toHaveText('asset:T_1');
+    });
+
+    // #4902 — the same for a readonly list relation: the ids as `value`.
+    test('readonly list relation custom field gives its custom component the related ids', async ({
+        page,
+    }) => {
+        await goToFirstProduct(page);
+        await expect(page.getByTestId('related-assets-cf')).toHaveText('assets:T_1,T_2');
+    });
+
+    // #4902 — the built-in relation input, whether chosen by id or by default, shows the related
+    // entity of a readonly relation, disabled. It receives the id: given the object it would look up
+    // the id "[object Object]".
+    test('readonly relation custom fields rendered by the built-in input show the related entity', async ({
+        page,
+    }) => {
+        const objectLookups: string[] = [];
+        page.on('request', request => {
+            const body = request.postData();
+            if (request.url().includes('/admin-api') && body?.includes('[object Object]')) {
+                objectLookups.push(body);
+            }
+        });
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { asset } = await client.gql(`query { asset(id: "T_1") { name } }`);
+
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+        for (const label of ['Related Asset Built In', 'Related Asset Plain']) {
+            const item = dp.formItem(label);
+            await expect(item).toContainText(asset.name);
+            // A readonly value is never saved, so the input cannot be changed.
+            await expect(item.getByRole('button', { name: 'Change selection' })).toBeDisabled();
+        }
+        expect(objectLookups).toEqual([]);
     });
 });
+
+// #4741 — when the form is invalid the submit button is disabled, and the page has to say why.
+// Uses the `numericCode` field (pattern `^[0-9]*$`). A stored value which fails the pattern is
+// simulated by rewriting the ProductDetail response, because the server rejects one on write.
+test.describe('Form error summary', () => {
+    const summary = (page: Page) => page.getByRole('alert').filter({ hasText: 'This cannot be saved' });
+
+    /** Serves every ProductDetail response with an invalid `numericCode`, passing each through `edit`. */
+    async function serveInvalidNumericCode(
+        page: Page,
+        edit: (product: any, call: number) => void = () => {},
+    ) {
+        let call = 0;
+        await page.route('**/admin-api**', async route => {
+            if (!/query ProductDetail\b/.test(route.request().postData() ?? '')) {
+                return route.fallback();
+            }
+            const response = await route.fetch();
+            const json = await response.json();
+            const product = json.data?.product;
+            if (product?.customFields) {
+                product.customFields.numericCode = 'not-numeric';
+                edit(product, call++);
+            }
+            await route.fulfill({ response, json });
+        });
+    }
+
+    test('lists an invalid field on the create page and clears once it is fixed', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Product name', 'Form error summary test');
+        await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
+        await expect(summary(page)).toBeHidden();
+
+        await dp.fillInput('Numeric Code', 'abc');
+        await expect(dp.createButton).toBeDisabled();
+        await expect(summary(page)).toContainText('Numeric Code: Value must match pattern: ^[0-9]*$');
+
+        await dp.fillInput('Numeric Code', '12345');
+        await expect(summary(page)).toBeHidden();
+        await expect(dp.createButton).toBeEnabled();
+    });
+
+    test('lists a loaded value which fails validation before any field is touched', async ({ page }) => {
+        await serveInvalidNumericCode(page);
+        await goToProduct(page);
+
+        await expect(summary(page)).toContainText('Numeric Code: Value must match pattern: ^[0-9]*$');
+
+        // A valid edit to another field leaves Update disabled, and the reason stays on the page.
+        await detailPage(page).fillInput('Product name', 'Laptop edited');
+        await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeDisabled();
+        await expect(summary(page)).toBeVisible();
+    });
+
+    test('lists the invalid value again after the same product is refetched', async ({ page }) => {
+        // The refetch returns a different name, so react-hook-form resets the form and clears its
+        // errors. The summary has to come back after that reset.
+        await serveInvalidNumericCode(page, (product, call) => {
+            if (call > 0) {
+                product.name = 'Laptop (refetched)';
+                for (const translation of product.translations ?? []) {
+                    translation.name = 'Laptop (refetched)';
+                }
+            }
+        });
+        await goToProduct(page);
+        await expect(summary(page)).toBeVisible();
+
+        // Leave and re-enter: the cached product renders first, then the stale query refetches.
+        // Suspense queries count as fresh for their first second, so wait that out on the list.
+        await page
+            .getByRole('navigation', { name: 'breadcrumb' })
+            .getByRole('link', { name: 'Products' })
+            .click();
+        const lp = listPage(page);
+        await lp.expectLoaded();
+        await lp.search('Laptop');
+        await page.waitForTimeout(1_500);
+        await lp.clickEntity('Laptop');
+        await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toHaveValue(
+            'Laptop (refetched)',
+            { timeout: 10_000 },
+        );
+        await expect(summary(page)).toBeVisible();
+    });
+});
+
+/** Opens the seeded "Laptop" product without waiting for a clean form, which an invalid value prevents. */
+async function goToProduct(page: Page) {
+    const lp = listPage(page);
+    await lp.goto();
+    await lp.expectLoaded();
+    await lp.search('Laptop');
+    await lp.clickEntity('Laptop');
+    await expect(page).toHaveURL(/\/products\/[^/]+$/);
+    await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toHaveValue('Laptop', {
+        timeout: 10_000,
+    });
+}

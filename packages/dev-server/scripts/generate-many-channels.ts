@@ -6,7 +6,6 @@ import {
     isGraphQlErrorResult,
     LanguageCode,
     RequestContextService,
-    RoleService,
 } from '@vendure/core';
 
 import { devConfig } from '../dev-config';
@@ -23,14 +22,10 @@ async function generateManyChannels() {
     const { app } = await bootstrapWorker(devConfig);
     const requestContextService = app.get(RequestContextService);
     const channelService = app.get(ChannelService);
-    const roleService = app.get(RoleService);
 
     const ctxAdmin = await requestContextService.create({
         apiType: 'admin',
     });
-
-    const superAdminRole = await roleService.getSuperAdminRole(ctxAdmin);
-    const customerRole = await roleService.getCustomerRole(ctxAdmin);
 
     for (let i = CHANNEL_COUNT; i > 0; i--) {
         const channel = await channelService.create(ctxAdmin, {
@@ -49,8 +44,6 @@ async function generateManyChannels() {
             console.log(channel.message);
         } else {
             console.log(`Created channel ${channel.code}`);
-            await roleService.assignRoleToChannel(ctxAdmin, superAdminRole.id, channel.id);
-            await roleService.assignRoleToChannel(ctxAdmin, customerRole.id, channel.id);
         }
     }
 }

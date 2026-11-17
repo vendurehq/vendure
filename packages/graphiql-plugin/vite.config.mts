@@ -4,7 +4,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     plugins: [react()],
-    base: '/graphiql/',
+    // Relative, so the plugin can serve the app under any route. See `createStaticServer`.
+    base: './',
     build: {
         outDir: 'dist/graphiql',
         emptyOutDir: true,

@@ -1,11 +1,14 @@
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
+import { cn } from '@/vdb/lib/utils.js';
+import { useLingui } from '@lingui/react/macro';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
-import { X } from 'lucide-react';
-import { useEffect } from 'react';
+import { ChevronDown, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '../ui/button.js';
 import { Card, CardContent, CardHeader } from '../ui/card.js';
 import { Field, FieldLabel } from '../ui/field.js';
 import { ConfigurableOperationArgInput } from './configurable-operation-arg-input.js';
+import { OperationSentence } from './configurable-operation-sentence.js';
 
 export interface ConfigurableOperationInputProps {
     operationDefinition: ConfigurableOperationDefFragment;
@@ -13,6 +16,17 @@ export interface ConfigurableOperationInputProps {
     removable?: boolean;
     position?: number;
     hideDescription?: boolean;
+    /**
+     * Controls the rendering style:
+     * - 'sentence' (default): a compact one-line sentence with inline editable value chips
+     * - 'form': the classic card with an always-visible argument form grid
+     */
+    variant?: 'sentence' | 'form';
+    /**
+     * When true (sentence variant only), the first arg with no value
+     * opens its editing popover on mount. Used for newly-added operations.
+     */
+    autoOpenFirstEmptyArg?: boolean;
     value: ConfigurableOperationInputType;
     onChange: (val: ConfigurableOperationInputType) => void;
     onRemove?: () => void;
@@ -24,11 +38,15 @@ export function ConfigurableOperationInput({
     readonly,
     removable,
     hideDescription,
+    variant = 'sentence',
+    autoOpenFirstEmptyArg,
     value,
     onChange,
     onRemove,
     onValidityChange,
 }: Readonly<ConfigurableOperationInputProps>) {
+    const { t } = useLingui();
+    const [expanded, setExpanded] = useState(false);
     // Check validity of required fields and notify parent.
     // List args are exempt from required validation (matching legacy Angular admin-ui behavior)
     // because an empty array is considered a valid value for list types.
@@ -62,6 +80,67 @@ export function ConfigurableOperationInput({
         const newVal: ConfigurableOperationInputType = { ...value, arguments: updatedArgs };
         onChange(newVal);
     };
+
+    if (variant === 'sentence') {
+        return (
+            <div className="group">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0 py-0.5">
+                        <OperationSentence
+                            operationDefinition={operationDefinition}
+                            value={value}
+                            onArgChange={handleInputChange}
+                            readonly={readonly}
+                            autoOpenFirstEmptyArg={autoOpenFirstEmptyArg}
+                        />
+                    </div>
+                    {!readonly && (
+                        <div className="flex items-center shrink-0">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpanded(!expanded)}
+                                className="h-8 w-8 p-0 text-muted-foreground"
+                                aria-label={t`Edit as form`}
+                                aria-expanded={expanded}
+                            >
+                                <ChevronDown
+                                    className={cn(
+                                        'h-3.5 w-3.5 transition-transform',
+                                        expanded && 'rotate-180',
+                                    )}
+                                />
+                            </Button>
+                            {removable !== false && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={onRemove}
+                                    className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                    aria-label={t`Remove`}
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+                {expanded && (
+                    <div className="mt-2 rounded-md border bg-muted/50 p-4 space-y-4">
+                        <div className="text-xs text-muted-foreground font-mono">
+                            {operationDefinition.code}
+                        </div>
+                        <ArgsFormGrid
+                            operationDefinition={operationDefinition}
+                            value={value}
+                            readonly={readonly}
+                            onArgChange={handleInputChange}
+                        />
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -99,40 +178,53 @@ export function ConfigurableOperationInput({
                 {operationDefinition.args && operationDefinition.args.length > 0 && (
                     <CardContent className="pt-0">
                         <div className="space-y-4">
-                            <div
-                                className={`grid gap-4 ${operationDefinition.args.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}
-                            >
-                                {operationDefinition.args
-                                    .filter(arg => arg.ui?.component !== 'combination-mode-form-input')
-                                    .map(arg => {
-                                        const argValue =
-                                            value.arguments.find(a => a.name === arg.name)?.value || '';
-                                        return (
-                                            <Field key={arg.name} className="gap-2">
-                                                <FieldLabel className="text-sm font-medium text-foreground">
-                                                    {arg.label || arg.name}
-                                                    {arg.required && !arg.list && (
-                                                        <span className="text-destructive ml-1">
-                                                            *
-                                                        </span>
-                                                    )}
-                                                </FieldLabel>
-                                                <ConfigurableOperationArgInput
-                                                    definition={arg}
-                                                    value={argValue}
-                                                    onChange={value =>
-                                                        handleInputChange(arg.name, value)
-                                                    }
-                                                    readOnly={readonly}
-                                                />
-                                            </Field>
-                                        );
-                                    })}
-                            </div>
+                            <ArgsFormGrid
+                                operationDefinition={operationDefinition}
+                                value={value}
+                                readonly={readonly}
+                                onArgChange={handleInputChange}
+                            />
                         </div>
                     </CardContent>
                 )}
             </Card>
+        </div>
+    );
+}
+
+interface ArgsFormGridProps {
+    operationDefinition: ConfigurableOperationDefFragment;
+    value: ConfigurableOperationInputType;
+    readonly?: boolean;
+    onArgChange: (name: string, value: string) => void;
+}
+
+function ArgsFormGrid({ operationDefinition, value, readonly, onArgChange }: Readonly<ArgsFormGridProps>) {
+    return (
+        <div
+            className={`grid gap-4 ${operationDefinition.args.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}
+        >
+            {operationDefinition.args
+                .filter(arg => arg.ui?.component !== 'combination-mode-form-input')
+                .map(arg => {
+                    const argValue = value.arguments.find(a => a.name === arg.name)?.value || '';
+                    return (
+                        <Field key={arg.name} className="gap-2">
+                            <FieldLabel className="text-sm font-medium text-foreground">
+                                {arg.label || arg.name}
+                                {arg.required && !arg.list && (
+                                    <span className="text-destructive ml-1">*</span>
+                                )}
+                            </FieldLabel>
+                            <ConfigurableOperationArgInput
+                                definition={arg}
+                                value={argValue}
+                                onChange={value => onArgChange(arg.name, value)}
+                                readOnly={readonly}
+                            />
+                        </Field>
+                    );
+                })}
         </div>
     );
 }

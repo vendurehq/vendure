@@ -60,18 +60,6 @@ export const paymentFragment = graphql(`
     }
 `);
 
-export const refundFragment = graphql(`
-    fragment Refund on Refund {
-        id
-        state
-        items
-        shipping
-        adjustment
-        transactionId
-        paymentId
-    }
-`);
-
 export const orderAddressFragment = graphql(`
     fragment OrderAddress on OrderAddress {
         fullName
@@ -126,6 +114,7 @@ export const paymentWithRefundsFragment = graphql(`
             reason
             transactionId
             method
+            destination
             metadata
             lines {
                 orderLineId
@@ -775,10 +764,20 @@ export const refundOrderDocument = graphql(
                     reason
                     transactionId
                     method
+                    destination
                     metadata
                     lines {
                         orderLineId
                         quantity
+                    }
+                }
+                ... on RefundIncompleteError {
+                    failedTargetIndex
+                    failureReason
+                    refunds {
+                        id
+                        total
+                        destination
                     }
                 }
                 ...ErrorResult
@@ -787,6 +786,16 @@ export const refundOrderDocument = graphql(
     `,
     [errorResultFragment],
 );
+
+export const refundDestinationsDocument = graphql(`
+    query RefundDestinations($orderId: ID!) {
+        refundDestinations(orderId: $orderId) {
+            code
+            description
+            availableForPaymentIds
+        }
+    }
+`);
 
 export const cancelOrderDocument = graphql(
     `

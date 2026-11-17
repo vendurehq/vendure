@@ -123,6 +123,8 @@ MyCustomInput.metadata = { // [!code highlight]
 type DashboardFormComponentMetadata = {
     isListInput?: boolean | 'dynamic';
     isFullWidth?: boolean;
+    summary?: React.ComponentType<DashboardFormComponentSummaryProps>;
+    popoverSize?: 'sm' | 'lg';
 }
 ```
 
@@ -141,12 +143,58 @@ handle both lists and single values.
 
 When true, the dashboard will render this form component so it spans
 the full width of the detail form grid.
+### summary
+
+<MemberInfo kind="property" type={`React.ComponentType<<a href='/reference/dashboard/extensions-api/form-components#dashboardformcomponentsummaryprops'>DashboardFormComponentSummaryProps</a>>`}  since="3.6.0"  />
+
+A component which renders a compact, read-only summary of the field's
+current value. Used by the configurable operation "sentence" UI to label
+the inline value chips. The component may use hooks and data fetching,
+e.g. to resolve entity IDs to display names.
+
+If not provided, a default summary based on the field type is used.
+### popoverSize
+
+<MemberInfo kind="property" type={`'sm' | 'lg'`}  since="3.6.0"  />
+
+A hint for how wide the popover should be when this component is
+rendered inside a configurable operation sentence chip popover.
+Defaults to `'sm'`.
+
+
+</div>
+## DashboardFormComponentSummaryProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="168" packageName="@vendure/dashboard" since="3.6.0" />
+
+Props received by a [DashboardFormComponentMetadata](/reference/dashboard/extensions-api/form-components#dashboardformcomponentmetadata) `summary` component.
+The `value` is the parsed value of the field (arrays for list fields).
+
+```ts title="Signature"
+type DashboardFormComponentSummaryProps = {
+    value: any;
+    fieldDef: ConfigurableFieldDef;
+}
+```
+
+<div className="members-wrapper">
+
+### value
+
+<MemberInfo kind="property" type={`any`}   />
+
+
+### fieldDef
+
+<MemberInfo kind="property" type={`ConfigurableFieldDef`}   />
+
+
 
 
 </div>
 ## DashboardFormComponent
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="166" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="201" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the common type for all custom form components registered for:
 

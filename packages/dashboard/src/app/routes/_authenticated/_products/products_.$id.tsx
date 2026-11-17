@@ -1,5 +1,5 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
-import { SlugInput } from '@/vdb/components/data-input/slug-input.js';
+import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/slug-input.js';
 import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
@@ -30,6 +30,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { Controller } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
@@ -59,7 +60,7 @@ export const Route = createFileRoute('/_authenticated/_products/products_/$id')(
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function NoVariantsPrompt({
@@ -136,10 +137,14 @@ function ProductDetailPage() {
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the Product update mutation is patch-style, so send only the fields the user
+        // changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         entityName: 'Product',
         queryDocument: productDetailDocument,
         createDocument: createProductDocument,
         updateDocument: updateProductDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
@@ -211,26 +216,40 @@ function ProductDetailPage() {
             <PageTitle>{creatingNewEntity ? <Trans>New product</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
-                    <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                    >
-                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <Controller
+                            control={form.control}
+                            name="enabled"
+                            render={({ field }) => (
+                                <div
+                                    className="flex items-center gap-2"
+                                    title={t`When enabled, a product is available in the shop`}
+                                    data-testid="product-enabled-switch"
+                                >
+                                    <label
+                                        htmlFor="product-enabled-switch-input"
+                                        className="text-sm font-medium"
+                                    >
+                                        <Trans>Enabled</Trans>
+                                    </label>
+                                    <Switch
+                                        id="product-enabled-switch-input"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <Button
+                            type="submit"
+                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                        >
+                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                        </Button>
+                    </div>
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                <PageBlock column="side" blockId="enabled-toggle">
-                    <FormFieldWrapper
-                        control={form.control}
-                        name="enabled"
-                        label={<Trans>Enabled</Trans>}
-                        description={<Trans>When enabled, a product is available in the shop</Trans>}
-                        render={({ field }) => (
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        )}
-                    />
-                </PageBlock>
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper
@@ -264,20 +283,20 @@ function ProductDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Product" control={form.control} />
                 {entity && entity.variantList.totalItems > 0 && (
-                    <PageBlock column="main" blockId="product-variants-table">
+                    <PageBlock column="main" blockId="product-variants-table" layout="bare">
                         <ProductVariantsTable
                             productId={params.id}
                             registerRefresher={refresher => {
                                 refreshRef.current = refresher;
                             }}
-                            fromProductDetailPage={true}
+                            title={<Trans>Product variants</Trans>}
+                            actions={
+                                <Button render={<Link to="./variants" />} variant="outline" size="sm">
+                                    <PlusIcon className="mr-2 h-4 w-4" />
+                                    <Trans>Manage variants</Trans>
+                                </Button>
+                            }
                         />
-                        <div className="mt-4 flex gap-2">
-                            <Button render={<Link to="./variants" />} variant="outline">
-                                <PlusIcon className="mr-2 h-4 w-4" />
-                                <Trans>Manage variants</Trans>
-                            </Button>
-                        </div>
                     </PageBlock>
                 )}
                 {entity && entity.variantList.totalItems === 0 && (

@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtra per valori attributo",
+        "args": {
+          "facetValueIds": {
+            "label": "Valori attributo"
+          },
+          "containsAny": {
+            "label": "Contiene almeno uno",
+            "description": "Se selezionato, le varianti prodotto devono avere almeno uno dei valori attributo selezionati. Se non selezionato, la variante deve avere tutti i valori selezionati."
+          },
+          "combineWithAnd": {
+            "label": "Modalità di combinazione",
+            "description": "Se questo filtro viene combinato con altri filtri, devono essere soddisfatte tutte le condizioni (AND) oppure ne basta una sola (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtra per nome della variante prodotto",
+        "args": {
+          "combineWithAnd": {
+            "label": "Modalità di combinazione",
+            "description": "Se questo filtro viene combinato con altri filtri, devono essere soddisfatte tutte le condizioni (AND) oppure ne basta una sola (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Seleziona manualmente le varianti prodotto",
+        "args": {
+          "variantIds": {
+            "label": "Varianti prodotto"
+          },
+          "combineWithAnd": {
+            "label": "Modalità di combinazione",
+            "description": "Se questo filtro viene combinato con altri filtri, devono essere soddisfatte tutte le condizioni (AND) oppure ne basta una sola (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Seleziona manualmente i prodotti",
+        "args": {
+          "productIds": {
+            "label": "Prodotti"
+          },
+          "combineWithAnd": {
+            "label": "Modalità di combinazione",
+            "description": "Se questo filtro viene combinato con altri filtri, devono essere soddisfatte tutte le condizioni (AND) oppure ne basta una sola (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Duplicatore predefinito per i prodotti",
+        "args": {
+          "includeVariants": {
+            "label": "Includi varianti"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Duplicatore predefinito per le collezioni"
+      },
+      "facet-duplicator": {
+        "description": "Duplicatore predefinito per le facette",
+        "args": {
+          "includeFacetValues": {
+            "label": "Includi valori attributo"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Duplicatore predefinito per le promozioni"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Inserire manualmente i dettagli della spedizione"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Un fornitore di pagamento fittizio destinato esclusivamente a test e sviluppo.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autorizza e liquida in 1 passaggio",
+            "description": "Se attivato, i pagamenti verranno creati nello stato \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Fornitore di pagamento di esempio"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Applica uno sconto di importo fisso all'ordine"
+      },
+      "order_line_fixed_discount": {
+        "description": "Applica uno sconto di importo fisso alla orderLine"
+      },
+      "order_percentage_discount": {
+        "description": "Applica uno sconto del { discount }% all'ordine"
+      },
+      "facet_based_discount": {
+        "description": "Applica uno sconto del { discount }% ai prodotti con queste facette"
+      },
+      "products_percentage_discount": {
+        "description": "Applica uno sconto del { discount }% ai prodotti specificati",
+        "args": {
+          "productVariantIds": {
+            "label": "Varianti prodotto"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Spedizione gratuita"
+      },
+      "buy_x_get_y_free": {
+        "description": "Acquistare X prodotti e ricevere Y prodotti gratis"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Se il totale dell'ordine è maggiore di { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Acquistare almeno { minimum } prodotti con le facette indicate"
+      },
+      "contains_products": {
+        "description": "Acquistare almeno { minimum } dei prodotti specificati",
+        "args": {
+          "productVariantIds": {
+            "label": "Varianti prodotto"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Il cliente appartiene al gruppo specificato",
+        "args": {
+          "customerGroupId": {
+            "label": "Gruppo clienti"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Acquistare X prodotti e ricevere Y prodotti gratis",
+        "args": {
+          "variantIdsX": {
+            "label": "Acquistare amountX di queste varianti"
+          },
+          "variantIdsY": {
+            "label": "Ricevere gratis amountY di queste varianti"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Calcolatore di spedizione a tariffa fissa predefinito",
+        "args": {
+          "rate": {
+            "label": "Prezzo di spedizione"
+          },
+          "includesTax": {
+            "label": "Il prezzo include le imposte",
+            "options": {
+              "include": {
+                "label": "Imposte incluse"
+              },
+              "exclude": {
+                "label": "Imposte escluse"
+              },
+              "auto": {
+                "label": "Automatico (in base al canale)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Aliquota fiscale"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Verificatore di idoneità alla spedizione predefinito",
+        "args": {
+          "orderMinimum": {
+            "label": "Valore minimo dell'ordine",
+            "description": "L'ordine è idoneo solo se il suo totale è maggiore o uguale a questo valore"
+          }
+        }
+      }
+    }
+  }
+}

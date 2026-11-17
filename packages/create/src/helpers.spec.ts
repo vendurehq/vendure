@@ -7,12 +7,13 @@ import path from 'node:path';
 import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { REQUIRED_NODE_VERSION } from './constants';
+import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
     detectPackageManager,
     findAvailablePort,
+    getDependencies,
     getInstallCommand,
     getMonorepoRootPackageJson,
     getNativeBuildDependencies,
@@ -411,6 +412,7 @@ describe('getMonorepoRootPackageJson', () => {
             bcrypt: { built: true },
             'better-sqlite3': { built: true },
             esbuild: { built: true },
+            re2: { built: true },
             sharp: { built: true },
         });
         expect(
@@ -419,6 +421,38 @@ describe('getMonorepoRootPackageJson', () => {
         expect(
             getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').dependenciesMeta,
         ).toBeUndefined();
+    });
+
+    // bun blocks dependency lifecycle scripts unless listed in `trustedDependencies`.
+    it('adds trustedDependencies only for bun, driver-aware', () => {
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').trustedDependencies,
+        ).toEqual(['bcrypt', 'better-sqlite3', 'esbuild', 're2', 'sharp']);
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'postgres').trustedDependencies,
+        ).toEqual(['bcrypt', 'esbuild', 'sharp']);
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('yarn'), 'sqlite').trustedDependencies,
+        ).toBeUndefined();
+    });
+
+    // npm ≥12 blocks dependency install scripts unless listed in `allowScripts`.
+    it('adds allowScripts only for npm, driver-aware', () => {
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').allowScripts).toEqual({
+            bcrypt: true,
+            'better-sqlite3': true,
+            esbuild: true,
+            re2: true,
+            sharp: true,
+        });
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'postgres').allowScripts,
+        ).toEqual({ bcrypt: true, esbuild: true, sharp: true });
+        for (const pm of ['yarn', 'pnpm', 'bun'] as const) {
+            expect(
+                getMonorepoRootPackageJson('x', getPackageManagerInfo(pm), 'sqlite').allowScripts,
+            ).toBeUndefined();
+        }
     });
 });
 
@@ -445,6 +479,23 @@ describe('getSingleProjectPackageJson', () => {
         expect(
             getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').dependenciesMeta,
         ).toBeUndefined();
+        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').allowScripts).toEqual(
+            {
+                bcrypt: true,
+                'better-sqlite3': true,
+                esbuild: true,
+                re2: true,
+                sharp: true,
+            },
+        );
+        expect(
+            getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'postgres').allowScripts,
+        ).toEqual({ bcrypt: true, esbuild: true, sharp: true });
+        for (const pm of ['yarn', 'pnpm', 'bun'] as const) {
+            expect(
+                getSingleProjectPackageJson('x', getPackageManagerInfo(pm), 'sqlite').allowScripts,
+            ).toBeUndefined();
+        }
     });
 });
 
@@ -457,11 +508,12 @@ describe('getNativeBuildDependencies', () => {
         }
     });
 
-    it('adds better-sqlite3 for the SQLite driver', () => {
+    it('adds better-sqlite3 and re2 for the SQLite driver', () => {
         expect(getNativeBuildDependencies('sqlite')).toEqual([
             'bcrypt',
             'better-sqlite3',
             'esbuild',
+            're2',
             'sharp',
         ]);
     });
@@ -475,8 +527,10 @@ describe('getPnpmWorkspaceYaml', () => {
         const yaml = getPnpmWorkspaceYaml('sqlite');
         expect(yaml).toContain('onlyBuiltDependencies:');
         expect(yaml).toContain('    - better-sqlite3');
+        expect(yaml).toContain('    - re2');
         expect(yaml).toContain('allowBuilds:');
         expect(yaml).toContain('    better-sqlite3: true');
+        expect(yaml).toContain('    re2: true');
         expect(yaml).not.toContain('packages:');
     });
 
@@ -500,6 +554,7 @@ describe('getYarnDependenciesMeta', () => {
             bcrypt: { built: true },
             'better-sqlite3': { built: true },
             esbuild: { built: true },
+            re2: { built: true },
             sharp: { built: true },
         });
     });
@@ -562,11 +617,44 @@ describe('registerTemplateHelpers + Dockerfile template', () => {
 
     it('renders a pnpm Dockerfile on node with corepack and a frozen install', () => {
         const out = renderDockerfile('pnpm');
-        expect(out).toContain('FROM node:20');
+        expect(out).toContain('FROM node:24');
         expect(out).toContain('RUN corepack enable');
         expect(out).toContain('COPY package.json pnpm-lock.yaml ./');
         expect(out).toContain('RUN pnpm install --frozen-lockfile');
         expect(out).toContain('RUN pnpm run build');
+    });
+
+    // The install and build steps need dev dependencies, so NODE_ENV=production must come after them.
+    it.each(['npm', 'bun'] as const)('sets NODE_ENV=production after the %s build step', pm => {
+        const lines = renderDockerfile(pm).split('\n');
+        const envLine = lines.indexOf('ENV NODE_ENV=production');
+        const buildLine = lines.findIndex(line => line.startsWith('RUN') && line.endsWith('run build'));
+        const installLine = lines.indexOf(`RUN ${getPackageManagerInfo(pm).ciInstall}`);
+        expect(installLine).toBeGreaterThan(-1);
+        expect(envLine).toBeGreaterThan(-1);
+        expect(buildLine).toBeGreaterThan(installLine);
+        expect(envLine).toBeGreaterThan(buildLine);
+    });
+});
+
+// The scaffolded .env sets APP_ENV=dev, which enables the EmailPlugin dev mailbox and other
+// dev-only settings, so it must not be committed or copied into the Docker image.
+describe('ignore templates', () => {
+    function readTemplateLines(fileName: string): string[] {
+        return fs.readFileSync(path.join(__dirname, '../templates', fileName), 'utf-8').split('\n');
+    }
+
+    it('keeps .env out of git', () => {
+        expect(readTemplateLines('gitignore.template')).toEqual(
+            expect.arrayContaining(['.env', '.env.*', '!.env.example']),
+        );
+        expect(readTemplateLines('monorepo/root-gitignore.template')).toContain('.env');
+    });
+
+    it('keeps .env and local build output out of the Docker build context', () => {
+        expect(readTemplateLines('dockerignore.template')).toEqual(
+            expect.arrayContaining(['.env', '.env.*', 'node_modules', 'dist']),
+        );
     });
 });
 
@@ -695,5 +783,28 @@ describe('installPackages', () => {
         await expect(
             installPackages({ dependencies: ['dotenv'], logLevel: 'info', packageManager: 'yarn' }),
         ).rejects.toThrow(/Is yarn installed and on your PATH\?/);
+    });
+});
+
+describe('getDependencies', () => {
+    it('adds typeorm as a direct dependency only for pnpm', () => {
+        const pnpmDeps = getDependencies('postgres', '@3.7.0', 'pnpm').dependencies;
+        expect(pnpmDeps).toContain(`typeorm@${TYPEORM_VERSION}`);
+
+        for (const pm of ['npm', 'yarn', 'bun'] as const) {
+            const deps = getDependencies('postgres', '@3.7.0', pm).dependencies;
+            expect(deps.some(d => d.startsWith('typeorm'))).toBe(false);
+        }
+        // Unspecified package manager must not add typeorm either.
+        const noPmDeps = getDependencies('postgres', '@3.7.0').dependencies;
+        expect(noPmDeps.some(d => d.startsWith('typeorm'))).toBe(false);
+    });
+
+    // The typeorm pin used for pnpm projects must match the range @vendure/core depends on, so that
+    // pnpm dedupes to a single TypeORM instance. This fails if core bumps typeorm without the
+    // scaffold's TYPEORM_VERSION being updated to match.
+    it('pins typeorm to the same range as @vendure/core', () => {
+        const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
+        expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
     });
 });

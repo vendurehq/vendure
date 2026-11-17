@@ -1,6 +1,7 @@
 import { cancel, intro, isCancel, log, outro, select, text } from '@clack/prompts';
 import pc from 'picocolors';
 
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
 
 const cancelledMessage = 'Schema generation cancelled.';
@@ -41,8 +42,9 @@ async function handleNonInteractiveMode(options: SchemaOptions) {
         const { generateSchema } = await import('./generate-schema/generate-schema');
         await generateSchema(options);
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exit(1);
+        exitCliCommand(1);
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }
@@ -69,7 +71,7 @@ async function handleInteractiveMode(configFile?: string) {
 
     if (isCancel(apiType)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const format: 'sdl' | 'json' | symbol = await withInteractiveTimeout(async () => {
@@ -84,7 +86,7 @@ async function handleInteractiveMode(configFile?: string) {
 
     if (isCancel(format)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     const outputDir = await withInteractiveTimeout(async () => {
         return await text({
@@ -94,7 +96,7 @@ async function handleInteractiveMode(configFile?: string) {
     }, schemaInteractiveTimeoutOptions);
     if (isCancel(outputDir)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const fileName = await withInteractiveTimeout(async () => {
@@ -107,7 +109,7 @@ async function handleInteractiveMode(configFile?: string) {
 
     if (isCancel(fileName)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
@@ -121,8 +123,9 @@ async function handleInteractiveMode(configFile?: string) {
         });
         outro('✅ Done!');
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exitCode = 1;
+        exitCliCommand(1);
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }

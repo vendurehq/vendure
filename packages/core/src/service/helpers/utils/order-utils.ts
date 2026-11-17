@@ -145,7 +145,7 @@ export async function getOrdersFromLines(
     const orders = new Map<ID, Order>();
     const lines = await connection.getRepository(ctx, OrderLine).find({
         where: { id: In(orderLinesInput.map(l => l.orderLineId)) },
-        relations: ['order', 'order.channels'],
+        relations: { order: { channels: true } },
         order: { id: 'ASC' },
     });
     for (const line of lines) {

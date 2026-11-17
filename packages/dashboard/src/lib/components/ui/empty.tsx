@@ -5,4 +5,4 @@ export {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-} from '@vendure-io/ui/components/ui/empty';
+} from '@vendure-io/ui/components/atoms/empty';

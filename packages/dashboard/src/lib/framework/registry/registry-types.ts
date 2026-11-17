@@ -6,8 +6,10 @@ import {
     DashboardHistoryEntryComponent,
     DashboardLoginExtensions,
     DashboardPageBlockDefinition,
+    DashboardRefundDestinationDefinition,
     DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
+    DashboardWidgetFilterDefinition,
 } from '@/vdb/framework/extension-api/types/index.js';
 import { DashboardFormComponent } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { DocumentNode } from 'graphql';
@@ -24,6 +26,8 @@ export interface GlobalRegistryContents {
     dashboardActionBarItemRegistry: Map<string, DashboardActionBarItem[]>;
     dashboardPageBlockRegistry: Map<string, DashboardPageBlockDefinition[]>;
     dashboardWidgetRegistry: Map<string, DashboardWidgetDefinition>;
+    excludedDashboardWidgets: Set<string>;
+    dashboardWidgetFilterRegistry: Map<string, DashboardWidgetFilterDefinition>;
     dashboardAlertRegistry: Map<string, DashboardAlertDefinition>;
     inputComponents: Map<string, DashboardFormComponent>;
     displayComponents: Map<string, DataDisplayComponent | DataTableDisplayComponent>;
@@ -33,6 +37,7 @@ export interface GlobalRegistryContents {
     viewOptionDefaultsRegistry: Map<string, DashboardDataTableViewOptionDefaults>;
     loginExtensions: DashboardLoginExtensions;
     historyEntries: Map<string, DashboardHistoryEntryComponent['component']>;
+    refundDestinations: Map<string, DashboardRefundDestinationDefinition>;
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
     dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;

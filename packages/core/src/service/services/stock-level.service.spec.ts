@@ -1,12 +1,375 @@
+import { GlobalFlag } from '@vendure/common/lib/generated-types';
+import { LockNotSupportedOnGivenDriverError, PessimisticLockTransactionRequiredError } from 'typeorm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
+import { DefaultStockLocationStrategy } from '../../config/catalog/default-stock-location-strategy';
+import { Logger } from '../../config/logger/vendure-logger';
 import { Channel } from '../../entity/channel/channel.entity';
+import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
 
 import { StockLevelService } from './stock-level.service';
+
+/**
+ * Unit tests for the two properties which the e2e tests cannot observe from outside:
+ *
+ * 1. The stock level change goes through `Repository.increment()`, which writes an atomic
+ *    `column = column + change` SQL expression, never a value computed in JavaScript.
+ * 2. The saleable stock check reads the StockLevel rows under a `pessimistic_write` lock,
+ *    in a fixed row order, and degrades to an unlocked read on drivers which have no
+ *    row locks.
+ *
+ * See GHSA-8ghm-q833-cmgp.
+ */
+describe('StockLevelService locking and atomic updates', () => {
+    const ctx = {} as RequestContext;
+
+    let capturedIncrements: Array<{ conditions: any; property: string; value: number }>;
+    let capturedSaves: any[];
+    let selectQueryBuilder: any;
+    let findResult: StockLevel[];
+    let findOneResult: StockLevel | null;
+    let capturedUpdates: Array<{ criteria: any; partial: any }>;
+    let updateAffected: number;
+    let variants: ProductVariant[];
+    let globalTrackInventory: boolean;
+
+    function createRepository() {
+        return {
+            findOne: vi.fn(() => Promise.resolve(findOneResult)),
+            find: vi.fn(() => Promise.resolve(findResult)),
+            save: vi.fn((entity: any) => {
+                capturedSaves.push(entity);
+                return Promise.resolve(entity);
+            }),
+            increment: vi.fn((conditions: any, property: string, value: number) => {
+                capturedIncrements.push({ conditions, property, value });
+                return Promise.resolve({ affected: 1 });
+            }),
+            update: vi.fn((criteria: any, partial: any) => {
+                capturedUpdates.push({ criteria, partial });
+                return Promise.resolve({ affected: updateAffected });
+            }),
+            createQueryBuilder: vi.fn(() => selectQueryBuilder),
+        };
+    }
+
+    function createService() {
+        const variantRepository = { find: vi.fn(() => Promise.resolve(variants)) };
+        const connection: any = {
+            getRepository: vi.fn((_ctx: any, entity: any) =>
+                entity === ProductVariant ? variantRepository : createRepository(),
+            ),
+        };
+        const configService: any = {
+            catalogOptions: { stockLocationStrategy: new DefaultStockLocationStrategy() },
+        };
+        const globalSettingsService: any = {
+            getSettings: () => Promise.resolve({ trackInventory: globalTrackInventory }),
+        };
+        return new StockLevelService(
+            connection,
+            {} as any,
+            configService,
+            new RequestContextCacheService(),
+            globalSettingsService,
+        );
+    }
+
+    beforeEach(() => {
+        capturedIncrements = [];
+        capturedSaves = [];
+        capturedUpdates = [];
+        updateAffected = 0;
+        variants = [];
+        globalTrackInventory = true;
+        findResult = [];
+        findOneResult = new StockLevel({ id: 42, stockOnHand: 10, stockAllocated: 3 });
+        selectQueryBuilder = {
+            setLock: vi.fn(() => selectQueryBuilder),
+            where: vi.fn(() => selectQueryBuilder),
+            orderBy: vi.fn(() => selectQueryBuilder),
+            getMany: vi.fn(() => Promise.resolve(findResult)),
+        };
+    });
+
+    describe('atomic stock level updates', () => {
+        it('updateStockAllocatedForLocation increments the column in SQL', async () => {
+            await createService().updateStockAllocatedForLocation(ctx, 1, 1, 5);
+
+            expect(capturedIncrements).toEqual([
+                { conditions: { id: 42 }, property: 'stockAllocated', value: 5 },
+            ]);
+        });
+
+        it('updateStockOnHandForLocation increments the column in SQL', async () => {
+            await createService().updateStockOnHandForLocation(ctx, 1, 1, -2);
+
+            expect(capturedIncrements).toEqual([
+                { conditions: { id: 42 }, property: 'stockOnHand', value: -2 },
+            ]);
+        });
+
+        it('creates the StockLevel row when none exists yet', async () => {
+            findOneResult = null;
+
+            await createService().updateStockOnHandForLocation(ctx, 1, 1, 7);
+
+            expect(capturedIncrements.length).toBe(0);
+            expect(capturedSaves.length).toBe(1);
+            expect(capturedSaves[0]).toMatchObject({
+                productVariantId: 1,
+                stockLocationId: 1,
+                stockOnHand: 7,
+                stockAllocated: 0,
+            });
+        });
+
+        it('does not clamp stockAllocated when the change is positive', async () => {
+            await createService().updateStockAllocatedForLocation(ctx, 1, 1, 5);
+
+            expect(capturedUpdates.length).toBe(0);
+        });
+
+        it('clamps a negative stockAllocated to 0 in SQL after a release', async () => {
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            try {
+                await createService().updateStockAllocatedForLocation(ctx, 1, 1, -2);
+
+                expect(capturedIncrements).toEqual([
+                    { conditions: { id: 42 }, property: 'stockAllocated', value: -2 },
+                ]);
+                expect(capturedUpdates.length).toBe(1);
+                expect(capturedUpdates[0].criteria.id).toBe(42);
+                expect(capturedUpdates[0].criteria.stockAllocated.type).toBe('lessThan');
+                expect(capturedUpdates[0].criteria.stockAllocated.value).toBe(0);
+                expect(capturedUpdates[0].partial).toEqual({ stockAllocated: 0 });
+                expect(warnSpy).not.toHaveBeenCalled();
+            } finally {
+                warnSpy.mockRestore();
+            }
+        });
+
+        it('warns when the clamp fires', async () => {
+            updateAffected = 1;
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            try {
+                await createService().updateStockAllocatedForLocation(ctx, 1, 1, -5);
+
+                expect(warnSpy).toHaveBeenCalledTimes(1);
+                expect(warnSpy.mock.calls[0][0]).toContain('clamped to 0');
+            } finally {
+                warnSpy.mockRestore();
+            }
+        });
+
+        it('does nothing when allocating against a StockLevel row which does not exist', async () => {
+            findOneResult = null;
+
+            await createService().updateStockAllocatedForLocation(ctx, 1, 1, 7);
+
+            expect(capturedIncrements.length).toBe(0);
+            expect(capturedSaves.length).toBe(0);
+        });
+    });
+
+    describe('getAvailableStock', () => {
+        it('does not lock by default', async () => {
+            findResult = [new StockLevel({ id: 1, productVariantId: 1, stockOnHand: 10, stockAllocated: 2 })];
+
+            const result = await createService().getAvailableStock(ctx, 1);
+
+            expect(selectQueryBuilder.setLock).not.toHaveBeenCalled();
+            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2 });
+        });
+
+        it('takes a write lock in a fixed row order when asked to', async () => {
+            findResult = [new StockLevel({ id: 1, stockOnHand: 10, stockAllocated: 2 })];
+
+            const result = await createService().getAvailableStock(ctx, 1, { lockStockLevels: true });
+
+            expect(selectQueryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+            expect(selectQueryBuilder.orderBy).toHaveBeenCalledWith('stockLevel.id', 'ASC');
+            expect(result).toEqual({ stockOnHand: 10, stockAllocated: 2 });
+        });
+
+        it('warns and falls back to an unlocked read on drivers without row locks', async () => {
+            findResult = [new StockLevel({ id: 1, stockOnHand: 4, stockAllocated: 1 })];
+            selectQueryBuilder.getMany = vi.fn(() =>
+                Promise.reject(new LockNotSupportedOnGivenDriverError()),
+            );
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            try {
+                const result = await createService().getAvailableStock(ctx, 1, { lockStockLevels: true });
+
+                expect(result).toEqual({ stockOnHand: 4, stockAllocated: 1 });
+                expect(warnSpy).toHaveBeenCalledTimes(1);
+                expect(warnSpy.mock.calls[0][0]).toContain('does not support row locking');
+            } finally {
+                warnSpy.mockRestore();
+            }
+        });
+
+        it('warns about missing row lock support only once', async () => {
+            findResult = [new StockLevel({ id: 1, stockOnHand: 4, stockAllocated: 1 })];
+            selectQueryBuilder.getMany = vi.fn(() =>
+                Promise.reject(new LockNotSupportedOnGivenDriverError()),
+            );
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            try {
+                const service = createService();
+                await service.getAvailableStock(ctx, 1, { lockStockLevels: true });
+                await service.getAvailableStock(ctx, 1, { lockStockLevels: true });
+
+                expect(warnSpy).toHaveBeenCalledTimes(1);
+            } finally {
+                warnSpy.mockRestore();
+            }
+        });
+
+        it('warns and falls back to an unlocked read when no transaction is open', async () => {
+            findResult = [new StockLevel({ id: 1, stockOnHand: 6, stockAllocated: 2 })];
+            selectQueryBuilder.getMany = vi.fn(() =>
+                Promise.reject(new PessimisticLockTransactionRequiredError()),
+            );
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            try {
+                const result = await createService().getAvailableStock(ctx, 1, { lockStockLevels: true });
+
+                expect(result).toEqual({ stockOnHand: 6, stockAllocated: 2 });
+                expect(warnSpy).toHaveBeenCalledTimes(1);
+                expect(warnSpy.mock.calls[0][0]).toContain('no transaction is in progress');
+            } finally {
+                warnSpy.mockRestore();
+            }
+        });
+
+        it('warns about a missing transaction only once', async () => {
+            selectQueryBuilder.getMany = vi.fn(() =>
+                Promise.reject(new PessimisticLockTransactionRequiredError()),
+            );
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            try {
+                const service = createService();
+                await service.getLockedStockLevelsForVariant(ctx, 1);
+                await service.getAvailableStock(ctx, 1, { lockStockLevels: true });
+
+                expect(warnSpy).toHaveBeenCalledTimes(1);
+                expect(warnSpy.mock.calls[0][1]).toBe('StockLevelService');
+            } finally {
+                warnSpy.mockRestore();
+            }
+        });
+
+        it('locks several variants once each, in the shared lock order', async () => {
+            variants = [10, 9, 2].map(id => new ProductVariant({ id, trackInventory: GlobalFlag.TRUE }));
+
+            await createService().lockStockLevelsForVariants(ctx, [10, 9, 10, 2]);
+
+            expect(
+                selectQueryBuilder.where.mock.calls.map((call: any[]) => call[1].productVariantId),
+            ).toEqual([2, 9, 10]);
+            expect(selectQueryBuilder.setLock).toHaveBeenCalledTimes(3);
+        });
+
+        it('does not lock variants which do not track inventory', async () => {
+            globalTrackInventory = false;
+            variants = [
+                new ProductVariant({ id: 1, trackInventory: GlobalFlag.TRUE }),
+                new ProductVariant({ id: 2, trackInventory: GlobalFlag.FALSE }),
+                new ProductVariant({ id: 3, trackInventory: GlobalFlag.INHERIT }),
+            ];
+
+            await createService().lockStockLevelsForVariants(ctx, [1, 2, 3]);
+
+            expect(
+                selectQueryBuilder.where.mock.calls.map((call: any[]) => call[1].productVariantId),
+            ).toEqual([1]);
+        });
+
+        it('locks variants which inherit inventory tracking when it is on globally', async () => {
+            globalTrackInventory = true;
+            variants = [
+                new ProductVariant({ id: 2, trackInventory: GlobalFlag.FALSE }),
+                new ProductVariant({ id: 3, trackInventory: GlobalFlag.INHERIT }),
+            ];
+
+            await createService().lockStockLevelsForVariants(ctx, [2, 3]);
+
+            expect(
+                selectQueryBuilder.where.mock.calls.map((call: any[]) => call[1].productVariantId),
+            ).toEqual([3]);
+        });
+
+        it('locks variants which do not track inventory when asked to include them', async () => {
+            globalTrackInventory = false;
+            variants = [
+                new ProductVariant({ id: 1, trackInventory: GlobalFlag.TRUE }),
+                new ProductVariant({ id: 2, trackInventory: GlobalFlag.FALSE }),
+                new ProductVariant({ id: 3, trackInventory: GlobalFlag.INHERIT }),
+            ];
+
+            await createService().lockStockLevelsForVariants(ctx, [3, 1, 2], {
+                includeUntrackedVariants: true,
+            });
+
+            expect(
+                selectQueryBuilder.where.mock.calls.map((call: any[]) => call[1].productVariantId),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it('deduplicates when including untracked variants', async () => {
+            await createService().lockStockLevelsForVariants(ctx, [10, 9, 10, 2], {
+                includeUntrackedVariants: true,
+            });
+
+            expect(
+                selectQueryBuilder.where.mock.calls.map((call: any[]) => call[1].productVariantId),
+            ).toEqual([2, 9, 10]);
+        });
+
+        it('does not read the ProductVariants at all when including untracked variants', async () => {
+            const variantRepositoryFind = vi.fn(() => Promise.resolve(variants));
+            const connection: any = {
+                getRepository: vi.fn((_ctx: any, entity: any) =>
+                    entity === ProductVariant ? { find: variantRepositoryFind } : createRepository(),
+                ),
+            };
+            const service = new StockLevelService(
+                connection,
+                {} as any,
+                { catalogOptions: { stockLocationStrategy: new DefaultStockLocationStrategy() } } as any,
+                new RequestContextCacheService(),
+                { getSettings: () => Promise.resolve({ trackInventory: true }) } as any,
+            );
+
+            await service.lockStockLevelsForVariants(ctx, [1, 2], { includeUntrackedVariants: true });
+
+            expect(variantRepositoryFind).not.toHaveBeenCalled();
+        });
+
+        it('does not mutate the ids passed by the caller', async () => {
+            const ids = [10, 9, 2];
+
+            await createService().lockStockLevelsForVariants(ctx, ids, {
+                includeUntrackedVariants: true,
+            });
+
+            expect(ids).toEqual([10, 9, 2]);
+        });
+
+        it('rethrows errors which are not about locking support', async () => {
+            selectQueryBuilder.getMany = vi.fn(() => Promise.reject(new Error('connection lost')));
+
+            await expect(
+                createService().getAvailableStock(ctx, 1, { lockStockLevels: true }),
+            ).rejects.toThrow('connection lost');
+        });
+    });
+});
 
 /**
  * Unit tests for the request-scoped batching of StockLevel lookups. Concurrent lookups within
@@ -152,14 +515,13 @@ describe('StockLevelService', () => {
             {} as any,
             mockConfigService,
             new RequestContextCacheService(),
+            {} as any,
         );
     });
 
     describe('getAvailableStock', () => {
         it('batches concurrent lookups into a single query', async () => {
-            const results = await Promise.all(
-                [1, 2, 3, 4, 5].map(id => service.getAvailableStock(ctx, id)),
-            );
+            const results = await Promise.all([1, 2, 3, 4, 5].map(id => service.getAvailableStock(ctx, id)));
 
             expect(find).toHaveBeenCalledTimes(1);
             expect(results.map(r => r.stockOnHand)).toEqual([10, 20, 30, 40, 50]);
@@ -192,10 +554,7 @@ describe('StockLevelService', () => {
         });
 
         it('does not share a batch across RequestContexts', async () => {
-            await Promise.all([
-                service.getAvailableStock(ctx, 1),
-                service.getAvailableStock(newCtx(), 2),
-            ]);
+            await Promise.all([service.getAvailableStock(ctx, 1), service.getAvailableStock(newCtx(), 2)]);
 
             expect(find).toHaveBeenCalledTimes(2);
         });

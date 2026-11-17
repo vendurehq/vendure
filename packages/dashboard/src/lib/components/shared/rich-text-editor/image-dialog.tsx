@@ -219,7 +219,6 @@ export function ImageDialog({ editor, isOpen, onClose }: Readonly<ImageDialogPro
                 onClose={() => setAssetPickerOpen(false)}
                 onSelect={handleAssetSelect}
                 multiSelect={false}
-                title="Select asset"
             />
         </>
     );

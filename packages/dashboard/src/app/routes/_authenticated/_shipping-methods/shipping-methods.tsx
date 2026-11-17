@@ -3,7 +3,7 @@ import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/orde
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import {
@@ -20,6 +20,7 @@ export const Route = createFileRoute('/_authenticated/_shipping-methods/shipping
 });
 
 function ShippingMethodListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             pageId="shipping-method-list"
@@ -39,6 +40,7 @@ function ShippingMethodListPage() {
                     cell: RichTextDescriptionCell,
                 },
             }}
+            searchPlaceholder={t`Search shipping methods...`}
             onSearchTermChange={searchTerm => {
                 return {
                     name: { contains: searchTerm },

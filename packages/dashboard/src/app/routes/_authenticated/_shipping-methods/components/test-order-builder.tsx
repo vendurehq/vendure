@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LS_KEY_SHIPPING_TEST_ORDER } from '@/vdb/constants.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import {
     ColumnDef,
     flexRender,
@@ -165,7 +165,7 @@ export function TestOrderBuilder({ onOrderLinesChange }: Readonly<TestOrderBuild
                     </span>
                     {lines.length > 0 && (
                         <span className="text-sm text-muted-foreground">
-                            {lines.length} item{lines.length !== 1 ? 's' : ''} •{' '}
+                            <Plural value={lines.length} one="# item" other="# items" /> •{' '}
                             {formatCurrency(subTotal, currencyCode)}
                         </span>
                     )}

@@ -61,7 +61,7 @@ export function OptionValueInput({
 
             <div className="flex flex-wrap gap-2">
                 {fields.map((field, index) => (
-                    <Badge key={field.id} variant="secondary" className="flex items-center gap-1 py-1 px-2">
+                    <Badge key={field.id} variant="default" className="flex items-center gap-1 py-1 px-2">
                         {field.value}
                         <Button
                             type="button"

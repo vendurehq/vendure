@@ -1,6 +1,8 @@
 import { AdjustmentType } from '@vendure/common/lib/generated-shop-types';
 import {
     AccountRegistrationEvent,
+    Administrator,
+    AdministratorPasswordResetEvent,
     CurrencyCode,
     Customer,
     IdentifierChangeRequestEvent,
@@ -124,6 +126,23 @@ export const mockPasswordResetEvent = new PasswordResetEvent(
     {} as any,
     new User({
         identifier: 'test@test.com',
+        authenticationMethods: [
+            new NativeAuthenticationMethod({
+                passwordResetToken: 'MjAxOS0wNC0xNVQxMzozMDozOC43MjFa_MA2FR6HRZBW7JWD6',
+            }),
+        ],
+    }),
+);
+
+export const mockAdminPasswordResetEvent = new AdministratorPasswordResetEvent(
+    {} as any,
+    new Administrator({
+        firstName: 'Test',
+        lastName: 'Admin',
+        emailAddress: 'admin@test.com',
+    }),
+    new User({
+        identifier: 'admin@test.com',
         authenticationMethods: [
             new NativeAuthenticationMethod({
                 passwordResetToken: 'MjAxOS0wNC0xNVQxMzozMDozOC43MjFa_MA2FR6HRZBW7JWD6',

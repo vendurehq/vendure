@@ -5,6 +5,7 @@ import {
     dummyPaymentHandler,
     EventBus,
     LanguageCode,
+    PaymentMethodEligibilityChecker,
     PaymentMethodEvent,
     PromotionCondition,
     PromotionEvent,
@@ -54,6 +55,13 @@ const testPromoAction = new PromotionOrderAction({
  *
  * See https://github.com/vendurehq/vendure/issues/4351
  */
+const alwaysEligibleChecker = new PaymentMethodEligibilityChecker({
+    code: 'always-eligible',
+    description: [{ languageCode: LanguageCode.en, value: 'Always eligible' }],
+    args: {},
+    check: () => true,
+});
+
 describe('Entity event updated state', () => {
     const { server, adminClient } = createTestEnvironment({
         ...testConfig(),
@@ -67,6 +75,7 @@ describe('Entity event updated state', () => {
         },
         paymentOptions: {
             paymentMethodHandlers: [dummyPaymentHandler],
+            paymentMethodEligibilityCheckers: [alwaysEligibleChecker],
         },
     });
 
@@ -339,6 +348,27 @@ describe('Entity event updated state', () => {
             });
             paymentMethodId = createPaymentMethod.id;
             expect(paymentMethodId).toBeDefined();
+        });
+
+        // https://github.com/vendurehq/vendure/issues/5763
+        it('emits the stored checker after a partial update', async () => {
+            await adminClient.query(UPDATE_PAYMENT_METHOD, {
+                input: {
+                    id: paymentMethodId,
+                    checker: {
+                        code: alwaysEligibleChecker.code,
+                        arguments: [],
+                    },
+                },
+            });
+            const eventPromise = firstValueFrom(eventBus.ofType(PaymentMethodEvent));
+
+            await adminClient.query(UPDATE_PAYMENT_METHOD, {
+                input: { id: paymentMethodId, enabled: true },
+            });
+
+            const event = await eventPromise;
+            expect(event.entity.checker?.code).toBe(alwaysEligibleChecker.code);
         });
 
         it('emits event after entity is fully persisted', async () => {

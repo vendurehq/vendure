@@ -1,9 +1,10 @@
-import { ConfirmationDialog } from '@/vdb/components/shared/confirmation-dialog.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Chip } from '@vendure-io/ui/components/molecules/chip';
+import { ConfirmDialog } from '@vendure-io/ui/components/molecules/confirm-dialog';
+import { Edit2 } from 'lucide-react';
+import { useState } from 'react';
 
 import { useRemoveOptionGroup } from '../hooks/use-remove-option-group.js';
 import { ForceRemoveOptionGroupDialog } from './force-remove-option-group-dialog.js';
@@ -28,14 +29,23 @@ export function ProductOptionGroupBadge({
     onRemoved,
 }: Readonly<ProductOptionGroupBadgeProps>) {
     const { t } = useLingui();
+    const { hasPermissions } = usePermissions();
+    const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
     const { remove, forceRemove, inUseGroupId, clearInUseGroup, isPending } = useRemoveOptionGroup(
         productId,
         { onRemoved },
     );
+    const canRemove = onRemoved != null && hasPermissions(['UpdateProduct', 'UpdateCatalog']);
 
     return (
         <>
-            <Badge variant="secondary" className="text-xs">
+            <Chip
+                variant="default"
+                className="text-xs"
+                onRemove={canRemove ? () => setRemoveDialogOpen(true) : undefined}
+                removeLabel={canRemove ? t`Remove option group ${name}` : undefined}
+                disabled={canRemove && isPending}
+            >
                 <span>{name}</span>
                 <Link
                     to={`/option-groups/${id}`}
@@ -44,25 +54,16 @@ export function ProductOptionGroupBadge({
                 >
                     <Edit2 className="h-3 w-3" />
                 </Link>
-                {onRemoved && (
-                    <PermissionGuard requires={['UpdateProduct', 'UpdateCatalog']}>
-                        <ConfirmationDialog
-                            title={t`Remove option group`}
-                            description={t`Are you sure you want to remove this option group from the product?`}
-                            onConfirm={() => remove(id)}
-                        >
-                            <button
-                                type="button"
-                                aria-label={t`Remove option group`}
-                                disabled={isPending}
-                                className="ml-1 inline-flex"
-                            >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                            </button>
-                        </ConfirmationDialog>
-                    </PermissionGuard>
-                )}
-            </Badge>
+            </Chip>
+            {canRemove && (
+                <ConfirmDialog
+                    open={removeDialogOpen}
+                    onOpenChange={setRemoveDialogOpen}
+                    title={t`Remove option group`}
+                    description={t`Are you sure you want to remove this option group from the product?`}
+                    onConfirm={() => remove(id)}
+                />
+            )}
             <ForceRemoveOptionGroupDialog
                 open={inUseGroupId === id}
                 onOpenChange={open => {

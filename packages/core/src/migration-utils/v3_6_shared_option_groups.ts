@@ -5,6 +5,8 @@
 // once the migration has run.
 import { QueryRunner } from 'typeorm';
 
+import { getDataSource } from '../connection/get-data-source';
+
 /**
  * @description
  * Populates the new join tables for shared, channel-aware ProductOptionGroups
@@ -50,7 +52,7 @@ export async function migrateProductOptionGroupData(queryRunner: QueryRunner): P
         return;
     }
 
-    const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    const esc = (name: string) => getDataSource(queryRunner).driver.escape(name);
 
     // 1. Populate Product <-> ProductOptionGroup join table from existing FK
     await queryRunner.query(

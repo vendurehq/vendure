@@ -61,4 +61,34 @@ describe('useDashboardExtensions', () => {
         expect(i18n.locale).toBe(defaultLocale);
         expect(extensionError).toBeUndefined();
     });
+
+    // #5451 — a late caller started with extensionsLoaded: false and built a second router
+    it('returns extensionsLoaded: true on the first render of a component that mounts after the load', async () => {
+        runDashboardExtensions.mockImplementation(async () => undefined);
+        // A fresh module instance: no extensions have loaded yet.
+        vi.resetModules();
+        const { useDashboardExtensions: useFreshDashboardExtensions } =
+            await import('./use-dashboard-extensions.js');
+        const bootstrapRenders: boolean[] = [];
+        const lateRenders: boolean[] = [];
+
+        function Late() {
+            lateRenders.push(useFreshDashboardExtensions().extensionsLoaded);
+            return null;
+        }
+
+        function DashboardBootstrap() {
+            const { extensionsLoaded } = useFreshDashboardExtensions();
+            bootstrapRenders.push(extensionsLoaded);
+            return extensionsLoaded ? <Late /> : null;
+        }
+
+        await act(async () => {
+            root.render(<DashboardBootstrap />);
+        });
+
+        expect(bootstrapRenders[0]).toBe(false);
+        expect(lateRenders.length).toBeGreaterThan(0);
+        expect(lateRenders).not.toContain(false);
+    });
 });

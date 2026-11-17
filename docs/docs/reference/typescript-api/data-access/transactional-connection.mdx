@@ -2,7 +2,7 @@
 title: "TransactionalConnection"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/connection/transactional-connection.ts" sourceLine="73" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/connection/transactional-connection.ts" sourceLine="75" packageName="@vendure/core" />
 
 The TransactionalConnection is a wrapper around the TypeORM `Connection` object which works in conjunction
 with the [Transaction](/reference/typescript-api/request/transaction-decorator#transaction) decorator to implement per-request transactions. All services which access the
@@ -30,8 +30,8 @@ class TransactionalConnection {
     commitOpenTransaction(ctx: RequestContext) => ;
     rollBackTransaction(ctx: RequestContext) => ;
     getEntityOrThrow(ctx: RequestContext, entityType: Type<T>, id: ID, options: GetEntityOrThrowOptions<T> = {}) => Promise<T>;
-    findOneInChannel(ctx: RequestContext, entity: Type<T>, id: ID, channelId: ID, options: FindOneOptions<T> = {}) => ;
-    findByIdsInChannel(ctx: RequestContext, entity: Type<T>, ids: ID[], channelId: ID, options: FindManyOptions<T>) => ;
+    findOneInChannel(ctx: RequestContext, entity: Type<T>, id: ID, channelId: ID, options: VendureFindOneOptions<T> = {}) => ;
+    findByIdsInChannel(ctx: RequestContext, entity: Type<T>, ids: ID[], channelId: ID, options: VendureFindManyOptions<T>) => ;
 }
 ```
 
@@ -148,13 +148,13 @@ Finds an entity of the given type by ID, or throws an `EntityNotFoundError` if n
 is found.
 ### findOneInChannel
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: Type<T>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options: FindOneOptions<T> = {}) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: Type<T>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options: <a href='/reference/typescript-api/data-access/vendure-find-one-options#vendurefindoneoptions'>VendureFindOneOptions</a><T> = {}) => `}   />
 
 Like the TypeOrm `Repository.findOne()` method, but limits the results to
 the given Channel.
 ### findByIdsInChannel
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: Type<T>, ids: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options: FindManyOptions<T>) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: Type<T>, ids: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options: <a href='/reference/typescript-api/data-access/vendure-find-many-options#vendurefindmanyoptions'>VendureFindManyOptions</a><T>) => `}   />
 
 Like the TypeOrm `Repository.findByIds()` method, but limits the results to
 the given Channel.

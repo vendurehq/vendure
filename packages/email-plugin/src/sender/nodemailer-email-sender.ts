@@ -121,6 +121,7 @@ export class NodemailerEmailSender implements EmailSender {
             from: email.from,
             to: email.recipient,
             subject: email.subject,
+            text: email.text,
             html: email.body,
             attachments: email.attachments,
             cc: email.cc,
@@ -136,6 +137,7 @@ export class NodemailerEmailSender implements EmailSender {
             recipient: email.recipient,
             subject: email.subject,
             body: email.body,
+            text: email.text,
             cc: email.cc,
             bcc: email.bcc,
             replyTo: email.replyTo,
@@ -148,19 +150,9 @@ export class NodemailerEmailSender implements EmailSender {
             streamTransport: true,
             buffer: true,
         });
+        // With `buffer: true`, nodemailer returns the raw message as a Buffer, not a stream
         const result = await this.sendMail(email, transporter);
-        await this.writeStreamToFile(pathWithoutExt + '.txt', result);
-    }
-
-    private async writeStreamToFile(filePath: string, info: StreamTransportInfo): Promise<void> {
-        const writeStream = fs.createWriteStream(filePath);
-        return new Promise<void>((resolve, reject) => {
-            writeStream.on('open', () => {
-                info.message.pipe(writeStream);
-                writeStream.on('close', resolve);
-                writeStream.on('error', reject);
-            });
-        });
+        await fs.writeFile(pathWithoutExt + '.txt', result.message);
     }
 
     /**

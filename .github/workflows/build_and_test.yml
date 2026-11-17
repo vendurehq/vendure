@@ -99,11 +99,27 @@ jobs:
             - name: Check i18n catalogs are in sync
               working-directory: packages/dashboard
               run: bash scripts/check-i18n-sync.sh
+    dashboard-lint:
+        name: dashboard lint
+        needs: detect-changes
+        if: needs.detect-changes.outputs.dashboard == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - uses: ./.github/actions/setup
+            - name: Lint dashboard
+              working-directory: packages/dashboard
+              run: bun run lint
     dashboard-e2e:
         name: dashboard e2e (${{ matrix.shard }})
         needs: detect-changes
         if: needs.detect-changes.outputs.dashboard == 'true'
-        runs-on: ubuntu-latest
+        # Pinned: `ubuntu-latest` now resolves to Ubuntu 26.04, which the locked
+        # Playwright (1.58.2) has no Chromium build for. Go back to `ubuntu-latest`
+        # once Playwright is upgraded to a version that supports it.
+        runs-on: ubuntu-24.04
         permissions:
             contents: read
         strategy:
@@ -325,6 +341,7 @@ jobs:
             - build
             - unit-tests
             - dashboard-i18n
+            - dashboard-lint
             - dashboard-e2e
             - sonarqube
             - e2e-sqljs

@@ -64,7 +64,6 @@ export function NumberInput({
                 step={step}
                 prefix={prefix}
                 suffix={suffix}
-                className="bg-background"
                 disabled={readOnly}
             />
         );

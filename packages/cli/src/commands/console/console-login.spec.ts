@@ -1,0 +1,969 @@
+import fs from 'fs-extra';
+import path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { readStoredAuth } from '../../auth/auth-store';
+
+import { ConsoleSession } from './cli-auth';
+import { ConsoleCommandDependencies, ConsoleCommandOptions, consoleCommand } from './console';
+import { RegisteredConsoleLinkHook } from './console-link-hook';
+import { ConsoleReporter } from './console-reporter';
+import {
+    ACCOUNT_ID,
+    FakeConsoleOptions,
+    NOW,
+    ORGANIZATION_ID,
+    OTHER_ACCOUNT_ID,
+    OTHER_ORGANIZATION_ID,
+    OTHER_PROJECT_ID,
+    PROJECT_ID,
+    STORED_ACCESS_TOKEN,
+    STORED_REFRESH_TOKEN,
+    USER,
+    WORKOS_AUTHENTICATE_URL,
+    WORKOS_DEVICE_AUTHORIZE_URL,
+    accessToken,
+    createCliConfigDir,
+    createVendureProject,
+    fakeConsole,
+    jsonResponse,
+    manifest,
+    projectList,
+    storeLogin,
+} from './console.fixtures';
+import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
+
+/**
+ * The official production pair. Nothing reaches the network: every request
+ * goes through the injected `fetch`, which answers as Console and WorkOS.
+ */
+const API_URL = 'https://api.vendure.io';
+const OFFICIAL_ENV = {
+    VENDURE_CLI_NON_INTERACTIVE: 'true',
+    VENDURE_CONSOLE_APP_URL: 'https://console.vendure.io',
+    VENDURE_CONSOLE_API_URL: API_URL,
+};
+
+const productionManifest: ProjectLinkManifest = {
+    ...manifest,
+    schemaVersion: 1,
+    console: { appOrigin: 'https://console.vendure.io', apiOrigin: API_URL },
+};
+
+const twoAccounts = [
+    { organizationId: ORGANIZATION_ID, customerAccountId: ACCOUNT_ID, name: 'Acme' },
+    { organizationId: OTHER_ORGANIZATION_ID, customerAccountId: OTHER_ACCOUNT_ID, name: 'Other' },
+];
+
+const temporaryDirectories: string[] = [];
+
+afterEach(() => {
+    vi.restoreAllMocks();
+    for (const directory of temporaryDirectories.splice(0)) {
+        fs.removeSync(directory);
+    }
+});
+
+describe('console link command line login', () => {
+    it('signs in with the device flow when no login is stored, then links with that login', async () => {
+        const run = await runLink({ login: false });
+
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
+        expect(run.messages.join('\n')).toContain('Confirm this code in your browser: ABCD-EFGH');
+        expect(run.openedUrls).toEqual(['https://auth.example.com/device?code=ABCD-EFGH']);
+        // The login is the one `vendure auth login` stores, so `vendure auth logout` ends it.
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization).toEqual({
+            workosOrganizationId: ORGANIZATION_ID,
+            customerAccountId: ACCOUNT_ID,
+            name: 'Acme',
+        });
+        expect(run.urls()).toEqual([
+            `${API_URL}/v1`,
+            WORKOS_DEVICE_AUTHORIZE_URL,
+            WORKOS_AUTHENTICATE_URL,
+            `${API_URL}/v1/me`,
+            `${API_URL}/v1/me`,
+            `${API_URL}/v1/projects`,
+            `${API_URL}/v1/projects/${PROJECT_ID}/link`,
+        ]);
+        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).toBe(
+            `Bearer ${stored?.accessToken}`,
+        );
+    });
+
+    it('never creates a Console CLI Session or a browser-approved Project Link', async () => {
+        const run = await runLink({ login: false });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls().some(url => url.includes('/v1/auth/cli/'))).toBe(false);
+        expect(run.urls().some(url => url.includes('/v1/project-links'))).toBe(false);
+    });
+
+    it('uses the stored login without opening a browser', async () => {
+        const run = await runLink();
+
+        expect(run.exitCode).toBe(0);
+        expect(run.openedUrls).toEqual([]);
+        expect(run.urls()).toEqual([
+            `${API_URL}/v1/me`,
+            `${API_URL}/v1/projects`,
+            `${API_URL}/v1/projects/${PROJECT_ID}/link`,
+        ]);
+    });
+
+    it('signs in again when WorkOS has ended the stored login', async () => {
+        const run = await runLink({
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(readStoredAuth({ env: run.env })?.refreshToken).not.toBe(STORED_REFRESH_TOKEN);
+    });
+
+    it('uses the stored login when --organization names its organization', async () => {
+        const byName = await runLink({ options: { organization: ' acme ' } });
+        const byId = await runLink({ options: { organization: ACCOUNT_ID.toUpperCase() } });
+
+        for (const run of [byName, byId]) {
+            expect(run.exitCode).toBe(0);
+            expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        }
+    });
+
+    it('signs in to the organization --organization names when the stored login is for another', async () => {
+        const run = await runLink({
+            options: { organization: 'Other' },
+            console: {
+                memberships: [
+                    { organizationId: ORGANIZATION_ID, customerAccountId: ACCOUNT_ID, name: 'Acme' },
+                    {
+                        organizationId: OTHER_ORGANIZATION_ID,
+                        customerAccountId: OTHER_ACCOUNT_ID,
+                        name: 'Other',
+                    },
+                ],
+            },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(readStoredAuth({ env: run.env })?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(run.authorizationFor(`${API_URL}/v1/projects`)).toBe(
+            `Bearer ${readStoredAuth({ env: run.env })?.accessToken}`,
+        );
+    });
+
+    // PDEV-552: a new customer's first device login has no organization.
+    it("scopes a first device login without an organization to the user's only Customer Account", async () => {
+        const select = vi.fn();
+        const run = await runLink({ login: false, select, console: { deviceOrganizationId: null } });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.refreshGrants()).toEqual([expect.objectContaining({ organization_id: ORGANIZATION_ID })]);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization).toEqual({
+            workosOrganizationId: ORGANIZATION_ID,
+            customerAccountId: ACCOUNT_ID,
+            name: 'Acme',
+        });
+        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).toBe(
+            `Bearer ${stored?.accessToken}`,
+        );
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
+    });
+
+    it('scopes a stored login without an organization without opening a browser', async () => {
+        const run = await runLink({
+            storedOrganization: null,
+            storedAccessToken: accessToken('stored', null),
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.openedUrls).toEqual([]);
+        expect(run.urls()).toEqual([
+            `${API_URL}/v1/me`,
+            WORKOS_AUTHENTICATE_URL,
+            `${API_URL}/v1/projects`,
+            `${API_URL}/v1/projects/${PROJECT_ID}/link`,
+        ]);
+        expect(run.refreshGrants()).toEqual([
+            expect.objectContaining({
+                refresh_token: STORED_REFRESH_TOKEN,
+                organization_id: ORGANIZATION_ID,
+            }),
+        ]);
+        // The refresh token is single-use, so the rotated one replaces it.
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.refreshToken).not.toBe(STORED_REFRESH_TOKEN);
+        expect(stored?.organization?.customerAccountId).toBe(ACCOUNT_ID);
+    });
+
+    // PDEV-559: a user with several Customer Accounts gets no choice in the browser.
+    it('asks which Customer Account to use when the user has several', async () => {
+        const select = vi.fn(async () => OTHER_ACCOUNT_ID);
+        const run = await runLink({
+            interactive: true,
+            login: false,
+            select,
+            console: { deviceOrganizationId: null, memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).toHaveBeenCalledWith('Which Vendure Console account do you want to use?', [
+            { value: ACCOUNT_ID, label: `Acme (${ACCOUNT_ID})` },
+            { value: OTHER_ACCOUNT_ID, label: `Other (${OTHER_ACCOUNT_ID})` },
+        ]);
+        expect(run.refreshGrants()).toEqual([
+            expect.objectContaining({ organization_id: OTHER_ORGANIZATION_ID }),
+        ]);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(run.authorizationFor(`${API_URL}/v1/projects`)).toBe(`Bearer ${stored?.accessToken}`);
+    });
+
+    // PDEV-559: AuthKit can return a login that is already scoped to one of several accounts.
+    it('asks which Customer Account to use when the stored login is scoped and the user has several', async () => {
+        const select = vi.fn(async () => OTHER_ACCOUNT_ID);
+        const run = await runLink({ interactive: true, select, console: { memberships: twoAccounts } });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).toHaveBeenCalledWith('Which Vendure Console account do you want to use?', [
+            { value: ACCOUNT_ID, label: `Acme (${ACCOUNT_ID})` },
+            { value: OTHER_ACCOUNT_ID, label: `Other (${OTHER_ACCOUNT_ID})` },
+        ]);
+        expect(run.refreshGrants()).toEqual([
+            expect.objectContaining({ organization_id: OTHER_ORGANIZATION_ID }),
+        ]);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(run.authorizationFor(`${API_URL}/v1/projects`)).toBe(`Bearer ${stored?.accessToken}`);
+    });
+
+    it('lists the scoped Customer Account first and keeps the login when it is chosen', async () => {
+        const select = vi.fn(async (_message: string, choices: Array<{ value: string }>) => choices[0].value);
+        const run = await runLink({
+            interactive: true,
+            select,
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select.mock.calls[0][1].map(choice => choice.value)).toEqual([OTHER_ACCOUNT_ID, ACCOUNT_ID]);
+        expect(run.refreshGrants()).toEqual([]);
+    });
+
+    it('does not ask when a scoped login has only one Customer Account', async () => {
+        const select = vi.fn(async () => undefined);
+        const run = await runLink({ interactive: true, select });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.refreshGrants()).toEqual([]);
+    });
+
+    it('does not ask when --organization names the account of a scoped login', async () => {
+        const select = vi.fn(async () => undefined);
+        const run = await runLink({
+            interactive: true,
+            select,
+            options: { organization: ACCOUNT_ID },
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.refreshGrants()).toEqual([]);
+    });
+
+    it('keeps the scoped Customer Account without a terminal and names it with the --organization hint', async () => {
+        const run = await runLink({ console: { memberships: twoAccounts } });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.refreshGrants()).toEqual([]);
+        const output = run.messages.join('\n');
+        expect(output).toContain('Using Acme.');
+        expect(output).toContain('vendure console link --organization <Account identifier>');
+        expect(output).toContain('Linked Storefront to Acme.');
+    });
+
+    it('lists the Customer Accounts and --organization when no one can choose between them', async () => {
+        const run = await runLink({ storedOrganization: null, console: { memberships: twoAccounts } });
+
+        expect(run.exitCode).toBe(1);
+        const output = run.messages.join('\n');
+        expect(output).toContain(`Acme (${ACCOUNT_ID})`);
+        expect(output).toContain(`Other (${OTHER_ACCOUNT_ID})`);
+        expect(output).toContain('vendure console link --organization <Account identifier>');
+        expectUnchangedUnscopedLogin(run);
+    });
+
+    it('changes nothing when the Customer Account choice is cancelled', async () => {
+        const run = await runLink({
+            interactive: true,
+            storedOrganization: null,
+            select: () => Promise.resolve(undefined),
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(130);
+        expectUnchangedUnscopedLogin(run);
+    });
+
+    it('sends a user without a Customer Account to create one in the selected Console', async () => {
+        const run = await runLink({ storedOrganization: null, console: { memberships: [] } });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.messages.join('\n')).toContain(
+            'Your Vendure Console login has no Customer Account yet. Create one at ' +
+                'https://console.vendure.io/onboarding, then run vendure console link again.',
+        );
+        expectUnchangedUnscopedLogin(run);
+    });
+
+    it('removes the stored login when WorkOS refuses its refresh token while scoping it', async () => {
+        const run = await runLink({
+            storedOrganization: null,
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.refreshGrants()).toHaveLength(1);
+        expect(run.messages.join('\n')).toContain('vendure auth login');
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+        // The same as any refused refresh: the next command signs in again.
+        expect(readStoredAuth({ env: run.env })).toBeUndefined();
+    });
+
+    it('stores the rotated login with its own organization when WorkOS scopes it to another organization', async () => {
+        const run = await runLink({
+            storedOrganization: null,
+            console: {
+                memberships: twoAccounts,
+                refresh: () =>
+                    jsonResponse({
+                        access_token: accessToken('wrong', OTHER_ORGANIZATION_ID),
+                        refresh_token: 'rotated-refresh-token',
+                        organization_id: OTHER_ORGANIZATION_ID,
+                        user: USER,
+                    }),
+            },
+            interactive: true,
+            select: () => Promise.resolve(ACCOUNT_ID),
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.messages.join('\n')).toContain(
+            'The authentication service did not scope the login to Acme. The stored login is now scoped to Other.',
+        );
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+        // The old refresh token is spent. Keeping the new pair keeps the login usable.
+        expect(readStoredAuth({ env: run.env })).toMatchObject({
+            accessToken: accessToken('wrong', OTHER_ORGANIZATION_ID),
+            refreshToken: 'rotated-refresh-token',
+            organization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+        });
+    });
+
+    it('signs in to the organization --organization names without asking, when the stored login has none', async () => {
+        const select = vi.fn();
+        const run = await runLink({
+            interactive: true,
+            storedOrganization: null,
+            select,
+            options: { organization: 'Other' },
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(readStoredAuth({ env: run.env })?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+    });
+
+    it('reports the sign-in URL and keeps waiting when no browser can be opened', async () => {
+        const run = await runLink({
+            login: false,
+            openUrl: () => Promise.reject(new Error('no browser')),
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.messages.join('\n')).toContain(
+            'If the browser does not open, visit https://auth.example.com/device?code=ABCD-EFGH',
+        );
+    });
+
+    it('returns an interrupt exit code when the sign-in is interrupted', async () => {
+        const abort = new AbortController();
+        const run = await runLink({
+            login: false,
+            signal: abort.signal,
+            openUrl: () => {
+                abort.abort();
+                return Promise.resolve();
+            },
+        });
+
+        expect(run.exitCode).toBe(130);
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+        expect(run.messages.join('\n')).toContain('No Project Link Manifest was changed');
+    });
+
+    it.each([
+        ['an interactive', true],
+        ['a non-interactive', false],
+    ])(
+        'returns an interrupt exit code when %s repair is interrupted while the login is renewed',
+        async (_, interactive) => {
+            const abort = new AbortController();
+            const hook = vi.fn(async () => undefined);
+            const run = await runLink({
+                linked: true,
+                interactive,
+                options: { yes: true },
+                storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+                signal: abort.signal,
+                fetch: () => {
+                    abort.abort();
+                    return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+                },
+                hooks: [{ pluginId: '@example/with-session', requiresSession: true, hook }],
+            });
+
+            expect(run.exitCode).toBe(130);
+            expect(hook).not.toHaveBeenCalled();
+            expect(run.messages.join('\n')).not.toContain('Could not sign in');
+        },
+    );
+
+    it('returns an interrupt exit code when a link is interrupted while the login is renewed', async () => {
+        const abort = new AbortController();
+        const run = await runLink({
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            signal: abort.signal,
+            fetch: () => {
+                abort.abort();
+                return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+            },
+        });
+
+        expect(run.exitCode).toBe(130);
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
+    it('obtains no session when no plugin asked for one', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({ hooks: [recordingHook(sessions, false)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+    });
+
+    it('gives a hook that requested a session the login access token, without its refresh token', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({ hooks: [recordingHook(sessions, true)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([{ accessToken: STORED_ACCESS_TOKEN, expiresAt: NOW + 3600 * 1000 }]);
+    });
+
+    it('does not expose a session to a hook that did not request one', async () => {
+        const requested: Array<ConsoleSession | undefined> = [];
+        const other: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({ hooks: [recordingHook(requested, true), recordingHook(other, false)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(requested[0]?.accessToken).toBe(STORED_ACCESS_TOKEN);
+        expect(other).toEqual([undefined]);
+    });
+
+    it('gives each requesting hook its own session copy', async () => {
+        const seen: ConsoleSession[] = [];
+        const mutating: RegisteredConsoleLinkHook = {
+            pluginId: '@example/first',
+            requiresSession: true,
+            hook: async context => {
+                if (context.session) {
+                    seen.push({ ...context.session });
+                    context.session.accessToken = 'changed';
+                }
+            },
+        };
+        const reading: RegisteredConsoleLinkHook = {
+            pluginId: '@example/second',
+            requiresSession: true,
+            hook: async context => {
+                if (context.session) seen.push(context.session);
+            },
+        };
+        const run = await runLink({ hooks: [mutating, reading] });
+
+        expect(run.exitCode).toBe(0);
+        expect(seen.map(session => session.accessToken)).toEqual([STORED_ACCESS_TOKEN, STORED_ACCESS_TOKEN]);
+    });
+
+    it('carries the stored login into a repair that a hook needs a session for, asking Console nothing', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({ linked: true, hooks: [recordingHook(sessions, true)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([{ accessToken: STORED_ACCESS_TOKEN, expiresAt: NOW + 3600 * 1000 }]);
+        expect(run.urls()).toEqual([]);
+    });
+
+    it('runs a non-interactive repair without a session when no login is stored, and says so', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({ linked: true, login: false, hooks: [recordingHook(sessions, true)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(run.urls()).toEqual([]);
+        expect(run.messages.join('\n')).toContain('No CLI login for Acme is stored on this machine');
+    });
+
+    // CLO-1244 — a stored login that renewal refuses is not a missing login
+    it('says the stored session expired, not that no login is stored, when renewal refuses it', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['not-signed-in']);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).toContain(
+            'Your Vendure CLI session for Acme has expired or was revoked, so plugin setup runs without a ' +
+                'Console session. Run `vendure auth login` to sign in again.',
+        );
+    });
+
+    // CLO-1244
+    it('says the stored session needs a new sign-in when renewal asks for one', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'sso_required' }, 400) },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['not-signed-in']);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).toContain(
+            'Your Vendure CLI session for Acme can no longer be renewed: The authentication service requires ' +
+                'you to sign in again (sso_required). Run `vendure auth login`.\n' +
+                'Plugin setup runs without a Console session.',
+        );
+        // The login is kept: only a refused refresh token removes it.
+        expect(readStoredAuth({ env: run.env })?.refreshToken).toBe(STORED_REFRESH_TOKEN);
+    });
+
+    // CLO-1244
+    it('says the renewal could not finish, and keeps the login, when the authentication service is down', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => new Response('', { status: 503 }) },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['sign-in-failed']);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).not.toContain('Could not sign in to Vendure Console');
+        expect(output).toContain(
+            'Could not renew your Vendure CLI session for Acme: Could not renew the CLI session. ' +
+                'The authentication service answered HTTP 503.\n' +
+                'The stored login is kept. Try again later. Plugin setup runs without a Console session.',
+        );
+        expect(readStoredAuth({ env: run.env })?.refreshToken).toBe(STORED_REFRESH_TOKEN);
+    });
+
+    // CLO-1244
+    it('says the stored session expired before signing in again for an interactive repair', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(run.messages.join('\n')).toContain(
+            'Your Vendure CLI session for Acme has expired or was revoked. Signing in again.',
+        );
+        expect(sessions[0]?.accessToken).toBeTruthy();
+        expect(sessions[0]?.accessToken).toBe(readStoredAuth({ env: run.env })?.accessToken);
+    });
+
+    // CLO-1244 — a refusal that keeps the login must not trigger a second renewal before signing in again
+    it('signs in again without renewing a second time after a refusal that keeps the login', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        let refreshes = 0;
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: {
+                refresh: () => {
+                    refreshes++;
+                    return refreshes === 1
+                        ? jsonResponse({ error: 'sso_required' }, 400)
+                        : new Response('', { status: 503 });
+                },
+            },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(refreshes).toBe(1);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions[0]?.accessToken).toBeTruthy();
+    });
+
+    it("signs in to the manifest's account for an interactive repair without a matching login", async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization?.customerAccountId).toBe(ACCOUNT_ID);
+        expect(sessions[0]?.accessToken).toBe(stored?.accessToken);
+    });
+
+    it('keeps a repair going without a session when the sign-in fails', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            login: false,
+            options: { yes: true },
+            fetch: () => Promise.resolve(new Response('{}', { status: 503 })),
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['sign-in-failed']);
+        expect(run.messages.join('\n')).toContain(
+            'Could not sign in to Vendure Console: Could not read the sign-in settings from Vendure Console ' +
+                'at https://api.vendure.io (HTTP 503).\nPlugin setup runs without a Console session.',
+        );
+    });
+
+    // CLO-1165 — a cloned manifest that links a Project of somebody else's Customer Account
+    it('names the Customer Account a repair cannot reach and points to --force, without signing in again', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            options: { yes: true },
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            console: { memberships: [twoAccounts[1]] },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['account-inaccessible']);
+        const output = run.messages.join('\n');
+        expect(output).toContain(
+            'This project is linked to Storefront in the Customer Account "Acme", which your Vendure Console login cannot access.',
+        );
+        expect(output).toContain(`Your Customer Accounts:\n  Other (${OTHER_ACCOUNT_ID})\n`);
+        expect(output).toContain('run vendure console link --force');
+        expect(output).toContain('ask an administrator of "Acme"');
+        // CLO-1166 — the user may have another Console login that is a member of the account.
+        expect(output).toContain(
+            'If you use another Vendure Console login for that account, run vendure auth login with it.',
+        );
+        expect(output).not.toContain('sign in again');
+        expect(output).not.toContain(ORGANIZATION_ID);
+        // The next sentence is a line of its own, not glued onto the account list.
+        expect(output).toContain('\nPlugin setup runs without a Console session.');
+    });
+
+    it('detects an unreachable Customer Account in a non-interactive repair too', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            console: { memberships: [twoAccounts[1]] },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['account-inaccessible']);
+        expect(run.messages.join('\n')).toContain('Customer Account "Acme"');
+        expect(run.messages.join('\n')).not.toContain('No CLI login for Acme');
+    });
+
+    it('names the Customer Account when the sign-in for a repair finds the user is not a member', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            interactive: true,
+            login: false,
+            options: { yes: true },
+            console: { memberships: [twoAccounts[1]], deviceOrganizationId: OTHER_ORGANIZATION_ID },
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(unavailable).toEqual(['account-inaccessible']);
+        const output = run.messages.join('\n');
+        expect(output).toContain('Customer Account "Acme", which your Vendure Console login cannot access');
+        expect(output).toContain(`  Other (${OTHER_ACCOUNT_ID})\nTo link this project`);
+        expect(output).toContain('vendure console link --force');
+        expect(output).not.toContain('Could not sign in');
+    });
+
+    it('tells a hook that no login is stored for a non-interactive repair', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            login: false,
+            hooks: [recordingHook([], true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual(['not-signed-in']);
+    });
+
+    it('does not tell a hook with a session that it is unavailable', async () => {
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({ linked: true, hooks: [recordingHook([], true, unavailable)] });
+
+        expect(run.exitCode).toBe(0);
+        expect(unavailable).toEqual([undefined]);
+    });
+});
+
+// CLO-1166
+describe('console link --non-interactive --console-project', () => {
+    const twoProjects = [
+        { id: PROJECT_ID, name: 'Storefront' },
+        { id: OTHER_PROJECT_ID, name: 'Parts Counter', slug: 'parts-counter' },
+    ];
+
+    it('links the named project with the stored login, without a prompt or browser', async () => {
+        const select = vi.fn();
+        const run = await runLink({
+            options: { nonInteractive: true, consoleProject: 'parts-counter' },
+            console: { projects: projectList(twoProjects) },
+            select,
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.openedUrls).toEqual([]);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(run.urls()).toContain(`${API_URL}/v1/projects/${OTHER_PROJECT_ID}/link`);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root)).project.id).toBe(OTHER_PROJECT_ID);
+    });
+
+    it('asks for the linked project id, not --force, when no login can read the slug', async () => {
+        const run = await runLink({ linked: true, login: false, options: { consoleProject: 'storefront' } });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        const output = run.messages.join('\n');
+        expect(output).toContain(
+            `Pass the linked Project's id, ${PROJECT_ID}, to --console-project to keep the link.`,
+        );
+        expect(output).not.toContain('--force');
+    });
+
+    it('returns incomplete and names vendure auth login when no login is stored', async () => {
+        const run = await runLink({
+            login: false,
+            options: { nonInteractive: true, consoleProject: 'storefront' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        expect(run.openedUrls).toEqual([]);
+        expect(run.messages.join('\n')).toContain('--non-interactive does not sign in');
+        expect(run.messages.join('\n')).toContain('Run vendure auth login in a terminal');
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
+    // CLO-1244
+    it('says the stored session expired, not that no login is stored, when renewal refuses it', async () => {
+        const run = await runLink({
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+            options: { nonInteractive: true, consoleProject: 'storefront' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        const output = run.messages.join('\n');
+        expect(output).not.toContain('is stored on this machine');
+        expect(output).toContain(
+            'Your Vendure CLI session for https://api.vendure.io has expired or was revoked, ' +
+                'and --non-interactive does not sign in.',
+        );
+        expect(output).toContain('Run vendure auth login in a terminal');
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
+    it('names the --organization login it needs when the stored login belongs to another account', async () => {
+        const run = await runLink({
+            options: { nonInteractive: true, consoleProject: 'storefront', organization: 'Other' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        expect(run.messages.join('\n')).toContain('vendure auth login --organization "Other"');
+    });
+});
+
+interface RunOptions {
+    /** Store a login before the run. Defaults to `true`. */
+    login?: boolean;
+    storedAccessToken?: string;
+    storedOrganization?: { workosOrganizationId: string; customerAccountId: string; name: string } | null;
+    /** Start from a project that is already linked, so the run is a repair. */
+    linked?: boolean;
+    interactive?: boolean;
+    options?: ConsoleCommandOptions;
+    console?: FakeConsoleOptions;
+    fetch?: typeof globalThis.fetch;
+    hooks?: RegisteredConsoleLinkHook[];
+    openUrl?: (url: string) => Promise<void>;
+    select?: ConsoleCommandDependencies['select'];
+    signal?: AbortSignal;
+}
+
+/** Drives `vendure console link` against an in-memory Console and WorkOS. */
+async function runLink(options: RunOptions = {}) {
+    const root = createVendureProject(temporaryDirectories, 'vendure-console-login-');
+    if (options.linked) {
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), productionManifest);
+    }
+    const env = { ...OFFICIAL_ENV, VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories) };
+    if (options.login !== false) {
+        storeLogin(env, API_URL, {
+            ...(options.storedAccessToken ? { accessToken: options.storedAccessToken } : {}),
+            ...(options.storedOrganization !== undefined ? { organization: options.storedOrganization } : {}),
+        });
+    }
+    const api = fakeConsole(options.console);
+    const messages: string[] = [];
+    const openedUrls: string[] = [];
+    const reporter: ConsoleReporter = {
+        error: message => messages.push(message),
+        info: message => messages.push(message),
+        success: message => messages.push(message),
+        warn: message => messages.push(message),
+        url: value => messages.push(value),
+    };
+    const dependencies: Partial<ConsoleCommandDependencies> = {
+        cwd: root,
+        env,
+        fetch: options.fetch ?? api.fetch,
+        hooks: options.hooks ?? [],
+        isNonInteractive: () => !options.interactive,
+        now: () => NOW,
+        openUrl: async url => {
+            openedUrls.push(url);
+            await options.openUrl?.(url);
+        },
+        prompt: () => Promise.resolve(true),
+        select: options.select ?? (() => Promise.resolve(undefined)),
+        reporter,
+        signal: options.signal,
+    };
+    const exitCode = await consoleCommand('link', options.options ?? {}, dependencies);
+    return {
+        exitCode,
+        root,
+        env,
+        messages,
+        openedUrls,
+        urls: () => api.requests.map(request => request.url),
+        authorizationFor: (url: string) => api.requests.find(request => request.url === url)?.authorization,
+        refreshGrants: () =>
+            api.requests
+                .filter(request => request.url === WORKOS_AUTHENTICATE_URL)
+                .map(request => request.body)
+                .filter(body => body.grant_type === 'refresh_token'),
+    };
+}
+
+/** The run linked nothing and left the stored login without an organization as it was. */
+function expectUnchangedUnscopedLogin(run: Awaited<ReturnType<typeof runLink>>): void {
+    expect(run.refreshGrants()).toEqual([]);
+    expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    expect(readStoredAuth({ env: run.env })).toMatchObject({
+        accessToken: STORED_ACCESS_TOKEN,
+        refreshToken: STORED_REFRESH_TOKEN,
+        organization: null,
+    });
+}
+
+function recordingHook(
+    sessions: Array<ConsoleSession | undefined>,
+    requiresSession: boolean,
+    unavailable: Array<string | undefined> = [],
+): RegisteredConsoleLinkHook {
+    return {
+        pluginId: requiresSession ? '@example/with-session' : '@example/without-session',
+        requiresSession,
+        hook: async context => {
+            sessions.push(context.session);
+            unavailable.push(context.sessionUnavailable);
+        },
+    };
+}

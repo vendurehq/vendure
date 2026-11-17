@@ -1,4 +1,4 @@
-import { mergeConfig } from '@vendure/core';
+import { mergeConfig, TransactionalConnection } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -60,6 +60,17 @@ const customConfig = mergeConfig(testConfig(), {
                         validate: (value: string) => {
                             if (value !== 'valid') {
                                 return `The value ['${value}'] is not valid`;
+                            }
+                        },
+                    },
+                    {
+                        name: 'stringListWithValidationFn',
+                        type: 'string',
+                        list: true,
+                        validate: (value, injector, ctx) => {
+                            if (value?.includes('bad')) {
+                                const connection = injector.get(TransactionalConnection);
+                                return `Invalid list (injector: ${String(!!connection)}, languageCode: ${ctx.languageCode})`;
                             }
                         },
                     },
@@ -316,6 +327,14 @@ describe('Custom field struct type', () => {
             assertThrowsWithMessage(async () => {
                 await adminClient.query(updateCustomerWithInvalidValidationDocument);
             }, `The value ['bad'] is not valid`),
+        );
+
+        // #5575 — the validate function of a list field receives the injector and ctx
+        it(
+            'validate function of a list field',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(updateCustomerWithInvalidListValidationDocument);
+            }, `Invalid list (injector: true, languageCode: en)`),
         );
     });
 });
@@ -635,6 +654,30 @@ const updateCustomerWithInvalidPatternDocument = graphql(`
 const updateCustomerWithInvalidRangeDocument = graphql(`
     mutation UpdateCustomerWithInvalidRange {
         updateCustomer(input: { id: "T_1", customFields: { withValidation: { numberWithRange: 15 } } }) {
+            ... on Customer {
+                id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const updateCustomerWithInvalidListValidationDocument = graphql(`
+    mutation UpdateCustomerWithInvalidListValidation {
+        updateCustomer(
+            input: {
+                id: "T_1"
+                customFields: {
+                    withValidation: {
+                        stringWithValidationFn: "valid"
+                        stringListWithValidationFn: ["ok", "bad"]
+                    }
+                }
+            }
+        ) {
             ... on Customer {
                 id
             }

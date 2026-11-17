@@ -334,4 +334,35 @@ describe('InMemoryJobQueueStrategy', () => {
             expect(await strategy.cancelJob('no-such-job')).toBeUndefined();
         });
     });
+
+    // The Admin API decodes job ids to numbers before they reach the strategy.
+    describe('lookups by a numeric id', () => {
+        let jobId: string;
+        let numericId: number;
+        beforeEach(async () => {
+            const job = await strategy.add(new Job({ queueName: 'test', data: {} }));
+            jobId = String(job.id);
+            numericId = Number(job.id);
+        });
+
+        it('findOne', async () => {
+            expect((await strategy.findOne(numericId))?.id).toBe(jobId);
+        });
+
+        it('findManyById', async () => {
+            expect((await strategy.findManyById([numericId])).map(j => j.id)).toEqual([jobId]);
+        });
+
+        it('findMany filtered by id', async () => {
+            const result = await strategy.findMany({
+                filter: { id: { eq: numericId as unknown as string } },
+            });
+            expect(result.items.map(j => j.id)).toEqual([jobId]);
+        });
+
+        it('cancelJob', async () => {
+            expect((await strategy.cancelJob(numericId))?.state).toBe(JobState.CANCELLED);
+            expect((await strategy.findOne(jobId))?.state).toBe(JobState.CANCELLED);
+        });
+    });
 });

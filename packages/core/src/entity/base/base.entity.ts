@@ -1,5 +1,5 @@
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
-import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 import { PrimaryGeneratedId } from '../entity-id.decorator';
 
@@ -20,7 +20,20 @@ export abstract class VendureEntity {
                     // and cannot be copied over to the new instance.
                     continue;
                 }
-                (this as any)[key] = descriptor.value;
+                if (
+                    key === 'customFields' &&
+                    descriptor.value != null &&
+                    typeof descriptor.value === 'object'
+                ) {
+                    // Clone the customFields object rather than sharing the input's reference.
+                    // On save, TypeORM mutates the entity's embedded customFields object
+                    // (e.g. setting all absent nullable columns to null), and via a shared
+                    // reference those mutations would corrupt the input object, making
+                    // absent custom fields indistinguishable from explicit nulls.
+                    (this as any)[key] = { ...descriptor.value };
+                } else {
+                    (this as any)[key] = descriptor.value;
+                }
             }
         }
     }

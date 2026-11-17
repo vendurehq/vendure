@@ -1,1 +1,1 @@
-export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants } from '@vendure-io/ui/components/ui/tabs';
+export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants } from '@vendure-io/ui/components/atoms/tabs';

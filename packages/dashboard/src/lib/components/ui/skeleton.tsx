@@ -1,1 +1,1 @@
-export { Skeleton } from '@vendure-io/ui/components/ui/skeleton';
+export { Skeleton } from '@vendure-io/ui/components/atoms/skeleton';

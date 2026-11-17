@@ -171,6 +171,20 @@ export class PromotionService {
         if (!hasConditions && !hasCouponCode) {
             return new MissingConditionsError();
         }
+        const conditions = input.conditions
+            ? this.configArgService.parseInputList(
+                  'PromotionCondition',
+                  input.conditions,
+                  promotion.conditions,
+              )
+            : promotion.conditions;
+        const actions = input.actions
+            ? this.configArgService.parseInputList('PromotionAction', input.actions, promotion.actions)
+            : promotion.actions;
+        // Skipped when neither is sent, so a promotion stored without a required condition can still be disabled
+        if (input.conditions || input.actions) {
+            this.validateRequiredConditions(conditions, actions);
+        }
         const updatedPromotion = await this.translatableSaver.update({
             ctx,
             input,
@@ -179,14 +193,10 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput('PromotionCondition', c),
-                    );
+                    p.conditions = conditions;
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput('PromotionAction', a),
-                    );
+                    p.actions = actions;
                 }
             },
         });
@@ -279,7 +289,7 @@ export class PromotionService {
                 deletedAt: IsNull(),
                 channels: { id: ctx.channelId },
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
         if (!promotion || !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
             return new CouponCodeInvalidError({ couponCode });

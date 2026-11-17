@@ -13,6 +13,7 @@ import { Translatable, Translation } from '../../../common/types/locale-types';
 import { asyncObservable, idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
@@ -38,6 +39,7 @@ import {
 
 import { dedupeSearchIndexItems } from './index-item-utils';
 import { MutableRequestContext } from './mutable-request-context';
+import { POSTGRES_MAX_INDEXED_TEXT_BYTES, truncateToUtf8Bytes } from './truncate-to-utf8-bytes';
 
 export const BATCH_SIZE = 1000;
 export const productRelations = [
@@ -87,7 +89,7 @@ export class IndexerController {
         return asyncObservable(async observer => {
             const timeStart = Date.now();
             const channel = ctx.channel ?? (await this.loadChannel(ctx, ctx.channelId));
-            const { count } = await this.getSearchIndexQueryBuilder(ctx, { channels: [channel] });
+            const { count } = await this.getSearchIndexQueryBuilder(ctx, { channels: [channel], take: 1 });
             Logger.verbose(`Reindexing ${count} variants for channel ${ctx.channel.code}`, workerLoggerCtx);
             const batches = Math.ceil(count / BATCH_SIZE);
 
@@ -142,6 +144,7 @@ export class IndexerController {
                     const { variants: batch } = await this.getSearchIndexQueryBuilder(ctx, {
                         channels: await this.getAllChannels(ctx),
                         productVariantIds: batchIds,
+                        take: batchIds.length,
                     });
 
                     await this.saveVariants(ctx, batch);
@@ -296,11 +299,15 @@ export class IndexerController {
         variantIds: ID[],
         channelId: ID,
     ): Promise<boolean> {
+        if (!variantIds.length) {
+            return true;
+        }
         const channel = await this.loadChannel(ctx, channelId);
         ctx.setChannel(channel);
         const { variants } = await this.getSearchIndexQueryBuilder(ctx, {
             channels: [channel],
             productVariantIds: variantIds,
+            take: variantIds.length,
         });
 
         if (variants) {
@@ -354,7 +361,7 @@ export class IndexerController {
             productId = undefined,
             productVariantIds = undefined,
             channels = [],
-            take = 50,
+            take,
             skip = 0,
         } = options ?? {};
         const where: FindOptionsWhere<ProductVariant> = {
@@ -372,7 +379,7 @@ export class IndexerController {
         where.channels = { id: In(channels.map(c => c.id)) };
         const [variants, count] = await this.connection.getRepository(ctx, ProductVariant).findAndCount({
             loadEagerRelations: false,
-            relations: variantRelations,
+            relations: findOptionsArrayToObject<ProductVariant>(variantRelations),
             where,
             take,
             skip,
@@ -396,7 +403,7 @@ export class IndexerController {
 
         const product = await this.connection.getRepository(ctx, Product).findOne({
             loadEagerRelations: false,
-            relations: productRelations,
+            relations: findOptionsArrayToObject<Product>(productRelations),
             relationLoadStrategy: 'query',
             where: { id: Equal(productId), channels: { id: In(channels.map(x => x.id)) } },
         });
@@ -460,9 +467,9 @@ export class IndexerController {
                             enabled: product.enabled === false ? false : variant.enabled,
                             slug: productTranslation?.slug ?? '',
                             productId: product.id,
-                            productName: productTranslation?.name ?? '',
-                            description: this.constrainDescription(productTranslation?.description ?? ''),
-                            productVariantName: variantTranslation?.name ?? '',
+                            productName: this.constrainIndexedText(productTranslation?.name ?? ''),
+                            description: this.constrainIndexedText(productTranslation?.description ?? ''),
+                            productVariantName: this.constrainIndexedText(variantTranslation?.name ?? ''),
                             productAssetId: product.featuredAsset ? product.featuredAsset.id : null,
                             productPreviewFocalPoint: product.featuredAsset
                                 ? product.featuredAsset.focalPoint
@@ -534,9 +541,9 @@ export class IndexerController {
             enabled: false,
             slug: productTranslation.slug,
             productId: product.id,
-            productName: productTranslation.name,
-            description: this.constrainDescription(productTranslation.description),
-            productVariantName: productTranslation.name,
+            productName: this.constrainIndexedText(productTranslation.name),
+            description: this.constrainIndexedText(productTranslation.description),
+            productVariantName: this.constrainIndexedText(productTranslation.name),
             productAssetId: product.featuredAsset?.id ?? null,
             productPreviewFocalPoint: product.featuredAsset?.focalPoint ?? null,
             productVariantPreviewFocalPoint: null,
@@ -651,12 +658,12 @@ export class IndexerController {
      * Prevent postgres errors from too-long indices
      * https://github.com/vendurehq/vendure/issues/745
      */
-    private constrainDescription(description: string): string {
+    private constrainIndexedText(text: string): string {
         const { type } = this.connection.rawConnection.options;
         const isPostgresLike = type === 'postgres' || type === 'aurora-postgres' || type === 'cockroachdb';
         if (isPostgresLike) {
-            return description.substring(0, 2600);
+            return truncateToUtf8Bytes(text, POSTGRES_MAX_INDEXED_TEXT_BYTES);
         }
-        return description;
+        return text;
     }
 }

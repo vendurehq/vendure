@@ -34,17 +34,9 @@ export class AverageOrderValueMetric implements MetricCalculation {
 
     calculateEntry(ctx: RequestContext, data: MetricData): DashboardMetricSummaryEntry {
         const label = data.date.toISOString();
-        if (!data.orders.length) {
-            return {
-                label,
-                value: 0,
-            };
-        }
-        const total = data.orders.map(o => o.totalWithTax).reduce((_total, current) => _total + current, 0);
-        const average = Math.round(total / data.orders.length);
         return {
             label,
-            value: average,
+            value: data.averageOrderValue,
         };
     }
 }
@@ -63,7 +55,7 @@ export class OrderCountMetric implements MetricCalculation {
         const label = data.date.toISOString();
         return {
             label,
-            value: data.orders.length,
+            value: data.orderCount,
         };
     }
 }
@@ -82,7 +74,7 @@ export class OrderTotalMetric implements MetricCalculation {
         const label = data.date.toISOString();
         return {
             label,
-            value: data.orders.map(o => o.totalWithTax).reduce((_total, current) => _total + current, 0),
+            value: data.orderTotal,
         };
     }
 }

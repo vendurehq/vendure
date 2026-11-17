@@ -1,0 +1,33 @@
+---
+title: "StockLevelReadOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="36" packageName="@vendure/core" since="3.7.4" />
+
+Options which control how the stock levels of a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) are read.
+
+```ts title="Signature"
+interface StockLevelReadOptions {
+    lockStockLevels?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### lockStockLevels
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+When `true`, a write lock is taken on the underlying [StockLevel](/reference/typescript-api/entities/stock-level#stocklevel) rows and held until
+the surrounding transaction commits. Use it when the returned figures decide whether stock
+may be allocated, and the allocation happens in the same transaction. Databases without row
+locks (SQLite and SQL.js) fall back to an unlocked read.
+
+The lock covers every StockLevel row of the ProductVariant, whatever its
+[StockLocation](/reference/typescript-api/entities/stock-location#stocklocation) or Channel, because that is the set the figures are derived from.
+Two checkouts of the same variant therefore wait for each other even when they draw on
+different stock locations, which [MultiChannelStockLocationStrategy](/reference/typescript-api/products-stock/multi-channel-stock-location-strategy#multichannelstocklocationstrategy) otherwise
+treats as independent.
+
+
+</div>

@@ -10,8 +10,15 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { getDashboardActionBarItems } from '@/vdb/framework/layout-engine/layout-extensions.js';
 import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
-import { useState } from 'react';
+import { api } from '@/vdb/graphql/api.js';
+import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { plural } from '@lingui/core/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
+import { createAssetsDocument } from './asset-documents.js';
 import { Asset, AssetGallery } from './asset-gallery.js';
 
 /**
@@ -49,7 +56,8 @@ interface AssetPickerDialogProps {
     initialSelectedAssets?: Asset[];
     /**
      * @description
-     * The title of the dialog.
+     * The title of the dialog. Defaults to "Select Assets", or "Select Asset" when
+     * `multiSelect` is false.
      */
     title?: string;
     /**
@@ -76,7 +84,7 @@ export function AssetPickerDialog({
     onSelect,
     multiSelect = false,
     initialSelectedAssets = [],
-    title = 'Select Assets',
+    title,
     pageId,
 }: AssetPickerDialogProps) {
     const [selectedAssets, setSelectedAssets] = useState<Asset[]>(initialSelectedAssets);
@@ -84,10 +92,62 @@ export function AssetPickerDialog({
     const extensionActionBarItems = pageId
         ? getDashboardActionBarItems(pageId).filter(item => item.type !== 'dropdown')
         : [];
+    const queryClient = useQueryClient();
+    const { t } = useLingui();
 
     const handleAssetSelect = (assets: Asset[]) => {
         setSelectedAssets(assets);
     };
+
+    // AssetGallery's own upload path opens a progress modal, which would nest
+    // a second Dialog inside this picker's Dialog — Base UI dismiss events
+    // from the inner one can then close the outer one too, discarding the
+    // selection. Uploading directly here (no modal) avoids that entirely.
+    const { mutate: createAssets } = useMutation({
+        mutationFn: api.mutate(createAssetsDocument),
+        onSuccess: (result: ResultOf<typeof createAssetsDocument>) => {
+            const createdAssets = result.createAssets.filter(asset => asset.__typename === 'Asset');
+            const failedAssets = result.createAssets.filter(asset => asset.__typename !== 'Asset');
+            if (createdAssets.length > 0) {
+                toast.success(
+                    plural(createdAssets.length, {
+                        one: 'Uploaded # asset',
+                        other: 'Uploaded # assets',
+                    }),
+                );
+            }
+            if (failedAssets.length > 0) {
+                toast.error(
+                    plural(failedAssets.length, {
+                        one: 'Failed to upload # asset',
+                        other: 'Failed to upload # assets',
+                    }),
+                    {
+                        description: failedAssets
+                            .map(asset => ('message' in asset ? asset.message : ''))
+                            .join(', '),
+                    },
+                );
+            }
+            void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
+        },
+        onError: error => {
+            toast.error(t`Failed to upload assets`, {
+                description: error instanceof Error ? error.message : t`Unknown error`,
+            });
+        },
+    });
+
+    const handleFilesDropped = useCallback(
+        (droppedFiles: File[]) => {
+            createAssets({ input: droppedFiles.map(file => ({ file })) });
+        },
+        [createAssets],
+    );
+
+    // A caller-supplied title keeps its English singular replace; only the default is translated.
+    const defaultTitle = multiSelect ? <Trans>Select Assets</Trans> : <Trans>Select Asset</Trans>;
+    const callerTitle = multiSelect ? title : title?.replace('Assets', 'Asset');
 
     const handleConfirm = () => {
         onSelect(selectedAssets);
@@ -99,9 +159,13 @@ export function AssetPickerDialog({
             <PageContext.Provider value={pageContextValue}>
                 <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] p-0 flex flex-col">
                     <DialogHeader className="px-6 pt-6">
-                        <DialogTitle>{multiSelect ? title : title.replace('Assets', 'Asset')}</DialogTitle>
+                        <DialogTitle>{title === undefined ? defaultTitle : callerTitle}</DialogTitle>
                         <DialogDescription className="sr-only">
-                            {multiSelect ? 'Browse and select one or more assets' : 'Browse and select an asset'}
+                            {multiSelect ? (
+                                <Trans>Browse and select one or more assets</Trans>
+                            ) : (
+                                <Trans>Browse and select an asset</Trans>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -112,6 +176,7 @@ export function AssetPickerDialog({
                             initialSelectedAssets={initialSelectedAssets}
                             fixedHeight={false}
                             displayBulkActions={false}
+                            onFilesDropped={handleFilesDropped}
                         />
                     </div>
 
@@ -125,12 +190,18 @@ export function AssetPickerDialog({
                             </PermissionGuard>
                         ))}
                         <Button variant="outline" onClick={onClose}>
-                            Cancel
+                            <Trans>Cancel</Trans>
                         </Button>
                         <Button onClick={handleConfirm} disabled={selectedAssets.length === 0}>
-                            {selectedAssets.length > 0 && multiSelect
-                                ? `Select ${selectedAssets.length} Asset${selectedAssets.length > 1 ? 's' : ''}`
-                                : 'Select Asset'}
+                            {selectedAssets.length > 0 && multiSelect ? (
+                                <Plural
+                                    value={selectedAssets.length}
+                                    one="Select # Asset"
+                                    other="Select # Assets"
+                                />
+                            ) : (
+                                <Trans>Select Asset</Trans>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

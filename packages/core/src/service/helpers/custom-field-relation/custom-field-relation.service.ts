@@ -64,6 +64,15 @@ export class CustomFieldRelationService {
                             ...entity.customFields,
                             ...entityWithCustomFields?.customFields,
                             [field.name]: relations,
+                            // The relation id column must always be kept in sync with the relation
+                            // itself, otherwise a stale id value would conflict with the relation
+                            // when persisting, since both map to the same database column.
+                            ...(field.list
+                                ? {}
+                                : {
+                                      [`${field.name}Id`]:
+                                          relations && !Array.isArray(relations) ? relations.id : null,
+                                  }),
                         };
                         await this.connection
                             .getRepository(ctx, entityType)
@@ -73,6 +82,25 @@ export class CustomFieldRelationService {
             }
         }
         return entity;
+    }
+
+    /**
+     * @description
+     * Returns the relation paths, such as `customFields.featuredAsset`, of the relation custom
+     * fields which the input sets. Pass them when reloading the entity after an update, so that the
+     * reloaded entity holds the relations the input set.
+     */
+    getRelationPathsInInput<T extends HasCustomFields & VendureEntity>(
+        entityType: Type<T>,
+        input: { customFields?: { [key: string]: any } },
+    ): string[] {
+        if (!input.customFields) {
+            return [];
+        }
+        return (this.configService.customFields[entityType.name as keyof CustomFields] ?? [])
+            .filter(this.isRelationalType)
+            .filter(field => input.customFields?.[getGraphQlInputName(field)] !== undefined)
+            .map(field => `customFields.${field.name}`);
     }
 
     private isRelationalType(this: void, input: CustomFieldConfig): input is RelationCustomFieldConfig {

@@ -50,7 +50,7 @@ describe('Payment process', () => {
     const PAYMENT_ERROR_MESSAGE = 'Payment is not valid';
     const customPaymentProcess: PaymentProcess<'Validating'> = {
         init(injector) {
-            initSpy(injector.get(TransactionalConnection).rawConnection.name);
+            initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
         transitions: {
             Created: {
@@ -180,7 +180,7 @@ describe('Payment process', () => {
 
     it('CustomPaymentProcess is injectable', () => {
         expect(initSpy).toHaveBeenCalled();
-        expect(initSpy.mock.calls[0][0]).toBe('default');
+        expect(initSpy.mock.calls[0][0]).toBe(true);
     });
 
     it('creates Payment in custom state', async () => {

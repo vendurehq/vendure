@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
@@ -109,7 +109,7 @@ export const Route = createFileRoute('/_authenticated/_option-groups/option-grou
             ],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function OptionGroupOptionDetailPage() {
@@ -124,6 +124,7 @@ function OptionGroupOptionDetailPage() {
         queryDocument: productOptionDetailDocument,
         createDocument: createProductOptionDocument,
         updateDocument: updateProductOptionDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
@@ -186,17 +187,6 @@ function OptionGroupOptionDetailPage() {
                 {productCount > 1 && (
                     <PageBlock column="main" blockId="shared-option-group-warning">
                         <SharedOptionGroupWarning productCount={productCount} />
-                    </PageBlock>
-                )}
-                {entity?.group && (
-                    <PageBlock column="side" blockId="option-group-info">
-                        <div className="space-y-2">
-                            <div className="text-sm font-medium">
-                                <Trans>Option Group</Trans>
-                            </div>
-                            <div className="text-sm text-muted-foreground">{entity?.group.name}</div>
-                            <div className="text-xs text-muted-foreground">{entity?.group.code}</div>
-                        </div>
                     </PageBlock>
                 )}
                 <PageBlock column="main" blockId="main-form">

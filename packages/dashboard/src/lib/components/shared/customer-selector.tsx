@@ -9,6 +9,7 @@ import {
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
 import { type CreateCustomerInput } from '@/vdb/graphql/common-operations.js';
@@ -101,7 +102,11 @@ function CustomerSearch({ onSelect }: Readonly<{ onSelect: (value: Customer) => 
             />
             <CommandList>
                 <CommandEmpty>
-                    {isLoading ? <Trans>Loading...</Trans> : <Trans>No customers found</Trans>}
+                    {isLoading ? (
+                        <LoadingState variant="spinner" className="py-4" />
+                    ) : (
+                        <Trans>No customers found</Trans>
+                    )}
                 </CommandEmpty>
                 {data?.customers.items.map(customer => (
                     <CommandItem

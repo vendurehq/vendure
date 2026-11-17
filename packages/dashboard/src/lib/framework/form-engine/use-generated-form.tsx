@@ -13,11 +13,32 @@ import {
 } from './form-schema-tools.js';
 import {
     convertEmptyStringsToNull,
+    getChangedTopLevelFields,
+    mergeStartingValues,
     removeEmptyIdFields,
     stripNullNullableFields,
     stripUntouchedTranslations,
     transformRelationFields,
 } from './utils.js';
+
+/**
+ * @description
+ * Metadata passed as the second argument to a {@link GeneratedFormOptions} `onSubmit`
+ * handler, describing which fields the user changed relative to the loaded entity.
+ *
+ * @docsCategory detail-views
+ * @docsPage useGeneratedForm
+ * @since 3.8.0
+ */
+export interface GeneratedFormSubmitMeta {
+    /**
+     * @description
+     * The set of top-level input field names the user actually changed relative to
+     * the loaded entity (plus non-nullable fields which are always included).
+     * `undefined` when creating a new entity (there is no baseline to diff against).
+     */
+    changedFields?: ReadonlySet<string>;
+}
 
 // Stable empty array reference used as a fallback when the server config
 // (and therefore `availableLanguages`) has not yet loaded — keeps memo
@@ -91,8 +112,20 @@ export interface GeneratedFormOptions<
     ) => WithLooseCustomFields<
         VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>
     >;
+    /**
+     * @description
+     * The starting values to apply on top of the default values when there is no entity. They count as
+     * unsaved changes. The form resets whenever they change, so values such as `new Date()` should not
+     * be recreated on every render.
+     *
+     * @since 3.8.0
+     */
+    startingValues?: WithLooseCustomFields<
+        Partial<VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>>
+    >;
     onSubmit?: (
         values: VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>,
+        meta?: GeneratedFormSubmitMeta,
     ) => void;
 }
 
@@ -132,7 +165,16 @@ export function useGeneratedForm<
     VarName extends keyof VariablesOf<T> | undefined,
     E extends Record<string, any> = Record<string, any>,
 >(options: GeneratedFormOptions<T, VarName, E>) {
-    const { document, entity, setValues, onSubmit, varName, customFieldConfig, extendSchema } = options;
+    const {
+        document,
+        entity,
+        setValues,
+        startingValues: startingValuesOption,
+        onSubmit,
+        varName,
+        customFieldConfig,
+        extendSchema,
+    } = options;
     const { activeChannel } = useChannel();
     const serverConfig = useServerConfig();
 
@@ -148,10 +190,16 @@ export function useGeneratedForm<
     // Same reasoning as `setValues`: an inline `extendSchema` arrow would change
     // identity every render, replacing the resolver and re-validating the whole
     // form each time. Read it from a ref so the schema memo below stays stable.
+    //
+    // Assign during render rather than in an effect. The schema memo reads this ref in the same
+    // render pass, and it is rebuilt when `document` swaps from the create to the update operation
+    // — which happens on the `/new` -> `/:id` navigation after a create, while the route component
+    // stays mounted. An effect runs after that render, so the memo would rebuild from the previous
+    // extender and keep a create-only rule alive for the rest of the edit session.
     const extendSchemaRef = useRef(extendSchema);
-    useEffect(() => {
-        extendSchemaRef.current = extendSchema;
-    }, [extendSchema]);
+    extendSchemaRef.current = extendSchema;
+
+    const startingValues = entity ? undefined : startingValuesOption;
 
     // Recomputing this on every render produces a new array identity which
     // ripples into the schema and default-values memos below, defeating any
@@ -203,13 +251,7 @@ export function useGeneratedForm<
     }, [processedEntity, processedDefaultValues, updateFields, customFieldConfig]);
 
     const form = useForm({
-        resolver: async (values, context, options) => {
-            const result = await zodResolver(schema)(values, context, options);
-            if (Object.keys(result.errors).length > 0) {
-                console.log('Zod form validation errors:', result.errors);
-            }
-            return result;
-        },
+        resolver: zodResolver(schema),
         mode: 'onChange',
         defaultValues: processedDefaultValues,
         values,
@@ -218,6 +260,31 @@ export function useGeneratedForm<
     // Proxy actually populates it. If it were only read inside the submit handler it could come
     // back empty, and `stripUntouchedTranslations` would then keep every seeded row (see its docs).
     const { dirtyFields } = form.formState;
+
+    // When editing an existing entity, validate the loaded values so that a stored value which
+    // fails validation is shown as an error, rather than only disabling the submit button.
+    //
+    // Keyed on the content of `values`, not its identity. react-hook-form resets the form, and
+    // clears its errors, whenever `values` changes by deep equality, so this re-validates after
+    // every such reset (e.g. a refetch of the same entity). Content keying also means a caller
+    // passing a new `customFieldConfig` array or `entity` object on each render does not re-run
+    // it on every render.
+    const valuesKey = JSON.stringify(values);
+    useEffect(() => {
+        if (entity) {
+            void form.trigger();
+        }
+    }, [valuesKey]);
+
+    // Put the starting values on top of the defaults. The defaults stay the baseline, so the starting
+    // values count as unsaved changes. Keep this below `useForm`: it must run after react-hook-form
+    // resets the form to `values`, which also happens whenever `values` changes.
+    const startingValuesKey = JSON.stringify(startingValues);
+    useEffect(() => {
+        if (startingValues) {
+            form.reset(mergeStartingValues(values, startingValues), { keepDefaultValues: true });
+        }
+    }, [valuesKey, startingValuesKey]);
 
     let submitHandler = (event: FormEvent): any => {
         event.preventDefault();
@@ -230,14 +297,13 @@ export function useGeneratedForm<
             const isValid = await form.trigger();
 
             if (!isValid) {
-                console.log(`Form invalid!`);
                 event.stopPropagation();
                 return;
             }
 
-            const onSubmitWrapper = (values: any) => {
+            const onSubmitWrapper = (rawValues: any) => {
                 let processed = convertEmptyStringsToNull(
-                    removeEmptyIdFields(values, updateFields),
+                    removeEmptyIdFields(rawValues, updateFields),
                     updateFields,
                 );
                 // Drop translation rows the form seeded for languages the user never filled,
@@ -246,7 +312,40 @@ export function useGeneratedForm<
                 if (!entity) {
                     processed = stripNullNullableFields(processed, updateFields);
                 }
-                onSubmit(processed);
+                // Compute which top-level fields actually changed relative to the
+                // loaded entity, so that consumers (e.g. useDetailPage) can omit
+                // untouched fields from update mutations and avoid clobbering
+                // concurrent edits. Diff the raw values against the `values` memo,
+                // which is the exact baseline the form was last reset to. Only
+                // meaningful for updates (an existing entity provides the baseline).
+                const meta: GeneratedFormSubmitMeta = {
+                    changedFields: entity
+                        ? getChangedTopLevelFields(rawValues, values, updateFields)
+                        : undefined,
+                };
+                // Dev-time guard for the invariant `changedFields` depends on: it is computed on the
+                // raw values, but a consumer applies it to `processed` (after the transforms above).
+                // That only stays correct while none of those transforms renames or drops a top-level
+                // key the user changed — otherwise the change would be silently omitted from the
+                // update. Empty-string IDs are the one legitimate removal (`removeEmptyIdFields`), so
+                // they are excluded. This fires only in dev/test builds; production is unaffected.
+                if (import.meta.env.DEV && meta.changedFields) {
+                    for (const key of meta.changedFields) {
+                        if (
+                            Object.prototype.hasOwnProperty.call(rawValues, key) &&
+                            rawValues[key] !== '' &&
+                            !Object.prototype.hasOwnProperty.call(processed, key)
+                        ) {
+                            throw new Error(
+                                `Form-engine invariant violated: the changed top-level field "${key}" ` +
+                                    `was removed by a pre-submission transform. Those transforms must not ` +
+                                    `rename or drop a changed key, or a consumer pruning to the changed-` +
+                                    `field set would silently omit it from the update payload.`,
+                            );
+                        }
+                    }
+                }
+                onSubmit(processed, meta);
             };
             form.handleSubmit(onSubmitWrapper)(event);
         };
