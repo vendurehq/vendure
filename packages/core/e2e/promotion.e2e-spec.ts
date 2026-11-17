@@ -6,7 +6,14 @@ import {
     Permission,
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
-import { ConfigService, type PromotionAction, PromotionCondition, PromotionOrderAction } from '@vendure/core';
+import {
+    ConfigService,
+    Promotion,
+    type PromotionAction,
+    PromotionCondition,
+    PromotionOrderAction,
+    TransactionalConnection,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -257,6 +264,27 @@ describe('Promotion resolver', () => {
         }
 
         decodeIdSpy.mockRestore();
+    });
+
+    // A partial update must keep the priorityScore, which is derived from the conditions and actions
+    it('updatePromotion without conditions or actions keeps the priorityScore', async () => {
+        const getPriorityScore = async () => {
+            const entity = await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Promotion)
+                .findOneByOrFail({ id: promotion.id.replace('T_', '') });
+            return entity.priorityScore;
+        };
+        // Two conditions (priorityValue 1 each) and one action (priorityValue 10)
+        expect(await getPriorityScore()).toBe(12);
+
+        const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+            input: { id: promotion.id, enabled: false },
+        });
+        updatePromotionGuard.assertSuccess(updatePromotion);
+        expect(await getPriorityScore()).toBe(12);
+
+        await adminClient.query(updatePromotionDocument, { input: { id: promotion.id, enabled: true } });
     });
 
     it('updatePromotion return error result with empty conditions and no couponCode', async () => {
@@ -559,6 +587,7 @@ function generateTestCondition(code: string): PromotionCondition {
         description: [{ languageCode: LanguageCode.en, value: `description for ${code}` }],
         args: { arg: { type: 'int' } },
         check: () => true,
+        priorityValue: 1,
     });
 }
 
@@ -570,5 +599,6 @@ function generateTestAction(code: string): PromotionAction<any> {
         execute: () => {
             return 42;
         },
+        priorityValue: 10,
     });
 }

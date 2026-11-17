@@ -138,7 +138,7 @@ export class PromotionService {
             entityType: Promotion,
             translationType: PromotionTranslation,
             beforeSave: async p => {
-                p.priorityScore = this.calculatePriorityScore(input);
+                p.priorityScore = this.calculatePriorityScore(input.conditions, input.actions);
                 p.conditions = conditions;
                 p.actions = actions;
                 await this.channelService.assignToCurrentChannel(p, ctx);
@@ -189,7 +189,9 @@ export class PromotionService {
             entityType: Promotion,
             translationType: PromotionTranslation,
             beforeSave: async p => {
-                p.priorityScore = this.calculatePriorityScore(input);
+                // Scored from the merged operations, so that an update which omits `conditions` or
+                // `actions` keeps their share of the score.
+                p.priorityScore = this.calculatePriorityScore(conditions, actions);
                 if (input.conditions) {
                     p.conditions = conditions;
                 }
@@ -522,14 +524,15 @@ export class PromotionService {
         return completedCount + pendingCount;
     }
 
-    private calculatePriorityScore(input: CreatePromotionInput | UpdatePromotionInput): number {
-        const conditions = input.conditions
-            ? input.conditions.map(c => this.configArgService.getByCode('PromotionCondition', c.code))
-            : [];
-        const actions = input.actions
-            ? input.actions.map(c => this.configArgService.getByCode('PromotionAction', c.code))
-            : [];
-        return [...conditions, ...actions].reduce((score, op) => score + op.priorityValue, 0);
+    private calculatePriorityScore(
+        conditions: Array<{ code: string }> | null | undefined,
+        actions: Array<{ code: string }> | null | undefined,
+    ): number {
+        const operations = [
+            ...(conditions ?? []).map(c => this.configArgService.getByCode('PromotionCondition', c.code)),
+            ...(actions ?? []).map(a => this.configArgService.getByCode('PromotionAction', a.code)),
+        ];
+        return operations.reduce((score, op) => score + op.priorityValue, 0);
     }
 
     private validateRequiredConditions(
