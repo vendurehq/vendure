@@ -2,16 +2,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RouterContextProvider } from '@tanstack/react-router';
 import { createDemoRoute } from '../../../../.storybook/providers.js';
-import {
-    FullWidthPageBlock,
-    Page,
-    PageActionBar,
-    PageActionBarLeft,
-    PageActionBarRight,
-    PageBlock,
-    PageLayout,
-    PageTitle,
-} from './page-layout.js';
+import { FullWidthPageBlock, Page, PageActionBar, PageBlock, PageLayout, PageTitle } from './page-layout.js';
 
 const meta = {
     title: 'Layout/Page Layout',
@@ -54,12 +45,8 @@ export const WithActionBar: Story = {
                 <Page pageId="product-detail">
                     <PageTitle>Product Details</PageTitle>
                     <PageActionBar>
-                        <PageActionBarLeft>
-                            <Button variant="outline">Cancel</Button>
-                        </PageActionBarLeft>
-                        <PageActionBarRight>
-                            <Button>Save</Button>
-                        </PageActionBarRight>
+                        <Button variant="outline">Cancel</Button>
+                        <Button>Save</Button>
                     </PageActionBar>
                     <PageLayout>
                         <PageBlock column="main" blockId="product-info" title="Product Information">

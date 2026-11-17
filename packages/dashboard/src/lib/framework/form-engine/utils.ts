@@ -549,9 +549,6 @@ export function isStructCustomFieldConfig(input: ConfigurableFieldDef): input is
     return input.type === 'struct' && isCustomFieldConfig(input);
 }
 
-// Legacy alias for backward compatibility
-export const isStructFieldConfig = isStructCustomFieldConfig;
-
 // =============================================================================
 // TYPE GUARDS FOR STRUCT FIELD TYPES (fields within struct custom fields)
 // =============================================================================

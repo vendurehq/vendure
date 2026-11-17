@@ -521,26 +521,6 @@ describe('defineDashboardExtension - insights', () => {
         expect(getDashboardWidgetRegistry().get('insights-widget')).toBeDefined();
     });
 
-    it('still registers widgets via the deprecated top-level widgets option', () => {
-        defineDashboardExtension({
-            widgets: [makeWidget('legacy-widget')],
-        });
-        executeDashboardExtensionCallbacks();
-
-        expect(getDashboardWidgetRegistry().get('legacy-widget')).toBeDefined();
-    });
-
-    it('merges deprecated top-level widgets with insights.widgets', () => {
-        defineDashboardExtension({
-            widgets: [makeWidget('legacy-widget')],
-            insights: { widgets: [makeWidget('insights-widget')] },
-        });
-        executeDashboardExtensionCallbacks();
-
-        expect(getDashboardWidgetRegistry().get('legacy-widget')).toBeDefined();
-        expect(getDashboardWidgetRegistry().get('insights-widget')).toBeDefined();
-    });
-
     it('excludeWidgets removes a widget from the visible registry', () => {
         registerDashboardWidget(makeWidget('latest-orders-widget'));
         registerDashboardWidget(makeWidget('metrics-widget'));

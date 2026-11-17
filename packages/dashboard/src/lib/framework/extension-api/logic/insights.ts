@@ -2,20 +2,15 @@ import {
     excludeDashboardWidgets,
     registerDashboardWidgetFilter,
 } from '../../dashboard-widget/widget-extensions.js';
-import { DashboardInsightsExtensionDefinition, DashboardWidgetDefinition } from '../types/index.js';
+import { DashboardInsightsExtensionDefinition } from '../types/index.js';
 
 import { registerWidgetExtensions } from './widgets.js';
 
 /**
- * Registers the `insights` extension options. The deprecated top-level `widgets`
- * option is merged with `insights.widgets` so both continue to work identically.
+ * Registers the `insights` extension options.
  */
-export function registerInsightsExtensions(
-    insights: DashboardInsightsExtensionDefinition | undefined,
-    deprecatedWidgets?: DashboardWidgetDefinition[],
-) {
-    const widgets = [...(deprecatedWidgets ?? []), ...(insights?.widgets ?? [])];
-    registerWidgetExtensions(widgets);
+export function registerInsightsExtensions(insights: DashboardInsightsExtensionDefinition | undefined) {
+    registerWidgetExtensions(insights?.widgets);
 
     if (insights?.excludeWidgets?.length) {
         excludeDashboardWidgets(insights.excludeWidgets);

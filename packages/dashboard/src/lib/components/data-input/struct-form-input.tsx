@@ -17,7 +17,7 @@ import {
 import {
     isFieldDisabled,
     isStringStructFieldWithOptions,
-    isStructFieldConfig,
+    isStructCustomFieldConfig,
 } from '@/vdb/framework/form-engine/utils.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { CustomFieldListInput } from './custom-field-list-input.js';
@@ -101,7 +101,7 @@ export function StructFormInput({ fieldDef, disabled, ...field }: Readonly<Dashb
     // Edit mode - memoized to prevent focus loss from re-renders
     const EditMode = useMemo(
         () =>
-            fieldDef && isStructFieldConfig(fieldDef) ? (
+            fieldDef && isStructCustomFieldConfig(fieldDef) ? (
                 <div className="space-y-4 border rounded-md p-4">
                     {!isReadonly && (
                         <div className="flex justify-end">
@@ -153,7 +153,7 @@ export function StructFormInput({ fieldDef, disabled, ...field }: Readonly<Dashb
     );
 
     // Early return if not a struct field config
-    if (!fieldDef || !isStructFieldConfig(fieldDef)) {
+    if (!fieldDef || !isStructCustomFieldConfig(fieldDef)) {
         return null;
     }
 

@@ -125,8 +125,8 @@ export interface ActionBarItemProps {
 
 /**
  * @description
- * A component for wrapping action bar items with a unique ID. This should be used inside
- * the {@link PageActionBarRight} component. Each item is given an `itemId` which allows
+ * A component for wrapping action bar items with a unique ID. This should be used as a child
+ * of the {@link PageActionBar} component. Each item is given an `itemId` which allows
  * extensions to position their items relative to it using `position.itemId`.
  *
  * **Mobile behavior:** On mobile viewports, only the **last** inline `ActionBarItem` is
@@ -139,11 +139,11 @@ export interface ActionBarItemProps {
  *
  * @example
  * ```tsx
- * <PageActionBarRight>
+ * <PageActionBar>
  *     <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
  *         <Button type="submit">Save</Button>
  *     </ActionBarItem>
- * </PageActionBarRight>
+ * </PageActionBar>
  * ```
  *
  * @docsCategory page-layout
@@ -166,7 +166,7 @@ export function ActionBarItem({ children, itemId, requiresPermission }: Readonly
 }
 
 /**
- * Internal wrapper component used by PageActionBarRight to wrap extension items
+ * Internal wrapper component used by PageActionBar to wrap extension items
  * with dev-mode location information. Unlike ActionBarItem, this does not handle
  * permissions (those are handled by PageActionBarItem).
  *

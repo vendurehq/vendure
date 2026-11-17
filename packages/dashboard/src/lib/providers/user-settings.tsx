@@ -111,11 +111,6 @@ export interface UserSettingsContextType {
         value: TableSettings[K],
     ) => void;
     /**
-     * @deprecated Superseded by `saveWidgetInstanceLayouts`. The legacy `widgetLayout` field it
-     * writes to is only read as a migration fallback and is no longer written by the Insights page.
-     */
-    setWidgetLayout: (layoutConfig: Record<string, { x: number; y: number; w: number; h: number }>) => void;
-    /**
      * @description
      * Persists the layout for the given widget instances, preserving each instance's
      * existing config. The passed `layouts` are treated as the complete set of instances
@@ -331,7 +326,6 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
                 },
             }));
         },
-        setWidgetLayout: layoutConfig => updateSetting('widgetLayout', layoutConfig),
         saveWidgetInstanceLayouts: (layouts, loadedWidgetIds) => {
             setSettings(prev => {
                 const loaded = new Set(loadedWidgetIds);

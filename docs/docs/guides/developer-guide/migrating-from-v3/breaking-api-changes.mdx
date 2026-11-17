@@ -111,6 +111,19 @@ These APIs were deprecated during v3 or earlier and are removed in v4. Each has 
 
 `FacetValueChecker` must be obtained from the injector (`injector.get(FacetValueChecker)`). Creating it with `new` no longer works without an `EventBus`.
 
+### Plugins and Dashboard
+
+| Removed | Use instead |
+|---|---|
+| `AssetServerPlugin` options `previewMaxWidth` and `previewMaxHeight` | `previewStrategy: new SharpAssetPreviewStrategy({ maxWidth, maxHeight })` |
+| `BullMQJobQueuePlugin` options `setRetries` and `setBackoff` | `setJobOptions`, returning `attempts` (retries + 1) and `backoff` |
+| `MockDataService.populateCustomers()` in `@vendure/testing` | `MockDataService.getCustomers()`, or the `populateCustomers()` function |
+| The top-level `widgets` option of `defineDashboardExtension()` | `insights.widgets` |
+| `PageActionBarLeft` and `PageActionBarRight` | Put `ActionBarItem` components (or buttons) directly inside `PageActionBar`, and pass `dropdownMenuItems` to `PageActionBar` |
+| `isStructFieldConfig` | `isStructCustomFieldConfig` |
+| `setWidgetLayout()` of the user settings context | `saveWidgetInstanceLayouts()` |
+| The `refresh` field of `DashboardMetricSummaryInput` | Nothing. Metrics are calculated on every request. |
+
 ### GraphQL API
 
 | Removed | Use instead |

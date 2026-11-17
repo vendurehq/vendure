@@ -154,7 +154,7 @@ describe('BullMQ job list query', () => {
                     concurrency: 1,
                     // Park failed jobs in the `delayed` state for long enough that
                     // they remain there for the whole test run.
-                    setBackoff: () => ({ type: 'fixed', delay: 5 * 60_000 }),
+                    setJobOptions: () => ({ backoff: { type: 'fixed', delay: 5 * 60_000 } }),
                 }),
                 ListTestPlugin,
             ],

@@ -775,7 +775,6 @@ import {
     Button,
     DashboardRouteDefinition,
     ListPage,
-    PageActionBarRight,
     DetailPageButton,
     Link,
 } from '@vendure/dashboard';
@@ -856,12 +855,10 @@ export const articleList: DashboardRouteDefinition = {
                 'rating',
             ]}
         >
-            <PageActionBarRight>
-                <Button render={<Link to="./new" />}>
-                    <PlusIcon className="mr-2 h-4 w-4" />
-                    New article
-                </Button>
-            </PageActionBarRight>
+            <Button render={<Link to="./new" />}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                New article
+            </Button>
         </ListPage>
     ),
 };
@@ -1098,7 +1095,6 @@ import {
     Page,
     PageTitle,
     PageActionBar,
-    PageActionBarRight,
     PermissionGuard,
     Button,
     PageLayout,
@@ -1198,16 +1194,14 @@ const creatingNewEntity = params.id === 'new';
         <Page pageId="article-detail" form={form} submitHandler={submitHandler}>
             <PageTitle>{creatingNewEntity ? 'New article' : (entity?.title ?? '')}</PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <PermissionGuard requires={['UpdateProduct', 'UpdateCatalog']}>
-                        <Button
-                            type="submit"
-                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                        >
-                            Update
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                <PermissionGuard requires={['UpdateProduct', 'UpdateCatalog']}>
+                    <Button
+                        type="submit"
+                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                    >
+                        Update
+                    </Button>
+                </PermissionGuard>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="side" blockId="publish-status" title="Status" description="Current status of this article">
@@ -1541,14 +1535,16 @@ import { defineDashboardExtension } from '@vendure/dashboard';
 import { CustomWidget } from './custom-widget';
 
 defineDashboardExtension({
-    widgets: [
-        {
-            id: 'custom-widget',
-            name: 'Custom Widget',
-            component: CustomWidget,
-            defaultSize: { w: 3, h: 3 },
-        },
-    ],
+    insights: {
+        widgets: [
+            {
+                id: 'custom-widget',
+                name: 'Custom Widget',
+                component: CustomWidget,
+                defaultSize: { w: 3, h: 3 },
+            },
+        ],
+    },
 });
 ```
 ````
@@ -1701,11 +1697,9 @@ export const articleList: DashboardRouteDefinition = {
                 authorName: true,
             }}
         >
-            <PageActionBarRight>
-                <Button render={<Link to="./new" />}>
-                    <PlusIcon /> New article
-                </Button>
-            </PageActionBarRight>
+            <Button render={<Link to="./new" />}>
+                <PlusIcon /> New article
+            </Button>
         </ListPage>
     ),
 };
@@ -1893,8 +1887,10 @@ export function CustomWidget() {
 }
 
 defineDashboardExtension({
-    widgets: [
-        { id: 'custom-widget', name: 'Custom Widget', component: CustomWidget, defaultSize: { w: 3, h: 3 } },
-    ],
+    insights: {
+        widgets: [
+            { id: 'custom-widget', name: 'Custom Widget', component: CustomWidget, defaultSize: { w: 3, h: 3 } },
+        ],
+    },
 });
 ```

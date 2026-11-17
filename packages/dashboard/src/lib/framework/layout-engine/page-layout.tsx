@@ -89,9 +89,9 @@ export interface PageProps extends ComponentProps<'div'> {
  *    <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
  *      <PageTitle>My Page</PageTitle>
  *      <PageActionBar>
- *        <PageActionBarRight>
+ *        <ActionBarItem itemId="save-button">
  *          <Button>Save</Button>
- *        </PageActionBarRight>
+ *        </ActionBarItem>
  *      </PageActionBar>
  *      <PageLayout>
  *        <PageBlock column="main" blockId="my-block">
@@ -405,7 +405,6 @@ export type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>
  * A component for displaying the main actions for a page. This should be used inside the {@link Page} component.
  *
  * You can add action bar items by including {@link ActionBarItem} components as direct children.
- * For backwards compatibility, {@link PageActionBarLeft} and {@link PageActionBarRight} are also supported.
  *
  * **Mobile behavior:** On mobile viewports, only the last inline {@link ActionBarItem} is
  * shown (the primary action). Extension items and plain children are hidden to prevent
@@ -441,54 +440,21 @@ export function PageActionBar({
     const platformPromotionAction = usePlatformPromotionActionItem(page.pageId);
     const childArray = React.Children.toArray(children);
 
-    // Extract different child types
-    const leftContent = childArray.filter(child => isOfType(child, PageActionBarLeft));
-    const rightContent = childArray.filter(child => isOfType(child, PageActionBarRight));
-
-    // Collect ActionBarItem children (direct or from PageActionBarRight)
+    // Collect ActionBarItem children, and plain children (buttons etc.) which are not ActionBarItems
     const actionBarItemChildren: React.ReactElement<ActionBarItemProps>[] = [];
-    // Collect plain children (not ActionBarItem, not PageActionBarLeft/Right)
     const plainChildren: React.ReactNode[] = [];
-    // Collect dropdownMenuItems from PageActionBarRight (backwards compat)
-    let legacyDropdownMenuItems: InlineDropdownItem[] = [];
-
-    // Direct children (new pattern)
     childArray.forEach(child => {
         if (isActionBarItem(child)) {
             actionBarItemChildren.push(child);
-        } else if (!isOfType(child, PageActionBarLeft) && !isOfType(child, PageActionBarRight)) {
-            // Plain children (buttons etc.) that aren't ActionBarItem or layout components
+        } else {
             plainChildren.push(child);
-        }
-    });
-
-    // Children and dropdownMenuItems from PageActionBarRight (backwards compat)
-    rightContent.forEach(rightChild => {
-        if (React.isValidElement(rightChild)) {
-            const props = rightChild.props as {
-                children?: React.ReactNode;
-                dropdownMenuItems?: InlineDropdownItem[];
-            };
-            React.Children.forEach(props.children, child => {
-                if (isActionBarItem(child)) {
-                    actionBarItemChildren.push(child);
-                } else {
-                    // Plain children (raw buttons etc.)
-                    plainChildren.push(child);
-                }
-            });
-            // Extract dropdownMenuItems from PageActionBarRight props
-            if (props.dropdownMenuItems) {
-                legacyDropdownMenuItems = [...legacyDropdownMenuItems, ...props.dropdownMenuItems];
-            }
         }
     });
 
     // Separate button items from dropdown items
     const extensionButtonItems = actionBarItems.filter(item => item.type !== 'dropdown');
-    const allDropdownMenuItems = [...(dropdownMenuItems ?? []), ...legacyDropdownMenuItems];
     const actionBarDropdownItems = [
-        ...allDropdownMenuItems.map(item => ({
+        ...(dropdownMenuItems ?? []).map(item => ({
             ...item,
             pageId: page.pageId ?? '',
             type: 'dropdown' as const,
@@ -552,8 +518,7 @@ export function PageActionBar({
     };
 
     return (
-        <div className={cn('flex gap-2', leftContent.length > 0 ? 'justify-between' : 'justify-end')}>
-            {leftContent.length > 0 && <div className="flex justify-start gap-2">{leftContent}</div>}
+        <div className="flex justify-end gap-2">
             {hasRightContent && (
                 <div className="flex justify-end gap-2">
                     {/* Plain children only on desktop */}
@@ -572,19 +537,6 @@ export function PageActionBar({
             {platformPromotionAction.dialog}
         </div>
     );
-}
-
-/**
- * @description
- * The PageActionBarLeft component is not used and will be removed in a future version.
- *
- * @docsCategory page-layout
- * @docsPage PageActionBar
- * @deprecated
- * @since 3.3.0
- */
-export function PageActionBarLeft({ children }: Readonly<{ children: React.ReactNode }>) {
-    return <div className="flex justify-start gap-2">{children}</div>;
 }
 
 /**
@@ -792,58 +744,6 @@ function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
             </DropdownMenuContent>
         </DropdownMenu>
     );
-}
-
-/**
- * @description
- * The PageActionBarRight component is used to display the right content of the action bar.
- *
- * @deprecated Use {@link ActionBarItem} children directly in {@link PageActionBar} instead.
- *
- * @example
- * ```tsx
- * // Old pattern (deprecated)
- * <PageActionBar>
- *     <PageActionBarRight>
- *         <ActionBarItem itemId="save-button">
- *             <Button type="submit">Update</Button>
- *         </ActionBarItem>
- *     </PageActionBarRight>
- * </PageActionBar>
- *
- * // New pattern (recommended)
- * <PageActionBar>
- *     <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
- *         <Button type="submit">Update</Button>
- *     </ActionBarItem>
- * </PageActionBar>
- * ```
- *
- * @docsCategory page-layout
- * @docsPage PageActionBar
- * @since 3.3.0
- */
-export function PageActionBarRight({
-    children,
-    dropdownMenuItems: _dropdownMenuItems,
-}: Readonly<{
-    /**
-     * @description
-     * ActionBarItem components that will be rendered in the action bar.
-     * Each item should have a unique itemId for extension targeting.
-     */
-    children?: React.ReactNode;
-    /**
-     * @description
-     * Optional dropdown menu items. These are now extracted and rendered by PageActionBar.
-     * @deprecated Pass dropdownMenuItems directly to PageActionBar instead.
-     */
-    dropdownMenuItems?: InlineDropdownItem[];
-}>) {
-    // This is now a passthrough wrapper for backwards compatibility.
-    // The actual logic is handled by PageActionBar which extracts ActionBarItem
-    // children and dropdownMenuItems from PageActionBarRight.
-    return <>{children}</>;
 }
 
 function PageActionBarItem({

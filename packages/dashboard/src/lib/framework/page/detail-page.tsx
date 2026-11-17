@@ -20,7 +20,6 @@ import {
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
@@ -188,14 +187,12 @@ export function DetailPage<
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{title(entity)}</PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                    >
-                        <Trans>Update</Trans>
-                    </Button>
-                </PageActionBarRight>
+                <Button
+                    type="submit"
+                    disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                >
+                    <Trans>Update</Trans>
+                </Button>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">

@@ -79,52 +79,6 @@ export interface BullMQPluginOptions {
     concurrency?: number | ((queueName: string) => number);
     /**
      * @description
-     * When a job is added to the JobQueue using `JobQueue.add()`, the calling
-     * code may specify the number of retries in case of failure. This option allows
-     * you to override that number and specify your own number of retries based on
-     * the job being added.
-     *
-     * @example
-     * ```ts
-     * setRetries: (queueName, job) => {
-     *   if (queueName === 'send-email') {
-     *     // Override the default number of retries
-     *     // for the 'send-email' job because we have
-     *     // a very unreliable email service.
-     *     return 10;
-     *   }
-     *   return job.retries;
-     * }
-     *  ```
-     *
-     * @deprecated Use `setJobOptions` instead.
-     * @since 1.3.0
-     */
-    setRetries?: (queueName: string, job: Job) => number;
-    /**
-     * @description
-     * This allows you to specify the backoff settings when a failed job gets retried.
-     * In other words, this determines how much time should pass before attempting to
-     * process the failed job again. If the function returns `undefined`, the default
-     * value of exponential/1000ms will be used.
-     *
-     * @example
-     * ```ts
-     * setBackoff: (queueName, job) => {
-     *   return {
-     *     type: 'exponential', // or 'fixed'
-     *     delay: 10000 // first retry after 10s, second retry after 20s, 40s,...
-     *   };
-     * }
-     * ```
-     *
-     * @deprecated Use `setJobOptions` instead.
-     * @since 1.3.0
-     * @default 'exponential', 1000
-     */
-    setBackoff?: (queueName: string, job: Job) => BackoffOptions | undefined;
-    /**
-     * @description
      * This allows you to specify additional options for a job when it is added to the queue.
      * The object returned is the BullMQ [JobsOptions](https://api.docs.bullmq.io/types/v5.JobsOptions.html)
      * type, which includes control over settings such as `delay`, `attempts`, `priority` and much more.
@@ -132,11 +86,18 @@ export interface BullMQPluginOptions {
      * This function is called every time a job is added to the queue, so you can return different options
      * based on the job being added.
      *
+     * By default a job is attempted `job.retries + 1` times, with an exponential backoff starting at
+     * 1000ms. Return `attempts` or `backoff` to override them.
+     *
      * @example
      * ```ts
-     * // Here we want to assign a higher priority to jobs in the 'critical' queue
+     * // Here we want to assign a higher priority to jobs in the 'critical' queue,
+     * // and retry the 'send-email' jobs more often
      * setJobOptions: (queueName, job) => {
      *   const priority = queueName === 'critical' ? 1 : 5;
+     *   if (queueName === 'send-email') {
+     *     return { priority, attempts: 11, backoff: { type: 'fixed', delay: 10_000 } };
+     *   }
      *   return { priority };
      * }
      * ```
@@ -144,20 +105,6 @@ export interface BullMQPluginOptions {
      * @since 3.2.0
      */
     setJobOptions?: (queueName: string, job: Job) => BullJobsOptions;
-}
-
-/**
- * @description
- * Configuration for the backoff function when retrying failed jobs.
- *
- * @since 1.3.0
- * @docsCategory core plugins/JobQueuePlugin
- * @docsPage BullMQPluginOptions
- * @docsWeight 1
- */
-export interface BackoffOptions {
-    type: 'exponential' | 'fixed';
-    delay: number;
 }
 
 /**
