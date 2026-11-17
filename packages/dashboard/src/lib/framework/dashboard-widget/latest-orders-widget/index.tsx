@@ -55,7 +55,7 @@ export function LatestOrdersWidget() {
             {/* The plain frame resolves its band and edge-cell spacing against the
                 host card's --card-px, so the CardContent padding around the widget
                 body must be cancelled for the bands to run edge to edge. */}
-            <div className="-mx-(--card-px)">
+            <div className="-ms-(--card-ps) -me-(--card-px)">
                 <PaginatedListDataTable
                     frame="plain"
                     page={page}
