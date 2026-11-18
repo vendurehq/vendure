@@ -546,20 +546,19 @@ test.describe('Collection tree toggles, search subtitles & detail breadcrumb', (
         await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
     });
 
-    // A top-level collection has no ancestors: its name shows in the breadcrumb, but
-    // the only collection-detail breadcrumb link is the current page itself. (Every
-    // crumb renders as a link; a nested collection would add one link per ancestor.)
+    // A top-level collection has no ancestors: its name shows in the breadcrumb as the
+    // current page (plain text, not a link), and no crumb links to a collection detail page.
+    // The "Collections" list link has href "/collections" (no trailing id) and is excluded
+    // by the trailing slash.
     test('top-level collection detail has no ancestor breadcrumb link', async ({ page }) => {
         await page.goto(`/collections/${parentId}`);
         await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
-        // The collection name is shown in the breadcrumb…
+        // The collection name is the current-page crumb…
         await expect(
-            page.locator('[data-slot="breadcrumb-link"]').filter({ hasText: PARENT_NAME }),
+            page.locator('[data-slot="breadcrumb-page"]').filter({ hasText: PARENT_NAME }),
         ).toBeVisible();
-        // …and the only collection-detail crumb link is the current page (no ancestor).
-        // The "Collections" list link has href "/collections" (no trailing id) and is
-        // excluded by the trailing slash.
-        await expect(page.locator('[data-slot="breadcrumb-link"][href^="/collections/"]')).toHaveCount(1);
+        // …and no crumb links to a collection detail page (no ancestor).
+        await expect(page.locator('[data-slot="breadcrumb-link"][href^="/collections/"]')).toHaveCount(0);
     });
 
     // The embedded contents table does not opt into saved views but keeps its own
