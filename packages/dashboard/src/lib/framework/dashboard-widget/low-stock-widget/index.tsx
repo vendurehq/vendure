@@ -1,5 +1,5 @@
 import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { Tabs, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
 import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
@@ -96,9 +96,9 @@ export function LowStockWidget() {
                                             {variant.sku}
                                         </div>
                                     </div>
-                                    <Badge variant={saleable <= 0 ? 'destructive' : 'warning'}>
+                                    <StatusBadge tone={saleable <= 0 ? 'critical' : 'warning'}>
                                         <Trans>{saleable} in stock</Trans>
-                                    </Badge>
+                                    </StatusBadge>
                                 </Link>
                             </li>
                         );

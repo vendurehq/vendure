@@ -1766,6 +1766,37 @@ async function createNewOrder(client: VendureAdminClient) {
         `);
     }
 
+    // Ensure `test-shipping` exists, for the same reason: `shipping-methods.spec.ts` creates
+    // and deletes methods in parallel, so the seeded methods are not reliable here.
+    const { shippingMethods } = await client.gql(
+        `query { shippingMethods(options: { filter: { code: { eq: "test-shipping" } } }) { items { id } } }`,
+    );
+    let shippingMethodId: string | undefined = shippingMethods.items[0]?.id;
+    if (!shippingMethodId) {
+        const { createShippingMethod } = await client.gql(`
+            mutation {
+                createShippingMethod(input: {
+                    code: "test-shipping"
+                    fulfillmentHandler: "manual-fulfillment"
+                    checker: {
+                        code: "default-shipping-eligibility-checker",
+                        arguments: [{ name: "orderMinimum", value: "0" }]
+                    }
+                    calculator: {
+                        code: "default-shipping-calculator",
+                        arguments: [
+                            { name: "rate", value: "500" }
+                            { name: "taxRate", value: "0" }
+                            { name: "includesTax", value: "auto" }
+                        ]
+                    }
+                    translations: [{ languageCode: en, name: "Order Spec Shipping", description: "" }]
+                }) { id }
+            }
+        `);
+        shippingMethodId = createShippingMethod.id;
+    }
+
     const { createDraftOrder } = await client.gql(`mutation { createDraftOrder { id } }`);
     const orderId: string = createDraftOrder.id;
 
@@ -1815,6 +1846,9 @@ async function createNewOrder(client: VendureAdminClient) {
     `,
         { orderId },
     );
+    if (!methods.some((method: { id: string }) => method.id === shippingMethodId)) {
+        throw new Error(`The test-shipping method (${shippingMethodId}) is not eligible for draft order ${orderId}.`);
+    }
     await client.gql(
         `
         mutation ($orderId: ID!, $methodId: ID!) {
@@ -1823,7 +1857,7 @@ async function createNewOrder(client: VendureAdminClient) {
             }
         }
     `,
-        { orderId, methodId: methods[0].id },
+        { orderId, methodId: shippingMethodId },
     );
 
     await client.gql(
