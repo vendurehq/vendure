@@ -270,8 +270,13 @@ export function PlaceholderImage({
         }
     }
     return (
-        <div className={cn(className, 'rounded-sm bg-muted')} style={{ width, height }} {...props}>
-            <Image className="w-full h-full text-muted-foreground" />
+        // A quiet box with a small centred icon, so a row without an image does not draw the eye.
+        <div
+            className={cn(className, 'flex shrink-0 items-center justify-center rounded-sm bg-muted')}
+            style={{ width, height }}
+            {...props}
+        >
+            <Image aria-hidden className="size-2/5 max-h-12 max-w-12 stroke-[1.5] text-muted-foreground/70" />
         </div>
     );
 }
