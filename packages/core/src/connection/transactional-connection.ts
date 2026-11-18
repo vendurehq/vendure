@@ -399,12 +399,26 @@ export class TransactionalConnection {
         ctx: RequestContext,
         entity: Type<T>,
         channelId: ID,
-        options: FindManyOptions<T> = {},
+        options: VendureFindManyOptions<T> = {},
     ): Promise<T[]> {
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
+        const findOptions = toTypeOrmFindOptions<T, VendureFindManyOptions<T>>(options);
+        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
+            const joinedRelations = joinTreeRelationsDynamically(
+                qb as SelectQueryBuilder<VendureEntity>,
+                entity,
+                findOptions.relations,
+            );
+            // Relations of the 'collection' tree are joined separately, so they are not joined twice.
+            findOptions.relations = findOptionsArrayToObject<T>(
+                findOptionsObjectToArray(findOptions.relations).filter(
+                    relationPath => !joinedRelations.has(relationPath),
+                ),
+            );
+        }
         qb.setFindOptions({
             relationLoadStrategy: 'query',
-            ...options,
+            ...findOptions,
         });
         qb.innerJoin('entity.channels', '__channel', '__channel.id = :__findInChannelId', {
             __findInChannelId: channelId,

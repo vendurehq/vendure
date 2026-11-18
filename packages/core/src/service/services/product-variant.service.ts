@@ -378,22 +378,13 @@ export class ProductVariantService {
     }
 
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID): Promise<Array<Translated<FacetValue>>> {
-        // Only the FacetValues of the active Channel, of a variant in the active Channel: joining
-        // every Channel brings one row per Channel per value. The relations are loaded with separate
-        // queries, so the eager translations of the facet and of its values are not multiplied in
-        // one result set. `channels` is set to the active Channel, the only one the `facetValues`
-        // resolver keeps.
+        // `channels` is not loaded: the values are already limited to the active Channel.
         return this.connection
             .findInChannel(ctx, FacetValue, ctx.channelId, {
                 where: { productVariants: { id: variantId, channels: { id: ctx.channelId } } },
                 relations: { facet: true },
             })
-            .then(facetValues =>
-                facetValues.map(facetValue => {
-                    facetValue.channels = [ctx.channel];
-                    return this.translator.translate(facetValue, ctx, ['facet']);
-                }),
-            );
+            .then(facetValues => facetValues.map(value => this.translator.translate(value, ctx, ['facet'])));
     }
 
     /**

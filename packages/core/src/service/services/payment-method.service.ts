@@ -303,9 +303,7 @@ export class PaymentMethodService {
     }
 
     async getEligiblePaymentMethods(ctx: RequestContext, order: Order): Promise<PaymentMethodQuote[]> {
-        // Only the methods of the active Channel: loading every enabled method grows with the number
-        // of Channels. Their `channels` stay complete, because an eligibility checker may read them
-        // (e.g. to find the seller Channel of a method in a multi-vendor setup).
+        // `channels` is loaded in full: an eligibility checker may read it, e.g. in a multi-vendor setup.
         const paymentMethods = await this.connection.findInChannel(ctx, PaymentMethod, ctx.channelId, {
             where: { enabled: true },
             relations: { channels: true },

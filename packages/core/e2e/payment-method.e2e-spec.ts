@@ -6,10 +6,12 @@ import {
     LanguageCode,
     manualFulfillmentHandler,
     Order,
+    PaymentMethod,
     PaymentMethodEligibilityChecker,
     PaymentMethodService,
     RequestContextService,
     ShippingMethodService,
+    TransactionalConnection,
 } from '@vendure/core';
 import {
     createErrorResultGuard,
@@ -418,8 +420,8 @@ describe('PaymentMethod resolver', () => {
             ]);
         });
 
-        // The eligible methods of a Channel are loaded in SQL, and only that Channel's. Each method
-        // keeps all its Channels, which an eligibility checker may read (e.g. multi-vendor).
+        // A Channel's eligible methods are only its own. Each method keeps all its Channels, which an
+        // eligibility checker may read (e.g. multi-vendor).
         it('eligible payment and shipping methods are only those of the channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             await adminClient.query(createShippingMethodDocument, {
@@ -462,6 +464,18 @@ describe('PaymentMethod resolver', () => {
             const thirdCtx = await ctxFor(THIRD_CHANNEL_TOKEN);
             expect(await paymentMethodService.getEligiblePaymentMethods(thirdCtx, new Order({}))).toEqual([]);
             expect(await shippingMethodService.getActiveShippingMethods(thirdCtx)).toEqual([]);
+
+            // What an eligibility checker of the payment method gets: all of its Channels.
+            const [paymentMethod] = await server.app
+                .get(TransactionalConnection)
+                .findInChannel(secondCtx, PaymentMethod, secondCtx.channelId, {
+                    where: { code: 'channel-2-method' },
+                    relations: ['channels'],
+                });
+            expect(paymentMethod.channels.map(c => c.code).sort()).toEqual([
+                '__default_channel__',
+                'second-channel',
+            ]);
         });
 
         it('delete from channel', async () => {

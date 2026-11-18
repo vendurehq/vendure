@@ -314,9 +314,7 @@ export class ShippingMethodService {
     }
 
     async getActiveShippingMethods(ctx: RequestContext): Promise<ShippingMethod[]> {
-        // Only the methods of the active Channel: loading every method grows with the number of
-        // Channels. Their `channels` stay complete, because an eligibility checker may read them
-        // (e.g. to find the seller Channel of a method in a multi-vendor setup).
+        // `channels` is loaded in full: an eligibility checker may read it, e.g. in a multi-vendor setup.
         const shippingMethods = await this.connection.findInChannel(ctx, ShippingMethod, ctx.channelId, {
             where: { deletedAt: IsNull() },
             relations: { channels: true, customFields: true },
