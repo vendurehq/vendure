@@ -46,7 +46,7 @@ export function ChannelColorPicker({ channelId }: { channelId: string }) {
             <SelectTrigger className="w-full">
                 <SelectValue>{(value: ChannelColor) => <ChannelColorLabel color={value} />}</SelectValue>
             </SelectTrigger>
-            <SelectContent align="start">
+            <SelectContent>
                 {channelColorValues.map(color => (
                     <SelectItem key={color} value={color}>
                         <ChannelColorLabel color={color} />

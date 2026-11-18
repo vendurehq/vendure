@@ -44,7 +44,7 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
                     <Plus className="h-4 w-4" />
                     <Trans>Add customer groups</Trans>
             </PopoverTrigger>
-            <PopoverContent className="p-0" align="start">
+            <PopoverContent className="p-0">
                 <Command shouldFilter={false}>
                     <CommandList>
                         {groups?.customerGroups.items.map(group => (

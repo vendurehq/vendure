@@ -154,7 +154,6 @@ function ArgChip({
                 {chipContent}
             </PopoverTrigger>
             <PopoverContent
-                align="start"
                 className={popoverSize === 'lg' ? 'w-[32rem] max-w-[90vw]' : 'w-80 max-w-[90vw]'}
             >
                 <Field className="gap-2">
