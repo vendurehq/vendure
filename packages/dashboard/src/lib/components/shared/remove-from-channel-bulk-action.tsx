@@ -86,11 +86,11 @@ export function RemoveFromChannelBulkAction({
             requiresPermission={requiredPermissions}
             onClick={handleRemove}
             label={<Trans>Remove from channel</Trans>}
+            confirmationTitle={<Trans>Remove {selectionLength} {entityType} from this channel?</Trans>}
             confirmationText={
-                <Trans>
-                    Are you sure you want to remove {selection.length} {entityType} from the current channel?
-                </Trans>
+                <Trans>They stay in the other channels they are assigned to.</Trans>
             }
+            confirmLabel={<Trans>Remove from channel</Trans>}
             icon={LayersIcon}
             disabled={activeChannel.code === DEFAULT_CHANNEL_CODE}
         />

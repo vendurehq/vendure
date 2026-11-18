@@ -92,7 +92,7 @@ export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, miss
                 />
             }
             icon={Ban}
-            className="text-destructive"
+            variant="destructive"
         />
     );
 };

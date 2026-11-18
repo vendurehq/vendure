@@ -62,7 +62,7 @@ export function createRemoveFromGroupBulkAction(customerGroupId: string): BulkAc
                     />
                 }
                 icon={UserMinus}
-                className="text-destructive"
+                variant="destructive"
             />
         );
     };
