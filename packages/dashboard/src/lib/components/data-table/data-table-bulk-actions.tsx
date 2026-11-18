@@ -138,7 +138,7 @@ export function DataTableBulkActions<TData>({
                             );
                         })
                     ) : (
-                        <DropdownMenuItem className="text-muted-foreground" disabled>
+                        <DropdownMenuItem disabled>
                             <Trans>No actions available</Trans>
                         </DropdownMenuItem>
                     )}

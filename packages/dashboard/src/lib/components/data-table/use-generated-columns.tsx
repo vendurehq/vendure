@@ -306,7 +306,7 @@ function getRowActions(
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger
-                        render={<Button variant="ghost" size="icon" data-testid="dt-row-actions-trigger" />}
+                        render={<Button variant="ghost" size="icon-sm" data-testid="dt-row-actions-trigger" />}
                     >
                         <EllipsisIcon />
                     </DropdownMenuTrigger>
