@@ -1,9 +1,10 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+/**
+ * The design-system `cn()`: `clsx` plus a `tailwind-merge` that knows the
+ * design-token theme keys (named shadows, durations, eases, animations and
+ * `text-style-*`), so the Dashboard and extensions merge classes the same way
+ * as `@vendure-io/ui`.
+ */
+export { cn } from '@vendure-io/ui/lib/utils';
 
 /**
  * Converts a camelCase string to Title Case.

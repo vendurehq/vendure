@@ -1,11 +1,13 @@
 import {
     animation,
     brand,
+    darkShadows,
     darkTheme,
     duration,
     easing,
     fontFamily,
     keyframes,
+    lightShadows,
     lightTheme,
     radii,
     shadows,
@@ -83,9 +85,19 @@ const dashboardDarkExtensions: ThemeColors = {
     'font-mono': fontFamily.mono,
 };
 
+/**
+ * Themed shadows (`overlay`, `control`, `scrolled`) differ between light and
+ * dark, so they are runtime variables in `:root` and `.dark` (`--shadow-<key>`),
+ * like the colours. A custom theme overrides them with the same keys, e.g.
+ * `light: { 'shadow-overlay': '…' }`.
+ */
+function toShadowVariables(themed: Record<string, string>): ThemeColors {
+    return Object.fromEntries(Object.entries(themed).map(([key, value]) => [`shadow-${key}`, value]));
+}
+
 const defaultVariables: ThemeVariables = {
-    light: { ...lightTheme, ...dashboardLightExtensions },
-    dark: { ...darkTheme, ...dashboardDarkExtensions },
+    light: { ...lightTheme, ...toShadowVariables(lightShadows), ...dashboardLightExtensions },
+    dark: { ...darkTheme, ...toShadowVariables(darkShadows), ...dashboardDarkExtensions },
 };
 
 /**
@@ -140,12 +152,21 @@ function generateThemeInlineBlock(): string {
     // Shadows — direct values from token definitions
     const shadowLines = Object.entries(shadows).map(([key, value]) => `    --shadow-${key}: ${value};`);
 
+    // Themed shadows — var() indirection to the :root/.dark variables, so the
+    // `shadow-overlay`, `shadow-control` and `shadow-scrolled` utilities follow
+    // the active theme and any custom theme override
+    const themedShadowLines = Object.keys(lightShadows).map(
+        key => `    --shadow-${key}: var(--shadow-${key});`,
+    );
+
     // Fonts — use var() indirection so user overrides via themeVariablesPlugin
     // options are picked up (the :root block sets --font-* from dashboardExtensions)
     const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
 
     // Motion — easing curves, transition durations and named animations, emitted
-    // as direct values (like radius/shadows). v2 `@vendure-io/ui` atoms reference
+    // as direct values (like radius/shadows). The token keys are camelCase; the
+    // CSS names are kebab-case, as `@vendure-io/ui` reads them (`rowEnter` →
+    // `--transition-duration-row-enter`, `livePulse` → `--animate-live-pulse`). v2 `@vendure-io/ui` atoms reference
     // these as CSS variables via arbitrary utilities (e.g.
     // `duration-(--transition-duration-fast)`, `ease-(--ease-out)`) and via the
     // `animate-*` utilities, so the custom properties must exist in the theme.
@@ -153,9 +174,11 @@ function generateThemeInlineBlock(): string {
         ([key, value]) => `    --ease-${camelToKebab(key)}: ${value};`,
     );
     const durationLines = Object.entries(duration).map(
-        ([key, value]) => `    --transition-duration-${key}: ${value};`,
+        ([key, value]) => `    --transition-duration-${camelToKebab(key)}: ${value};`,
     );
-    const animationLines = Object.entries(animation).map(([key, value]) => `    --animate-${key}: ${value};`);
+    const animationLines = Object.entries(animation).map(
+        ([key, value]) => `    --animate-${camelToKebab(key)}: ${value};`,
+    );
 
     // Dashboard-specific tokens not present in the base design-tokens.
     // `brand`/`brand-foreground` are published by @vendure-io/design-tokens v2
@@ -170,6 +193,7 @@ function generateThemeInlineBlock(): string {
         ...colorLines,
         ...radiusLines,
         ...shadowLines,
+        ...themedShadowLines,
         ...fontLines,
         ...easingLines,
         ...durationLines,
@@ -190,7 +214,7 @@ function generateKeyframesBlocks(): string {
             const stepBlocks = Object.entries(steps as Record<string, Record<string, string>>)
                 .map(([selector, props]) => `    ${selector} {\n${cssDeclarations(props, '        ')}\n    }`)
                 .join('\n');
-            return `@keyframes ${name} {\n${stepBlocks}\n}`;
+            return `@keyframes ${camelToKebab(name)} {\n${stepBlocks}\n}`;
         })
         .join('\n\n');
 }
