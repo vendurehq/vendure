@@ -530,20 +530,43 @@ export function DataTable<TData>({
 
     const showViewsControls = !!enableViews && !!pageId && !!onFilterChange;
     const hasHeaderControls = actions != null || !disableViewOptions || onRefresh != null;
-    // With a title, the icon controls and CTAs move up next to it (header band
-    // line 1) and the toolbar row carries only search/filters. Without a title,
-    // everything shares the single controls row, as before.
-    const showControlsInToolbar = title == null;
-    const hasToolbarContent =
-        onSearchTermChange != null ||
-        Object.keys(facetedFilters ?? {}).length > 0 ||
-        onFilterChange != null ||
-        (showControlsInToolbar && hasHeaderControls);
+    const hasFacetedFilters = Object.keys(facetedFilters ?? {}).length > 0;
+    const hasSearchOrFilter = onSearchTermChange != null || onFilterChange != null || hasFacetedFilters;
+    // A faceted filter's chip is only rendered while it has selected values
+    // or the user is interacting with it — dormant filters live in the
+    // unified Filter menu instead of permanently occupying the toolbar.
+    const visibleFacetedEntries = Object.entries(facetedFilters ?? {}).filter(
+        ([key]) => columnFilters.some(f => f.id === key) || openFacetedFilterKey === key,
+    );
+    const showFilterRow = visibleFacetedEntries.length > 0 || nonFacetedFilters.length > 0;
+    // With a title (a table embedded in a detail-page card), every tool sits in
+    // one group on the right of the title, and the toolbar row only appears for
+    // the applied-filter chips. Without a title, the tools share the toolbar
+    // row with the view tabs.
+    const toolsInHeader = title != null;
+    const hasToolbarContent = toolsInHeader
+        ? showFilterRow
+        : hasSearchOrFilter || showViewsControls || hasHeaderControls;
 
-    const renderHeaderControls = (table: TableType<TData> | undefined) => (
-        <div className="flex items-center gap-2 flex-shrink-0">
+    const renderTools = (table: TableType<TData> | undefined) => (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+            {onSearchTermChange && (
+                <Input
+                    placeholder={searchPlaceholder ?? t`Search...`}
+                    value={searchTerm}
+                    onChange={event => handleSearchChange(event.target.value)}
+                    className="w-full @sm/table:w-64"
+                />
+            )}
+            {table && (onFilterChange != null || hasFacetedFilters) && (
+                <AddFilterMenu
+                    columns={onFilterChange ? table.getAllColumns() : []}
+                    facetedFilters={facetedFilters}
+                    onSelectFacetedFilter={setOpenFacetedFilterKey}
+                />
+            )}
             {actions}
-            {table && (
+            {table && hasHeaderControls && (
                 <DataTableSettingsMenu
                     table={table}
                     disableViewOptions={disableViewOptions}
@@ -555,40 +578,17 @@ export function DataTable<TData>({
     );
 
     const renderToolbar = (table: TableType<TData>) => {
-        const hasFacetedFilters = Object.keys(facetedFilters ?? {}).length > 0;
-        // A faceted filter's chip is only rendered while it has selected values
-        // or the user is interacting with it — dormant filters live in the
-        // unified Filter menu instead of permanently occupying the toolbar.
-        const visibleFacetedEntries = Object.entries(facetedFilters ?? {}).filter(
-            ([key]) => columnFilters.some(f => f.id === key) || openFacetedFilterKey === key,
-        );
-        const showFilterRow = visibleFacetedEntries.length > 0 || nonFacetedFilters.length > 0;
         return (
             <div className="flex flex-col gap-2 w-full">
                 {/* One band: view tabs anchor the left, search/filter/settings group
                     on the right — mirroring the tabs-left, tools-right layout of
                     index tables elsewhere, and avoiding a dead middle. */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                        {onSearchTermChange && (
-                            <Input
-                                placeholder={searchPlaceholder ?? t`Search...`}
-                                value={searchTerm}
-                                onChange={event => handleSearchChange(event.target.value)}
-                                className="w-full @sm/table:w-64"
-                            />
-                        )}
-                        {(onFilterChange != null || hasFacetedFilters) && (
-                            <AddFilterMenu
-                                columns={onFilterChange ? table.getAllColumns() : []}
-                                facetedFilters={facetedFilters}
-                                onSelectFacetedFilter={setOpenFacetedFilterKey}
-                            />
-                        )}
-                        {showControlsInToolbar && renderHeaderControls(table)}
+                {!toolsInHeader && (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
+                        {renderTools(table)}
                     </div>
-                </div>
+                )}
                 {showFilterRow && (
                     <div className="flex flex-wrap items-center gap-2">
                         <Suspense>
@@ -740,9 +740,9 @@ export function DataTable<TData>({
                         }
                         header={
                             title != null ? (
-                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
                                     <CardTitle>{title}</CardTitle>
-                                    {hasHeaderControls && renderHeaderControls(tableInstance)}
+                                    {(hasHeaderControls || hasSearchOrFilter) && renderTools(tableInstance)}
                                 </div>
                             ) : undefined
                         }
