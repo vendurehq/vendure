@@ -256,8 +256,8 @@ msgstr "When this is enabled, the prices entered in the product catalog will be 
 #~ msgid "Create variants for your product"
 #~ msgstr "Create variants for your product"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "Storefronts"
 
@@ -1878,6 +1878,10 @@ msgstr "Failed to set customer for order: {0}"
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
 msgstr "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+
+#: src/lib/components/layout/dev-mode-indicator.tsx
+msgid "Turn off dev mode"
+msgstr "Turn off dev mode"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Size"
@@ -4058,6 +4062,10 @@ msgstr "Job Queue"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "Please confirm you have saved the API key before closing."
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "View"
+msgstr "View"
+
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
 msgstr "Confirm deletion"
@@ -6039,6 +6047,11 @@ msgstr "Cancel modification"
 #~ msgid "Same window"
 #~ msgstr "Same window"
 
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-filter-badge.tsx
+msgid "Remove filter"
+msgstr "Remove filter"
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "Apply filters to the table and click \"Save View\" to get started."
@@ -6463,6 +6476,10 @@ msgstr "Failed to remove customers from group"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #~ msgid "Failed to upload {0} assets"
 #~ msgstr "Failed to upload {0} assets"
+
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
+msgid "Change state"
+msgstr "Change state"
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"

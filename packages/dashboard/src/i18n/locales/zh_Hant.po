@@ -256,8 +256,8 @@ msgstr "啟用後，商品目錄中輸入的價格將包含預設稅務區域的
 #~ msgid "Create variants for your product"
 #~ msgstr "為您的商品建立變體"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "店面"
 
@@ -1877,6 +1877,10 @@ msgstr "為訂單設定客戶失敗：{0}"
 
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+msgstr ""
+
+#: src/lib/components/layout/dev-mode-indicator.tsx
+msgid "Turn off dev mode"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4058,6 +4062,10 @@ msgstr "工作佇列"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "請在關閉前確認您已儲存 API Key。"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "View"
+msgstr ""
+
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
 msgstr "確認刪除"
@@ -6039,6 +6047,11 @@ msgstr "取消修改"
 #~ msgid "Same window"
 #~ msgstr "相同視窗"
 
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-filter-badge.tsx
+msgid "Remove filter"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "對表格套用篩選器，然後按一下「儲存檢視」開始。"
@@ -6463,6 +6476,10 @@ msgstr "從群組中移除客戶失敗"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #~ msgid "Failed to upload {0} assets"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
+msgid "Change state"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"

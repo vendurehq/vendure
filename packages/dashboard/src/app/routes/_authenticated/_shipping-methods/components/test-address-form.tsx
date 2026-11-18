@@ -126,7 +126,7 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
                     )}
                 </div>
             </AccordionTrigger>
-            <AccordionContent className="px-2">
+            <AccordionContent>
                 <Form {...form}>
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">

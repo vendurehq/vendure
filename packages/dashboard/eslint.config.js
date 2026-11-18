@@ -15,7 +15,7 @@ export default [{
   // that otherwise produces ~12.8k false-positive errors.
   // fake_node_modules dirs are transpiled test fixtures simulating installed npm
   // packages — like real node_modules (default-ignored), they aren't ours to lint.
-  ignores: ['dist', 'storybook-static', '.temp', 'coverage', '**/__temp/**', '**/fake_node_modules/**'],
+  ignores: ['dist', 'storybook-static', '.temp', 'coverage', '**/__temp/**', '**/fake_node_modules/**', 'e2e/.dist'],
 }, {
   files: ['src/**/*.{ts,tsx,js,jsx}'],
   // Spec files are excluded: issue references like "(#2608)" in test titles are

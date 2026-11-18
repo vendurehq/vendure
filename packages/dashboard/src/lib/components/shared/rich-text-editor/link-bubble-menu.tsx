@@ -132,7 +132,7 @@ export function LinkBubbleMenu({ editor, editRequestToken }: Readonly<LinkBubble
                     forceOpenRef.current = false;
                 },
             }}
-            className="rounded-md border bg-popover text-popover-foreground shadow-md"
+            className="rounded-xl bg-popover text-popover-foreground shadow-overlay"
             data-testid="link-bubble-menu"
         >
             {editing ? (

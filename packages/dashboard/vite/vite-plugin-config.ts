@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'path';
 import { ConfigEnv, Plugin, UserConfig } from 'vite';
 
-import { singletonSharedDepNames } from './lib-externals.js';
+import { reactRuntimeDepNames, singletonSharedDepNames } from './lib-externals.js';
+import { DashboardMode } from './types.js';
 
 export interface ViteConfigPluginOptions {
     packageRoot: string;
@@ -13,24 +14,24 @@ export interface ViteConfigPluginOptions {
      */
     gqlOutputPath?: string;
     /**
-     * EXPERIMENTAL — see `vendureDashboardPlugin`'s `useExperimentalBundle` option.
-     * When true, the consumer's Vite serves the pre-built dashboard bundle from
-     * `<packageRoot>/dist/bundle/` instead of compiling the dashboard's
-     * TypeScript source file-by-file. This collapses ~3,000 raw module fetches
-     * into ~40 bundled chunks on cold load and fixes issue #4715.
+     * In `bundle` mode (the default), the consumer's Vite serves the pre-built
+     * dashboard bundle from `<packageRoot>/dist/bundle/` instead of compiling the
+     * dashboard's TypeScript source file-by-file. This collapses ~3,000 raw module
+     * fetches into ~40 bundled chunks on cold load (issue #4715). See `DashboardMode`.
      */
-    useExperimentalBundle?: boolean;
+    mode?: DashboardMode;
 }
 
 export function viteConfigPlugin({
     packageRoot,
     gqlOutputPath,
-    useExperimentalBundle,
+    mode = 'bundle',
 }: ViteConfigPluginOptions): Plugin {
     return {
         name: 'vendure:vite-config-plugin',
         config: (config: UserConfig, env: ConfigEnv) => {
-            // Vite `root` is set to the dashboard package so that its source can be served and built.
+            // Vite `root` is set to the dashboard package so that its index.html, styles.css and
+            // public dir (and in source mode, its source) can be served and built.
             // Keep the user's root before replacing it, so that a relative `build.outDir` resolves against it.
             const userRoot = config.root ? path.resolve(config.root) : process.cwd();
             config.root = packageRoot;
@@ -62,25 +63,28 @@ export function viteConfigPlugin({
                 alias: {
                     ...(gqlOutputPath ? { '@/gql': path.resolve(gqlOutputPath, 'graphql.ts') } : {}),
                     ...(config.resolve?.alias ?? {}),
-                    // See the readme for an explanation of this alias.
-                    '@/vdb': path.resolve(packageRoot, './src/lib'),
-                    '@/graphql': path.resolve(packageRoot, './src/lib/graphql'),
-                    // In experimental-bundle mode, redirect imports of
-                    // `@vendure/dashboard` (from extension code) to the bundled
-                    // library entry rather than the TypeScript source. The
-                    // package's `exports."."` still points at the source so
-                    // that TypeScript and other static tooling see types
-                    // resolve correctly; this alias only affects Vite's
-                    // module resolution at runtime.
-                    ...(useExperimentalBundle
+                    ...(mode === 'source'
                         ? {
-                              '@vendure/dashboard': getBundleLibEntry(packageRoot),
+                              // The dashboard's own source imports its modules through these.
+                              '@/vdb': path.resolve(packageRoot, './src/lib'),
+                              '@/graphql': path.resolve(packageRoot, './src/lib/graphql'),
+                              // The package entry is the bundle. Extension code must get the
+                              // source that the app is served from, or there are two copies.
+                              '@vendure/dashboard': path.resolve(packageRoot, './src/lib/index.ts'),
                           }
-                        : {}),
+                        : {
+                              // Redirect imports of `@vendure/dashboard` (from extension code)
+                              // to the bundled library entry rather than the TypeScript source.
+                              // The package's `exports."."` still points at the source so that
+                              // TypeScript sees the types; this alias only affects Vite's module
+                              // resolution. `@/vdb` and `@/graphql` imports are redirected to the
+                              // same entry by `deprecatedAliasPlugin`.
+                              '@vendure/dashboard': getBundleLibEntry(packageRoot),
+                          }),
                 },
             };
             // Exclude the dashboard's source from Vite's dep optimizer in both
-            // source mode and experimental-bundle mode. In source mode this
+            // modes. In source mode this
             // prevents Vite from trying to pre-bundle the dashboard source. In
             // bundle mode it stops Vite's scanner from following imports from
             // the dashboard's source files in node_modules (e.g. `await
@@ -127,7 +131,11 @@ export function viteConfigPlugin({
                     // and extension code all resolve to ONE instance. Without
                     // this the dashboard's provider and an extension's hook can
                     // bind to different module instances — issue #4919.
-                    ...(useExperimentalBundle ? singletonSharedDepNames : []),
+                    ...(mode === 'bundle' ? singletonSharedDepNames : []),
+                    // In a project the bundle is in node_modules, where Vite doesn't discover
+                    // missing dependencies, so the CommonJS React packages it imports must be
+                    // pre-bundled here. See lib-externals.ts.
+                    ...(mode === 'bundle' ? reactRuntimeDepNames : []),
                 ],
             };
             return config;
@@ -142,7 +150,7 @@ export function viteConfigPlugin({
  * `lib.js`. Vite does not add its own `v` when one is present. The chunks have
  * content-hashed names referenced by `lib.js`, so hashing `lib.js` covers them.
  */
-function getBundleLibEntry(packageRoot: string): string {
+export function getBundleLibEntry(packageRoot: string): string {
     const libEntry = path.resolve(packageRoot, './dist/bundle/lib.js');
     try {
         const version = createHash('sha256').update(fs.readFileSync(libEntry)).digest('hex').slice(0, 8);

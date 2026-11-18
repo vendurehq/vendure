@@ -6,6 +6,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "paths": {
+      "@vendure/dashboard": ["../../../dashboard/src/lib/index.ts"],
       "@/vdb/*": ["../../../dashboard/src/lib/*"]
     }
   },

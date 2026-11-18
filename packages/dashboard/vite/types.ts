@@ -101,3 +101,17 @@ export interface PathAdapter {
      */
     sourceRoot?: string;
 }
+
+/**
+ * @description
+ * How the dashboard app itself is served:
+ *
+ * - `bundle`: from the pre-built bundle in `dist/bundle`, which `vite.lib.config.mts`
+ *   builds at publish time. This is the only mode for projects that install the package.
+ * - `source`: from the TypeScript source, with HMR on the dashboard's own files. Only for
+ *   developing the dashboard in the Vendure repo, where `dist/bundle` is not built. Turned
+ *   on with the `VENDURE_DASHBOARD_FROM_SOURCE=true` environment variable.
+ *
+ * @internal
+ */
+export type DashboardMode = 'bundle' | 'source';
