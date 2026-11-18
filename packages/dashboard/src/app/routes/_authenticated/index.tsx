@@ -1,7 +1,6 @@
 import { DateRangePicker } from '@/vdb/components/date-range-picker.js';
-import { Button } from '@/vdb/components/ui/button.js';
 import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { Button } from '@/vdb/components/ui/button.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,20 +15,27 @@ import {
     insertWithReflow,
     tidyLayouts,
 } from '@/vdb/components/ui/grid-layout.js';
-import {
-    getDashboardWidget,
-    getDashboardWidgetFilters,
-    getVisibleDashboardWidgets,
-} from '@/vdb/framework/dashboard-widget/widget-extensions.js';
-import { usePermissions } from '@/vdb/hooks/use-permissions.js';
-import { DefinedDateRange, WidgetFiltersProvider, } from '@/vdb/framework/dashboard-widget/widget-filters-context.js';
-import { WidgetInstanceProvider } from '@/vdb/framework/dashboard-widget/widget-instance-context.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import {
     buildInitialWidgetState,
     buildWidgetInstance,
     mergeHiddenWidgetIds,
 } from '@/vdb/framework/dashboard-widget/insights-layout.js';
-import { DashboardWidgetDefinition, DashboardWidgetInstance } from '@/vdb/framework/extension-api/types/widgets.js';
+import {
+    getDashboardWidget,
+    getDashboardWidgetFilters,
+    getVisibleDashboardWidgets,
+} from '@/vdb/framework/dashboard-widget/widget-extensions.js';
+import {
+    DefinedDateRange,
+    WidgetFiltersProvider,
+} from '@/vdb/framework/dashboard-widget/widget-filters-context.js';
+import { WidgetInstanceProvider } from '@/vdb/framework/dashboard-widget/widget-instance-context.js';
+import {
+    DashboardWidgetDefinition,
+    DashboardWidgetInstance,
+} from '@/vdb/framework/extension-api/types/widgets.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     FullWidthPageBlock,
     Page,
@@ -37,15 +43,16 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { useInsightsRefresh } from '@/vdb/hooks/use-insights-refresh.js';
+import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { useLingui as useLinguiRuntime } from '@lingui/react';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
 import { endOfDay, startOfMonth } from 'date-fns';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Trans, useLingui } from '@lingui/react/macro';
-import { useLingui as useLinguiRuntime } from '@lingui/react';
 import { PlusIcon, RefreshCw, Sparkles, SquarePen, XIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export const Route = createFileRoute('/_authenticated/')({
     component: DashboardPage,
@@ -66,7 +73,10 @@ const applyGridLayouts = (
     instances.map(instance => {
         const layout = grid.find(g => g.i === instance.id);
         return layout
-            ? { ...instance, layout: { ...instance.layout, x: layout.x, y: layout.y, w: layout.w, h: layout.h } }
+            ? {
+                  ...instance,
+                  layout: { ...instance.layout, x: layout.x, y: layout.y, w: layout.w, h: layout.h },
+              }
             : instance;
     });
 
@@ -274,7 +284,10 @@ function DashboardPage() {
         }
         setWidgets(prev => {
             const instance = buildWidgetInstance(definition, generateInstanceId(widgetId));
-            const pos = findNextAvailablePosition({ ...toGridLayout(instance), y: 0 }, prev.map(toGridLayout));
+            const pos = findNextAvailablePosition(
+                { ...toGridLayout(instance), y: 0 },
+                prev.map(toGridLayout),
+            );
             instance.layout.x = pos.x;
             instance.layout.y = pos.y;
             return [...prev, instance];
@@ -322,8 +335,29 @@ function DashboardPage() {
     // Always offered in the picker, even when already on the page, so more can be added.
     const multiInstanceWidgets = loadedWidgetIds
         .map(id => getDashboardWidget(id))
-        .filter((definition): definition is DashboardWidgetDefinition => !!definition?.allowMultipleInstances);
+        .filter(
+            (definition): definition is DashboardWidgetDefinition => !!definition?.allowMultipleInstances,
+        );
     const hasPickerOptions = hiddenWidgets.length > 0 || multiInstanceWidgets.length > 0;
+
+    const isMobile = useIsMobile();
+    // An array, not a fragment, so PageActionBar sees each ActionBarItem.
+    const filterControls = [
+        <ActionBarItem key="date-range-picker" itemId="date-range-picker">
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
+        </ActionBarItem>,
+        ...widgetFilters.map(filter => {
+            const FilterComponent = filter.component;
+            return (
+                <ActionBarItem key={filter.id} itemId={`widget-filter-${filter.id}`}>
+                    <FilterComponent
+                        value={filterValues[filter.id]}
+                        onChange={value => setFilterValues(prev => ({ ...prev, [filter.id]: value }))}
+                    />
+                </ActionBarItem>
+            );
+        }),
+    ];
 
     return (
         <Page pageId="insights">
@@ -331,23 +365,7 @@ function DashboardPage() {
                 <Trans>Insights</Trans>
             </PageTitle>
             <PageActionBar>
-                <ActionBarItem itemId="date-range-picker">
-                    <DateRangePicker
-                        dateRange={dateRange}
-                        onDateRangeChange={setDateRange}
-                    />
-                </ActionBarItem>
-                {widgetFilters.map(filter => {
-                    const FilterComponent = filter.component;
-                    return (
-                        <ActionBarItem key={filter.id} itemId={`widget-filter-${filter.id}`}>
-                            <FilterComponent
-                                value={filterValues[filter.id]}
-                                onChange={value => setFilterValues(prev => ({ ...prev, [filter.id]: value }))}
-                            />
-                        </ActionBarItem>
-                    );
-                })}
+                {!isMobile && filterControls}
                 <ActionBarItem itemId="widget-actions">
                     {editMode ? (
                         <ButtonGroup>
@@ -366,7 +384,9 @@ function DashboardPage() {
                                                         key={widget.id}
                                                         onClick={() => handleAddWidget(widget.id)}
                                                     >
-                                                        {definition ? i18n.t(definition.name) : widget.widgetId}
+                                                        {definition
+                                                            ? i18n.t(definition.name)
+                                                            : widget.widgetId}
                                                     </DropdownMenuItem>
                                                 );
                                             })}
@@ -427,11 +447,11 @@ function DashboardPage() {
             </PageActionBar>
             <PageLayout>
                 <FullWidthPageBlock blockId="widgets">
+                    {/* The mobile action bar shows only its last item, so the filters get their own row. */}
+                    {isMobile && <div className="mb-4 flex flex-wrap gap-2">{filterControls}</div>}
                     <div className="w-full">
                         {!isInitialized ? null : widgets.length > 0 ? (
-                            <WidgetFiltersProvider
-                                filters={{ dateRange, filters: filterValues }}
-                            >
+                            <WidgetFiltersProvider filters={{ dateRange, filters: filterValues }}>
                                 <GridLayout
                                     layouts={widgets.map(w => ({ ...w.layout, i: w.id }))}
                                     onLayoutChange={handleLayoutChange}
@@ -456,8 +476,7 @@ function DashboardPage() {
                             >
                                 {editMode ? (
                                     <Trans>
-                                        All widgets are hidden. Use the "Add widget" button to add them
-                                        back.
+                                        All widgets are hidden. Use the "Add widget" button to add them back.
                                     </Trans>
                                 ) : (
                                     <Trans>No widgets to display. Use "Edit Layout" to add widgets.</Trans>
