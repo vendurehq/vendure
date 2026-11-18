@@ -1,6 +1,6 @@
 import { Trans } from '@lingui/react/macro';
 import { Table } from '@tanstack/react-table';
-import { EllipsisVertical, RefreshCw } from 'lucide-react';
+import { Ellipsis, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button.js';
 import {
     DropdownMenu,
@@ -58,7 +58,7 @@ export function DataTableSettingsMenu<TData>({
                         />
                     }
                 >
-                    <EllipsisVertical />
+                    <Ellipsis />
                 </TooltipTrigger>
                 <TooltipContent>
                     <Trans>Table settings</Trans>
