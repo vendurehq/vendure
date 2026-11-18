@@ -20,7 +20,8 @@
         "build:vite": "tsc --project tsconfig.vite.json",
         "build:plugin": "tsc --project tsconfig.plugin.json && node scripts/build-plugin.js",
         "build:lib": "vite build --config vite.lib.config.mts",
-        "build": "npm run check-types && npm run build:vite && npm run build:plugin && npm run build:lib",
+        "build:types": "node scripts/build-types.js",
+        "build": "npm run check-types && npm run build:vite && npm run build:plugin && npm run build:lib && npm run build:types",
         "watch": "tsc --project tsconfig.vite.json --watch",
         "test": "vitest run && vitest run --config vitest.plugin.config.mts",
         "audit:bundle": "cross-env RUN_BUNDLE_AUDIT=true vitest run vite/tests/bundle-singleton.spec.ts vite/tests/bundle-singleton-dev-serving.spec.ts",
@@ -37,14 +38,13 @@
         "storybook:build": "storybook build",
         "storybook:deploy": "npm run build --prefix ../common && npm run build --prefix ../core && npm run build:vite && storybook build"
     },
-    "module": "./src/lib/index.ts",
-    "main": "./src/lib/index.ts",
-    "types": "./src/lib/index.ts",
+    "module": "./dist/bundle/lib.js",
+    "main": "./dist/bundle/lib.js",
+    "types": "./dist/types/lib/index.d.ts",
     "exports": {
         ".": {
-            "types": "./src/lib/index.ts",
-            "import": "./src/lib/index.ts",
-            "require": "./src/lib/index.ts"
+            "types": "./dist/types/lib/index.d.ts",
+            "default": "./dist/bundle/lib.js"
         },
         "./plugin": {
             "types": "./dist/plugin/index.d.ts",
@@ -59,7 +59,9 @@
     },
     "files": [
         "dist",
-        "src",
+        "src/app/styles.css",
+        "src/i18n/locales/*.po",
+        "src/lib/graphql/graphql.ts",
         "public",
         "lingui.config.js",
         "index.html"
@@ -138,6 +140,7 @@
         "@vendure-io/design-lint": "^1.0.0",
         "@vendure/common": "3.8.2",
         "@vendure/core": "3.8.2",
+        "es-module-lexer": "^2.3.2",
         "eslint": "^9.39.0",
         "eslint-plugin-react": "^7.37.4",
         "eslint-plugin-react-hooks": "^5.0.0",

@@ -21,12 +21,15 @@ export default ({ mode }: { mode: string }) => {
         process.env.VENDURE_DASHBOARD_SKIP_PLATFORM_CATALOG_FETCH = 'true';
     }
 
-    const vendureConfigPath = process.env.VENDURE_CONFIG_PATH
-        ?? (process.env.VITEST
-            ? // This should always be used for running the tests
-              './sample-vendure-config.ts'
-            : // This one might be changed to '../dev-server/dev-config.ts' to test ui extensions
-              './sample-vendure-config.ts');
+    // Serve the dashboard from its source, with HMR, unless the pre-built bundle is asked for
+    // (the e2e suite and the bundle audit test, after `npm run build:lib`).
+    if (process.env.VITE_DASHBOARD_BUNDLE !== 'true') {
+        process.env.VENDURE_DASHBOARD_FROM_SOURCE = 'true';
+    }
+
+    // The tests always use the sample config. To try UI extensions in local development, set
+    // VENDURE_CONFIG_PATH, e.g. to '../dev-server/dev-config.ts'.
+    const vendureConfigPath = process.env.VENDURE_CONFIG_PATH ?? './sample-vendure-config.ts';
 
     return defineConfig({
         optimizeDeps: {
@@ -67,8 +70,6 @@ export default ({ mode }: { mode: string }) => {
                 vendureConfigPath: pathToFileURL(vendureConfigPath),
                 api: { host: adminApiHost, port: adminApiPort },
                 tempCompilationDir: path.resolve(import.meta.dirname, './.temp'),
-                // Opt into the pre-built bundle for the bundle-mode e2e run.
-                useExperimentalBundle: process.env.VITE_USE_EXPERIMENTAL_BUNDLE === 'true',
             }) as any,
         ],
     });

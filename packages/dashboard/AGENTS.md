@@ -8,7 +8,7 @@ Split into: context + Provider in one file, hook in `src/lib/hooks/` importing v
 
 ## The `@/vdb/` Path Alias
 
-Maps to `./src/lib/*`. This alias exists because dashboard extensions in user projects map it to `node_modules/@vendure/dashboard/src/lib/*` — the dashboard ships source files and the user's Vite compiles them. This is why:
+Maps to `./src/lib/*`. Projects that install the package get the pre-built bundle (`dist/bundle`, built by `vite.lib.config.mts`), where `@/vdb` and `@/graphql` imports from extensions are redirected to `@vendure/dashboard` with a deprecation warning (`vite/vite-plugin-deprecated-alias.ts`). The alias still points at the source in source mode (`VENDURE_DASHBOARD_FROM_SOURCE=true`, set by the dev-server, Storybook and this package's `vite.config.mts`). Projects get their types from `dist/types` (`npm run build:types`, which rewrites `@/vdb/*` imports in the declarations to relative paths), so they don't map `@/vdb/*`. This is why:
 - Hooks in `src/lib/hooks/` must import via `@/vdb/` (not relative `../` paths)
 - Never import from `@/vdb/index.js` directly — it breaks module identity for extensions
 
@@ -42,6 +42,12 @@ Only semantic design tokens from `@vendure-io/design-tokens` are allowed. Use Ta
 - `refetchOnWindowFocus: false` — suppresses background refetches on tab focus. Polling hooks should set their own `refetchInterval` and ignore the default.
 
 Don't flip these back unless you've thought through the flicker implications.
+
+## Bundle and Source Modes
+
+`vendureDashboardPlugin` serves the pre-built bundle unless `VENDURE_DASHBOARD_FROM_SOURCE=true` (see `DashboardMode` in `vite/types.ts`). In bundle mode it throws if `dist/bundle/lib.js` is missing: run `npm run build:lib`. The Playwright e2e suite builds and tests the bundle (`VITE_DASHBOARD_BUNDLE=true`), into `e2e/.dist`.
+
+The package entry (`main`, `exports["."]`) is `dist/bundle/lib.js`, and `files` publishes only the source that bundle mode reads at runtime: `src/app/styles.css`, the `.po` catalogs and `src/lib/graphql/graphql.ts`. Source mode aliases `@vendure/dashboard` to `src/lib/index.ts`. In a project the bundle is in node_modules, where Vite doesn't discover missing dependencies, so every package the bundle imports must be in `optimizeDeps.include` (checked by `bundle-singleton.spec.ts`).
 
 ## Testing
 

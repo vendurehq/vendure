@@ -13,6 +13,7 @@ import { bundleEntryPlugin } from '../vite-plugin-bundle-entry.js';
 import { chunkHashPlugin } from '../vite-plugin-chunk-hash.js';
 import { viteConfigPlugin } from '../vite-plugin-config.js';
 import { dashboardMetadataPlugin } from '../vite-plugin-dashboard-metadata.js';
+import { deprecatedAliasPlugin } from '../vite-plugin-deprecated-alias.js';
 import { hmrPlugin } from '../vite-plugin-hmr.js';
 import { dashboardTailwindSourcePlugin } from '../vite-plugin-tailwind-source.js';
 import { themeVariablesPlugin } from '../vite-plugin-theme.js';
@@ -483,8 +484,8 @@ describe('viteConfigPlugin', () => {
         expect(result.publicDir).toBe('/custom/public');
     });
 
-    it('sets resolve aliases for @/vdb and @/graphql', () => {
-        const plugin = viteConfigPlugin({ packageRoot });
+    it('source mode: sets resolve aliases for @/vdb and @/graphql', () => {
+        const plugin = viteConfigPlugin({ packageRoot, mode: 'source' });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
         expect(aliases['@/vdb']).toBe(path.resolve(packageRoot, './src/lib'));
@@ -497,7 +498,7 @@ describe('viteConfigPlugin', () => {
         const result = callConfig(plugin, config, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
         expect(aliases['@custom']).toBe('/custom/path');
-        expect(aliases['@/vdb']).toBeDefined();
+        expect(aliases['@vendure/dashboard']).toBeDefined();
     });
 
     it('sets the @/gql alias to graphql.ts inside gqlOutputPath', () => {
@@ -910,13 +911,10 @@ describe('dashboardTailwindSourcePlugin', () => {
         expect(sourceLines.some((l: string) => l.includes("'/active/dashboard'"))).toBe(true);
         expect(sourceLines.some((l: string) => l.includes('/inactive/'))).toBe(false);
     });
-    // Tests for the bundle mode (#4719 `useExperimentalBundle`)
-    describe('useExperimentalBundle: styles.css handling', () => {
+    // #4719 — the dashboard's own utility classes live in the pre-built bundle
+    describe('styles.css handling of the bundle', () => {
         function setupBundlePlugin(pluginInfo: PluginInfo[], packageRoot = '/fake/dashboard') {
-            return setupConfigLoaderPlugin(
-                dashboardTailwindSourcePlugin({ packageRoot, useExperimentalBundle: true }),
-                pluginInfo,
-            );
+            return setupConfigLoaderPlugin(dashboardTailwindSourcePlugin({ packageRoot }), pluginInfo);
         }
 
         it('adds @source for the bundle dir when transforming styles.css', async () => {
@@ -927,8 +925,11 @@ describe('dashboardTailwindSourcePlugin', () => {
             expect(result.code).toContain(`@source '${path.join(packageRoot, 'dist/bundle')}'`);
         });
 
-        it('without useExperimentalBundle: no bundle @source in styles.css', async () => {
-            const plugin = setupConfigLoaderPlugin(dashboardTailwindSourcePlugin(), []);
+        it('source mode: no bundle @source in styles.css', async () => {
+            const plugin = setupConfigLoaderPlugin(
+                dashboardTailwindSourcePlugin({ packageRoot: '/fake/dashboard', mode: 'source' }),
+                [],
+            );
             const css = `@tailwind utilities;\n${markerComment}\n`;
             const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
             expect(result).toBeDefined();
@@ -1032,20 +1033,21 @@ describe('bundleEntryPlugin', () => {
     });
 });
 
-// ─── viteConfigPlugin: useExperimentalBundle (#4719) ─────────────────────────
+// ─── viteConfigPlugin: bundle and source modes (#4719) ───────────────────────
 
-describe('viteConfigPlugin: useExperimentalBundle', () => {
+describe('viteConfigPlugin: modes', () => {
     const packageRoot = '/fake/dashboard';
 
-    it('without flag: no @vendure/dashboard alias (defaults to source-shipping)', () => {
-        const plugin = viteConfigPlugin({ packageRoot });
+    // The package entry is the bundle, so extension code would otherwise load a second copy
+    it('source mode: aliases @vendure/dashboard to the source entry', () => {
+        const plugin = viteConfigPlugin({ packageRoot, mode: 'source' });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
-        expect(aliases['@vendure/dashboard']).toBeUndefined();
+        expect(aliases['@vendure/dashboard']).toBe(path.resolve(packageRoot, './src/lib/index.ts'));
     });
 
-    it('with flag: adds Vite resolve alias @vendure/dashboard -> dist/bundle/lib.js', () => {
-        const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
+    it('bundle mode (default): adds Vite resolve alias @vendure/dashboard -> dist/bundle/lib.js', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
         expect(aliases['@vendure/dashboard']).toBe(path.resolve(packageRoot, './dist/bundle/lib.js'));
@@ -1053,16 +1055,12 @@ describe('viteConfigPlugin: useExperimentalBundle', () => {
 
     // A stale `lib.js` served from the browser's immutable cache alongside a fresh
     // `main.js` loads two copies of the shared chunks, splitting React contexts.
-    it('with flag: versions the lib.js alias by bundle content so a changed bundle gets a new URL', () => {
+    it('bundle mode: versions the lib.js alias by bundle content so a changed bundle gets a new URL', () => {
         const realRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vdb-bundle-'));
         const libEntry = path.join(realRoot, 'dist/bundle/lib.js');
         fs.mkdirSync(path.dirname(libEntry), { recursive: true });
         const getAlias = () => {
-            const result = callConfig(
-                viteConfigPlugin({ packageRoot: realRoot, useExperimentalBundle: true }),
-                {},
-                { command: 'serve' },
-            );
+            const result = callConfig(viteConfigPlugin({ packageRoot: realRoot }), {}, { command: 'serve' });
             return (result.resolve.alias as Record<string, string>)['@vendure/dashboard'];
         };
         try {
@@ -1079,55 +1077,99 @@ describe('viteConfigPlugin: useExperimentalBundle', () => {
         }
     });
 
-    it('with flag: still keeps @/vdb and @/graphql aliases', () => {
-        const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
+    // With the bundle, aliasing these to the source would load a second copy of src/lib.
+    // deprecatedAliasPlugin redirects them to the bundle instead.
+    it('bundle mode: no @/vdb or @/graphql alias to the source', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
-        expect(aliases['@/vdb']).toBe(path.resolve(packageRoot, './src/lib'));
-        expect(aliases['@/graphql']).toBe(path.resolve(packageRoot, './src/lib/graphql'));
+        expect(aliases['@/vdb']).toBeUndefined();
+        expect(aliases['@/graphql']).toBeUndefined();
     });
 
     // Otherwise the bundle gets a raw `@lingui/core` while extension code gets an
     // optimized copy (two `i18n` singletons), and it is discovered late on cold start.
     it('optimizeDeps.include pre-bundles the Lingui runtime in both modes', () => {
-        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
-        const on = callConfig(
-            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+        const source = callConfig(
+            viteConfigPlugin({ packageRoot, mode: 'source' }),
             {},
             { command: 'serve' },
         );
-        for (const result of [off, on]) {
+        const bundle = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        for (const result of [source, bundle]) {
             expect(result.optimizeDeps.include).toContain('@lingui/core');
             expect(result.optimizeDeps.include).toContain('@lingui/react');
         }
     });
 
-    it('optimizeDeps.exclude always includes virtual:plugin-translations (regardless of flag)', () => {
-        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
-        const on = callConfig(
-            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+    it('optimizeDeps.exclude always includes virtual:plugin-translations', () => {
+        const source = callConfig(
+            viteConfigPlugin({ packageRoot, mode: 'source' }),
             {},
             { command: 'serve' },
         );
-        expect(off.optimizeDeps.exclude).toContain('virtual:plugin-translations');
-        expect(on.optimizeDeps.exclude).toContain('virtual:plugin-translations');
+        const bundle = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        expect(source.optimizeDeps.exclude).toContain('virtual:plugin-translations');
+        expect(bundle.optimizeDeps.exclude).toContain('virtual:plugin-translations');
     });
 
     it('optimizeDeps.exclude still contains @vendure/dashboard + @/vdb in both modes', () => {
-        // Source-mode needs them excluded so Vite doesn't try to pre-bundle the
-        // dashboard source. Bundle-mode keeps them excluded as well so Vite's
+        // Source mode needs them excluded so Vite doesn't try to pre-bundle the
+        // dashboard source. Bundle mode keeps them excluded as well so Vite's
         // dep scanner doesn't walk into the dashboard's source files for things
         // like `await import('virtual:plugin-translations')` in load-i18n-messages.
-        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
-        const on = callConfig(
-            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+        const source = callConfig(
+            viteConfigPlugin({ packageRoot, mode: 'source' }),
             {},
             { command: 'serve' },
         );
-        expect(off.optimizeDeps.exclude).toContain('@vendure/dashboard');
-        expect(off.optimizeDeps.exclude).toContain('@/vdb');
-        expect(on.optimizeDeps.exclude).toContain('@vendure/dashboard');
-        expect(on.optimizeDeps.exclude).toContain('@/vdb');
+        const bundle = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        for (const result of [source, bundle]) {
+            expect(result.optimizeDeps.exclude).toContain('@vendure/dashboard');
+            expect(result.optimizeDeps.exclude).toContain('@/vdb');
+        }
+    });
+});
+
+// ─── deprecatedAliasPlugin ───────────────────────────────────────────────────
+
+describe('deprecatedAliasPlugin', () => {
+    const packageRoot = '/fake/dashboard';
+
+    function setup() {
+        const plugin = deprecatedAliasPlugin({ packageRoot });
+        const warn = vi.fn();
+        (plugin.configResolved as any)({ logger: { warn } });
+        const resolveId = (source: string, importer?: string) =>
+            (plugin.resolveId as any).call({}, source, importer);
+        return { resolveId, warn };
+    }
+
+    it('redirects @/vdb and @/graphql imports to the bundle library entry', () => {
+        const { resolveId } = setup();
+        const libEntry = path.resolve(packageRoot, './dist/bundle/lib.js');
+        expect(resolveId('@/vdb/components/ui/button', '/app/ext.tsx')).toBe(libEntry);
+        expect(resolveId('@/vdb', '/app/ext.tsx')).toBe(libEntry);
+        expect(resolveId('@/graphql/graphql', '/app/ext.tsx')).toBe(libEntry);
+    });
+
+    it('ignores other imports', () => {
+        const { resolveId, warn } = setup();
+        expect(resolveId('@/gql', '/app/ext.tsx')).toBeUndefined();
+        expect(resolveId('@/vdbx/foo', '/app/ext.tsx')).toBeUndefined();
+        expect(resolveId('@vendure/dashboard', '/app/ext.tsx')).toBeUndefined();
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('warns once per importing file', () => {
+        const { resolveId, warn } = setup();
+        resolveId('@/vdb/components/ui/button', '/app/a.tsx');
+        resolveId('@/vdb/components/ui/input', '/app/a.tsx');
+        resolveId('@/graphql/graphql', '/app/b.tsx');
+        expect(warn).toHaveBeenCalledTimes(2);
+        expect(warn.mock.calls[0][0]).toContain('"@/vdb/components/ui/button"');
+        expect(warn.mock.calls[0][0]).toContain('@vendure/dashboard');
+        expect(warn.mock.calls[1][0]).toContain('"@/graphql"');
     });
 });
 
@@ -1160,7 +1202,7 @@ describe('filterActivePluginInfo', () => {
     // Fails open: a missing `plugins` key means "no filtering information",
     // not "disable everything", so the discovered pluginInfo is returned as-is.
     it('returns pluginInfo unchanged when the plugins key is missing', () => {
-        const result = filterActivePluginInfo([makePluginInfo('A')], {} as { plugins?: undefined });
+        const result = filterActivePluginInfo([makePluginInfo('A')], {});
         expect(result.map(p => p.name)).toEqual(['A']);
     });
 
@@ -1305,5 +1347,37 @@ describe('vendureDashboardPlugin: chunkHash wiring', () => {
 
     it('drops the chunk hash plugin when chunkHash is disabled', () => {
         expect(pluginNames({ chunkHash: true })).not.toContain('vendure:chunk-hash');
+    });
+});
+
+// ─── vendureDashboardPlugin: bundle and source modes (#4719) ─────────────────
+
+describe('vendureDashboardPlugin: modes', () => {
+    function pluginNames(mode?: 'bundle' | 'source') {
+        return createDashboardPlugins(
+            {
+                vendureConfigPath: './vendure-config.ts',
+                // These read the Vendure config or the file system when created
+                disablePlugins: { configLoader: true, gqlTada: true, translations: true },
+            },
+            path.resolve(import.meta.dirname, '../..'),
+            mode,
+        )
+            .flat(Infinity as 1)
+            .map(p => (p && typeof p === 'object' && 'name' in p ? p.name : undefined));
+    }
+
+    it('bundle mode (default): serves the bundle, without the TanStack Router plugin', () => {
+        const names = pluginNames();
+        expect(names).toContain('vendure:bundle-entry');
+        expect(names).toContain('vendure:deprecated-alias');
+        expect(names.some(n => n?.startsWith('tanstack-router'))).toBe(false);
+    });
+
+    it('source mode: generates the route tree, without the bundle plugins', () => {
+        const names = pluginNames('source');
+        expect(names).not.toContain('vendure:bundle-entry');
+        expect(names).not.toContain('vendure:deprecated-alias');
+        expect(names.some(n => n?.startsWith('tanstack-router'))).toBe(true);
     });
 });

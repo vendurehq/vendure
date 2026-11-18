@@ -1,4 +1,4 @@
-import { graphql } from '@/graphql/graphql';
+import { graphql } from '@/gql';
 import { Trans } from '@lingui/react/macro';
 import {
     ActionBarItem,

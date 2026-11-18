@@ -242,7 +242,7 @@ export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plug
         enforce: 'pre', // This ensures our plugin runs before other CSS processors
         transform(code, id) {
             // Only transform the dashboard's main `styles.css` (used in both
-            // source-shipping and experimental-bundle mode, see issue #4719).
+            // bundle and source mode, see issue #4719).
             if (!id.endsWith('styles.css')) {
                 return null;
             }

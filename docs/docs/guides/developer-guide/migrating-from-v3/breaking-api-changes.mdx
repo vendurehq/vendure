@@ -30,6 +30,7 @@ rg -n "trackInventory|StockLocationStrategy|getAvailableStock\(|createCancellati
 rg -n "ApiPlayground|ApiDebug|healthChecks|HealthCheck|HealthIndicator|TaxRateModificationEvent|TtlCache"
 rg -n "customFulfillmentProcess|customPaymentProcess|Custom(Order|Payment|Fulfillment|Refund)(Process|States)"
 rg -n "getOrderFromContext|addPromotionsToOrder|deleteGroupAndOptionsFromProduct|\.isAuthorized\b"
+rg -n "useExperimentalBundle|tanstackRouterPluginOptions|from '@/(vdb|graphql)/"
 ```
 
 | Match | What to do |
@@ -41,7 +42,8 @@ rg -n "getOrderFromContext|addPromotionsToOrder|deleteGroupAndOptionsFromProduct
 | `user_roles_role`, `role_channels_channel` in SQL | Query the `role_assignment` table. See [Entities](/developer-guide/migrating-from-v3/role-assignments#entities). |
 | `implements SessionCacheStrategy` | Check that it stores `globalPermissions`. See [Sessions and permission checks](/developer-guide/migrating-from-v3/role-assignments#sessions-and-permission-checks). |
 | `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
-| Anything matched by the last three searches | See [Removed deprecated APIs](#removed-deprecated-apis). |
+| Anything matched by the three searches before the last | See [Removed deprecated APIs](#removed-deprecated-apis). |
+| `useExperimentalBundle`, `tanstackRouterPluginOptions`, imports from `@/vdb/` or `@/graphql/` | See [The Dashboard is served from its pre-built bundle](#the-dashboard-is-served-from-its-pre-built-bundle). |
 
 **Done when:** every match is updated, and `npx tsc --noEmit` passes.
 
@@ -121,6 +123,16 @@ An update mutation of your own must leave an absent field unchanged, which it do
 
 `updatePromotion` now computes the priority score from the stored conditions and actions when the input omits them. Before, an update without `conditions` and `actions` reset the score to 0.
 
+## The Dashboard is served from its pre-built bundle
+
+`vendureDashboardPlugin` now always loads the Dashboard from the pre-built bundle in the `@vendure/dashboard` package, which was opt-in through `useExperimentalBundle` since v3.7. Your Vite dev server no longer compiles the Dashboard's own source. This cuts the number of module requests on a cold load from about 3,000 to about 40.
+
+- Remove `useExperimentalBundle` and `tanstackRouterPluginOptions` from your `vite.config`. The bundle already contains the Dashboard's routes, so the TanStack Router plugin no longer runs in your project, and no longer writes `routeTree.gen.ts` into `node_modules`.
+- Hot module replacement still works for your Dashboard extensions. Changes to the Dashboard's own files inside `node_modules` are no longer picked up.
+- Import everything from `@vendure/dashboard`. Imports from the `@/vdb/*` and `@/graphql/*` aliases are deprecated. They still resolve, but now to `@vendure/dashboard`, and log a warning. An import of something that `@vendure/dashboard` does not export fails with a "missing export" error. The aliases will be removed in v5.
+- Remove the `@/vdb/*` path from your `tsconfig.json`. `@vendure/dashboard` now ships type declarations, so TypeScript no longer reads the Dashboard's source.
+- The package no longer ships the Dashboard's TypeScript source. Code that reads files from `node_modules/@vendure/dashboard/src` must import from `@vendure/dashboard` instead.
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.
@@ -163,6 +175,8 @@ These APIs were deprecated during v3 or earlier and are removed in v4. Each has 
 | `isStructFieldConfig` | `isStructCustomFieldConfig` |
 | `setWidgetLayout()` of the user settings context | `saveWidgetInstanceLayouts()` |
 | The `refresh` field of `DashboardMetricSummaryInput` | Nothing. Metrics are calculated on every request. |
+| The `useExperimentalBundle` option of `vendureDashboardPlugin` | Nothing. The bundle is always used. |
+| The `tanstackRouterPluginOptions` option of `vendureDashboardPlugin` | Nothing. The TanStack Router plugin no longer runs in your project. |
 
 ### GraphQL API
 
