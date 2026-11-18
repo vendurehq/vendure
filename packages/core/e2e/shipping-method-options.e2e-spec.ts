@@ -608,6 +608,14 @@ describe('ShippingMethod with several options', () => {
         ),
     );
 
+    it('refuses an empty list of shipping methods and keeps the ShippingLine', async () => {
+        for (const variables of [{ shippingMethods: [] }, { shippingMethodId: [] }]) {
+            await expect(setShippingMethods(variables)).rejects.toThrow('with at least one shipping method');
+        }
+        const { activeOrder } = await shopClient.query(activeOrderShippingDocument);
+        expect(activeOrder?.shippingLines).toHaveLength(1);
+    });
+
     it('makes only that ShippingMethod unavailable when its options lack unique codes', async () => {
         returnDuplicateCodes = true;
         try {
@@ -823,6 +831,26 @@ describe('ShippingMethod with several options', () => {
             } finally {
                 await adminClient.query(deletePromotionDocument, { id: (createPromotion as any).id });
             }
+        });
+
+        it('treats an empty list of shipping methods in modifyOrder as no shipping change', async () => {
+            const { order } = await adminClient.query(adminOrderShippingDocument, { id: placedOrderId });
+            const line = order?.lines[0];
+            if (!line) {
+                throw new Error('The placed Order has no lines');
+            }
+            const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                input: {
+                    orderId: placedOrderId,
+                    dryRun: true,
+                    adjustOrderLines: [{ orderLineId: line.id, quantity: line.quantity + 1 }],
+                    shippingMethods: [],
+                },
+            });
+            expect((modifyOrder as any).shippingLines).toHaveLength(1);
+            expect((modifyOrder as any).shippingLines[0].shippingOptionCode).toBe(
+                order?.shippingLines[0].shippingOptionCode,
+            );
         });
 
         it('rejects an option which the ShippingMethod does not offer in modifyOrder', async () => {

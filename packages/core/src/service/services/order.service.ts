@@ -51,7 +51,12 @@ import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { LocalizedStringArray } from '../../common/configurable-operation';
 import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
-import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
+import {
+    ErrorResultUnion,
+    GraphQLErrorResult,
+    isGraphQlErrorResult,
+    JustErrorResults,
+} from '../../common/error/error-result';
 import {
     EntityNotFoundError,
     InternalServerError,
@@ -133,11 +138,8 @@ import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import {
-    getSelectedShippingLines,
     ShippingCalculator,
-    shippingSelectionsKept,
     toShippingMethodQuote,
-    toShippingMethodSelections,
 } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
@@ -181,8 +183,8 @@ interface AllowedCancelledTransition {
  * Thrown inside `withTransaction()` to roll the transaction back, and caught outside it to return
  * the error result it carries.
  */
-class RollbackWithResult<T extends { message: string }> extends Error {
-    constructor(readonly result: T) {
+class RollbackWithResult extends Error {
+    constructor(readonly result: GraphQLErrorResult) {
         super(result.message);
     }
 }
@@ -1355,6 +1357,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (validationError) {
             return validationError;
         }
+        if (shippingMethods.length === 0) {
+            throw new UserInputError('error.set-order-shipping-method-arguments-invalid');
+        }
         // In its own transaction (a savepoint inside the request's), so that a refused method or option
         // leaves the Order in the database as it was, rather than with half-written ShippingLines.
         // Events published by promotion side effects during the pricing are not undone.
@@ -1364,20 +1369,18 @@ export class OrderService implements OnApplicationBootstrap {
                 if (isGraphQlErrorResult(result)) {
                     throw new RollbackWithResult(result);
                 }
-                const selectedLines = getSelectedShippingLines(result);
                 const updatedOrder = await this.getOrderOrThrow(txCtx, orderId);
                 // Prices each ShippingLine once, with the option it names, after the promotions and
                 // the assignment of the OrderLines
                 await this.applyPriceAdjustments(txCtx, updatedOrder);
-                const selections = toShippingMethodSelections(shippingMethods);
-                if (!shippingSelectionsKept(selections, selectedLines, updatedOrder.shippingLines)) {
+                if (!result.selectionKept(updatedOrder.shippingLines)) {
                     throw new RollbackWithResult(new IneligibleShippingMethodError());
                 }
                 return this.connection.getRepository(txCtx, Order).save(updatedOrder);
             });
         } catch (e: unknown) {
-            if (e instanceof RollbackWithResult) {
-                return e.result as IneligibleShippingMethodError;
+            if (e instanceof RollbackWithResult && e.result instanceof IneligibleShippingMethodError) {
+                return e.result;
             }
             throw e;
         }
@@ -2057,8 +2060,8 @@ export class OrderService implements OnApplicationBootstrap {
                 return assertFound(this.findOne(txCtx, input.orderId));
             });
         } catch (e: unknown) {
-            if (e instanceof RollbackWithResult) {
-                return e.result as OrderStateTransitionError;
+            if (e instanceof RollbackWithResult && e.result instanceof OrderStateTransitionError) {
+                return e.result;
             }
             throw e;
         }

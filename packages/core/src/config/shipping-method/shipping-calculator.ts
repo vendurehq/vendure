@@ -52,9 +52,13 @@ export interface ShippingCalculatorConfig<T extends ConfigArgs> extends Configur
  * The customer chooses an option with `setOrderShippingMethod(shippingMethods: [{ shippingMethodId, shippingOptionCode }])`.
  * Without a code, the cheapest option is used. The chosen code is stored as `ShippingLine.shippingOptionCode`.
  * Each time the Order is recalculated the calculator runs again and the result with the stored code is used.
- * If that code is no longer returned, the ShippingLine falls back to the cheapest option of any eligible
- * ShippingMethod, as it does when a ShippingMethod becomes ineligible. The transition to `ArrangingPayment`
- * is refused if the chosen option is no longer offered.
+ * If that code is no longer returned, or the calculator returns nothing, the ShippingLine falls back to the
+ * cheapest option of any eligible ShippingMethod, as it does when a ShippingMethod becomes ineligible. The
+ * transition to `ArrangingPayment` is refused if the chosen option is no longer offered.
+ *
+ * A calculator which calls a carrier API should therefore return the last rates it got for the Order
+ * when the carrier cannot be reached, rather than nothing: an empty result replaces the customer's
+ * choice, and throwing fails the whole recalculation of the Order.
  *
  * @example
  * ```ts
@@ -138,6 +142,11 @@ export interface ShippingCalculationResult {
      * `'ups_ground'`. Required, and unique within the array, when the calculator returns more than one
      * result: otherwise an error is logged and the ShippingMethod is unavailable for the Order. Stored on
      * the ShippingLine as `shippingOptionCode` when the option is chosen.
+     *
+     * Each recalculation of the Order looks the chosen option up by this code, so it must stay the same
+     * from one call to the next. Use the carrier's service-level code (Shippo's `servicelevel.token`,
+     * for example), not an id the carrier generates for each rate request (Shippo's rate `object_id`),
+     * which would never match and make every recalculation fall back to the cheapest option.
      *
      * @since 4.0.0
      */

@@ -270,8 +270,8 @@ export class ShopOrderResolver {
             );
             if (sessionOrder) {
                 const selections = args.shippingMethods ?? args.shippingMethodId;
-                if (!selections || (args.shippingMethods && args.shippingMethodId)) {
-                    throw new UserInputError('error.provide-shipping-method-id-or-shipping-methods');
+                if (!selections?.length || (args.shippingMethods && args.shippingMethodId)) {
+                    throw new UserInputError('error.set-order-shipping-method-arguments-invalid');
                 }
                 return this.orderService.setShippingMethod(ctx, sessionOrder.id, selections);
             }

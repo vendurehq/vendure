@@ -396,6 +396,21 @@ export class OrderCalculator {
 
     /**
      * @description
+     * Applies the shipping Promotions to the Order's ShippingLines again and recalculates its totals,
+     * leaving everything else as it is. For use after the price of a ShippingLine was set directly,
+     * without recalculating shipping.
+     *
+     * @since 4.0.0
+     */
+    async reapplyShippingPromotions(ctx: RequestContext, order: Order, promotions: Promotion[]) {
+        await this.applyShippingPromotions(ctx, order, promotions);
+        this.calculateOrderTotals(order);
+        this.removeIneffectivePromotions(order);
+        return order;
+    }
+
+    /**
+     * @description
      * Sets the totals properties on an Order by summing each OrderLine, and taking
      * into account any Surcharges and ShippingLines. Does not save the Order, so
      * the entity must be persisted to the DB after calling this method.

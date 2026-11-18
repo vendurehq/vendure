@@ -70,7 +70,6 @@ import { OrderCalculator } from '../order-calculator/order-calculator';
 import {
     findShippingOption,
     getSelectedShippingLines,
-    SelectedShippingLine,
     setShippingLineOption,
     ShippingCalculator,
     shippingSelectionsKept,
@@ -82,6 +81,24 @@ import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrderChannelContext } from '../utils/order-channel-context';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
+
+/**
+ * @description
+ * The result of {@link OrderModifier.setShippingMethods}.
+ *
+ * @docsCategory service-helpers
+ * @since 4.0.0
+ */
+export interface SetShippingMethodsResult {
+    order: Order;
+    /**
+     * @description
+     * Whether each selection is still held by the ShippingLine it was set on, given the ShippingLines
+     * of the Order after it has been recalculated. A ShippingLine to which no OrderLine was assigned,
+     * and which the recalculation therefore removed, does not count as refused.
+     */
+    selectionKept: (pricedShippingLines: ShippingLine[]) => boolean;
+}
 
 import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
@@ -418,7 +435,7 @@ export class OrderModifier {
         order: Order,
     ): Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }> {
         if (input.shippingMethods && input.shippingMethodIds) {
-            throw new UserInputError('error.provide-shipping-method-ids-or-shipping-methods');
+            throw new UserInputError('error.modify-order-shipping-method-arguments-conflict');
         }
         const { dryRun } = input;
         const modification = new OrderModification({
@@ -663,14 +680,15 @@ export class OrderModifier {
         const promotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
         const shippingMethodSelections = input.shippingMethods ?? input.shippingMethodIds;
-        let selectedShippingLines: SelectedShippingLine[] = [];
-        if (shippingMethodSelections) {
+        // An empty list is no shipping change, as noChangesSpecified() treats it
+        let shippingMethodsSet: SetShippingMethodsResult | undefined;
+        if (shippingMethodSelections?.length) {
             // The ShippingLines are priced below, once the Order's lines and totals are final
             const result = await this.setShippingMethods(ctx, order, shippingMethodSelections);
             if (isGraphQlErrorResult(result)) {
                 return result;
             }
-            selectedShippingLines = getSelectedShippingLines(result);
+            shippingMethodsSet = result;
         }
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
         for (const orderLine of updatedOrderLines) {
@@ -701,14 +719,12 @@ export class OrderModifier {
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,
         });
-        if (shippingMethodSelections) {
+        if (shippingMethodsSet) {
             const shippingError = await this.priceSelectedShippingLines(
                 ctx,
                 order,
                 promotions,
-                updatedOrderLines,
-                shippingMethodSelections,
-                selectedShippingLines,
+                shippingMethodsSet,
                 input.options?.recalculateShipping !== false,
             );
             if (shippingError) {
@@ -778,16 +794,16 @@ export class OrderModifier {
      *
      * The ShippingLines are not priced here: the next recalculation of the Order prices each with the
      * option it names, or with the cheapest option when it names none. If the option is not offered,
-     * the recalculation falls back to another option or ShippingMethod. To detect that, compare the
-     * `shippingMethodId` and `shippingOptionCode` of each returned ShippingLine, by its `id`, with
-     * the selection after the recalculation, as `OrderService.setShippingMethod()` does. A ShippingLine
-     * to which no OrderLine is assigned is removed by the recalculation.
+     * the recalculation falls back to another option or ShippingMethod. Pass the ShippingLines of the
+     * recalculated Order to the returned `selectionKept()` to find out whether that happened.
+     *
+     * @since 4.0.0 returns a {@link SetShippingMethodsResult} rather than the Order
      */
     async setShippingMethods(
         ctx: RequestContext,
         order: Order,
         shippingMethods: Array<ID | ShippingMethodSelectionInput>,
-    ) {
+    ): Promise<SetShippingMethodsResult | IneligibleShippingMethodError> {
         const selections = toShippingMethodSelections(shippingMethods);
         for (const [i, { shippingMethodId, shippingOptionCode }] of selections.entries()) {
             const shippingMethod = await this.shippingCalculator.getMethodIfEligible(
@@ -850,7 +866,13 @@ export class OrderModifier {
                 line.shippingLineId = shippingLine.id;
             });
         }
-        return order;
+        // Taken now: the recalculation reassigns the OrderLines and may remove ShippingLines
+        const selectedLines = getSelectedShippingLines(order);
+        return {
+            order,
+            selectionKept: pricedShippingLines =>
+                shippingSelectionsKept(selections, selectedLines, pricedShippingLines),
+        };
     }
 
     /**
@@ -863,30 +885,23 @@ export class OrderModifier {
         ctx: RequestContext,
         order: Order,
         promotions: Promotion[],
-        updatedOrderLines: OrderLine[],
-        shippingMethods: Array<ID | ShippingMethodSelectionInput>,
-        selectedLines: SelectedShippingLine[],
+        shippingMethodsSet: SetShippingMethodsResult,
         shippingRecalculated: boolean,
     ): Promise<IneligibleShippingMethodError | undefined> {
-        if (!shippingRecalculated) {
-            for (const shippingLine of order.shippingLines) {
-                const quotes = await shippingLine.shippingMethod.applyQuotes(ctx, order);
-                const result = findShippingOption(quotes, shippingLine.shippingOptionCode);
-                if (!result) {
-                    return new IneligibleShippingMethodError();
-                }
-                setShippingLineOption(shippingLine, shippingLine.shippingMethod, result);
+        if (shippingRecalculated) {
+            return shippingMethodsSet.selectionKept(order.shippingLines)
+                ? undefined
+                : new IneligibleShippingMethodError();
+        }
+        for (const shippingLine of order.shippingLines) {
+            const quotes = await shippingLine.shippingMethod.applyQuotes(ctx, order);
+            const result = findShippingOption(quotes, shippingLine.shippingOptionCode);
+            if (!result) {
+                return new IneligibleShippingMethodError();
             }
-            // The other prices are kept: only the shipping promotions and the totals are recalculated
-            await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
-                recalculateShipping: false,
-                recalculateShippingPromotions: true,
-            });
+            setShippingLineOption(shippingLine, shippingLine.shippingMethod, result);
         }
-        const selections = toShippingMethodSelections(shippingMethods);
-        if (!shippingSelectionsKept(selections, selectedLines, order.shippingLines)) {
-            return new IneligibleShippingMethodError();
-        }
+        await this.orderCalculator.reapplyShippingPromotions(ctx, order, promotions);
     }
 
     private noChangesSpecified(input: ModifyOrderInput): boolean {
