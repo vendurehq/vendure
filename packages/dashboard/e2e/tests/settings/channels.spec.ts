@@ -275,7 +275,10 @@ test.describe('Channels CRUD', () => {
 
         const testChannelRow = lp.getRows().filter({ hasText: 'e2e-test-channel' });
         await testChannelRow.getByRole('checkbox').click();
-        await page.getByRole('button', { name: /Actions/i }).click();
+        await page
+            .getByRole('toolbar', { name: 'Bulk actions' })
+            .getByRole('button', { name: 'Actions', exact: true })
+            .click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await lp.expectSuccessToast();
@@ -371,7 +374,10 @@ test.describe('Channels CRUD', () => {
             await lp.expectLoaded();
             const row = lp.getRows().filter({ hasText: channelCode });
             await row.getByRole('checkbox').click();
-            await page.getByRole('button', { name: /Actions/i }).click();
+            await page
+                .getByRole('toolbar', { name: 'Bulk actions' })
+                .getByRole('button', { name: 'Actions', exact: true })
+                .click();
             await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
             await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
             await lp.expectSuccessToast();

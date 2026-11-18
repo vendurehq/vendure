@@ -32,8 +32,7 @@ test.describe('Entity selectors refetch after mutation', () => {
             newTitle: 'New zone',
         });
         const sidebar = page.locator('[data-slot="sidebar"]');
-        const gotoViaSidebar = (name: string) =>
-            sidebar.getByRole('link', { name, exact: true }).click();
+        const gotoViaSidebar = (name: string) => sidebar.getByRole('link', { name, exact: true }).click();
 
         const openTaxRateZoneDropdown = async () => {
             await gotoViaSidebar('Tax Rates');
@@ -75,7 +74,10 @@ test.describe('Entity selectors refetch after mutation', () => {
         await list.expectLoaded();
         const zoneRow = list.getRows().filter({ hasText: zoneName });
         await zoneRow.getByRole('checkbox').click();
-        await page.getByRole('button', { name: /Actions/i }).click();
+        await page
+            .getByRole('toolbar', { name: 'Bulk actions' })
+            .getByRole('button', { name: 'Actions', exact: true })
+            .click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await list.expectSuccessToast();
