@@ -9,6 +9,7 @@ import { ChannelAware, SoftDeletable } from '../../common/types/common-types';
 import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { getConfig } from '../../config/config-helpers';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
+import { Logger } from '../../config/logger/vendure-logger';
 import {
     ShippingCalculationResult,
     ShippingCalculator,
@@ -107,9 +108,10 @@ export class ShippingMethod
     /**
      * @description
      * Runs the ShippingCalculator and returns every ShippingOption it returns, cheapest first.
-     * A calculator which returns a single result yields an array of one. Throws if a calculator
-     * returns several results which do not each have a unique `code`, since the chosen option
-     * could then not be identified when the Order is recalculated.
+     * A calculator which returns a single result yields an array of one. If a calculator returns
+     * several results which do not each have a unique `code`, the chosen option could not be
+     * identified when the Order is recalculated, so an error is logged and no options are returned:
+     * the ShippingMethod is then unavailable for the Order, while other ShippingMethods still are.
      *
      * @since 4.0.0
      */
@@ -126,10 +128,12 @@ export class ShippingMethod
         if (1 < results.length) {
             const codes = results.map(result => result.code);
             if (codes.some(code => !code) || new Set(codes).size !== codes.length) {
-                throw new Error(
-                    `The ShippingCalculator "${this.calculator.code}" returned ${results.length} results ` +
-                        'but they do not each have a unique "code"',
+                Logger.error(
+                    `The ShippingCalculator "${this.calculator.code}" of ShippingMethod "${this.code}" returned ` +
+                        `${results.length} results which do not each have a unique "code", so the ` +
+                        'ShippingMethod is unavailable',
                 );
+                return [];
             }
         }
         return results

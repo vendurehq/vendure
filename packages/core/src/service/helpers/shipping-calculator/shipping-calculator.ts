@@ -40,16 +40,18 @@ export function findShippingOption(
  * Converts an EligibleShippingMethod into the `ShippingMethodQuote` returned by the GraphQL APIs.
  */
 export function toShippingMethodQuote(eligible: EligibleShippingMethod): ShippingMethodQuote {
-    const { method, result } = eligible;
+    const { method } = eligible;
     const options = eligible.quotes.map(toShippingOptionQuote);
+    // The top-level fields are those of the cheapest option
+    const cheapest = options[0];
     return {
         id: method.id,
         name: method.name,
         code: method.code,
         description: method.description,
-        price: options[0].price,
-        priceWithTax: options[0].priceWithTax,
-        metadata: result.metadata,
+        price: cheapest.price,
+        priceWithTax: cheapest.priceWithTax,
+        metadata: cheapest.metadata,
         options,
     };
 }

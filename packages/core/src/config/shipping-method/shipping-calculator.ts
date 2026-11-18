@@ -136,7 +136,8 @@ export interface ShippingCalculationResult {
      * @description
      * Identifies this ShippingOption within its ShippingMethod, e.g. a carrier service code such as
      * `'ups_ground'`. Required, and unique within the array, when the calculator returns more than one
-     * result. Stored on the ShippingLine as `shippingOptionCode` when the option is chosen.
+     * result: otherwise an error is logged and the ShippingMethod is unavailable for the Order. Stored on
+     * the ShippingLine as `shippingOptionCode` when the option is chosen.
      *
      * @since 4.0.0
      */

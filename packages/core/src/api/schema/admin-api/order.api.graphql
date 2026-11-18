@@ -259,7 +259,7 @@ input ModifyOrderInput {
     Added in v2.2
     """
     shippingMethodIds: [ID!]
-    "Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Takes precedence over `shippingMethodIds`."
+    "Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Cannot be combined with `shippingMethodIds`."
     shippingMethods: [ShippingMethodSelectionInput!]
 }
 

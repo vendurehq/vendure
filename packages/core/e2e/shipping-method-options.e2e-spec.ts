@@ -35,6 +35,8 @@ const allCarrierServices = [
 ];
 let offeredServiceCodes = allCarrierServices.map(s => s.code);
 let returnDuplicateCodes = false;
+/** Added to every carrier price, to make the carrier dearer than the flat rate */
+let carrierSurcharge = 0;
 
 /**
  * Stands in for a carrier API: one result per service, priced by the quantity in the Order,
@@ -51,7 +53,7 @@ const carrierCalculator = new ShippingCalculator({
             .map(service => ({
                 code: returnDuplicateCodes ? 'same' : service.code,
                 name: service.name,
-                price: service.basePrice + quantity * 100,
+                price: service.basePrice + quantity * 100 + carrierSurcharge,
                 priceIncludesTax: false,
                 taxRate: 0,
                 metadata: { carrier: 'acme' },
@@ -448,17 +450,49 @@ describe('ShippingMethod with several options', () => {
         }
     });
 
+    it('falls back to another ShippingMethod when it is cheaper than the remaining options', async () => {
+        await setShippingMethods({
+            shippingMethods: [{ shippingMethodId: carrierMethodId, shippingOptionCode: 'economy' }],
+        });
+        offeredServiceCodes = ['express'];
+        carrierSurcharge = 1000;
+        try {
+            await shopClient.query(adjustItemQuantityDocument, { orderLineId, quantity: 2 });
+
+            const { activeOrder } = await shopClient.query(activeOrderShippingDocument);
+            expect(activeOrder?.shippingLines).toEqual([
+                {
+                    shippingMethod: { id: flatMethodId },
+                    priceWithTax: 2000,
+                    shippingOptionCode: null,
+                    shippingOptionName: null,
+                },
+            ]);
+        } finally {
+            offeredServiceCodes = allCarrierServices.map(s => s.code);
+            carrierSurcharge = 0;
+        }
+    });
+
     it(
-        'fails when a calculator returns several results without unique codes',
-        assertThrowsWithMessage(async () => {
-            returnDuplicateCodes = true;
-            try {
-                await shopClient.query(eligibleShippingMethodsWithOptionsDocument);
-            } finally {
-                returnDuplicateCodes = false;
-            }
-        }, 'do not each have a unique "code"'),
+        'rejects neither shippingMethodId nor shippingMethods',
+        assertThrowsWithMessage(
+            () => setShippingMethods({}),
+            "Provide either the 'shippingMethodId' or the 'shippingMethods' argument, but not both",
+        ),
     );
+
+    it('makes only that ShippingMethod unavailable when its options lack unique codes', async () => {
+        returnDuplicateCodes = true;
+        try {
+            const { eligibleShippingMethods } = await shopClient.query(
+                eligibleShippingMethodsWithOptionsDocument,
+            );
+            expect(eligibleShippingMethods.map(m => m.id)).toEqual([flatMethodId]);
+        } finally {
+            returnDuplicateCodes = false;
+        }
+    });
 
     it('blocks ArrangingPayment when the chosen option is no longer offered', async () => {
         await setShippingMethods({
@@ -545,6 +579,22 @@ describe('ShippingMethod with several options', () => {
                 },
             ]);
         });
+
+        it(
+            'rejects both shippingMethodIds and shippingMethods in modifyOrder',
+            assertThrowsWithMessage(
+                () =>
+                    adminClient.query(modifyOrderShippingDocument, {
+                        input: {
+                            orderId: placedOrderId,
+                            dryRun: true,
+                            shippingMethodIds: [carrierMethodId],
+                            shippingMethods: [{ shippingMethodId: carrierMethodId }],
+                        },
+                    }),
+                "Provide either 'shippingMethodIds' or 'shippingMethods', but not both",
+            ),
+        );
 
         it('sets an option on a draft order', async () => {
             const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);

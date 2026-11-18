@@ -37,6 +37,7 @@
     "items-cannot-be-removed-from-default-channel": "Items cannot be removed from the default Channel",
     "facetfilterinput-invalid-input": "A FacetValueFilterInput object may not specify the 'and' and 'or' fields simultaneously",
     "provide-shipping-method-id-or-shipping-methods": "Provide either the 'shippingMethodId' or the 'shippingMethods' argument, but not both",
+    "provide-shipping-method-ids-or-shipping-methods": "Provide either 'shippingMethodIds' or 'shippingMethods', but not both",
     "field-invalid-datetime-range-max": "The custom field \"{ name }\" value [{ value }] is greater than the maximum [{ max }]",
     "field-invalid-datetime-range-min": "The custom field \"{ name }\" value [{ value }] is less than the minimum [{ min }]",
     "field-invalid-non-nullable": "The custom field \"{ name }\" value cannot be set to null",

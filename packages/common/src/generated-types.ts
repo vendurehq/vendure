@@ -2907,7 +2907,7 @@ export type ModifyOrderInput = {
   refunds?: InputMaybe<Array<AdministratorRefundInput>>;
   /** Added in v2.2 */
   shippingMethodIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Takes precedence over `shippingMethodIds`. */
+  /** Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Cannot be combined with `shippingMethodIds`. */
   shippingMethods?: InputMaybe<Array<ShippingMethodSelectionInput>>;
   surcharges?: InputMaybe<Array<SurchargeInput>>;
   updateBillingAddress?: InputMaybe<UpdateOrderAddressInput>;

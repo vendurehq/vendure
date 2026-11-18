@@ -409,6 +409,9 @@ export class OrderModifier {
         input: ModifyOrderInput,
         order: Order,
     ): Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }> {
+        if (input.shippingMethods && input.shippingMethodIds) {
+            throw new UserInputError('error.provide-shipping-method-ids-or-shipping-methods');
+        }
         const { dryRun } = input;
         const modification = new OrderModification({
             order,
