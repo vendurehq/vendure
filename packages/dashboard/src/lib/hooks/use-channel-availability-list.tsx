@@ -1,5 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 
+import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
 import { ChannelAvailabilityBadge } from '@/vdb/components/shared/channel-availability.js';
 import { ColumnDefWithMetaDependencies } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -82,9 +83,14 @@ export function useChannelAvailabilityList() {
               ),
           }
         : {};
-    // Shown through the Status column only
+    // Hidden by default: the Status column already covers it. Table settings saved before the field
+    // existed show it, so it can be hidden. It follows the Status rule: "Yes" is the normal state and
+    // shows only on row hover, "No" always shows.
     const enabledInChannelColumn: ColumnDefWithMetaDependencies<any> = {
-        enableHiding: false,
+        header: () => <Trans>In channel</Trans>,
+        cell: ({ row }) => (
+            <BooleanDisplayBadge value={row.original.enabledInChannel} labelTrue={t`Yes`} labelFalse={t`No`} />
+        ),
         enableColumnFilter: false,
     };
     const filterColumn: ColumnDefWithMetaDependencies<any> = {
