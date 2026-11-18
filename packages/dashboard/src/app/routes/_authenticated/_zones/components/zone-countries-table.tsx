@@ -1,3 +1,5 @@
+import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { useGeneratedColumns } from '@/vdb/components/data-table/use-generated-columns.js';
 import { CountrySelector } from '@/vdb/components/shared/country-selector.js';
@@ -55,13 +57,15 @@ export function ZoneCountriesTable({
                 header: () => <Trans>Country</Trans>,
                 accessorKey: 'name',
             },
-            enabled: {
-                header: () => <Trans>Enabled</Trans>,
-                accessorKey: 'enabled',
-            },
             code: {
                 header: () => <Trans>Code</Trans>,
                 accessorKey: 'code',
+                cell: ({ getValue }) => <IdentifierDisplay value={getValue() as string} />,
+            },
+            enabled: {
+                header: () => <Trans>Status</Trans>,
+                accessorKey: 'enabled',
+                cell: ({ getValue }) => <BooleanDisplayBadge value={getValue() as boolean} />,
             },
         },
         bulkActions,
