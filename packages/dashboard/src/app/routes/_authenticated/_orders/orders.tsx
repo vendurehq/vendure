@@ -98,12 +98,15 @@ function OrderListPage() {
                     cell: ({ row }) => row.original.customer?.emailAddress,
                 },
             }}
-            defaultColumnOrder={['code', 'customer', 'state', 'totalWithTax', 'updatedAt']}
+            defaultColumnOrder={['code', 'customer', 'state', 'totalWithTax', 'orderPlacedAt']}
             defaultVisibility={{
                 id: false,
                 customerEmailAddress: false,
                 createdAt: false,
-                orderPlacedAt: false,
+                // The pinned date columns would come before the code, so the list shows when
+                // the order was placed after the totals instead.
+                updatedAt: false,
+                orderPlacedAt: true,
                 type: false,
                 currencyCode: false,
             }}

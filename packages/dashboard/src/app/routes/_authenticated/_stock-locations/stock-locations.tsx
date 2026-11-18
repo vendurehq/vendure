@@ -25,6 +25,10 @@ function StockLocationListPage() {
             title={<Trans>Stock Locations</Trans>}
             listQuery={stockLocationListQuery}
             route={Route}
+            defaultVisibility={{
+                name: true,
+                description: true,
+            }}
             customizeColumns={{
                 name: {
                     cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,

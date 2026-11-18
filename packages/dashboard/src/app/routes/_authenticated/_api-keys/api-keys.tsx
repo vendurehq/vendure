@@ -27,10 +27,11 @@ function ApiKeyListPage() {
             listQuery={apiKeyListQuery}
             route={Route}
             title={<Trans>API Keys</Trans>}
+            defaultColumnOrder={['name', 'lastUsedAt']}
             defaultVisibility={{
                 name: true,
                 lastUsedAt: true,
-                createdAt: true,
+                createdAt: false,
                 lookupId: false,
                 owner: false,
             }}
