@@ -47,7 +47,13 @@ export function ShippingMethodSelector({
                             className={`cursor-pointer hover:bg-muted/50 transition-colors border-2 border-transparent ${
                                 isSelected ? 'border-primary' : ''
                             }`}
-                            onClick={() => onSelect({ shippingMethodId: method.id })}
+                            onClick={() => {
+                                // Clicking the card of the selected method must not reset the chosen
+                                // option to the cheapest one
+                                if (!(isSelected && hasOptions)) {
+                                    onSelect({ shippingMethodId: method.id });
+                                }
+                            }}
                         >
                             <CardHeader className="pb-2">
                                 <CardTitle>{method.name}</CardTitle>

@@ -31,10 +31,10 @@ import { Order } from '../utils/order-types.js';
 import {
     getMaxRefundableQuantity,
     getRefundableQuantity,
+    getShippingLineLabel,
     lineCanBeRefunded,
 } from '../utils/order-utils.js';
 import { RefundTarget } from '../utils/refund-utils.js';
-import { getShippingLineLabel } from '../utils/order-utils.js';
 
 function RefundTargetRow({
     target,

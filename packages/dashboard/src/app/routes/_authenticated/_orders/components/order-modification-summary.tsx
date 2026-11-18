@@ -107,15 +107,18 @@ export function OrderModificationSummary({
     };
     let shippingMethodChanged = false;
     let newShippingMethodName = '';
+    const modifiedMethod = eligibleShippingMethods.find(m => m.id === modifiedShipping.shippingMethodId);
+    // Without a code the server stores the cheapest option, which is listed first
+    const modifiedOptionCode =
+        modifiedShipping.shippingOptionCode ?? modifiedMethod?.options?.[0]?.code ?? null;
     if (
         modifiedShipping.shippingMethodId &&
         (modifiedShipping.shippingMethodId !== originalShippingLine?.shippingMethod?.id ||
-            (modifiedShipping.shippingOptionCode != null &&
-                modifiedShipping.shippingOptionCode !== originalShippingLine?.shippingOptionCode))
+            modifiedOptionCode !== (originalShippingLine?.shippingOptionCode ?? null))
     ) {
         shippingMethodChanged = true;
-        const method = eligibleShippingMethods.find(m => m.id === modifiedShipping.shippingMethodId);
-        const optionName = method?.options?.find(o => o.code === modifiedShipping.shippingOptionCode)?.name;
+        const method = modifiedMethod;
+        const optionName = method?.options?.find(o => o.code === modifiedOptionCode)?.name;
         newShippingMethodName = getShippingLineLabel({
             shippingMethod: { name: method?.name || modifiedShipping.shippingMethodId },
             shippingOptionName: optionName,

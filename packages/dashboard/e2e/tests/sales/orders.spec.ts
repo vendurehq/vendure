@@ -408,6 +408,18 @@ test.describe('Orders', () => {
 
             await expect(nextDay).toBeChecked();
             await expect(page.getByText(`${methodName}: Next day`)).toBeVisible();
+
+            // Clicking the selected method's card must not reset the option to the cheapest one
+            let shippingMutations = 0;
+            page.on('request', request => {
+                if ((request.postData() ?? '').includes('SetDraftOrderShippingMethod')) {
+                    shippingMutations++;
+                }
+            });
+            await page.getByText(methodName, { exact: true }).click();
+            await page.waitForLoadState('networkidle');
+            expect(shippingMutations).toBe(0);
+            await expect(nextDay).toBeChecked();
             const { order } = await client.gql(
                 `query ($id: ID!) {
                     order(id: $id) {

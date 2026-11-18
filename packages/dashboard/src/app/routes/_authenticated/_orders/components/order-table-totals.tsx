@@ -4,8 +4,8 @@ import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
 
 import { Order } from '../utils/order-types.js';
-
 import { getShippingLineLabel } from '../utils/order-utils.js';
+
 import { MoneyGrossNet } from './money-gross-net.js';
 
 export interface OrderTableTotalsProps {
