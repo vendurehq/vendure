@@ -9,7 +9,7 @@ async function navigateToLaptopProduct(page: Page) {
     await page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop');
     const laptopRow = page.locator('table tbody tr').filter({ hasText: 'Laptop' }).first();
     await expect(laptopRow).toBeVisible();
-    await laptopRow.getByRole('button').first().click();
+    await laptopRow.locator('[data-slot="data-table-row-link"]').first().click();
     await expect(page).toHaveURL(/\/products\/.+/);
 }
 
@@ -132,7 +132,7 @@ test.describe('Product detail features', () => {
         await page.goto('/products');
         await expect(page.locator('table')).toBeVisible();
 
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
+        await page.locator('table tbody tr').first().locator('[data-slot="data-table-row-link"]').first().click();
         await expect(page).toHaveURL(/\/products\/.+/);
 
         const manageButton = page.getByRole('button', { name: /Manage variants/i });
@@ -147,7 +147,7 @@ test.describe('Product detail features', () => {
         await page.goto('/products');
         await expect(page.locator('table')).toBeVisible();
 
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
+        await page.locator('table tbody tr').first().locator('[data-slot="data-table-row-link"]').first().click();
         await expect(page).toHaveURL(/\/products\/.+/);
 
         // The rich text editor renders a ProseMirror container with a toolbar
@@ -234,7 +234,7 @@ test.describe('Product detail features', () => {
         await page.goto('/products');
         await expect(page.locator('table')).toBeVisible();
 
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
+        await page.locator('table tbody tr').first().locator('[data-slot="data-table-row-link"]').first().click();
         await expect(page).toHaveURL(/\/products\/.+/);
 
         // Custom fields are configured in the test fixtures (SEO, Details, Struct tabs)

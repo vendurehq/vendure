@@ -38,7 +38,7 @@ test.describe('Facet values', () => {
         await lp.expectLoaded();
 
         // Click the first facet (seeded data has facets with values)
-        await lp.getRows().first().getByRole('button').first().click();
+        await lp.getRows().first().locator('[data-slot="data-table-row-link"]').first().click();
         await expect(page).toHaveURL(/\/facets\/[^/]+/);
 
         // Extract the facet ID from the URL
@@ -310,7 +310,7 @@ test.describe('Facet list & detail improvements', () => {
         await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 });
 
         // Open the first facet value's detail page.
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
+        await page.locator('table tbody tr').first().locator('[data-slot="data-table-row-link"]').first().click();
         await expect(page).toHaveURL(new RegExp(`/facets/${bigFacetId}/values/[^/]+`));
 
         // The breadcrumb links to the parent facet…

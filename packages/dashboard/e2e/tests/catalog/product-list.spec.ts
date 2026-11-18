@@ -32,8 +32,8 @@ test.describe('Product List', () => {
         await lp.goto();
         await lp.expectLoaded();
 
-        // Click the first product button in the table (Base UI Button renders role="button")
-        const firstProductLink = lp.getRows().first().getByRole('button').first();
+        // Click the first product's row link
+        const firstProductLink = lp.getRows().first().locator('[data-slot="data-table-row-link"]').first();
         await firstProductLink.click();
 
         await expect(page).toHaveURL(/\/products\/.+/);
@@ -475,21 +475,22 @@ test.describe('Product List', () => {
 
             const initialCount = await lp.getRows().count();
 
-            // Open the add filter menu and select "enabled" column
+            // Open the add filter menu and select the Boolean "Downloadable" custom field. With several
+            // channels, `enabled` is filtered through the Status filter, not a Boolean filter.
             await lp.openAddFilterMenu();
             const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
-            await dropdown.getByRole('menuitem', { name: 'Enabled', exact: true }).click();
+            await dropdown.getByRole('menuitem', { name: 'Downloadable', exact: true }).click();
 
             // The filter dialog should open with boolean filter controls
             const dialog = page.locator('[role="dialog"]');
             await expect(dialog).toBeVisible();
 
             // Default: operator "is equal to", value "True"
-            // Apply the filter as-is (enabled = true)
+            // Apply the filter as-is (Downloadable = true)
             await dialog.getByRole('button', { name: 'Apply filter' }).click();
             await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
 
-            // All visible rows should be enabled products
+            // All visible rows should be downloadable products
             const filteredCount = await lp.getRows().count();
             expect(filteredCount).toBeGreaterThan(0);
             expect(filteredCount).toBeLessThanOrEqual(initialCount);
