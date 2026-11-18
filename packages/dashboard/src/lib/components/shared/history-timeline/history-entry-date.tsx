@@ -1,4 +1,4 @@
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 
 interface HistoryEntryDateProps {
@@ -21,15 +21,11 @@ export function HistoryEntryDate({ date, className }: Readonly<HistoryEntryDateP
     };
 
     return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger render={<div className={className} />}>
-                        {formatRelativeDate(date)}
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{formatFullDateTime(date)}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+            <TooltipTrigger render={<div className={className} />}>{formatRelativeDate(date)}</TooltipTrigger>
+            <TooltipContent>
+                <p>{formatFullDateTime(date)}</p>
+            </TooltipContent>
+        </Tooltip>
     );
 }

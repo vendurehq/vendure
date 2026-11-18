@@ -2,7 +2,9 @@ import { Money } from '@/vdb/components/data-display/money.js';
 import { PaginatedListDataTable } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { ReactNode, useState } from 'react';
@@ -14,6 +16,8 @@ interface CustomerOrderTableProps {
 }
 
 export function CustomerOrderTable({ customerId, title }: Readonly<CustomerOrderTableProps>) {
+    const { t } = useLingui();
+    const { getTranslatedOrderState } = useDynamicTranslations();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([{ id: 'orderPlacedAt', desc: true }]);
@@ -39,33 +43,45 @@ export function CustomerOrderTable({ customerId, title }: Readonly<CustomerOrder
             }}
             customizeColumns={{
                 total: {
-                    header: 'Total',
+                    header: () => <div className="text-end">{t`Total`}</div>,
                     cell: ({ cell, row }) => {
                         const value = cell.getValue();
                         const currencyCode = row.original.currencyCode;
-                        return <Money value={value} currency={currencyCode} />;
+                        return (
+                            <div className="text-end">
+                                <Money value={value} currency={currencyCode} />
+                            </div>
+                        );
                     },
                 },
                 totalWithTax: {
-                    header: 'Total with Tax',
+                    header: () => <div className="text-end">{t`Total with Tax`}</div>,
                     cell: ({ cell, row }) => {
                         const value = cell.getValue();
                         const currencyCode = row.original.currencyCode;
-                        return <Money value={value} currency={currencyCode} />;
+                        return (
+                            <div className="text-end">
+                                <Money value={value} currency={currencyCode} />
+                            </div>
+                        );
                     },
                 },
                 state: {
-                    header: 'State',
+                    header: () => t`State`,
                     cell: ({ cell }) => {
                         const value = cell.getValue() as string | undefined;
                         if (!value) {
                             return null;
                         }
-                        return <StatusBadge tone={orderStateDictionary.toneFor(value)}>{value}</StatusBadge>;
+                        return (
+                            <StatusBadge appearance="icon" tone={orderStateDictionary.toneFor(value)}>
+                                {getTranslatedOrderState(value)}
+                            </StatusBadge>
+                        );
                     },
                 },
                 code: {
-                    header: 'Code',
+                    header: () => t`Code`,
                     cell: ({ cell, row }) => {
                         const value = cell.getValue() as string;
                         const id = row.original.id;

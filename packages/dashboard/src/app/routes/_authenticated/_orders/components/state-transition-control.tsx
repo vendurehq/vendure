@@ -9,7 +9,7 @@ import {
 import type { Tone } from '@/vdb/components/ui/status-badge.js';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { CircleAlert, CircleCheck, CircleDashed, CircleX, EllipsisVertical } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleDashed, CircleX, Ellipsis } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export type StateTransitionAction = {
@@ -75,7 +75,7 @@ export function StateTransitionControl({
                             />
                         }
                     >
-                        <EllipsisVertical className="h-4 w-4" />
+                        <Ellipsis className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-48">
                         {actions.map((action, index) => {
