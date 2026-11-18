@@ -151,7 +151,12 @@ export function computePendingOrder(
     order: Order,
     input: ModifyOrderInput,
     addedVariants: Map<string, ProductVariantInfo>,
-    eligibleShippingMethods?: Array<{ id: string; name: string; priceWithTax: number }>,
+    eligibleShippingMethods?: Array<{
+        id: string;
+        name: string;
+        priceWithTax: number;
+        options?: Array<{ code?: string | null; name?: string | null; priceWithTax: number }>;
+    }>,
     orderLineCustomFieldNames?: string[],
 ): Order {
     // Adjust lines
@@ -192,31 +197,56 @@ export function computePendingOrder(
         })
         .filter(x => x != null);
 
+    const shippingSelections:
+        | Array<{ shippingMethodId: string; shippingOptionCode?: string | null }>
+        | undefined =
+        input.shippingMethods ?? input.shippingMethodIds?.map(shippingMethodId => ({ shippingMethodId }));
+
     return {
         ...order,
         lines: [...lines, ...(addedLines ?? [])],
         couponCodes: input.couponCodes ?? [],
-        shippingLines: input.shippingMethodIds
-            ? input.shippingMethodIds
-                  .map(shippingMethodId => {
+        shippingLines: shippingSelections
+            ? shippingSelections
+                  .map(({ shippingMethodId, shippingOptionCode }) => {
                       const shippingMethod = eligibleShippingMethods?.find(
                           method => method.id === shippingMethodId,
                       );
                       if (!shippingMethod) {
                           return;
                       }
+                      // Without a code the server uses the cheapest option, which is listed first
+                      const option =
+                          shippingOptionCode != null
+                              ? shippingMethod.options?.find(o => o.code === shippingOptionCode)
+                              : shippingMethod.options?.[0];
+                      const { options: _options, ...method } = shippingMethod;
                       return {
                           shippingMethod: {
-                              ...shippingMethod,
+                              ...method,
                               fulfillmentHandlerCode: 'manual',
                           },
-                          discountedPriceWithTax: shippingMethod?.priceWithTax ?? 0,
+                          discountedPriceWithTax: option?.priceWithTax ?? shippingMethod.priceWithTax,
+                          shippingOptionCode: option?.code ?? null,
+                          shippingOptionName: option?.name ?? null,
                           id: shippingMethodId,
                       } as any;
                   })
                   .filter(x => x !== undefined)
             : order.shippingLines,
     };
+}
+
+/**
+ * The label for a ShippingLine: the ShippingMethod's name, followed by the chosen ShippingOption's
+ * name if the ShippingMethod offers several options.
+ */
+export function getShippingLineLabel(shippingLine: {
+    shippingMethod?: { name: string } | null;
+    shippingOptionName?: string | null;
+}): string {
+    const methodName = shippingLine.shippingMethod?.name ?? '';
+    return shippingLine.shippingOptionName ? `${methodName}: ${shippingLine.shippingOptionName}` : methodName;
 }
 
 /**

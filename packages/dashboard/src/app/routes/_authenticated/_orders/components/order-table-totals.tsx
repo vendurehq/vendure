@@ -5,6 +5,7 @@ import { Trans } from '@lingui/react/macro';
 
 import { Order } from '../utils/order-types.js';
 
+import { getShippingLineLabel } from '../utils/order-utils.js';
 import { MoneyGrossNet } from './money-gross-net.js';
 
 export interface OrderTableTotalsProps {
@@ -69,7 +70,7 @@ export function OrderTableTotals({ order, columnCount }: Readonly<OrderTableTota
                         </div>
                         {order.shippingLines.map(sl => (
                             <Badge variant="outline" key={sl.id}>
-                                {sl.shippingMethod.name}
+                                {getShippingLineLabel(sl)}
                                 {order.shippingLines.length > 1
                                     ? ` (${formatCurrency(sl.discountedPriceWithTax, order.currencyCode)})`
                                     : ''}

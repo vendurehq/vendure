@@ -26,7 +26,7 @@ import {
 import { MoneyGrossNet } from './money-gross-net.js';
 import { OrderLineCustomFieldsForm } from './order-line-custom-fields-form.js';
 import { OrderTableTotals } from './order-table-totals.js';
-import { ShippingMethodSelector } from './shipping-method-selector.js';
+import { ShippingMethodSelection, ShippingMethodSelector } from './shipping-method-selector.js';
 
 type OrderFragment = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
 
@@ -123,7 +123,7 @@ export interface OrderTableProps {
         customFields: Record<string, any> | undefined;
     }) => void;
     onRemoveLine: (event: { lineId: string }) => void;
-    onSetShippingMethod: (event: { shippingMethodId: string }) => void;
+    onSetShippingMethod: (event: ShippingMethodSelection) => void;
     onApplyCouponCode: (event: { couponCode: string }) => void;
     onRemoveCouponCode: (event: { couponCode: string }) => void;
     displayTotals?: boolean;
@@ -267,8 +267,9 @@ export function EditOrderTable({
                                 <ShippingMethodSelector
                                     eligibleShippingMethods={eligibleShippingMethods}
                                     selectedShippingMethodId={order.shippingLines?.[0]?.shippingMethod?.id}
+                                    selectedShippingOptionCode={order.shippingLines?.[0]?.shippingOptionCode}
                                     currencyCode={currencyCode}
-                                    onSelect={shippingMethodId => onSetShippingMethod({ shippingMethodId })}
+                                    onSelect={onSetShippingMethod}
                                 />
                             </TableCell>
                         </TableRow>

@@ -5,6 +5,7 @@ import { Trans } from '@lingui/react/macro';
 import { ResultOf, VariablesOf } from 'gql.tada';
 
 import { modifyOrderDocument, orderDetailDocument } from '../orders.graphql.js';
+import { getShippingLineLabel } from '../utils/order-utils.js';
 
 type OrderFragment = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
 type ModifyOrderInput = VariablesOf<typeof modifyOrderDocument>['input'];
@@ -18,6 +19,7 @@ interface OrderModificationSummaryProps {
     eligibleShippingMethods: Array<{
         id: string;
         name: string;
+        options?: Array<{ code?: string | null; name?: string | null }>;
     }>;
     onNoteChange?: (note: string) => void;
     onRecalculateShippingChange?: (recalculate: boolean) => void;
@@ -98,15 +100,26 @@ export function OrderModificationSummary({
     const removedCouponCodes = Array.from(originalCoupons).filter(code => !modifiedCoupons.has(code));
 
     // Shipping method change detection
-    const originalShippingMethodId = originalOrder.shippingLines?.[0]?.shippingMethod?.id;
-    const modifiedShippingMethodId = modifyOrderInput.shippingMethodIds?.[0];
+    const originalShippingLine = originalOrder.shippingLines?.[0];
+    const modifiedShipping: { shippingMethodId?: string; shippingOptionCode?: string | null } = {
+        shippingMethodId: modifyOrderInput.shippingMethodIds?.[0],
+        ...modifyOrderInput.shippingMethods?.[0],
+    };
     let shippingMethodChanged = false;
     let newShippingMethodName = '';
-    if (modifiedShippingMethodId && modifiedShippingMethodId !== originalShippingMethodId) {
+    if (
+        modifiedShipping.shippingMethodId &&
+        (modifiedShipping.shippingMethodId !== originalShippingLine?.shippingMethod?.id ||
+            (modifiedShipping.shippingOptionCode != null &&
+                modifiedShipping.shippingOptionCode !== originalShippingLine?.shippingOptionCode))
+    ) {
         shippingMethodChanged = true;
-        newShippingMethodName =
-            eligibleShippingMethods.find(m => m.id === modifiedShippingMethodId)?.name ||
-            modifiedShippingMethodId;
+        const method = eligibleShippingMethods.find(m => m.id === modifiedShipping.shippingMethodId);
+        const optionName = method?.options?.find(o => o.code === modifiedShipping.shippingOptionCode)?.name;
+        newShippingMethodName = getShippingLineLabel({
+            shippingMethod: { name: method?.name || modifiedShipping.shippingMethodId },
+            shippingOptionName: optionName,
+        });
     }
 
     // Added surcharges
