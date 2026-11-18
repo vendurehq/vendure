@@ -72,7 +72,10 @@ function ProductListPage() {
                 description: {
                     cell: RichTextDescriptionCell,
                 },
-                enabled: channelAvailability.statusColumn,
+                // With several channels, the Status filter covers `enabled`, so a second filter of the same name is left out.
+                enabled: channelAvailability.facetedFilter
+                    ? { ...channelAvailability.statusColumn, enableColumnFilter: false }
+                    : channelAvailability.statusColumn,
                 enabledInChannel: channelAvailability.enabledInChannelColumn,
             }}
             searchPlaceholder={t`Search products...`}
