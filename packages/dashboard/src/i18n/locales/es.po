@@ -1007,6 +1007,7 @@ msgid "The data that has been passed to the job"
 msgstr "Los datos que se han pasado al trabajo"
 
 #: src/lib/components/shared/copyable-text.tsx
+#: src/lib/framework/layout-engine/page-layout.tsx
 msgid "Copied"
 msgstr "Copiado"
 
@@ -3986,6 +3987,10 @@ msgstr "¿Está seguro de que desea salir de esta página? Se perderán los camb
 msgid "Color 1"
 msgstr ""
 
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "More actions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header column"
 msgstr "Alternar columna de encabezado"
@@ -5364,8 +5369,8 @@ msgstr ""
 #~ msgstr "Recursos Monitoreados"
 
 #: src/lib/framework/layout-engine/page-layout.tsx
-msgid "Entity Information"
-msgstr "Información de Entidad"
+#~ msgid "Entity Information"
+#~ msgstr "Información de Entidad"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx
 msgid "Default"
@@ -6228,6 +6233,10 @@ msgstr "ID"
 msgid "Access denied"
 msgstr "Acceso denegado"
 
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "Copy ID"
+msgstr ""
+
 #: src/lib/components/shared/alerts.tsx
 msgid "Alerts"
 msgstr "Alertas"
@@ -6825,6 +6834,10 @@ msgstr "¿Olvidó su contraseña?"
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx
 msgid "Transition to selected state"
 msgstr "Transición al estado seleccionado"
+
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "Entity information"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "An additional payment of {formattedDiff} will be required."
