@@ -6,6 +6,7 @@ import { TransactionAlreadyStartedError } from 'typeorm/error/TransactionAlready
 import { RequestContext } from '../api/common/request-context';
 import { TransactionIsolationLevel, TransactionMode } from '../api/decorators/transaction.decorator';
 import { TRANSACTION_MANAGER_KEY } from '../common/constants';
+import { Logger } from '../config/logger/vendure-logger';
 
 /**
  * @description
@@ -66,7 +67,7 @@ export class TransactionWrapper {
             return result;
         } catch (error) {
             if (queryRunner.isTransactionActive) {
-                await queryRunner.rollbackTransaction();
+                await this.rollbackAfterError(queryRunner, !inheritedQueryRunner);
             }
             throw error;
         } finally {
@@ -79,6 +80,40 @@ export class TransactionWrapper {
                 !queryRunner.isTransactionActive &&
                 queryRunner.isReleased === false
             ) {
+                await queryRunner.release();
+            }
+        }
+    }
+
+    /**
+     * Rolls back after the work has failed, so that the original error can be rethrown.
+     *
+     * The rollback itself can fail when the database has already ended the transaction. MySQL and
+     * MariaDB roll back the whole transaction, not only the statement, on a deadlock (and MariaDB
+     * 11.6.2+ also on `ER_CHECKREAD`), so a nested transaction's `ROLLBACK TO SAVEPOINT` then fails
+     * because the savepoint is gone. TypeORM leaves the QueryRunner marked as in a transaction when
+     * that happens, and a runner in that state is never released. Each such error used to leak a
+     * pool connection until the pool was empty and every request hung.
+     *
+     * So a failed rollback never replaces the original error. A nested transaction leaves the
+     * cleanup to the owner of the QueryRunner, which rolls back in turn and ends up here too. The
+     * owner ends whatever is left of the transaction with a plain `ROLLBACK` and hands the
+     * connection back to the pool.
+     */
+    private async rollbackAfterError(queryRunner: QueryRunner, ownsQueryRunner: boolean) {
+        try {
+            await queryRunner.rollbackTransaction();
+        } catch (rollbackError: any) {
+            if (!ownsQueryRunner) {
+                return;
+            }
+            Logger.warn(
+                `Rolling back a failed transaction failed, so the connection is reset and released: ${String(
+                    rollbackError?.message ?? rollbackError,
+                )}`,
+            );
+            await queryRunner.query('ROLLBACK').catch(() => undefined);
+            if (!queryRunner.isReleased) {
                 await queryRunner.release();
             }
         }
