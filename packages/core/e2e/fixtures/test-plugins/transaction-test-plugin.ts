@@ -31,6 +31,7 @@ export class TestEvent extends VendureEvent {
 export const TRIGGER_NO_OPERATION = 'trigger-no-operation';
 export const TRIGGER_ATTEMPTED_UPDATE_EMAIL = 'trigger-attempted-update-email';
 export const TRIGGER_ATTEMPTED_READ_EMAIL = 'trigger-attempted-read-email';
+export const TRANSACTION_ENDED_BY_DATABASE = 'transaction-ended-by-database';
 
 @Injectable()
 class TestUserService {
@@ -256,6 +257,21 @@ class TestResolver {
         return result;
     }
 
+    /**
+     * Simulates what MySQL and MariaDB do on a deadlock: the database rolls back the whole
+     * transaction, not only the statement, so the nested transaction's `ROLLBACK TO SAVEPOINT`
+     * then fails because the savepoint no longer exists.
+     */
+    @Mutation()
+    @Transaction()
+    async failAfterDatabaseEndedNestedTransaction(@Ctx() ctx: RequestContext) {
+        await this.connection.withTransaction(ctx, async innerCtx => {
+            await this.connection.getRepository(innerCtx, User).query('ROLLBACK');
+            throw new Error(TRANSACTION_ENDED_BY_DATABASE);
+        });
+        return true;
+    }
+
     @Query()
     async verify() {
         const admins = await this.connection.rawConnection.getRepository(Administrator).find();
@@ -306,6 +322,7 @@ class TestResolver {
                 createNTestAdministrators(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 createNTestAdministrators2(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 createNTestAdministrators3(emailAddress: String!, failFactor: Float!, n: Int!): JSON
+                failAfterDatabaseEndedNestedTransaction: Boolean
             }
             type VerifyResult {
                 admins: [Administrator!]!

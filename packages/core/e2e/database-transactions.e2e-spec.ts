@@ -8,6 +8,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
+    TRANSACTION_ENDED_BY_DATABASE,
     TransactionTestPlugin,
     TRIGGER_ATTEMPTED_READ_EMAIL,
     TRIGGER_ATTEMPTED_UPDATE_EMAIL,
@@ -214,6 +215,28 @@ describe('Transaction infrastructure', () => {
         expect(verify.users.filter(u => u.identifier.includes('testNestedTransactionsN'))).toHaveLength(1);
     });
 
+    // Relates to #4152. MySQL and MariaDB end the whole transaction on a deadlock, so the nested
+    // transaction's ROLLBACK TO SAVEPOINT fails. The QueryRunner then stayed marked as in a
+    // transaction and was never released, so each such error leaked a pool connection until the
+    // pool was empty and every request hung. The client also saw the savepoint error rather than
+    // the error which caused it. Skipped on sql.js, which has no connection pool to leak from.
+    const itIfPooledDb = process.env.DB && process.env.DB !== 'sqljs' ? it : it.skip;
+    itIfPooledDb(
+        'releases the connection when the database ends the transaction inside a nested transaction',
+        async () => {
+            // More failures than the default pool of 10 connections can absorb.
+            for (let i = 0; i < 12; i++) {
+                await expect(
+                    adminClient.query(failAfterDatabaseEndedNestedTransactionDocument),
+                ).rejects.toThrow(TRANSACTION_ENDED_BY_DATABASE);
+            }
+
+            const stillServing = adminClient.query(verifyTestDocument).then(() => true);
+            const timedOut = new Promise(resolve => setTimeout(() => resolve(false), 5000));
+            expect(await Promise.race([stillServing, timedOut])).toBe(true);
+        },
+    );
+
     it('event do not publish after transaction rollback', async () => {
         TransactionTestPlugin.reset();
         try {
@@ -379,6 +402,12 @@ const createNTestAdministrators2Document = graphql(`
 const createNTestAdministrators3Document = graphql(`
     mutation CreateNTestAdmins3($emailAddress: String!, $failFactor: Float!, $n: Int!) {
         createNTestAdministrators3(emailAddress: $emailAddress, failFactor: $failFactor, n: $n)
+    }
+`);
+
+const failAfterDatabaseEndedNestedTransactionDocument = graphql(`
+    mutation FailAfterDatabaseEndedNestedTransaction {
+        failAfterDatabaseEndedNestedTransaction
     }
 `);
 
