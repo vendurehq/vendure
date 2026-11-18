@@ -34,16 +34,13 @@ export function MetricsWidget() {
     const [config, setConfig] = useWidgetConfig<MetricsWidgetConfig>();
     const dataType = config.dataType;
 
-    const dataTypeOptions = useMemo(
-        () => [
-            { value: DATA_TYPES.OrderCount, label: t`Order Count` },
-            { value: DATA_TYPES.OrderTotal, label: t`Order Total` },
-            { value: DATA_TYPES.AverageOrderValue, label: t`Average Order Value` },
-        ],
-        [t],
-    );
-
-    const dataTypeLabel = dataTypeOptions.find(option => option.value === dataType)?.label;
+    const dataTypeLabels: Record<DATA_TYPES, string> = {
+        [DATA_TYPES.OrderCount]: t`Order Count`,
+        [DATA_TYPES.OrderTotal]: t`Order Total`,
+        [DATA_TYPES.AverageOrderValue]: t`Average Order Value`,
+    };
+    const dataTypeOptions = Object.values(DATA_TYPES).map(value => ({ value, label: dataTypeLabels[value] }));
+    const dataTypeLabel = dataTypeLabels[dataType];
 
     const { data, refetch, isPending, isError } = useQuery({
         queryKey: [INSIGHTS_WIDGET_QUERY_KEY, 'dashboard-order-metrics', dataType, dateRange],
@@ -97,7 +94,7 @@ export function MetricsWidget() {
                         </TabsList>
                     </Tabs>
                     <Select
-                        items={Object.fromEntries(dataTypeOptions.map(option => [option.value, option.label]))}
+                        items={dataTypeLabels}
                         value={dataType}
                         onValueChange={value => setConfig({ dataType: value as DATA_TYPES })}
                     >
