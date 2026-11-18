@@ -27,6 +27,7 @@ import {
     assignProductToChannelDocument,
     createChannelDocument,
     getProductWithVariantsDocument,
+    updateChannelDocument,
     updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import { addItemToOrderDocument, searchProductsShopDocument } from './graphql/shop-definitions';
@@ -42,6 +43,21 @@ const getVariantPricesShopDocument = graphqlShop(`
                 price
                 priceWithTax
                 currencyCode
+            }
+        }
+    }
+`);
+
+const getVariantPricesSortedDocument = graphqlAdmin(`
+    query GetVariantPricesSorted($options: ProductVariantListOptions) {
+        productVariants(options: $options) {
+            items {
+                id
+                price
+                prices {
+                    currencyCode
+                    price
+                }
             }
         }
     }
@@ -288,6 +304,36 @@ describe('ProductVariant price loading', () => {
         for (const variant of product.variants) {
             expect(defaultChannelPrices.get(variant.sku)).toBe(variant.price);
             expect(secondChannelPrices.get(variant.sku)).toBe(expectedSecondChannelPrice(variant.price));
+        }
+    });
+
+    // OSS-1009 — the join which sorts by price holds one price per variant, in the active currency,
+    // but each variant still returns every price of the active Channel
+    it('returns every currency of the channel when the list is sorted and paginated by price', async () => {
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        await adminClient.query(updateChannelDocument, {
+            input: { id: 'T_1', availableCurrencyCodes: [CurrencyCode.USD, CurrencyCode.EUR] },
+        });
+        await adminClient.query(updateProductVariantsDocument, {
+            input: product.variants.map((variant, i) => ({
+                id: variant.id,
+                prices: [{ currencyCode: CurrencyCode.EUR, price: 100 + i }],
+            })),
+        });
+        const byUsdPriceDesc = [...product.variants].sort((a, b) => b.price - a.price);
+
+        const { productVariants } = await adminClient.query(getVariantPricesSortedDocument, {
+            options: {
+                filter: { productId: { eq: product.id } },
+                sort: { price: SortOrder.DESC },
+                take: 2,
+                skip: 1,
+            },
+        });
+
+        expect(productVariants.items.map(item => item.id)).toEqual(byUsdPriceDesc.slice(1, 3).map(v => v.id));
+        for (const item of productVariants.items) {
+            expect(item.prices.map(p => p.currencyCode).sort()).toEqual([CurrencyCode.EUR, CurrencyCode.USD]);
         }
     });
 });

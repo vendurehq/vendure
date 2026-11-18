@@ -48,6 +48,11 @@ const PRICES_LIST_QUERY_ALIAS = 'productvariant__productVariantPrices';
  * Channel and currency of the list's RequestContext, so that each variant is sorted by the price it
  * is sold at there.
  *
+ * ProductVariantPrice is joined as an entity, not through the `productVariantPrices` relation: the
+ * rows are selected, as the paginated query needs for its sort, but not stored on the variants.
+ * Stored there, the one row of the sort would pass for the variant's prices in the Channel, and
+ * the other currencies would not be loaded.
+ *
  * It is a `query` rather than a `relations` entry of `@Calculated()`, because the `@Relations()`
  * decorator loads the `relations` of every selected calculated field: selecting `price` would then
  * load the price of every Channel. The prices of the active Channel are loaded when a variant is
@@ -57,14 +62,15 @@ function joinPricesForListQuery(qb: SelectQueryBuilder<any>, ctx?: RequestContex
     if (qb.expressionMap.joinAttributes.some(join => join.alias.name === PRICES_LIST_QUERY_ALIAS)) {
         return;
     }
+    const onVariant = `${PRICES_LIST_QUERY_ALIAS}.variantId = ${qb.alias}.id`;
     if (!ctx) {
-        qb.leftJoinAndSelect(`${qb.alias}.productVariantPrices`, PRICES_LIST_QUERY_ALIAS);
+        qb.leftJoinAndSelect(ProductVariantPrice, PRICES_LIST_QUERY_ALIAS, onVariant);
         return;
     }
     qb.leftJoinAndSelect(
-        `${qb.alias}.productVariantPrices`,
+        ProductVariantPrice,
         PRICES_LIST_QUERY_ALIAS,
-        `${PRICES_LIST_QUERY_ALIAS}.channelId = :lqbPriceChannelId AND ` +
+        `${onVariant} AND ${PRICES_LIST_QUERY_ALIAS}.channelId = :lqbPriceChannelId AND ` +
             `${PRICES_LIST_QUERY_ALIAS}.currencyCode = :lqbPriceCurrencyCode`,
         { lqbPriceChannelId: ctx.channelId, lqbPriceCurrencyCode: ctx.currencyCode },
     );

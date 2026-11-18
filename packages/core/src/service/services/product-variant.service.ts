@@ -1144,6 +1144,18 @@ export class ProductVariantService {
 
     /**
      * @description
+     * Loads the Channel prices of the given ProductVariants in one query. Call it before pricing
+     * variants one after another with `applyChannelPriceAndTax()`, e.g. in a loop which awaits each
+     * one. See {@link ProductPriceApplicator.preloadChannelPrices}.
+     *
+     * @since 4.0.0
+     */
+    preloadChannelPrices(ctx: RequestContext, variants: ProductVariant[]): Promise<void> {
+        return this.productPriceApplicator.preloadChannelPrices(ctx, variants);
+    }
+
+    /**
+     * @description
      * Populates the `price` field with the price for the specified channel.
      */
     async applyChannelPriceAndTax(

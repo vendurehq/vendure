@@ -128,7 +128,6 @@ import { OrderModifier } from '../helpers/order-modifier/order-modifier';
 import { OrderState } from '../helpers/order-state-machine/order-state';
 import { OrderStateMachine } from '../helpers/order-state-machine/order-state-machine';
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
-import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
@@ -190,7 +189,6 @@ export class OrderService implements OnApplicationBootstrap {
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
         private channelEnabledChecker: ChannelEnabledChecker,
-        private productPriceApplicator: ProductPriceApplicator,
     ) {}
 
     /** @internal */
@@ -335,7 +333,7 @@ export class OrderService implements OnApplicationBootstrap {
             }
 
             if (wantsLineVariant) {
-                await this.productPriceApplicator.preloadChannelPrices(
+                await this.productVariantService.preloadChannelPrices(
                     ctx,
                     order.lines.map(line => line.productVariant),
                 );
@@ -2799,7 +2797,7 @@ export class OrderService implements OnApplicationBootstrap {
             });
 
             // applyPriceAdjustments() prices the lines one after another.
-            await this.productPriceApplicator.preloadChannelPrices(
+            await this.productVariantService.preloadChannelPrices(
                 orderCtx,
                 orders.flatMap(order => order.lines.map(line => line.productVariant)),
             );

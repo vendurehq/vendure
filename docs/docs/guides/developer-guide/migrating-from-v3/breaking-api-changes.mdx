@@ -84,7 +84,7 @@ What breaks:
 
 - **Code which reads `variant.productVariantPrices`** after loading a variant with the `TransactionalConnection`, a repository or the `EntityHydrator`, or from an entity event, finds it `undefined` unless the query requested the relation. Request it (`relations: { productVariantPrices: true }`), or call `ProductVariantService.getProductVariantPrices(ctx, variantId)`, which returns the prices of the active Channel.
 - **A custom `ProductVariantPriceSelectionStrategy` or `ProductVariantPriceCalculationStrategy`** now sees only the prices of the active Channel, unless the variant was loaded with others. A strategy which falls back to the price of another Channel, such as the default Channel, has to load that price itself, for example with the `TransactionalConnection` from the `Injector`.
-- **Constructors:** `ProductPriceApplicator` takes a `TransactionalConnection` as its last argument, and `OrderService` a `ProductPriceApplicator`. This only matters if you create them with `new` or subclass them with your own constructor.
+- **Constructor:** `ProductPriceApplicator` takes a `TransactionalConnection` as its last argument. This only matters if you create it with `new` or subclass it with your own constructor.
 
 Saving a priced variant leaves the prices of its other Channels in place, even though the variant carries only those of the active Channel.
 
