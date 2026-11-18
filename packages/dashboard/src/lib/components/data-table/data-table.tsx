@@ -30,6 +30,11 @@ import {
 } from '@tanstack/react-table';
 import { RowSelectionState, TableOptions } from '@tanstack/table-core';
 import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
+import type {
+    DataTableRowCellProps,
+    DataTableRowRipple,
+    DataTableRowSelectProps,
+} from '@vendure-io/ui/components/molecules/data-table/data-table-types';
 import { GripVertical } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { AddFilterMenu } from './add-filter-menu.js';
@@ -48,62 +53,69 @@ import { DataTableFilterBadgeEditable } from './data-table-filter-badge-editable
 // the initial fetch.
 const MAX_SKELETON_ROWS = 10;
 
+const DRAG_HANDLE_COLUMN_ID = '__drag_handle__';
+
 interface DraggableRowProps<TData> {
     row: Row<TData>;
-    isDragDisabled: boolean;
     getRowCanDrag?: (row: Row<TData>) => boolean;
-    getCellClassName?: (columnId: string) => string | undefined;
+    /** The select-all ripple timing of this row, from the table. */
+    ripple: DataTableRowRipple;
+    /** The built-in body cell props of a column, from the table. */
+    cellProps: (columnId: string) => DataTableRowCellProps;
+    /** Click-to-select while rows are selected, from the table. */
+    selectProps: DataTableRowSelectProps;
 }
 
 function DraggableRow<TData>({
     row,
-    isDragDisabled,
     getRowCanDrag,
-    getCellClassName,
+    ripple,
+    cellProps,
+    selectProps,
 }: Readonly<DraggableRowProps<TData>>) {
-    // Check if this specific row can be dragged
     const rowCanDrag = getRowCanDrag ? getRowCanDrag(row) : true;
-    const isRowDragDisabled = isDragDisabled || !rowCanDrag;
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: row.id,
-        disabled: isRowDragDisabled,
+        disabled: !rowCanDrag,
     });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    };
 
     return (
         <TableRow
+            {...selectProps}
             ref={setNodeRef}
-            style={style}
-            data-state={row.getIsSelected() && 'selected'}
-            className="group/row animate-in fade-in duration-100"
+            style={{
+                ...ripple.style,
+                transform: CSS.Transform.toString(transform),
+                transition,
+                opacity: isDragging ? 0.5 : 1,
+            }}
+            data-state={row.getIsSelected() ? 'selected' : undefined}
+            className={cn('group/row', ripple.className)}
         >
-            {!isDragDisabled && (
-                <TableCell className="w-[40px] h-12">
-                    {rowCanDrag ? (
-                        <div
-                            {...attributes}
-                            {...listeners}
-                            className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <GripVertical className="h-4 w-4" />
-                        </div>
-                    ) : null}
-                </TableCell>
-            )}
-            {row
-                .getVisibleCells()
-                .filter(cell => cell.column.id !== '__drag_handle__')
-                .map(cell => (
-                    <TableCell key={cell.id} className={getCellClassName?.(cell.column.id) ?? 'h-12'}>
+            {row.getVisibleCells().map(cell => {
+                const props = cellProps(cell.column.id);
+                if (cell.column.id === DRAG_HANDLE_COLUMN_ID) {
+                    return (
+                        <TableCell key={cell.id} {...props} className={cn(props.className, 'w-10')}>
+                            {rowCanDrag ? (
+                                <div
+                                    {...attributes}
+                                    {...listeners}
+                                    className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <GripVertical className="size-4" />
+                                </div>
+                            ) : null}
+                        </TableCell>
+                    );
+                }
+                return (
+                    <TableCell key={cell.id} {...props}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
-                ))}
+                );
+            })}
         </TableRow>
     );
 }
@@ -417,7 +429,7 @@ export function DataTable<TData>({
         const dataColumns = hasSelectionColumn ? columns.filter(c => c.id !== 'selection') : columns;
         if (isDraggableEnabled) {
             const dragHandleColumn: ColumnDef<TData, any> = {
-                id: '__drag_handle__',
+                id: DRAG_HANDLE_COLUMN_ID,
                 header: '',
                 cell: () => null, // Rendered by DraggableRow
                 size: 40,
@@ -485,20 +497,6 @@ export function DataTable<TData>({
     const clearFiltersAndSearch = () => {
         setColumnFilters([]);
         handleSearchChange('');
-    };
-
-    // Cell classes for DraggableRow, which renders its own cells instead of the
-    // molecule's defaults: the selection checkbox floats over a zero-width cell
-    // (`pl-0!` opts out of the card's edge-cell padding), and the gutter it
-    // needs is folded into the leading data column's left padding.
-    const getDraggableCellClassName = (table: TableType<TData>) => (columnId: string) => {
-        const leadingColumnId = hasSelectionColumn
-            ? table
-                  .getVisibleLeafColumns()
-                  .find(column => column.id !== 'selection' && column.id !== '__drag_handle__')?.id
-            : undefined;
-        if (columnId === 'selection') return 'relative w-0 p-0 pl-0!';
-        return cn('h-12', columnId === leadingColumnId && 'pl-8');
     };
 
     // Everything TanStack-related that the dashboard renders its own UI for
@@ -781,9 +779,10 @@ export function DataTable<TData>({
                                 return (
                                     <DraggableRow
                                         row={row}
-                                        isDragDisabled={isDragDisabled}
                                         getRowCanDrag={tableMeta?.getRowCanDrag}
-                                        getCellClassName={getDraggableCellClassName(table)}
+                                        ripple={ripple}
+                                        cellProps={cellProps}
+                                        selectProps={selectProps}
                                     />
                                 );
                             }
@@ -793,6 +792,8 @@ export function DataTable<TData>({
                         setTableOptions={bridgeSetTableOptions}
                         labels={{
                             selectAllRows: t`Select all rows`,
+                            selectAllOnPage: t`Select all on this page`,
+                            clearPageSelection: t`Clear selection on this page`,
                             selectRow: () => t`Select row`,
                             pagination: {
                                 navLabel: t`Pagination`,
