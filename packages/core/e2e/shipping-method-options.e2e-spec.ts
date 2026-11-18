@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql, ResultOf, VariablesOf } from './graphql/graphql-shop';
 import { createShippingMethodDocument } from './graphql/shared-definitions';
@@ -23,6 +24,7 @@ import {
     transitionToStateDocument,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
+import { addPaymentToOrder } from './utils/test-order-utils';
 
 // OSS-1003 / #2649 — a ShippingCalculator may return several options, e.g. the services of a carrier API
 
@@ -134,6 +136,110 @@ const activeOrderShippingDocument = graphql(
     [shippingLineFragment],
 );
 
+const adminShippingLinesFragment = adminGraphql(`
+    fragment AdminShippingOptionOrder on Order {
+        id
+        state
+        shippingLines {
+            shippingMethod {
+                id
+            }
+            priceWithTax
+            shippingOptionCode
+            shippingOptionName
+        }
+    }
+`);
+
+const adminOrderShippingDocument = adminGraphql(
+    `
+        query AdminOrderShipping($id: ID!) {
+            order(id: $id) {
+                ...AdminShippingOptionOrder
+            }
+        }
+    `,
+    [adminShippingLinesFragment],
+);
+
+const createDraftOrderDocument = adminGraphql(`
+    mutation CreateDraftOrderForOptions {
+        createDraftOrder {
+            id
+        }
+    }
+`);
+
+const addItemToDraftOrderDocument = adminGraphql(`
+    mutation AddItemToDraftOrderForOptions($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+        addItemToDraftOrder(orderId: $orderId, input: $input) {
+            ... on Order {
+                id
+            }
+        }
+    }
+`);
+
+const draftOrderShippingOptionsDocument = adminGraphql(`
+    query DraftOrderShippingOptions($orderId: ID!) {
+        eligibleShippingMethodsForDraftOrder(orderId: $orderId) {
+            id
+            options {
+                code
+                priceWithTax
+            }
+        }
+    }
+`);
+
+const setDraftOrderShippingOptionDocument = adminGraphql(
+    `
+        mutation SetDraftOrderShippingOption($orderId: ID!, $shippingMethodId: ID!, $shippingOptionCode: String) {
+            setDraftOrderShippingMethod(
+                orderId: $orderId
+                shippingMethodId: $shippingMethodId
+                shippingOptionCode: $shippingOptionCode
+            ) {
+                ...AdminShippingOptionOrder
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [adminShippingLinesFragment],
+);
+
+const adminTransitionDocument = adminGraphql(`
+    mutation TransitionForOptions($id: ID!, $state: String!) {
+        transitionOrderToState(id: $id, state: $state) {
+            ... on Order {
+                id
+                state
+            }
+            ... on OrderStateTransitionError {
+                transitionError
+            }
+        }
+    }
+`);
+
+const modifyOrderShippingDocument = adminGraphql(
+    `
+        mutation ModifyOrderShipping($input: ModifyOrderInput!) {
+            modifyOrder(input: $input) {
+                ...AdminShippingOptionOrder
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [adminShippingLinesFragment],
+);
+
 const testShippingMethodDocument = adminGraphql(`
     query TestShippingMethodOptions($input: TestShippingMethodInput!) {
         testShippingMethod(input: $input) {
@@ -156,6 +262,9 @@ describe('ShippingMethod with several options', () => {
         shippingOptions: {
             shippingEligibilityCheckers: [alwaysEligible],
             shippingCalculators: [carrierCalculator, flatRateCalculator],
+        },
+        paymentOptions: {
+            paymentMethodHandlers: [testSuccessfulPaymentMethod],
         },
     });
 
@@ -189,7 +298,16 @@ describe('ShippingMethod with several options', () => {
 
     beforeAll(async () => {
         await server.init({
-            initialData: { ...initialData, shippingMethods: [] },
+            initialData: {
+                ...initialData,
+                shippingMethods: [],
+                paymentMethods: [
+                    {
+                        name: testSuccessfulPaymentMethod.code,
+                        handler: { code: testSuccessfulPaymentMethod.code, arguments: [] },
+                    },
+                ],
+            },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 1,
         });
@@ -386,5 +504,78 @@ describe('ShippingMethod with several options', () => {
         expect(testShippingMethod.eligible).toBe(true);
         expect(testShippingMethod.quote?.price).toBe(600);
         expect(testShippingMethod.options.map(o => o.code)).toEqual(['economy', 'standard', 'express']);
+    });
+
+    describe('Admin API', () => {
+        let placedOrderId: string;
+
+        it('keeps the chosen option when the Order is placed', async () => {
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            placedOrderId = order.id;
+
+            const { order: placed } = await adminClient.query(adminOrderShippingDocument, {
+                id: placedOrderId,
+            });
+            expect(placed?.state).toBe('PaymentSettled');
+            expect(placed?.shippingLines[0].shippingOptionCode).toBe('express');
+            expect(placed?.shippingLines[0].shippingOptionName).toBe('Express');
+        });
+
+        it('changes the option with modifyOrder', async () => {
+            const { transitionOrderToState } = await adminClient.query(adminTransitionDocument, {
+                id: placedOrderId,
+                state: 'Modifying',
+            });
+            expect((transitionOrderToState as any).state).toBe('Modifying');
+
+            const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                input: {
+                    orderId: placedOrderId,
+                    dryRun: true,
+                    shippingMethods: [{ shippingMethodId: carrierMethodId, shippingOptionCode: 'standard' }],
+                },
+            });
+
+            expect((modifyOrder as any).shippingLines).toEqual([
+                {
+                    shippingMethod: { id: carrierMethodId },
+                    priceWithTax: 1100,
+                    shippingOptionCode: 'standard',
+                    shippingOptionName: 'Standard',
+                },
+            ]);
+        });
+
+        it('sets an option on a draft order', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: createDraftOrder.id,
+                input: { productVariantId: 'T_1', quantity: 1 },
+            });
+
+            const { eligibleShippingMethodsForDraftOrder } = await adminClient.query(
+                draftOrderShippingOptionsDocument,
+                { orderId: createDraftOrder.id },
+            );
+            const carrier = eligibleShippingMethodsForDraftOrder.find(m => m.id === carrierMethodId);
+            expect(carrier?.options.map(o => o.code)).toEqual(['economy', 'standard', 'express']);
+
+            const { setDraftOrderShippingMethod } = await adminClient.query(
+                setDraftOrderShippingOptionDocument,
+                {
+                    orderId: createDraftOrder.id,
+                    shippingMethodId: carrierMethodId,
+                    shippingOptionCode: 'standard',
+                },
+            );
+            expect((setDraftOrderShippingMethod as any).shippingLines).toEqual([
+                {
+                    shippingMethod: { id: carrierMethodId },
+                    priceWithTax: 1000,
+                    shippingOptionCode: 'standard',
+                    shippingOptionName: 'Standard',
+                },
+            ]);
+        });
     });
 });
