@@ -1,3 +1,4 @@
+import { EmptyState } from '@/vdb/components/ui/state-views.js';
 import { Trans } from '@lingui/react/macro';
 import { ResultOf } from 'gql.tada';
 import { Globe, Phone } from 'lucide-react';
@@ -26,11 +27,7 @@ export function OrderAddress({ address }: Readonly<{ address?: OrderAddress }>) 
     const countryCodeString = country && typeof country !== 'string' ? country?.code : countryCode;
 
     if (!address || Object.values(address).every(value => !value)) {
-        return (
-            <div className="text-sm text-muted-foreground">
-                <Trans>No address</Trans>
-            </div>
-        );
+        return <EmptyState size="compact" title={<Trans>No address</Trans>} />;
     }
 
     return (

@@ -170,13 +170,15 @@ export function EditOrderTable({
                 accessorKey: 'productVariant.sku',
             },
             {
-                header: t`Unit price`,
+                header: () => <div className="text-end">{t`Unit price`}</div>,
                 accessorKey: 'unitPriceWithTax',
                 cell: ({ row }) => {
                     const value = row.original.unitPriceWithTax;
                     const netValue = row.original.unitPrice;
                     return (
-                        <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />
+                        <div className="text-end">
+                            <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />
+                        </div>
                     );
                 },
             },
@@ -192,13 +194,15 @@ export function EditOrderTable({
                 ),
             },
             {
-                header: t`Total`,
+                header: () => <div className="text-end">{t`Total`}</div>,
                 accessorKey: 'linePriceWithTax',
                 cell: ({ row }) => {
                     const value = row.original.linePriceWithTax;
                     const netValue = row.original.linePrice;
                     return (
-                        <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />
+                        <div className="text-end">
+                            <MoneyGrossNet priceWithTax={value} price={netValue} currencyCode={currencyCode} />
+                        </div>
                     );
                 },
             },
@@ -254,7 +258,7 @@ export function EditOrderTable({
                               ))
                             : null}
                         <TableRow>
-                            <TableCell colSpan={columns.length} className="h-12">
+                            <TableCell colSpan={columns.length}>
                                 <div className="my-4 flex justify-center">
                                     <div className="max-w-lg">
                                         <ProductVariantSelector onProductVariantSelect={onAddItem} />
@@ -263,7 +267,7 @@ export function EditOrderTable({
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell colSpan={columns.length} className="h-12">
+                            <TableCell colSpan={columns.length}>
                                 <ShippingMethodSelector
                                     eligibleShippingMethods={eligibleShippingMethods}
                                     selectedShippingMethodId={order.shippingLines?.[0]?.shippingMethod?.id}
@@ -273,7 +277,7 @@ export function EditOrderTable({
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell colSpan={columns.length} className="h-12">
+                            <TableCell colSpan={columns.length}>
                                 <div className="flex gap-4">
                                     {order.couponCodes?.length > 0 && (
                                         <div className="flex flex-wrap gap-2">

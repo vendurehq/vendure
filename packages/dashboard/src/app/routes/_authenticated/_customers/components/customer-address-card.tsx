@@ -2,6 +2,7 @@ import { ResultOf } from '@/vdb/graphql/graphql.js';
 
 import { ConfirmationDialog } from '@/vdb/components/shared/confirmation-dialog.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
     DialogContent,
@@ -13,7 +14,7 @@ import {
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
-import { EditIcon, TrashIcon } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -86,24 +87,24 @@ export function CustomerAddressCard({
     };
 
     return (
-        <div className="border border-border rounded-md p-4 relative text-sm">
+        <div className="rounded-xl border p-4 text-sm">
             {(address.defaultShippingAddress || address.defaultBillingAddress) && (
-                <div className="flex flex-wrap gap-1 mb-2">
+                <div className="mb-3 flex flex-wrap gap-1">
                     {address.defaultShippingAddress && (
-                        <Badge className="text-xs px-2 py-1 bg-neutral-subtle text-neutral-subtle-foreground rounded-md">
-                            Default Shipping
+                        <Badge>
+                            <Trans>Default shipping</Trans>
                         </Badge>
                     )}
                     {address.defaultBillingAddress && (
-                        <Badge className="text-xs px-2 py-1 bg-neutral-subtle text-neutral-subtle-foreground rounded-md">
-                            Default Billing
+                        <Badge>
+                            <Trans>Default billing</Trans>
                         </Badge>
                     )}
                 </div>
             )}
 
             <div className="flex flex-col gap-1">
-                <div className="font-semibold">{address.fullName}</div>
+                <div className="font-medium">{address.fullName}</div>
                 {address.company && <div>{address.company}</div>}
                 <div>{address.streetLine1}</div>
                 {address.streetLine2 && <div>{address.streetLine2}</div>}
@@ -117,11 +118,12 @@ export function CustomerAddressCard({
             </div>
 
             {(editable || deletable) && (
-                <div className="flex gap-4 mt-3 pt-3 border-t border-border">
+                <div className="-ms-2 mt-3 flex gap-1">
                     {editable && (
                         <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger aria-label={t`Edit Address`}>
-                                <EditIcon className="w-4 h-4" />
+                            <DialogTrigger render={<Button variant="ghost" size="sm" />}>
+                                <Pencil />
+                                <Trans>Edit</Trans>
                             </DialogTrigger>
                             <DialogContent className="max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
@@ -146,7 +148,10 @@ export function CustomerAddressCard({
                                 onDelete?.();
                             }}
                         >
-                            <TrashIcon className="w-4 h-4 text-destructive" />
+                            <Button variant="ghost" size="sm">
+                                <Trash2 />
+                                <Trans>Delete</Trans>
+                            </Button>
                         </ConfirmationDialog>
                     )}
                 </div>
