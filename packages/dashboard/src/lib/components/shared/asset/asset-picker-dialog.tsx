@@ -157,8 +157,8 @@ export function AssetPickerDialog({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <PageContext.Provider value={pageContextValue}>
-                <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] p-0 flex flex-col">
-                    <DialogHeader className="px-6 pt-6">
+                <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] flex flex-col">
+                    <DialogHeader>
                         <DialogTitle>{title === undefined ? defaultTitle : callerTitle}</DialogTitle>
                         <DialogDescription className="sr-only">
                             {multiSelect ? (
@@ -169,7 +169,7 @@ export function AssetPickerDialog({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto px-6 pt-1">
+                    <div className="flex-1">
                         <AssetGallery
                             onSelect={handleAssetSelect}
                             multiSelect="manual"
@@ -180,7 +180,7 @@ export function AssetPickerDialog({
                         />
                     </div>
 
-                    <DialogFooter className="px-6 pb-6 pt-4 border-t">
+                    <DialogFooter>
                         {extensionActionBarItems.map((item, index) => (
                             <PermissionGuard
                                 key={item.id ?? `${item.pageId}-${index}`}
