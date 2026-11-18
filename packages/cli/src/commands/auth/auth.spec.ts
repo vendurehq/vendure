@@ -123,6 +123,26 @@ describe('vendure auth status', () => {
     });
 
     // OSS-930: a stored login that can no longer be renewed was reported as logged in.
+    it('says how to choose an organization by name when Console could not name it', async () => {
+        storeLogin();
+        const stored = readStoredAuth(dependencies);
+        if (!stored) throw new Error('No stored login');
+        writeStoredAuth(
+            {
+                ...stored,
+                organization: { workosOrganizationId: 'org_1', customerAccountId: null, name: null },
+            },
+            dependencies,
+        );
+        dependencies.fetch = renewalAnswers(RENEWED);
+
+        await expect(authStatusCommand({}, dependencies)).resolves.toBe(0);
+
+        expect(messages.join('\n')).toContain(
+            'Organization: org_1 (name unknown; run `vendure auth login --organization <Account identifier or name>` to choose it by name)',
+        );
+    });
+
     it('renews the login and reports it as logged in', async () => {
         storeLogin();
 
@@ -297,6 +317,139 @@ describe('vendure auth login', () => {
     it('reports a failure to reach Vendure Console', async () => {
         await expect(authLoginCommand({}, dependencies)).resolves.toBe(1);
         expect(messages.join('\n')).toContain('Could not reach Vendure Console at https://api.vendure.io.');
+    });
+});
+
+const ACCOUNT_1 = '11111111-1111-4111-8111-111111111111';
+const ACCOUNT_2 = '22222222-2222-4222-8222-222222222222';
+const deviceAccessToken = `e30.${Buffer.from(JSON.stringify({ exp: 4_102_444_800, org_id: 'org_1' })).toString('base64url')}.sig`;
+const scopedAccessToken = `e30.${Buffer.from(JSON.stringify({ exp: 4_102_444_800, org_id: 'org_2' })).toString('base64url')}.sig`;
+
+/** Vendure Console and the authentication service for one device login by a member of two organizations. */
+function deviceLoginAnswers(browserOrganization: string | null = 'org_1'): typeof globalThis.fetch {
+    const user = { id: 'user_01', email: 'dev@example.com', first_name: 'Ada', last_name: null };
+    const answers: Record<string, (body: string | undefined) => unknown> = {
+        'https://api.vendure.io/v1': () => ({
+            service: 'api',
+            authentication: {
+                provider: 'workos',
+                clientId: 'client_01PRODUCTION',
+                apiHostname: 'api.workos.com',
+            },
+        }),
+        'https://api.workos.com/user_management/authorize/device': () => ({
+            device_code: 'device_1',
+            user_code: 'ABCD-EFGH',
+            verification_uri: 'https://auth.example.com/device',
+            verification_uri_complete: 'https://auth.example.com/device?code=ABCD-EFGH',
+            expires_in: 300,
+            interval: 0.001,
+        }),
+        [AUTHENTICATE_URL]: body =>
+            body?.includes('"organization_id":"org_2"')
+                ? {
+                      access_token: scopedAccessToken,
+                      refresh_token: 'refresh_2',
+                      user,
+                      organization_id: 'org_2',
+                  }
+                : {
+                      access_token: browserOrganization ? deviceAccessToken : accessToken,
+                      refresh_token: 'refresh_1',
+                      user,
+                      ...(browserOrganization ? { organization_id: browserOrganization } : {}),
+                  },
+        'https://api.vendure.io/v1/me': () => ({
+            user: { id: 'user_01' },
+            memberships: [
+                {
+                    organizationId: 'org_1',
+                    customerAccountId: ACCOUNT_1,
+                    name: 'Bromley Art Supplies',
+                    status: 'active',
+                },
+                {
+                    organizationId: 'org_2',
+                    customerAccountId: ACCOUNT_2,
+                    name: 'Example GmbH',
+                    status: 'active',
+                },
+            ],
+        }),
+    };
+    return ((url: string, init?: RequestInit) => {
+        const answer = answers[url];
+        if (!answer) {
+            return Promise.reject(new Error(`Unexpected request to ${url}`));
+        }
+        const body = typeof init?.body === 'string' ? init.body : undefined;
+        return Promise.resolve(new Response(JSON.stringify(answer(body)), { status: 200 }));
+    }) as typeof globalThis.fetch;
+}
+
+describe('vendure auth login with more than one organization', () => {
+    beforeEach(() => {
+        dependencies = { ...dependencies, fetch: deviceLoginAnswers(), openUrl: () => Promise.resolve() };
+    });
+
+    it('asks which organization to use and signs in to the one chosen', async () => {
+        const offered: string[] = [];
+        const code = await authLoginCommand(
+            {},
+            {
+                ...dependencies,
+                isNonInteractive: () => false,
+                selectOrganization: (organizations, current) => {
+                    offered.push(...organizations.map(org => org.name), `current: ${current?.name}`);
+                    return Promise.resolve(organizations[1]);
+                },
+            },
+        );
+
+        expect(code).toBe(0);
+        expect(offered).toEqual(['Bromley Art Supplies', 'Example GmbH', 'current: Bromley Art Supplies']);
+        expect(messages).toContain(
+            `Logged in as Ada <dev@example.com> to Example GmbH (Account identifier ${ACCOUNT_2}).`,
+        );
+        expect(readStoredAuth(dependencies)?.organization?.name).toBe('Example GmbH');
+    });
+
+    it('stores nothing when the choice is cancelled', async () => {
+        const code = await authLoginCommand(
+            {},
+            {
+                ...dependencies,
+                isNonInteractive: () => false,
+                selectOrganization: () => Promise.resolve(undefined),
+            },
+        );
+
+        expect(code).toBe(0);
+        expect(messages.at(-1)).toBe('Login cancelled. Nothing was stored.');
+        expect(readStoredAuth(dependencies)).toBeUndefined();
+    });
+
+    it('says the login has none of them when the browser chose no organization, without a terminal', async () => {
+        dependencies.fetch = deviceLoginAnswers(null);
+
+        const code = await authLoginCommand({}, dependencies);
+
+        expect(code).toBe(0);
+        expect(messages.at(-1)).toBe(
+            'You belong to more than one organization, and this login uses none of them. ' +
+                'To use another, run `vendure auth login --organization <Account identifier or name>`.',
+        );
+    });
+
+    it('keeps the browser choice without a terminal and says how to pick another', async () => {
+        const code = await authLoginCommand({}, dependencies);
+
+        expect(code).toBe(0);
+        expect(messages.slice(-2)).toEqual([
+            `Logged in as Ada <dev@example.com> to Bromley Art Supplies (Account identifier ${ACCOUNT_1}).`,
+            `You belong to more than one organization, and this login uses Bromley Art Supplies (Account identifier ${ACCOUNT_1}). ` +
+                'To use another, run `vendure auth login --organization <Account identifier or name>`.',
+        ]);
     });
 });
 

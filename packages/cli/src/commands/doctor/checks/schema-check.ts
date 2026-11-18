@@ -1,7 +1,7 @@
 import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
 import type { RuntimeVendureConfig } from '@vendure/core';
 
-import { requireFromProject, requireProjectCore } from '../../../shared/project-core.js';
+import { requireFromProjectCore, requireProjectCore } from '../../../shared/project-core.js';
 import { CheckResult } from '../types.js';
 
 /**
@@ -19,10 +19,9 @@ export async function runSchemaCheck(config: RuntimeVendureConfig): Promise<Chec
     // when multiple @nestjs/graphql copies exist in the monorepo. This matches
     // the pattern used in the existing schema command.
     const core = requireProjectCore();
-    // Nest's GraphQL package comes from the project too: it reads the type paths
-    // that this project's core defines, so a mismatched pair reads the wrong
-    // files.
-    const { GraphQLTypesLoader } = requireFromProject<{
+    // Nest's GraphQL package is the one the project's core uses: it reads the
+    // type paths that core defines, so a mismatched pair reads the wrong files.
+    const { GraphQLTypesLoader } = requireFromProjectCore<{
         GraphQLTypesLoader: new () => GraphQLTypesLoaderType;
     }>('@nestjs/graphql');
     const typesLoader = new GraphQLTypesLoader() as any;

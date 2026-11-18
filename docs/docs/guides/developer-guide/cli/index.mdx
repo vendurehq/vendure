@@ -372,8 +372,12 @@ npx vendure auth login
 ```
 
 The CLI shows a one-time code and opens your browser. Confirm the code and sign in. If your account belongs to more
-than one organization, you choose one in the browser. Nothing on this machine needs a browser: you can open the URL on
-another device.
+than one organization, the CLI then asks which one to use, starting from the one chosen in the browser. Nothing on this
+machine needs a browser: you can open the URL on another device.
+
+Without a terminal, for example in a script, the CLI does not ask. It keeps the organization chosen in the browser, names
+it, and shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
+`vendure auth status` shows its ID and that command.
 
 To choose the organization on the command line instead, for example in a script or on a remote machine, pass its
 Account identifier (in Vendure Console under **Settings**) or its name. Names match ignoring case:
@@ -1552,6 +1556,16 @@ plugins second, so a project overrides the machine — the same rule that makes
 the last entry of a single list win. A package enabled in both is loaded once,
 from the project, so the copy pinned alongside the project's code is the one
 that runs.
+
+A package in the machine-wide list that the CLI cannot find is not reported at
+startup, since a project that does not use it is not broken. It is named only
+when a command is unknown, with the commands that install it and enable it for
+the current project:
+
+```text
+Unknown command "cloud".
+@vendure/cloud is enabled globally but not installed in /path/to/server. Install it with: bun add -D @vendure/cloud && vendure plugins add @vendure/cloud
+```
 
 `vendure plugins` shows which list each package came from:
 

@@ -24,6 +24,8 @@ import { UseFormReturn } from 'react-hook-form';
 
 import { FieldInfo } from '../document-introspection/get-document-structure.js';
 
+import { toRelationIdValue } from './relation-id-value.js';
+
 /**
  * Transforms relation fields in an entity, extracting IDs from relation objects.
  * This is primarily used for custom fields of type "ID".
@@ -59,17 +61,16 @@ export function transformRelationFields<E extends Record<string, any>>(fields: F
                     const propertyAccessorKey = customField.name.replace(/Ids$/, '');
                     const relationValue = sourceCustomFields[propertyAccessorKey];
 
-                    if (relationValue === null) {
-                        customFieldsCopy[relationField] = null;
-                    } else if (Array.isArray(relationValue)) {
-                        customFieldsCopy[relationField] = relationValue.map((v: { id: string }) => v.id);
+                    const ids = toRelationIdValue(relationValue, true);
+                    if (ids !== undefined) {
+                        customFieldsCopy[relationField] = ids;
                     }
                     delete customFieldsCopy[propertyAccessorKey];
                 } else {
                     // For single fields, the accessor is the field name without the "Id" suffix
                     const propertyAccessorKey = customField.name.replace(/Id$/, '');
                     const relationValue = sourceCustomFields[propertyAccessorKey];
-                    customFieldsCopy[relationField] = relationValue === null ? null : relationValue?.id;
+                    customFieldsCopy[relationField] = toRelationIdValue(relationValue, false);
                     delete customFieldsCopy[propertyAccessorKey];
                 }
             }
@@ -249,6 +250,11 @@ export function stripUntouchedTranslations<T extends Record<string, any>>(
             }
             const dirtyValue = dirty?.[field.name];
             if (Array.isArray(value)) {
+                // Process each row before dropping any, so that a row is read with its own dirty
+                // state rather than the state of the row which held its index before compaction.
+                for (const [i, item] of value.entries()) {
+                    process(item, dirtyValue?.[i], field.typeInfo);
+                }
                 const isTranslationsArray = field.typeInfo.some(f => f.name === 'languageCode');
                 if (isTranslationsArray) {
                     const kept = value.filter((entry, i) => isDirty(dirtyValue?.[i]) || isPersisted(entry));
@@ -257,9 +263,6 @@ export function stripUntouchedTranslations<T extends Record<string, any>>(
                     // `translations: []`. Leave the input untouched and let validation surface the
                     // empty required fields instead.
                     obj[field.name] = kept.length ? kept : value;
-                }
-                for (const [i, item] of obj[field.name].entries()) {
-                    process(item, dirtyValue?.[i], field.typeInfo);
                 }
             } else {
                 process(value, dirtyValue, field.typeInfo);
