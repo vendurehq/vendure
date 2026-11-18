@@ -33,8 +33,8 @@ const resolvedVirtualModuleId = `\0${virtualModuleId}`;
  * @description
  * Serves the `virtual:plugin-translations` module, which holds the compiled translations of the
  * active plugins' dashboard extensions (their `.po` files). `loadI18nMessages` merges them with
- * the dashboard's own catalogs, which are compiled into the dashboard (the bundle, or in source
- * mode the `.po` files in `src/i18n/locales`), so this plugin never reads those.
+ * the dashboard's own catalogs. Those are compiled into the bundle, or in source mode imported
+ * from `src/i18n/locales/*.po`. This plugin does not read them.
  *
  * @param options
  */
