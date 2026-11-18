@@ -10,6 +10,7 @@ const TARGET_DIRS = ['components', 'framework', 'hooks', 'lib', 'graphql'];
 // entry point. Paths are relative to src/lib and use forward slashes.
 const EXCLUDED_PATHS = [
     'framework/nav-menu/resolve-nav-menu.ts',
+    'components/data-input/day-picker-locales.ts',
     'hooks/use-admin-custom-fields.ts',
     'components/platform-promotion/locked-capability-page.tsx',
     'components/platform-promotion/platform-promo.tsx',
