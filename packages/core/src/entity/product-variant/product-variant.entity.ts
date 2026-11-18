@@ -152,8 +152,11 @@ export class ProductVariant
 
     /**
      * @description
-     * When true, the `outOfStockThreshold` value will be taken from the GlobalSettings and the
-     * value set on this ProductVariant will be ignored.
+     * When true, the `outOfStockThreshold` of the Channel is used and the value set on this
+     * ProductVariant is ignored. The Channel is the one of the request, or of the Order when stock
+     * is allocated or sold.
+     *
+     * @since 4.0.0 - The threshold is taken from the Channel, not from the GlobalSettings
      */
     @Column({ default: true })
     useGlobalOutOfStockThreshold: boolean;

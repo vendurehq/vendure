@@ -13,6 +13,7 @@ import { StockLocation } from '../../entity/stock-location/stock-location.entity
 import { OrderLineStockLedger } from '../../service/helpers/utils/order-line-stock-ledger';
 import { Logger } from '../logger/vendure-logger';
 
+import { resolveOutOfStockThreshold } from './out-of-stock-threshold';
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
 import { resolveTrackInventory } from './track-inventory';
 
@@ -242,7 +243,8 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
 
     /**
      * Resolves the ProductVariant setting which decides how much of it may be allocated: the
-     * threshold below which its stock may not fall.
+     * threshold below which its stock may not fall, taken from `ctx.channel` when the variant
+     * uses the Channel's threshold (see {@link resolveOutOfStockThreshold}).
      *
      * `inventoryNotTracked` is the variant/Channel-level setting only. It ignores StockLevel
      * overrides, so it does not say whether a given allocation is tracked.
@@ -253,11 +255,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         ctx: RequestContext,
         variant: ProductVariant,
     ): Promise<{ inventoryNotTracked: boolean; effectiveOutOfStockThreshold: number }> {
-        const globalSettingsService = await this.getGlobalSettingsService();
-        const { outOfStockThreshold } = await globalSettingsService.getSettings(ctx);
-        const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
-            ? outOfStockThreshold
-            : variant.outOfStockThreshold;
+        const effectiveOutOfStockThreshold = resolveOutOfStockThreshold(variant, ctx.channel);
         return {
             get inventoryNotTracked() {
                 // Kept for subclasses written before v4.0, and only computed if read.

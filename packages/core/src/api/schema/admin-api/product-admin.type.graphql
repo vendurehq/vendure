@@ -37,6 +37,7 @@ type ProductVariant implements Node {
     """
     stockAllocated: Int!
     outOfStockThreshold: Int!
+    "When true, the `outOfStockThreshold` of the Channel is used instead of the variant's own. Since 4.0.0 it comes from the Channel, not the GlobalSettings"
     useGlobalOutOfStockThreshold: Boolean!
     prices: [ProductVariantPrice!]!
     stockLevels: [StockLevel!]!

@@ -1,3 +1,4 @@
+import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { ChannelColorPicker } from '@/vdb/components/shared/channel-color-picker.js';
 import { CurrencySelector } from '@/vdb/components/shared/currency-selector.js';
@@ -94,6 +95,7 @@ function ChannelDetailPage() {
                 token: entity.token,
                 pricesIncludeTax: entity.pricesIncludeTax,
                 trackInventory: entity.trackInventory,
+                outOfStockThreshold: entity.outOfStockThreshold,
                 availableCurrencyCodes: entity.availableCurrencyCodes,
                 availableLanguageCodes: entity.availableLanguageCodes,
                 defaultCurrencyCode: entity.defaultCurrencyCode,
@@ -375,6 +377,19 @@ function ChannelDetailPage() {
                             render={({ field }) => (
                                 <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
                             )}
+                        />
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="outOfStockThreshold"
+                            label={<Trans>Out of stock threshold</Trans>}
+                            description={
+                                <Trans>
+                                    Sets the stock level at which a variant is considered to be out of stock
+                                    in this channel. Using a negative value enables backorder support. Product
+                                    variants can override this.
+                                </Trans>
+                            }
+                            render={({ field }) => <NumberInput {...field} />}
                         />
                     </DetailFormGrid>
                 </PageBlock>

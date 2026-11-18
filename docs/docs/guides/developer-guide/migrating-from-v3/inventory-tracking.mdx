@@ -1,16 +1,16 @@
 ---
 title: "Inventory Tracking"
 metaTitle: "Vendure v4 Inventory Tracking - Migration Guide"
-metaDescription: "Vendure v4 sets inventory tracking per stock level, per variant and per channel instead of globally. How the data is migrated, and what to change in plugins and custom stock strategies."
+metaDescription: "Vendure v4 sets inventory tracking per stock level, per variant and per channel, and the out-of-stock threshold per channel, instead of globally. How the data is migrated, and what to change in plugins and custom stock strategies."
 order: 8
 ---
 
 import { Callout } from '@vendure-io/docs-provider/components';
 
-Vendure v4 lets you track inventory for some channels or stock locations and not others. The global setting is gone, and the channel decides instead.
+Vendure v4 lets you track inventory for some channels or stock locations and not others, and set a different out-of-stock threshold per channel. The global settings are gone, and the channel decides instead.
 
 <Callout type="warning">
-Upgrade with `synchronize: false` and run the data migration from your v4 migration. Vendure v4 refuses to start until it has run.
+Upgrade with `synchronize: false` and run the data migrations from your v4 migration. Vendure v4 refuses to start until they have run.
 </Callout>
 
 ## What changes
@@ -25,16 +25,22 @@ Whether inventory is tracked is resolved most specific first:
 
 Each stock movement now records whether it changed the stock figures (`StockMovement.tracked`). If a tracking setting changes while Orders are open, their remaining releases, sales and cancellations still follow the setting that applied when their stock was allocated.
 
+### Out-of-stock threshold
+
+A ProductVariant with `useGlobalOutOfStockThreshold: true` now uses `Channel.outOfStockThreshold`. In v3 it used `GlobalSettings.outOfStockThreshold`, and the Channel field existed but Vendure never read it. A variant with `useGlobalOutOfStockThreshold: false` still uses its own `outOfStockThreshold`.
+
+`GlobalSettings.outOfStockThreshold` is removed from the Admin API. As with tracking, the Order's own Channel decides for anything to do with an Order. The field keeps its name, `useGlobalOutOfStockThreshold`, so API clients and imports do not change.
+
 ## Migrating the data
 
-The migration copies the v3 `GlobalSettings.trackInventory` value to every Channel, so every variant keeps its current behaviour. It also fills `StockMovement.tracked` for the stock movements recorded before the upgrade, using the v3 rule, so Orders that are open during the upgrade are released and fulfilled as they were allocated.
+The migration copies the v3 `GlobalSettings.trackInventory` and `GlobalSettings.outOfStockThreshold` values to every Channel, so every variant keeps its current behaviour. It also fills `StockMovement.tracked` for the stock movements recorded before the upgrade, using the v3 rule, so Orders that are open during the upgrade are released and fulfilled as they were allocated.
 
 ### With migrations
 
-Call the helper from your v4 migration, **after** the generated statements:
+Call the helpers from your v4 migration, **after** the generated statements:
 
 ```ts
-import { migrateTrackInventoryToChannels } from '@vendure/core';
+import { migrateOutOfStockThresholdToChannels, migrateTrackInventoryToChannels } from '@vendure/core';
 
 export class V4Upgrade1234567890 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
@@ -43,37 +49,40 @@ export class V4Upgrade1234567890 implements MigrationInterface {
 
         // --- Data-migration helpers ---
         await migrateTrackInventoryToChannels(queryRunner);
+        await migrateOutOfStockThresholdToChannels(queryRunner);
     }
 }
 ```
 
-[`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) copies the value and fills `StockMovement.tracked` in one call. It throws if it is called before the generated statements, or if it cannot find the `global_settings` table. It honours the `entityPrefix` of your connection options and, on PostgreSQL, the `schema` option, and it is safe to run again.
+[`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) copies the tracking setting and fills `StockMovement.tracked` in one call. [`migrateOutOfStockThresholdToChannels`](/reference/typescript-api/migration/migrate-out-of-stock-threshold-to-channels) copies the threshold. Both throw if they are called before the generated statements, or if they cannot find the `global_settings` table. They honour the `entityPrefix` of your connection options and, on PostgreSQL, the `schema` option, and they are safe to run again.
 
 ### With `synchronize: true`
 
 Set `dbConnectionOptions.synchronize` to `false` for the upgrade, and run the helpers from a migration as described above. You can switch `synchronize` back on afterwards.
 
-If you leave `synchronize` on, no data is lost: Vendure keeps the v3 column (`global_settings.trackInventory`) until the helper has copied it, and refuses to start. The schema is then already synchronized, so a generated migration would be empty: write one by hand which only calls the helper. See [If you already started v4 with `synchronize: true`](/developer-guide/migrating-from-v3/database-migration#if-you-already-started-v4-with-synchronize-true).
+If you leave `synchronize` on, no data is lost: Vendure keeps the v3 columns (`global_settings.trackInventory` and `global_settings.outOfStockThreshold`) until the helpers have copied them, and refuses to start. The schema is then already synchronized, so a generated migration would be empty: write one by hand which only calls the helpers. See [If you already started v4 with `synchronize: true`](/developer-guide/migrating-from-v3/database-migration#if-you-already-started-v4-with-synchronize-true).
 
 ### Startup check
 
-Until the value has been copied, Vendure v4 refuses to start. Otherwise each Channel's stored `trackInventory`, which v3 ignored and which is usually `true`, would take effect at once. A shop which did not track inventory would start allocating stock it never maintained, and limiting sales by it.
+Until the values have been copied, Vendure v4 refuses to start. Otherwise each Channel's stored `trackInventory` and `outOfStockThreshold`, which v3 ignored, would take effect at once. `trackInventory` is usually `true`, so a shop which did not track inventory would start allocating stock it never maintained, and limiting sales by it. `outOfStockThreshold` is usually `0`, so a shop which kept a reserve of each variant would start selling it, and one which allowed backorders with a negative threshold would stop.
 
 ### During a rolling deployment
 
-v3 servers keep recording stock movements without the `tracked` state, and a v3 server which saves the Global Settings writes the v3 column again, after which the next v4 server refuses to start. Once the last v3 server and worker have stopped, run `migrateTrackInventoryToChannels` again from a later migration. It fills the movements recorded in between, and copies the setting again if a v3 server saved it.
+v3 servers keep recording stock movements without the `tracked` state, and a v3 server which saves the Global Settings writes the v3 columns again, after which the next v4 server refuses to start. Once the last v3 server and worker have stopped, run `migrateTrackInventoryToChannels` and `migrateOutOfStockThresholdToChannels` again from a later migration. They fill the movements recorded in between, and copy the settings again if a v3 server saved them.
 
 ## After migrating
 
-- **Channels whose value was overwritten.** A Channel's stored `trackInventory` had no effect in v3, so the migration overwrites it with the global value. The helper logs each Channel whose value differed. If you had set those on purpose, set them again.
-- **New Channels** are tracked by default (`trackInventory: true`). If your shop did not track inventory, set it when you create a Channel.
-- **Search index.** The default search plugin reindexes a Channel when its `trackInventory` changes. Other search plugins can subscribe to `ChannelTrackInventoryEvent`, which is fired only when the value changes, or need a manual reindex.
+- **Channels whose value was overwritten.** A Channel's stored `trackInventory` and `outOfStockThreshold` had no effect in v3, so the migration overwrites them with the global values. The helpers log each Channel whose value differed. If you had set those on purpose, set them again.
+- **New Channels** are tracked by default (`trackInventory: true`) and have an `outOfStockThreshold` of `0`. If your shop did not track inventory, or used another threshold, set them when you create a Channel.
+- **Search index.** The default search plugin reindexes a Channel when its `trackInventory` or `outOfStockThreshold` changes. Other search plugins can subscribe to `ChannelStockSettingsEvent`, which is fired only when a value changes, or need a manual reindex.
 
 ## Updating your code
 
 | If your code… | Do this |
 |---|---|
 | Reads or writes `GlobalSettings.trackInventory` (Admin API, `GlobalSettingsService`, the entity) | Use `Channel.trackInventory`. Per variant and location, use `ProductVariant.trackInventory` and `StockLevel.trackInventory`. |
+| Reads or writes `GlobalSettings.outOfStockThreshold` (Admin API, `GlobalSettingsService`, the entity) | Use `Channel.outOfStockThreshold`. To get the threshold of a variant, call `resolveOutOfStockThreshold(variant, ctx.channel)`. |
+| Overrides `getVariantStockSettings()` of `DefaultStockLocationStrategy` or `MultiChannelStockLocationStrategy` | `effectiveOutOfStockThreshold` is now taken from `ctx.channel`, not the GlobalSettings. |
 | Decides whether a variant is tracked from `variant.trackInventory` alone | Use `StockLevelService.isInventoryTracked(ctx, variant, stockLevel?)`, or the Admin API's resolved `ProductVariant.tracksInventory` and `StockLevel.tracksInventory`. A StockLevel can override the variant. |
 | Implements or extends `StockLocationStrategy` | `getAvailableStock()` gets an optional fourth argument, the variant, and should report `hasUntrackedStock`. Results of `forAllocation()` and the other methods can say whether each part is `tracked`. To apply your own tracking rules, implement `isInventoryTracked()`. |
 | Calls `DefaultStockLocationStrategy.getAvailableStock()` with three arguments | It now returns a Promise. Await it, or pass the variant. |

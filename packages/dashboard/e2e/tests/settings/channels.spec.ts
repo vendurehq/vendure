@@ -158,6 +158,42 @@ test.describe('Channels CRUD', () => {
         await dp.expectSuccessToast(/Successfully updated channel/);
     });
 
+    // OSS-1299 — the out-of-stock threshold is set per Channel, no longer in Global Settings
+    test('should update the out of stock threshold for the channel and persist', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.clickEntity('e2e-test-channel');
+        await expect(page).toHaveURL(/\/channels\/[^/]+$/);
+        await page.waitForLoadState('networkidle');
+
+        const thresholdInput = () =>
+            page
+                .locator('[data-slot="field"]')
+                .filter({
+                    has: page
+                        .locator('[data-slot="field-label"]')
+                        .getByText('Out of stock threshold', { exact: true }),
+                })
+                .getByRole('spinbutton');
+        await expect(thresholdInput()).toBeVisible({ timeout: 10_000 });
+        const originalValue = await thresholdInput().inputValue();
+        const newValue = originalValue === '-5' ? '-10' : '-5';
+
+        const dp = detailPage(page);
+        await thresholdInput().fill(newValue);
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated channel/);
+
+        await page.reload();
+        await page.waitForLoadState('networkidle');
+        await expect(thresholdInput()).toHaveValue(newValue, { timeout: 10_000 });
+
+        await thresholdInput().fill(originalValue);
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated channel/);
+    });
+
     // #4995 — the Appearance PageBlock must be a direct PageLayout child or it is silently omitted.
     test('should update the channel color from the appearance card', async ({ page }) => {
         let channelColors: Record<string, string> = {};

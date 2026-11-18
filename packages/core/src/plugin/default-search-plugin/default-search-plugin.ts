@@ -9,7 +9,7 @@ import { Injector } from '../../common';
 import { idsAreEqual } from '../../common/utils';
 import { EventBus } from '../../event-bus/event-bus';
 import { AssetEvent } from '../../event-bus/events/asset-event';
-import { ChannelTrackInventoryEvent } from '../../event-bus/events/channel-track-inventory-event';
+import { ChannelStockSettingsEvent } from '../../event-bus/events/channel-stock-settings-event';
 import { CollectionModificationEvent } from '../../event-bus/events/collection-modification-event';
 import { ProductChannelEvent } from '../../event-bus/events/product-channel-event';
 import { ProductEvent } from '../../event-bus/events/product-event';
@@ -218,9 +218,10 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
                 }
             });
 
-        // A Channel's trackInventory decides whether its INHERIT variants are in stock.
+        // A Channel's trackInventory and outOfStockThreshold decide whether the variants which
+        // inherit them are in stock.
         this.eventBus
-            .ofType(ChannelTrackInventoryEvent)
+            .ofType(ChannelStockSettingsEvent)
             // See the TaxRateEvent subscription above.
             .pipe(delay(1))
             .subscribe(event => this.searchIndexService.reindex(event.ctx.copy(event.channel)));

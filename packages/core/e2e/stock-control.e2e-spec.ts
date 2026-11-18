@@ -50,7 +50,6 @@ import {
     getStockMovementDocument,
     settlePaymentDocument,
     updateChannelDocument,
-    updateGlobalSettingsDocument,
     updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import {
@@ -624,12 +623,7 @@ describe('Stock control', () => {
 
         beforeAll(async () => {
             await adminClient.query(updateChannelDocument, {
-                input: { id: 'T_1', trackInventory: true },
-            });
-            await adminClient.query(updateGlobalSettingsDocument, {
-                input: {
-                    outOfStockThreshold: -5,
-                },
+                input: { id: 'T_1', trackInventory: true, outOfStockThreshold: -5 },
             });
 
             await adminClient.query(updateProductVariantsDocument, {

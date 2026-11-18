@@ -16,6 +16,10 @@ export {
     migrateCustomerIdentityScopes,
 } from './v4_0_customer_identity_scopes';
 export { EntityIdForeignKeyMigrationResult, prepareEntityIdForeignKeys } from './v4_0_entity_id_foreign_keys';
+export {
+    OutOfStockThresholdMigrationResult,
+    migrateOutOfStockThresholdToChannels,
+} from './v4_0_out_of_stock_threshold';
 export { migrateRoleAssignmentData, removeLegacyRoleData } from './v4_0_role_assignments';
 export {
     RoleAssignmentMigrationPreview,

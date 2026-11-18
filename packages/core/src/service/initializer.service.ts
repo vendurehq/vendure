@@ -5,6 +5,7 @@ import { TransactionalConnection } from '../connection/transactional-connection'
 import { Administrator } from '../entity/administrator/administrator.entity';
 import { EventBus } from '../event-bus';
 import { InitializerEvent } from '../event-bus/events/initializer-event';
+import { assertOutOfStockThresholdMigrated } from '../migration-utils/v4_0_out_of_stock_threshold';
 import {
     ensureRoleAssignmentDataMigrated,
     hasLegacyRoleTables,
@@ -47,7 +48,7 @@ export class InitializerService {
     async onModuleInit() {
         await this.awaitDbSchemaGeneration();
         await this.ensureRoleAssignmentDataMigrated();
-        await this.assertTrackInventoryMigrated();
+        await this.assertStockSettingsMigrated();
         // IMPORTANT - why manually invoke these init methods rather than just relying on
         // Nest's "onModuleInit" lifecycle hook within each individual service class?
         // The reason is that the order of invocation matters. By explicitly invoking the
@@ -97,14 +98,16 @@ export class InitializerService {
     }
 
     /**
-     * Refuses to start on a v3 database whose inventory tracking setting has not been migrated
-     * (see assertTrackInventoryMigrated). The migration itself runs from the user's v4 migration,
-     * not here.
+     * Refuses to start on a v3 database whose inventory tracking or out-of-stock threshold
+     * setting has not been moved from the GlobalSettings to the Channels (see
+     * assertTrackInventoryMigrated and assertOutOfStockThresholdMigrated). The migrations
+     * themselves run from the user's v4 migration, not here.
      */
-    private async assertTrackInventoryMigrated() {
+    private async assertStockSettingsMigrated() {
         const queryRunner = this.connection.rawConnection.createQueryRunner();
         try {
             await assertTrackInventoryMigrated(queryRunner);
+            await assertOutOfStockThresholdMigrated(queryRunner);
         } finally {
             await queryRunner.release();
         }

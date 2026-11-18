@@ -687,6 +687,45 @@ describe('Stock control: granular trackInventory', () => {
             // Before v4.0 Channel.trackInventory was ignored: an InsufficientStockError.
             expect((addItemToOrder as any).lines?.[0]?.quantity).toBe(500);
         });
+
+        // OSS-1299 — a variant with useGlobalOutOfStockThreshold uses the outOfStockThreshold of
+        // the Channel it is sold in (before v4.0: the GlobalSettings value, in every Channel)
+        it('applies the outOfStockThreshold of the channel the variant is sold in', async () => {
+            const quantityAvailable = async (channelToken: string) => {
+                shopClient.setChannelToken(channelToken);
+                await shopClient.asAnonymousUser();
+                const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
+                    productVariantId: 'T_3',
+                    quantity: 500,
+                });
+                expect((addItemToOrder as any).errorCode).toBe('INSUFFICIENT_STOCK_ERROR');
+                return (addItemToOrder as any).quantityAvailable as number;
+            };
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [{ id: 'T_3', useGlobalOutOfStockThreshold: true }],
+            });
+            await adminClient.query(UPDATE_CHANNEL, { input: { id: channelBId, trackInventory: true } });
+            try {
+                const defaultBefore = await quantityAvailable(E2E_DEFAULT_CHANNEL_TOKEN);
+                const channelBBefore = await quantityAvailable(CHANNEL_B_TOKEN);
+                expect(channelBBefore).toBeGreaterThan(0);
+
+                await adminClient.query(UPDATE_CHANNEL, { input: { id: 'T_1', outOfStockThreshold: 2 } });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: channelBId, outOfStockThreshold: -3 },
+                });
+
+                expect(await quantityAvailable(E2E_DEFAULT_CHANNEL_TOKEN)).toBe(defaultBefore - 2);
+                // A negative threshold allows backorders, in channel B only.
+                expect(await quantityAvailable(CHANNEL_B_TOKEN)).toBe(channelBBefore + 3);
+            } finally {
+                await adminClient.query(UPDATE_CHANNEL, { input: { id: 'T_1', outOfStockThreshold: 0 } });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: channelBId, trackInventory: false, outOfStockThreshold: 0 },
+                });
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            }
+        });
     });
 
     describe('per-StockLevel override', () => {

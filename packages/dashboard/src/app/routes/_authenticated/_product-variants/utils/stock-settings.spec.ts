@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveEffectiveStockSettings } from './stock-settings.js';
 
 describe('resolveEffectiveStockSettings', () => {
-    const loaded = { channelTrackInventory: true, globalOutOfStockThreshold: 5 };
+    const loaded = { channelTrackInventory: true, channelOutOfStockThreshold: 5 };
 
     it('resolves INHERIT to the Channel track-inventory value', () => {
         const result = resolveEffectiveStockSettings({
@@ -22,7 +22,7 @@ describe('resolveEffectiveStockSettings', () => {
             useGlobalOutOfStockThreshold: false,
             outOfStockThreshold: 0,
             channelTrackInventory: false,
-            globalOutOfStockThreshold: 5,
+            channelOutOfStockThreshold: 5,
         });
         expect(result.effectiveTrackInventory).toBe(false);
     });
@@ -34,7 +34,7 @@ describe('resolveEffectiveStockSettings', () => {
                 useGlobalOutOfStockThreshold: false,
                 outOfStockThreshold: 0,
                 channelTrackInventory: false,
-                globalOutOfStockThreshold: 5,
+                channelOutOfStockThreshold: 5,
             }).effectiveTrackInventory,
         ).toBe(true);
         expect(
@@ -53,7 +53,7 @@ describe('resolveEffectiveStockSettings', () => {
             useGlobalOutOfStockThreshold: false,
             outOfStockThreshold: 3,
             channelTrackInventory: undefined,
-            globalOutOfStockThreshold: undefined,
+            channelOutOfStockThreshold: undefined,
         });
         expect(result.inheritedTrackInventory).toBeUndefined();
         expect(result.effectiveTrackInventory).toBeUndefined();
@@ -70,7 +70,7 @@ describe('resolveEffectiveStockSettings', () => {
         expect(result.thresholdDisabled).toBe(false);
     });
 
-    it('displays the global threshold and disables the input when inheriting', () => {
+    it("displays the channel's threshold and disables the input when inheriting", () => {
         const result = resolveEffectiveStockSettings({
             trackInventory: 'INHERIT',
             useGlobalOutOfStockThreshold: true,
@@ -97,7 +97,7 @@ describe('resolveEffectiveStockSettings', () => {
                 useGlobalOutOfStockThreshold: true,
                 outOfStockThreshold: 12,
                 channelTrackInventory: undefined,
-                globalOutOfStockThreshold: undefined,
+                channelOutOfStockThreshold: undefined,
             }).displayedThreshold,
         ).toBe(0);
     });

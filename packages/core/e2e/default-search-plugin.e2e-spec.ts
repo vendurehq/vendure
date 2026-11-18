@@ -8,7 +8,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import {
-    ChannelTrackInventoryEvent,
+    ChannelStockSettingsEvent,
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
     EventBus,
@@ -843,10 +843,10 @@ describe('Default search plugin', () => {
 
         // #2908 — sending an unchanged trackInventory does not reindex the channel
         it('does not signal a trackInventory change when the value is unchanged', async () => {
-            const events: ChannelTrackInventoryEvent[] = [];
+            const events: ChannelStockSettingsEvent[] = [];
             const subscription = server.app
                 .get(EventBus)
-                .ofType(ChannelTrackInventoryEvent)
+                .ofType(ChannelStockSettingsEvent)
                 .subscribe(e => events.push(e));
             try {
                 await adminClient.query(updateChannelDocument, {
@@ -859,10 +859,50 @@ describe('Default search plugin', () => {
                     input: { id: 'T_1', trackInventory: true },
                 });
                 await awaitRunningJobs(adminClient);
-                expect(events.map(e => e.trackInventory)).toEqual([false, true]);
+                expect(events.map(e => e.changed)).toEqual([['trackInventory'], ['trackInventory']]);
+                expect(events.map(e => e.channel.trackInventory)).toEqual([false, true]);
             } finally {
                 subscription.unsubscribe();
             }
+        });
+
+        // OSS-1299 — a Channel's outOfStockThreshold decides whether the variants which use it
+        // are in stock, so changing it reindexes the Channel
+        it('reindexes the channel when its outOfStockThreshold changes', async () => {
+            const events: ChannelStockSettingsEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(ChannelStockSettingsEvent)
+                .subscribe(e => events.push(e));
+            const inStockCount = async () =>
+                (
+                    await shopClient.query(searchProductsShopDocument, {
+                        input: { groupByProduct: false, inStock: true },
+                    })
+                ).search.totalItems;
+            const before = await inStockCount();
+            expect(before).toBeGreaterThan(0);
+            try {
+                // Unchanged: no event.
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', outOfStockThreshold: 0 },
+                });
+                // Higher than any stock on hand, so every tracked variant using the Channel's
+                // threshold drops out of stock.
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', outOfStockThreshold: 100_000 },
+                });
+                await awaitRunningJobs(adminClient);
+                expect(events.map(e => e.changed)).toEqual([['outOfStockThreshold']]);
+                expect(await inStockCount()).toBeLessThan(before);
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', outOfStockThreshold: 0 },
+                });
+                await awaitRunningJobs(adminClient);
+                subscription.unsubscribe();
+            }
+            expect(await inStockCount()).toBe(before);
         });
     });
 

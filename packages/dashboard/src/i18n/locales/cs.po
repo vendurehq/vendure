@@ -155,8 +155,8 @@ msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "Opravdu chcete smazat {0} {entityName}?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Global out of stock threshold"
-msgstr "Globální práh vyprodání"
+#~ msgid "Global out of stock threshold"
+#~ msgstr "Globální práh vyprodání"
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -256,8 +256,8 @@ msgstr "Když je toto povoleno, ceny zadané v katalogu produktů budou zahrnova
 #~ msgid "Create variants for your product"
 #~ msgstr "Vytvořte varianty pro váš produkt"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "E-shopy"
 
@@ -269,6 +269,10 @@ msgstr "Koncept objednávky dokončen"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Auto refresh: {0}"
 msgstr "Automatické obnovení: {0}"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Out of stock threshold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} job"
@@ -1244,6 +1248,10 @@ msgstr "Toto jsou hodnoty vlastností pro vlastnost <0>{facetName}</0>."
 msgid "Successfully added payment to order"
 msgstr "Platba úspěšně přidána k objednávce"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Sets the stock level at which a variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can override this."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Billing address set for order"
 msgstr "Fakturační adresa nastavena pro objednávku"
@@ -1663,8 +1671,8 @@ msgid "No customers found"
 msgstr "Nenalezeni žádní zákazníci"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Use global out-of-stock threshold"
-msgstr "Použít globální práh vyprodání"
+#~ msgid "Use global out-of-stock threshold"
+#~ msgstr "Použít globální práh vyprodání"
 
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "New product option group"
@@ -2059,6 +2067,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
 msgstr "Nepodařilo se odebrat fakturační adresu z objednávky: {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant uses the out-of-stock threshold set on the channel instead of its own value."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -4548,6 +4560,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Use the channel's out-of-stock threshold"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Failed to update fulfillment state"
@@ -5671,8 +5687,8 @@ msgstr "Nepodařilo se vytvořit varianty"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
-msgstr "Nastavuje skladovou úroveň, při které je tato varianta považována za vyprodanou. Použití záporné hodnoty umožňuje podporu předobjednávek. Může být přepsáno variantami produktu."
+#~ msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
+#~ msgstr "Nastavuje skladovou úroveň, při které je tato varianta považována za vyprodanou. Použití záporné hodnoty umožňuje podporu předobjednávek. Může být přepsáno variantami produktu."
 
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Search promotions..."
@@ -7643,8 +7659,8 @@ msgid "Load more"
 msgstr "Načíst více"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
-msgstr ""
+#~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Refund settled"

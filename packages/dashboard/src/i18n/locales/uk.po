@@ -155,8 +155,8 @@ msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "Ви впевнені, що хочете видалити {0} {entityName}?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Global out of stock threshold"
-msgstr "Глобальний поріг відсутності на складі"
+#~ msgid "Global out of stock threshold"
+#~ msgstr "Глобальний поріг відсутності на складі"
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -256,8 +256,8 @@ msgstr "При увімкненні ціни, введені в каталозі
 #~ msgid "Create variants for your product"
 #~ msgstr "Створіть варіанти для вашого товару"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "Вітрини"
 
@@ -269,6 +269,10 @@ msgstr "Чернетку замовлення завершено"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Auto refresh: {0}"
 msgstr "Автооновлення: {0}"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Out of stock threshold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} job"
@@ -1244,6 +1248,10 @@ msgstr "Це значення фасетів для фасету <0>{facetName}<
 msgid "Successfully added payment to order"
 msgstr "Платіж успішно додано до замовлення"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Sets the stock level at which a variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can override this."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Billing address set for order"
 msgstr "Адреса для виставлення рахунків встановлена для замовлення"
@@ -1663,8 +1671,8 @@ msgid "No customers found"
 msgstr "Клієнти не знайдено"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Use global out-of-stock threshold"
-msgstr "Використовувати глобальний поріг відсутності на складі"
+#~ msgid "Use global out-of-stock threshold"
+#~ msgstr "Використовувати глобальний поріг відсутності на складі"
 
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "New product option group"
@@ -2059,6 +2067,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
 msgstr "Не вдалося прибрати адресу виставлення рахунку для замовлення: {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant uses the out-of-stock threshold set on the channel instead of its own value."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -4548,6 +4560,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Use the channel's out-of-stock threshold"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Failed to update fulfillment state"
@@ -5671,8 +5687,8 @@ msgstr "Не вдалося створити варіанти"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
-msgstr "Встановлює рівень запасів, при якому цей варіант вважається відсутнім на складі. Використання від'ємного значення вмикає підтримку попередніх замовлень. Може бути перевизначено варіантами товару."
+#~ msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
+#~ msgstr "Встановлює рівень запасів, при якому цей варіант вважається відсутнім на складі. Використання від'ємного значення вмикає підтримку попередніх замовлень. Може бути перевизначено варіантами товару."
 
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Search promotions..."
@@ -7643,8 +7659,8 @@ msgid "Load more"
 msgstr "Завантажити ще"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
-msgstr ""
+#~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Refund settled"
