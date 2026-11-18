@@ -94,6 +94,17 @@ export type DashboardFormComponentProps<
     TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = ControllerRenderProps<TFieldValues, TName> & {
     fieldDef?: ConfigurableFieldDef;
+    /**
+     * @description
+     * For a readonly `relation` custom field: the related entity, or an array of related entities for
+     * a `list: true` field. `value` is the related entity's id, or ids, as for a writable relation.
+     *
+     * It holds the related entity's scalar fields, not its relations. It is `null` when the relation
+     * is not set, and `undefined` on a create form or for any other field.
+     *
+     * @since 3.9.0
+     */
+    relatedEntity?: Record<string, any> | Array<Record<string, any>> | null;
 };
 
 /**

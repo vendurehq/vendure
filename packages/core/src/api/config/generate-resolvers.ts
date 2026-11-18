@@ -215,6 +215,19 @@ function generateCustomFieldResolvers(
         // for them would lead to an Apollo error on bootstrap.
         const excludeFromShopApi = ['GlobalSettings'].includes(entityName);
 
+        // The custom field values which an API exposes. A field resolver cannot hide a value when
+        // `customFields` has the `JSON` type (an entity whose custom fields are all hidden from the
+        // API), so the result only holds these keys. An entity with no configured custom fields
+        // passes its `customFields` through: a plugin entity may declare its own.
+        const exposedKeys = (fields: CustomFieldConfig[]) =>
+            customFields.length === 0
+                ? undefined
+                : fields.flatMap(f =>
+                      isRelationalType(f) && f.list !== true ? [f.name, `${f.name}Id`] : [f.name],
+                  );
+        const adminKeys = exposedKeys(customFields.filter(f => f.internal !== true));
+        const shopKeys = exposedKeys(customFields.filter(f => f.internal !== true && f.public !== false));
+
         // In order to resolve the relations in the CustomFields type, we need
         // access to the entity id. Therefore, we attach it to the resolved value
         // so that it is available to the `relationResolver` below.
@@ -224,14 +237,28 @@ function generateCustomFieldResolvers(
         const channelScopedFieldNames = customFields
             .filter(isChannelScopedCustomField)
             .flatMap(f => (isRelationalType(f) ? (f.list ? [] : [`${f.name}Id`]) : [f.name]));
-        const resolveCustomFields = (source: any, channelScopedValues?: Record<string, unknown>) => ({
-            ...source.customFields,
-            ...channelScopedValues,
-            [ENTITY_ID_KEY]: source.id,
+        const resolveCustomFields = (
+            keys: string[] | undefined,
+            source: any,
+            channelScopedValues?: Record<string, unknown>,
+        ) => {
+            // A spread copies only own values, never the throwing getters which channel-scoped names
+            // have on an entity's customFields (see guardChannelScopedCustomFields)
+            const values: Record<string, unknown> = { ...source.customFields, ...channelScopedValues };
+            const result: Record<string, unknown> = keys ? {} : values;
+            for (const key of keys ?? []) {
+                if (Object.prototype.hasOwnProperty.call(values, key)) {
+                    result[key] = values[key];
+                }
+            }
+            // Both keys are internal. They are non-enumerable, so field resolvers can read them
+            // but the `JSON` scalar leaves them out of the response.
+            Object.defineProperty(result, ENTITY_ID_KEY, { value: source.id, enumerable: false });
             // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
             // pass the real VendureEntity to strategies, rather than this customFields wrapper.
-            [ENTITY_KEY]: source,
-        });
+            Object.defineProperty(result, ENTITY_KEY, { value: source, enumerable: false });
+            return result;
+        };
         // Only types with channel-scoped fields need an async resolver. An entity loaded with a
         // RequestContext already has their values on its customFields (see
         // ChannelAssignmentService.applyChannelCustomFields()), so they are only read otherwise.
@@ -240,32 +267,32 @@ function generateCustomFieldResolvers(
             channelScopedFieldNames.every(name =>
                 Object.prototype.hasOwnProperty.call(source.customFields, name),
             );
-        const customFieldResolver: IFieldResolver<any, any> = channelScopedFieldNames.length
-            ? async (source: any, args: any, context: any) =>
-                  hasChannelScopedValues(source)
-                      ? resolveCustomFields(source)
-                      : resolveCustomFields(
-                            source,
-                            await channelAssignmentService.getCustomFieldValues(
-                                internal_getRequestContext(context.req),
-                                entityName,
-                                // The entity, so that a row loaded with it is reused
+        const customFieldResolver = (keys: string[] | undefined): IFieldResolver<any, any> =>
+            channelScopedFieldNames.length
+                ? async (source: any, args: any, context: any) =>
+                      hasChannelScopedValues(source)
+                          ? resolveCustomFields(keys, source)
+                          : resolveCustomFields(
+                                keys,
                                 source,
-                                channelScopedFieldNames,
-                            ),
-                        )
-            : (source: any) => resolveCustomFields(source);
-        const resolverObject = {
-            customFields: customFieldResolver,
-        };
-        adminResolvers[entityName] = resolverObject;
+                                await channelAssignmentService.getCustomFieldValues(
+                                    internal_getRequestContext(context.req),
+                                    entityName,
+                                    // The entity, so that a row loaded with it is reused
+                                    source,
+                                    channelScopedFieldNames,
+                                ),
+                            )
+                : (source: any) => resolveCustomFields(keys, source);
+        adminResolvers[entityName] = { customFields: customFieldResolver(adminKeys) };
         if (!excludeFromShopApi) {
-            shopResolvers[entityName] = resolverObject;
+            const shopResolverObject = { customFields: customFieldResolver(shopKeys) };
+            shopResolvers[entityName] = shopResolverObject;
             if (entityName === 'ShippingMethod') {
-                shopResolvers.ShippingMethodQuote = resolverObject;
+                shopResolvers.ShippingMethodQuote = shopResolverObject;
             }
             if (entityName === 'PaymentMethod') {
-                shopResolvers.PaymentMethodQuote = resolverObject;
+                shopResolvers.PaymentMethodQuote = shopResolverObject;
             }
         }
         for (const fieldDef of customFields) {

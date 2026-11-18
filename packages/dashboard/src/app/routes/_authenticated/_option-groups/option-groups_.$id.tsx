@@ -18,11 +18,13 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, ParsedLocation, useLocation, useNavigate } from '@tanstack/react-router';
+import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ProductOptionsTable } from '../_products/components/product-options-table.js';
 import { SharedOptionGroupWarning } from '../_products/components/shared-option-group-warning.js';
@@ -109,6 +111,7 @@ function OptionGroupDetailPage() {
         queryDocument: productOptionGroupDetailDocument,
         createDocument: createProductOptionGroupDocument,
         updateDocument: updateProductOptionGroupDocument,
+        transformUpdateInput: dropUnchangedTranslationRows((): UseFormReturn<any> => form),
         extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
