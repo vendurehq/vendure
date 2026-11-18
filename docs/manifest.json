@@ -1444,7 +1444,7 @@
                   "title": "ProductVariantPriceSelectionStrategy",
                   "slug": "product-variant-price-selection-strategy",
                   "file": "docs/reference/typescript-api/configuration/product-variant-price-selection-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-18T12:55:50Z"
                 },
                 {
                   "title": "ProductVariantPriceUpdateStrategy",
@@ -1580,7 +1580,7 @@
                   "title": "Calculated",
                   "slug": "calculated",
                   "file": "docs/reference/typescript-api/data-access/calculated.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-18T12:55:50Z"
                 },
                 {
                   "title": "CalculatedPropertySubscriber",
@@ -2004,7 +2004,7 @@
                   "title": "ProductVariant",
                   "slug": "product-variant",
                   "file": "docs/reference/typescript-api/entities/product-variant.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-18T12:55:50Z"
                 },
                 {
                   "title": "ProductVariantChannel",
@@ -2016,7 +2016,7 @@
                   "title": "ProductVariantPrice",
                   "slug": "product-variant-price",
                   "file": "docs/reference/typescript-api/entities/product-variant-price.mdx",
-                  "lastModified": "2026-11-17T08:59:18Z"
+                  "lastModified": "2026-11-18T12:55:50Z"
                 },
                 {
                   "title": "Promotion",
@@ -3298,7 +3298,7 @@
                   "title": "ProductPriceApplicator",
                   "slug": "product-price-applicator",
                   "file": "docs/reference/typescript-api/service-helpers/product-price-applicator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-18T12:55:50Z"
                 },
                 {
                   "title": "SlugValidator",
@@ -3504,7 +3504,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-18T12:55:50Z"
                 },
                 {
                   "title": "PromotionService",
