@@ -3,6 +3,7 @@ import {
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbList,
+    BreadcrumbPage,
     BreadcrumbSeparator,
 } from '@/vdb/components/ui/breadcrumb.js';
 import type { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
@@ -20,6 +21,8 @@ export interface BreadcrumbPair {
 export type BreadcrumbShorthand = string | React.ReactElement;
 
 export type PageBreadcrumb = BreadcrumbPair | BreadcrumbShorthand;
+
+type SectionCrumb = BreadcrumbPair & { repeatsItem?: boolean };
 
 export function GeneratedBreadcrumbs() {
     const matches = useRouterState({ select: s => s.matches });
@@ -78,7 +81,7 @@ export function GeneratedBreadcrumbs() {
     const checkSectionItems = (
         section: NavMenuSection | NavMenuItem,
         cleanPath: string,
-    ): BreadcrumbPair | undefined => {
+    ): SectionCrumb | undefined => {
         if (!('items' in section) || !Array.isArray(section.items)) {
             return undefined;
         }
@@ -86,7 +89,13 @@ export function GeneratedBreadcrumbs() {
         for (const item of section.items) {
             if (!item?.url) continue;
             if (pathMatches(cleanPath, item.url)) {
-                return { label: translateSectionTitle(section.title), path: item.url };
+                return {
+                    label: translateSectionTitle(section.title),
+                    path: item.url,
+                    // A section named like its matched item ("Customers" > "Customers")
+                    // would repeat the page's own crumb for the same path.
+                    repeatsItem: section.title === item.title,
+                };
             }
         }
         return undefined;
@@ -102,7 +111,7 @@ export function GeneratedBreadcrumbs() {
         return undefined;
     };
 
-    const findSectionCrumb = (path: string): BreadcrumbPair | undefined => {
+    const findSectionCrumb = (path: string): SectionCrumb | undefined => {
         const cleanPath = normalizePath(path);
         const sections: Array<NavMenuSection | NavMenuItem> = navMenuConfig?.sections ?? [];
         if (sections.length === 0) return undefined;
@@ -118,7 +127,9 @@ export function GeneratedBreadcrumbs() {
 
     const sectionCrumb = React.useMemo(() => findSectionCrumb(currentPath), [currentPath, navMenuConfig]);
     const breadcrumbs: BreadcrumbPair[] = React.useMemo(() => {
-        const arr = sectionCrumb ? [sectionCrumb, ...pageCrumbs] : pageCrumbs;
+        const repeatsPageCrumb =
+            sectionCrumb?.repeatsItem && pageCrumbs.some(crumb => crumb.path === sectionCrumb.path);
+        const arr = sectionCrumb && !repeatsPageCrumb ? [sectionCrumb, ...pageCrumbs] : pageCrumbs;
         return arr.filter(
             (c, i, self) => self.findIndex(x => x.path === c.path && x.label === c.label) === i,
         );
@@ -129,7 +140,11 @@ export function GeneratedBreadcrumbs() {
                 {breadcrumbs.map(({ label, path }, index, arr) => (
                     <Fragment key={`${path}-${index}`}>
                         <BreadcrumbItem className="hidden md:block">
-                            <BreadcrumbLink render={<Link to={path} />}>{label}</BreadcrumbLink>
+                            {index === arr.length - 1 ? (
+                                <BreadcrumbPage>{label}</BreadcrumbPage>
+                            ) : (
+                                <BreadcrumbLink render={<Link to={path} />}>{label}</BreadcrumbLink>
+                            )}
                         </BreadcrumbItem>
                         {index < arr.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
                     </Fragment>

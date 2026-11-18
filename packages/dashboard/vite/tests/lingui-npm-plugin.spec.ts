@@ -182,6 +182,30 @@ export function MyComponent() {
     });
 });
 
+// The bundle's macros were compiled when it was built, but it keeps doc comments with example
+// macro imports, which match the code filter. Babel must not run on it again. A real macro call
+// shows whether it ran: Babel would compile it and drop the macro import.
+describe('linguiBabelPlugin and the pre-built dashboard bundle', () => {
+    const code = `import { t } from '@lingui/core/macro';
+export const message = t\`Hello\`;
+`;
+
+    it.each([
+        '/project/node_modules/@vendure/dashboard/dist/bundle/chunks/common-operations-abc.js',
+        '/repo/packages/dashboard/dist/bundle/chunks/common-operations-abc.js',
+    ])('skips %s', { timeout: 60_000 }, async id => {
+        const plugin = linguiBabelPlugin({ additionalPackagePaths: ['@vendure/dashboard'] });
+        const transformed = await transformWithVite(plugin, id, code);
+        expect(transformed).toContain('@lingui/core/macro');
+    });
+
+    it('still transforms the dashboard source', { timeout: 60_000 }, async () => {
+        const plugin = linguiBabelPlugin();
+        const transformed = await transformWithVite(plugin, '/repo/packages/dashboard/src/lib/x.ts', code);
+        expect(transformed).not.toContain('@lingui/core/macro');
+    });
+});
+
 describe('linguiBabelPlugin parsing and errors', () => {
     const projectDir = '/path/to/project/src/plugins/my-plugin/dashboard';
 

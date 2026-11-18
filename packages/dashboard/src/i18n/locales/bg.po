@@ -256,8 +256,8 @@ msgstr "Когато това е разрешено, цените, въведе�
 #~ msgid "Create variants for your product"
 #~ msgstr "Създай варианти за вашия продукт"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "Онлайн магазини"
 
@@ -1883,6 +1883,10 @@ msgstr "Неуспешно задаване на клиент за поръчк�
 
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+msgstr ""
+
+#: src/lib/components/layout/dev-mode-indicator.tsx
+msgid "Turn off dev mode"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4078,6 +4082,10 @@ msgstr "Опашка от задачи"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "Моля, потвърдете, че сте запазили API key преди затваряне."
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "View"
+msgstr ""
+
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
 msgstr "Потвърдете изтриването"
@@ -6065,6 +6073,11 @@ msgstr "Отмяна на модификацията"
 #~ msgid "Same window"
 #~ msgstr "Същият прозорец"
 
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-filter-badge.tsx
+msgid "Remove filter"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "Приложете филтри към таблицата и щракнете върху \"Запазване на изгледа\", за да започнете."
@@ -6492,6 +6505,10 @@ msgstr "Неуспешно премахване на клиенти от гру�
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #~ msgid "Failed to upload {0} assets"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
+msgid "Change state"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"

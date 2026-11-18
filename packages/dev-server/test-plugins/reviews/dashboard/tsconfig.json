@@ -3,8 +3,9 @@
     "module": "nodenext",
     "jsx": "react-jsx",
     "paths": {
-      "@/vdb/*": ["../../../../dashboard/src/lib/*"],
-      "@/graphql/*": ["../../../graphql/*"]
+      "@/gql": ["../../../graphql/graphql.ts"],
+      "@vendure/dashboard": ["../../../../dashboard/src/lib/index.ts"],
+      "@/vdb/*": ["../../../../dashboard/src/lib/*"]
     }
   }
 }

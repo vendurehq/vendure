@@ -298,6 +298,13 @@ jobs:
             - name: Install Playwright system deps
               run: bunx playwright install-deps chromium
               working-directory: packages/dashboard
+            # Checks that a dev server on the pre-built bundle serves each context/singleton
+            # library as one shared dependency (#4919). It needs the build above, so it runs here,
+            # on one shard.
+            - name: Dashboard bundle audit
+              if: matrix.shard == 1
+              run: bun run audit:bundle
+              working-directory: packages/dashboard
             - name: Dashboard e2e tests
               run: bun run e2e:pw -- --shard=${{ matrix.shard }}/4
               working-directory: packages/dashboard

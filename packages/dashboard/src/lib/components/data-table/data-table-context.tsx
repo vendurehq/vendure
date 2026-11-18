@@ -4,7 +4,7 @@ import React, { createContext, ReactNode } from 'react';
 
 export type ColumnConfig = { columnOrder: string[]; columnVisibility: Record<string, boolean> };
 
-interface DataTableContextValue {
+export interface DataTableContextValue {
     columnFilters: ColumnFiltersState;
     setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
     searchTerm: string;

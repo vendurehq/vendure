@@ -14,6 +14,10 @@ const adminApiPort = process.env.VITE_ADMIN_API_PORT
       ? DASHBOARD_API_PORT_FROM_PAGE
       : Number(process.env.API_PORT) || 3000;
 
+// Serve the dashboard from its source, with HMR on the dashboard's own files. Projects that
+// install @vendure/dashboard always get the pre-built bundle.
+process.env.VENDURE_DASHBOARD_FROM_SOURCE ??= 'true';
+
 export default defineConfig({
     base: '/dashboard/',
     server: {

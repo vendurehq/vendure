@@ -171,7 +171,7 @@ export function TestOrderBuilder({ onOrderLinesChange }: Readonly<TestOrderBuild
                     )}
                 </div>
             </AccordionTrigger>
-            <AccordionContent className="space-y-4 px-2">
+            <AccordionContent className="space-y-4">
                 {lines.length > 0 ? (
                     <div className="w-full">
                         <Table>
@@ -204,7 +204,7 @@ export function TestOrderBuilder({ onOrderLinesChange }: Readonly<TestOrderBuild
                                     </TableRow>
                                 ))}
                                 <TableRow>
-                                    <TableCell colSpan={columns.length} className="h-12">
+                                    <TableCell colSpan={columns.length}>
                                         <div className="my-4 flex justify-center">
                                             <div className="max-w-lg">
                                                 <ProductVariantSelector onProductVariantSelect={addProduct} />
