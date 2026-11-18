@@ -194,7 +194,7 @@ If your ShippingEligibilityChecker or ShippingCalculator needs access to the dat
 
 ### Several options per ShippingMethod
 
-A carrier API such as ShipStation or Shippo usually returns several services, each with its own price. A ShippingCalculator can return all of them as an array of results. Give each result a `code`, unique within the array, and a `name` to show the customer:
+A carrier API such as ShipStation or Shippo usually returns several services, each with its own price. A ShippingCalculator can return all of them as an array of results. Give each result a `code`, unique within the array, and a `name` to show the customer. The code must stay the same from one call to the next, because each recalculation of the Order looks the chosen option up by it: use the carrier's service-level code (Shippo's `servicelevel.token`, for example), not an id the carrier generates for each rate request.
 
 ```ts title="src/shipping-methods/carrier-rates-calculator.ts"
 import { LanguageCode, ShippingCalculator } from '@vendure/core';
@@ -261,6 +261,8 @@ In the Admin API, `setDraftOrderShippingMethod` takes a `shippingOptionCode`, an
 
 :::note
 Calculators which call a carrier API run on every change to the Order, and each time `eligibleShippingMethods` is queried. Cache the carrier's response for the Order's contents and address to avoid calling the API more often than needed.
+
+When the carrier cannot be reached, return the last rates you got for the Order rather than an empty result. An empty result makes the ShippingLine fall back to the cheapest option of another method, which replaces the customer's choice, and throwing fails the whole recalculation of the Order.
 :::
 
 ### Custom FulfillmentProcess
