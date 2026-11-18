@@ -95,7 +95,7 @@ export class BaseListPage {
         // instead of role="menuitem", so match by text within the menu.
         await this.page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         // Confirm in the AlertDialog
-        await this.page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await this.page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
     }
 
     /** Open the row-level action menu (ellipsis) for a specific row index, then click "Delete" and confirm. */

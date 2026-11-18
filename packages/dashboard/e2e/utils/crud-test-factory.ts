@@ -237,7 +237,7 @@ export function createCrudTestSuite(config: CrudTestConfig) {
                     await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
                     await page
                         .locator('[role="alertdialog"]')
-                        .getByRole('button', { name: 'Continue' })
+                        .getByRole('button', { name: 'Delete' })
                         .click();
                 }
                 await listPage.expectSuccessToast();

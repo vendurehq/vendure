@@ -70,7 +70,7 @@ test.describe('Issue #3941: Customer group member removal', () => {
 
         await page.getByRole('button', { name: /Actions/i }).click();
         await page.locator('[role="menu"]').getByText('Remove from group', { exact: true }).click();
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Remove from group' }).click();
 
         // Singular form — asserts the message is pluralised, not "Removed 1 customers".
         await expect(page.getByText('Removed 1 customer from group')).toBeVisible({ timeout: 5_000 });
@@ -88,7 +88,7 @@ test.describe('Issue #3941: Customer group member removal', () => {
         await row.getByRole('checkbox').click();
         await page.getByRole('button', { name: /Actions/i }).click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await lp.expectSuccessToast();
     });
 });

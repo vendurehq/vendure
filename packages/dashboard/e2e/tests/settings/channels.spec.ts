@@ -235,7 +235,7 @@ test.describe('Channels CRUD', () => {
         await testChannelRow.getByRole('checkbox').click();
         await page.getByRole('button', { name: /Actions/i }).click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await lp.expectSuccessToast();
 
         await expect(lp.getRows().filter({ hasText: 'e2e-test-channel' })).toHaveCount(0);
@@ -331,7 +331,7 @@ test.describe('Channels CRUD', () => {
             await row.getByRole('checkbox').click();
             await page.getByRole('button', { name: /Actions/i }).click();
             await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
-            await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+            await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
             await lp.expectSuccessToast();
             await expect(lp.getRows().filter({ hasText: channelCode })).toHaveCount(0);
 
