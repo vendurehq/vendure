@@ -68,7 +68,11 @@ Until the values have been copied, Vendure v4 refuses to start. Otherwise each C
 
 ### During a rolling deployment
 
-v3 servers keep recording stock movements without the `tracked` state, and a v3 server which saves the Global Settings writes the v3 columns again, after which the next v4 server refuses to start. Once the last v3 server and worker have stopped, run `migrateTrackInventoryToChannels` and `migrateOutOfStockThresholdToChannels` again from a later migration. They fill the movements recorded in between, and copy the settings again if a v3 server saved them.
+<Callout type="warning">
+Stop every v3 server and worker before the migration runs, if your shop depends on either setting. Once the helpers have copied a setting, they clear its v3 column, and the v3 servers which are still running read it as empty: `trackInventory` as `false`, and `outOfStockThreshold` as `0`. Until the last v3 server stops, those servers stop tracking inventory for variants set to `INHERIT`, sell a variant's reserve, or refuse backorders allowed by a negative threshold. The Global Settings page of v3 also fails to load, because v3 requires both fields.
+</Callout>
+
+If you run v3 and v4 side by side anyway, the stock decisions of the v3 servers follow the empty values above until they stop. v3 servers also keep recording stock movements without the `tracked` state, and a v3 server which saves the Global Settings writes the v3 columns again, after which the next v4 server refuses to start. Once the last v3 server and worker have stopped, run both helpers again from a later migration. `migrateTrackInventoryToChannels` fills the movements recorded in between, and each helper copies its setting again if a v3 server saved it.
 
 ## After migrating
 

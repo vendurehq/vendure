@@ -325,6 +325,30 @@ const UPDATE_CHANNEL = graphqlAdmin(`
     }
 `);
 
+const CREATE_DRAFT_ORDER = graphqlAdmin(`
+    mutation GranularCreateDraftOrder {
+        createDraftOrder {
+            id
+        }
+    }
+`);
+
+const ADD_ITEM_TO_DRAFT_ORDER = graphqlAdmin(`
+    mutation GranularAddItemToDraftOrder($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+        addItemToDraftOrder(orderId: $orderId, input: $input) {
+            ... on Order {
+                id
+                lines {
+                    quantity
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+            }
+        }
+    }
+`);
+
 const DUPLICATE_PRODUCT = graphqlAdmin(`
     mutation GranularDuplicate($input: DuplicateEntityInput!) {
         duplicateEntity(input: $input) {
@@ -724,6 +748,46 @@ describe('Stock control: granular trackInventory', () => {
                     input: { id: channelBId, trackInventory: false, outOfStockThreshold: 0 },
                 });
                 shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            }
+        });
+
+        // OSS-1299 — a draft Order of channel B edited by an admin in the default Channel is
+        // limited by channel B's stock settings, as its transition to ArrangingPayment will be
+        it("limits a draft order edited from another channel by the order's channel", async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            const { createDraftOrder } = await adminClient.query(CREATE_DRAFT_ORDER);
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            // T_3 is tracked in the default Channel, and untracked in channel B.
+            const { addItemToDraftOrder } = await adminClient.query(ADD_ITEM_TO_DRAFT_ORDER, {
+                orderId: createDraftOrder.id,
+                input: { productVariantId: 'T_3', quantity: 500 },
+            });
+            expect((addItemToDraftOrder as any).errorCode).toBeUndefined();
+            expect((addItemToDraftOrder as any).lines[0].quantity).toBe(500);
+        });
+
+        // OSS-1299 — stockOnHand is shared by every Channel of the variant, so the lowest Channel
+        // threshold decides how far it may go below zero, whichever Channel the admin is in
+        it("allows stockOnHand down to the lowest threshold of the variant's channels", async () => {
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [{ id: 'T_3', useGlobalOutOfStockThreshold: true, trackInventory: 'TRUE' as any }],
+            });
+            await adminClient.query(UPDATE_CHANNEL, { input: { id: channelBId, outOfStockThreshold: -3 } });
+            const original = levelAt(await getStock('T_3'), defaultLocationId)!.stockOnHand;
+            try {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -2 }] });
+                expect(levelAt(await getStock('T_3'), defaultLocationId)!.stockOnHand).toBe(-2);
+                await expect(
+                    adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -4 }] }),
+                ).rejects.toThrow('stockOnHand cannot be a negative value');
+            } finally {
+                await adminClient.query(UPDATE_VARIANT, {
+                    input: [{ id: 'T_3', stockOnHand: original, trackInventory: 'INHERIT' as any }],
+                });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: channelBId, outOfStockThreshold: 0 },
+                });
             }
         });
     });

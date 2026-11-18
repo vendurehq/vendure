@@ -419,6 +419,7 @@ export class ChannelService {
         ctx: RequestContext,
         input: CreateChannelInput,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
+        this.assertStockSettingsNotNull(input);
         const { defaultCurrencyCode } = input;
         const channel = new Channel({
             ...input,
@@ -469,6 +470,7 @@ export class ChannelService {
         input: UpdateChannelInput,
     ): Promise<ErrorResultUnion<UpdateChannelResult, Channel>> {
         this.assertHasPermissionOnChannel(ctx, input.id, Permission.UpdateChannel);
+        this.assertStockSettingsNotNull(input);
         const channel = await this.findOne(ctx, input.id);
         if (!channel) {
             throw new EntityNotFoundError('Channel', input.id);
@@ -541,6 +543,19 @@ export class ChannelService {
             );
         }
         return assertFound(this.findOne(ctx, channel.id));
+    }
+
+    /**
+     * The stock settings are nullable in the GraphQL inputs, so that they can be omitted, but not
+     * in the database: `patchEntity()` would write a `null` and the save would fail on the NOT
+     * NULL constraint.
+     */
+    private assertStockSettingsNotNull(input: CreateChannelInput | UpdateChannelInput) {
+        for (const field of ['trackInventory', 'outOfStockThreshold'] as const) {
+            if (input[field] === null) {
+                throw new UserInputError('error.channel-stock-setting-cannot-be-null', { field });
+            }
+        }
     }
 
     /**

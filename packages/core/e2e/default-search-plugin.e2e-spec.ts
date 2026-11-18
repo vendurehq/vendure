@@ -869,32 +869,48 @@ describe('Default search plugin', () => {
         // OSS-1299 — a Channel's outOfStockThreshold decides whether the variants which use it
         // are in stock, so changing it reindexes the Channel
         it('reindexes the channel when its outOfStockThreshold changes', async () => {
+            const getVariantThresholdSettings = graphqlAdmin(`
+                query SearchTestVariantThreshold($id: ID!) {
+                    productVariant(id: $id) {
+                        id
+                        tracksInventory
+                        useGlobalOutOfStockThreshold
+                    }
+                }
+            `);
             const events: ChannelStockSettingsEvent[] = [];
             const subscription = server.app
                 .get(EventBus)
                 .ofType(ChannelStockSettingsEvent)
                 .subscribe(e => events.push(e));
-            const inStockCount = async () =>
+            const inStockIds = async () =>
                 (
                     await shopClient.query(searchProductsShopDocument, {
-                        input: { groupByProduct: false, inStock: true },
+                        input: { groupByProduct: false, inStock: true, take: 100 },
                     })
-                ).search.totalItems;
-            const before = await inStockCount();
-            expect(before).toBeGreaterThan(0);
+                ).search.items.map(i => i.productVariantId);
+            const before = await inStockIds();
+            // Higher than any stock on hand, so exactly the in-stock variants which are tracked
+            // and use the Channel's threshold drop out of stock.
+            const keptInStock: string[] = [];
+            for (const id of before) {
+                const { productVariant } = await adminClient.query(getVariantThresholdSettings, { id });
+                if (!productVariant!.tracksInventory || !productVariant!.useGlobalOutOfStockThreshold) {
+                    keptInStock.push(id);
+                }
+            }
+            expect(keptInStock.length).toBeLessThan(before.length);
             try {
                 // Unchanged: no event.
                 await adminClient.query(updateChannelDocument, {
                     input: { id: 'T_1', outOfStockThreshold: 0 },
                 });
-                // Higher than any stock on hand, so every tracked variant using the Channel's
-                // threshold drops out of stock.
                 await adminClient.query(updateChannelDocument, {
                     input: { id: 'T_1', outOfStockThreshold: 100_000 },
                 });
                 await awaitRunningJobs(adminClient);
                 expect(events.map(e => e.changed)).toEqual([['outOfStockThreshold']]);
-                expect(await inStockCount()).toBeLessThan(before);
+                expect((await inStockIds()).sort()).toEqual(keptInStock.sort());
             } finally {
                 await adminClient.query(updateChannelDocument, {
                     input: { id: 'T_1', outOfStockThreshold: 0 },
@@ -902,7 +918,29 @@ describe('Default search plugin', () => {
                 await awaitRunningJobs(adminClient);
                 subscription.unsubscribe();
             }
-            expect(await inStockCount()).toBe(before);
+            expect((await inStockIds()).sort()).toEqual(before.sort());
+        });
+
+        // OSS-1299 — one update which changes both settings fires one event listing both
+        it('signals both settings in one event when one update changes both', async () => {
+            const events: ChannelStockSettingsEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(ChannelStockSettingsEvent)
+                .subscribe(e => events.push(e));
+            try {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: false, outOfStockThreshold: 5 },
+                });
+                await awaitRunningJobs(adminClient);
+                expect(events.map(e => e.changed)).toEqual([['trackInventory', 'outOfStockThreshold']]);
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true, outOfStockThreshold: 0 },
+                });
+                await awaitRunningJobs(adminClient);
+                subscription.unsubscribe();
+            }
         });
     });
 

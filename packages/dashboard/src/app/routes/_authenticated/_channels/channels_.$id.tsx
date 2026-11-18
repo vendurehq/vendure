@@ -109,7 +109,8 @@ function ChannelDetailPage() {
         // `CreateChannelInput.defaultCurrencyCode` is non-nullable, so the form would otherwise
         // preselect the first currency there is. It has to come from the available currencies
         // instead, which are empty on a new channel.
-        setValuesForCreate: () => ({ defaultCurrencyCode: null as any }),
+        // A new channel starts at the server's default threshold.
+        setValuesForCreate: () => ({ defaultCurrencyCode: null as any, outOfStockThreshold: 0 }),
         transformCreateInput: input => {
             return {
                 ...input,
@@ -144,6 +145,13 @@ function ChannelDetailPage() {
                     token: z.string().min(1, { message: t`This field is required` }),
                     // Left empty on a new channel; the check below says why it must be filled in.
                     defaultCurrencyCode: z.string().nullish(),
+                    // A cleared number input is null, which the server rejects: the threshold is
+                    // never empty.
+                    outOfStockThreshold: z
+                        .number()
+                        .int()
+                        .nullish()
+                        .refine(value => value !== null, { message: t`This field is required` }),
                     ...(creatingNewEntity
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),

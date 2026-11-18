@@ -14,10 +14,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
-import {
-    assertOutOfStockThresholdMigrated,
-    migrateOutOfStockThresholdToChannels,
-} from '../src/migration-utils/v4_0_out_of_stock_threshold';
+import { assertGlobalStockSettingsMigrated } from '../src/migration-utils/v4_0_global_stock_settings';
+import { migrateOutOfStockThresholdToChannels } from '../src/migration-utils/v4_0_out_of_stock_threshold';
 
 describe('v4.0 outOfStockThreshold migration helper', () => {
     // Runs with a table prefix, so the helper must honour `entityPrefix`.
@@ -111,10 +109,26 @@ describe('v4.0 outOfStockThreshold migration helper', () => {
     });
 
     // OSS-1299 — Vendure refuses to start while the v3 value has not been migrated
-    it('assertOutOfStockThresholdMigrated() throws while the v3 value is pending', async () => {
-        await expect(assertOutOfStockThresholdMigrated(queryRunner)).rejects.toThrow(
-            'out-of-stock threshold data migration has not run',
+    it('the startup check throws while the v3 value is pending', async () => {
+        await expect(assertGlobalStockSettingsMigrated(queryRunner)).rejects.toThrow(
+            'Call migrateOutOfStockThresholdToChannels() from your v4 migration',
         );
+    });
+
+    // OSS-1299 — with both stock settings pending, one error names both helpers, so a single
+    // migration fixes the startup
+    it('the startup check names every helper still to be called', async () => {
+        const gs = esc(table('global_settings'));
+        await queryRunner.query(`UPDATE ${gs} SET ${esc('trackInventory')} = TRUE`);
+        try {
+            const error = await assertGlobalStockSettingsMigrated(queryRunner).catch((e: Error) => e);
+            expect(error).toBeInstanceOf(Error);
+            expect((error as Error).message).toContain(
+                'Call migrateTrackInventoryToChannels() and migrateOutOfStockThresholdToChannels()',
+            );
+        } finally {
+            await queryRunner.query(`UPDATE ${gs} SET ${esc('trackInventory')} = NULL`);
+        }
     });
 
     // OSS-1299 — copies GlobalSettings.outOfStockThreshold to every Channel and reports overwritten ones
@@ -134,7 +148,7 @@ describe('v4.0 outOfStockThreshold migration helper', () => {
             `SELECT ${esc('outOfStockThreshold')} AS ${esc('v')} FROM ${esc(table('global_settings'))}`,
         );
         expect(legacy[0].v).toBeNull();
-        await expect(assertOutOfStockThresholdMigrated(queryRunner)).resolves.toBeUndefined();
+        await expect(assertGlobalStockSettingsMigrated(queryRunner)).resolves.toBeUndefined();
     });
 
     // OSS-1299 — a wrong table prefix must fail loudly rather than skip the copy

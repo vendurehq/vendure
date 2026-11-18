@@ -180,7 +180,13 @@ test.describe('Channels CRUD', () => {
         const originalValue = await thresholdInput().inputValue();
         const newValue = originalValue === '-5' ? '-10' : '-5';
 
+        // A cleared threshold is flagged in place and not sent as null, which the server rejects.
         const dp = detailPage(page);
+        await thresholdInput().fill('');
+        await dp.clickUpdate();
+        await expect(dp.formItem('Out of stock threshold').getByText('This field is required')).toBeVisible();
+        await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
+
         await thresholdInput().fill(newValue);
         await dp.clickUpdate();
         await dp.expectSuccessToast(/Successfully updated channel/);

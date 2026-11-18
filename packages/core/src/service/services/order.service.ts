@@ -711,6 +711,7 @@ export class OrderService implements OnApplicationBootstrap {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const errorResults: Array<JustErrorResults<UpdateOrderItemsResult>> = [];
         const updatedOrderLines: OrderLine[] = [];
+        let stockCtx: RequestContext | undefined;
         addItem: for (const item of items) {
             const { productVariantId, quantity, customFields } = item;
             const existingOrderLine = await this.orderModifier.getExistingOrderLine(
@@ -752,8 +753,11 @@ export class OrderService implements OnApplicationBootstrap {
                 ),
                 'quantity',
             );
+            // Judged in the Order's Channel, not the Channel of an Administrator editing a draft
+            // Order of another Channel, as the check on the transition to ArrangingPayment is.
+            stockCtx ??= await getOrderChannelContext(ctx, this.connection, this.channelService, order.id);
             const correctedQuantity = await this.orderModifier.constrainQuantityToSaleable(
-                ctx,
+                stockCtx,
                 variant,
                 quantity,
                 existingOrderLine?.quantity,
@@ -863,6 +867,7 @@ export class OrderService implements OnApplicationBootstrap {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const errorResults: Array<JustErrorResults<UpdateOrderItemsResult>> = [];
         const updatedOrderLines: OrderLine[] = [];
+        let stockCtx: RequestContext | undefined;
         adjustLine: for (const line of lines) {
             const { orderLineId, quantity, customFields } = line;
             const orderLine = this.getOrderLineOrThrow(order, orderLineId);
@@ -913,8 +918,10 @@ export class OrderService implements OnApplicationBootstrap {
                 ),
                 'quantity',
             );
+            // Judged in the Order's Channel; see addItemsToOrder().
+            stockCtx ??= await getOrderChannelContext(ctx, this.connection, this.channelService, order.id);
             const correctedQuantity = await this.orderModifier.constrainQuantityToSaleable(
-                ctx,
+                stockCtx,
                 orderLine.productVariant,
                 quantity,
                 0,

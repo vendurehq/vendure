@@ -75,11 +75,11 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
     }
 
     /**
-     * GlobalSettingsService and StockLevelService are resolved on first use rather than in
-     * `init()`. Both have to be imported dynamically to break a circular dependency, and that is
-     * asynchronous, while `init()` has to stay synchronous: it is a documented extension point,
-     * so a subclass may override it with a synchronous method, and may call `super.init()`
-     * without awaiting it. Resolving here means neither leaves a service unset.
+     * Resolved on first use, like {@link BaseStockLocationStrategy.getStockLevelService}.
+     *
+     * @deprecated since 4.0.0. Not used by the built-in strategies any more: the out-of-stock
+     * threshold comes from the Channel (see {@link resolveOutOfStockThreshold}). Kept for
+     * subclasses which call it, and removed in v5.
      */
     protected async getGlobalSettingsService(): Promise<GlobalSettingsService> {
         if (!this.globalSettingsService) {
@@ -91,8 +91,11 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
     }
 
     /**
-     * See {@link BaseStockLocationStrategy.getGlobalSettingsService} for why this is resolved
-     * lazily.
+     * StockLevelService is resolved on first use rather than in `init()`. It has to be imported
+     * dynamically to break a circular dependency, and that is asynchronous, while `init()` has to
+     * stay synchronous: it is a documented extension point, so a subclass may override it with a
+     * synchronous method, and may call `super.init()` without awaiting it. Resolving here means
+     * the service is never left unset.
      */
     protected async getStockLevelService(): Promise<StockLevelService> {
         if (!this.stockLevelService) {

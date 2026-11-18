@@ -2,6 +2,7 @@
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { QueryRunner } from 'typeorm';
 
+import { copyGlobalSettingToChannels, globalStockSettings } from './v4_0_global_stock_settings';
 import { qualifiedTableName } from './v4_0_role_assignments';
 
 /**
@@ -64,72 +65,11 @@ export async function migrateTrackInventoryToChannels(
 async function copyGlobalTrackInventoryToChannels(
     queryRunner: QueryRunner,
 ): Promise<TrackInventoryMigrationResult> {
-    const esc = (name: string) => queryRunner.connection.driver.escape(name);
-    const escTable = (qualified: string) => qualified.split('.').map(esc).join('.');
-    const globalSettingsTable = qualifiedTableName(queryRunner, 'global_settings');
-    const channelTable = qualifiedTableName(queryRunner, 'channel');
-    if (!(await queryRunner.hasTable(globalSettingsTable))) {
-        throw new Error(
-            `[v4 trackInventory] Table "${globalSettingsTable}" not found. Check the entityPrefix and ` +
-                'schema of your dbConnectionOptions.',
-        );
-    }
-    const result: TrackInventoryMigrationResult = {
-        globalTrackInventory: undefined,
-        overwrittenChannels: [],
-        filledStockMovements: 0,
-    };
-    if (!(await queryRunner.hasColumn(globalSettingsTable, 'trackInventory'))) {
-        return result;
-    }
-    // The value is cleared once copied, which needs the v4 schema, where the column is nullable.
-    const column = (await queryRunner.getTable(globalSettingsTable))?.findColumnByName('trackInventory');
-    if (column && !column.isNullable) {
-        throw new Error(
-            '[v4 trackInventory] global_settings.trackInventory is still NOT NULL. Call ' +
-                'migrateTrackInventoryToChannels() after the generated statements of your v4 migration.',
-        );
-    }
-    const settings: Array<{ value: unknown }> = await queryRunner.query(
-        `SELECT ${esc('trackInventory')} AS ${esc('value')} FROM ${escTable(globalSettingsTable)}
-         WHERE ${esc('trackInventory')} IS NOT NULL`,
+    const { globalValue, overwrittenChannels } = await copyGlobalSettingToChannels(
+        queryRunner,
+        globalStockSettings.trackInventory,
     );
-    if (!settings.length) {
-        // Already copied, or a database created by v4.
-        return result;
-    }
-    const globalValue = toBoolean(settings[0].value);
-    result.globalTrackInventory = globalValue;
-    const literal = globalValue ? 'TRUE' : 'FALSE';
-
-    const channels: Array<{ code: string; value: unknown }> = await queryRunner.query(
-        `SELECT ${esc('code')} AS ${esc('code')}, ${esc('trackInventory')} AS ${esc('value')} FROM ${escTable(channelTable)}`,
-    );
-    result.overwrittenChannels = channels
-        .filter(c => toBoolean(c.value) !== globalValue)
-        .map(c => ({ code: c.code, previous: toBoolean(c.value) }));
-
-    await queryRunner.query(`UPDATE ${escTable(channelTable)} SET ${esc('trackInventory')} = ${literal}`);
-    // Clearing the value records that the copy has been done.
-    await queryRunner.query(`UPDATE ${escTable(globalSettingsTable)} SET ${esc('trackInventory')} = NULL`);
-
-    console.log(
-        `[v4 trackInventory] Copied GlobalSettings.trackInventory (${String(globalValue)}) to ` +
-            `${channels.length} Channel(s).`,
-    );
-    for (const { code, previous } of result.overwrittenChannels) {
-        console.log(
-            `[v4 trackInventory] Channel "${code}" had trackInventory = ${String(previous)}, which had ` +
-                'no effect before v4. It is now ' +
-                `${String(globalValue)}. Set it again after the upgrade if you want the Channel to differ.`,
-        );
-    }
-    return result;
-}
-
-function toBoolean(value: unknown): boolean {
-    // sqlite and mysql return 0/1, postgres returns a boolean.
-    return value === true || value === 1 || value === '1' || value === 't' || value === 'true';
+    return { globalTrackInventory: globalValue, overwrittenChannels, filledStockMovements: 0 };
 }
 
 /**
@@ -193,39 +133,4 @@ export async function backfillStockMovementTracking(queryRunner: QueryRunner): P
     const filled = before - (await countNull());
     console.log(`[v4 trackInventory] Set stock_movement.tracked on ${filled} pre-v4 row(s).`);
     return filled;
-}
-
-/**
- * @description
- * Throws if the v4.0 inventory tracking data migration has not run yet, i.e. if
- * `global_settings.trackInventory` still holds the pre-v4 value.
- *
- * Vendure calls it on startup. Without it, a v3 database upgraded without the migration helpers,
- * for example with `synchronize` left on, would start with every Channel's stored
- * `trackInventory` (usually `true`) in force instead of the v3 global setting: a shop which did not
- * track inventory would start allocating, and limiting sales by, stock it never maintained. It
- * only reads, and finds nothing on databases created by v4 or already migrated.
- *
- * @internal
- */
-export async function assertTrackInventoryMigrated(queryRunner: QueryRunner): Promise<void> {
-    const esc = (name: string) => queryRunner.connection.driver.escape(name);
-    const escTable = (qualified: string) => qualified.split('.').map(esc).join('.');
-    const globalSettingsTable = qualifiedTableName(queryRunner, 'global_settings');
-    if (
-        !(await queryRunner.hasTable(globalSettingsTable)) ||
-        !(await queryRunner.hasColumn(globalSettingsTable, 'trackInventory'))
-    ) {
-        return;
-    }
-    const pending: unknown[] = await queryRunner.query(
-        `SELECT 1 FROM ${escTable(globalSettingsTable)} WHERE ${esc('trackInventory')} IS NOT NULL`,
-    );
-    if (pending.length) {
-        throw new Error(
-            'The v4 inventory tracking data migration has not run: GlobalSettings.trackInventory still ' +
-                'holds its v3 value. Call migrateTrackInventoryToChannels() from your v4 migration. See ' +
-                'https://docs.vendure.io/current/framework/developer-guide/migrating-from-v3/inventory-tracking',
-        );
-    }
 }

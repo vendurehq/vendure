@@ -435,15 +435,36 @@ export class ProductVariantService {
         return stockOnHand - stockAllocated - resolveOutOfStockThreshold(variant, ctx.channel);
     }
 
+    /**
+     * The lowest value `stockOnHand` may be set to. `stockOnHand` is shared by every Channel of the
+     * variant, so when the variant uses the Channel threshold, the lowest threshold of its
+     * Channels applies: the same update must not pass in one Channel and fail in another.
+     */
     private async getOutOfStockThreshold(ctx: RequestContext, variant: ProductVariant): Promise<number> {
         // Tracked if the variant/Channel says so, or if any of its StockLevels overrides that to
         // tracked: the same rule the stock lock uses.
         const tracked = (await this.stockLevelService.getTrackedVariantIds(ctx, [variant.id])).length > 0;
         if (!tracked) {
             return 0;
-        } else {
-            return resolveOutOfStockThreshold(variant, ctx.channel);
         }
+        if (!variant.useGlobalOutOfStockThreshold) {
+            return variant.outOfStockThreshold;
+        }
+        // Read separately rather than as a relation of the variant being updated, so that saving
+        // the variant cannot touch its Channel assignments.
+        const channels = await this.connection
+            .getRepository(ctx, Channel)
+            .createQueryBuilder('channel')
+            .innerJoin('channel.productVariants', 'variant', 'variant.id = :variantId', {
+                variantId: variant.id,
+            })
+            .select(['channel.id', 'channel.outOfStockThreshold'])
+            .getMany();
+        return Math.min(
+            ...(channels.length ? channels : [ctx.channel]).map(channel =>
+                resolveOutOfStockThreshold(variant, channel),
+            ),
+        );
     }
 
     /**

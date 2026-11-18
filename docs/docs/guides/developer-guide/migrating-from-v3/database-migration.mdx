@@ -151,6 +151,8 @@ While v3 and v4 servers both run, do not change Roles, Administrators, API keys 
 
 A Customer who registers on a v4 server meanwhile sees errors on the remaining v3 servers. See [the role assignments guide](/developer-guide/migrating-from-v3/role-assignments#during-a-rolling-deployment).
 
+The inventory tracking and out-of-stock threshold helpers clear the v3 Global Settings columns, so the remaining v3 servers stop applying those settings. If your shop depends on either one, stop every v3 server first. See [the inventory tracking guide](/developer-guide/migrating-from-v3/inventory-tracking#during-a-rolling-deployment).
+
 ### Removing the legacy tables
 
 Once no v3 server or worker is running, add a second migration file to your migrations folder by hand, and run it with `npx vendure migrate --run`:

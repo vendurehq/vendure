@@ -5,12 +5,11 @@ import { TransactionalConnection } from '../connection/transactional-connection'
 import { Administrator } from '../entity/administrator/administrator.entity';
 import { EventBus } from '../event-bus';
 import { InitializerEvent } from '../event-bus/events/initializer-event';
-import { assertOutOfStockThresholdMigrated } from '../migration-utils/v4_0_out_of_stock_threshold';
+import { assertGlobalStockSettingsMigrated } from '../migration-utils/v4_0_global_stock_settings';
 import {
     ensureRoleAssignmentDataMigrated,
     hasLegacyRoleTables,
 } from '../migration-utils/v4_0_role_assignments';
-import { assertTrackInventoryMigrated } from '../migration-utils/v4_0_track_inventory';
 
 import { AdministratorService } from './services/administrator.service';
 import { ChannelService } from './services/channel.service';
@@ -100,14 +99,13 @@ export class InitializerService {
     /**
      * Refuses to start on a v3 database whose inventory tracking or out-of-stock threshold
      * setting has not been moved from the GlobalSettings to the Channels (see
-     * assertTrackInventoryMigrated and assertOutOfStockThresholdMigrated). The migrations
-     * themselves run from the user's v4 migration, not here.
+     * assertGlobalStockSettingsMigrated). The error names every helper still to be called. The
+     * migrations themselves run from the user's v4 migration, not here.
      */
     private async assertStockSettingsMigrated() {
         const queryRunner = this.connection.rawConnection.createQueryRunner();
         try {
-            await assertTrackInventoryMigrated(queryRunner);
-            await assertOutOfStockThresholdMigrated(queryRunner);
+            await assertGlobalStockSettingsMigrated(queryRunner);
         } finally {
             await queryRunner.release();
         }
