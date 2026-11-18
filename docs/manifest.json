@@ -109,7 +109,7 @@
           "title": "Inventory",
           "slug": "stock-control",
           "file": "docs/guides/core-concepts/stock-control/index.mdx",
-          "lastModified": "2026-11-16T14:01:12+01:00"
+          "lastModified": "2026-11-18T10:53:30+01:00"
         },
         {
           "title": "Currency",
@@ -307,13 +307,13 @@
               "title": "Database Migration",
               "slug": "database-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/database-migration.mdx",
-              "lastModified": "2026-11-17T09:58:25+01:00"
+              "lastModified": "2026-11-18T10:53:30+01:00"
             },
             {
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-17T19:55:26+01:00"
+              "lastModified": "2026-11-18T10:53:30+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-17T11:14:10+01:00"
+          "lastModified": "2026-11-18T10:53:30+01:00"
         },
         {
           "title": "Worker & Job Queue",
@@ -5156,7 +5156,7 @@
               "title": "Products",
               "slug": "products",
               "file": "docs/user-guide/catalog/products.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-11-18T10:53:30+01:00"
             },
             {
               "title": "Facets",
@@ -5214,7 +5214,7 @@
               "title": "Global Settings",
               "slug": "global-settings",
               "file": "docs/user-guide/settings/global-settings.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-11-18T10:53:30+01:00"
             },
             {
               "title": "Administrators & Roles",
@@ -5226,7 +5226,7 @@
               "title": "Channels",
               "slug": "channels",
               "file": "docs/user-guide/settings/channels.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-11-18T10:53:30+01:00"
             },
             {
               "title": "Countries & Zones",
