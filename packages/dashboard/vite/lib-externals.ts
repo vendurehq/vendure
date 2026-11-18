@@ -69,6 +69,15 @@ export const singletonSharedDepNames: string[] = [
 ];
 
 /**
+ * Bare specifiers of the React {@link runtimePeers} that the bundle imports. In a project the
+ * bundle sits in node_modules, and Vite doesn't discover the dependencies of files there. These
+ * are CommonJS, so the consumer dev server must pre-bundle them (`optimizeDeps.include`), or the
+ * browser gets e.g. `react-dom/client` raw and fails with "does not provide an export named
+ * 'createRoot'".
+ */
+export const reactRuntimeDepNames: string[] = ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'];
+
+/**
  * The full external list for the dashboard bundle build.
  */
 export const dashboardBundleExternals: Array<string | RegExp> = [

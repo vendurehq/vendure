@@ -1,4 +1,4 @@
-import { DashboardRouteDefinition } from '@/vdb/framework/extension-api/types';
+import { DashboardRouteDefinition } from '@vendure/dashboard';
 import { z } from 'zod';
 
 const schema = z.object({

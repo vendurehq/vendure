@@ -6,7 +6,7 @@ import {
 import { Button } from '@/vdb/components/ui/button.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import { EmptyMediaIllustration, ErrorIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
-import { Input } from '@/vdb/components/ui/input.js';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/vdb/components/ui/input-group.js';
 import {
     Pagination,
     PaginationContent,
@@ -430,12 +430,12 @@ export function AssetGallery({
 
     return (
         <>
-            <div className={`relative flex flex-col w-full ${fixedHeight ? 'h-[600px]' : 'h-full'} ${className}`}>
+            <div className={`relative isolate flex flex-col w-full ${fixedHeight ? 'h-[600px]' : 'h-full'} ${className}`}>
             {showHeader && (
                 <div className="space-y-4 mb-4 flex-shrink-0">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                         {viewMode === 'grid' && (
-                            <div className="min-w-0 flex-1">
+                            <div className="flex min-h-8.5 min-w-0 flex-1 flex-col justify-center">
                                 {/* Replace-on-select: while assets are selected the bulk
                                     bar takes the search bar's place, matching the data
                                     table's list-view treatment. */}
@@ -450,38 +450,40 @@ export function AssetGallery({
                                             />
                                         </motion.div>
                                     ) : (
-                                        <motion.div key="search" {...headerRowFade} className="relative">
-                                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                placeholder={t`Search assets...`}
-                                                value={search}
-                                                onChange={e => {
-                                                    setSearch(e.target.value);
-                                                    setPage(1);
-                                                }}
-                                                className="pl-8 pr-9"
-                                            />
-                                            {hasActiveFilters && (
-                                                <Tooltip>
-                                                    <TooltipTrigger
-                                                        render={
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon-sm"
-                                                                onClick={clearFilters}
-                                                                className="absolute right-1 top-1"
-                                                                aria-label={t`Clear filters`}
-                                                            />
-                                                        }
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <Trans>Clear filters</Trans>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
+                                        <motion.div key="search" {...headerRowFade}>
+                                            <InputGroup>
+                                                <InputGroupAddon>
+                                                    <Search />
+                                                </InputGroupAddon>
+                                                <InputGroupInput
+                                                    placeholder={t`Search assets...`}
+                                                    value={search}
+                                                    onChange={e => {
+                                                        setSearch(e.target.value);
+                                                        setPage(1);
+                                                    }}
+                                                />
+                                                {hasActiveFilters && (
+                                                    <InputGroupAddon align="inline-end">
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                render={
+                                                                    <InputGroupButton
+                                                                        size="icon-xs"
+                                                                        onClick={clearFilters}
+                                                                        aria-label={t`Clear filters`}
+                                                                    />
+                                                                }
+                                                            >
+                                                                <X />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <Trans>Clear filters</Trans>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </InputGroupAddon>
+                                                )}
+                                            </InputGroup>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -534,6 +536,7 @@ export function AssetGallery({
                                         }
                                     }}
                                     variant="outline"
+                                    aria-label={t`View`}
                                 >
                                     <ToggleGroupItem value="grid" aria-label={t`Grid view`}>
                                         <LayoutGrid className="h-4 w-4" />

@@ -256,8 +256,8 @@ msgstr "이 옵션을 활성화하면 상품 카탈로그에 입력된 가격에
 #~ msgid "Create variants for your product"
 #~ msgstr "상품 변형 생성"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "스토어프런트"
 
@@ -1869,6 +1869,10 @@ msgstr "주문의 고객 설정 실패: {0}"
 
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+msgstr ""
+
+#: src/lib/components/layout/dev-mode-indicator.tsx
+msgid "Turn off dev mode"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4040,6 +4044,10 @@ msgstr "작업 큐"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "닫기 전에 API 키를 저장했는지 확인하세요."
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "View"
+msgstr ""
+
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
 msgstr "삭제 확인"
@@ -5994,6 +6002,11 @@ msgstr "수정 취소"
 #~ msgid "Same window"
 #~ msgstr "같은 창"
 
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-filter-badge.tsx
+msgid "Remove filter"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "테이블에 필터를 적용하고 \"뷰 저장\"을 클릭하여 시작하세요."
@@ -6410,6 +6423,10 @@ msgstr "그룹에서 고객을 제거하지 못했습니다"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #~ msgid "Failed to upload {0} assets"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
+msgid "Change state"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"

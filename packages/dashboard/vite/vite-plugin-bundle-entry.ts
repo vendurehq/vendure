@@ -6,14 +6,14 @@ import { Plugin } from 'vite';
  * (`/src/app/main.tsx`) to the pre-built ESM bundle
  * (`/dist/bundle/main.js`).
  *
- * The bundle does not import any CSS. Instead, the dashboard's source
+ * The bundle contains no CSS. Instead, the dashboard's source
  * `styles.css` is imported right after the bundle, so the consumer's Tailwind +
  * themeVariables pipeline processes it exactly as in source-shipping mode. The
  * `dashboardTailwindSourcePlugin` adds a `@source` for the bundle, so the
  * dashboard's own utility classes are generated along with the extension ones.
  *
- * Active only when `useExperimentalBundle` is enabled on
- * {@link vendureDashboardPlugin}. The bundle is generated at publish time by
+ * Active in `bundle` mode, which is the only mode outside the Vendure repo (see
+ * `DashboardMode`). The bundle is generated at publish time by
  * `vite.lib.config.mts` and shipped inside the npm package.
  */
 export function bundleEntryPlugin(): Plugin {
@@ -37,10 +37,9 @@ export function bundleEntryPlugin(): Plugin {
                 // and `@tailwindcss/vite` (a plain <link> bypasses those hooks and the
                 // virtual `@import 'virtual:admin-theme'` directives fail to resolve).
                 //
-                // We deliberately do NOT load the pre-built `dist/bundle/dashboard.css`
-                // next to it: two Tailwind outputs with the same utilities in two
-                // stylesheets break the cascade order of equal-specificity rules
-                // (e.g. `.w-fit` would win over `*:w-full`).
+                // The bundle contains no CSS (see vite.lib.config.mts). A second, pre-built
+                // Tailwind output next to this one would break the cascade order of
+                // equal-specificity rules (e.g. `.w-fit` would win over `*:w-full`).
                 //
                 // The import comes after the bundle, so the stylesheet is added after
                 // the styles that libraries (e.g. sonner) inject when imported — the

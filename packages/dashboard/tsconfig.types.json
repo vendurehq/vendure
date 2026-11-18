@@ -1,0 +1,19 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "outDir": "./dist/types",
+        "rootDir": "./src",
+        "skipLibCheck": true,
+        "plugins": []
+    },
+    "include": ["./src/lib/**/*", "./src/vite-env.d.ts"],
+    "exclude": [
+        "./src/**/*.spec.ts",
+        "./src/**/*.spec.tsx",
+        "./src/**/*.stories.ts",
+        "./src/**/*.stories.tsx"
+    ]
+}

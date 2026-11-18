@@ -345,10 +345,7 @@ export const PaginatedListDataTableKey = 'PaginatedListDataTable';
  *
  * @example
  * ```tsx
- * import { Money } from '\@/vdb/components/data-display/money.js';
- * import { PaginatedListDataTable } from '\@/vdb/components/shared/paginated-list-data-table.js';
- * import { Badge } from '\@/vdb/components/ui/badge.js';
- * import { Button } from '\@/vdb/components/ui/button.js';
+ * import { Badge, Button, Money, PaginatedListDataTable } from '\@vendure/dashboard';
  * import { Link } from '\@tanstack/react-router';
  * import { ColumnFiltersState, SortingState } from '\@tanstack/react-table';
  * import { useState } from 'react';

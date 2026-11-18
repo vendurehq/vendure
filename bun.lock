@@ -304,6 +304,7 @@
         "@vendure-io/design-lint": "^1.0.0",
         "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1",
+        "es-module-lexer": "^2.3.2",
         "eslint": "^9.39.0",
         "eslint-plugin-react": "^7.37.4",
         "eslint-plugin-react-hooks": "^5.0.0",

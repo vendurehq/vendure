@@ -22,8 +22,9 @@ const PORT = 5188;
  *
  * Opt-in (`RUN_BUNDLE_AUDIT=true`, set by `npm run audit:bundle`): it boots a
  * real Vite dev server with cold dep-optimization, which is too slow and load-
- * sensitive to run in the standard unit suite. The artifact-level guard in
- * `bundle-singleton.spec.ts` runs on every push instead.
+ * sensitive to run in the standard unit suite. CI runs it in the dashboard e2e
+ * job. The artifact-level guard in `bundle-singleton.spec.ts` runs with the unit
+ * tests.
  */
 describe.skipIf(process.env.RUN_BUNDLE_AUDIT !== 'true')('bundle singleton dev serving', () => {
     let libJs: string;
@@ -69,7 +70,7 @@ async function startDevServer(): Promise<{ port: number; stop: () => void }> {
         detached: true,
         env: {
             ...process.env,
-            VITE_USE_EXPERIMENTAL_BUNDLE: 'true',
+            VITE_DASHBOARD_BUNDLE: 'true',
             VENDURE_CONFIG_PATH: fixtureConfig,
             VITE_ADMIN_API_PORT: '3000',
         },
@@ -77,16 +78,26 @@ async function startDevServer(): Promise<{ port: number; stop: () => void }> {
 
     const stop = () => {
         try {
-            process.kill(-child.pid!, 'SIGTERM');
+            process.kill(-child.pid, 'SIGTERM');
         } catch {
             // already gone
         }
     };
 
+    // Kept so that a failure to start shows what the server printed
+    let output = '';
+    child.stdout?.on('data', (buf: Buffer) => (output += buf.toString()));
+    child.stderr?.on('data', (buf: Buffer) => (output += buf.toString()));
     await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('Vite dev server did not start in time')), 60_000);
-        const onData = (buf: Buffer) => {
-            if (buf.toString().includes(`localhost:${PORT}`)) {
+        const timer = setTimeout(() => {
+            stop();
+            reject(new Error(`Vite dev server did not start in time. Output:\n${output.slice(-3000)}`));
+        }, 60_000);
+        const onData = () => {
+            // Vite prints the port in bold, and picocolors turns colors on when `CI` is set,
+            // so the color codes are removed before matching.
+            // eslint-disable-next-line no-control-regex
+            if (output.replace(/\x1b\[[0-9;]*m/g, '').includes(`localhost:${PORT}`)) {
                 clearTimeout(timer);
                 child.stdout?.off('data', onData);
                 resolve();
@@ -95,7 +106,7 @@ async function startDevServer(): Promise<{ port: number; stop: () => void }> {
         child.stdout?.on('data', onData);
         child.on('exit', code => {
             clearTimeout(timer);
-            reject(new Error(`Vite dev server exited early (code ${code})`));
+            reject(new Error(`Vite dev server exited early (code ${code}). Output:\n${output.slice(-3000)}`));
         });
     });
 
