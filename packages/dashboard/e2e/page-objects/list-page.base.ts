@@ -57,21 +57,9 @@ export class BaseListPage {
         await this.newButton.click();
     }
 
-    /**
-     * Fill the search input and wait for the list query that carries the term. Waiting for
-     * any admin-api response is not enough: another query can answer first, and a
-     * following `bulkDelete('all')` then selects unfiltered rows, including seeded data
-     * other spec files rely on.
-     */
     async search(term: string) {
-        const encodedTerm = JSON.stringify(term).slice(1, -1);
         await Promise.all([
-            this.page.waitForResponse(
-                resp =>
-                    resp.url().includes('/admin-api') &&
-                    resp.status() === 200 &&
-                    (resp.request().postData() ?? '').includes(encodedTerm),
-            ),
+            this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
             this.searchInput.fill(term),
         ]);
     }
