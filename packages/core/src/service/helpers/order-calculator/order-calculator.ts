@@ -384,7 +384,8 @@ export class OrderCalculator {
             const candidates = currentMethodQuotes.length
                 ? [{ method: currentShippingMethod, result: currentMethodQuotes[0] }, ...otherMethods]
                 : otherMethods;
-            const cheapest = candidates.sort((a, b) => a.result.price - b.result.price)[0];
+            candidates.sort((a, b) => a.result.price - b.result.price);
+            const cheapest = candidates[0];
             if (cheapest) {
                 setShippingLineOption(shippingLine, cheapest.method, cheapest.result);
             } else {

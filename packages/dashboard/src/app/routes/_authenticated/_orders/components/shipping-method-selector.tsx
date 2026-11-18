@@ -97,28 +97,27 @@ function ShippingOptionRadioGroup({
     onSelect: (selection: ShippingMethodSelection) => void;
 }>) {
     return (
-        // Choosing an option must not also trigger the card's click, which selects the cheapest option
-        <div onClick={event => event.stopPropagation()}>
-            <RadioGroup
-                value={value}
-                onValueChange={code =>
-                    onSelect({ shippingMethodId: method.id, shippingOptionCode: code as string })
-                }
-                className="gap-2"
-            >
-                {method.options.map(option => {
-                    const id = `shipping-option-${method.id}-${option.code}`;
-                    return (
-                        <Field key={option.code} orientation="horizontal" className="gap-2">
-                            <RadioGroupItem value={option.code ?? ''} id={id} />
-                            <FieldLabel htmlFor={id} className="flex-1 justify-between font-normal">
-                                <span>{option.name ?? option.code}</span>
-                                <Money value={option.priceWithTax} currency={currencyCode} />
-                            </FieldLabel>
-                        </Field>
-                    );
-                })}
-            </RadioGroup>
-        </div>
+        <RadioGroup
+            value={value}
+            // Choosing an option must not also trigger the card's click, which selects the cheapest option
+            onClick={event => event.stopPropagation()}
+            onValueChange={code =>
+                onSelect({ shippingMethodId: method.id, shippingOptionCode: code as string })
+            }
+            className="gap-2"
+        >
+            {method.options.map(option => {
+                const id = `shipping-option-${method.id}-${option.code}`;
+                return (
+                    <Field key={option.code} orientation="horizontal" className="gap-2">
+                        <RadioGroupItem value={option.code ?? ''} id={id} />
+                        <FieldLabel htmlFor={id} className="flex-1 justify-between font-normal">
+                            <span>{option.name ?? option.code}</span>
+                            <Money value={option.priceWithTax} currency={currencyCode} />
+                        </FieldLabel>
+                    </Field>
+                );
+            })}
+        </RadioGroup>
     );
 }
