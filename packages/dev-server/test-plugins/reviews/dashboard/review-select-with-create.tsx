@@ -1,12 +1,20 @@
-import { Button } from '@/vdb/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/vdb/components/ui/dialog';
-import { Field, FieldError, FieldLabel } from '@/vdb/components/ui/field';
-import { Form } from '@/vdb/components/ui/form';
-import { Input } from '@/vdb/components/ui/input';
-import { Textarea } from '@/vdb/components/ui/textarea';
-import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types';
-import { handleNestedFormSubmit } from '@/vdb/framework/form-engine/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+    Button,
+    DashboardFormComponentProps,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    Field,
+    FieldError,
+    FieldLabel,
+    Form,
+    handleNestedFormSubmit,
+    Input,
+    Textarea,
+} from '@vendure/dashboard';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -37,9 +45,7 @@ export function ReviewSelectWithCreate(props: DashboardFormComponentProps) {
         <div>
             <ReviewMultiSelect {...props}></ReviewMultiSelect>
             <Dialog>
-                <DialogTrigger render={<Button variant="outline" />}>
-                    Create new
-                </DialogTrigger>
+                <DialogTrigger render={<Button variant="outline" />}>Create new</DialogTrigger>
 
                 <DialogContent>
                     <DialogHeader>

@@ -1,6 +1,9 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { init, parse } from 'es-module-lexer';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+
+import { viteConfigPlugin } from '../vite-plugin-config.js';
 
 import { buildShippedBundle } from './utils/build-shipped-bundle.js';
 import { auditBundleSingletons, BundleSingletonAudit } from './utils/bundle-singleton-audit.js';
@@ -9,8 +12,7 @@ import { auditBundleSingletons, BundleSingletonAudit } from './utils/bundle-sing
 const packageRoot = join(__dirname, '..', '..');
 
 /**
- * Guards the singleton-sharing contract of the experimental pre-built bundle
- * (`useExperimentalBundle`). A context/singleton library frozen into the bundle
+ * Guards the singleton-sharing contract of the pre-built bundle. A context/singleton library frozen into the bundle
  * AND re-bundled by a consumer's extension build exists as two live module
  * instances at runtime, which breaks React Context identity — the "No
  * QueryClient set" family of bugs. See issue #4919 and vite/lib-externals.ts.
@@ -39,6 +41,47 @@ describe('bundle singleton duplication', () => {
         expect(
             audit.externalRequires,
             `__require() of an external in dist/bundle: ${audit.externalRequires.join(', ')}`,
+        ).toEqual([]);
+    });
+
+    // The project builds the dashboard's styles.css with its own Tailwind and theme plugins,
+    // and public/ is served from the package root, so the bundle has nothing but JavaScript.
+    it('contains only JavaScript', async () => {
+        const bundleDir = join(packageRoot, 'dist/bundle');
+        const files = [
+            ...(await readdir(bundleDir)),
+            ...(await readdir(join(bundleDir, 'chunks'))).map(f => `chunks/${f}`),
+        ];
+        expect(files.filter(f => f !== 'chunks' && !f.endsWith('.js'))).toEqual([]);
+    });
+
+    // In a project the bundle is in node_modules, where Vite doesn't discover missing
+    // dependencies. An external that is not pre-bundled reaches the browser raw, and a
+    // CommonJS one then fails to load (e.g. react-dom/client: "does not provide an export
+    // named 'createRoot'").
+    it('pre-bundles every package that the bundle imports, in bundle mode', async () => {
+        await init;
+        const bundleDir = join(packageRoot, 'dist/bundle');
+        const files = [
+            ...(await readdir(bundleDir)).filter(f => f.endsWith('.js')).map(f => join(bundleDir, f)),
+            ...(await readdir(join(bundleDir, 'chunks'))).map(f => join(bundleDir, 'chunks', f)),
+        ];
+        const imported = new Set<string>();
+        for (const file of files) {
+            const [imports] = parse(await readFile(file, 'utf-8'));
+            for (const { n } of imports) {
+                if (n && !n.startsWith('.') && !n.startsWith('/') && !n.startsWith('virtual:')) {
+                    imported.add(n);
+                }
+            }
+        }
+        expect(imported.size).toBeGreaterThan(0);
+        const config = (viteConfigPlugin({ packageRoot }).config as any)({}, { command: 'serve' });
+        const included = new Set<string>(config.optimizeDeps.include);
+        const missing = [...imported].filter(dep => !included.has(dep));
+        expect(
+            missing,
+            `Imported by dist/bundle but not in optimizeDeps.include: ${missing.join(', ')}`,
         ).toEqual([]);
     });
 
@@ -72,7 +115,8 @@ function formatAuditTable(audit: BundleSingletonAudit): string {
 }
 
 async function writeAuditReport(audit: BundleSingletonAudit): Promise<void> {
-    const outDir = join(packageRoot, 'dist');
+    // Outside `dist`, so that the report is never published with the package
+    const outDir = join(packageRoot, 'vite/tests/__temp');
     await mkdir(outDir, { recursive: true });
     await writeFile(
         join(outDir, 'bundle-singleton-audit.json'),

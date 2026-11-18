@@ -40,6 +40,13 @@ export interface LinguiBabelPluginOptions {
 const LINGUI_MACRO_IMPORT = /@lingui\/(?:[a-z]+\/)?macro/;
 
 /**
+ * Matches the dashboard's pre-built bundle, in an installed package or in the Vendure repo.
+ * Its macros were compiled when it was built, but it keeps doc comments with example macro
+ * imports, which would otherwise send a 500 KB chunk through Babel on every build.
+ */
+const DASHBOARD_BUNDLE = /[\\/](?:@vendure|packages)[\\/]dashboard[\\/]dist[\\/]bundle[\\/]/;
+
+/**
  * @description
  * A custom Vite plugin that transforms Lingui macros in files using Babel instead of SWC.
  *
@@ -114,6 +121,10 @@ export function linguiBabelPlugin(options?: LinguiBabelPluginOptions): Plugin {
         // Strip query params for path matching (Vite adds ?v=xxx for cache busting)
         const cleanId = id.split('?')[0];
 
+        if (DASHBOARD_BUNDLE.test(cleanId)) {
+            return false;
+        }
+
         if (!cleanId.includes('node_modules')) {
             return true;
         }
@@ -162,10 +173,10 @@ export function linguiBabelPlugin(options?: LinguiBabelPluginOptions): Plugin {
                 plugins: [require.resolve('@lingui/babel-plugin-lingui-macro')],
                 parallel: options?.parallel ?? env.command === 'build',
                 // The default `exclude` skips everything in node_modules. The node_modules allowlist
-                // is applied in `shouldTransform` instead, so only Rolldown's runtime helper is
-                // excluded here. Babel evaluates this option too, inside the workers, so it must be
+                // is applied in `shouldTransform` instead, so only Rolldown's runtime helper and the
+                // dashboard's pre-built bundle are excluded here. Babel evaluates this option too, inside the workers, so it must be
                 // cloneable (no functions).
-                exclude: [/^\0rolldown\/runtime\.js$/],
+                exclude: [/^\0rolldown\/runtime\.js$/, DASHBOARD_BUNDLE],
                 // @rolldown/plugin-babel only enables the TypeScript parser for .ts and .tsx files;
                 // .mts and .cts files are TypeScript too (without JSX).
                 overrides: [{ include: /\.[cm]ts(?:$|\?)/, parserOpts: { plugins: ['typescript'] } }],

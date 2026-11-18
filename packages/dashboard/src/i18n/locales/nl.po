@@ -256,8 +256,8 @@ msgstr "Wanneer dit is ingeschakeld, worden de prijzen die in de productcatalogu
 #~ msgid "Create variants for your product"
 #~ msgstr "Maak varianten aan voor uw product"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "Webwinkels"
 
@@ -1881,6 +1881,10 @@ msgstr "Instellen van klant voor bestelling mislukt: {0}"
 
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+msgstr ""
+
+#: src/lib/components/layout/dev-mode-indicator.tsx
+msgid "Turn off dev mode"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4052,6 +4056,10 @@ msgstr "Taakwachtrij"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "Bevestig dat u de API Key hebt opgeslagen voordat u sluit."
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "View"
+msgstr ""
+
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
 msgstr "Verwijdering bevestigen"
@@ -6030,6 +6038,11 @@ msgstr "Wijziging annuleren"
 #~ msgid "Same window"
 #~ msgstr "Zelfde venster"
 
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-filter-badge.tsx
+msgid "Remove filter"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "Pas filters toe op de tabel en klik op \"Weergave opslaan\" om te beginnen."
@@ -6458,6 +6471,10 @@ msgstr "Klanten konden niet uit de groep worden verwijderd"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #~ msgid "Failed to upload {0} assets"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
+msgid "Change state"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"

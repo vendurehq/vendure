@@ -4,7 +4,7 @@ generated: true
 ---
 ## PaginatedListDataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="445" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="442" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -18,10 +18,7 @@ The automatic features can be further customized and enhanced using the many opt
 *Example*
 
 ```tsx
-import { Money } from '@/vdb/components/data-display/money.js';
-import { PaginatedListDataTable } from '@/vdb/components/shared/paginated-list-data-table.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
-import { Button } from '@/vdb/components/ui/button.js';
+import { Badge, Button, Money, PaginatedListDataTable } from '@vendure/dashboard';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { useState } from 'react';

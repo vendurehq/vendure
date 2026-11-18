@@ -165,8 +165,8 @@ async function buildExtensionCode(packageRoot: string, candidates: SingletonCand
             plugins: [
                 react(),
                 // Provides the `@vendure/dashboard` → dist/bundle/lib.js alias
-                // that a consumer project uses in experimental-bundle mode.
-                viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+                // that a consumer project uses.
+                viteConfigPlugin({ packageRoot }),
                 // Externalises the runtime peers the way vite.lib.config.mts does, including
                 // CommonJS `require()` calls of them.
                 esmExternalRequirePlugin({ external: runtimePeers }),

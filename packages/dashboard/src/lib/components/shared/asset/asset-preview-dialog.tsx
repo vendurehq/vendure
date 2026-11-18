@@ -28,8 +28,8 @@ export function AssetPreviewDialog({
 }: AssetPreviewDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[800px] lg:max-w-[95vw] w-[95vw] p-0">
-                <DialogHeader className="p-6 pb-0">
+            <DialogContent className="sm:max-w-[800px] lg:max-w-[95vw] w-[95vw]">
+                <DialogHeader>
                     <DialogTitle>
                         <Trans>Asset</Trans>
                     </DialogTitle>
@@ -37,7 +37,7 @@ export function AssetPreviewDialog({
                         <Trans>Preview of {asset.name}</Trans>
                     </DialogDescription>
                 </DialogHeader>
-                <div className="h-full p-6">
+                <div className="h-full">
                     <AssetPreview
                         asset={asset}
                         assets={assets}

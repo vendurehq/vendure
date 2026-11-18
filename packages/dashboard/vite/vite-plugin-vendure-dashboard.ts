@@ -8,12 +8,9 @@ import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { PluginOption } from 'vite';
 
-import { PathAdapter } from './types.js';
+import { DashboardMode, PathAdapter } from './types.js';
 import { PackageScannerConfig } from './utils/compiler.js';
-import {
-    buildTanstackRouterPluginConfig,
-    TanstackRouterPluginOptions,
-} from './utils/tanstack-router-config.js';
+import { buildTanstackRouterPluginConfig } from './utils/tanstack-router-config.js';
 import { getDefaultTempCompilationDir } from './utils/temp-compilation-dir.js';
 import { adminApiSchemaPlugin } from './vite-plugin-admin-api-schema.js';
 import { bundleEntryPlugin } from './vite-plugin-bundle-entry.js';
@@ -21,6 +18,7 @@ import { chunkHashPlugin } from './vite-plugin-chunk-hash.js';
 import { configLoaderPlugin } from './vite-plugin-config-loader.js';
 import { viteConfigPlugin } from './vite-plugin-config.js';
 import { dashboardMetadataPlugin } from './vite-plugin-dashboard-metadata.js';
+import { deprecatedAliasPlugin } from './vite-plugin-deprecated-alias.js';
 import { gqlTadaPlugin } from './vite-plugin-gql-tada.js';
 import { hmrPlugin } from './vite-plugin-hmr.js';
 import { linguiBabelPlugin } from './vite-plugin-lingui-babel.js';
@@ -111,31 +109,6 @@ export type VitePluginVendureDashboardOptions = {
     tempCompilationDir?: string;
     /**
      * @description
-     * Options passed to the underlying TanStack Router Vite plugin (`tanstackRouter()`). These are
-     * merged on top of the Dashboard's own defaults, letting you override most aspects of the router
-     * plugin's configuration. The `routesDirectory`, `generatedRouteTree` and `routeFileIgnorePattern`
-     * settings are managed by the Dashboard and cannot be overridden (attempts are ignored with a warning).
-     *
-     * A common use case is setting `tmpDir` when your deployment's default temp directory is on a
-     * different device than the checked-out code (e.g. `node_modules` on a separate volume), which
-     * otherwise causes the build to fail with `EXDEV: cross-device link not permitted` during
-     * route-tree generation.
-     *
-     * @example
-     * ```ts
-     * vendureDashboardPlugin({
-     *   vendureConfigPath: './vendure-config.ts',
-     *   tanstackRouterPluginOptions: {
-     *     tmpDir: path.join(packageRoot, '.tanstack-tmp'),
-     *   },
-     * })
-     * ```
-     *
-     * @since 3.7.0
-     */
-    tanstackRouterPluginOptions?: TanstackRouterPluginOptions;
-    /**
-     * @description
      * Allows you to customize the location of node_modules & glob patterns used to scan for potential
      * Vendure plugins installed as npm packages. If not provided, the compiler will attempt to guess
      * the location based on the location of the `@vendure/core` package.
@@ -188,31 +161,6 @@ export type VitePluginVendureDashboardOptions = {
         translations?: boolean;
         hmr?: boolean;
     };
-    /**
-     * @description
-     * **EXPERIMENTAL** — Opt into the pre-bundled dashboard architecture.
-     *
-     * When `true`, the dashboard is loaded from a pre-built ESM bundle
-     * (`@vendure/dashboard/dist/publishable/`) shipped inside the npm package,
-     * instead of being compiled from TypeScript source by your Vite dev server.
-     * This dramatically reduces the number of HTTP requests during `vite dev`
-     * (~3000 raw module fetches → ~40 bundled chunks) which avoids the
-     * Chromium renderer crash reported in issue #4715.
-     *
-     * Trade-offs while this is experimental:
-     * - Some dashboard internals are now opaque to your `vite dev` (no per-file HMR
-     *   for the dashboard itself; extension HMR still works)
-     * - Reports of behavioural regressions are very welcome — this flag exists so
-     *   the bundled mode can be tested in real-world projects alongside the stable
-     *   source-shipping mode.
-     *
-     * This flag will be removed (and the bundled mode will become the default)
-     * once it has been validated across enough real-world setups.
-     *
-     * @default false
-     * @since 3.7.0
-     */
-    useExperimentalBundle?: boolean;
     /**
      * @description
      * Customizes the dashboard's appearance. Override design-token colours for
@@ -270,7 +218,27 @@ type PluginMapEntry = {
  * @docsWeight 0
  */
 export function vendureDashboardPlugin(options: VitePluginVendureDashboardOptions): PluginOption[] {
-    return createDashboardPlugins(options, getDashboardPackageRoot());
+    const packageRoot = getDashboardPackageRoot();
+    const mode = getDashboardMode();
+    if (mode === 'bundle') {
+        assertBundleExists(packageRoot);
+    }
+    return createDashboardPlugins(options, packageRoot, mode);
+}
+
+function getDashboardMode(): DashboardMode {
+    return process.env.VENDURE_DASHBOARD_FROM_SOURCE === 'true' ? 'source' : 'bundle';
+}
+
+function assertBundleExists(packageRoot: string) {
+    const libEntry = path.join(packageRoot, 'dist/bundle/lib.js');
+    if (!fs.existsSync(libEntry)) {
+        throw new Error(
+            `[@vendure/dashboard] The pre-built dashboard bundle was not found at ${libEntry}. ` +
+                `In the Vendure repo, either run "npm run build:lib" in packages/dashboard, or set ` +
+                `VENDURE_DASHBOARD_FROM_SOURCE=true to serve the dashboard from its source.`,
+        );
+    }
 }
 
 /**
@@ -284,6 +252,7 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
 export function createDashboardPlugins(
     options: VitePluginVendureDashboardOptions,
     packageRoot: string,
+    mode: DashboardMode = 'bundle',
 ): PluginOption[] {
     const tempDir = options.tempCompilationDir ?? getDefaultTempCompilationDir();
     const tempInstanceId = `${process.pid}-${randomUUID()}`;
@@ -299,11 +268,11 @@ export function createDashboardPlugins(
 
     const pluginMap: PluginMapEntry[] = [
         {
+            // Generates the route tree of the dashboard's own routes. The bundle already
+            // contains it, so this only runs in source mode. Extension routes are added at
+            // runtime and don't go through this plugin.
             key: 'tanstackRouter',
-            plugin: () =>
-                tanstackRouter(
-                    buildTanstackRouterPluginConfig(packageRoot, options.tanstackRouterPluginOptions),
-                ),
+            plugin: () => mode === 'source' && tanstackRouter(buildTanstackRouterPluginConfig(packageRoot)),
         },
         {
             // Custom plugin that transforms Lingui macros using Babel instead of SWC.
@@ -343,7 +312,7 @@ export function createDashboardPlugins(
             plugin: () =>
                 dashboardTailwindSourcePlugin({
                     packageRoot,
-                    useExperimentalBundle: options.useExperimentalBundle,
+                    mode,
                 }),
         },
         {
@@ -363,12 +332,14 @@ export function createDashboardPlugins(
         },
         {
             key: 'viteConfig',
-            plugin: () =>
+            plugin: () => [
                 viteConfigPlugin({
                     packageRoot,
                     gqlOutputPath: options.gqlOutputPath,
-                    useExperimentalBundle: options.useExperimentalBundle,
+                    mode,
                 }),
+                mode === 'bundle' && deprecatedAliasPlugin({ packageRoot }),
+            ],
         },
         {
             key: 'chunkHash',
@@ -376,7 +347,7 @@ export function createDashboardPlugins(
         },
         {
             key: 'bundleEntry',
-            plugin: () => (options.useExperimentalBundle ? bundleEntryPlugin() : false),
+            plugin: () => mode === 'bundle' && bundleEntryPlugin(),
         },
         {
             key: 'adminApiSchema',

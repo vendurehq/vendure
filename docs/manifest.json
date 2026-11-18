@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-17T11:14:10+01:00"
+              "lastModified": "2026-11-17T16:48:24+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -538,7 +538,7 @@
           "title": "Getting Started",
           "slug": "getting-started",
           "file": "docs/guides/extending-the-dashboard/getting-started/index.mdx",
-          "lastModified": "2026-11-06T13:48:45Z"
+          "lastModified": "2026-11-17T16:48:24+01:00"
         },
         {
           "title": "Extending Overview",
@@ -706,7 +706,7 @@
           "title": "Migration",
           "slug": "migration",
           "file": "docs/guides/extending-the-dashboard/migration/index.mdx",
-          "lastModified": "2026-11-17T11:14:10+01:00"
+          "lastModified": "2026-11-17T16:48:24+01:00"
         },
         {
           "title": "Custom Providers",
@@ -5079,7 +5079,7 @@
                   "title": "PaginatedListDataTable",
                   "slug": "paginated-list-data-table",
                   "file": "docs/reference/dashboard/list-views/paginated-list-data-table.mdx",
-                  "lastModified": "2026-10-08T09:25:09Z"
+                  "lastModified": "2026-11-17T15:49:22Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -5131,7 +5131,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-11-12T15:54:16Z"
+                  "lastModified": "2026-11-17T15:49:22Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

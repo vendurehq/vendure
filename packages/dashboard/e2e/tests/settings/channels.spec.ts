@@ -2,6 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { LoginPage } from '../../page-objects/login-page.js';
 import { closePopup, expectPopupClosed, expectPopupOpen } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -259,9 +260,15 @@ test.describe('Channels CRUD', () => {
     // picks the first available channel and must re-invalidate ['activeChannel']
     // so it refetches under the corrected token. No page.reload() below the
     // initial load: a reload recreates the QueryClient and masks the bug.
-    test('should recover the active channel after deleting the current one', async ({ page }) => {
+    //
+    // Runs in its own browser context, signed in with its own session. Deleting a Channel
+    // deletes the sessions that are active on it, so switching the shared session of the other
+    // tests into the Channel would sign every later test out once the session cache is cleared.
+    test('should recover the active channel after deleting the current one', async ({ browser }) => {
         test.setTimeout(30_000);
         const channelCode = `e2e-active-del-${Date.now()}`;
+        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        const page = await context.newPage();
 
         // Create the channel via the Admin API so the test can focus on the
         // switch/delete/recover flow rather than the long create form.
@@ -296,7 +303,10 @@ test.describe('Channels CRUD', () => {
 
         try {
             // Initial (and only) full load.
-            await page.goto('/');
+            const loginPage = new LoginPage(page);
+            await loginPage.goto();
+            await loginPage.login('superadmin', 'superadmin');
+            await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
             const sidebar = page.locator('[data-slot="sidebar"]');
             const switcherTrigger = sidebar.getByRole('button').first();
             await expect(switcherTrigger).toBeVisible({ timeout: 15_000 });
@@ -340,6 +350,7 @@ test.describe('Channels CRUD', () => {
                     id: createdChannelId,
                 })
                 .catch(() => {});
+            await context.close();
         }
     });
 });
