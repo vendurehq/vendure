@@ -1,4 +1,5 @@
 import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -33,16 +34,16 @@ export function MetricsWidget() {
     const [config, setConfig] = useWidgetConfig<MetricsWidgetConfig>();
     const dataType = config.dataType;
 
-    const dataTypeLabel = useMemo(() => {
-        switch (dataType) {
-            case DATA_TYPES.OrderCount:
-                return t`Order Count`;
-            case DATA_TYPES.OrderTotal:
-                return t`Order Total`;
-            case DATA_TYPES.AverageOrderValue:
-                return t`Average Order Value`;
-        }
-    }, [dataType, t]);
+    const dataTypeOptions = useMemo(
+        () => [
+            { value: DATA_TYPES.OrderCount, label: t`Order Count` },
+            { value: DATA_TYPES.OrderTotal, label: t`Order Total` },
+            { value: DATA_TYPES.AverageOrderValue, label: t`Average Order Value` },
+        ],
+        [t],
+    );
+
+    const dataTypeLabel = dataTypeOptions.find(option => option.value === dataType)?.label;
 
     const { data, refetch, isPending, isError } = useQuery({
         queryKey: [INSIGHTS_WIDGET_QUERY_KEY, 'dashboard-order-metrics', dataType, dateRange],
@@ -80,15 +81,38 @@ export function MetricsWidget() {
             title={t`Metrics`}
             description={t`Order metrics`}
             actions={
-                <Tabs value={dataType} onValueChange={value => setConfig({ dataType: value as DATA_TYPES })}>
-                    <TabsList>
-                        <TabsTrigger value={DATA_TYPES.OrderCount}><Trans>Order Count</Trans></TabsTrigger>
-                        <TabsTrigger value={DATA_TYPES.OrderTotal}><Trans>Order Total</Trans></TabsTrigger>
-                        <TabsTrigger value={DATA_TYPES.AverageOrderValue}>
-                            <Trans>Average Order Value</Trans>
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <>
+                    {/* A narrow card has no room for three tabs, so it offers the same choice as a Select. */}
+                    <Tabs
+                        value={dataType}
+                        onValueChange={value => setConfig({ dataType: value as DATA_TYPES })}
+                        className="@max-md/card-header:hidden"
+                    >
+                        <TabsList>
+                            {dataTypeOptions.map(option => (
+                                <TabsTrigger key={option.value} value={option.value}>
+                                    {option.label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                    <Select
+                        items={Object.fromEntries(dataTypeOptions.map(option => [option.value, option.label]))}
+                        value={dataType}
+                        onValueChange={value => setConfig({ dataType: value as DATA_TYPES })}
+                    >
+                        <SelectTrigger className="hidden @max-md/card-header:flex" aria-label={t`Metrics`}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {dataTypeOptions.map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </>
             }
         >
             {isPending ? (
