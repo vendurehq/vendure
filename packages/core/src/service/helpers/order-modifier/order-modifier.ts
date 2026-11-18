@@ -770,7 +770,7 @@ export class OrderModifier {
         }
         // remove any now-unused ShippingLines
         if (shippingMethodIds.length < order.shippingLines.length) {
-            const shippingLinesToDelete = order.shippingLines.splice(shippingMethodIds.length - 1);
+            const shippingLinesToDelete = order.shippingLines.splice(shippingMethodIds.length);
             await this.connection.getRepository(ctx, ShippingLine).remove(shippingLinesToDelete);
         }
         // assign the ShippingLines to the OrderLines
