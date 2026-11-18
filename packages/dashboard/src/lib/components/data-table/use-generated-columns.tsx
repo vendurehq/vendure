@@ -362,7 +362,7 @@ function getRowActions(
 }
 
 // String fields that hold an identifier a user copies into other places.
-const IDENTIFIER_FIELD_NAMES = new Set(['code', 'slug', 'sku', 'couponCode']);
+const IDENTIFIER_FIELD_NAMES = new Set(['code', 'slug', 'sku', 'couponCode', 'token']);
 
 function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: FieldInfo }) {
     // An empty cell stays blank.

@@ -128,6 +128,12 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('description', {
             header: t`Description`,
+            // A long description is cut to one line, so the table fits its card.
+            cell: ({ getValue }) => (
+                <div className="max-w-80 truncate" title={getValue()}>
+                    {getValue()}
+                </div>
+            ),
         }),
         columnHelper.accessor('enabled', {
             header: t`Status`,
