@@ -4,11 +4,11 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
-import { Separator } from '@/vdb/components/ui/separator.js';
 import { HistoryEntry, HistoryEntryProps } from '@/vdb/framework/history-entry/history-entry.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { EllipsisIcon, PencilIcon, TrashIcon } from 'lucide-react';
 
 interface HistoryNoteEntryProps extends Readonly<HistoryEntryProps> {
@@ -18,6 +18,7 @@ interface HistoryNoteEntryProps extends Readonly<HistoryEntryProps> {
 
 export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
     const { entry, isPrimary, onEditNote, onDeleteNote } = props;
+    const { t } = useLingui();
     return (
         <HistoryEntry {...props}>
             <div className={isPrimary ? 'space-y-2' : 'space-y-1'}>
@@ -33,27 +34,23 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                         </Badge>
                         <DropdownMenu>
                             <DropdownMenuTrigger
-                                render={<Button variant="ghost" size="sm" className="h-6 w-6 p-0" />}
+                                render={<Button variant="ghost" size="icon-xs" aria-label={t`Note actions`} />}
                             >
-                                <EllipsisIcon className="h-3 w-3" />
+                                <EllipsisIcon />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                     onClick={() => {
                                         onEditNote(entry.id, entry.data.note, !entry.isPublic);
                                     }}
-                                    className="cursor-pointer"
                                 >
-                                    <PencilIcon className="mr-2 h-4 w-4" />
+                                    <PencilIcon />
                                     <Trans>Edit</Trans>
                                 </DropdownMenuItem>
-                                <Separator className="my-1" />
-                                <DropdownMenuItem
-                                    onClick={() => onDeleteNote(entry.id)}
-                                    className="cursor-pointer text-destructive focus:text-destructive"
-                                >
-                                    <TrashIcon className="mr-2 h-4 w-4" />
-                                    <span>Delete</span>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem variant="destructive" onClick={() => onDeleteNote(entry.id)}>
+                                    <TrashIcon />
+                                    <Trans>Delete</Trans>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
