@@ -1815,6 +1815,11 @@ async function createNewOrder(client: VendureAdminClient) {
     `,
         { orderId },
     );
+    if (!methods.length) {
+        throw new Error(
+            'No shipping method is eligible for the draft order. A parallel spec may have deleted the seeded methods.',
+        );
+    }
     await client.gql(
         `
         mutation ($orderId: ID!, $methodId: ID!) {
