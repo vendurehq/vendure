@@ -1008,7 +1008,7 @@ export class ProductVariantService {
             unique(inputs.map(input => input.productVariantId)),
             ctx.channelId,
             {
-                relations: ['product', 'productVariantPrices', 'taxCategory'],
+                relations: ['product', 'taxCategory'],
                 where: { deletedAt: IsNull() },
             },
         );
@@ -1102,15 +1102,6 @@ export class ProductVariantService {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             populatePricesPromise = new Promise(async (resolve, reject) => {
                 try {
-                    if (!variant.productVariantPrices?.length) {
-                        const variantWithPrices = await this.connection.getEntityOrThrow(
-                            ctx,
-                            ProductVariant,
-                            variant.id,
-                            { relations: ['productVariantPrices'], includeSoftDeleted: true },
-                        );
-                        variant.productVariantPrices = variantWithPrices.productVariantPrices;
-                    }
                     if (!variant.taxCategory) {
                         const variantWithTaxCategory = await this.connection.getEntityOrThrow(
                             ctx,
@@ -1204,6 +1195,7 @@ export class ProductVariantService {
         const assignedVariantIds: ID[] = [];
         const optionIds: ID[] = [];
         const optionGroupIds: ID[] = [];
+        await this.productPriceApplicator.preloadChannelPrices(ctx, variants);
         for (const variant of variants) {
             if (variant.deletedAt) {
                 continue;

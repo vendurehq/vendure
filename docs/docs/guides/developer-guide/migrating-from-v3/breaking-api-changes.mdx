@@ -31,6 +31,7 @@ rg -n "ApiPlayground|ApiDebug|healthChecks|HealthCheck|HealthIndicator|TaxRateMo
 rg -n "customFulfillmentProcess|customPaymentProcess|Custom(Order|Payment|Fulfillment|Refund)(Process|States)"
 rg -n "getOrderFromContext|addPromotionsToOrder|deleteGroupAndOptionsFromProduct|\.isAuthorized\b"
 rg -n "useExperimentalBundle|tanstackRouterPluginOptions|from '@/(vdb|graphql)/"
+rg -n "productVariantPrices|implements ProductVariantPrice(Selection|Calculation)Strategy"
 ```
 
 | Match | What to do |
@@ -44,6 +45,7 @@ rg -n "useExperimentalBundle|tanstackRouterPluginOptions|from '@/(vdb|graphql)/"
 | `roleIds` in Admin API calls | Works on the active Channel only. Move multi-channel clients to `assignRolesToUser`. See [Admin API](/developer-guide/migrating-from-v3/role-assignments#admin-api). |
 | Anything matched by the three searches before the last | See [Removed deprecated APIs](#removed-deprecated-apis). |
 | `useExperimentalBundle`, `tanstackRouterPluginOptions`, imports from `@/vdb/` or `@/graphql/` | See [The Dashboard is served from its pre-built bundle](#the-dashboard-is-served-from-its-pre-built-bundle). |
+| `productVariantPrices`, a custom `ProductVariantPriceSelectionStrategy` or `ProductVariantPriceCalculationStrategy` | See [ProductVariant prices are loaded per Channel](#productvariant-prices-are-loaded-per-channel). |
 
 **Done when:** every match is updated, and `npx tsc --noEmit` passes.
 
@@ -71,6 +73,20 @@ The default cart pricing now uses the [buyer price](/core-concepts/pricing/#the-
 - When the customer of an active order or a draft order changes, Vendure calculates the price of all lines again, so a custom `OrderItemPriceCalculationStrategy` now also runs for `setCustomerForOrder`, `setCustomerForDraftOrder`, `setOrderCustomer` and the login of a guest. A line that has no price for the new customer keeps its current price.
 - `OrderItemPriceCalculationStrategy.calculateUnitPrice()` has an optional last argument, `options?: { buyer?: Buyer }`. Vendure does not pass it, so existing strategies work without changes. A `StrategyLayer` can pass `options.buyer` to `inner`, and the default strategy then prices the line for that buyer and not for the customer of the order. A custom strategy that calls `calculateBuyerPriceForOrder()` should pass `buyer: options?.buyer` to it. A layer that calls `inner` with its own argument list should pass `options` on. See [the buyer](/core-concepts/pricing/#the-buyer).
 - `DefaultOrderItemPriceCalculationStrategy` is now exported from `@vendure/core`. You can extend or wrap it directly.
+
+## ProductVariant prices are loaded per Channel
+
+`ProductVariant.productVariantPrices` is no longer an eager relation. In v3, every variant Vendure loaded came with one price row per Channel it is assigned to, although a request only needs the rows of its own Channel. With many Channels these rows were most of what a product page, a cart or a checkout read.
+
+Now, when a variant is priced, the [`ProductPriceApplicator`](/reference/typescript-api/service-helpers/product-price-applicator) loads the prices of the active Channel, for all variants priced together in one query. The GraphQL APIs return the same prices as before.
+
+What breaks:
+
+- **Code which reads `variant.productVariantPrices`** after loading a variant with the `TransactionalConnection`, a repository or the `EntityHydrator`, or from an entity event, finds it `undefined` unless the query requested the relation. Request it (`relations: { productVariantPrices: true }`), or call `ProductVariantService.getProductVariantPrices(ctx, variantId)`, which returns the prices of the active Channel.
+- **A custom `ProductVariantPriceSelectionStrategy` or `ProductVariantPriceCalculationStrategy`** now sees only the prices of the active Channel, unless the variant was loaded with others. A strategy which falls back to the price of another Channel, such as the default Channel, has to load that price itself, for example with the `TransactionalConnection` from the `Injector`.
+- **Constructors:** `ProductPriceApplicator` takes a `TransactionalConnection` as its last argument, and `OrderService` a `ProductPriceApplicator`. This only matters if you create them with `new` or subclass them with your own constructor.
+
+Code which prices variants with `ProductPriceApplicator.applyChannelPriceAndTax()` or `ProductVariantService.applyChannelPriceAndTax()` needs no change. When you price variants one after another in a loop, call `ProductPriceApplicator.preloadChannelPrices(ctx, variants)` first, so their prices are loaded in one query rather than one per variant.
 
 ## Inventory tracking
 
