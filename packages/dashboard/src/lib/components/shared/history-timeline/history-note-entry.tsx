@@ -34,7 +34,9 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                         </Badge>
                         <DropdownMenu>
                             <DropdownMenuTrigger
-                                render={<Button variant="ghost" size="icon-xs" aria-label={t`Note actions`} />}
+                                render={
+                                    <Button variant="ghost" size="icon-xs" aria-label={t`Note actions`} />
+                                }
                             >
                                 <EllipsisIcon />
                             </DropdownMenuTrigger>
@@ -48,7 +50,10 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                                     <Trans>Edit</Trans>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem variant="destructive" onClick={() => onDeleteNote(entry.id)}>
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() => onDeleteNote(entry.id)}
+                                >
                                     <TrashIcon />
                                     <Trans>Delete</Trans>
                                 </DropdownMenuItem>
