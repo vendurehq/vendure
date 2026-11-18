@@ -54,18 +54,44 @@ export function toShippingMethodSelections(
 }
 
 /**
- * Whether the Order's ShippingLines still hold the given selections once the Order has been priced.
+ * The ShippingLines which `OrderModifier.setShippingMethods()` has just set, in the order of the
+ * selections, and whether any OrderLine was assigned to each.
+ */
+export type SelectedShippingLine = { id: ID; hasOrderLines: boolean };
+
+export function getSelectedShippingLines(order: Order): SelectedShippingLine[] {
+    return order.shippingLines.map(shippingLine => ({
+        id: shippingLine.id,
+        hasOrderLines: order.lines.some(line => idsAreEqual(line.shippingLineId, shippingLine.id)),
+    }));
+}
+
+/**
+ * Whether each selection is still held by its own ShippingLine once the Order has been priced.
  * OrderCalculator falls back to another option or ShippingMethod when the selected option is not
  * offered, or when the ShippingCalculator returns nothing, which makes the selection a refused one.
+ *
+ * A ShippingLine to which no OrderLine was assigned is removed by the recalculation, as it was
+ * before ShippingOptions existed, and is not a refusal: an empty Order can still have its
+ * ShippingMethod set.
  */
-export function shippingSelectionsKept(order: Order, selections: ShippingMethodSelectionInput[]): boolean {
-    return selections.every(({ shippingMethodId, shippingOptionCode }) =>
-        order.shippingLines.some(
-            line =>
-                idsAreEqual(line.shippingMethodId, shippingMethodId) &&
-                (shippingOptionCode == null || line.shippingOptionCode === shippingOptionCode),
-        ),
-    );
+export function shippingSelectionsKept(
+    selections: ShippingMethodSelectionInput[],
+    selectedLines: SelectedShippingLine[],
+    pricedShippingLines: ShippingLine[],
+): boolean {
+    return selections.every(({ shippingMethodId, shippingOptionCode }, i) => {
+        const selected = selectedLines[i];
+        if (!selected?.hasOrderLines) {
+            return true;
+        }
+        const priced = pricedShippingLines.find(line => idsAreEqual(line.id, selected.id));
+        return (
+            !!priced &&
+            idsAreEqual(priced.shippingMethodId, shippingMethodId) &&
+            (shippingOptionCode == null || priced.shippingOptionCode === shippingOptionCode)
+        );
+    });
 }
 
 /**

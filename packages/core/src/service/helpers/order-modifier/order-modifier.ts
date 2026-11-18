@@ -69,6 +69,8 @@ import { CustomFieldRelationService } from '../custom-field-relation/custom-fiel
 import { OrderCalculator } from '../order-calculator/order-calculator';
 import {
     findShippingOption,
+    getSelectedShippingLines,
+    SelectedShippingLine,
     setShippingLineOption,
     ShippingCalculator,
     shippingSelectionsKept,
@@ -661,12 +663,14 @@ export class OrderModifier {
         const promotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
         const shippingMethodSelections = input.shippingMethods ?? input.shippingMethodIds;
+        let selectedShippingLines: SelectedShippingLine[] = [];
         if (shippingMethodSelections) {
             // The ShippingLines are priced below, once the Order's lines and totals are final
             const result = await this.setShippingMethods(ctx, order, shippingMethodSelections);
             if (isGraphQlErrorResult(result)) {
                 return result;
             }
+            selectedShippingLines = getSelectedShippingLines(result);
         }
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
         for (const orderLine of updatedOrderLines) {
@@ -704,6 +708,7 @@ export class OrderModifier {
                 promotions,
                 updatedOrderLines,
                 shippingMethodSelections,
+                selectedShippingLines,
                 input.options?.recalculateShipping !== false,
             );
             if (shippingError) {
@@ -773,7 +778,10 @@ export class OrderModifier {
      *
      * The ShippingLines are not priced here: the next recalculation of the Order prices each with the
      * option it names, or with the cheapest option when it names none. If the option is not offered,
-     * the recalculation falls back to another one, so check the result afterwards.
+     * the recalculation falls back to another option or ShippingMethod. To detect that, compare the
+     * `shippingMethodId` and `shippingOptionCode` of each returned ShippingLine, by its `id`, with
+     * the selection after the recalculation, as `OrderService.setShippingMethod()` does. A ShippingLine
+     * to which no OrderLine is assigned is removed by the recalculation.
      */
     async setShippingMethods(
         ctx: RequestContext,
@@ -857,6 +865,7 @@ export class OrderModifier {
         promotions: Promotion[],
         updatedOrderLines: OrderLine[],
         shippingMethods: Array<ID | ShippingMethodSelectionInput>,
+        selectedLines: SelectedShippingLine[],
         shippingRecalculated: boolean,
     ): Promise<IneligibleShippingMethodError | undefined> {
         if (!shippingRecalculated) {
@@ -874,7 +883,8 @@ export class OrderModifier {
                 recalculateShippingPromotions: true,
             });
         }
-        if (!shippingSelectionsKept(order, toShippingMethodSelections(shippingMethods))) {
+        const selections = toShippingMethodSelections(shippingMethods);
+        if (!shippingSelectionsKept(selections, selectedLines, order.shippingLines)) {
             return new IneligibleShippingMethodError();
         }
     }

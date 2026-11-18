@@ -551,8 +551,9 @@ describe('ShippingMethod with several options', () => {
         try {
             const result = await setShippingMethods({ shippingMethodId: [assignedLinesMethodId] });
             orderGuard.assertSuccess(result);
-            // One assigned OrderLine, plus 1% of the subTotal
-            expect(result.shippingLines[0].priceWithTax).toBe(1000 + Math.round(result.subTotal / 100));
+            // 3 x T_1 at 1299.00. One assigned OrderLine (1000), plus 1% of the subTotal (3897).
+            expect(result.subTotal).toBe(389700);
+            expect(result.shippingLines[0].priceWithTax).toBe(4897);
         } finally {
             assignedLinesMethodEligible = false;
         }
@@ -776,10 +777,11 @@ describe('ShippingMethod with several options', () => {
                     },
                 });
                 const modified = modifyOrder as any;
-                expect(modified.subTotal).toBeGreaterThan(subTotalBefore);
-                expect(modified.shippingLines[0].priceWithTax).toBe(
-                    1000 + Math.round(modified.subTotal / 100),
-                );
+                // 2 x T_1 becomes 3 x T_1 at 1299.00. One assigned OrderLine (1000), plus 1% of the
+                // modified subTotal (3897), not of the subTotal before the modification (2598).
+                expect(subTotalBefore).toBe(259800);
+                expect(modified.subTotal).toBe(389700);
+                expect(modified.shippingLines[0].priceWithTax).toBe(4897);
             } finally {
                 assignedLinesMethodEligible = false;
             }
@@ -873,6 +875,23 @@ describe('ShippingMethod with several options', () => {
                 id: createDraftOrder.id,
             });
             expect(order?.shippingLines).toEqual([]);
+        });
+
+        it('sets a ShippingMethod on a draft order without lines', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+
+            const { setDraftOrderShippingMethod } = await adminClient.query(
+                setDraftOrderShippingOptionDocument,
+                {
+                    orderId: createDraftOrder.id,
+                    shippingMethodId: carrierMethodId,
+                },
+            );
+
+            // The ShippingLine has no OrderLine to ship, so the recalculation removes it, as it did
+            // before ShippingOptions. That is not a refusal.
+            expect((setDraftOrderShippingMethod as any).errorCode).toBeUndefined();
+            expect((setDraftOrderShippingMethod as any).shippingLines).toEqual([]);
         });
 
         it('sets an option on a draft order', async () => {

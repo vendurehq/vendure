@@ -133,6 +133,7 @@ import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import {
+    getSelectedShippingLines,
     ShippingCalculator,
     shippingSelectionsKept,
     toShippingMethodQuote,
@@ -176,8 +177,12 @@ interface AllowedCancelledTransition {
     finalize: () => Promise<any>;
 }
 
-class RefusedCancellation extends Error {
-    constructor(readonly result: OrderStateTransitionError) {
+/**
+ * Thrown inside `withTransaction()` to roll the transaction back, and caught outside it to return
+ * the error result it carries.
+ */
+class RollbackWithResult<T extends { message: string }> extends Error {
+    constructor(readonly result: T) {
         super(result.message);
     }
 }
@@ -1351,25 +1356,28 @@ export class OrderService implements OnApplicationBootstrap {
             return validationError;
         }
         // In its own transaction (a savepoint inside the request's), so that a refused method or option
-        // leaves the Order exactly as it was, rather than with half-written ShippingLines.
+        // leaves the Order in the database as it was, rather than with half-written ShippingLines.
+        // Events published by promotion side effects during the pricing are not undone.
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
                 const result = await this.orderModifier.setShippingMethods(txCtx, order, shippingMethods);
                 if (isGraphQlErrorResult(result)) {
-                    throw new RefusedShippingSelection(result);
+                    throw new RollbackWithResult(result);
                 }
+                const selectedLines = getSelectedShippingLines(result);
                 const updatedOrder = await this.getOrderOrThrow(txCtx, orderId);
                 // Prices each ShippingLine once, with the option it names, after the promotions and
                 // the assignment of the OrderLines
                 await this.applyPriceAdjustments(txCtx, updatedOrder);
-                if (!shippingSelectionsKept(updatedOrder, toShippingMethodSelections(shippingMethods))) {
-                    throw new RefusedShippingSelection(new IneligibleShippingMethodError());
+                const selections = toShippingMethodSelections(shippingMethods);
+                if (!shippingSelectionsKept(selections, selectedLines, updatedOrder.shippingLines)) {
+                    throw new RollbackWithResult(new IneligibleShippingMethodError());
                 }
                 return this.connection.getRepository(txCtx, Order).save(updatedOrder);
             });
         } catch (e: unknown) {
-            if (e instanceof RefusedShippingSelection) {
-                return e.errorResult;
+            if (e instanceof RollbackWithResult) {
+                return e.result as IneligibleShippingMethodError;
             }
             throw e;
         }
@@ -2037,10 +2045,10 @@ export class OrderService implements OnApplicationBootstrap {
                             'Cancelled',
                         );
                         if (isGraphQlErrorResult(transitionResult)) {
-                            throw new RefusedCancellation(transitionResult);
+                            throw new RollbackWithResult(transitionResult);
                         }
                         if (transitionResult.state !== 'Cancelled') {
-                            throw new RefusedCancellation(
+                            throw new RollbackWithResult(
                                 this.createCancelledTransitionError(txCtx, transitionResult.state),
                             );
                         }
@@ -2049,8 +2057,8 @@ export class OrderService implements OnApplicationBootstrap {
                 return assertFound(this.findOne(txCtx, input.orderId));
             });
         } catch (e: unknown) {
-            if (e instanceof RefusedCancellation) {
-                return e.result;
+            if (e instanceof RollbackWithResult) {
+                return e.result as OrderStateTransitionError;
             }
             throw e;
         }
@@ -3036,15 +3044,5 @@ export class OrderService implements OnApplicationBootstrap {
                 Object.assign(line.customFields, relationIds);
             }
         }
-    }
-}
-
-/**
- * Thrown inside the transaction of `OrderService.setShippingMethod()` to roll it back, and turned
- * into the error result it carries.
- */
-class RefusedShippingSelection extends Error {
-    constructor(readonly errorResult: IneligibleShippingMethodError) {
-        super(errorResult.message);
     }
 }

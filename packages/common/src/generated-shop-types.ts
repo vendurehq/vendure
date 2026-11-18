@@ -3483,8 +3483,8 @@ export type ShippingMethodQuote = {
   name: Scalars['String']['output'];
   /**
    * Every ShippingOption offered by this ShippingMethod, cheapest first. A ShippingCalculator which
-   * returns a single price yields one option with a null `code`. The `price`, `priceWithTax` and
-   * `metadata` fields above are those of the cheapest option.
+   * returns a single result yields one option, with the `code` the calculator gave it, or null if it
+   * gave none. The `price`, `priceWithTax` and `metadata` fields above are those of the cheapest option.
    */
   options: Array<ShippingOptionQuote>;
   price: Scalars['Money']['output'];
