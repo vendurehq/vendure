@@ -256,8 +256,8 @@ msgstr "Ha ez engedélyezve van, a termékkatalógusban megadott árak tartalmaz
 #~ msgid "Create variants for your product"
 #~ msgstr "Hozzon létre termékváltozatokat a termékéhez"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "Webáruházak"
 
@@ -1877,6 +1877,10 @@ msgstr "Nem sikerült beállítani a vásárlót a megrendeléshez: {0}"
 
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
+msgstr ""
+
+#: src/lib/components/layout/dev-mode-indicator.tsx
+msgid "Turn off dev mode"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -4048,6 +4052,10 @@ msgstr "Feladatsor"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "Kérjük, erősítse meg, hogy elmentette az API key-t a bezárás előtt."
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "View"
+msgstr ""
+
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
 msgstr "Törlés megerősítése"
@@ -6026,6 +6034,11 @@ msgstr "Módosítás megszakítása"
 #~ msgid "Same window"
 #~ msgstr "Ugyanabban az ablakban"
 
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-filter-badge.tsx
+msgid "Remove filter"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "Alkalmazzon szűrőket a táblázatra, majd kattintson a „Nézet mentése\" gombra a kezdéshez."
@@ -6450,6 +6463,10 @@ msgstr "Nem sikerült eltávolítani az ügyfeleket a csoportból"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #~ msgid "Failed to upload {0} assets"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
+msgid "Change state"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "We couldn't load the latest customers"
