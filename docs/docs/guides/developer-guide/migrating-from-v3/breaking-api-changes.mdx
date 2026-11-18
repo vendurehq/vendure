@@ -104,6 +104,18 @@ Inventory tracking is resolved per stock level, then per variant, then per chann
 
 For the full list, see [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code).
 
+## Shipping options
+
+A ShippingMethod can now offer several priced [shipping options](/core-concepts/shipping/#several-options-per-shippingmethod), such as the services of a carrier API. Existing ShippingCalculators keep working unchanged. What can break:
+
+- **Code which builds `ShippingMethodQuote` or `TestShippingMethodResult` objects**, such as a custom resolver or a plugin that returns its own shipping quotes, must set the new non-null `options` field. The generated TypeScript types require it. For a quote with one price, return one option with a null `code` and the quote's `price`, `priceWithTax` and `metadata`.
+- **`setOrderShippingMethod(shippingMethodId)`** is now optional, because the new `shippingMethods` argument can be passed instead. Exactly one of the two must be given. Generated TypeScript types for the mutation's arguments change accordingly.
+- **A ShippingMethod whose calculator returns no result** can no longer be set on an Order: `setOrderShippingMethod`, `setDraftOrderShippingMethod` and `modifyOrder` return an `IneligibleShippingMethodError`. In v3 such a method could be set, and its ShippingLine stayed at a price of 0. It was already left out of `eligibleShippingMethods`.
+- **`modifyOrder` with `recalculateShipping: false`** now prices a ShippingMethod it sets with the chosen option's price. In v3 the ShippingLine kept the price of the previous method.
+- **Setting a ShippingMethod runs its calculator once**, after the OrderLines are assigned to the ShippingLines, and `setOrderShippingMethod` keeps that price rather than calculating it again. Code which counts calls to a `ShippingEligibilityChecker` sees one call fewer.
+- **`OrderService.setShippingMethod()` and `OrderModifier.setShippingMethods()`** accept a `ShippingMethodSelectionInput` as well as an ID for each entry.
+- **`ShippingLine`** has two new nullable columns, `shippingOptionCode` and `shippingOptionName`. The generated migration adds them.
+
 ## Changed defaults
 
 Some defaults which were kept for compatibility during v3 have changed. Set the old value to keep the v3 behaviour.
