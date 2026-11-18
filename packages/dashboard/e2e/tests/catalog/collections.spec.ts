@@ -846,7 +846,7 @@ test.describe('Issue #5393: Collections Move dialog filter input', () => {
         await row.getByRole('checkbox').click();
 
         await page.getByRole('button', { name: 'Actions' }).click();
-        await page.getByRole('menuitem', { name: 'Move' }).click();
+        await page.getByRole('menuitem', { name: 'Move', exact: true }).click();
 
         const dialog = page.getByRole('dialog', { name: 'Move Collections' });
         await expect(dialog).toBeVisible();
