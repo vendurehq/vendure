@@ -3,7 +3,7 @@ import { deleteChannelsDocument } from '../channels.graphql.js';
 import { BulkActionComponent } from '@/vdb/framework/extension-api/types/index.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 
-export const DeleteChannelsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteChannelsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { refreshChannels } = useChannel();
     return (
         <DeleteBulkAction
@@ -12,6 +12,7 @@ export const DeleteChannelsBulkAction: BulkActionComponent<any> = ({ selection, 
             requiredPermissions={['DeleteChannel']}
             onSuccess={refreshChannels}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

@@ -29,8 +29,38 @@ export interface DashboardDataTableDisplayComponent {
     component: DataTableDisplayComponent;
 }
 
+/**
+ * @description
+ * The props a {@link BulkActionComponent} receives.
+ *
+ * @docsCategory list-views
+ * @docsPage bulk-actions
+ * @since 3.4.0
+ */
 export type BulkActionContext<Item extends { id: string } & Record<string, any>> = {
+    /**
+     * @description
+     * The selected rows the table has loaded. A selection can span pages and can be
+     * restored after a reload before its rows load, so this list can be shorter than
+     * `selectedRowIds`. Use it to display rows, not to decide which rows an action runs on.
+     */
     selection: Item[];
+    /**
+     * @description
+     * The id of every selected row, loaded or not. An action that needs only ids
+     * (delete, assign to a channel) runs on these.
+     *
+     * @since 3.8.0
+     */
+    selectedRowIds: string[];
+    /**
+     * @description
+     * The selected ids that have no row in `selection`. An action that needs row data
+     * must be disabled while this is not empty, or load these rows first.
+     *
+     * @since 3.8.0
+     */
+    missingRowIds: string[];
     table: Table<Item>;
 };
 
@@ -44,7 +74,9 @@ export type BulkActionComponent<Item extends { id: string } & Record<string, any
  *
  * The component receives the following props:
  *
- * - `selection`: The selected row or rows
+ * - `selection`: The selected rows the table has loaded
+ * - `selectedRowIds`: The id of every selected row, also rows on other pages
+ * - `missingRowIds`: The selected ids with no loaded row in `selection`
  * - `table`: A reference to the TanStack Table instance powering the list
  *
  * The `table` object can be used to clear row selection after the action completes.

@@ -19,8 +19,13 @@ interface DeleteBulkActionProps {
     onSuccess?: () => void;
     /** Optional query keys to invalidate after successful deletion */
     invalidateQueries?: string[];
-    /** The selected items to delete */
+    /** The selected items the table has loaded, used to name a single item */
     selection: any[];
+    /**
+     * The id of every selected item, also items on other pages. The action deletes
+     * these. Defaults to the ids of `selection`.
+     */
+    selectedRowIds?: string[];
     /** The table instance */
     table: any;
 }
@@ -39,20 +44,21 @@ interface DeleteBulkActionProps {
  * @example
  * ```tsx
  * // Basic usage
- * export const DeleteProductsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+ * export const DeleteProductsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
  *     return (
  *         <DeleteBulkAction
  *             mutationDocument={deleteProductsDocument}
  *             entityName="products"
  *             requiredPermissions={['DeleteCatalog', 'DeleteProduct']}
  *             selection={selection}
+ *             selectedRowIds={selectedRowIds}
  *             table={table}
  *         />
  *     );
  * };
  *
  * // With additional cleanup
- * export const DeleteCollectionsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+ * export const DeleteCollectionsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
  *     return (
  *         <DeleteBulkAction
  *             mutationDocument={deleteCollectionsDocument}
@@ -63,6 +69,7 @@ interface DeleteBulkActionProps {
  *                 // Additional cleanup logic
  *             }}
  *             selection={selection}
+ *             selectedRowIds={selectedRowIds}
  *             table={table}
  *         />
  *     );
@@ -76,8 +83,14 @@ export function DeleteBulkAction({
     onSuccess,
     invalidateQueries = [],
     selection,
+    selectedRowIds,
     table,
 }: Readonly<DeleteBulkActionProps>) {
+    const ids: string[] = selectedRowIds ?? selection.map(s => s.id);
+    const count = ids.length;
+    // A single item is named in the confirm, when the table has it loaded.
+    const singleName: string | undefined =
+        count === 1 ? selection.find(s => s.id === ids[0])?.name : undefined;
     const { refetchPaginatedList } = usePaginatedList();
     const { t } = useLingui();
     const queryClient = useQueryClient();
@@ -128,20 +141,21 @@ export function DeleteBulkAction({
             onSuccess?.();
         },
         onError: () => {
-            toast.error(`Failed to delete ${selection.length} ${entityName}`);
+            toast.error(t`Failed to delete ${count} ${entityName}`);
         },
     });
 
     return (
         <DataTableBulkActionItem
             requiresPermission={requiredPermissions}
-            onClick={() => mutate({ ids: selection.map(s => s.id) })}
+            onClick={() => mutate({ ids })}
             label={<Trans>Delete</Trans>}
-            confirmationText={
-                <Trans>
-                    Are you sure you want to delete {selection.length} {entityName}?
-                </Trans>
+            variant="destructive"
+            confirmationTitle={
+                singleName ? <Trans>Delete "{singleName}"?</Trans> : <Trans>Delete {count} {entityName}?</Trans>
             }
+            confirmationText={<Trans>This cannot be undone.</Trans>}
+            confirmLabel={<Trans>Delete</Trans>}
             icon={TrashIcon}
         />
     );

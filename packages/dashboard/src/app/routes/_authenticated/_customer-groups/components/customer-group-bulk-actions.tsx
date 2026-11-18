@@ -2,13 +2,14 @@ import { BulkActionComponent } from '@/vdb/framework/extension-api/types/index.j
 import { DeleteBulkAction } from '../../../../common/delete-bulk-action.js';
 import { deleteCustomerGroupsDocument } from '../customer-groups.graphql.js';
 
-export const DeleteCustomerGroupsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteCustomerGroupsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteCustomerGroupsDocument}
             entityName="customer groups"
             requiredPermissions={['DeleteCustomerGroup']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

@@ -3,13 +3,13 @@ import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-ta
 import { api } from '@/vdb/graphql/api.js';
 import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js';
 import { plural } from '@lingui/core/macro';
-import { Plural } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { cancelJobDocument } from '../job-queue.graphql.js';
 
-export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, missingRowIds, table }) => {
     const { refetchPaginatedList } = usePaginatedList();
 
     const cancellableJobs = selection.filter(job => job.state === 'RUNNING' || job.state === 'PENDING');
@@ -51,6 +51,22 @@ export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, tabl
             table.resetRowSelection();
         },
     });
+
+    // Whether a job can be cancelled depends on its state, which rows on other
+    // pages do not have loaded.
+    if (missingRowIds.length > 0) {
+        return (
+            <DataTableBulkActionItem
+                requiresPermission={['DeleteSettings', 'DeleteSystem']}
+                onClick={() => undefined}
+                disabled
+                disabledReason={<Trans>Go to the pages of all selected jobs first</Trans>}
+                label={<Trans>Cancel jobs</Trans>}
+                icon={Ban}
+                variant="destructive"
+            />
+        );
+    }
 
     if (cancellableCount === 0) {
         return null;

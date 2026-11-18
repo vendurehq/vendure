@@ -338,6 +338,8 @@ function getRowActions(
                                                 <action.component
                                                     key={`bulk-action-${groupIndex}-${index}`}
                                                     selection={[row.original]}
+                                                    selectedRowIds={[row.id]}
+                                                    missingRowIds={[]}
                                                     table={table}
                                                 />
                                             ))}

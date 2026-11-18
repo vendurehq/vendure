@@ -16,47 +16,50 @@ import {
     removeFacetsFromChannelDocument,
 } from '../facets.graphql.js';
 
-export const DeleteFacetsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteFacetsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteFacetsDocument}
             entityName="facets"
             requiredPermissions={['DeleteCatalog', 'DeleteFacet']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const AssignFacetsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignFacetsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="facets"
             mutationFn={api.mutate(assignFacetsToChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateFacet']}
             buildInput={(channelId: string) => ({
-                facetIds: selection.map(s => s.id),
+                facetIds: selectedRowIds,
                 channelId,
             })}
         />
     );
 };
 
-export const RemoveFacetsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const RemoveFacetsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { activeChannel } = useChannel();
     const { t } = useLingui();
 
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="facets"
             mutationFn={api.mutate(removeFacetsFromChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateFacet']}
             buildInput={() => ({
-                facetIds: selection.map(s => s.id),
+                facetIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
             onSuccess={result => {
@@ -74,7 +77,7 @@ export const RemoveFacetsFromChannelBulkAction: BulkActionComponent<any> = ({ se
                         }
                     }
 
-                    const successCount = selection.length - errors.length;
+                    const successCount = selectedRowIds.length - errors.length;
 
                     if (successCount > 0) {
                         toast.success(t`Successfully removed ${successCount} facets from channel`);
@@ -85,7 +88,7 @@ export const RemoveFacetsFromChannelBulkAction: BulkActionComponent<any> = ({ se
     );
 };
 
-export const DuplicateFacetsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DuplicateFacetsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DuplicateBulkAction
             entityType="Facet"
@@ -93,6 +96,7 @@ export const DuplicateFacetsBulkAction: BulkActionComponent<any> = ({ selection,
             requiredPermissions={['UpdateCatalog', 'UpdateFacet']}
             entityName="Facet"
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

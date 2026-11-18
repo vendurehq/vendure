@@ -16,10 +16,10 @@ import { removeCustomersFromGroupDocument } from '../customer-groups.graphql.js'
  * dialog's open state mid-interaction.
  */
 export function createRemoveFromGroupBulkAction(customerGroupId: string): BulkActionComponent<any> {
-    return function RemoveFromGroupBulkAction({ selection, table }) {
+    return function RemoveFromGroupBulkAction({ selection, selectedRowIds, table }) {
         const { refetchPaginatedList } = usePaginatedList();
         const { t } = useLingui();
-        const count = selection.length;
+        const count = selectedRowIds.length;
 
         const { mutate, isPending } = useMutation({
             mutationFn: api.mutate(removeCustomersFromGroupDocument),
@@ -49,7 +49,7 @@ export function createRemoveFromGroupBulkAction(customerGroupId: string): BulkAc
                 onClick={() =>
                     mutate({
                         customerGroupId,
-                        customerIds: selection.map(s => s.id),
+                        customerIds: selectedRowIds,
                     })
                 }
                 disabled={isPending}

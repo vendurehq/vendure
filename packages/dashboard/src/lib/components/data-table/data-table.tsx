@@ -743,20 +743,23 @@ export function DataTable<TData>({
                                       <DataTableBulkActions
                                           bulkActions={bulkActions ?? []}
                                           table={ctx.table}
-                                          selectedItems={selectedItems}
+                                          selectedItems={
+                                              selectedItems ? [...ctx.selection, ...selectedItems] : ctx.selection
+                                          }
+                                          selectedRowIds={ctx.selectedRowIds}
                                       />
                                   )
                                 : undefined
                         }
                         emptyState={emptyState}
-                        renderRow={(row, { table, columnCount, defaultRow }) => {
+                        renderRow={(row, { table, columnCount, defaultRow, ripple, cellProps, selectProps }) => {
                             const tableMeta = table.options.meta as any;
                             // Utility rows (e.g. the draft order's "add item" row) span
                             // the full visible width and render custom content.
                             if (tableMeta?.isUtilityRow?.(row) && tableMeta.renderUtilityRow) {
                                 return (
                                     <TableRow className="animate-in fade-in duration-100">
-                                        <TableCell colSpan={columnCount} className="h-12">
+                                        <TableCell colSpan={columnCount}>
                                             {tableMeta.renderUtilityRow(row)}
                                         </TableCell>
                                     </TableRow>

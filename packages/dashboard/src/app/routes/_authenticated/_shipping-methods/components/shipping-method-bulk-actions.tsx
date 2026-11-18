@@ -11,28 +11,30 @@ import {
     removeShippingMethodsFromChannelDocument,
 } from '../shipping-methods.graphql.js';
 
-export const DeleteShippingMethodsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteShippingMethodsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteShippingMethodsDocument}
             entityName="shipping methods"
             requiredPermissions={['DeleteShippingMethod']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const AssignShippingMethodsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignShippingMethodsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="shipping methods"
             mutationFn={api.mutate(assignShippingMethodsToChannelDocument)}
             requiredPermissions={['UpdateShippingMethod']}
             buildInput={(channelId: string) => ({
-                shippingMethodIds: selection.map(s => s.id),
+                shippingMethodIds: selectedRowIds,
                 channelId,
             })}
         />
@@ -41,6 +43,7 @@ export const AssignShippingMethodsToChannelBulkAction: BulkActionComponent<any> 
 
 export const RemoveShippingMethodsFromChannelBulkAction: BulkActionComponent<any> = ({
     selection,
+    selectedRowIds,
     table,
 }) => {
     const { activeChannel } = useChannel();
@@ -48,12 +51,13 @@ export const RemoveShippingMethodsFromChannelBulkAction: BulkActionComponent<any
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="shipping methods"
             mutationFn={api.mutate(removeShippingMethodsFromChannelDocument)}
             requiredPermissions={['UpdateShippingMethod']}
             buildInput={() => ({
-                shippingMethodIds: selection.map(s => s.id),
+                shippingMethodIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
         />

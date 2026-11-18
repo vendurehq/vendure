@@ -23,31 +23,33 @@ import {
     updateProductVariantsDocument,
 } from '../product-variants.graphql.js';
 
-export const DeleteProductVariantsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteProductVariantsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteProductVariantsDocument}
             entityName="product variants"
             requiredPermissions={['DeleteCatalog', 'DeleteProduct']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const AssignProductVariantsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignProductVariantsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { priceFactor, priceFactorField } = usePriceFactor();
     const { enabledInChannel, channelAvailabilityField } = useChannelAvailabilityOption();
 
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="variants"
             mutationFn={api.mutate(assignProductVariantsToChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             buildInput={(channelId: string) => ({
-                productVariantIds: selection.map(s => s.id),
+                productVariantIds: selectedRowIds,
                 channelId,
                 priceFactor,
                 enabledInChannel,
@@ -64,6 +66,7 @@ export const AssignProductVariantsToChannelBulkAction: BulkActionComponent<any> 
 
 export const RemoveProductVariantsFromChannelBulkAction: BulkActionComponent<any> = ({
     selection,
+    selectedRowIds,
     table,
 }) => {
     const { activeChannel } = useChannel();
@@ -71,12 +74,13 @@ export const RemoveProductVariantsFromChannelBulkAction: BulkActionComponent<any
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="product variants"
             mutationFn={api.mutate(removeProductVariantsFromChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             buildInput={() => ({
-                productVariantIds: selection.map(s => s.id),
+                productVariantIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
         />
@@ -85,6 +89,7 @@ export const RemoveProductVariantsFromChannelBulkAction: BulkActionComponent<any
 
 export const AssignFacetValuesToProductVariantsBulkAction: BulkActionComponent<any> = ({
     selection,
+    selectedRowIds,
     table,
 }) => {
     const { refetchPaginatedList } = usePaginatedList();
@@ -107,7 +112,7 @@ export const AssignFacetValuesToProductVariantsBulkAction: BulkActionComponent<a
             <AssignFacetValuesDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                entityIds={selection.map(s => s.id)}
+                entityIds={selectedRowIds}
                 entityType="variants"
                 queryFn={variables => api.query(getProductVariantsWithFacetValuesByIdsDocument, variables)}
                 mutationFn={api.mutate(updateProductVariantsDocument)}

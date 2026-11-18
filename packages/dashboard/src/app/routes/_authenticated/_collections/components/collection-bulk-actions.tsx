@@ -19,18 +19,19 @@ import {
 } from '../collections.graphql.js';
 import { MoveCollectionsDialog } from './move-collections-dialog.js';
 
-export const AssignCollectionsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignCollectionsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const queryClient = useQueryClient();
 
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="collections"
             mutationFn={api.mutate(assignCollectionToChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateCollection']}
             buildInput={(channelId: string) => ({
-                collectionIds: selection.map(s => s.id),
+                collectionIds: selectedRowIds,
                 channelId,
             })}
             onSuccess={() => {
@@ -40,19 +41,20 @@ export const AssignCollectionsToChannelBulkAction: BulkActionComponent<any> = ({
     );
 };
 
-export const RemoveCollectionsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const RemoveCollectionsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { activeChannel } = useChannel();
     const queryClient = useQueryClient();
 
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="collections"
             mutationFn={api.mutate(removeCollectionFromChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateCollection']}
             buildInput={() => ({
-                collectionIds: selection.map(s => s.id),
+                collectionIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
             onSuccess={() => {
@@ -62,7 +64,7 @@ export const RemoveCollectionsFromChannelBulkAction: BulkActionComponent<any> = 
     );
 };
 
-export const DuplicateCollectionsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DuplicateCollectionsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const queryClient = useQueryClient();
     return (
         <DuplicateBulkAction
@@ -71,6 +73,7 @@ export const DuplicateCollectionsBulkAction: BulkActionComponent<any> = ({ selec
             requiredPermissions={['UpdateCatalog', 'UpdateCollection']}
             entityName="Collection"
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             onSuccess={() => {
                 queryClient.invalidateQueries({ queryKey: ['childCollections'] });
@@ -79,7 +82,7 @@ export const DuplicateCollectionsBulkAction: BulkActionComponent<any> = ({ selec
     );
 };
 
-export const DeleteCollectionsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteCollectionsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteCollectionsDocument}
@@ -87,12 +90,13 @@ export const DeleteCollectionsBulkAction: BulkActionComponent<any> = ({ selectio
             requiredPermissions={['DeleteCatalog', 'DeleteCollection']}
             invalidateQueries={['childCollections']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const MoveCollectionsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const MoveCollectionsBulkAction: BulkActionComponent<any> = ({ selection, missingRowIds, table }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const { refetchPaginatedList } = usePaginatedList();
 
@@ -115,6 +119,9 @@ export const MoveCollectionsBulkAction: BulkActionComponent<any> = ({ selection,
                 onClick={() => setDialogOpen(true)}
                 label={<Trans>Move</Trans>}
                 icon={FolderTree}
+                // Moving needs each collection's data, which rows on other pages do not have loaded.
+                disabled={missingRowIds.length > 0}
+                disabledReason={<Trans>Go to the pages of all selected collections first</Trans>}
                 closeOnClick={false}
             />
             <MoveCollectionsDialog

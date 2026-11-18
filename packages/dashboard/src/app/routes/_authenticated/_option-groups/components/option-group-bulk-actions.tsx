@@ -14,13 +14,14 @@ import {
     removeOptionGroupsFromChannelDocument,
 } from '../option-groups.graphql.js';
 
-export const DeleteOptionGroupsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteOptionGroupsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteOptionGroupsDocument}
             entityName="option groups"
             requiredPermissions={['DeleteCatalog', 'DeleteProduct']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
@@ -28,17 +29,19 @@ export const DeleteOptionGroupsBulkAction: BulkActionComponent<any> = ({ selecti
 
 export const AssignOptionGroupsToChannelBulkAction: BulkActionComponent<any> = ({
     selection,
+    selectedRowIds,
     table,
 }) => {
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="option groups"
             mutationFn={api.mutate(assignOptionGroupsToChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             buildInput={(channelId: string) => ({
-                productOptionGroupIds: selection.map(s => s.id),
+                productOptionGroupIds: selectedRowIds,
                 channelId,
             })}
         />
@@ -47,6 +50,7 @@ export const AssignOptionGroupsToChannelBulkAction: BulkActionComponent<any> = (
 
 export const RemoveOptionGroupsFromChannelBulkAction: BulkActionComponent<any> = ({
     selection,
+    selectedRowIds,
     table,
 }) => {
     const { activeChannel } = useChannel();
@@ -55,12 +59,13 @@ export const RemoveOptionGroupsFromChannelBulkAction: BulkActionComponent<any> =
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="option groups"
             mutationFn={api.mutate(removeOptionGroupsFromChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             buildInput={() => ({
-                productOptionGroupIds: selection.map(s => s.id),
+                productOptionGroupIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
             onSuccess={result => {
@@ -80,7 +85,7 @@ export const RemoveOptionGroupsFromChannelBulkAction: BulkActionComponent<any> =
                         }
                     }
 
-                    const successCount = selection.length - errors.length;
+                    const successCount = selectedRowIds.length - errors.length;
 
                     if (successCount > 0) {
                         toast.success(

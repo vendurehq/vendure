@@ -3,13 +3,14 @@ import { DeleteBulkAction } from '../../../../common/delete-bulk-action.js';
 
 import { deleteFacetValuesDocument } from '../facets.graphql.js';
 
-export const DeleteFacetValuesBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteFacetValuesBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteFacetValuesDocument}
             entityName="facets"
             requiredPermissions={['DeleteCatalog', 'DeleteFacet']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

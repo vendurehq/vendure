@@ -18,6 +18,11 @@ interface DuplicateBulkActionProps {
     entityName: string;
     onSuccess?: () => void;
     selection: any[];
+    /**
+     * The id of every selected item, also items on other pages. The action
+     * duplicates these. Defaults to the ids of `selection`.
+     */
+    selectedRowIds?: string[];
     table: any;
 }
 
@@ -28,8 +33,14 @@ export function DuplicateBulkAction({
     entityName,
     onSuccess,
     selection,
+    selectedRowIds,
     table,
 }: Readonly<DuplicateBulkActionProps>) {
+    // Rows on other pages are not loaded: they are duplicated by id, and named by id.
+    const loadedById = new Map(selection.map(item => [String(item.id), item]));
+    const entities: Array<{ id: string; name?: string }> = (
+        selectedRowIds ?? selection.map(item => String(item.id))
+    ).map(id => loadedById.get(id) ?? { id });
     const { refetchPaginatedList } = usePaginatedList();
     const { t } = useLingui();
     const [isDuplicating, setIsDuplicating] = useState(false);
@@ -49,7 +60,7 @@ export function DuplicateBulkAction({
         if (isDuplicating) return;
 
         setIsDuplicating(true);
-        setProgress({ completed: 0, total: selection.length });
+        setProgress({ completed: 0, total: entities.length });
 
         const results = {
             success: 0,
@@ -59,8 +70,8 @@ export function DuplicateBulkAction({
 
         try {
             // Process entities sequentially to avoid overwhelming the server
-            for (let i = 0; i < selection.length; i++) {
-                const entity = selection[i];
+            for (let i = 0; i < entities.length; i++) {
+                const entity = entities[i];
 
                 try {
                     const result = await mutateAsync({
@@ -88,7 +99,7 @@ export function DuplicateBulkAction({
                     );
                 }
 
-                setProgress({ completed: i + 1, total: selection.length });
+                setProgress({ completed: i + 1, total: entities.length });
             }
 
             // Show results
@@ -139,7 +150,7 @@ export function DuplicateBulkAction({
                 onOpenChange={setDialogOpen}
                 entityType={entityType}
                 entityName={entityName}
-                entities={selection}
+                entities={entities}
                 duplicatorCode={duplicatorCode}
                 onConfirm={handleConfirmDuplication}
             />

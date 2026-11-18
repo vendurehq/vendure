@@ -11,46 +11,49 @@ import {
     removePaymentMethodsFromChannelDocument,
 } from '../payment-methods.graphql.js';
 
-export const DeletePaymentMethodsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeletePaymentMethodsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deletePaymentMethodsDocument}
             entityName="payment methods"
             requiredPermissions={['DeletePaymentMethod']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const AssignPaymentMethodsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignPaymentMethodsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="payment methods"
             mutationFn={api.mutate(assignPaymentMethodsToChannelDocument)}
             requiredPermissions={['UpdatePaymentMethod']}
             buildInput={(channelId: string) => ({
-                paymentMethodIds: selection.map(s => s.id),
+                paymentMethodIds: selectedRowIds,
                 channelId,
             })}
         />
     );
 };
 
-export const RemovePaymentMethodsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const RemovePaymentMethodsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { activeChannel } = useChannel();
 
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="payment methods"
             mutationFn={api.mutate(removePaymentMethodsFromChannelDocument)}
             requiredPermissions={['UpdatePaymentMethod']}
             buildInput={() => ({
-                paymentMethodIds: selection.map(s => s.id),
+                paymentMethodIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
         />

@@ -12,53 +12,56 @@ import {
     removePromotionsFromChannelDocument,
 } from '../promotions.graphql.js';
 
-export const DeletePromotionsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeletePromotionsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deletePromotionsDocument}
             entityName="promotions"
             requiredPermissions={['DeletePromotion']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const AssignPromotionsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignPromotionsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="promotions"
             mutationFn={api.mutate(assignPromotionsToChannelDocument)}
             requiredPermissions={['UpdatePromotion']}
             buildInput={(channelId: string) => ({
-                promotionIds: selection.map(s => s.id),
+                promotionIds: selectedRowIds,
                 channelId,
             })}
         />
     );
 };
 
-export const RemovePromotionsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const RemovePromotionsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { activeChannel } = useChannel();
 
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="promotions"
             mutationFn={api.mutate(removePromotionsFromChannelDocument)}
             requiredPermissions={['UpdatePromotion']}
             buildInput={() => ({
-                promotionIds: selection.map(s => s.id),
+                promotionIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
         />
     );
 };
 
-export const DuplicatePromotionsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DuplicatePromotionsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DuplicateBulkAction
             entityType="Promotion"
@@ -66,6 +69,7 @@ export const DuplicatePromotionsBulkAction: BulkActionComponent<any> = ({ select
             requiredPermissions={['CreatePromotion']}
             entityName="Promotion"
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
