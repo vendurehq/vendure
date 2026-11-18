@@ -99,6 +99,18 @@ export interface DeviceLoginOptions extends AuthOptions {
      * its name, ignoring case. Resolved through Vendure Console after sign-in.
      */
     organization?: string;
+    /**
+     * Without `organization`, called when the user is an active member of more
+     * than one Console organization. `current` is the one chosen in the browser,
+     * when it is one of them. Resolves the organization to scope the session to,
+     * or `undefined` to keep the browser's choice.
+     *
+     * @since 3.8.3
+     */
+    chooseOrganization?: (
+        organizations: AuthOrganization[],
+        current: AuthOrganization | undefined,
+    ) => Promise<AuthOrganization | undefined>;
 }
 
 /**
@@ -298,15 +310,10 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
         user: authentication.user,
         organization: scope,
     });
-    let organization: StoredOrganization | null;
-    if (options.organization) {
-        const target = resolveOrganization(
-            await fetchOrganizations(consoleApiUrl, authentication.accessToken, options),
-            options.organization,
-        );
-        organization = toStoredOrganization(target);
+    const scopeTo = async (target: AuthOrganization): Promise<StoredOrganization> => {
+        const scoped = toStoredOrganization(target);
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
-            assertStorable(toSession(organization), options);
+            assertStorable(toSession(scoped), options);
             // The browser chose another organization, or none. This refresh token
             // exists only in this process, so spending it needs no lock.
             authentication = await scopeToOrganization(client, authentication.refreshToken, target, options);
@@ -314,8 +321,41 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
             throw new Error(`The authentication service did not scope the login to ${target.name}.`);
         }
+        return scoped;
+    };
+    let organization: StoredOrganization | null;
+    if (options.organization) {
+        organization = await scopeTo(
+            resolveOrganization(
+                await fetchOrganizations(consoleApiUrl, authentication.accessToken, options),
+                options.organization,
+            ),
+        );
     } else {
-        organization = await describeTokenOrganization(consoleApiUrl, authentication, options);
+        const tokenOrganization = tokenOrganizationId(authentication);
+        const organizations = await fetchOrganizations(
+            consoleApiUrl,
+            authentication.accessToken,
+            options,
+        ).catch(() => undefined);
+        const current = organizations?.find(org => org.workosOrganizationId === tokenOrganization);
+        const chosen =
+            organizations && organizations.length > 1
+                ? await options.chooseOrganization?.(organizations, current)
+                : undefined;
+        // A first device login often has no organization; with only one to choose, use it.
+        const only = !current && organizations?.length === 1 ? organizations[0] : undefined;
+        const target = chosen ?? only;
+        if (target) {
+            organization = await scopeTo(target);
+        } else if (current) {
+            organization = toStoredOrganization(current);
+        } else {
+            // Console could not list the organizations, or the token's is not among them.
+            organization = tokenOrganization
+                ? { workosOrganizationId: tokenOrganization, customerAccountId: null, name: null }
+                : null;
+        }
     }
     const session = toSession(organization);
     return withSessionLock(options, () => {

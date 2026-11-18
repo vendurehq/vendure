@@ -276,6 +276,141 @@ describe('loginWithDevice', () => {
         expect(status.organization?.customerAccountId).toBe(ACCOUNT_1);
     });
 
+    it('asks which organization to use when the user belongs to several, and scopes to the choice', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+            viewer(),
+            authentication(accessToken(300, { org_id: 'org_2' }), 'refresh_2', 'org_2'),
+        ]);
+        const offered: Array<{ names: string[]; current?: string }> = [];
+
+        const status = await loginWithDevice({
+            ...options,
+            fetch: workos.fetch,
+            chooseOrganization: (organizations, current) => {
+                offered.push({ names: organizations.map(org => org.name), current: current?.name });
+                return Promise.resolve(organizations.find(org => org.customerAccountId === ACCOUNT_2));
+            },
+        });
+
+        expect(offered).toEqual([
+            { names: ['Bromley Art Supplies', 'Example GmbH'], current: 'Bromley Art Supplies' },
+        ]);
+        expect(workos.requests[4].body).toMatchObject({
+            grant_type: 'refresh_token',
+            refresh_token: 'refresh_1',
+            organization_id: 'org_2',
+        });
+        expect(status.organization?.name).toBe('Example GmbH');
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_2');
+    });
+
+    it('keeps the organization chosen in the browser when the choice is left open', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+            viewer(),
+        ]);
+
+        const status = await loginWithDevice({
+            ...options,
+            fetch: workos.fetch,
+            chooseOrganization: () => Promise.resolve(undefined),
+        });
+
+        expect(workos.requests).toHaveLength(4);
+        expect(status.organization?.name).toBe('Bromley Art Supplies');
+    });
+
+    it('does not ask when the user belongs to one organization', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+            viewer([MEMBERSHIPS[0]]),
+        ]);
+        let asked = false;
+
+        const status = await loginWithDevice({
+            ...options,
+            fetch: workos.fetch,
+            chooseOrganization: () => {
+                asked = true;
+                return Promise.resolve(undefined);
+            },
+        });
+
+        expect(asked).toBe(false);
+        expect(status.organization?.name).toBe('Bromley Art Supplies');
+    });
+
+    it('scopes to the only organization when the browser chose none', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300), 'refresh_1'),
+            viewer([MEMBERSHIPS[0]]),
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_2', 'org_1'),
+        ]);
+
+        const status = await loginWithDevice({ ...options, fetch: workos.fetch });
+
+        expect(workos.requests[4].body).toMatchObject({ organization_id: 'org_1' });
+        expect(status.organization?.name).toBe('Bromley Art Supplies');
+    });
+
+    it('does not ask when Console cannot list the organizations', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+            { status: 503, body: {} },
+        ]);
+        let asked = false;
+
+        const status = await loginWithDevice({
+            ...options,
+            fetch: workos.fetch,
+            chooseOrganization: () => {
+                asked = true;
+                return Promise.resolve(undefined);
+            },
+        });
+
+        expect(asked).toBe(false);
+        expect(status.organization).toEqual({
+            workosOrganizationId: 'org_1',
+            customerAccountId: null,
+            name: null,
+        });
+    });
+
+    it('asks when the browser chose no organization', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300), 'refresh_1'),
+            viewer(),
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_2', 'org_1'),
+        ]);
+        let current: string | undefined = 'not asked';
+
+        const status = await loginWithDevice({
+            ...options,
+            fetch: workos.fetch,
+            chooseOrganization: (organizations, browserChoice) => {
+                current = browserChoice?.name;
+                return Promise.resolve(organizations[0]);
+            },
+        });
+
+        expect(current).toBeUndefined();
+        expect(status.organization?.name).toBe('Bromley Art Supplies');
+    });
+
     it('refuses an ambiguous name and stores nothing', async () => {
         const workos = fakeWorkos([
             serviceInfo(),

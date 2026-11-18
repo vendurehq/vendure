@@ -2,7 +2,7 @@
 title: "OrderService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="155" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="176" packageName="@vendure/core" />
 
 Contains methods relating to [Order](/reference/typescript-api/entities/order#order) entities.
 
@@ -387,6 +387,13 @@ Returns an array of all Surcharges associated with the Order.
 
 Cancels an Order by transitioning it to the `Cancelled` state. If stock is being tracked for the ProductVariants
 in the Order, then new [StockMovement](/reference/typescript-api/entities/stock-movement#stockmovement)s will be created to correct the stock levels.
+
+When the cancellation would cancel every line, the `onTransitionStart` hooks of the [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) run
+once, before anything is written, against an unsaved copy of the Order with the cancellation applied: its
+lines, shipping and totals are already cancelled, while the database still holds the uncancelled lines and
+stock. If a hook refuses the transition to `Cancelled`, by returning an error message or `false`, nothing
+is changed and an `OrderStateTransitionError` is returned. Otherwise the lines are cancelled and the same
+Order instance, with any changes the hooks made to it, completes the transition.
 ### refundOrder
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><RefundOrderResult, <a href='/reference/typescript-api/entities/refund#refund'>Refund</a>>>`}   />

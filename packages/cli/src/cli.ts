@@ -73,11 +73,18 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
+    // A globally enabled package that is not installed is normal in a project
+    // that does not use it, so it is reported only when an unknown command
+    // could be one of its own.
+    const notInstalledGlobally = failures.filter(
+        failure => failure.scope === 'global' && failure.notInstalled,
+    );
+    const reportedFailures = failures.filter(failure => !notInstalledGlobally.includes(failure));
     // Enabled packages whose commands are missing for a reason already printed.
     const unavailablePackages = new Map<string, PluginFailureStep>(
-        failures.map(failure => [failure.packageName, 'load']),
+        reportedFailures.map(failure => [failure.packageName, 'load']),
     );
-    for (const failure of failures) {
+    for (const failure of reportedFailures) {
         writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
     }
     for (const { packageName, plugin, scope } of loaded) {
@@ -97,7 +104,12 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';
-        for (const line of unknownCommandHelp(unknown, pluginOptions, unavailablePackages)) {
+        for (const line of unknownCommandHelp(
+            unknown,
+            pluginOptions,
+            unavailablePackages,
+            notInstalledGlobally,
+        )) {
             process.stderr.write(`${line}\n`);
         }
         process.exit(1);

@@ -17,9 +17,11 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
     createFacetValueDocument,
@@ -59,6 +61,7 @@ function FacetValueDetailPage() {
         queryDocument: facetValueDetailDocument,
         createDocument: createFacetValueDocument,
         updateDocument: updateFacetValueDocument,
+        transformUpdateInput: dropUnchangedTranslationRows((): UseFormReturn<any> => form),
         extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {

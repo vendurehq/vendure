@@ -395,6 +395,30 @@ describe('CLI plugin discovery without activation', () => {
     });
 });
 
+// CLO-1562: enabling a package the project has not installed named a listing
+// that did not exist instead of the missing install.
+describe('CLI plugin enabling', () => {
+    it('says the package is not installed, and how to install it', async () => {
+        const project = createTestProject('cli-plugin-add-not-installed');
+        try {
+            project.writeFile('bun.lock', '');
+
+            const result = await project.runCliCommand(['plugins', 'add', '@vendure-e2e/cloud-cli-plugin'], {
+                expectError: true,
+            });
+            const output = result.stdout + result.stderr;
+
+            expect(result.exitCode).toBe(1);
+            expect(output).toContain('@vendure-e2e/cloud-cli-plugin is not installed in ');
+            expect(output).toContain('Install it with: bun add -D @vendure-e2e/cloud-cli-plugin');
+            expect(output).not.toContain('Listed in vendure.cli.plugins');
+            expect(readEnabledCliPlugins(project)).toEqual([]);
+        } finally {
+            project.cleanup();
+        }
+    });
+});
+
 describe('CLI plugin recovery', () => {
     it('keeps "vendure plugins remove" reachable when a plugin is broken', async () => {
         const project = createTestProject('cli-plugin-broken');

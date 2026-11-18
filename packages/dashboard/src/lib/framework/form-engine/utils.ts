@@ -250,6 +250,11 @@ export function stripUntouchedTranslations<T extends Record<string, any>>(
             }
             const dirtyValue = dirty?.[field.name];
             if (Array.isArray(value)) {
+                // Process each row before dropping any, so that a row is read with its own dirty
+                // state rather than the state of the row which held its index before compaction.
+                for (const [i, item] of value.entries()) {
+                    process(item, dirtyValue?.[i], field.typeInfo);
+                }
                 const isTranslationsArray = field.typeInfo.some(f => f.name === 'languageCode');
                 if (isTranslationsArray) {
                     const kept = value.filter((entry, i) => isDirty(dirtyValue?.[i]) || isPersisted(entry));
@@ -258,9 +263,6 @@ export function stripUntouchedTranslations<T extends Record<string, any>>(
                     // `translations: []`. Leave the input untouched and let validation surface the
                     // empty required fields instead.
                     obj[field.name] = kept.length ? kept : value;
-                }
-                for (const [i, item] of obj[field.name].entries()) {
-                    process(item, dirtyValue?.[i], field.typeInfo);
                 }
             } else {
                 process(value, dirtyValue, field.typeInfo);
