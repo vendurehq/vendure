@@ -60,7 +60,6 @@
     "files": [
         "dist",
         "src/app/styles.css",
-        "src/i18n/locales/*.po",
         "src/lib/graphql/graphql.ts",
         "public",
         "lingui.config.js",

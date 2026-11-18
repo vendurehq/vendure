@@ -6,7 +6,6 @@ import {
 } from '@lingui/cli/api';
 import { getConfig, LinguiConfigNormalized } from '@lingui/conf';
 import glob from 'fast-glob';
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Plugin } from 'vite';
 
@@ -19,18 +18,6 @@ import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader
 type Catalog = Awaited<ReturnType<typeof getCatalogs>>[number];
 
 export interface TranslationsPluginOptions {
-    /**
-     * Array of paths to .po files to merge with built-in translations
-     */
-    externalPoFiles?: string[];
-    /**
-     * Path to the built-in locales directory
-     */
-    localesDir?: string;
-    /**
-     * Output path for merged translations within the build output (e.g., 'i18n')
-     */
-    outputPath?: string;
     packageRoot: string;
 }
 
@@ -44,24 +31,16 @@ const resolvedVirtualModuleId = `\0${virtualModuleId}`;
 
 /**
  * @description
- * This Vite plugin compiles the source .po files into JS bundles that can be loaded statically.
- *
- * It handles 2 modes: dev and build.
- *
- * - The `load` function serves the `virtual:plugin-translations` module in both dev and build. It
- * compiles and returns translations from plugins _only_, which then get merged with the built-in
- * translations in the `loadI18nMessages` function
- * - The `generateBundle` function additionally emits the merged built-in and plugin catalogs as .js
- * files under the `outputPath` directory. Nothing in the dashboard reads those files today.
+ * Serves the `virtual:plugin-translations` module, which holds the compiled translations of the
+ * active plugins' dashboard extensions (their `.po` files). `loadI18nMessages` merges them with
+ * the dashboard's own catalogs, which are compiled into the dashboard (the bundle, or in source
+ * mode the `.po` files in `src/i18n/locales`), so this plugin never reads those.
  *
  * @param options
  */
 export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
     let configLoaderApi: ConfigLoaderApi;
     let loadVendureConfigResult: CompileResult;
-    let cachedLinguiConfig: LinguiConfigNormalized;
-    let cachedPluginTranslations: PluginTranslation[];
-    let cachedCatalogs: Catalog[];
 
     return {
         name: 'vendure:compile-translations',
@@ -83,19 +62,19 @@ export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
 
                 const { pluginInfo, vendureConfig } = loadVendureConfigResult;
                 const activePluginInfo = filterActivePluginInfo(pluginInfo, vendureConfig);
-                cachedPluginTranslations = await getPluginTranslations(activePluginInfo);
-                cachedLinguiConfig = getConfig({
+                const pluginTranslations = await getPluginTranslations(activePluginInfo);
+                const linguiConfig = getConfig({
                     configPath: path.join(options.packageRoot, 'lingui.config.js'),
                 });
-                cachedCatalogs = await getLinguiCatalogs(cachedLinguiConfig, cachedPluginTranslations);
+                const catalogs = await getLinguiCatalogs(linguiConfig, pluginTranslations);
 
-                const pluginFiles = cachedPluginTranslations.flatMap(translation => translation.translations);
+                const pluginFiles = pluginTranslations.flatMap(translation => translation.translations);
 
                 const mergedMessageMap = await createMergedMessageMap({
                     files: pluginFiles,
                     packageRoot: options.packageRoot,
-                    catalogs: cachedCatalogs,
-                    sourceLocale: cachedLinguiConfig.sourceLocale,
+                    catalogs,
+                    sourceLocale: linguiConfig.sourceLocale,
                 });
                 return `
                     const translations = {
@@ -108,7 +87,7 @@ export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
                                 // literally in a built dashboard: `Hello {name}` instead of `Hello Bob`.
                                 const { source, errors } = createCompiledCatalog(locale, messages, {
                                     namespace: 'json',
-                                    pseudoLocale: cachedLinguiConfig.pseudoLocale,
+                                    pseudoLocale: linguiConfig.pseudoLocale,
                                 });
                                 if (errors.length) {
                                     this.error(createCompilationErrorMessage(locale, errors));
@@ -122,38 +101,6 @@ export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
                     };
                     export default translations;
                 `;
-            }
-        },
-        // This runs at build-time only
-        async generateBundle() {
-            // This runs during the bundle generation phase - emit files directly to build output
-            try {
-                if (!loadVendureConfigResult) {
-                    loadVendureConfigResult = await configLoaderApi.getVendureConfig();
-                }
-                const { pluginInfo, vendureConfig } = loadVendureConfigResult;
-                const activePluginInfo = filterActivePluginInfo(pluginInfo, vendureConfig);
-
-                // Reuse cached data from load hook when available
-                const pluginTranslations =
-                    cachedPluginTranslations ?? (await getPluginTranslations(activePluginInfo));
-                const pluginTranslationFiles = pluginTranslations.flatMap(p => p.translations);
-                this.info(`Found ${pluginTranslationFiles.length} translation files from plugins`);
-                this.debug(pluginTranslationFiles.join('\n'));
-
-                const linguiConfig =
-                    cachedLinguiConfig ??
-                    getConfig({
-                        configPath: path.join(options.packageRoot, 'lingui.config.js'),
-                    });
-                const catalogs =
-                    cachedCatalogs ?? (await getLinguiCatalogs(linguiConfig, pluginTranslations));
-
-                await compileTranslations(options, pluginTranslations, linguiConfig, catalogs, this.emitFile);
-            } catch (error) {
-                this.error(
-                    `Translation plugin error: ${error instanceof Error ? error.message : String(error)}`,
-                );
             }
         },
     };
@@ -182,55 +129,6 @@ async function getPluginTranslations(pluginInfo: PluginInfo[]): Promise<PluginTr
         });
     }
     return pluginTranslations;
-}
-
-async function compileTranslations(
-    options: TranslationsPluginOptions,
-    pluginTranslations: PluginTranslation[],
-    linguiConfig: LinguiConfigNormalized,
-    catalogs: Catalog[],
-    emitFile: any,
-) {
-    const { localesDir = 'src/i18n/locales', outputPath = 'assets/i18n' } = options;
-    const resolvedLocalesDir = path.resolve(options.packageRoot, localesDir);
-
-    // Get all built-in .po files
-    const builtInFiles = fs
-        .readdirSync(resolvedLocalesDir)
-        .filter(file => file.endsWith('.po'))
-        .map(file => path.join(resolvedLocalesDir, file));
-
-    const pluginFiles = pluginTranslations.flatMap(translation => translation.translations);
-
-    const mergedMessageMap = await createMergedMessageMap({
-        files: [...builtInFiles, ...pluginFiles],
-        packageRoot: options.packageRoot,
-        catalogs,
-        sourceLocale: linguiConfig.sourceLocale,
-    });
-
-    for (const [locale, messages] of mergedMessageMap.entries()) {
-        const { source: code, errors } = createCompiledCatalog(locale, messages, {
-            namespace: 'es',
-            pseudoLocale: linguiConfig.pseudoLocale,
-        });
-
-        if (errors.length) {
-            const message = createCompilationErrorMessage(locale, errors);
-            throw new Error(
-                message +
-                    `These errors fail build because \`failOnCompileError=true\` in Lingui Vite plugin configuration.`,
-            );
-        }
-
-        // Emit the compiled JavaScript file to the build output
-        const outputFileName = path.posix.join(outputPath, `${locale}.js`);
-        emitFile({
-            type: 'asset',
-            fileName: outputFileName,
-            source: code,
-        });
-    }
 }
 
 async function getLinguiCatalogs(
