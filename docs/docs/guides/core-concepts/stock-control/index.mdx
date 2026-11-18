@@ -78,7 +78,7 @@ export const config: VendureConfig = {
 
 * **Stock on hand:** This refers to the number of physical units of a particular variant which you have in stock right now. This can be zero or more, but not negative.
 * **Allocated:** This refers to the number of units which have been assigned to Orders, but which have not yet been fulfilled.
-* **Out-of-stock threshold:** This value determines the stock level at which the variant is considered "out of stock". This value is set globally, but can be overridden for specific variants. It defaults to `0`.
+* **Out-of-stock threshold:** This value determines the stock level at which the variant is considered "out of stock". This value is set per channel, but can be overridden for specific variants. It defaults to `0`.
 * **Saleable:** This means the number of units that can be sold right now. The formula is:
     `saleable = stockOnHand - allocated - outOfStockThreshold`
 

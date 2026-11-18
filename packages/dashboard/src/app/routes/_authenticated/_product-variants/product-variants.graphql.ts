@@ -141,15 +141,12 @@ export const productVariantDetailDocument = graphql(
     [assetFragment, productVariantPriceFragment],
 );
 
-export const productVariantGlobalSettingsDocument = graphql(`
-    query ProductVariantGlobalStockSettings {
-        globalSettings {
-            id
-            outOfStockThreshold
-        }
+export const productVariantChannelStockSettingsDocument = graphql(`
+    query ProductVariantChannelStockSettings {
         activeChannel {
             id
             trackInventory
+            outOfStockThreshold
         }
     }
 `);

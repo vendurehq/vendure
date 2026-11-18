@@ -110,7 +110,7 @@ async function createGraphQLOptions(
         // An explicit `false` stops the driver from serving GraphiQL when NODE_ENV is not
         // "production". Use @vendure/graphiql-plugin for an in-browser IDE.
         playground: false,
-        csrfPrevention: configService.apiOptions.csrfPrevention ?? false,
+        csrfPrevention: configService.apiOptions.csrfPrevention ?? true,
         // Apollo Server includes stack traces in error responses unless NODE_ENV is "production"
         // or "test". They expose server file paths, so they are always turned off explicitly.
         includeStacktraceInErrorResponses: false,

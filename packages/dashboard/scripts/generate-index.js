@@ -10,6 +10,7 @@ const TARGET_DIRS = ['components', 'framework', 'hooks', 'lib', 'graphql'];
 // entry point. Paths are relative to src/lib and use forward slashes.
 const EXCLUDED_PATHS = [
     'framework/nav-menu/resolve-nav-menu.ts',
+    'components/data-input/day-picker-locales.ts',
     'hooks/use-admin-custom-fields.ts',
     'components/platform-promotion/locked-capability-page.tsx',
     'components/platform-promotion/platform-promo.tsx',
@@ -17,6 +18,8 @@ const EXCLUDED_PATHS = [
     'framework/platform-promotion/locked-capabilities.ts',
     'framework/platform-promotion/platform-promotion.fixture.ts',
     'framework/platform-promotion/register-locked-navigation.tsx',
+    'framework/form-engine/relation-id-value.ts',
+    'framework/page/strip-unchanged-translations.ts',
 ];
 const LIB_DIR = path.join(__dirname, '..', 'src', 'lib');
 const INDEX_FILE = path.join(LIB_DIR, 'index.ts');

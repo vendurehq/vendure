@@ -11,8 +11,6 @@ class GlobalSettings extends VendureEntity implements HasCustomFields {
     constructor(input?: DeepPartial<GlobalSettings>)
     @Column('simple-array')
     availableLanguages: LanguageCode[];
-    @Column({ default: 0 })
-    outOfStockThreshold: number;
     @Column(type => CustomGlobalSettingsFields)
     customFields: CustomGlobalSettingsFields;
 }
@@ -33,12 +31,6 @@ class GlobalSettings extends VendureEntity implements HasCustomFields {
 The languages which are available in this Vendure instance. A Channel's
 `defaultLanguageCode` must be one of them. Each Channel selects the languages it offers in
 `Channel.availableLanguageCodes`.
-### outOfStockThreshold
-
-<MemberInfo kind="property" type={`number`}   />
-
-Specifies the value of stockOnHand at which a given ProductVariant is considered
-out of stock.
 ### customFields
 
 <MemberInfo kind="property" type={`CustomGlobalSettingsFields`}   />

@@ -43,7 +43,10 @@ import { Zone } from '../../entity/zone/zone.entity';
 import { EventBus } from '../../event-bus';
 import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event';
 import { ChannelEvent } from '../../event-bus/events/channel-event';
-import { ChannelTrackInventoryEvent } from '../../event-bus/events/channel-track-inventory-event';
+import {
+    ChannelStockSetting,
+    ChannelStockSettingsEvent,
+} from '../../event-bus/events/channel-stock-settings-event';
 import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
@@ -416,6 +419,7 @@ export class ChannelService {
         ctx: RequestContext,
         input: CreateChannelInput,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
+        this.assertStockSettingsNotNull(input);
         const { defaultCurrencyCode } = input;
         const channel = new Channel({
             ...input,
@@ -466,6 +470,7 @@ export class ChannelService {
         input: UpdateChannelInput,
     ): Promise<ErrorResultUnion<UpdateChannelResult, Channel>> {
         this.assertHasPermissionOnChannel(ctx, input.id, Permission.UpdateChannel);
+        this.assertStockSettingsNotNull(input);
         const channel = await this.findOne(ctx, input.id);
         if (!channel) {
             throw new EntityNotFoundError('Channel', input.id);
@@ -473,6 +478,7 @@ export class ChannelService {
         const originalDefaultCurrencyCode = channel.defaultCurrencyCode;
         const originalIdentityScope = await this.identityScopeService.getScopeForLoadedChannel(channel);
         const originalTrackInventory = channel.trackInventory;
+        const originalOutOfStockThreshold = channel.outOfStockThreshold;
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
             return defaultLanguageValidationResult;
@@ -524,12 +530,32 @@ export class ChannelService {
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, updatedChannel);
         this.clearCache(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, channel, 'updated', input));
+        const changedStockSettings: ChannelStockSetting[] = [];
         if (updatedChannel.trackInventory !== originalTrackInventory) {
+            changedStockSettings.push('trackInventory');
+        }
+        if (updatedChannel.outOfStockThreshold !== originalOutOfStockThreshold) {
+            changedStockSettings.push('outOfStockThreshold');
+        }
+        if (changedStockSettings.length) {
             await this.eventBus.publish(
-                new ChannelTrackInventoryEvent(ctx, updatedChannel, updatedChannel.trackInventory),
+                new ChannelStockSettingsEvent(ctx, updatedChannel, changedStockSettings),
             );
         }
         return assertFound(this.findOne(ctx, channel.id));
+    }
+
+    /**
+     * The stock settings are nullable in the GraphQL inputs, so that they can be omitted, but not
+     * in the database: `patchEntity()` would write a `null` and the save would fail on the NOT
+     * NULL constraint.
+     */
+    private assertStockSettingsNotNull(input: CreateChannelInput | UpdateChannelInput) {
+        for (const field of ['trackInventory', 'outOfStockThreshold'] as const) {
+            if (input[field] === null) {
+                throw new UserInputError('error.channel-stock-setting-cannot-be-null', { field });
+            }
+        }
     }
 
     /**

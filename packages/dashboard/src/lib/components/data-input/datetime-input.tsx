@@ -4,21 +4,35 @@ import { DateTimePicker } from '@/vdb/components/ui/date-picker.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isFieldDisabled } from '@/vdb/framework/form-engine/utils.js';
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
-import type { Locale } from 'date-fns/locale';
 import { useLingui } from '@lingui/react/macro';
+import type { Locale } from 'date-fns/locale';
+
+import { getDayPickerLocaleLoader } from './day-picker-locales.js';
 
 /**
  * @description
  * Returns a `Locale` object that can be passed to the react-day-picker
- * `locale` prop.
+ * `locale` prop. Only the locale of the current display language is loaded.
  */
 export function useDayPickerLocale() {
     const { bcp47Tag } = useDisplayLocale();
     const [calendarLocale, setCalendarLocale] = useState<Locale | undefined>(undefined);
     useEffect(() => {
-        import('react-day-picker/locale').then(mod => {
-            setCalendarLocale(bcpTagToDatePickerLocale(bcp47Tag, mod));
+        const loader = getDayPickerLocaleLoader(bcp47Tag);
+        if (!loader) {
+            setCalendarLocale(undefined);
+            return;
+        }
+        // A locale that finishes loading after the language has changed again is ignored
+        let current = true;
+        void loader().then(locale => {
+            if (current) {
+                setCalendarLocale(locale);
+            }
         });
+        return () => {
+            current = false;
+        };
     }, [bcp47Tag]);
     return calendarLocale;
 }
@@ -30,7 +44,12 @@ export function useDayPickerLocale() {
  * @docsCategory form-components
  * @docsPage DateTimeInput
  */
-export function DateTimeInput({ value, onChange, fieldDef, disabled }: Readonly<DashboardFormComponentProps>) {
+export function DateTimeInput({
+    value,
+    onChange,
+    fieldDef,
+    disabled,
+}: Readonly<DashboardFormComponentProps>) {
     const { t } = useLingui();
     const readOnly = isFieldDisabled(disabled, fieldDef);
     // The form engine may hold either a `Date` (e.g. from a filter) or an ISO
@@ -46,22 +65,4 @@ export function DateTimeInput({ value, onChange, fieldDef, disabled }: Readonly<
             onValueChange={next => onChange(next ?? null)}
         />
     );
-}
-
-function bcpTagToDatePickerLocale(
-    tag: string,
-    module: typeof import('react-day-picker/locale'),
-): Locale | undefined {
-    switch (tag) {
-        case 'zh-Hans':
-            return module.zhCN;
-        case 'zh-Hant':
-            return module.zhTW;
-        case 'pt-BR':
-            return module.ptBR;
-        default: {
-            const lang = tag.split('-')[0];
-            return lang ? module[lang as keyof typeof module] : undefined;
-        }
-    }
 }

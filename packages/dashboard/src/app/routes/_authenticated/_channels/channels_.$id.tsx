@@ -1,3 +1,4 @@
+import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { ChannelColorPicker } from '@/vdb/components/shared/channel-color-picker.js';
 import { CurrencySelector } from '@/vdb/components/shared/currency-selector.js';
@@ -94,6 +95,7 @@ function ChannelDetailPage() {
                 token: entity.token,
                 pricesIncludeTax: entity.pricesIncludeTax,
                 trackInventory: entity.trackInventory,
+                outOfStockThreshold: entity.outOfStockThreshold,
                 availableCurrencyCodes: entity.availableCurrencyCodes,
                 availableLanguageCodes: entity.availableLanguageCodes,
                 defaultCurrencyCode: entity.defaultCurrencyCode,
@@ -107,7 +109,8 @@ function ChannelDetailPage() {
         // `CreateChannelInput.defaultCurrencyCode` is non-nullable, so the form would otherwise
         // preselect the first currency there is. It has to come from the available currencies
         // instead, which are empty on a new channel.
-        setValuesForCreate: () => ({ defaultCurrencyCode: null as any }),
+        // A new channel starts at the server's default threshold.
+        setValuesForCreate: () => ({ defaultCurrencyCode: null as any, outOfStockThreshold: 0 }),
         transformCreateInput: input => {
             return {
                 ...input,
@@ -142,6 +145,13 @@ function ChannelDetailPage() {
                     token: z.string().min(1, { message: t`This field is required` }),
                     // Left empty on a new channel; the check below says why it must be filled in.
                     defaultCurrencyCode: z.string().nullish(),
+                    // A cleared number input is null, which the server rejects: the threshold is
+                    // never empty.
+                    outOfStockThreshold: z
+                        .number()
+                        .int()
+                        .nullish()
+                        .refine(value => value !== null, { message: t`This field is required` }),
                     ...(creatingNewEntity
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
@@ -375,6 +385,19 @@ function ChannelDetailPage() {
                             render={({ field }) => (
                                 <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
                             )}
+                        />
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="outOfStockThreshold"
+                            label={<Trans>Out of stock threshold</Trans>}
+                            description={
+                                <Trans>
+                                    Sets the stock level at which a variant is considered to be out of stock
+                                    in this channel. Using a negative value enables backorder support. Product
+                                    variants can override this.
+                                </Trans>
+                            }
+                            render={({ field }) => <NumberInput {...field} />}
                         />
                     </DetailFormGrid>
                 </PageBlock>

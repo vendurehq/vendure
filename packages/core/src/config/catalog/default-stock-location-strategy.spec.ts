@@ -62,10 +62,10 @@ describe('DefaultStockLocationStrategy', () => {
         await ensureConfigLoaded();
     });
 
-    function contextWithChannelTracking(trackInventory: boolean): RequestContext {
+    function contextWithChannel(trackInventory: boolean, outOfStockThreshold = 0): RequestContext {
         return new RequestContext({
             apiType: 'shop',
-            channel: new Channel({ id: 1, trackInventory }),
+            channel: new Channel({ id: 1, trackInventory, outOfStockThreshold }),
             authorizedAsOwnerOnly: false,
             isAuthorized: true,
             session: {} as any,
@@ -75,7 +75,7 @@ describe('DefaultStockLocationStrategy', () => {
     beforeEach(() => {
         ctx = new RequestContext({
             apiType: 'shop',
-            channel: new Channel({ id: 1, trackInventory: true }),
+            channel: new Channel({ id: 1, trackInventory: true, outOfStockThreshold: 0 }),
             authorizedAsOwnerOnly: false,
             isAuthorized: true,
             session: {} as any,
@@ -85,22 +85,26 @@ describe('DefaultStockLocationStrategy', () => {
 
     /**
      * `init()` resolves its services from the Injector, which needs the whole Nest container, so
-     * the three collaborators `forAllocation()` uses are stubbed directly. The unlocked read
+     * the two collaborators `forAllocation()` uses are stubbed directly. The unlocked read
      * always runs first (it decides whether anything is tracked); the locked read returns the
      * same rows, so whether the lock was taken is visible only in the call counts, which is
      * exactly what the lock assertions are about. Whether inventory is tracked by default comes
-     * from the Channel of the RequestContext, so `channelTrackInventory` replaces `ctx`.
+     * from the Channel of the RequestContext, as does the threshold of a variant which uses the
+     * Channel's, so `channelTrackInventory` and `channelOutOfStockThreshold` replace `ctx`.
      */
     function setUpAllocation(options: {
         trackInventory: GlobalFlag;
         channelTrackInventory?: boolean;
         useGlobalOutOfStockThreshold?: boolean;
         outOfStockThreshold?: number;
-        globalOutOfStockThreshold?: number;
+        channelOutOfStockThreshold?: number;
         stockLevels?: StockLevel[];
     }) {
-        if (options.channelTrackInventory !== undefined) {
-            ctx = contextWithChannelTracking(options.channelTrackInventory);
+        if (options.channelTrackInventory !== undefined || options.channelOutOfStockThreshold !== undefined) {
+            ctx = contextWithChannel(
+                options.channelTrackInventory ?? true,
+                options.channelOutOfStockThreshold,
+            );
         }
         const rows = options.stockLevels ?? stockLevels(10, 0);
         const unlockedFind = vi.fn(() => Promise.resolve(rows));
@@ -116,12 +120,6 @@ describe('DefaultStockLocationStrategy', () => {
                     }),
                 ),
             getRepository: () => ({ find: unlockedFind }),
-        };
-        (strategy as any).globalSettingsService = {
-            getSettings: () =>
-                Promise.resolve({
-                    outOfStockThreshold: options.globalOutOfStockThreshold ?? 0,
-                }),
         };
         (strategy as any).stockLevelService = { getLockedStockLevelsForVariant: lockedRead };
         return { unlockedFind, lockedRead };
@@ -180,12 +178,12 @@ describe('DefaultStockLocationStrategy', () => {
             expect(result).toEqual([{ location: stockLocation, quantity: 6, tracked: true }]);
         });
 
-        it('uses the global outOfStockThreshold when the variant defers to it', async () => {
+        it("uses the Channel's outOfStockThreshold when the variant defers to it", async () => {
             setUpAllocation({
                 trackInventory: GlobalFlag.TRUE,
                 useGlobalOutOfStockThreshold: true,
                 outOfStockThreshold: 0,
-                globalOutOfStockThreshold: 4,
+                channelOutOfStockThreshold: 4,
                 stockLevels: stockLevels(10, 0),
             });
 
@@ -400,9 +398,8 @@ describe('DefaultStockLocationStrategy', () => {
     });
     describe('subclassing', () => {
         /**
-         * Resolves by class name, so the lazily imported GlobalSettingsService and
-         * StockLevelService are reached through the real `init()` path rather than stubbed onto
-         * the instance as the tests above do.
+         * Resolves by class name, so the lazily imported StockLevelService is reached through the
+         * real `init()` path rather than stubbed onto the instance as the tests above do.
          */
         function injectorReturning(lockedRead: () => Promise<StockLevel[]>): Injector {
             const connection = {
@@ -424,10 +421,6 @@ describe('DefaultStockLocationStrategy', () => {
                     switch ((token as { name?: string })?.name) {
                         case 'TransactionalConnection':
                             return connection;
-                        case 'GlobalSettingsService':
-                            return {
-                                getSettings: () => Promise.resolve({ outOfStockThreshold: 0 }),
-                            };
                         case 'StockLevelService':
                             return { getLockedStockLevelsForVariant: lockedRead };
                         default:

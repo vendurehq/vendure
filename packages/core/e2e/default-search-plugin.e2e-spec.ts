@@ -8,7 +8,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import {
-    ChannelTrackInventoryEvent,
+    ChannelStockSettingsEvent,
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
     EventBus,
@@ -843,10 +843,10 @@ describe('Default search plugin', () => {
 
         // #2908 — sending an unchanged trackInventory does not reindex the channel
         it('does not signal a trackInventory change when the value is unchanged', async () => {
-            const events: ChannelTrackInventoryEvent[] = [];
+            const events: ChannelStockSettingsEvent[] = [];
             const subscription = server.app
                 .get(EventBus)
-                .ofType(ChannelTrackInventoryEvent)
+                .ofType(ChannelStockSettingsEvent)
                 .subscribe(e => events.push(e));
             try {
                 await adminClient.query(updateChannelDocument, {
@@ -859,8 +859,86 @@ describe('Default search plugin', () => {
                     input: { id: 'T_1', trackInventory: true },
                 });
                 await awaitRunningJobs(adminClient);
-                expect(events.map(e => e.trackInventory)).toEqual([false, true]);
+                expect(events.map(e => e.changed)).toEqual([['trackInventory'], ['trackInventory']]);
+                expect(events.map(e => e.channel.trackInventory)).toEqual([false, true]);
             } finally {
+                subscription.unsubscribe();
+            }
+        });
+
+        // OSS-1299 — a Channel's outOfStockThreshold decides whether the variants which use it
+        // are in stock, so changing it reindexes the Channel
+        it('reindexes the channel when its outOfStockThreshold changes', async () => {
+            const getVariantThresholdSettings = graphqlAdmin(`
+                query SearchTestVariantThreshold($id: ID!) {
+                    productVariant(id: $id) {
+                        id
+                        tracksInventory
+                        useGlobalOutOfStockThreshold
+                    }
+                }
+            `);
+            const events: ChannelStockSettingsEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(ChannelStockSettingsEvent)
+                .subscribe(e => events.push(e));
+            const inStockIds = async () =>
+                (
+                    await shopClient.query(searchProductsShopDocument, {
+                        input: { groupByProduct: false, inStock: true, take: 100 },
+                    })
+                ).search.items.map(i => i.productVariantId);
+            const before = await inStockIds();
+            // Higher than any stock on hand, so exactly the in-stock variants which are tracked
+            // and use the Channel's threshold drop out of stock.
+            const keptInStock: string[] = [];
+            for (const id of before) {
+                const { productVariant } = await adminClient.query(getVariantThresholdSettings, { id });
+                if (!productVariant!.tracksInventory || !productVariant!.useGlobalOutOfStockThreshold) {
+                    keptInStock.push(id);
+                }
+            }
+            expect(keptInStock.length).toBeLessThan(before.length);
+            try {
+                // Unchanged: no event.
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', outOfStockThreshold: 0 },
+                });
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', outOfStockThreshold: 100_000 },
+                });
+                await awaitRunningJobs(adminClient);
+                expect(events.map(e => e.changed)).toEqual([['outOfStockThreshold']]);
+                expect((await inStockIds()).sort()).toEqual(keptInStock.sort());
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', outOfStockThreshold: 0 },
+                });
+                await awaitRunningJobs(adminClient);
+                subscription.unsubscribe();
+            }
+            expect((await inStockIds()).sort()).toEqual(before.sort());
+        });
+
+        // OSS-1299 — one update which changes both settings fires one event listing both
+        it('signals both settings in one event when one update changes both', async () => {
+            const events: ChannelStockSettingsEvent[] = [];
+            const subscription = server.app
+                .get(EventBus)
+                .ofType(ChannelStockSettingsEvent)
+                .subscribe(e => events.push(e));
+            try {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: false, outOfStockThreshold: 5 },
+                });
+                await awaitRunningJobs(adminClient);
+                expect(events.map(e => e.changed)).toEqual([['trackInventory', 'outOfStockThreshold']]);
+            } finally {
+                await adminClient.query(updateChannelDocument, {
+                    input: { id: 'T_1', trackInventory: true, outOfStockThreshold: 0 },
+                });
+                await awaitRunningJobs(adminClient);
                 subscription.unsubscribe();
             }
         });
@@ -1494,6 +1572,51 @@ describe('Default search plugin', () => {
                 const result = await testProductsAdmin({ term: 'aabbccdd' });
                 expect(result.search.items.map(i => i.productName)).toEqual([
                     'Very long description aabbccdd',
+                ]);
+                await adminClient.query(deleteProductDocument, {
+                    id: createProduct.id,
+                });
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5367
+            it('very long multibyte Product descriptions do not cause indexing to fail', async () => {
+                // Random Hebrew letters: 2 bytes per char in UTF-8, and random so that
+                // Postgres compression does not shrink the index tuple below the limit.
+                const description = Array.from({ length: 3000 })
+                    .map(() => String.fromCharCode(0x05d0 + Math.floor(Math.random() * 27)))
+                    .join('');
+
+                const { createProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'Very long multibyte description eeffgghh',
+                                slug: 'very-long-multibyte-description',
+                                description,
+                            },
+                        ],
+                    },
+                });
+                await adminClient.query(createProductVariantsDocument, {
+                    input: [
+                        {
+                            productId: createProduct.id,
+                            sku: 'VLMD01',
+                            price: 100,
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Very long multibyte description variant',
+                                },
+                            ],
+                        },
+                    ],
+                });
+                await awaitRunningJobs(adminClient);
+                const result = await testProductsAdmin({ term: 'eeffgghh' });
+                expect(result.search.items.map(i => i.productName)).toEqual([
+                    'Very long multibyte description eeffgghh',
                 ]);
                 await adminClient.query(deleteProductDocument, {
                     id: createProduct.id,

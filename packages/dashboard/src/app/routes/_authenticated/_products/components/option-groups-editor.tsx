@@ -39,17 +39,25 @@ export interface OptionGroupConfiguration {
 }
 
 
+// The `control` of any react-hook-form form. Since react-hook-form 7.72.0 a form's `Control<T>`
+// is not assignable to `Control<any, any>`. Typing every member as `any` keeps the check that
+// the value is a control, and the type is still assignable to `Control<any>` where it is read.
+type AnyFormControl = { [K in keyof Control<any, any, any>]: any };
+
 interface SingleOptionGroupEditorProps {
-    control: Control<any>;
+    control: AnyFormControl;
     fieldArrayPath: string;
     disabled?: boolean;
 }
 
 export function SingleOptionGroupEditor({
-    control,
+    control: formControl,
     fieldArrayPath,
     disabled,
 }: Readonly<SingleOptionGroupEditorProps>) {
+    // fieldArrayPath is a runtime string, so the field names cannot be checked against the
+    // form's field types.
+    const control = formControl as Control<any>;
     const { fields, append, remove } = useFieldArray({
         control,
         name: fieldArrayPath ? `${fieldArrayPath}.values` : 'values',

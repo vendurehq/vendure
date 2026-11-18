@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-    AdjustmentType,
     CancelOrderInput,
     HistoryEntryType,
     ModifyOrderInput,
@@ -73,6 +72,8 @@ import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrderChannelContext } from '../utils/order-channel-context';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
+
+import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
 /**
  * @description
@@ -379,15 +380,7 @@ export class OrderModifier {
         });
         if (input.cancelShipping === true) {
             for (const shippingLine of orderWithLines.shippingLines) {
-                shippingLine.adjustments.push({
-                    adjustmentSource: 'CANCEL_ORDER',
-                    type: AdjustmentType.OTHER,
-                    description: 'shipping cancellation',
-                    amount: shippingLine.listPriceIncludesTax
-                        ? -shippingLine.discountedPriceWithTax
-                        : -shippingLine.discountedPrice,
-                    data: {},
-                });
+                addShippingCancellationAdjustment(shippingLine);
                 await this.connection.getRepository(ctx, ShippingLine).save(shippingLine, { reload: false });
             }
         }

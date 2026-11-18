@@ -1,5 +1,11 @@
 import type { AssetStorageStrategy } from '@vendure/core';
-import { defaultCollectionFilters, mergeConfig } from '@vendure/core';
+import {
+    Asset,
+    defaultCollectionFilters,
+    mergeConfig,
+    Product,
+    TransactionalConnection,
+} from '@vendure/core';
 import {
     createTestEnvironment,
     testConfig as defaultTestConfig,
@@ -96,6 +102,12 @@ export default async function globalSetup() {
     const config = mergeConfig(defaultTestConfig, {
         apiOptions: {
             port: VENDURE_PORT,
+            // The dashboard is served from another port, and its fetch uses credentials: 'include',
+            // which needs the request origin reflected (not wildcard *) and credentials: true.
+            cors: {
+                origin: true,
+                credentials: true,
+            },
         },
         paymentOptions: {
             paymentMethodHandlers: e2ePaymentMethodHandlers,
@@ -118,19 +130,39 @@ export default async function globalSetup() {
         },
     });
 
-    // mergeConfig won't replace a boolean with an object, so set CORS explicitly.
-    // The dashboard's fetch uses credentials: 'include', which requires the server
-    // to reflect the request origin (not wildcard *) and set credentials: true.
-    config.apiOptions.cors = {
-        origin: true,
-        credentials: true,
-    };
-
     const { server } = createTestEnvironment(config);
     await server.init({
         initialData,
         productsCsvPath: path.join(__dirname, '../../core/e2e/fixtures/e2e-products-full.csv'),
         customerCount: 5,
     });
+
+    // Seed the readonly relation custom fields of #4902 on the "laptop" product. Readonly custom
+    // fields are not in the GraphQL input types, so they cannot be set via the Admin API.
+    const dataSource = server.app.get(TransactionalConnection).rawConnection;
+    const [firstAsset, secondAsset] = await dataSource
+        .getRepository(Asset)
+        .find({ take: 2, order: { id: 'ASC' } });
+    // Target the same product the e2e test opens (slug "laptop"), so seeding and assertion never
+    // drift apart if the fixture CSV order changes.
+    const laptop = await dataSource
+        .getRepository(Product)
+        .createQueryBuilder('product')
+        .leftJoin('product.translations', 'translation')
+        .where('translation.slug = :slug', { slug: 'laptop' })
+        .getOne();
+    if (!firstAsset || !secondAsset || !laptop) {
+        throw new Error(
+            'Could not seed the #4902 relation custom fields: two assets and the "laptop" product are needed',
+        );
+    }
+    Object.assign(laptop.customFields as Record<string, unknown>, {
+        relatedAsset: firstAsset,
+        relatedAssets: [firstAsset, secondAsset],
+        relatedAssetBuiltIn: firstAsset,
+        relatedAssetPlain: firstAsset,
+    });
+    await dataSource.getRepository(Product).save(laptop);
+
     (globalThis as any).__VENDURE_SERVER__ = server;
 }

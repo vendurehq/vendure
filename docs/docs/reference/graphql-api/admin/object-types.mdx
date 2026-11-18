@@ -619,9 +619,9 @@ type CancelPaymentError {
   availableLanguageCodes: [LanguageCode!]
   defaultCurrencyCode: CurrencyCode!
   availableCurrencyCodes: [CurrencyCode!]!
-  """Not yet used - will be implemented in a future release."""
+  """Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose \`trackInventory\` is \`INHERIT\`. Since 4.0.0"""
   trackInventory: Boolean
-  """Not yet used - will be implemented in a future release."""
+  """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: Int
   pricesIncludeTax: Boolean!
   seller: Seller
@@ -1958,7 +1958,6 @@ type FulfillmentStateTransitionError {
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
-    Int: '/reference/graphql-api/admin/object-types#int',
     ServerConfig: '/reference/graphql-api/admin/object-types#serverconfig',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
@@ -1968,7 +1967,6 @@ type FulfillmentStateTransitionError {
   createdAt: DateTime!
   updatedAt: DateTime!
   availableLanguages: [LanguageCode!]!
-  outOfStockThreshold: Int!
   serverConfig: ServerConfig!
   customFields: JSON
 }`}
@@ -3828,6 +3826,7 @@ type PriceRange {
   """The total allocated stock, counted in the same way as \`stockOnHand\`."""
   stockAllocated: Int!
   outOfStockThreshold: Int!
+  """When true, the \`outOfStockThreshold\` of the Channel is used instead of the variant's own. Since 4.0.0 it comes from the Channel, not the GlobalSettings"""
   useGlobalOutOfStockThreshold: Boolean!
   prices: [ProductVariantPrice!]!
   stockLevels: [StockLevel!]!

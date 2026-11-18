@@ -197,12 +197,12 @@ export type Channel = Node & {
   defaultShippingZone?: Maybe<Zone>;
   defaultTaxZone?: Maybe<Zone>;
   id: Scalars['ID']['output'];
-  /** Not yet used - will be implemented in a future release. */
+  /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: Maybe<Scalars['Int']['output']>;
   pricesIncludeTax: Scalars['Boolean']['output'];
   seller?: Maybe<Seller>;
   token: Scalars['String']['output'];
-  /** Not yet used - will be implemented in a future release. */
+  /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: Maybe<Scalars['Boolean']['output']>;
   updatedAt: Scalars['DateTime']['output'];
 };
