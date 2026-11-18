@@ -302,13 +302,12 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
                 await adminClient.query(UPDATE_FACET, {
                     input: { id: facet.id, translations: translations('facet') },
                 });
-                // One value per call: several in one updateFacetValues call fail on Postgres with
-                // "savepoint does not exist".
-                for (const value of facet.values) {
-                    await adminClient.query(UPDATE_FACET_VALUES, {
-                        input: [{ id: value.id, translations: translations('value') }],
-                    });
-                }
+                await adminClient.query(UPDATE_FACET_VALUES, {
+                    input: facet.values.map((value: { id: string }) => ({
+                        id: value.id,
+                        translations: translations('value'),
+                    })),
+                });
             }
             await adminClient.query(SET_VARIANT_FACET_VALUES, {
                 input: ids.product.variants.map((variant: { id: string }) => ({
