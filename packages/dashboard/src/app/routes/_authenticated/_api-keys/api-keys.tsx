@@ -1,3 +1,4 @@
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -66,7 +67,7 @@ function ApiKeyListPage() {
                 },
                 lookupId: {
                     header: () => <Trans>Lookup ID</Trans>,
-                    cell: ({ row }) => <code className="font-mono text-xs">{row.original.lookupId}</code>,
+                    cell: ({ row }) => <IdentifierDisplay value={row.original.lookupId} />,
                 },
                 owner: {
                     header: () => <Trans>Created by</Trans>,
