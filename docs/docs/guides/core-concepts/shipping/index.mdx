@@ -255,7 +255,7 @@ Without a `shippingOptionCode`, the cheapest option is used. A storefront that d
 
 The chosen option is stored on the ShippingLine as `shippingOptionCode` and `shippingOptionName`. A FulfillmentHandler can read `shippingOptionCode` to buy a label for the right carrier service.
 
-Each time the Order changes, the calculator runs again and the result with the stored code sets the price. If the calculator no longer returns that code, the ShippingLine falls back to the cheapest option of any eligible ShippingMethod, as it does when a ShippingMethod becomes ineligible. Show the Order's `shippingLines` at checkout so the customer sees such a change. If the option is withdrawn after the Order last changed, the transition to `ArrangingPayment` is refused.
+Each time the Order changes, the calculator runs again and the result with the stored code sets the price. If the calculator no longer returns that code, or returns nothing, the ShippingLine falls back to the cheapest option of any eligible ShippingMethod, as it does when a ShippingMethod becomes ineligible. Show the Order's `shippingLines` at checkout so the customer sees such a change. If the option is withdrawn after the Order last changed, the transition to `ArrangingPayment` is refused.
 
 In the Admin API, `setDraftOrderShippingMethod` takes a `shippingOptionCode`, and `ModifyOrderInput` takes `shippingMethods`. The Dashboard lists the options on draft orders and when modifying an order.
 
