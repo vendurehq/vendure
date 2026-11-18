@@ -77,7 +77,9 @@ function renderColumnCell(
     if (!column?.cell) {
         throw new Error(`Column "${columnId}" was not generated`);
     }
-    return renderToStaticMarkup(<>{flexRender(column.cell, cellContext)}</>);
+    return renderToStaticMarkup(
+        <I18nProvider i18n={i18n}>{flexRender(column.cell, cellContext)}</I18nProvider>,
+    );
 }
 
 describe('useGeneratedColumns display component precedence', () => {
@@ -125,7 +127,11 @@ describe('useGeneratedColumns display component precedence', () => {
     });
 
     it('renders the default display component when a column has neither a core cell nor a registration', () => {
-        expect(renderColumnCell('test-page-default', 'sku')).toBe(String(PRICE));
+        // The default display of an identifier field (sku) is a row-reveal copy chip.
+        const markup = renderColumnCell('test-page-default', 'sku');
+        expect(markup).toContain('data-slot="id-chip"');
+        expect(markup).toContain('data-reveal="row"');
+        expect(markup).toContain(`>${PRICE}</span>`);
     });
 
     it('applies a display component registered through defineDashboardExtension', () => {
