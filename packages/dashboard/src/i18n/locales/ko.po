@@ -650,6 +650,10 @@ msgstr ""
 msgid "City"
 msgstr "도시"
 
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+msgid "Default billing"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
@@ -1040,6 +1044,7 @@ msgstr "이름"
 msgid "Failed to fulfill order"
 msgstr "주문 이행 실패"
 
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
@@ -1076,6 +1081,10 @@ msgstr "크기"
 #: src/lib/components/ui/password-input.tsx
 msgid "Show password"
 msgstr "비밀번호 표시"
+
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
+msgid "Public"
+msgstr ""
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -1273,6 +1282,10 @@ msgstr "새 재고 위치"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Inherit from variant (Track)"
+msgstr ""
+
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+msgid "Default shipping"
 msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
@@ -1917,12 +1930,14 @@ msgstr "기본 청구지 주소로 사용"
 #: src/app/common/delete-bulk-action.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/data-table/views-sheet.tsx
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Delete"
 msgstr "삭제"
 
@@ -2397,6 +2412,7 @@ msgstr ""
 msgid "Filter role assignments"
 msgstr ""
 
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
@@ -2450,6 +2466,7 @@ msgstr "{count, plural, other {{count}개 재고 위치 삭제 실패}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
@@ -4663,6 +4680,10 @@ msgstr "이미지 삽입"
 msgid "Failed to update seller"
 msgstr "판매자 업데이트 실패"
 
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "No payments"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 msgid "Successfully created country"
 msgstr "국가가 생성되었습니다"
@@ -4696,6 +4717,10 @@ msgstr "{0}개 변형"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to settle payment"
 msgstr "결제 정산 실패"
+
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
+msgid "Total with Tax"
+msgstr ""
 
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
@@ -5552,6 +5577,10 @@ msgstr "고객 그룹 추가"
 msgid "Available Languages"
 msgstr "사용 가능한 언어"
 
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
+msgid "Note actions"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-bulk-actions.tsx
 msgid "Reset selection"
 msgstr "선택 초기화"
@@ -6058,6 +6087,7 @@ msgstr "{customerGroupName}의 고객 그룹 멤버"
 msgid "Failed to set address for order: {0}"
 msgstr "주문의 주소 설정 실패: {0}"
 
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/orders.tsx
 #: src/app/routes/_authenticated/_system/job-queue.tsx
@@ -7354,7 +7384,6 @@ msgid "Show all permissions"
 msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
-#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "주소 편집"
 
@@ -7785,6 +7814,7 @@ msgstr "전화번호"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Private"
 msgstr "비공개"
 

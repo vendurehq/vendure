@@ -662,6 +662,10 @@ msgstr "We konden de voorraadniveaus niet laden"
 msgid "City"
 msgstr "Plaats"
 
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+msgid "Default billing"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
@@ -1052,6 +1056,7 @@ msgstr "Naam"
 msgid "Failed to fulfill order"
 msgstr "Bestelling afhandelen mislukt"
 
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
@@ -1088,6 +1093,10 @@ msgstr "Afmetingen"
 #: src/lib/components/ui/password-input.tsx
 msgid "Show password"
 msgstr "Wachtwoord tonen"
+
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
+msgid "Public"
+msgstr ""
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -1285,6 +1294,10 @@ msgstr "Nieuwe voorraadlocatie"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Inherit from variant (Track)"
+msgstr ""
+
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+msgid "Default shipping"
 msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
@@ -1929,12 +1942,14 @@ msgstr "Gebruiken als standaard factuuradres"
 #: src/app/common/delete-bulk-action.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/data-table/views-sheet.tsx
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Delete"
 msgstr "Verwijderen"
 
@@ -2409,6 +2424,7 @@ msgstr ""
 msgid "Filter role assignments"
 msgstr ""
 
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
@@ -2462,6 +2478,7 @@ msgstr "{count, plural, one {Kan {count} voorraadlocatie niet verwijderen} other
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
@@ -4679,6 +4696,10 @@ msgstr "Afbeelding invoegen"
 msgid "Failed to update seller"
 msgstr "Verkoper bijwerken mislukt"
 
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "No payments"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 msgid "Successfully created country"
 msgstr "Land succesvol aangemaakt"
@@ -4712,6 +4733,10 @@ msgstr "{0} varianten"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to settle payment"
 msgstr "Betaling afhandelen mislukt"
+
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
+msgid "Total with Tax"
+msgstr ""
 
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
@@ -5584,6 +5609,10 @@ msgstr "Klantengroepen toevoegen"
 msgid "Available Languages"
 msgstr "Beschikbare talen"
 
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
+msgid "Note actions"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-bulk-actions.tsx
 msgid "Reset selection"
 msgstr "Selectie herstellen"
@@ -6094,6 +6123,7 @@ msgstr "Klantengroepleden voor {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "Instellen van adres voor bestelling mislukt: {0}"
 
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/orders.tsx
 #: src/app/routes/_authenticated/_system/job-queue.tsx
@@ -7425,7 +7455,6 @@ msgid "Show all permissions"
 msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
-#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "Adres bewerken"
 
@@ -7860,6 +7889,7 @@ msgstr "Telefoonnummer"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Private"
 msgstr "Privé"
 
