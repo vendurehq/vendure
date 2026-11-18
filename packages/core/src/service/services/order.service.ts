@@ -39,7 +39,7 @@ import {
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
-import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
+import { DEFAULT_CHANNEL_CODE, DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
 import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
@@ -753,9 +753,7 @@ export class OrderService implements OnApplicationBootstrap {
                 ),
                 'quantity',
             );
-            // Judged in the Order's Channel, not the Channel of an Administrator editing a draft
-            // Order of another Channel, as the check on the transition to ArrangingPayment is.
-            stockCtx ??= await getOrderChannelContext(ctx, this.connection, this.channelService, order.id);
+            stockCtx ??= await this.getStockContextForOrderEdit(ctx, order.id);
             const correctedQuantity = await this.orderModifier.constrainQuantityToSaleable(
                 stockCtx,
                 variant,
@@ -918,8 +916,7 @@ export class OrderService implements OnApplicationBootstrap {
                 ),
                 'quantity',
             );
-            // Judged in the Order's Channel; see addItemsToOrder().
-            stockCtx ??= await getOrderChannelContext(ctx, this.connection, this.channelService, order.id);
+            stockCtx ??= await this.getStockContextForOrderEdit(ctx, order.id);
             const correctedQuantity = await this.orderModifier.constrainQuantityToSaleable(
                 stockCtx,
                 orderLine.productVariant,
@@ -2424,6 +2421,22 @@ export class OrderService implements OnApplicationBootstrap {
             return order;
         }
         return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
+    }
+
+    /**
+     * The context in which the saleable stock of an Order being edited is checked: the Order's
+     * Channel. The check on the transition to ArrangingPayment uses the Order's Channel too.
+     *
+     * Every Order is also assigned to the default Channel, so an Administrator working there can
+     * edit a draft Order of another Channel. In any other Channel, the Order being edited belongs
+     * to the Channel of the request, so the Order's Channels are not loaded: this keeps a query
+     * off every Shop API add-to-cart.
+     */
+    private async getStockContextForOrderEdit(ctx: RequestContext, orderId: ID): Promise<RequestContext> {
+        if (ctx.channel.code !== DEFAULT_CHANNEL_CODE) {
+            return ctx;
+        }
+        return getOrderChannelContext(ctx, this.connection, this.channelService, orderId);
     }
 
     private async getOrderOrThrow(

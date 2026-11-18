@@ -85,7 +85,7 @@ describe('DefaultStockLocationStrategy', () => {
 
     /**
      * `init()` resolves its services from the Injector, which needs the whole Nest container, so
-     * the three collaborators `forAllocation()` uses are stubbed directly. The unlocked read
+     * the two collaborators `forAllocation()` uses are stubbed directly. The unlocked read
      * always runs first (it decides whether anything is tracked); the locked read returns the
      * same rows, so whether the lock was taken is visible only in the call counts, which is
      * exactly what the lock assertions are about. Whether inventory is tracked by default comes
@@ -398,8 +398,8 @@ describe('DefaultStockLocationStrategy', () => {
     });
     describe('subclassing', () => {
         /**
-         * Resolves by class name, so the lazily imported StockLevelService is reached through the real `init()` path rather than stubbed onto
-         * the instance as the tests above do.
+         * Resolves by class name, so the lazily imported StockLevelService is reached through the
+         * real `init()` path rather than stubbed onto the instance as the tests above do.
          */
         function injectorReturning(lockedRead: () => Promise<StockLevel[]>): Injector {
             const connection = {

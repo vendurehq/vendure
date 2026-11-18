@@ -766,27 +766,41 @@ describe('Stock control: granular trackInventory', () => {
             expect((addItemToDraftOrder as any).lines[0].quantity).toBe(500);
         });
 
-        // OSS-1299 — stockOnHand is shared by every Channel of the variant, so the lowest Channel
-        // threshold decides how far it may go below zero, whichever Channel the admin is in
-        it("allows stockOnHand down to the lowest threshold of the variant's channels", async () => {
+        // OSS-1299 — stockOnHand is shared by every Channel of the variant, so tracking and the
+        // threshold are decided per Channel of the variant: the lowest threshold of the Channels
+        // in which it is tracked applies, whichever Channel the admin is in
+        it('limits stockOnHand by the lowest threshold of the channels which track the variant', async () => {
             await adminClient.query(UPDATE_VARIANT, {
-                input: [{ id: 'T_3', useGlobalOutOfStockThreshold: true, trackInventory: 'TRUE' as any }],
+                input: [{ id: 'T_3', useGlobalOutOfStockThreshold: true, trackInventory: 'INHERIT' as any }],
             });
-            await adminClient.query(UPDATE_CHANNEL, { input: { id: channelBId, outOfStockThreshold: -3 } });
+            // The default Channel does not track T_3, so its leftover threshold has no effect.
+            await adminClient.query(UPDATE_CHANNEL, {
+                input: { id: 'T_1', trackInventory: false, outOfStockThreshold: -10 },
+            });
+            await adminClient.query(UPDATE_CHANNEL, {
+                input: { id: channelBId, trackInventory: true, outOfStockThreshold: -3 },
+            });
             const original = levelAt(await getStock('T_3'), defaultLocationId)!.stockOnHand;
             try {
-                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                // Allowed from the default Channel, though T_3 is untracked there.
                 await adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -2 }] });
                 expect(levelAt(await getStock('T_3'), defaultLocationId)!.stockOnHand).toBe(-2);
+                // Below channel B's threshold: refused in both Channels.
+                await expect(
+                    adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -4 }] }),
+                ).rejects.toThrow('stockOnHand cannot be a negative value');
+                adminClient.setChannelToken(CHANNEL_B_TOKEN);
                 await expect(
                     adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -4 }] }),
                 ).rejects.toThrow('stockOnHand cannot be a negative value');
             } finally {
-                await adminClient.query(UPDATE_VARIANT, {
-                    input: [{ id: 'T_3', stockOnHand: original, trackInventory: 'INHERIT' as any }],
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: original }] });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: 'T_1', trackInventory: true, outOfStockThreshold: 0 },
                 });
                 await adminClient.query(UPDATE_CHANNEL, {
-                    input: { id: channelBId, outOfStockThreshold: 0 },
+                    input: { id: channelBId, trackInventory: false, outOfStockThreshold: 0 },
                 });
             }
         });

@@ -16,9 +16,10 @@ export type ChannelStockSetting = 'trackInventory' | 'outOfStockThreshold';
 /**
  * @description
  * This event is fired when the `trackInventory` or `outOfStockThreshold` setting of a
- * {@link Channel} changes. They are the defaults for every ProductVariant (and StockLevel) which
- * inherits them, so which of the Channel's variants are in stock can change. Search plugins
- * subscribe to it to reindex the Channel.
+ * {@link Channel} changes. `trackInventory` is the default for every ProductVariant and StockLevel
+ * set to `INHERIT`, and `outOfStockThreshold` is used by every ProductVariant with
+ * `useGlobalOutOfStockThreshold`, so which of the Channel's variants are in stock can change.
+ * Search plugins subscribe to it to reindex the Channel.
  *
  * Unlike {@link ChannelEvent}, it is only fired when a value actually changes, not on every
  * update which includes it. `changed` lists the settings which changed; `channel` holds the new
