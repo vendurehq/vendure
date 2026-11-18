@@ -58,6 +58,7 @@ async function renderForm(initialEntity?: Record<string, any>) {
     let form: ReturnType<typeof useGeneratedForm>['form'] | undefined;
     let isValid: boolean | undefined;
     let setEntity: (entity: Record<string, any>) => void = () => undefined;
+    let firstRenderValues: Record<string, any> | undefined;
     function Probe() {
         const [entity, set] = useState(initialEntity);
         setEntity = set;
@@ -69,6 +70,7 @@ async function renderForm(initialEntity?: Record<string, any>) {
             setValues: e => ({ name: e.name, customFields: e.customFields }),
         }).form;
         isValid = form.formState.isValid;
+        firstRenderValues ??= structuredClone(form.getValues());
         return null;
     }
     const root = createRoot(document.createElement('div'));
@@ -78,6 +80,7 @@ async function renderForm(initialEntity?: Record<string, any>) {
     return {
         getForm: () => form as NonNullable<typeof form>,
         getIsValid: () => isValid,
+        getFirstRenderValues: () => firstRenderValues,
         setEntity: (entity: Record<string, any>) => act(async () => setEntity(entity)),
         unmount: () => act(() => root.unmount()),
     };
@@ -129,6 +132,16 @@ describe('useGeneratedForm with a nullable: false custom field', () => {
             validAfter = await getForm().trigger();
         });
         expect(validAfter).toBe(false);
+        unmount();
+    });
+});
+
+// OSS-1316 — a loaded entity must show on the first render, so a switch does not slide into place
+describe('useGeneratedForm first render', () => {
+    it('renders a loaded entity on the first render', async () => {
+        const { getFirstRenderValues, getForm, unmount } = await renderForm(existingStockLocation);
+        expect(getFirstRenderValues()).toMatchObject({ name: 'Warehouse', customFields: { defaultMinStock: 5 } });
+        expect(getForm().formState.isDirty).toBe(false);
         unmount();
     });
 });

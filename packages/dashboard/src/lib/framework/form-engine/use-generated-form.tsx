@@ -250,10 +250,13 @@ export function useGeneratedForm<
         return applyNullableSelectCustomFieldDefaults(raw, customFieldConfig);
     }, [processedEntity, processedDefaultValues, updateFields, customFieldConfig]);
 
+    // react-hook-form renders `defaultValues` first and applies `values` one render later. With a
+    // loaded entity, start from its values so the first render already shows them; otherwise a
+    // switch renders off and then slides on.
     const form = useForm({
         resolver: zodResolver(schema),
         mode: 'onChange',
-        defaultValues: processedDefaultValues,
+        defaultValues: entity ? values : processedDefaultValues,
         values,
     });
     // Read `dirtyFields` here, during render, so react-hook-form's lazily-tracked `formState`
