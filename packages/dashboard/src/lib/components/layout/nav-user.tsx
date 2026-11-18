@@ -67,6 +67,8 @@ export function NavUser() {
                         <DropdownMenuContent
                             className="w-(--anchor-width) min-w-56 rounded-lg"
                             side={isMobile ? 'bottom' : 'right'}
+                            // Set by hand: the trigger sits at the foot of the sidebar, so the
+                            // menu ends at the trigger and grows upward.
                             align="end"
                             sideOffset={4}
                         >

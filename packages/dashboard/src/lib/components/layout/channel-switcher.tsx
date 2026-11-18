@@ -123,6 +123,8 @@ export function ChannelSwitcher() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                             className="w-(--anchor-width) min-w-72 rounded-lg pt-0 pr-0"
+                            // Set by hand: the trigger sits at the top of the sidebar, so the
+                            // menu starts at the trigger and grows downward.
                             align="start"
                             side={isMobile ? 'bottom' : 'right'}
                             sideOffset={4}
