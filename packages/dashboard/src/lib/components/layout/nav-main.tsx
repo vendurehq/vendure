@@ -73,6 +73,7 @@ function CollapsedSectionMenu({
                 {item.icon && <item.icon />}
                 <span>{i18n.t(item.title)}</span>
             </HoverCardTrigger>
+            {/* Set by hand: the card opens beside the collapsed rail and starts level with the item. */}
             <HoverCardContent side="right" align="start" sideOffset={4} className="w-auto min-w-[8rem] p-1">
                 <p className="px-2 py-1.5 text-sm font-semibold" data-testid="sidebar-hover-title">
                     {i18n.t(item.title)}
