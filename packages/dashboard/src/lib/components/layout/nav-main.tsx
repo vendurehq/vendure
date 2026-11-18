@@ -65,7 +65,9 @@ function CollapsedSectionMenu({
             <HoverCardTrigger
                 delay={HOVER_OPEN_DELAY}
                 render={
-                    <SidebarMenuButton isActive={item.items?.some(subItem => isPathActive(subItem.url))} />
+                    <SidebarMenuButton
+                        hasActiveChild={item.items?.some(subItem => isPathActive(subItem.url))}
+                    />
                 }
             >
                 {item.icon && <item.icon />}
@@ -395,45 +397,52 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
 
         return (
             <NavItemWrapper key={item.id} locationId={item.id} order={item.order} offset={true}>
+                {/* The Collapsible renders as the menu item, so the `li` stays a direct child of the `ul`. */}
                 <Collapsible
                     open={isOpen}
                     onOpenChange={open => onToggle(item.id, open)}
                     className="group/collapsible"
+                    render={<SidebarMenuItem />}
                 >
-                    <SidebarMenuItem>
-                        <CollapsibleTrigger render={<SidebarMenuButton tooltip={i18n.t(item.title)} />}>
-                            {item.icon && <item.icon />}
-                            <span>{i18n.t(item.title)}</span>
-                            <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-open/collapsible:rotate-90" />
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                            <SidebarMenuSub>
-                                {item.items?.map(subItem => (
-                                    <NavItemWrapper
-                                        key={subItem.id}
-                                        locationId={subItem.id}
-                                        order={subItem.order}
-                                        parentLocationId={item.id}
-                                    >
-                                        <SidebarMenuSubItem>
-                                            <SidebarMenuSubButton
-                                                render={<Link to={subItem.url} />}
-                                                isActive={isPathActive(subItem.url)}
-                                            >
-                                                <span className="min-w-0 flex-1 truncate">
-                                                    {i18n.t(subItem.title)}
-                                                </span>
-                                                <LockedNavLabel item={subItem} />
-                                                {navigationChordActive ? (
-                                                    <ShortcutBadge shortcut={subItem.shortcut} />
-                                                ) : null}
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                    </NavItemWrapper>
-                                ))}
-                            </SidebarMenuSub>
-                        </CollapsibleContent>
-                    </SidebarMenuItem>
+                    <CollapsibleTrigger
+                        render={
+                            <SidebarMenuButton
+                                tooltip={i18n.t(item.title)}
+                                hasActiveChild={item.items?.some(subItem => isPathActive(subItem.url))}
+                            />
+                        }
+                    >
+                        {item.icon && <item.icon />}
+                        <span>{i18n.t(item.title)}</span>
+                        <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-open/collapsible:rotate-90" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <SidebarMenuSub>
+                            {item.items?.map(subItem => (
+                                <NavItemWrapper
+                                    key={subItem.id}
+                                    locationId={subItem.id}
+                                    order={subItem.order}
+                                    parentLocationId={item.id}
+                                >
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            render={<Link to={subItem.url} />}
+                                            isActive={isPathActive(subItem.url)}
+                                        >
+                                            <span className="min-w-0 flex-1 truncate">
+                                                {i18n.t(subItem.title)}
+                                            </span>
+                                            <LockedNavLabel item={subItem} />
+                                            {navigationChordActive ? (
+                                                <ShortcutBadge shortcut={subItem.shortcut} />
+                                            ) : null}
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                </NavItemWrapper>
+                            ))}
+                        </SidebarMenuSub>
+                    </CollapsibleContent>
                 </Collapsible>
             </NavItemWrapper>
         );
