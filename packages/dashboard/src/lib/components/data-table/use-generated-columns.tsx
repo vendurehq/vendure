@@ -1,3 +1,4 @@
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { useAllBulkActions } from '@/vdb/components/data-table/use-all-bulk-actions.js';
 import { toast } from '@/vdb/components/ui/sonner.js';
 import { DisplayComponent } from '@/vdb/framework/component-registry/display-component.js';
@@ -169,7 +170,7 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
                 id: fieldInfo.name,
                 meta: { fieldInfo, isCustomField, ...(meta ?? {}) },
                 enableColumnFilter,
-                enableSorting: fieldInfo.isScalar && fieldInfo.type !== 'Boolean' && enableSorting,
+                enableSorting: fieldInfo.isScalar && enableSorting,
                 // Filtering is done on the server side, but we set this to 'equalsString' because
                 // otherwise the TanStack Table with apply an "auto" function which somehow
                 // prevents certain filters from working.
@@ -360,7 +361,14 @@ function getRowActions(
     };
 }
 
+// String fields that hold an identifier a user copies into other places.
+const IDENTIFIER_FIELD_NAMES = new Set(['code', 'slug', 'sku', 'couponCode']);
+
 function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: FieldInfo }) {
+    // An empty cell stays blank.
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
     if (fieldInfo.list && Array.isArray(value) && fieldInfo.isScalar) {
         return value.join(', ');
     }
@@ -373,6 +381,9 @@ function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: 
         } else {
             return <DisplayComponent id="vendure:booleanYesNoBadge" value={value} />;
         }
+    }
+    if (fieldInfo.type === 'String' && !fieldInfo.list && IDENTIFIER_FIELD_NAMES.has(fieldInfo.name)) {
+        return <IdentifierDisplay value={value} />;
     }
     if (fieldInfo.type === 'Asset') {
         return <DisplayComponent id="vendure:asset" value={value} />;
