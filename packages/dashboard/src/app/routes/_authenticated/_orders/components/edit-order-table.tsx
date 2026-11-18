@@ -22,11 +22,12 @@ import {
     orderDetailDocument,
     orderLineFragment,
 } from '../orders.graphql.js';
+import type { ShippingMethodSelection } from '../utils/order-utils.js';
 
 import { MoneyGrossNet } from './money-gross-net.js';
 import { OrderLineCustomFieldsForm } from './order-line-custom-fields-form.js';
 import { OrderTableTotals } from './order-table-totals.js';
-import { ShippingMethodSelection, ShippingMethodSelector } from './shipping-method-selector.js';
+import { ShippingMethodSelector } from './shipping-method-selector.js';
 
 type OrderFragment = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
 

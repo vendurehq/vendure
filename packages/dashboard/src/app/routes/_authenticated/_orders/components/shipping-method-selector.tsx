@@ -12,8 +12,6 @@ type ShippingMethodQuote = ResultOf<
     typeof draftOrderEligibleShippingMethodsDocument
 >['eligibleShippingMethodsForDraftOrder'][number];
 
-export type { ShippingMethodSelection };
-
 interface ShippingMethodSelectorProps {
     eligibleShippingMethods: ShippingMethodQuote[];
     selectedShippingMethodId?: string;
@@ -34,7 +32,7 @@ export function ShippingMethodSelector({
             {eligibleShippingMethods?.length ? (
                 eligibleShippingMethods.map(method => {
                     const isSelected = selectedShippingMethodId === method.id;
-                    // A method whose calculator returns one price has a single option without a code
+                    // A method whose calculator returns a single result has a single option
                     const hasOptions = method.options.length > 1;
                     return (
                         <Card
