@@ -175,6 +175,16 @@ interface DataTableProps<TData> {
      * Called when row selection changes, including selections retained across pages.
      */
     onSelectionChange?: (selection: TData[]) => void;
+    /**
+     * @description
+     * Keeps the row selection in session storage under this key, so it survives
+     * opening an item and going back, and a reload in the same tab. Name the list
+     * and anything that scopes its rows, such as the channel. Without it the
+     * selection lasts until the table unmounts.
+     *
+     * @since 3.8.0
+     */
+    selectionStorageKey?: string;
     enableViews?: boolean;
     /**
      * @description
@@ -285,6 +295,7 @@ export function DataTable<TData>({
     bulkActions,
     selectedItems,
     onSelectionChange,
+    selectionStorageKey,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -719,6 +730,7 @@ export function DataTable<TData>({
                                   }
                                 : undefined
                         }
+                        selectionStorageKey={hasSelectionColumn ? selectionStorageKey : undefined}
                         rowSelection={
                             hasSelectionColumn
                                 ? {
