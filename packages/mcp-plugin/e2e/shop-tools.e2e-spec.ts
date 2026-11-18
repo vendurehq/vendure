@@ -7,6 +7,7 @@ import {
     ConfigService,
     Customer,
     CustomerService,
+    defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     ID,
     Injector,
@@ -22,6 +23,7 @@ import {
     RequestContextService,
     Session,
     SessionService,
+    ShippingCalculator,
     ShippingEligibilityChecker,
     TransactionalConnection,
     TtlOrderRecalculationStrategy,
@@ -216,6 +218,21 @@ const UK_ADDRESS = {
     postalCode: 'SW1A 2AA',
     countryCode: 'GB',
 };
+const CARRIER_SHIPPING_METHOD_CODE = 'mcp-e2e-carrier';
+/**
+ * Returns two options, as a carrier API does. Both cost more than the other methods, so the
+ * tests which take the cheapest eligible method never take this one.
+ */
+const carrierRatesCalculator = new ShippingCalculator({
+    code: 'mcp-e2e-carrier-rates',
+    description: [{ languageCode: LanguageCode.en, value: 'Carrier rates' }],
+    args: {},
+    calculate: () => [
+        { code: 'ground', name: 'Ground', price: 5000, priceIncludesTax: false, taxRate: 0 },
+        { code: 'next-day', name: 'Next day', price: 9000, priceIncludesTax: false, taxRate: 0 },
+    ],
+});
+
 const usOnlyShippingChecker = new ShippingEligibilityChecker({
     code: US_ONLY_SHIPPING_METHOD_CODE,
     description: [{ languageCode: LanguageCode.en, value: 'US addresses only' }],
@@ -237,6 +254,7 @@ describe('MCP built-in shop tools', () => {
         orderOptions: { orderByCodeAccessStrategy },
         shippingOptions: {
             shippingEligibilityCheckers: [defaultShippingEligibilityChecker, usOnlyShippingChecker],
+            shippingCalculators: [defaultShippingCalculator, carrierRatesCalculator],
         },
         paymentOptions: { paymentMethodHandlers: [testPaymentHandler, pendingPaymentHandler] },
         plugins: [
@@ -390,6 +408,25 @@ describe('MCP built-in shop tools', () => {
             },
         );
         expect(usOnly.createShippingMethod.code).toBe(US_ONLY_SHIPPING_METHOD_CODE);
+        // A US-only shipping method with several options, for the set_shipping_method optionCode test.
+        await adminClient.query(
+            gql`
+                mutation CreateCarrierShippingMethod($input: CreateShippingMethodInput!) {
+                    createShippingMethod(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: CARRIER_SHIPPING_METHOD_CODE,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: { code: usOnlyShippingChecker.code, arguments: [] },
+                    calculator: { code: carrierRatesCalculator.code, arguments: [] },
+                    translations: [{ languageCode: LanguageCode.en, name: 'Carrier' }],
+                },
+            },
+        );
         // A second fixture product carrying three variants. add_to_cart must refuse a product ID
         // when the product has more than one variant, and there is nothing to test that against
         // unless such a product exists.
@@ -2618,6 +2655,69 @@ describe('MCP built-in shop tools', () => {
             });
             expect(stored.shippingAddress?.streetLine1).toBeUndefined();
             expect(stored.customer).toBeNull();
+        });
+
+        // #2649 — a shipping method can offer several priced options
+        it('set_shipping_method chooses one of the options listed by get_eligible_shipping_methods', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+            await call(
+                'set_checkout_details',
+                {
+                    shippingAddress: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        postalCode: '94111',
+                        countryCode: 'US',
+                    },
+                },
+                2,
+            );
+
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const carrier = quotes.body.result.structuredContent.methods.find(
+                (method: any) => method.code === CARRIER_SHIPPING_METHOD_CODE,
+            );
+            expect(carrier.options).toEqual([
+                expect.objectContaining({
+                    code: 'ground',
+                    name: 'Ground',
+                    price: 5000,
+                    priceDecimal: '50.00',
+                }),
+                expect.objectContaining({
+                    code: 'next-day',
+                    name: 'Next day',
+                    price: 9000,
+                    priceDecimal: '90.00',
+                }),
+            ]);
+
+            const chosen = await call(
+                'set_shipping_method',
+                { methodId: carrier.id, optionCode: 'next-day' },
+                4,
+            );
+            expect(chosen.body.result.isError).toBeUndefined();
+            expect(chosen.body.result.structuredContent.order.shippingLines).toEqual([
+                expect.objectContaining({
+                    shippingMethodId: carrier.id,
+                    shippingOptionCode: 'next-day',
+                    shippingOptionName: 'Next day',
+                    priceWithTax: 9000,
+                }),
+            ]);
+
+            const unknown = await call(
+                'set_shipping_method',
+                { methodId: carrier.id, optionCode: 'teleport' },
+                5,
+            );
+            expect(unknown.body.result.isError).toBe(true);
+            expect(unknown.body.result.structuredContent.errorCode).toBe('INELIGIBLE_SHIPPING_METHOD_ERROR');
         });
 
         it('set_checkout_details reports shippingMethodChanged when the new address makes the store swap the method', async () => {

@@ -250,6 +250,7 @@ describe('McpToolSerializerService', () => {
                     priceWithTax: 600,
                     metadata: { carrier: 'Royal Mail' },
                     customFields: { warehouse: 'north' },
+                    options: [{ code: 'tracked', name: 'Tracked', price: 500, priceWithTax: 600 }],
                 } as any,
                 'GBP' as any,
             ),
@@ -265,6 +266,16 @@ describe('McpToolSerializerService', () => {
             currencyCode: 'GBP',
             metadata: { carrier: 'Royal Mail' },
             customFields: { warehouse: 'north' },
+            options: [
+                {
+                    code: 'tracked',
+                    name: 'Tracked',
+                    price: 500,
+                    priceDecimal: '5.00',
+                    priceWithTax: 600,
+                    priceWithTaxDecimal: '6.00',
+                },
+            ],
         });
     });
 
@@ -682,7 +693,14 @@ describe('money scaling', () => {
         };
 
         const shipping = quoteService.shippingQuote(
-            { id: 1, price: 500, priceWithTax: 600, metadata: { carrier: 'DHL' }, customFields } as any,
+            {
+                id: 1,
+                price: 500,
+                priceWithTax: 600,
+                metadata: { carrier: 'DHL' },
+                customFields,
+                options: [],
+            } as any,
             'USD' as any,
         );
         expect(shipping.customFields).toEqual({ trackingUrl: 'https://track.example.test' });
@@ -697,7 +715,7 @@ describe('money scaling', () => {
     it('passes a quote with no custom fields through untouched', () => {
         const quoteService = new McpToolSerializerService(configWithQuoteCustomFields());
         expect(
-            quoteService.shippingQuote({ id: 1, price: 0, priceWithTax: 0 } as any, 'USD' as any)
+            quoteService.shippingQuote({ id: 1, price: 0, priceWithTax: 0, options: [] } as any, 'USD' as any)
                 .customFields,
         ).toBeUndefined();
         expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
