@@ -63,7 +63,7 @@ from `tools/list` and cannot be called. Tool toggles are the primary lever for s
 | `apply_coupon_code` | mutating | Public | Apply a coupon code to the cart |
 | `remove_coupon_code` | mutating | Public | Remove a coupon code from the cart |
 | [`set_checkout_details`](#set_checkout_details) | mutating | Public | Set the cart's addresses, and the buyer for a guest checkout |
-| `set_shipping_method` | mutating | Public | Set the cart shipping method |
+| `set_shipping_method` | mutating | Public | Set the cart shipping method, and optionally one of its options |
 | [`get_eligible_shipping_methods`](#get_eligible_shipping_methods) | readonly | Public | List shipping methods eligible for the cart |
 | `get_eligible_payment_methods` | readonly | Public | List payment methods eligible for the cart |
 | [`place_order`](#place_order) | **destructive** | Public | Move the cart to the payment stage if needed, then add payment. Answers with a status |
@@ -277,6 +277,9 @@ does either without reporting it, so the tool reports it instead:
   calculated for.
 - Anything a shipping calculator attached to the quote under `metadata` or `customFields` is returned unchanged
   alongside the price fields.
+- Each method lists its `options`, cheapest first. A method whose calculator returns several options, such as
+  carrier services, needs the chosen option's `code` passed to `set_shipping_method` as `optionCode`. Without it the
+  cheapest option is used.
 
 ### `place_order`
 
