@@ -48,7 +48,6 @@ import { Order } from '../../../entity/order/order.entity';
 import { Payment } from '../../../entity/payment/payment.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
-import { ShippingMethod } from '../../../entity/shipping-method/shipping-method.entity';
 import { Allocation } from '../../../entity/stock-movement/allocation.entity';
 import { Cancellation } from '../../../entity/stock-movement/cancellation.entity';
 import { Release } from '../../../entity/stock-movement/release.entity';
@@ -67,7 +66,7 @@ import { StockLevelReadOptions, StockLevelService } from '../../services/stock-l
 import { StockMovementService } from '../../services/stock-movement.service';
 import { CustomFieldRelationService } from '../custom-field-relation/custom-field-relation.service';
 import { OrderCalculator } from '../order-calculator/order-calculator';
-import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
+import { setShippingLineOption, ShippingCalculator } from '../shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
@@ -756,56 +755,35 @@ export class OrderModifier {
         );
         const shippingMethodIds = selections.map(selection => selection.shippingMethodId);
         for (const [i, { shippingMethodId, shippingOptionCode }] of selections.entries()) {
-            let shippingMethod: ShippingMethod | undefined;
-            let shippingOptionName: string | null = null;
-            if (shippingOptionCode != null) {
-                // The calculator has to run to know whether it offers this option
-                const eligibleOption = await this.shippingCalculator.getOptionIfEligible(
-                    ctx,
-                    order,
-                    shippingMethodId,
-                    shippingOptionCode,
-                );
-                shippingMethod = eligibleOption?.method;
-                shippingOptionName = eligibleOption?.result.name ?? null;
-            } else {
-                // With no option code, OrderCalculator.applyShipping() picks the cheapest option
-                // and records its code on the ShippingLine
-                shippingMethod = await this.shippingCalculator.getMethodIfEligible(
-                    ctx,
-                    order,
-                    shippingMethodId,
-                );
-            }
-            if (!shippingMethod) {
+            // The calculator runs here so that the ShippingLine always holds the price of the option
+            // it names, also when the caller does not recalculate shipping afterwards. With no code,
+            // the cheapest option is chosen.
+            const eligibleOption = await this.shippingCalculator.getOptionIfEligible(
+                ctx,
+                order,
+                shippingMethodId,
+                shippingOptionCode,
+            );
+            if (!eligibleOption) {
                 return new IneligibleShippingMethodError();
             }
             let shippingLine: ShippingLine | undefined = order.shippingLines[i];
-            if (shippingLine) {
-                shippingLine.shippingMethod = shippingMethod;
-                shippingLine.shippingMethodId = shippingMethod.id;
-                shippingLine.shippingOptionCode = shippingOptionCode ?? null;
-                shippingLine.shippingOptionName = shippingOptionName;
-            } else {
-                shippingLine = await this.connection.getRepository(ctx, ShippingLine).save(
-                    new ShippingLine({
-                        shippingMethod,
-                        order,
-                        adjustments: [],
-                        listPrice: 0,
-                        listPriceIncludesTax: ctx.channel.pricesIncludeTax,
-                        taxLines: [],
-                        shippingOptionCode: shippingOptionCode ?? null,
-                        shippingOptionName,
-                    }),
-                );
+            if (!shippingLine) {
+                shippingLine = new ShippingLine({
+                    order,
+                    adjustments: [],
+                    listPrice: 0,
+                    // Kept if the calculator result does not say whether its price includes tax
+                    listPriceIncludesTax: ctx.channel.pricesIncludeTax,
+                    taxLines: [],
+                });
                 if (order.shippingLines) {
                     order.shippingLines.push(shippingLine);
                 } else {
                     order.shippingLines = [shippingLine];
                 }
             }
-
+            setShippingLineOption(shippingLine, eligibleOption.method, eligibleOption.result);
             await this.connection.getRepository(ctx, ShippingLine).save(shippingLine);
         }
         // remove any now-unused ShippingLines

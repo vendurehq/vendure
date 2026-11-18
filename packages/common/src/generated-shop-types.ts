@@ -3444,7 +3444,7 @@ export type ShippingLine = {
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
   shippingMethod: ShippingMethod;
-  /** The code of the chosen ShippingOption, if the ShippingMethod offers several */
+  /** The code of the chosen ShippingOption, as returned by the ShippingCalculator. Null when the calculator returns a single result without a code. */
   shippingOptionCode?: Maybe<Scalars['String']['output']>;
   /** The name of the chosen ShippingOption, as returned by the ShippingCalculator when it was chosen */
   shippingOptionName?: Maybe<Scalars['String']['output']>;

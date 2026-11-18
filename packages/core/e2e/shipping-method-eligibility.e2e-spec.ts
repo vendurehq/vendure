@@ -221,9 +221,9 @@ describe('ShippingMethod eligibility', () => {
                 id: [singleLineShippingMethod.id],
             });
 
-            // A check is done when assigning the method to ensure it
-            // is eligible, and again when calculating order adjustments
-            expect(check1Spy).toHaveBeenCalledTimes(2);
+            // A check is done when assigning the method to ensure it is eligible. The ShippingLine
+            // is priced at the same time, so calculating order adjustments does not check it again.
+            expect(check1Spy).toHaveBeenCalledTimes(1);
             expect(check2Spy).not.toHaveBeenCalled();
 
             await shopClient.query(adjustItemQuantityDocument, {
@@ -231,7 +231,7 @@ describe('ShippingMethod eligibility', () => {
                 orderLineId: order.lines[0].id,
             });
 
-            expect(check1Spy).toHaveBeenCalledTimes(3);
+            expect(check1Spy).toHaveBeenCalledTimes(2);
             expect(check2Spy).not.toHaveBeenCalled();
 
             await shopClient.query(adjustItemQuantityDocument, {
@@ -239,7 +239,7 @@ describe('ShippingMethod eligibility', () => {
                 orderLineId: order.lines[0].id,
             });
 
-            expect(check1Spy).toHaveBeenCalledTimes(4);
+            expect(check1Spy).toHaveBeenCalledTimes(3);
             expect(check2Spy).not.toHaveBeenCalled();
         });
 

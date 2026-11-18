@@ -37,6 +37,10 @@ let offeredServiceCodes = allCarrierServices.map(s => s.code);
 let returnDuplicateCodes = false;
 /** Added to every carrier price, to make the carrier dearer than the flat rate */
 let carrierSurcharge = 0;
+/** How many times the carrier calculator has run */
+let carrierCalls = 0;
+/** When set, the flat rate calculator returns its single result with this code */
+let flatRateCode: string | undefined;
 
 /**
  * Stands in for a carrier API: one result per service, priced by the quantity in the Order,
@@ -47,6 +51,7 @@ const carrierCalculator = new ShippingCalculator({
     description: [{ languageCode: LanguageCode.en, value: 'Carrier rates' }],
     args: {},
     calculate: (_ctx, order): ShippingCalculationResult[] => {
+        carrierCalls++;
         const quantity = order.lines.reduce((sum, line) => sum + line.quantity, 0);
         return allCarrierServices
             .filter(service => offeredServiceCodes.includes(service.code))
@@ -65,7 +70,12 @@ const flatRateCalculator = new ShippingCalculator({
     code: 'flat-calculator',
     description: [{ languageCode: LanguageCode.en, value: 'Flat rate' }],
     args: {},
-    calculate: () => ({ price: 2000, priceIncludesTax: false, taxRate: 0 }),
+    calculate: () => ({
+        price: 2000,
+        priceIncludesTax: false,
+        taxRate: 0,
+        ...(flatRateCode ? { code: flatRateCode, name: 'Parcel' } : {}),
+    }),
 });
 
 const alwaysEligible = new ShippingEligibilityChecker({
@@ -163,6 +173,16 @@ const adminOrderShippingDocument = adminGraphql(
     `,
     [adminShippingLinesFragment],
 );
+
+const orderPaymentsDocument = adminGraphql(`
+    query OrderPaymentsForOptions($id: ID!) {
+        order(id: $id) {
+            payments {
+                id
+            }
+        }
+    }
+`);
 
 const createDraftOrderDocument = adminGraphql(`
     mutation CreateDraftOrderForOptions {
@@ -412,7 +432,7 @@ describe('ShippingMethod with several options', () => {
                     shippingMethodId: [carrierMethodId],
                     shippingMethods: [{ shippingMethodId: carrierMethodId }],
                 }),
-            "Provide either the 'shippingMethodId' or the 'shippingMethods' argument, but not both",
+            "Provide exactly one of the 'shippingMethodId' and 'shippingMethods' arguments",
         ),
     );
 
@@ -431,6 +451,33 @@ describe('ShippingMethod with several options', () => {
 
         expect(result.shippingLines[0].shippingOptionCode).toBeNull();
         expect(result.shippingLines[0].priceWithTax).toBe(2000);
+    });
+
+    it('runs the calculator once when an option is set', async () => {
+        carrierCalls = 0;
+        await setShippingMethods({
+            shippingMethods: [{ shippingMethodId: carrierMethodId, shippingOptionCode: 'standard' }],
+        });
+        expect(carrierCalls).toBe(1);
+
+        carrierCalls = 0;
+        await setShippingMethods({ shippingMethodId: [carrierMethodId] });
+        expect(carrierCalls).toBe(1);
+    });
+
+    it('stores the code of a single result which has one', async () => {
+        flatRateCode = 'parcel';
+        try {
+            const result = await setShippingMethods({ shippingMethodId: [flatMethodId] });
+            orderGuard.assertSuccess(result);
+            expect(result.shippingLines[0]).toMatchObject({
+                shippingOptionCode: 'parcel',
+                shippingOptionName: 'Parcel',
+                priceWithTax: 2000,
+            });
+        } finally {
+            flatRateCode = undefined;
+        }
     });
 
     it('falls back to the cheapest option when the chosen one is withdrawn', async () => {
@@ -475,10 +522,10 @@ describe('ShippingMethod with several options', () => {
     });
 
     it(
-        'rejects neither shippingMethodId nor shippingMethods',
+        'rejects a call with neither shippingMethodId nor shippingMethods',
         assertThrowsWithMessage(
             () => setShippingMethods({}),
-            "Provide either the 'shippingMethodId' or the 'shippingMethods' argument, but not both",
+            "Provide exactly one of the 'shippingMethodId' and 'shippingMethods' arguments",
         ),
     );
 
@@ -580,6 +627,58 @@ describe('ShippingMethod with several options', () => {
             ]);
         });
 
+        it('saves the chosen option with modifyOrder', async () => {
+            const { order: before } = await adminClient.query(orderPaymentsDocument, { id: placedOrderId });
+            const paymentId = before?.payments?.[0]?.id;
+            expect(paymentId).toBeDefined();
+            // Standard is cheaper than Express, so the difference is refunded
+            const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                input: {
+                    orderId: placedOrderId,
+                    dryRun: false,
+                    shippingMethods: [{ shippingMethodId: carrierMethodId, shippingOptionCode: 'standard' }],
+                    refunds: [{ paymentId: paymentId as string, reason: 'Cheaper shipping' }],
+                },
+            });
+            expect((modifyOrder as any).errorCode).toBeUndefined();
+
+            const { order } = await adminClient.query(adminOrderShippingDocument, { id: placedOrderId });
+            expect(order?.shippingLines).toEqual([
+                {
+                    shippingMethod: { id: carrierMethodId },
+                    priceWithTax: 1100,
+                    shippingOptionCode: 'standard',
+                    shippingOptionName: 'Standard',
+                },
+            ]);
+        });
+
+        it('prices the chosen option when modifyOrder does not recalculate shipping', async () => {
+            const modify = async (shippingOptionCode?: string) => {
+                const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                    input: {
+                        orderId: placedOrderId,
+                        dryRun: true,
+                        options: { recalculateShipping: false },
+                        shippingMethods: [{ shippingMethodId: carrierMethodId, shippingOptionCode }],
+                    },
+                });
+                return (modifyOrder as any).shippingLines[0];
+            };
+
+            expect(await modify('express')).toMatchObject({
+                priceWithTax: 1700,
+                shippingOptionCode: 'express',
+                shippingOptionName: 'Express',
+            });
+            // Without a code the cheapest option is chosen, and priced
+            expect(await modify()).toMatchObject({
+                priceWithTax: 700,
+                shippingOptionCode: 'economy',
+                shippingOptionName: 'Economy',
+            });
+        });
+
         it(
             'rejects both shippingMethodIds and shippingMethods in modifyOrder',
             assertThrowsWithMessage(
@@ -592,7 +691,7 @@ describe('ShippingMethod with several options', () => {
                             shippingMethods: [{ shippingMethodId: carrierMethodId }],
                         },
                     }),
-                "Provide either 'shippingMethodIds' or 'shippingMethods', but not both",
+                "Provide at most one of 'shippingMethodIds' and 'shippingMethods'",
             ),
         );
 

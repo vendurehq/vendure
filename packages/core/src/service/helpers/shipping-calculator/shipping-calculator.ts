@@ -7,6 +7,7 @@ import { RequestContext } from '../../../api/common/request-context';
 import { grossPriceOf, netPriceOf } from '../../../common/tax-utils';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
 import { Order } from '../../../entity/order/order.entity';
+import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
 import { ShippingMethod } from '../../../entity/shipping-method/shipping-method.entity';
 import { ShippingMethodService } from '../../services/shipping-method.service';
 
@@ -34,6 +35,26 @@ export function findShippingOption(
         return quotes[0];
     }
     return quotes.find(quote => quote.code === shippingOptionCode);
+}
+
+/**
+ * Sets the ShippingMethod, the chosen ShippingOption and its price on a ShippingLine.
+ */
+export function setShippingLineOption(
+    shippingLine: ShippingLine,
+    shippingMethod: ShippingMethod,
+    result: ShippingCalculationResult,
+) {
+    shippingLine.shippingMethod = shippingMethod;
+    shippingLine.shippingMethodId = shippingMethod.id;
+    shippingLine.shippingOptionCode = result.code ?? null;
+    shippingLine.shippingOptionName = result.name ?? null;
+    shippingLine.listPrice = result.price;
+    // Calculators written in JavaScript may leave this out; the ShippingLine then keeps its value
+    if (result.priceIncludesTax != null) {
+        shippingLine.listPriceIncludesTax = result.priceIncludesTax;
+    }
+    shippingLine.taxLines = [{ description: 'shipping tax', taxRate: result.taxRate }];
 }
 
 /**
@@ -111,6 +132,7 @@ export class ShippingCalculator {
     /**
      * Returns the ShippingMethod and the result of the ShippingOption with the given code, if the
      * ShippingMethod is eligible for the Order and its ShippingCalculator currently offers that option.
+     * With no code, the result is that of the cheapest option.
      *
      * @since 4.0.0
      */
@@ -118,7 +140,7 @@ export class ShippingCalculator {
         ctx: RequestContext,
         order: Order,
         shippingMethodId: ID,
-        shippingOptionCode: string,
+        shippingOptionCode?: string | null,
     ): Promise<{ method: ShippingMethod; result: ShippingCalculationResult } | undefined> {
         const method = await this.getMethodIfEligible(ctx, order, shippingMethodId);
         if (method) {

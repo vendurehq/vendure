@@ -1352,7 +1352,10 @@ export class OrderService implements OnApplicationBootstrap {
             return result;
         }
         const updatedOrder = await this.getOrderOrThrow(ctx, orderId);
-        await this.applyPriceAdjustments(ctx, updatedOrder);
+        // setShippingMethods() has just priced the ShippingLines, so their calculators need not run again
+        await this.applyPriceAdjustments(ctx, updatedOrder, undefined, undefined, {
+            pricedShippingLineIds: result.shippingLines.map(line => line.id),
+        });
         return this.connection.getRepository(ctx, Order).save(updatedOrder);
     }
 

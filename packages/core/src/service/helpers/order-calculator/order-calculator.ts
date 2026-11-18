@@ -14,13 +14,15 @@ import { ShippingCalculationResult } from '../../../config/shipping-method/shipp
 import { OrderLine, TaxRate } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
 import { Promotion } from '../../../entity/promotion/promotion.entity';
-import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
-import { ShippingMethod } from '../../../entity/shipping-method/shipping-method.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 import { ShippingMethodService } from '../../services/shipping-method.service';
 import { TaxRateService } from '../../services/tax-rate.service';
 import { ZoneService } from '../../services/zone.service';
-import { findShippingOption, ShippingCalculator } from '../shipping-calculator/shipping-calculator';
+import {
+    findShippingOption,
+    setShippingLineOption,
+    ShippingCalculator,
+} from '../shipping-calculator/shipping-calculator';
 
 import { prorate } from './prorate';
 
@@ -49,6 +51,15 @@ export interface ApplyPriceAdjustmentsOptions {
      * re-selecting the method.
      */
     recalculateShippingPromotions?: boolean;
+    /**
+     * @description
+     * ShippingLines which were priced by their ShippingCalculator earlier in the same request, for the
+     * Order as it is now. Their price is kept instead of running the ShippingCalculator again, which
+     * matters for calculators that call a carrier API.
+     *
+     * @since 4.0.0
+     */
+    pricedShippingLineIds?: ID[];
 }
 
 /**
@@ -138,7 +149,7 @@ export class OrderCalculator {
         // inside applyShippingPromotions).
         const recalculateShippingPromotions = options?.recalculateShippingPromotions ?? recalculateShipping;
         if (recalculateShipping) {
-            await this.applyShipping(ctx, order);
+            await this.applyShipping(ctx, order, options?.pricedShippingLineIds ?? []);
         }
         if (recalculateShippingPromotions) {
             await this.applyShippingPromotions(ctx, order, promotions);
@@ -346,7 +357,7 @@ export class OrderCalculator {
         }
     }
 
-    private async applyShipping(ctx: RequestContext, order: Order) {
+    private async applyShipping(ctx: RequestContext, order: Order, pricedShippingLineIds: ID[]) {
         // First we need to remove any ShippingLines which are no longer applicable
         // to the Order, i.e. there is no OrderLine which is assigned to the ShippingLine's
         // ShippingMethod.
@@ -355,6 +366,9 @@ export class OrderCalculator {
             orderLineShippingLineIds.includes(shippingLine.id),
         );
         for (const shippingLine of order.shippingLines) {
+            if (pricedShippingLineIds.some(id => idsAreEqual(id, shippingLine.id))) {
+                continue;
+            }
             const currentShippingMethod =
                 shippingLine?.shippingMethodId &&
                 (await this.shippingMethodService.findOne(ctx, shippingLine.shippingMethodId));
@@ -373,7 +387,7 @@ export class OrderCalculator {
                 // With no stored code this is the cheapest option, whose code is then stored
                 const chosenOption = findShippingOption(currentMethodQuotes, shippingLine.shippingOptionCode);
                 if (chosenOption) {
-                    this.setShippingLineOption(shippingLine, currentShippingMethod, chosenOption);
+                    setShippingLineOption(shippingLine, currentShippingMethod, chosenOption);
                     continue;
                 }
                 // The chosen ShippingOption is no longer offered. Fall back to the cheapest option
@@ -387,30 +401,11 @@ export class OrderCalculator {
                 : otherMethods;
             const cheapest = candidates.sort((a, b) => a.result.price - b.result.price)[0];
             if (cheapest) {
-                this.setShippingLineOption(shippingLine, cheapest.method, cheapest.result);
+                setShippingLineOption(shippingLine, cheapest.method, cheapest.result);
             } else {
                 order.shippingLines = order.shippingLines.filter(sl => sl !== shippingLine);
             }
         }
-    }
-
-    private setShippingLineOption(
-        shippingLine: ShippingLine,
-        shippingMethod: ShippingMethod,
-        result: ShippingCalculationResult,
-    ) {
-        shippingLine.listPrice = result.price;
-        shippingLine.listPriceIncludesTax = result.priceIncludesTax;
-        shippingLine.shippingMethod = shippingMethod;
-        shippingLine.shippingMethodId = shippingMethod.id;
-        shippingLine.shippingOptionCode = result.code ?? null;
-        shippingLine.shippingOptionName = result.name ?? null;
-        shippingLine.taxLines = [
-            {
-                description: 'shipping tax',
-                taxRate: result.taxRate,
-            },
-        ];
     }
 
     /**
