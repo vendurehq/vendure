@@ -18,8 +18,10 @@ export function getColumnVisibility(
     defaultVisibility?: Record<string, boolean | undefined>,
     customFieldColumnNames?: string[],
 ): Record<string, boolean> {
-    const allDefaultsTrue = defaultVisibility && Object.values(defaultVisibility).every(v => v === true);
-    const allDefaultsFalse = defaultVisibility && Object.values(defaultVisibility).every(v => v === false);
+    // An empty map passes both `every` checks, so it must count as no defaults.
+    const defaults = Object.values(defaultVisibility ?? {});
+    const allDefaultsTrue = defaults.length > 0 && defaults.every(v => v === true);
+    const allDefaultsFalse = defaults.length > 0 && defaults.every(v => v === false);
     return {
         id: false,
         createdAt: false,
