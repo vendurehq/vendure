@@ -170,6 +170,8 @@ export class OrderSplitter {
                     'listPriceIncludesTax',
                     'adjustments',
                     'taxLines',
+                    'shippingOptionCode',
+                    'shippingOptionName',
                 ]),
             }),
         );
