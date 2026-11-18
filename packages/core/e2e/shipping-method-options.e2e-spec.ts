@@ -16,7 +16,11 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql, ResultOf, VariablesOf } from './graphql/graphql-shop';
-import { createShippingMethodDocument } from './graphql/shared-definitions';
+import {
+    createPromotionDocument,
+    createShippingMethodDocument,
+    deletePromotionDocument,
+} from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
     adjustItemQuantityDocument,
@@ -299,6 +303,24 @@ const modifyOrderShippingDocument = adminGraphql(
     `,
     [adminShippingLinesFragment],
 );
+
+const modifyOrderShippingDiscountsDocument = adminGraphql(`
+    mutation ModifyOrderShippingDiscounts($input: ModifyOrderInput!) {
+        modifyOrder(input: $input) {
+            ... on Order {
+                shippingWithTax
+                shippingLines {
+                    priceWithTax
+                    discountedPriceWithTax
+                    shippingOptionCode
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+            }
+        }
+    }
+`);
 
 const testShippingMethodDocument = adminGraphql(`
     query TestShippingMethodOptions($input: TestShippingMethodInput!) {
@@ -763,6 +785,44 @@ describe('ShippingMethod with several options', () => {
             }
         });
 
+        it('applies the shipping promotions to the new price when modifyOrder does not recalculate shipping', async () => {
+            const { createPromotion } = await adminClient.query(createPromotionDocument, {
+                input: {
+                    enabled: true,
+                    conditions: [
+                        {
+                            code: 'minimum_order_amount',
+                            arguments: [
+                                { name: 'amount', value: '0' },
+                                { name: 'taxInclusive', value: 'false' },
+                            ],
+                        },
+                    ],
+                    actions: [{ code: 'free_shipping', arguments: [] }],
+                    translations: [{ languageCode: LanguageCode.en, name: 'Free shipping' }],
+                },
+            });
+            try {
+                const { modifyOrder } = await adminClient.query(modifyOrderShippingDiscountsDocument, {
+                    input: {
+                        orderId: placedOrderId,
+                        dryRun: true,
+                        options: { recalculateShipping: false },
+                        shippingMethods: [
+                            { shippingMethodId: carrierMethodId, shippingOptionCode: 'economy' },
+                        ],
+                    },
+                });
+                const modified = modifyOrder as any;
+                expect(modified.shippingLines).toEqual([
+                    { priceWithTax: 700, discountedPriceWithTax: 0, shippingOptionCode: 'economy' },
+                ]);
+                expect(modified.shippingWithTax).toBe(0);
+            } finally {
+                await adminClient.query(deletePromotionDocument, { id: (createPromotion as any).id });
+            }
+        });
+
         it('rejects an option which the ShippingMethod does not offer in modifyOrder', async () => {
             const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
                 input: {
@@ -789,6 +849,31 @@ describe('ShippingMethod with several options', () => {
                 "Provide at most one of 'shippingMethodIds' and 'shippingMethods'",
             ),
         );
+
+        it('leaves a draft order without a ShippingLine when its option is refused', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: createDraftOrder.id,
+                input: { productVariantId: 'T_1', quantity: 1 },
+            });
+
+            const { setDraftOrderShippingMethod } = await adminClient.query(
+                setDraftOrderShippingOptionDocument,
+                {
+                    orderId: createDraftOrder.id,
+                    shippingMethodId: carrierMethodId,
+                    shippingOptionCode: 'teleport',
+                },
+            );
+
+            expect((setDraftOrderShippingMethod as any).errorCode).toBe(
+                ErrorCode.INELIGIBLE_SHIPPING_METHOD_ERROR,
+            );
+            const { order } = await adminClient.query(adminOrderShippingDocument, {
+                id: createDraftOrder.id,
+            });
+            expect(order?.shippingLines).toEqual([]);
+        });
 
         it('sets an option on a draft order', async () => {
             const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);

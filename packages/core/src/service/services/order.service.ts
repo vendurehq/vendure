@@ -74,6 +74,7 @@ import {
 } from '../../common/error/generated-graphql-admin-errors';
 import {
     CouponRemovedDuringCheckoutError,
+    IneligibleShippingMethodError,
     InsufficientStockError,
     NegativeQuantityError,
     OrderInterceptorError,
@@ -133,7 +134,9 @@ import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import {
     ShippingCalculator,
+    shippingSelectionsKept,
     toShippingMethodQuote,
+    toShippingMethodSelections,
 } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
@@ -1347,16 +1350,29 @@ export class OrderService implements OnApplicationBootstrap {
         if (validationError) {
             return validationError;
         }
-        const result = await this.orderModifier.setShippingMethods(ctx, order, shippingMethods);
-        if (isGraphQlErrorResult(result)) {
-            return result;
+        // In its own transaction (a savepoint inside the request's), so that a refused method or option
+        // leaves the Order exactly as it was, rather than with half-written ShippingLines.
+        try {
+            return await this.connection.withTransaction(ctx, async txCtx => {
+                const result = await this.orderModifier.setShippingMethods(txCtx, order, shippingMethods);
+                if (isGraphQlErrorResult(result)) {
+                    throw new RefusedShippingSelection(result);
+                }
+                const updatedOrder = await this.getOrderOrThrow(txCtx, orderId);
+                // Prices each ShippingLine once, with the option it names, after the promotions and
+                // the assignment of the OrderLines
+                await this.applyPriceAdjustments(txCtx, updatedOrder);
+                if (!shippingSelectionsKept(updatedOrder, toShippingMethodSelections(shippingMethods))) {
+                    throw new RefusedShippingSelection(new IneligibleShippingMethodError());
+                }
+                return this.connection.getRepository(txCtx, Order).save(updatedOrder);
+            });
+        } catch (e: unknown) {
+            if (e instanceof RefusedShippingSelection) {
+                return e.errorResult;
+            }
+            throw e;
         }
-        const updatedOrder = await this.getOrderOrThrow(ctx, orderId);
-        // setShippingMethods() has just priced the ShippingLines, so their calculators need not run again
-        await this.applyPriceAdjustments(ctx, updatedOrder, undefined, undefined, {
-            pricedShippingLineIds: result.shippingLines.map(line => line.id),
-        });
-        return this.connection.getRepository(ctx, Order).save(updatedOrder);
     }
 
     /**
@@ -3020,5 +3036,15 @@ export class OrderService implements OnApplicationBootstrap {
                 Object.assign(line.customFields, relationIds);
             }
         }
+    }
+}
+
+/**
+ * Thrown inside the transaction of `OrderService.setShippingMethod()` to roll it back, and turned
+ * into the error result it carries.
+ */
+class RefusedShippingSelection extends Error {
+    constructor(readonly errorResult: IneligibleShippingMethodError) {
+        super(errorResult.message);
     }
 }

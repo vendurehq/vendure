@@ -47,6 +47,7 @@ import { OrderModification } from '../../../entity/order-modification/order-modi
 import { Order } from '../../../entity/order/order.entity';
 import { Payment } from '../../../entity/payment/payment.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import { Promotion } from '../../../entity/promotion/promotion.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
 import { Allocation } from '../../../entity/stock-movement/allocation.entity';
 import { Cancellation } from '../../../entity/stock-movement/cancellation.entity';
@@ -70,6 +71,8 @@ import {
     findShippingOption,
     setShippingLineOption,
     ShippingCalculator,
+    shippingSelectionsKept,
+    toShippingMethodSelections,
 } from '../shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../utils/calculate-order-line-unit-price';
@@ -660,9 +663,7 @@ export class OrderModifier {
         const shippingMethodSelections = input.shippingMethods ?? input.shippingMethodIds;
         if (shippingMethodSelections) {
             // The ShippingLines are priced below, once the Order's lines and totals are final
-            const result = await this.setShippingMethods(ctx, order, shippingMethodSelections, {
-                priceShippingLines: false,
-            });
+            const result = await this.setShippingMethods(ctx, order, shippingMethodSelections);
             if (isGraphQlErrorResult(result)) {
                 return result;
             }
@@ -700,6 +701,8 @@ export class OrderModifier {
             const shippingError = await this.priceSelectedShippingLines(
                 ctx,
                 order,
+                promotions,
+                updatedOrderLines,
                 shippingMethodSelections,
                 input.options?.recalculateShipping !== false,
             );
@@ -766,22 +769,18 @@ export class OrderModifier {
     /**
      * @description
      * Sets the ShippingMethods of the Order and assigns its OrderLines to the resulting ShippingLines.
-     * Each selection may name one of the ShippingMethod's options by its `shippingOptionCode`; without
-     * one, the cheapest option is used.
+     * Each selection may name one of the ShippingMethod's options by its `shippingOptionCode`.
      *
-     * Unless `options.priceShippingLines` is `false`, the ShippingLines are then priced: their
-     * ShippingCalculators run once, after the OrderLines are assigned, so a calculator which prices only
-     * the OrderLines of its ShippingLine sees them.
+     * The ShippingLines are not priced here: the next recalculation of the Order prices each with the
+     * option it names, or with the cheapest option when it names none. If the option is not offered,
+     * the recalculation falls back to another one, so check the result afterwards.
      */
     async setShippingMethods(
         ctx: RequestContext,
         order: Order,
         shippingMethods: Array<ID | ShippingMethodSelectionInput>,
-        options?: { priceShippingLines?: boolean },
     ) {
-        const selections = shippingMethods.map(selection =>
-            typeof selection === 'object' ? selection : { shippingMethodId: selection },
-        );
+        const selections = toShippingMethodSelections(shippingMethods);
         for (const [i, { shippingMethodId, shippingOptionCode }] of selections.entries()) {
             const shippingMethod = await this.shippingCalculator.getMethodIfEligible(
                 ctx,
@@ -793,19 +792,13 @@ export class OrderModifier {
             }
             let shippingLine: ShippingLine | undefined = order.shippingLines[i];
             if (!shippingLine) {
-                // Saved now for its id, which the OrderLines are assigned by. If a later step fails,
-                // no OrderLine is assigned to it, so the next recalculation of the Order removes it.
-                shippingLine = await this.connection.getRepository(ctx, ShippingLine).save(
-                    new ShippingLine({
-                        shippingMethod,
-                        order,
-                        adjustments: [],
-                        listPrice: 0,
-                        // Kept if the calculator result does not say whether its price includes tax
-                        listPriceIncludesTax: ctx.channel.pricesIncludeTax,
-                        taxLines: [],
-                    }),
-                );
+                shippingLine = new ShippingLine({
+                    order,
+                    adjustments: [],
+                    listPrice: 0,
+                    listPriceIncludesTax: ctx.channel.pricesIncludeTax,
+                    taxLines: [],
+                });
                 if (order.shippingLines) {
                     order.shippingLines.push(shippingLine);
                 } else {
@@ -814,53 +807,40 @@ export class OrderModifier {
             }
             shippingLine.shippingMethod = shippingMethod;
             shippingLine.shippingMethodId = shippingMethod.id;
-            // The requested option. priceShippingLines() checks that it is offered, or chooses the
-            // cheapest option when there is no code.
+            // The requested option, priced when the Order is next recalculated
             shippingLine.shippingOptionCode = shippingOptionCode ?? null;
+            await this.connection.getRepository(ctx, ShippingLine).save(shippingLine);
         }
-        // The ShippingLines which are no longer used, removed from the database below
+        // remove any now-unused ShippingLines
         const shippingLinesToDelete = order.shippingLines.splice(selections.length);
-        // Assign the OrderLines to the ShippingLines, first in memory so the calculators can see it
-        const { shippingLineAssignmentStrategy } = this.configService.shippingOptions;
-        const assignments = new Map<ShippingLine, OrderLine[]>();
-        for (const line of order.lines) {
-            line.shippingLine = undefined;
-            line.shippingLineId = undefined;
-        }
-        for (const shippingLine of order.shippingLines) {
-            const orderLinesForShippingLine =
-                await shippingLineAssignmentStrategy.assignShippingLineToOrderLines(ctx, shippingLine, order);
-            assignments.set(shippingLine, orderLinesForShippingLine);
-            orderLinesForShippingLine.forEach(line => {
-                line.shippingLine = shippingLine;
-                line.shippingLineId = shippingLine.id;
-            });
-        }
-        if (options?.priceShippingLines !== false) {
-            const error = await this.priceShippingLines(ctx, order);
-            if (error) {
-                return error;
-            }
-        }
-        // Nothing but new ShippingLines is written before this point, so a refused option or method
-        // leaves the Order as it was
-        await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines);
         if (shippingLinesToDelete.length) {
             await this.connection.getRepository(ctx, ShippingLine).remove(shippingLinesToDelete);
         }
+        // assign the ShippingLines to the OrderLines
         await this.connection
             .getRepository(ctx, OrderLine)
             .createQueryBuilder('line')
             .update({ shippingLine: undefined })
             .whereInIds(order.lines.map(l => l.id))
             .execute();
-        for (const [shippingLine, orderLines] of assignments) {
+        for (const line of order.lines) {
+            line.shippingLine = undefined;
+            line.shippingLineId = undefined;
+        }
+        const { shippingLineAssignmentStrategy } = this.configService.shippingOptions;
+        for (const shippingLine of order.shippingLines) {
+            const orderLinesForShippingLine =
+                await shippingLineAssignmentStrategy.assignShippingLineToOrderLines(ctx, shippingLine, order);
             await this.connection
                 .getRepository(ctx, OrderLine)
                 .createQueryBuilder('line')
                 .update({ shippingLineId: shippingLine.id })
-                .whereInIds(orderLines.map(l => l.id))
+                .whereInIds(orderLinesForShippingLine.map(l => l.id))
                 .execute();
+            orderLinesForShippingLine.forEach(line => {
+                line.shippingLine = shippingLine;
+                line.shippingLineId = shippingLine.id;
+            });
         }
         return order;
     }
@@ -868,49 +848,34 @@ export class OrderModifier {
     /**
      * Prices the ShippingLines just set by modifyOrder. When shipping was recalculated, applyShipping()
      * has priced them already, but falls back to another option or method when the chosen option is
-     * not offered, which is an error here. When it was not recalculated, they are priced now.
+     * not offered, which is refused here; the resolver then rolls the modification back. When it was not
+     * recalculated, they are priced now, and their shipping promotions applied again to the new price.
      */
     private async priceSelectedShippingLines(
         ctx: RequestContext,
         order: Order,
+        promotions: Promotion[],
+        updatedOrderLines: OrderLine[],
         shippingMethods: Array<ID | ShippingMethodSelectionInput>,
         shippingRecalculated: boolean,
     ): Promise<IneligibleShippingMethodError | undefined> {
-        if (shippingRecalculated) {
-            const selectionKept = (selection: ID | ShippingMethodSelectionInput) => {
-                const { shippingMethodId, shippingOptionCode } =
-                    typeof selection === 'object' ? selection : { shippingMethodId: selection };
-                return order.shippingLines.some(
-                    line =>
-                        idsAreEqual(line.shippingMethodId, shippingMethodId) &&
-                        (shippingOptionCode == null || line.shippingOptionCode === shippingOptionCode),
-                );
-            };
-            return shippingMethods.every(selectionKept) ? undefined : new IneligibleShippingMethodError();
-        }
-        const error = await this.priceShippingLines(ctx, order);
-        if (!error) {
-            this.orderCalculator.calculateOrderTotals(order);
-        }
-        return error;
-    }
-
-    /**
-     * Prices each ShippingLine of the Order, in memory, with the ShippingOption it names, or with the
-     * cheapest option when it names none. Returns an error if a ShippingLine's calculator does not
-     * offer the option it names, or offers none at all.
-     */
-    private async priceShippingLines(
-        ctx: RequestContext,
-        order: Order,
-    ): Promise<IneligibleShippingMethodError | undefined> {
-        for (const shippingLine of order.shippingLines) {
-            const quotes = await shippingLine.shippingMethod.applyQuotes(ctx, order);
-            const result = findShippingOption(quotes, shippingLine.shippingOptionCode);
-            if (!result) {
-                return new IneligibleShippingMethodError();
+        if (!shippingRecalculated) {
+            for (const shippingLine of order.shippingLines) {
+                const quotes = await shippingLine.shippingMethod.applyQuotes(ctx, order);
+                const result = findShippingOption(quotes, shippingLine.shippingOptionCode);
+                if (!result) {
+                    return new IneligibleShippingMethodError();
+                }
+                setShippingLineOption(shippingLine, shippingLine.shippingMethod, result);
             }
-            setShippingLineOption(shippingLine, shippingLine.shippingMethod, result);
+            // The other prices are kept: only the shipping promotions and the totals are recalculated
+            await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
+                recalculateShipping: false,
+                recalculateShippingPromotions: true,
+            });
+        }
+        if (!shippingSelectionsKept(order, toShippingMethodSelections(shippingMethods))) {
+            return new IneligibleShippingMethodError();
         }
     }
 

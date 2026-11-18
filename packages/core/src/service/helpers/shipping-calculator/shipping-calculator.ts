@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { ShippingMethodQuote, ShippingOptionQuote } from '@vendure/common/lib/generated-types';
+import {
+    ShippingMethodQuote,
+    ShippingMethodSelectionInput,
+    ShippingOptionQuote,
+} from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { grossPriceOf, netPriceOf } from '../../../common/tax-utils';
+import { idsAreEqual } from '../../../common/utils';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
 import { Order } from '../../../entity/order/order.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
@@ -35,6 +40,32 @@ export function findShippingOption(
         return quotes[0];
     }
     return quotes.find(quote => quote.code === shippingOptionCode);
+}
+
+/**
+ * Normalizes the shipping method selections passed to `setShippingMethod`, which may be plain ids.
+ */
+export function toShippingMethodSelections(
+    selections: Array<ID | ShippingMethodSelectionInput>,
+): ShippingMethodSelectionInput[] {
+    return selections.map(selection =>
+        typeof selection === 'object' ? selection : { shippingMethodId: selection },
+    );
+}
+
+/**
+ * Whether the Order's ShippingLines still hold the given selections once the Order has been priced.
+ * OrderCalculator falls back to another option or ShippingMethod when the selected option is not
+ * offered, or when the ShippingCalculator returns nothing, which makes the selection a refused one.
+ */
+export function shippingSelectionsKept(order: Order, selections: ShippingMethodSelectionInput[]): boolean {
+    return selections.every(({ shippingMethodId, shippingOptionCode }) =>
+        order.shippingLines.some(
+            line =>
+                idsAreEqual(line.shippingMethodId, shippingMethodId) &&
+                (shippingOptionCode == null || line.shippingOptionCode === shippingOptionCode),
+        ),
+    );
 }
 
 /**
@@ -125,28 +156,6 @@ export class ShippingCalculator {
             const eligible = await method.test(ctx, order);
             if (eligible) {
                 return method;
-            }
-        }
-    }
-
-    /**
-     * Returns the ShippingMethod and the result of the ShippingOption with the given code, if the
-     * ShippingMethod is eligible for the Order and its ShippingCalculator currently offers that option.
-     * With no code, the result is that of the cheapest option.
-     *
-     * @since 4.0.0
-     */
-    async getOptionIfEligible(
-        ctx: RequestContext,
-        order: Order,
-        shippingMethodId: ID,
-        shippingOptionCode?: string | null,
-    ): Promise<{ method: ShippingMethod; result: ShippingCalculationResult } | undefined> {
-        const method = await this.getMethodIfEligible(ctx, order, shippingMethodId);
-        if (method) {
-            const result = findShippingOption(await method.applyQuotes(ctx, order), shippingOptionCode);
-            if (result) {
-                return { method, result };
             }
         }
     }

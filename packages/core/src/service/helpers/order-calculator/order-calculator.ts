@@ -51,15 +51,6 @@ export interface ApplyPriceAdjustmentsOptions {
      * re-selecting the method.
      */
     recalculateShippingPromotions?: boolean;
-    /**
-     * @description
-     * ShippingLines which were priced by their ShippingCalculator earlier in the same request, for the
-     * Order as it is now. Their price is kept instead of running the ShippingCalculator again, which
-     * matters for calculators that call a carrier API.
-     *
-     * @since 4.0.0
-     */
-    pricedShippingLineIds?: ID[];
 }
 
 /**
@@ -149,7 +140,7 @@ export class OrderCalculator {
         // inside applyShippingPromotions).
         const recalculateShippingPromotions = options?.recalculateShippingPromotions ?? recalculateShipping;
         if (recalculateShipping) {
-            await this.applyShipping(ctx, order, options?.pricedShippingLineIds ?? []);
+            await this.applyShipping(ctx, order);
         }
         if (recalculateShippingPromotions) {
             await this.applyShippingPromotions(ctx, order, promotions);
@@ -357,7 +348,7 @@ export class OrderCalculator {
         }
     }
 
-    private async applyShipping(ctx: RequestContext, order: Order, pricedShippingLineIds: ID[]) {
+    private async applyShipping(ctx: RequestContext, order: Order) {
         // First we need to remove any ShippingLines which are no longer applicable
         // to the Order, i.e. there is no OrderLine which is assigned to the ShippingLine's
         // ShippingMethod.
@@ -366,9 +357,6 @@ export class OrderCalculator {
             orderLineShippingLineIds.includes(shippingLine.id),
         );
         for (const shippingLine of order.shippingLines) {
-            if (pricedShippingLineIds.some(id => idsAreEqual(id, shippingLine.id))) {
-                continue;
-            }
             const currentShippingMethod =
                 shippingLine?.shippingMethodId &&
                 (await this.shippingMethodService.findOne(ctx, shippingLine.shippingMethodId));
@@ -380,18 +368,15 @@ export class OrderCalculator {
             let currentMethodQuotes: ShippingCalculationResult[] = [];
             if (currentMethodStillEligible) {
                 currentMethodQuotes = await currentShippingMethod.applyQuotes(ctx, order);
-                if (!currentMethodQuotes.length) {
-                    // The calculator returned nothing: leave the ShippingLine as it is
-                    continue;
-                }
                 // With no stored code this is the cheapest option, whose code is then stored
                 const chosenOption = findShippingOption(currentMethodQuotes, shippingLine.shippingOptionCode);
                 if (chosenOption) {
                     setShippingLineOption(shippingLine, currentShippingMethod, chosenOption);
                     continue;
                 }
-                // The chosen ShippingOption is no longer offered. Fall back to the cheapest option
-                // of any eligible ShippingMethod, this one included.
+                // The chosen ShippingOption is no longer offered, or the calculator returned nothing,
+                // which also leaves the ShippingMethod out of eligibleShippingMethods. Fall back to
+                // the cheapest option of any eligible ShippingMethod, this one included.
             }
             const otherMethods = await this.shippingCalculator.getEligibleShippingMethods(ctx, order, [
                 currentShippingMethod.id,
