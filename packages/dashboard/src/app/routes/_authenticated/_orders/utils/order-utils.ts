@@ -147,6 +147,35 @@ export function toModifyOrderInput(
 /**
  * Computes a pending order based on the current order and modification input
  */
+/**
+ * One of the options of a ShippingMethod, as listed by `eligibleShippingMethodsForDraftOrder`.
+ */
+export interface ShippingOptionInfo {
+    code?: string | null;
+    name?: string | null;
+    priceWithTax: number;
+}
+
+/**
+ * The shipping method selections of a ModifyOrderInput, whichever of its two fields holds them.
+ */
+export function getShippingSelections(
+    input: Pick<ModifyOrderInput, 'shippingMethods' | 'shippingMethodIds'>,
+): Array<{ shippingMethodId: string; shippingOptionCode?: string | null }> | undefined {
+    return input.shippingMethods ?? input.shippingMethodIds?.map(shippingMethodId => ({ shippingMethodId }));
+}
+
+/**
+ * The option the server uses for a selection: the one with the given code or, without a code,
+ * the cheapest, which is listed first.
+ */
+export function findSelectedShippingOption<T extends { code?: string | null }>(
+    options: T[] | undefined,
+    shippingOptionCode: string | null | undefined,
+): T | undefined {
+    return shippingOptionCode != null ? options?.find(o => o.code === shippingOptionCode) : options?.[0];
+}
+
 export function computePendingOrder(
     order: Order,
     input: ModifyOrderInput,
@@ -155,7 +184,7 @@ export function computePendingOrder(
         id: string;
         name: string;
         priceWithTax: number;
-        options?: Array<{ code?: string | null; name?: string | null; priceWithTax: number }>;
+        options?: ShippingOptionInfo[];
     }>,
     orderLineCustomFieldNames?: string[],
 ): Order {
@@ -197,10 +226,7 @@ export function computePendingOrder(
         })
         .filter(x => x != null);
 
-    const shippingSelections:
-        | Array<{ shippingMethodId: string; shippingOptionCode?: string | null }>
-        | undefined =
-        input.shippingMethods ?? input.shippingMethodIds?.map(shippingMethodId => ({ shippingMethodId }));
+    const shippingSelections = getShippingSelections(input);
 
     return {
         ...order,
@@ -215,11 +241,7 @@ export function computePendingOrder(
                       if (!shippingMethod) {
                           return;
                       }
-                      // Without a code the server uses the cheapest option, which is listed first
-                      const option =
-                          shippingOptionCode != null
-                              ? shippingMethod.options?.find(o => o.code === shippingOptionCode)
-                              : shippingMethod.options?.[0];
+                      const option = findSelectedShippingOption(shippingMethod.options, shippingOptionCode);
                       const { options: _options, ...method } = shippingMethod;
                       return {
                           shippingMethod: {

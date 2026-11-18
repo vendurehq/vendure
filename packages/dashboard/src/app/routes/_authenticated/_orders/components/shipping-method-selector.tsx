@@ -64,7 +64,7 @@ export function ShippingMethodSelector({
                                         <p className="text-sm text-muted-foreground">{method.description}</p>
                                     )}
                                     {hasOptions ? (
-                                        <ShippingOptionList
+                                        <ShippingOptionRadioGroup
                                             method={method}
                                             value={isSelected ? (selectedShippingOptionCode ?? '') : ''}
                                             currencyCode={currencyCode}
@@ -92,7 +92,7 @@ export function ShippingMethodSelector({
     );
 }
 
-function ShippingOptionList({
+function ShippingOptionRadioGroup({
     method,
     value,
     currencyCode,

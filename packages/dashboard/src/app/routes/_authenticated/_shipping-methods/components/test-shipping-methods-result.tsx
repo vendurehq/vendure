@@ -5,7 +5,7 @@ import { Check } from 'lucide-react';
 import { MetadataBadges } from './metadata-badges.js';
 import { PriceDisplay } from './price-display.js';
 import { ShippingMethodTestResultWrapper } from './shipping-method-test-result-wrapper.js';
-import { ShippingOptionList } from './shipping-option-list.js';
+import { ShippingOptionList, ShippingOptionQuote } from './shipping-option-list.js';
 
 export interface ShippingMethodQuote {
     id: string;
@@ -15,13 +15,7 @@ export interface ShippingMethodQuote {
     price: number;
     priceWithTax: number;
     metadata?: Record<string, any>;
-    options: Array<{
-        code?: string | null;
-        name?: string | null;
-        price: number;
-        priceWithTax: number;
-        metadata?: Record<string, any>;
-    }>;
+    options: ShippingOptionQuote[];
 }
 
 interface ShippingEligibilityTestResultProps {

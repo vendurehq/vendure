@@ -1,16 +1,20 @@
+import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans } from '@lingui/react/macro';
+
+import { testShippingMethodDocument } from '../shipping-methods.graphql.js';
 
 import { MetadataBadges } from './metadata-badges.js';
 import { PriceDisplay } from './price-display.js';
 
+/**
+ * One option of a ShippingMethod, as returned by the shipping method test queries.
+ */
+export type ShippingOptionQuote = ResultOf<
+    typeof testShippingMethodDocument
+>['testShippingMethod']['options'][number];
+
 interface ShippingOptionListProps {
-    options: Array<{
-        code?: string | null;
-        name?: string | null;
-        price: number;
-        priceWithTax: number;
-        metadata?: any;
-    }>;
+    options: ShippingOptionQuote[];
     currencyCode: string;
 }
 
