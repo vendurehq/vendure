@@ -16,7 +16,7 @@ import {
     removeStockLocationsFromChannelDocument,
 } from '../stock-locations.graphql.js';
 
-export const DeleteStockLocationsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteStockLocationsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { refetchPaginatedList } = usePaginatedList();
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -27,7 +27,7 @@ export const DeleteStockLocationsBulkAction: BulkActionComponent<any> = ({ selec
                 onClick={() => setDialogOpen(true)}
                 label={<Trans>Delete</Trans>}
                 icon={TrashIcon}
-                className="text-destructive"
+                variant="destructive"
                 // Keep the dropdown open so opening the dialog in the same tick doesn't race with
                 // the menu unmounting (which would prevent the dialog from mounting).
                 closeOnClick={false}
@@ -35,7 +35,7 @@ export const DeleteStockLocationsBulkAction: BulkActionComponent<any> = ({ selec
             <DeleteStockLocationsDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                selection={selection}
+                selection={selectedRowIds.map(id => ({ id }))}
                 onSuccess={() => {
                     refetchPaginatedList();
                     table.resetRowSelection();
@@ -45,34 +45,36 @@ export const DeleteStockLocationsBulkAction: BulkActionComponent<any> = ({ selec
     );
 };
 
-export const AssignStockLocationsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignStockLocationsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="stock locations"
             mutationFn={api.mutate(assignStockLocationsToChannelDocument)}
             requiredPermissions={['UpdateStockLocation']}
             buildInput={(channelId: string) => ({
-                stockLocationIds: selection.map(s => s.id),
+                stockLocationIds: selectedRowIds,
                 channelId,
             })}
         />
     );
 };
 
-export const RemoveStockLocationsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const RemoveStockLocationsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { activeChannel } = useChannel();
 
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="stock locations"
             mutationFn={api.mutate(removeStockLocationsFromChannelDocument)}
             requiredPermissions={['UpdateStockLocation']}
             buildInput={() => ({
-                stockLocationIds: selection.map(s => s.id),
+                stockLocationIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
         />

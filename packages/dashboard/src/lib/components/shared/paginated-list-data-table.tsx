@@ -237,6 +237,14 @@ export interface PaginatedListDataTableProps<
      * Called when row selection changes, including selections retained across pages.
      */
     onSelectionChange?: (selection: PaginatedListItemFields<T>[]) => void;
+    /**
+     * @description
+     * Keeps the row selection in session storage under this key. See the
+     * `selectionStorageKey` prop of {@link DataTable}.
+     *
+     * @since 4.0.0
+     */
+    selectionStorageKey?: string;
     disableViewOptions?: boolean;
     /**
      * @description
@@ -468,6 +476,7 @@ export function PaginatedListDataTable<
     bulkActions,
     selectedItems,
     onSelectionChange,
+    selectionStorageKey,
     disableViewOptions,
     enableViews,
     setTableOptions,
@@ -631,6 +640,7 @@ export function PaginatedListDataTable<
                     bulkActions={bulkActions}
                     selectedItems={selectedItems}
                     onSelectionChange={onSelectionChange}
+                    selectionStorageKey={selectionStorageKey}
                     setTableOptions={setTableOptions}
                     onRefresh={refetchPaginatedList}
                     onReorder={onReorder}

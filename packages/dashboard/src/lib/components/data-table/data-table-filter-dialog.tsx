@@ -8,6 +8,7 @@ import {
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
 import { getEnumValues } from '@/vdb/framework/document-introspection/get-document-structure.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { Trans } from '@lingui/react/macro';
 import { Column } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
@@ -34,7 +35,8 @@ export function DataTableFilterDialog({ column, onEnter }: Readonly<DataTableFil
 
     const columnDataType = (column.columnDef.meta as any)?.fieldInfo?.type as ColumnDataType;
     const enumValues = getEnumValues(columnDataType);
-    const columnId = column.id;
+    const { getTranslatedFieldName } = useDynamicTranslations();
+    const columnName = getTranslatedFieldName(column.id);
     const isEmpty = !filter || Object.keys(filter).length === 0;
     const setFilterOnColumn = () => {
         column.setFilterValue(filter);
@@ -52,10 +54,10 @@ export function DataTableFilterDialog({ column, onEnter }: Readonly<DataTableFil
         <DialogContent onKeyDown={handleEnter}>
             <DialogHeader>
                 <DialogTitle>
-                    <Trans>Filter by {columnId}</Trans>
+                    <Trans>Filter by {columnName}</Trans>
                 </DialogTitle>
                 <DialogDescription className="sr-only">
-                    <Trans>Set filter criteria for the {columnId} column</Trans>
+                    <Trans>Set filter criteria for the {columnName} column</Trans>
                 </DialogDescription>
             </DialogHeader>
             {columnDataType === 'String' ? (
@@ -73,25 +75,28 @@ export function DataTableFilterDialog({ column, onEnter }: Readonly<DataTableFil
             ) : enumValues ? (
                 <DataTableEnumFilter value={filter} options={enumValues} onChange={e => setFilter(e)} />
             ) : null}
-            <DialogFooter className="sm:justify-end">
+            <DialogFooter>
                 {columnFilter && (
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => column.setFilterValue(undefined)}
+                    <DialogClose
+                        render={
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="sm:mr-auto"
+                                onClick={() => column.setFilterValue(undefined)}
+                            />
+                        }
                     >
                         <Trans>Clear filter</Trans>
-                    </Button>
+                    </DialogClose>
                 )}
-                <DialogClose render={<Button
-                        type="button"
-                        variant="secondary"
-                        disabled={isEmpty}
-                        onClick={() => {
-                            setFilterOnColumn();
-                        }}
-                    />}>
-                        <Trans>Apply filter</Trans>
+                <DialogClose render={<Button type="button" variant="outline" />}>
+                    <Trans>Cancel</Trans>
+                </DialogClose>
+                <DialogClose
+                    render={<Button type="button" disabled={isEmpty} onClick={() => setFilterOnColumn()} />}
+                >
+                    <Trans>Apply filter</Trans>
                 </DialogClose>
             </DialogFooter>
         </DialogContent>

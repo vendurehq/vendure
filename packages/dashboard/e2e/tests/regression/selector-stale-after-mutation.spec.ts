@@ -77,7 +77,7 @@ test.describe('Entity selectors refetch after mutation', () => {
         await zoneRow.getByRole('checkbox').click();
         await page.getByRole('button', { name: /Actions/i }).click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await list.expectSuccessToast();
         await expect(list.getRows().filter({ hasText: zoneName })).toHaveCount(0);
 

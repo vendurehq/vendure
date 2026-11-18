@@ -101,7 +101,7 @@ test.describe('Roles', () => {
         await testRoleRow.getByRole('checkbox').click();
         await page.getByRole('button', { name: /Actions/i }).click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await lp.expectSuccessToast();
 
         await expect(lp.getRows().filter({ hasText: 'E2E Updated Role' })).toHaveCount(0);

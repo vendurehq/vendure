@@ -257,6 +257,7 @@ export * from './components/ui/textarea.js';
 export * from './components/ui/toggle-group.js';
 export * from './components/ui/toggle.js';
 export * from './components/ui/tooltip.js';
+export * from './components/ui/visibility-icon.js';
 export * from './framework/alert/alert-extensions.js';
 export * from './framework/alert/alert-item.js';
 export * from './framework/alert/alerts-indicator.js';

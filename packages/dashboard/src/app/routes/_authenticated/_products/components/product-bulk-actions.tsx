@@ -23,31 +23,33 @@ import {
 } from '../products.graphql.js';
 import { AssignFacetValuesDialog } from './assign-facet-values-dialog.js';
 
-export const DeleteProductsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteProductsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteProductsDocument}
             entityName="products"
             requiredPermissions={['DeleteCatalog', 'DeleteProduct']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
-export const AssignProductsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignProductsToChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { priceFactor, priceFactorField } = usePriceFactor();
     const { enabledInChannel, channelAvailabilityField } = useChannelAvailabilityOption();
 
     return (
         <AssignToChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="products"
             mutationFn={api.mutate(assignProductsToChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             buildInput={(channelId: string) => ({
-                productIds: selection.map(s => s.id),
+                productIds: selectedRowIds,
                 channelId,
                 priceFactor,
                 enabledInChannel,
@@ -62,25 +64,26 @@ export const AssignProductsToChannelBulkAction: BulkActionComponent<any> = ({ se
     );
 };
 
-export const RemoveProductsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const RemoveProductsFromChannelBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { activeChannel } = useChannel();
 
     return (
         <RemoveFromChannelBulkAction
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
             entityType="products"
             mutationFn={api.mutate(removeProductsFromChannelDocument)}
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             buildInput={() => ({
-                productIds: selection.map(s => s.id),
+                productIds: selectedRowIds,
                 channelId: activeChannel?.id,
             })}
         />
     );
 };
 
-export const AssignFacetValuesToProductsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const AssignFacetValuesToProductsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     const { refetchPaginatedList } = usePaginatedList();
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -101,7 +104,7 @@ export const AssignFacetValuesToProductsBulkAction: BulkActionComponent<any> = (
             <AssignFacetValuesDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                entityIds={selection.map(s => s.id)}
+                entityIds={selectedRowIds}
                 entityType="products"
                 queryFn={variables => api.query(getProductsWithFacetValuesByIdsDocument, variables)}
                 mutationFn={api.mutate(updateProductsDocument)}
@@ -112,7 +115,7 @@ export const AssignFacetValuesToProductsBulkAction: BulkActionComponent<any> = (
     );
 };
 
-export const DuplicateProductsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DuplicateProductsBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DuplicateBulkAction
             entityType="Product"
@@ -120,6 +123,7 @@ export const DuplicateProductsBulkAction: BulkActionComponent<any> = ({ selectio
             requiredPermissions={['UpdateCatalog', 'UpdateProduct']}
             entityName="Product"
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

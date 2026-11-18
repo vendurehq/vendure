@@ -30,6 +30,11 @@ import {
 } from '@tanstack/react-table';
 import { RowSelectionState, TableOptions } from '@tanstack/table-core';
 import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
+import type {
+    DataTableRowCellProps,
+    DataTableRowRipple,
+    DataTableRowSelectProps,
+} from '@vendure-io/ui/components/molecules/data-table/data-table-types';
 import { GripVertical } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { AddFilterMenu } from './add-filter-menu.js';
@@ -48,62 +53,69 @@ import { DataTableFilterBadgeEditable } from './data-table-filter-badge-editable
 // the initial fetch.
 const MAX_SKELETON_ROWS = 10;
 
+const DRAG_HANDLE_COLUMN_ID = '__drag_handle__';
+
 interface DraggableRowProps<TData> {
     row: Row<TData>;
-    isDragDisabled: boolean;
     getRowCanDrag?: (row: Row<TData>) => boolean;
-    getCellClassName?: (columnId: string) => string | undefined;
+    /** The select-all ripple timing of this row, from the table. */
+    ripple: DataTableRowRipple;
+    /** The built-in body cell props of a column, from the table. */
+    cellProps: (columnId: string) => DataTableRowCellProps;
+    /** Click-to-select while rows are selected, from the table. */
+    selectProps: DataTableRowSelectProps;
 }
 
 function DraggableRow<TData>({
     row,
-    isDragDisabled,
     getRowCanDrag,
-    getCellClassName,
+    ripple,
+    cellProps,
+    selectProps,
 }: Readonly<DraggableRowProps<TData>>) {
-    // Check if this specific row can be dragged
     const rowCanDrag = getRowCanDrag ? getRowCanDrag(row) : true;
-    const isRowDragDisabled = isDragDisabled || !rowCanDrag;
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: row.id,
-        disabled: isRowDragDisabled,
+        disabled: !rowCanDrag,
     });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    };
 
     return (
         <TableRow
+            {...selectProps}
             ref={setNodeRef}
-            style={style}
-            data-state={row.getIsSelected() && 'selected'}
-            className="group/row animate-in fade-in duration-100"
+            style={{
+                ...ripple.style,
+                transform: CSS.Transform.toString(transform),
+                transition,
+                opacity: isDragging ? 0.5 : 1,
+            }}
+            data-state={row.getIsSelected() ? 'selected' : undefined}
+            className={cn('group/row', ripple.className)}
         >
-            {!isDragDisabled && (
-                <TableCell className="w-[40px] h-12">
-                    {rowCanDrag ? (
-                        <div
-                            {...attributes}
-                            {...listeners}
-                            className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <GripVertical className="h-4 w-4" />
-                        </div>
-                    ) : null}
-                </TableCell>
-            )}
-            {row
-                .getVisibleCells()
-                .filter(cell => cell.column.id !== '__drag_handle__')
-                .map(cell => (
-                    <TableCell key={cell.id} className={getCellClassName?.(cell.column.id) ?? 'h-12'}>
+            {row.getVisibleCells().map(cell => {
+                const props = cellProps(cell.column.id);
+                if (cell.column.id === DRAG_HANDLE_COLUMN_ID) {
+                    return (
+                        <TableCell key={cell.id} {...props} className={cn(props.className, 'w-10')}>
+                            {rowCanDrag ? (
+                                <div
+                                    {...attributes}
+                                    {...listeners}
+                                    className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <GripVertical className="size-4" />
+                                </div>
+                            ) : null}
+                        </TableCell>
+                    );
+                }
+                return (
+                    <TableCell key={cell.id} {...props}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
-                ))}
+                );
+            })}
         </TableRow>
     );
 }
@@ -175,6 +187,16 @@ interface DataTableProps<TData> {
      * Called when row selection changes, including selections retained across pages.
      */
     onSelectionChange?: (selection: TData[]) => void;
+    /**
+     * @description
+     * Keeps the row selection in session storage under this key, so it survives
+     * opening an item and going back, and a reload in the same tab. Name the list
+     * and anything that scopes its rows, such as the channel. Without it the
+     * selection lasts until the table unmounts.
+     *
+     * @since 4.0.0
+     */
+    selectionStorageKey?: string;
     enableViews?: boolean;
     /**
      * @description
@@ -285,6 +307,7 @@ export function DataTable<TData>({
     bulkActions,
     selectedItems,
     onSelectionChange,
+    selectionStorageKey,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -406,7 +429,7 @@ export function DataTable<TData>({
         const dataColumns = hasSelectionColumn ? columns.filter(c => c.id !== 'selection') : columns;
         if (isDraggableEnabled) {
             const dragHandleColumn: ColumnDef<TData, any> = {
-                id: '__drag_handle__',
+                id: DRAG_HANDLE_COLUMN_ID,
                 header: '',
                 cell: () => null, // Rendered by DraggableRow
                 size: 40,
@@ -476,20 +499,6 @@ export function DataTable<TData>({
         handleSearchChange('');
     };
 
-    // Cell classes for DraggableRow, which renders its own cells instead of the
-    // molecule's defaults: the selection checkbox floats over a zero-width cell
-    // (`pl-0!` opts out of the card's edge-cell padding), and the gutter it
-    // needs is folded into the leading data column's left padding.
-    const getDraggableCellClassName = (table: TableType<TData>) => (columnId: string) => {
-        const leadingColumnId = hasSelectionColumn
-            ? table
-                  .getVisibleLeafColumns()
-                  .find(column => column.id !== 'selection' && column.id !== '__drag_handle__')?.id
-            : undefined;
-        if (columnId === 'selection') return 'relative w-0 p-0 pl-0!';
-        return cn('h-12', columnId === leadingColumnId && 'pl-8');
-    };
-
     // Everything TanStack-related that the dashboard renders its own UI for
     // (sort headers, add-filter menu, editable filter badges, view options) is
     // wired directly into the table options instead of the molecule's capability
@@ -521,20 +530,43 @@ export function DataTable<TData>({
 
     const showViewsControls = !!enableViews && !!pageId && !!onFilterChange;
     const hasHeaderControls = actions != null || !disableViewOptions || onRefresh != null;
-    // With a title, the icon controls and CTAs move up next to it (header band
-    // line 1) and the toolbar row carries only search/filters. Without a title,
-    // everything shares the single controls row, as before.
-    const showControlsInToolbar = title == null;
-    const hasToolbarContent =
-        onSearchTermChange != null ||
-        Object.keys(facetedFilters ?? {}).length > 0 ||
-        onFilterChange != null ||
-        (showControlsInToolbar && hasHeaderControls);
+    const hasFacetedFilters = Object.keys(facetedFilters ?? {}).length > 0;
+    const hasSearchOrFilter = onSearchTermChange != null || onFilterChange != null || hasFacetedFilters;
+    // A faceted filter's chip is only rendered while it has selected values
+    // or the user is interacting with it — dormant filters live in the
+    // unified Filter menu instead of permanently occupying the toolbar.
+    const visibleFacetedEntries = Object.entries(facetedFilters ?? {}).filter(
+        ([key]) => columnFilters.some(f => f.id === key) || openFacetedFilterKey === key,
+    );
+    const showFilterRow = visibleFacetedEntries.length > 0 || nonFacetedFilters.length > 0;
+    // With a title (a table embedded in a detail-page card), every tool sits in
+    // one group on the right of the title, and the toolbar row only appears for
+    // the applied-filter chips. Without a title, the tools share the toolbar
+    // row with the view tabs.
+    const toolsInHeader = title != null;
+    const hasToolbarContent = toolsInHeader
+        ? showFilterRow
+        : hasSearchOrFilter || showViewsControls || hasHeaderControls;
 
-    const renderHeaderControls = (table: TableType<TData> | undefined) => (
-        <div className="flex items-center gap-2 flex-shrink-0">
+    const renderTools = (table: TableType<TData> | undefined) => (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+            {onSearchTermChange && (
+                <Input
+                    placeholder={searchPlaceholder ?? t`Search...`}
+                    value={searchTerm}
+                    onChange={event => handleSearchChange(event.target.value)}
+                    className="w-full @sm/table:w-64"
+                />
+            )}
+            {table && (onFilterChange != null || hasFacetedFilters) && (
+                <AddFilterMenu
+                    columns={onFilterChange ? table.getAllColumns() : []}
+                    facetedFilters={facetedFilters}
+                    onSelectFacetedFilter={setOpenFacetedFilterKey}
+                />
+            )}
             {actions}
-            {table && (
+            {table && hasHeaderControls && (
                 <DataTableSettingsMenu
                     table={table}
                     disableViewOptions={disableViewOptions}
@@ -546,40 +578,17 @@ export function DataTable<TData>({
     );
 
     const renderToolbar = (table: TableType<TData>) => {
-        const hasFacetedFilters = Object.keys(facetedFilters ?? {}).length > 0;
-        // A faceted filter's chip is only rendered while it has selected values
-        // or the user is interacting with it — dormant filters live in the
-        // unified Filter menu instead of permanently occupying the toolbar.
-        const visibleFacetedEntries = Object.entries(facetedFilters ?? {}).filter(
-            ([key]) => columnFilters.some(f => f.id === key) || openFacetedFilterKey === key,
-        );
-        const showFilterRow = visibleFacetedEntries.length > 0 || nonFacetedFilters.length > 0;
         return (
             <div className="flex flex-col gap-2 w-full">
                 {/* One band: view tabs anchor the left, search/filter/settings group
                     on the right — mirroring the tabs-left, tools-right layout of
                     index tables elsewhere, and avoiding a dead middle. */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                        {onSearchTermChange && (
-                            <Input
-                                placeholder={searchPlaceholder ?? t`Search...`}
-                                value={searchTerm}
-                                onChange={event => handleSearchChange(event.target.value)}
-                                className="w-full @sm/table:w-64"
-                            />
-                        )}
-                        {(onFilterChange != null || hasFacetedFilters) && (
-                            <AddFilterMenu
-                                columns={onFilterChange ? table.getAllColumns() : []}
-                                facetedFilters={facetedFilters}
-                                onSelectFacetedFilter={setOpenFacetedFilterKey}
-                            />
-                        )}
-                        {showControlsInToolbar && renderHeaderControls(table)}
+                {!toolsInHeader && (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
+                        {renderTools(table)}
                     </div>
-                </div>
+                )}
                 {showFilterRow && (
                     <div className="flex flex-wrap items-center gap-2">
                         <Suspense>
@@ -719,6 +728,7 @@ export function DataTable<TData>({
                                   }
                                 : undefined
                         }
+                        selectionStorageKey={hasSelectionColumn ? selectionStorageKey : undefined}
                         rowSelection={
                             hasSelectionColumn
                                 ? {
@@ -730,9 +740,9 @@ export function DataTable<TData>({
                         }
                         header={
                             title != null ? (
-                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
                                     <CardTitle>{title}</CardTitle>
-                                    {hasHeaderControls && renderHeaderControls(tableInstance)}
+                                    {(hasHeaderControls || hasSearchOrFilter) && renderTools(tableInstance)}
                                 </div>
                             ) : undefined
                         }
@@ -743,20 +753,23 @@ export function DataTable<TData>({
                                       <DataTableBulkActions
                                           bulkActions={bulkActions ?? []}
                                           table={ctx.table}
-                                          selectedItems={selectedItems}
+                                          selectedItems={
+                                              selectedItems ? [...ctx.selection, ...selectedItems] : ctx.selection
+                                          }
+                                          selectedRowIds={ctx.selectedRowIds}
                                       />
                                   )
                                 : undefined
                         }
                         emptyState={emptyState}
-                        renderRow={(row, { table, columnCount, defaultRow }) => {
+                        renderRow={(row, { table, columnCount, defaultRow, ripple, cellProps, selectProps }) => {
                             const tableMeta = table.options.meta as any;
                             // Utility rows (e.g. the draft order's "add item" row) span
                             // the full visible width and render custom content.
                             if (tableMeta?.isUtilityRow?.(row) && tableMeta.renderUtilityRow) {
                                 return (
                                     <TableRow className="animate-in fade-in duration-100">
-                                        <TableCell colSpan={columnCount} className="h-12">
+                                        <TableCell colSpan={columnCount}>
                                             {tableMeta.renderUtilityRow(row)}
                                         </TableCell>
                                     </TableRow>
@@ -766,9 +779,10 @@ export function DataTable<TData>({
                                 return (
                                     <DraggableRow
                                         row={row}
-                                        isDragDisabled={isDragDisabled}
                                         getRowCanDrag={tableMeta?.getRowCanDrag}
-                                        getCellClassName={getDraggableCellClassName(table)}
+                                        ripple={ripple}
+                                        cellProps={cellProps}
+                                        selectProps={selectProps}
                                     />
                                 );
                             }
@@ -778,6 +792,8 @@ export function DataTable<TData>({
                         setTableOptions={bridgeSetTableOptions}
                         labels={{
                             selectAllRows: t`Select all rows`,
+                            selectAllOnPage: t`Select all on this page`,
+                            clearPageSelection: t`Clear selection on this page`,
                             selectRow: () => t`Select row`,
                             pagination: {
                                 navLabel: t`Pagination`,

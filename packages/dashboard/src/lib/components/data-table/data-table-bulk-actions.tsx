@@ -19,6 +19,11 @@ interface DataTableBulkActionsProps<TData> {
     table: Table<TData>;
     bulkActions: BulkActionsInput;
     selectedItems?: TData[];
+    /**
+     * The id of every selected row, loaded or not. Defaults to the table's row
+     * selection state.
+     */
+    selectedRowIds?: string[];
 }
 
 // The data-table components assume row data carries an `id`; this keeps that
@@ -52,10 +57,20 @@ export function resolveSelectedItems<TData>(
         .filter((item): item is TData => item !== undefined);
 }
 
+/**
+ * The selected ids with no row in `selection`: rows on another page, or rows
+ * restored from storage before they load.
+ */
+export function getMissingRowIds<TData>(selectedRowIds: string[], selection: TData[]): string[] {
+    const loaded = new Set(selection.map(item => getRowItemId(item)));
+    return selectedRowIds.filter(id => !loaded.has(id));
+}
+
 export function DataTableBulkActions<TData>({
     table,
     bulkActions,
     selectedItems,
+    selectedRowIds: selectedRowIdsProp,
 }: Readonly<DataTableBulkActionsProps<TData>>) {
     const allBulkActionGroups = useAllBulkActions(bulkActions);
     const { t } = useLingui();
@@ -64,15 +79,18 @@ export function DataTableBulkActions<TData>({
     // This component is always mounted (not conditionally rendered)
     // so the cache survives page navigation.
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
-    const selectedRowIds = Object.keys(table.getState().rowSelection);
+    const rowSelection = table.getState().rowSelection;
+    const selectedRowIds = selectedRowIdsProp ?? Object.keys(rowSelection).filter(id => rowSelection[id]);
     const hasSelection = selectedRowIds.length > 0;
 
     const selection = resolveSelectedItems(table, selectedItemsCache.current, selectedItems);
+    const missingRowIds = getMissingRowIds(selectedRowIds, selection);
 
     if (!hasSelection) {
         return null;
     }
 
+    const selectedCount = selectedRowIds.length;
     const hasActions = allBulkActionGroups.some(g => g.actions.length > 0);
 
     // The v2 data-table selection treatment: a plain row that takes the controls
@@ -88,7 +106,7 @@ export function DataTableBulkActions<TData>({
             className="flex flex-wrap items-center gap-2"
         >
             <span className="text-sm font-medium">
-                <Trans>{selection.length} selected</Trans>
+                <Trans>{selectedCount} selected</Trans>
             </span>
             <DropdownMenu>
                 <DropdownMenuTrigger
@@ -110,6 +128,8 @@ export function DataTableBulkActions<TData>({
                                             <action.component
                                                 key={`bulk-action-${groupIndex}-${index}`}
                                                 selection={selection}
+                                                selectedRowIds={selectedRowIds}
+                                                missingRowIds={missingRowIds}
                                                 table={table}
                                             />
                                         ))}
@@ -118,7 +138,7 @@ export function DataTableBulkActions<TData>({
                             );
                         })
                     ) : (
-                        <DropdownMenuItem className="text-muted-foreground" disabled>
+                        <DropdownMenuItem disabled>
                             <Trans>No actions available</Trans>
                         </DropdownMenuItem>
                     )}

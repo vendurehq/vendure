@@ -1,6 +1,6 @@
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Table } from '@tanstack/react-table';
-import { EllipsisVertical, RefreshCw } from 'lucide-react';
+import { Ellipsis, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button.js';
 import {
     DropdownMenu,
@@ -26,7 +26,7 @@ interface DataTableSettingsMenuProps<TData> {
 
 /**
  * The single trigger for the table-level controls: refresh and column
- * settings live behind one Settings2 icon button instead of a row of separate
+ * settings live behind one ⋯ icon button instead of a row of separate
  * buttons. The trigger keeps the `dt-column-settings-trigger` testid the e2e
  * suite (and any user tests) target.
  */
@@ -37,6 +37,8 @@ export function DataTableSettingsMenu<TData>({
     isLoading,
 }: Readonly<DataTableSettingsMenuProps<TData>>) {
     const showColumnControls = !disableViewOptions;
+
+    const { t } = useLingui();
 
     if (!showColumnControls && onRefresh == null) {
         return null;
@@ -52,13 +54,14 @@ export function DataTableSettingsMenu<TData>({
                                 <Button
                                     variant="outline"
                                     size="icon"
+                                    aria-label={t`Table settings`}
                                     data-testid="dt-column-settings-trigger"
                                 />
                             }
                         />
                     }
                 >
-                    <EllipsisVertical />
+                    <Ellipsis />
                 </TooltipTrigger>
                 <TooltipContent>
                     <Trans>Table settings</Trans>

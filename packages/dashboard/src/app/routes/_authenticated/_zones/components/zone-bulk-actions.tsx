@@ -9,20 +9,21 @@ import { toast } from 'sonner';
 import { plural } from '@lingui/core/macro';
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
 
-export const DeleteZonesBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteZonesBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteZonesDocument}
             entityName="zones"
             requiredPermissions={['DeleteZone']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );
 };
 
 export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionComponent<any> {
-    const RemoveCountryFromZoneBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+    const RemoveCountryFromZoneBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
         const { t } = useLingui();
         const queryClient = useQueryClient();
 
@@ -30,7 +31,7 @@ export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionCompo
             mutationFn: api.mutate(removeCountryFromZoneMutation),
             onSuccess: () => {
                 toast.success(
-                    plural(selection.length, {
+                    plural(selectedRowIds.length, {
                         one: 'Removed # country from zone',
                         other: 'Removed # countries from zone',
                     }),
@@ -49,17 +50,20 @@ export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionCompo
                 onClick={() => {
                     mutate({
                         zoneId,
-                        memberIds: selection.map(s => s.id),
+                        memberIds: selectedRowIds,
                     });
                 }}
                 label={<Trans>Remove from zone</Trans>}
-                confirmationText={
+                confirmationTitle={
                     <Plural
-                        value={selection.length}
-                        one="Are you sure you want to remove # country from this zone?"
-                        other="Are you sure you want to remove # countries from this zone?"
+                        value={selectedRowIds.length}
+                        one="Remove # country from this zone?"
+                        other="Remove # countries from this zone?"
                     />
                 }
+                confirmationText={<Trans>The countries stay available in other zones.</Trans>}
+                confirmLabel={<Trans>Remove from zone</Trans>}
+                variant="destructive"
                 icon={TrashIcon}
             />
         );

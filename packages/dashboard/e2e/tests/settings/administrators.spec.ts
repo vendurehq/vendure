@@ -114,7 +114,7 @@ test.describe('Administrators', () => {
         await testAdminRow.getByRole('checkbox').click();
         await page.getByRole('button', { name: /Actions/i }).click();
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
         await lp.expectSuccessToast();
 
         // Verify the admin is gone

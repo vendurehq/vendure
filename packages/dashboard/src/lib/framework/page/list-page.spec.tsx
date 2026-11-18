@@ -25,13 +25,17 @@ vi.mock('@/vdb/hooks/use-user-settings.js', () => ({
     useUserSettings: () => ({ setTableSettings: vi.fn(), settings: {} }),
 }));
 
+vi.mock('@/vdb/hooks/use-channel.js', () => ({
+    useChannel: () => ({ activeChannel: { id: '2' } }),
+}));
+
 vi.mock('@tanstack/react-router', () => ({
     useNavigate: () => vi.fn(),
 }));
 
 describe('ListPage prop forwarding', () => {
     const baseProps = {
-        route: { useSearch: () => ({}), fullPath: '/' } as any,
+        route: { useSearch: () => ({}), fullPath: '/', id: '/_authenticated/_products/products' } as any,
         title: 'Test',
         listQuery: {} as any,
     };
@@ -58,5 +62,12 @@ describe('ListPage prop forwarding', () => {
         expect(captured.props?.transformQueryKey).toBe(transformQueryKey);
         expect(captured.props?.disableViewOptions).toBe(true);
         expect(captured.props?.includeSelectionColumn).toBe(false);
+    });
+
+    // OSS-1157 — the selection is kept per list and per channel
+    it('keys the stored selection by route and active channel', () => {
+        renderToStaticMarkup(<ListPage {...baseProps} />);
+
+        expect(captured.props?.selectionStorageKey).toBe('/_authenticated/_products/products:2');
     });
 });

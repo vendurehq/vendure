@@ -10,6 +10,7 @@ import {
     PaginatedListRefresherRegisterFn,
     RowAction,
 } from '@/vdb/components/shared/paginated-list-data-table.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { AnyRoute, AnyRouter, useNavigate } from '@tanstack/react-router';
@@ -572,6 +573,10 @@ export function ListPage<
     const navigate = useNavigate<AnyRouter>({ from: route.fullPath });
     const { setTableSettings, settings } = useUserSettings();
     const tableSettings = pageId ? settings.tableSettings?.[pageId] : undefined;
+    const { activeChannel } = useChannel();
+    // The selection belongs to this list in this channel: another list or channel
+    // starts with its own.
+    const selectionStorageKey = activeChannel ? `${route.id}:${activeChannel.id}` : undefined;
 
     const pagination = {
         page: routeSearch.page ? Number.parseInt(routeSearch.page) : 1,
@@ -678,6 +683,7 @@ export function ListPage<
                     <PaginatedListDataTable
                         {...commonTableProps}
                         enableViews
+                        selectionStorageKey={selectionStorageKey}
                         onReorder={onReorder}
                         disableDragAndDrop={disableDragAndDrop}
                     />

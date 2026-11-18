@@ -2,13 +2,14 @@ import { BulkActionComponent } from '@/vdb/framework/extension-api/types/index.j
 import { DeleteBulkAction } from '../../../../common/delete-bulk-action.js';
 import { deleteRolesDocument } from '../roles.graphql.js';
 
-export const DeleteRolesBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteRolesBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteRolesDocument}
             entityName="roles"
             requiredPermissions={['DeleteRole']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

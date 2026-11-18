@@ -3,7 +3,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Table } from '@tanstack/react-table';
-import { Eye, EyeOff, GripVertical, Settings2 } from 'lucide-react';
+import { GripVertical, Settings2 } from 'lucide-react';
 
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -18,10 +18,11 @@ import {
 // doesn't properly resolve height:100% from a flex-computed parent height,
 // preventing scrolling. A plain overflow-y-auto div works correctly in a flex layout.
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { VisibilityIcon } from '@/vdb/components/ui/visibility-icon.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 
 import { pinnedLeadingColumns } from './data-table-utils.js';
 
@@ -46,13 +47,13 @@ function SortableItem({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="flex items-center gap-.5">
+        <div ref={setNodeRef} style={style} className="flex items-center gap-1">
             {!disableSort ? (
-                <div {...attributes} {...listeners} className="cursor-grab">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                <div {...attributes} {...listeners} className="flex w-4 shrink-0 cursor-grab">
+                    <GripVertical className="size-4 text-muted-foreground" />
                 </div>
             ) : (
-                <div className="w-4" />
+                <div className="w-4 shrink-0" />
             )}
             {children}
         </div>
@@ -128,7 +129,10 @@ export function DataTableColumnControls<TData>({ table }: DataTableViewOptionsPr
                                 >
                                     {getTranslatedFieldName(column.id)}
                                     <span className="ml-auto text-muted-foreground">
-                                        {column.getIsVisible() ? <Eye /> : <EyeOff className="opacity-50" />}
+                                        <VisibilityIcon
+                                            visible={column.getIsVisible()}
+                                            className={column.getIsVisible() ? undefined : 'opacity-50'}
+                                        />
                                     </span>
                                 </DropdownMenuCheckboxItem>
                             </SortableItem>
@@ -137,7 +141,8 @@ export function DataTableColumnControls<TData>({ table }: DataTableViewOptionsPr
                 </DndContext>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleReset}>
+            {/* Indented by the grip column, so Reset lines up with the column names. */}
+            <DropdownMenuItem className="ml-5" onClick={handleReset}>
                 <Trans>Reset</Trans>
             </DropdownMenuItem>
         </>
@@ -145,6 +150,7 @@ export function DataTableColumnControls<TData>({ table }: DataTableViewOptionsPr
 }
 
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
+    const { t } = useLingui();
     return (
         <div className="flex items-center gap-2">
             <DropdownMenu modal={false}>
@@ -156,6 +162,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                                     <Button
                                         variant="outline"
                                         size="icon-sm"
+                                        aria-label={t`Column settings`}
                                         className="ml-auto hidden lg:flex"
                                         data-testid="dt-column-settings-trigger"
                                     />

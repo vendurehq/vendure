@@ -9,6 +9,11 @@ import { Trans } from '@lingui/react/macro';
 
 interface AssignToChannelBulkActionProps {
     selection: any[];
+    /**
+     * The id of every selected item, also items on other pages. Defaults to the
+     * ids of `selection`.
+     */
+    selectedRowIds?: string[];
     table: any;
     entityType: string;
     mutationFn: (variables: any) => Promise<any>;
@@ -24,6 +29,7 @@ interface AssignToChannelBulkActionProps {
 
 export function AssignToChannelBulkAction({
     selection,
+    selectedRowIds,
     table,
     entityType,
     mutationFn,
@@ -59,7 +65,7 @@ export function AssignToChannelBulkAction({
             <AssignToChannelDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                entityIds={selection.map(s => s.id)}
+                entityIds={selectedRowIds ?? selection.map(s => s.id)}
                 entityType={entityType}
                 mutationFn={mutationFn}
                 onSuccess={handleSuccess}

@@ -16,10 +16,10 @@ import { removeCustomersFromGroupDocument } from '../customer-groups.graphql.js'
  * dialog's open state mid-interaction.
  */
 export function createRemoveFromGroupBulkAction(customerGroupId: string): BulkActionComponent<any> {
-    return function RemoveFromGroupBulkAction({ selection, table }) {
+    return function RemoveFromGroupBulkAction({ selection, selectedRowIds, table }) {
         const { refetchPaginatedList } = usePaginatedList();
         const { t } = useLingui();
-        const count = selection.length;
+        const count = selectedRowIds.length;
 
         const { mutate, isPending } = useMutation({
             mutationFn: api.mutate(removeCustomersFromGroupDocument),
@@ -49,20 +49,22 @@ export function createRemoveFromGroupBulkAction(customerGroupId: string): BulkAc
                 onClick={() =>
                     mutate({
                         customerGroupId,
-                        customerIds: selection.map(s => s.id),
+                        customerIds: selectedRowIds,
                     })
                 }
                 disabled={isPending}
                 label={<Trans>Remove from group</Trans>}
-                confirmationText={
+                confirmationTitle={
                     <Plural
                         value={count}
-                        one={`Are you sure you want to remove ${count} customer from this group?`}
-                        other={`Are you sure you want to remove ${count} customers from this group?`}
+                        one={`Remove ${count} customer from this group?`}
+                        other={`Remove ${count} customers from this group?`}
                     />
                 }
+                confirmationText={<Trans>The customers stay in the shop. Only the group membership is removed.</Trans>}
+                confirmLabel={<Trans>Remove from group</Trans>}
                 icon={UserMinus}
-                className="text-destructive"
+                variant="destructive"
             />
         );
     };

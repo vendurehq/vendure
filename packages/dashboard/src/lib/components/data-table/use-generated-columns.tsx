@@ -36,17 +36,6 @@ import {
     PaginatedListItemFields,
     RowAction,
 } from '../shared/paginated-list-data-table.js';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '../ui/alert-dialog.js';
 import { Button } from '../ui/button.js';
 import { Checkbox } from '../ui/checkbox.js';
 import {
@@ -58,6 +47,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '../ui/dropdown-menu.js';
+import { DataTableBulkActionItem } from './data-table-bulk-action-item.js';
 import { DataTableColumnHeader } from './data-table-column-header.js';
 
 /**
@@ -316,7 +306,7 @@ function getRowActions(
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger
-                        render={<Button variant="ghost" size="icon" data-testid="dt-row-actions-trigger" />}
+                        render={<Button variant="ghost" size="icon-sm" data-testid="dt-row-actions-trigger" />}
                     >
                         <EllipsisIcon />
                     </DropdownMenuTrigger>
@@ -348,6 +338,8 @@ function getRowActions(
                                                 <action.component
                                                     key={`bulk-action-${groupIndex}-${index}`}
                                                     selection={[row.original]}
+                                                    selectedRowIds={[row.id]}
+                                                    missingRowIds={[]}
                                                     table={table}
                                                 />
                                             ))}
@@ -461,45 +453,26 @@ function DeleteMutationRowAction({
             });
         },
     });
+    const name = (row.original as { name?: unknown }).name;
     return (
-        <AlertDialog>
-            <AlertDialogTrigger nativeButton={false} render={<DropdownMenuItem closeOnClick={false} />}>
-                <div className="flex items-center gap-2">
-                    <TrashIcon className="w-4 h-4" />
-                    <Trans>Delete</Trans>
-                </div>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                        <Trans>Confirm deletion</Trans>
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                        <Trans>
-                            Are you sure you want to delete this item? This action cannot be undone.
-                        </Trans>
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>
-                        <Trans>Cancel</Trans>
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={() => {
-                            // Pass variables based on what the mutation expects
-                            if (hasIdsParameter) {
-                                deleteMutationFn({ ids: [row.original.id] });
-                            } else {
-                                // Fallback to single id if we can't determine the format
-                                deleteMutationFn({ id: row.original.id });
-                            }
-                        }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                        <Trans>Delete</Trans>
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <DataTableBulkActionItem
+            variant="destructive"
+            icon={TrashIcon}
+            label={<Trans>Delete</Trans>}
+            confirmationTitle={
+                typeof name === 'string' && name ? <Trans>Delete "{name}"?</Trans> : <Trans>Delete this item?</Trans>
+            }
+            confirmationText={<Trans>This cannot be undone.</Trans>}
+            confirmLabel={<Trans>Delete</Trans>}
+            onClick={() => {
+                // Pass variables based on what the mutation expects
+                if (hasIdsParameter) {
+                    deleteMutationFn({ ids: [row.original.id] });
+                } else {
+                    // Fallback to single id if we can't determine the format
+                    deleteMutationFn({ id: row.original.id });
+                }
+            }}
+        />
     );
 }

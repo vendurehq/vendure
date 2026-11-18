@@ -2,7 +2,7 @@ import { BulkActionComponent } from '@/vdb/framework/extension-api/types/index.j
 import { DeleteBulkAction } from '../../../../common/delete-bulk-action.js';
 import { deleteCountriesDocument } from '../countries.graphql.js';
 
-export const DeleteCountriesBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
+export const DeleteCountriesBulkAction: BulkActionComponent<any> = ({ selection, selectedRowIds, table }) => {
     return (
         <DeleteBulkAction
             mutationDocument={deleteCountriesDocument}
@@ -10,6 +10,7 @@ export const DeleteCountriesBulkAction: BulkActionComponent<any> = ({ selection,
             requiredPermissions={['DeleteCountry']}
             invalidateQueries={['availableCountries']}
             selection={selection}
+            selectedRowIds={selectedRowIds}
             table={table}
         />
     );

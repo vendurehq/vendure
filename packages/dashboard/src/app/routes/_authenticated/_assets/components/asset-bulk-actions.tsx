@@ -11,10 +11,10 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteAssetsDocument } from '../assets.graphql.js';
 
-export const DeleteAssetsBulkAction: BulkActionComponent<AssetFragment> = ({ selection, table }) => {
+export const DeleteAssetsBulkAction: BulkActionComponent<AssetFragment> = ({ selection, selectedRowIds, table }) => {
     const { t } = useLingui();
     const queryClient = useQueryClient();
-    const selectionLength = selection.length;
+    const selectionLength = selectedRowIds.length;
     const { mutate } = useMutation({
         mutationFn: api.mutate(deleteAssetsDocument),
         onSuccess: (result: ResultOf<typeof deleteAssetsDocument>) => {
@@ -29,16 +29,19 @@ export const DeleteAssetsBulkAction: BulkActionComponent<AssetFragment> = ({ sel
             queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
         },
         onError: () => {
-            toast.error(`Failed to delete ${selectionLength} assets`);
+            toast.error(t`Failed to delete ${selectionLength} assets`);
         },
     });
 
     return (
         <DataTableBulkActionItem
             requiresPermission={['DeleteCatalog', 'DeleteAsset']}
-            onClick={() => mutate({ input: { assetIds: selection.map(s => s.id) } })}
+            onClick={() => mutate({ input: { assetIds: selectedRowIds } })}
             label={<Trans>Delete</Trans>}
-            confirmationText={<Trans>Are you sure you want to delete {selectionLength} assets?</Trans>}
+            variant="destructive"
+            confirmationTitle={<Trans>Delete {selectionLength} assets?</Trans>}
+            confirmationText={<Trans>This cannot be undone.</Trans>}
+            confirmLabel={<Trans>Delete</Trans>}
             icon={TrashIcon}
         />
     );

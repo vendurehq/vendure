@@ -1,6 +1,6 @@
 import { Table } from '@tanstack/react-table';
 import { describe, expect, it } from 'vitest';
-import { resolveSelectedItems } from './data-table-bulk-actions.js';
+import { getMissingRowIds, resolveSelectedItems } from './data-table-bulk-actions.js';
 
 interface Item {
     id: string;
@@ -38,5 +38,22 @@ describe('resolveSelectedItems', () => {
         const table = createTable([currentItem.id], []);
 
         expect(resolveSelectedItems(table, cache, [currentItem])).toEqual([currentItem]);
+    });
+});
+
+describe('getMissingRowIds', () => {
+    it('lists the selected ids that have no loaded row', () => {
+        const loaded = [{ id: '1', name: 'On this page' }];
+
+        expect(getMissingRowIds(['1', '2', '3'], loaded)).toEqual(['2', '3']);
+    });
+
+    it('is empty when every selected id has a loaded row', () => {
+        const loaded = [
+            { id: '1', name: 'One' },
+            { id: '2', name: 'Two' },
+        ];
+
+        expect(getMissingRowIds(['1', '2'], loaded)).toEqual([]);
     });
 });

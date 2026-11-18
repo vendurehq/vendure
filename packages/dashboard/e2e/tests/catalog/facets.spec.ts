@@ -160,7 +160,7 @@ test.describe('Facet values', () => {
         await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
 
         // Confirm deletion
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
 
         // Verify the value was deleted
         await expect(
