@@ -174,7 +174,9 @@ export class ProductVariantService {
         ctx: RequestContext,
         options?: ListQueryOptions<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
-        const relations = ['featuredAsset', 'taxCategory', 'channels'];
+        // No `channels`: it brings one row per Channel with every variant. The list query builder
+        // joins the active Channel itself, and the `channels` field resolver loads its own.
+        const relations = ['featuredAsset', 'taxCategory'];
         const customPropertyMap: { [name: string]: string } = {};
         const hasFacetValueIdFilter =
             this.listQueryBuilder.filterObjectHasProperty<ProductVariantFilterParameter>(
@@ -376,11 +378,23 @@ export class ProductVariantService {
     }
 
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID): Promise<Array<Translated<FacetValue>>> {
+        // Only the FacetValues of the active Channel, each with only that Channel joined: the
+        // `facetValues` resolver keeps exactly those, and joining every Channel brings one row per
+        // Channel per value. A variant without FacetValues in the Channel is not found, which gives
+        // the same empty result.
+        // `find()` rather than `findOne()`: with joins, the limit of `findOne()` costs TypeORM a
+        // separate query for the id.
         return this.connection
-            .findOneInChannel(ctx, ProductVariant, variantId, ctx.channelId, {
-                relations: ['facetValues', 'facetValues.facet', 'facetValues.channels'],
+            .getRepository(ctx, ProductVariant)
+            .find({
+                where: {
+                    id: variantId,
+                    channels: { id: ctx.channelId },
+                    facetValues: { channels: { id: ctx.channelId } },
+                },
+                relations: { facetValues: { facet: true, channels: true } },
             })
-            .then(variant =>
+            .then(([variant]) =>
                 !variant ? [] : variant.facetValues.map(o => this.translator.translate(o, ctx, ['facet'])),
             );
     }
