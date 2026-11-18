@@ -1,6 +1,6 @@
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
-import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -54,13 +54,23 @@ type FieldDefinition = ResultOf<
 
 const fieldDefinitionsQueryKey = ['settingsStoreFieldDefinitions'] as const;
 
-const scopeBadgeVariant: Record<string, 'default' | 'outline'> = {
-    GLOBAL: 'default',
-    USER: 'default',
-    CHANNEL: 'outline',
-    USER_AND_CHANNEL: 'default',
-    CUSTOM: 'outline',
-};
+// Every entry has a scope, so it reads as plain words, not a chip.
+function ScopeLabel({ scopeType }: Readonly<{ scopeType: string }>) {
+    switch (scopeType) {
+        case 'GLOBAL':
+            return <Trans>Global</Trans>;
+        case 'USER':
+            return <Trans>User</Trans>;
+        case 'CHANNEL':
+            return <Trans>Channel</Trans>;
+        case 'USER_AND_CHANNEL':
+            return <Trans>User & Channel</Trans>;
+        case 'CUSTOM':
+            return <Trans>Custom</Trans>;
+        default:
+            return <>{scopeType}</>;
+    }
+}
 
 function ValueCell({ field, onSave }: { field: FieldDefinition; onSave: (value: any) => void }) {
     const value = field.currentValue;
@@ -287,11 +297,7 @@ export function createSettingsStoreColumns(
         columnHelper.accessor('key', {
             header: labels.key,
             meta: { fieldInfo: { type: 'String' } },
-            cell: ({ row }) => (
-                <CopyableText value={row.original.key}>
-                    <code className="text-xs">{row.original.key}</code>
-                </CopyableText>
-            ),
+            cell: ({ row }) => <IdentifierDisplay value={row.original.key} />,
         }),
         columnHelper.accessor('currentValue', {
             header: labels.value,
@@ -306,11 +312,7 @@ export function createSettingsStoreColumns(
         columnHelper.accessor('scopeType', {
             header: labels.scope,
             enableColumnFilter: false,
-            cell: ({ row }) => (
-                <Badge variant={scopeBadgeVariant[row.original.scopeType] ?? 'outline'}>
-                    {row.original.scopeType}
-                </Badge>
-            ),
+            cell: ({ row }) => <ScopeLabel scopeType={row.original.scopeType} />,
         }),
         columnHelper.accessor('readonly', {
             header: labels.readonly,

@@ -1,5 +1,5 @@
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
-import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     DropdownMenu,
@@ -30,6 +30,11 @@ import { PayloadDialog } from './components/payload-dialog.js';
 // expected default and stays calm; disabled is the exception worth spotting
 // (critical, matching BooleanDisplayBadge). Keys are the local flag values,
 // not wire states.
+// A per-row action that shows only while its row is hovered or holds keyboard focus, and
+// always on touch screens, so the list reads as data at rest.
+const ROW_ACTION_REVEAL_CLASS =
+    'opacity-0 transition-opacity duration-quick ease-soft group-hover/row:opacity-100 group-focus-within/row:opacity-100 has-[[aria-expanded=true]]:opacity-100 [@media(hover:none)]:opacity-100';
+
 const scheduledTaskStateDictionary = defineStateEntries({
     enabled: { tone: 'neutral', defaultLabel: 'Enabled' },
     disabled: { tone: 'critical', defaultLabel: 'Disabled' },
@@ -119,23 +124,21 @@ function ScheduledTasksPage() {
     const columns = [
         columnHelper.accessor('id', {
             header: t`ID`,
-            cell: ({ getValue }) => (
-                <CopyableText value={getValue()}>
-                    <span className="font-mono">{getValue()}</span>
-                </CopyableText>
-            ),
+            cell: ({ getValue }) => <IdentifierDisplay value={getValue()} />,
         }),
         columnHelper.accessor('description', {
             header: t`Description`,
         }),
         columnHelper.accessor('enabled', {
-            header: t`Enabled`,
+            header: t`Status`,
             cell: ({ row }) => {
+                // Enabled is the normal state: it shows only while the row is hovered or focused.
                 return (
                     <StatusBadge
                         tone={scheduledTaskStateDictionary.toneFor(
                             row.original.enabled ? 'enabled' : 'disabled',
                         )}
+                        reveal={row.original.enabled ? 'row' : 'always'}
                     >
                         {row.original.enabled ? <Trans>Enabled</Trans> : <Trans>Disabled</Trans>}
                     </StatusBadge>
@@ -180,37 +183,32 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('isRunning', {
             header: t`Running`,
+            // Only a running task gets a badge; an idle one leaves the cell blank.
             cell: ({ row }) => {
-                return (
-                    <StatusBadge
-                        tone={scheduledTaskStateDictionary.toneFor(
-                            row.original.isRunning ? 'running' : 'idle',
-                        )}
-                    >
-                        {row.original.isRunning ? <Trans>Running</Trans> : <Trans>Not Running</Trans>}
+                return row.original.isRunning ? (
+                    <StatusBadge tone={scheduledTaskStateDictionary.toneFor('running')}>
+                        <Trans>Running</Trans>
                     </StatusBadge>
-                );
+                ) : null;
             },
         }),
         columnHelper.accessor('lastResult', {
             header: t`Last Result`,
             cell: ({ row }) => {
                 return row.original.lastResult ? (
-                    <PayloadDialog
-                        payload={row.original.lastResult}
-                        title={<Trans>View job result</Trans>}
-                        description={<Trans>The result of the job</Trans>}
-                        trigger={
-                            <Button size="sm" variant="secondary">
-                                <Trans>View result</Trans>
-                            </Button>
-                        }
-                    />
-                ) : (
-                    <div className="text-muted-foreground">
-                        <Trans>No result yet</Trans>
-                    </div>
-                );
+                    <span className={ROW_ACTION_REVEAL_CLASS}>
+                        <PayloadDialog
+                            payload={row.original.lastResult}
+                            title={<Trans>View job result</Trans>}
+                            description={<Trans>The result of the job</Trans>}
+                            trigger={
+                                <Button size="sm" variant="secondary">
+                                    <Trans>View result</Trans>
+                                </Button>
+                            }
+                        />
+                    </span>
+                ) : null;
             },
         }),
         columnHelper.display({
