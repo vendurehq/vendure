@@ -1,5 +1,6 @@
 import { ErrorCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
+    idsAreEqual,
     manualFulfillmentHandler,
     ShippingCalculationResult,
     ShippingCalculator,
@@ -41,6 +42,8 @@ let carrierSurcharge = 0;
 let carrierCalls = 0;
 /** When set, the flat rate calculator returns its single result with this code */
 let flatRateCode: string | undefined;
+/** Whether the ShippingMethod priced by its assigned OrderLines is eligible */
+let assignedLinesMethodEligible = false;
 
 /**
  * Stands in for a carrier API: one result per service, priced by the quantity in the Order,
@@ -78,6 +81,35 @@ const flatRateCalculator = new ShippingCalculator({
     }),
 });
 
+/**
+ * Prices only the OrderLines assigned to its ShippingLine, as a multi-vendor calculator does, plus
+ * 1% of the Order's subTotal. It can only give the right price once the OrderLines are assigned and
+ * the Order's totals are calculated.
+ */
+const assignedLinesCalculator = new ShippingCalculator({
+    code: 'assigned-lines-calculator',
+    description: [{ languageCode: LanguageCode.en, value: 'Priced by assigned lines' }],
+    args: {},
+    calculate: (_ctx, order, _args, method) => {
+        const shippingLine = order.shippingLines.find(line => idsAreEqual(line.shippingMethodId, method.id));
+        const assignedLines = order.lines.filter(
+            line => shippingLine && idsAreEqual(line.shippingLineId, shippingLine.id),
+        );
+        return {
+            price: assignedLines.length * 1000 + Math.round(order.subTotal / 100),
+            priceIncludesTax: false,
+            taxRate: 0,
+        };
+    },
+});
+
+const assignedLinesChecker = new ShippingEligibilityChecker({
+    code: 'assigned-lines-checker',
+    description: [{ languageCode: LanguageCode.en, value: 'Only when enabled by a test' }],
+    args: {},
+    check: () => assignedLinesMethodEligible,
+});
+
 const alwaysEligible = new ShippingEligibilityChecker({
     code: 'always-eligible',
     description: [{ languageCode: LanguageCode.en, value: 'Always eligible' }],
@@ -107,6 +139,7 @@ const eligibleShippingMethodsWithOptionsDocument = graphql(`
 const shippingLineFragment = graphql(`
     fragment ShippingOptionOrder on Order {
         id
+        subTotal
         shippingWithTax
         shippingLines {
             shippingMethod {
@@ -152,6 +185,11 @@ const adminShippingLinesFragment = adminGraphql(`
     fragment AdminShippingOptionOrder on Order {
         id
         state
+        subTotal
+        lines {
+            id
+            quantity
+        }
         shippingLines {
             shippingMethod {
                 id
@@ -282,8 +320,8 @@ describe('ShippingMethod with several options', () => {
     const { server, adminClient, shopClient } = createTestEnvironment({
         ...testConfig(),
         shippingOptions: {
-            shippingEligibilityCheckers: [alwaysEligible],
-            shippingCalculators: [carrierCalculator, flatRateCalculator],
+            shippingEligibilityCheckers: [alwaysEligible, assignedLinesChecker],
+            shippingCalculators: [carrierCalculator, flatRateCalculator, assignedLinesCalculator],
         },
         paymentOptions: {
             paymentMethodHandlers: [testSuccessfulPaymentMethod],
@@ -298,6 +336,7 @@ describe('ShippingMethod with several options', () => {
 
     let carrierMethodId: string;
     let flatMethodId: string;
+    let assignedLinesMethodId: string;
     let orderLineId: string;
 
     const setShippingMethods = async (variables: VariablesOf<typeof setShippingMethodsDocument>) => {
@@ -305,12 +344,12 @@ describe('ShippingMethod with several options', () => {
         return setOrderShippingMethod;
     };
 
-    const createMethod = async (code: string, calculatorCode: string) => {
+    const createMethod = async (code: string, calculatorCode: string, checkerCode = alwaysEligible.code) => {
         const { createShippingMethod } = await adminClient.query(createShippingMethodDocument, {
             input: {
                 code,
                 fulfillmentHandler: manualFulfillmentHandler.code,
-                checker: { code: alwaysEligible.code, arguments: [] },
+                checker: { code: checkerCode, arguments: [] },
                 calculator: { code: calculatorCode, arguments: [] },
                 translations: [{ languageCode: LanguageCode.en, name: code, description: '' }],
             },
@@ -336,6 +375,11 @@ describe('ShippingMethod with several options', () => {
         await adminClient.asSuperAdmin();
         carrierMethodId = await createMethod('carrier', carrierCalculator.code);
         flatMethodId = await createMethod('flat', flatRateCalculator.code);
+        assignedLinesMethodId = await createMethod(
+            'assigned-lines',
+            assignedLinesCalculator.code,
+            assignedLinesChecker.code,
+        );
 
         await shopClient.asAnonymousUser();
         const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
@@ -477,6 +521,18 @@ describe('ShippingMethod with several options', () => {
             });
         } finally {
             flatRateCode = undefined;
+        }
+    });
+
+    it('prices a ShippingLine after its OrderLines are assigned to it', async () => {
+        assignedLinesMethodEligible = true;
+        try {
+            const result = await setShippingMethods({ shippingMethodId: [assignedLinesMethodId] });
+            orderGuard.assertSuccess(result);
+            // One assigned OrderLine, plus 1% of the subTotal
+            expect(result.shippingLines[0].priceWithTax).toBe(1000 + Math.round(result.subTotal / 100));
+        } finally {
+            assignedLinesMethodEligible = false;
         }
     });
 
@@ -677,6 +733,45 @@ describe('ShippingMethod with several options', () => {
                 shippingOptionCode: 'economy',
                 shippingOptionName: 'Economy',
             });
+        });
+
+        it('prices the chosen ShippingMethod against the modified Order when shipping is not recalculated', async () => {
+            const { order } = await adminClient.query(adminOrderShippingDocument, { id: placedOrderId });
+            const line = order?.lines[0];
+            const subTotalBefore = order?.subTotal ?? 0;
+            if (!line) {
+                throw new Error('The placed Order has no lines');
+            }
+            assignedLinesMethodEligible = true;
+            try {
+                const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                    input: {
+                        orderId: placedOrderId,
+                        dryRun: true,
+                        options: { recalculateShipping: false },
+                        adjustOrderLines: [{ orderLineId: line.id, quantity: line.quantity + 1 }],
+                        shippingMethods: [{ shippingMethodId: assignedLinesMethodId }],
+                    },
+                });
+                const modified = modifyOrder as any;
+                expect(modified.subTotal).toBeGreaterThan(subTotalBefore);
+                expect(modified.shippingLines[0].priceWithTax).toBe(
+                    1000 + Math.round(modified.subTotal / 100),
+                );
+            } finally {
+                assignedLinesMethodEligible = false;
+            }
+        });
+
+        it('rejects an option which the ShippingMethod does not offer in modifyOrder', async () => {
+            const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                input: {
+                    orderId: placedOrderId,
+                    dryRun: true,
+                    shippingMethods: [{ shippingMethodId: carrierMethodId, shippingOptionCode: 'teleport' }],
+                },
+            });
+            expect((modifyOrder as any).errorCode).toBe(ErrorCode.INELIGIBLE_SHIPPING_METHOD_ERROR);
         });
 
         it(

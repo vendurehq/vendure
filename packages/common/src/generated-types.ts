@@ -6821,7 +6821,7 @@ export type ShippingLine = {
   shippingMethod: ShippingMethod;
   /** The code of the chosen ShippingOption, as returned by the ShippingCalculator. Null when the calculator returns a single result without a code. */
   shippingOptionCode?: Maybe<Scalars['String']['output']>;
-  /** The name of the chosen ShippingOption, as returned by the ShippingCalculator when it was chosen */
+  /** The name of the chosen ShippingOption, as returned by the ShippingCalculator the last time the ShippingLine was priced */
   shippingOptionName?: Maybe<Scalars['String']['output']>;
 };
 
