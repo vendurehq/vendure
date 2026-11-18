@@ -14,7 +14,6 @@ import { PageActionBar, PageBlock, PageLayout } from './page-layout.js';
 import { PageContext } from './page-provider.js';
 
 const useIsMobileMock = vi.hoisted(() => vi.fn(() => false));
-const useCopyToClipboardMock = vi.hoisted(() => vi.fn(() => [null, vi.fn()]));
 const hasPermissionsMock = vi.hoisted(() => vi.fn((_perms: string[]) => true));
 const platformPromotionMock = vi.hoisted(() => ({ hideAll: true }));
 
@@ -24,10 +23,6 @@ vi.mock('@/vdb/hooks/use-platform-promotion.js', () => ({
 
 vi.mock('@/vdb/hooks/use-mobile.js', () => ({
     useIsMobile: useIsMobileMock,
-}));
-
-vi.mock('@uidotdev/usehooks', () => ({
-    useCopyToClipboard: useCopyToClipboardMock,
 }));
 
 vi.mock('@/vdb/hooks/use-permissions.js', () => ({
@@ -125,7 +120,7 @@ function renderActionBar(
             </button>
         </ActionBarItem>
     ),
-    { isDesktop = true, pageId = 'customer-list' } = {},
+    { isDesktop = true, pageId = 'customer-list', entity }: { isDesktop?: boolean; pageId?: string; entity?: any } = {},
 ) {
     useIsMobileMock.mockReturnValue(!isDesktop);
     const noop = () => undefined;
@@ -155,11 +150,13 @@ function renderActionBar(
     } as unknown as UserSettingsContextType;
 
     return renderToStaticMarkup(
-        <UserSettingsContext.Provider value={contextValue}>
-            <PageContext.Provider value={{ pageId }}>
-                <PageActionBar>{children}</PageActionBar>
-            </PageContext.Provider>
-        </UserSettingsContext.Provider>,
+        <I18nProvider i18n={i18n}>
+            <UserSettingsContext.Provider value={contextValue}>
+                <PageContext.Provider value={{ pageId, entity }}>
+                    <PageActionBar>{children}</PageActionBar>
+                </PageContext.Provider>
+            </UserSettingsContext.Provider>
+        </I18nProvider>,
     );
 }
 
@@ -183,8 +180,6 @@ function getRenderedActionBarIds(markup: string) {
 describe('PageLayout', () => {
     beforeEach(() => {
         useIsMobileMock.mockReset();
-        useCopyToClipboardMock.mockReset();
-        useCopyToClipboardMock.mockReturnValue([null, vi.fn()]);
         hasPermissionsMock.mockReset();
         platformPromotionMock.hideAll = true;
         const pageBlockRegistry = globalRegistry.get('dashboardPageBlockRegistry');
@@ -486,5 +481,20 @@ describe('PageLayout', () => {
         expect(renderActionBar(undefined, { pageId: 'customer-list' })).not.toContain(
             'action-bar-dropdown-trigger',
         );
+    });
+
+    // OSS-1238 — the entity info sits in the one ⋯ menu instead of its own header button
+    it('shows one ⋯ menu for the entity info, with no separate info button', () => {
+        hasPermissionsMock.mockReturnValue(true);
+        const withoutEntity = renderActionBar(undefined, { pageId: 'product-detail' });
+        const withEntity = renderActionBar(undefined, {
+            pageId: 'product-detail',
+            entity: { id: '1', createdAt: '2026-01-01', updatedAt: '2026-01-02' },
+        });
+
+        expect(withoutEntity).not.toContain('action-bar-dropdown-trigger');
+        expect(withEntity.match(/data-testid="action-bar-dropdown-trigger"/g)).toHaveLength(1);
+        expect(withEntity).toContain('aria-label="More actions"');
+        expect(withEntity).not.toContain('entity-info-trigger');
     });
 });

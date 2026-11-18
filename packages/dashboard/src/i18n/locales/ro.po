@@ -979,6 +979,7 @@ msgid "The data that has been passed to the job"
 msgstr "Datele care au fost transmise job-ului"
 
 #: src/lib/components/shared/copyable-text.tsx
+#: src/lib/framework/layout-engine/page-layout.tsx
 msgid "Copied"
 msgstr "Copiat"
 
@@ -3894,6 +3895,10 @@ msgstr "Ești sigur că vrei să navighezi din această pagină? Orice modifică
 msgid "Color 1"
 msgstr ""
 
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "More actions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header column"
 msgstr "Comută coloana antet"
@@ -5236,8 +5241,8 @@ msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
 #: src/lib/framework/layout-engine/page-layout.tsx
-msgid "Entity Information"
-msgstr "Informații entitate"
+#~ msgid "Entity Information"
+#~ msgstr "Informații entitate"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx
 msgid "Default"
@@ -6076,6 +6081,10 @@ msgstr "ID"
 msgid "Access denied"
 msgstr "Acces refuzat"
 
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "Copy ID"
+msgstr ""
+
 #: src/lib/components/shared/alerts.tsx
 msgid "Alerts"
 msgstr "Alerte"
@@ -6641,6 +6650,10 @@ msgstr "Ai uitat parola?"
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx
 msgid "Transition to selected state"
 msgstr "Tranziție la statusul selectat"
+
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "Entity information"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "An additional payment of {formattedDiff} will be required."

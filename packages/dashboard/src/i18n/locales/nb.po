@@ -1007,6 +1007,7 @@ msgid "The data that has been passed to the job"
 msgstr "Dataene som har blitt sendt til jobben"
 
 #: src/lib/components/shared/copyable-text.tsx
+#: src/lib/framework/layout-engine/page-layout.tsx
 msgid "Copied"
 msgstr "Kopiert"
 
@@ -3986,6 +3987,10 @@ msgstr "Er du sikker på at du vil forlate denne siden? Alle ulagrede endringer 
 msgid "Color 1"
 msgstr ""
 
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "More actions"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header column"
 msgstr "Veksle overskriftskolonne"
@@ -5364,8 +5369,8 @@ msgstr ""
 #~ msgstr "Overvåkede ressurser"
 
 #: src/lib/framework/layout-engine/page-layout.tsx
-msgid "Entity Information"
-msgstr "Enhetsinformasjon"
+#~ msgid "Entity Information"
+#~ msgstr "Enhetsinformasjon"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx
 msgid "Default"
@@ -6228,6 +6233,10 @@ msgstr "ID"
 msgid "Access denied"
 msgstr "Ingen tilgang"
 
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "Copy ID"
+msgstr ""
+
 #: src/lib/components/shared/alerts.tsx
 msgid "Alerts"
 msgstr "Varsler"
@@ -6825,6 +6834,10 @@ msgstr "Glemt passord?"
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx
 msgid "Transition to selected state"
 msgstr "Gå over til valgt tilstand"
+
+#: src/lib/framework/layout-engine/page-layout.tsx
+msgid "Entity information"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "An additional payment of {formattedDiff} will be required."

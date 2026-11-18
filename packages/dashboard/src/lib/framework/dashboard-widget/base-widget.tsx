@@ -1,6 +1,12 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/vdb/components/ui/card.js';
 import { DashboardBaseWidgetProps } from '@/vdb/framework/extension-api/types/index.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
 import { createContext, useEffect, useRef, useState } from 'react';
 
@@ -59,25 +65,23 @@ export function DashboardBaseWidget({
     }, []);
 
     return (
-        <Card
-            ref={wrapperRef}
-            key={`dashboard-widget-${id}`}
-            className={cn('h-full w-full flex flex-col rounded-md', !title && 'pt-6')}
-        >
+        <Card ref={wrapperRef} key={`dashboard-widget-${id}`} className="h-full w-full">
             {title && (
-                <CardHeader
-                    className={cn(
-                        'flex flex-col lg:flex-row  items-start lg:items-center',
-                        actions ? 'justify-between' : 'justify-start',
+                <CardHeader>
+                    <CardTitle>
+                        <Trans>{title}</Trans>
+                    </CardTitle>
+                    {description && (
+                        <CardDescription className="@max-md/card-header:col-start-1">
+                            {description}
+                        </CardDescription>
                     )}
-                >
-                    <div>
-                        <CardTitle>
-                            <Trans>{title}</Trans>
-                        </CardTitle>
-                        {description && <CardDescription>{description}</CardDescription>}
-                    </div>
-                    {actions && <div className="flex items-center gap-2">{actions}</div>}
+                    {actions && (
+                        // In a narrow widget the actions move below the title instead of overflowing the card.
+                        <CardAction className="@max-md/card-header:col-span-2 @max-md/card-header:col-start-1 @max-md/card-header:row-span-1 @max-md/card-header:row-start-3 @max-md/card-header:mt-2 @max-md/card-header:h-auto @max-md/card-header:max-w-full @max-md/card-header:justify-self-start @max-md/card-header:overflow-x-auto">
+                            {actions}
+                        </CardAction>
+                    )}
                 </CardHeader>
             )}
             <CardContent ref={contentRef} className="grow">
