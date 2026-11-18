@@ -1,18 +1,25 @@
+import { Injectable } from '@nestjs/common';
 import { from, lastValueFrom, Observable } from 'rxjs';
 import { DataSource, EntityManager, QueryRunner } from 'typeorm';
 import { TransactionAlreadyStartedError } from 'typeorm/error/TransactionAlreadyStartedError';
 
 import { RequestContext } from '../api/common/request-context';
 import { TransactionIsolationLevel, TransactionMode } from '../api/decorators/transaction.decorator';
-import { TRANSACTION_MANAGER_KEY } from '../common/constants';
+import { TRANSACTION_MANAGER_KEY, TRANSACTION_NO_RETRY_KEY } from '../common/constants';
+import { ConfigService } from '../config/config.service';
 import { Logger } from '../config/logger/vendure-logger';
+
+import { getDatabaseType } from './database-type';
 
 /**
  * @description
  * This helper class is used to wrap operations in a TypeORM transaction in order to ensure
  * atomic operations on the database.
  */
+@Injectable()
 export class TransactionWrapper {
+    constructor(private configService: ConfigService) {}
+
     /**
      * @description
      * Executes the `work` function within the context of a transaction. If the `work` function
@@ -39,8 +46,9 @@ export class TransactionWrapper {
                 ? entityManager.queryRunner
                 : undefined;
         const queryRunner = inheritedQueryRunner ?? connection.createQueryRunner();
+        const effectiveIsolationLevel = this.resolveIsolationLevel(isolationLevel, connection);
         if (mode === 'auto') {
-            await this.startTransaction(queryRunner, isolationLevel);
+            await this.startTransaction(queryRunner, effectiveIsolationLevel);
         }
         (ctx as any)[TRANSACTION_MANAGER_KEY] = queryRunner.manager;
 
@@ -48,7 +56,7 @@ export class TransactionWrapper {
             const result = await this.runWithRetries(
                 () => work(ctx),
                 queryRunner,
-                isolationLevel,
+                effectiveIsolationLevel,
                 // A retry has to roll the transaction back and start a fresh one. That is only
                 // ours to do when we opened the transaction in the first place. When the runner
                 // was inherited from an outer transaction, or the caller manages the transaction
@@ -89,7 +97,9 @@ export class TransactionWrapper {
      *
      * Note that a retry re-runs the whole unit of work, so any side effect it performs happens
      * again. DB writes are discarded by the rollback, and events published inside a transaction
-     * are only flushed on commit, but anything else the work touches is replayed.
+     * are only flushed on commit, but anything else the work touches is replayed. An attempt
+     * which marked itself with `TransactionalConnection.preventTransactionRetry()` is therefore
+     * never retried.
      */
     private async runWithRetries<T>(
         work: () => Observable<T> | Promise<T>,
@@ -101,11 +111,20 @@ export class TransactionWrapper {
         let attempts = 0;
         // eslint-disable-next-line no-constant-condition
         while (true) {
+            delete queryRunner.data[TRANSACTION_NO_RETRY_KEY];
             try {
                 return await lastValueFrom(from(work()));
             } catch (err: any) {
                 attempts++;
-                if (!canRestartTransaction || !this.isRetriableError(err) || attempts > maxRetries) {
+                if (
+                    !canRestartTransaction ||
+                    !this.isRetriableError(err) ||
+                    attempts > maxRetries ||
+                    // The attempt did something a rollback cannot undo, such as calling a payment
+                    // provider, so running it again would repeat that. See
+                    // TransactionalConnection.preventTransactionRetry.
+                    queryRunner.data[TRANSACTION_NO_RETRY_KEY] === true
+                ) {
                     throw err;
                 }
                 if (queryRunner.isTransactionActive) {
@@ -114,6 +133,32 @@ export class TransactionWrapper {
                 await this.startTransaction(queryRunner, isolationLevel);
             }
         }
+    }
+
+    /**
+     * The isolation level asked for explicitly wins. Otherwise the configured
+     * `entityOptions.transactionIsolationLevel` applies, and failing that `READ COMMITTED` on
+     * MySQL and MariaDB.
+     *
+     * InnoDB defaults to `REPEATABLE READ`, under which a transaction keeps reading the snapshot
+     * taken at its first read. A row lock acquired later then cannot make the transaction see the
+     * data committed by the transaction it waited for, so concurrent writes to an Order would
+     * still be lost, and on MariaDB 11.6.2+ they fail with `ER_CHECKREAD` instead. `READ COMMITTED`
+     * is also the default on Postgres, which is why the other databases are left alone.
+     */
+    resolveIsolationLevel(
+        requested: TransactionIsolationLevel | undefined,
+        connection: DataSource,
+    ): TransactionIsolationLevel | undefined {
+        if (requested) {
+            return requested;
+        }
+        const configured = this.configService.entityOptions.transactionIsolationLevel;
+        if (configured) {
+            return configured;
+        }
+        const dbType = getDatabaseType(connection);
+        return dbType === 'mysql' || dbType === 'mariadb' ? 'READ COMMITTED' : undefined;
     }
 
     /**

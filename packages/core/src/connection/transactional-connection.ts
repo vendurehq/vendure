@@ -16,7 +16,7 @@ import {
 
 import { RequestContext } from '../api/common/request-context';
 import { TransactionIsolationLevel } from '../api/decorators/transaction.decorator';
-import { TRANSACTION_MANAGER_KEY } from '../common/constants';
+import { TRANSACTION_MANAGER_KEY, TRANSACTION_NO_RETRY_KEY } from '../common/constants';
 import { EntityNotFoundError } from '../common/error/errors';
 import { ChannelAware, SoftDeletable } from '../common/types/common-types';
 import { EntityAccessControlStrategy } from '../config/auth/entity-access-control-strategy';
@@ -250,7 +250,9 @@ export class TransactionalConnection {
     async startTransaction(ctx: RequestContext, isolationLevel?: TransactionIsolationLevel) {
         const transactionManager = this.getTransactionManager(ctx);
         if (transactionManager?.queryRunner?.isTransactionActive === false) {
-            await transactionManager.queryRunner.startTransaction(isolationLevel);
+            await transactionManager.queryRunner.startTransaction(
+                this.transactionWrapper.resolveIsolationLevel(isolationLevel, this.rawConnection),
+            );
         }
     }
 
@@ -303,7 +305,11 @@ export class TransactionalConnection {
      * whole codebase, or two requests can deadlock by taking the same pair in opposite orders.
      * The order used for order mutations is Session, then User, then Order.
      *
-     * @since 3.7.3
+     * Reads which follow the lock only see what the previous lock holder committed under
+     * `READ COMMITTED`. Under `REPEATABLE READ` they keep reading the transaction's first
+     * snapshot. See `entityOptions.transactionIsolationLevel`.
+     *
+     * @since 4.0.0
      */
     async lockRow<T extends VendureEntity>(
         ctx: RequestContext,
@@ -313,15 +319,44 @@ export class TransactionalConnection {
         if (!ROW_LOCKING_DB_TYPES.includes(this.rawConnection.options.type)) {
             return;
         }
-        if (!this.getTransactionManager(ctx)) {
+        const transactionManager = this.getTransactionManager(ctx);
+        // A manager without an active transaction is a `@Transaction('manual')` context whose
+        // transaction has not been started yet, or has already ended. TypeORM refuses a lock there.
+        if (!transactionManager?.queryRunner?.isTransactionActive) {
             return;
         }
-        await this.getRepository(ctx, entityType)
+        // The manager's own repository rather than `getRepository(ctx)`: an
+        // EntityAccessControlStrategy could otherwise add joins, which would lock their rows too
+        // (or be rejected by Postgres), or filters, which could leave the row unlocked.
+        await transactionManager
+            .getRepository(entityType)
             .createQueryBuilder('entity')
             .select('entity.id')
             .setLock('pessimistic_write')
             .where('entity.id = :id', { id })
             .getOne();
+    }
+
+    /**
+     * @description
+     * Marks the current attempt of the transaction as not safe to retry.
+     *
+     * When the database rejects a transaction with a deadlock or a serialization failure,
+     * Vendure rolls it back and runs the whole unit of work again. That is safe for database
+     * writes, which the rollback discards, but not for work outside the database. Call this
+     * before such work, for example a call to a payment provider, and a failure after it is
+     * thrown instead of being retried. Vendure does this before calling the methods of a
+     * {@link PaymentMethodHandler}.
+     *
+     * A no-op outside a transaction.
+     *
+     * @since 4.0.0
+     */
+    preventTransactionRetry(ctx: RequestContext): void {
+        const queryRunner = this.getTransactionManager(ctx)?.queryRunner;
+        if (queryRunner) {
+            queryRunner.data[TRANSACTION_NO_RETRY_KEY] = true;
+        }
     }
 
     /**
