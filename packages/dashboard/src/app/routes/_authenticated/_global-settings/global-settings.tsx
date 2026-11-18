@@ -1,4 +1,3 @@
-import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { LanguageSelector } from '@/vdb/components/shared/language-selector.js';
@@ -60,7 +59,6 @@ function GlobalSettingsPage() {
             return {
                 id: entity.id,
                 availableLanguages: entity.availableLanguages,
-                outOfStockThreshold: entity.outOfStockThreshold,
                 customFields: entity.customFields,
             };
         },
@@ -126,19 +124,6 @@ function GlobalSettingsPage() {
                                     multiple={true}
                                 />
                             )}
-                        />
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="outOfStockThreshold"
-                            label={<Trans>Global out of stock threshold</Trans>}
-                            description={
-                                <Trans>
-                                    Sets the stock level at which this a variant is considered to be out of
-                                    stock. Using a negative value enables backorder support. Can be overridden
-                                    by product variants.
-                                </Trans>
-                            }
-                            render={({ field }) => <NumberInput {...field} />}
                         />
                     </DetailFormGrid>
                 </PageBlock>

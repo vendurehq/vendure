@@ -77,8 +77,9 @@ export function getCsrfPreventionWarning(
     if (nodeEnv === 'test') {
         return undefined;
     }
+    // An options object enables the protection too, with a custom header list.
     if (
-        config.apiOptions.csrfPrevention === true ||
+        config.apiOptions.csrfPrevention !== false ||
         !tokenMethodIncludes(config.authOptions.tokenMethod, 'cookie')
     ) {
         return undefined;

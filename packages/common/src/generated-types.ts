@@ -526,12 +526,12 @@ export type Channel = Node & {
   defaultShippingZone?: Maybe<Zone>;
   defaultTaxZone?: Maybe<Zone>;
   id: Scalars['ID']['output'];
-  /** Not yet used - will be implemented in a future release. */
+  /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: Maybe<Scalars['Int']['output']>;
   pricesIncludeTax: Scalars['Boolean']['output'];
   seller?: Maybe<Seller>;
   token: Scalars['String']['output'];
-  /** Not yet used - will be implemented in a future release. */
+  /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: Maybe<Scalars['Boolean']['output']>;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -556,11 +556,11 @@ export type ChannelFilterParameter = {
   defaultCurrencyCode?: InputMaybe<StringOperators>;
   defaultLanguageCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
-  /** Not yet used - will be implemented in a future release. */
+  /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
   token?: InputMaybe<StringOperators>;
-  /** Not yet used - will be implemented in a future release. */
+  /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -588,7 +588,7 @@ export type ChannelSortParameter = {
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
-  /** Not yet used - will be implemented in a future release. */
+  /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -2183,7 +2183,6 @@ export type GlobalSettings = {
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
-  outOfStockThreshold: Scalars['Int']['output'];
   serverConfig: ServerConfig;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -5445,6 +5444,7 @@ export type ProductVariant = Node & {
   tracksInventory: Scalars['Boolean']['output'];
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
+  /** When true, the `outOfStockThreshold` of the Channel is used instead of the variant's own. Since 4.0.0 it comes from the Channel, not the GlobalSettings */
   useGlobalOutOfStockThreshold: Scalars['Boolean']['output'];
 };
 
@@ -5490,6 +5490,7 @@ export type ProductVariantFilterParameter = {
    */
   tracksInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
+  /** When true, the `outOfStockThreshold` of the Channel is used instead of the variant's own. Since 4.0.0 it comes from the Channel, not the GlobalSettings */
   useGlobalOutOfStockThreshold?: InputMaybe<BooleanOperators>;
 };
 
@@ -7541,7 +7542,6 @@ export type UpdateFacetValueInput = {
 export type UpdateGlobalSettingsInput = {
   availableLanguages?: InputMaybe<Array<LanguageCode>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
-  outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type UpdateGlobalSettingsResult = ChannelDefaultLanguageError | GlobalSettings;

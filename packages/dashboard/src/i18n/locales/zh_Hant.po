@@ -155,8 +155,8 @@ msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "確定要刪除 {0} {entityName} 嗎？"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Global out of stock threshold"
-msgstr "全域缺貨臨界值"
+#~ msgid "Global out of stock threshold"
+#~ msgstr "全域缺貨臨界值"
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -269,6 +269,10 @@ msgstr "草稿訂單已完成"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Auto refresh: {0}"
 msgstr "自動重新整理：{0}"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Out of stock threshold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} job"
@@ -473,6 +477,7 @@ msgstr "沒有可新增的小工具"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -829,6 +834,10 @@ msgstr "角色"
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "More with Vendure Platform"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "This cancels every item in the order and releases the allocated stock. No payment is refunded or cancelled."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -1254,6 +1263,10 @@ msgstr "這些是 <0>{facetName}</0> 屬性的屬性值。"
 msgid "Successfully added payment to order"
 msgstr "已成功向訂單新增付款"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Sets the stock level at which a variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can override this."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Billing address set for order"
 msgstr "已為訂單設定帳單地址"
@@ -1596,6 +1609,7 @@ msgstr "價格包含預設稅務區域的稅金"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
@@ -1677,8 +1691,8 @@ msgid "No customers found"
 msgstr "找不到客戶"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Use global out-of-stock threshold"
-msgstr "使用全域缺貨臨界值"
+#~ msgid "Use global out-of-stock threshold"
+#~ msgstr "使用全域缺貨臨界值"
 
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "New product option group"
@@ -2079,6 +2093,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
 msgstr "取消訂單帳單地址失敗：{0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant uses the out-of-stock threshold set on the channel instead of its own value."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -3469,6 +3487,7 @@ msgstr "重做"
 msgid "Select a role"
 msgstr "選取一個角色"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
@@ -4576,6 +4595,10 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "Owner"
+msgstr ""
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Use the channel's out-of-stock threshold"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -5713,8 +5736,8 @@ msgstr "建立變體失敗"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
-msgstr "設定將此變體視為缺貨的庫存水準。使用負值可啟用延期交貨支援。可由商品變體覆寫。"
+#~ msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
+#~ msgstr "設定將此變體視為缺貨的庫存水準。使用負值可啟用延期交貨支援。可由商品變體覆寫。"
 
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Search promotions..."
@@ -6689,6 +6712,12 @@ msgstr "我已儲存此 API Key"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
 msgstr "為您的商店和通路設定可用語言"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Cancel order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully created product"
@@ -7702,8 +7731,8 @@ msgid "Load more"
 msgstr "載入更多"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
-msgstr ""
+#~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Refund settled"
@@ -7876,6 +7905,11 @@ msgstr ""
 msgid "Zones"
 msgstr "區域"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Failed to cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers.tsx
 #: src/lib/components/shared/seller-selector.tsx
 msgid "Search sellers..."
@@ -7902,6 +7936,10 @@ msgstr ""
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "電話號碼"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Keep order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx

@@ -692,7 +692,6 @@ export const globalSettingsFragment = graphql(`
     fragment GlobalSettings on GlobalSettings {
         id
         availableLanguages
-        outOfStockThreshold
         serverConfig {
             orderProcess {
                 name

@@ -8,6 +8,7 @@ import { VendureImage } from '@/vdb/components/shared/vendure-image.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Label } from '@/vdb/components/ui/label.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     Page,
@@ -16,13 +17,14 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
 import { FocusIcon } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
+import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import { assetDetailDocument, assetUpdateDocument } from './assets.graphql.js';
 import { AssetTagsEditor } from './components/asset-tags-editor.js';
@@ -71,6 +73,7 @@ function AssetDetailPage() {
         pageId,
         queryDocument: assetDetailDocument,
         updateDocument: assetUpdateDocument,
+        transformUpdateInput: dropUnchangedTranslationRows((): UseFormReturn<any> => form),
         setValuesForUpdate: entity => {
             // Handle legacy assets without translations
             const translations =

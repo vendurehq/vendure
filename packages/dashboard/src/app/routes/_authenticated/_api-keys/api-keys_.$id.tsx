@@ -15,11 +15,13 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { VariablesOf } from 'gql.tada';
 import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -85,11 +87,14 @@ function ApiKeyDetailPage() {
             delete transformed.roleIds;
             return transformed;
         },
-        transformUpdateInput: input => {
-            const transformed = { ...input };
-            delete transformed.roleIds;
-            return transformed;
-        },
+        transformUpdateInput: dropUnchangedTranslationRows(
+            (): UseFormReturn<any> => form,
+            (input: VariablesOf<typeof updateApiKeyDocument>['input']) => {
+                const transformed = { ...input };
+                delete transformed.roleIds;
+                return transformed;
+            },
+        ),
         params: { id: params.id },
         onSuccess: async data => {
             if (creatingNewEntity) {

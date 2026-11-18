@@ -1,5 +1,5 @@
 import { setupI18n } from '@lingui/core';
-import { rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -35,8 +35,11 @@ describe('plugin translation catalogs in virtual:plugin-translations', () => {
     const packageRoot = join(__dirname, '..', '..');
     const fixtureRoot = join(__dirname, 'fixtures-plugin-translations');
 
-    async function loadVirtualModule(root: string = fixtureRoot): Promise<string> {
-        const plugin = translationsPlugin({ packageRoot }) as any;
+    async function loadVirtualModule(
+        root: string = fixtureRoot,
+        dashboardRoot = packageRoot,
+    ): Promise<string> {
+        const plugin = translationsPlugin({ packageRoot: dashboardRoot }) as any;
         const configLoaderStub = {
             name: 'vendure:config-loader',
             api: {
@@ -99,6 +102,26 @@ describe('plugin translation catalogs in virtual:plugin-translations', () => {
             expect(i18n._('extension.itemCount', { count: 3 })).toBe('3 items');
         } finally {
             process.env.NODE_ENV = previousNodeEnv;
+        }
+    });
+
+    // The published package does not contain the dashboard's .po files: the dashboard's own
+    // catalogs are compiled into the bundle, and only the extensions' catalogs are compiled here.
+    it('compiles plugin catalogs without the dashboard source catalogs', async () => {
+        // Inside the repo, so that the lingui config's imports resolve as they do in a project
+        const tempRoot = join(__dirname, '__temp');
+        await mkdir(tempRoot, { recursive: true });
+        const publishedRoot = await mkdtemp(join(tempRoot, 'published-dashboard-'));
+        try {
+            await writeFile(
+                join(publishedRoot, 'package.json'),
+                JSON.stringify({ name: '@vendure/dashboard' }),
+            );
+            await copyFile(join(packageRoot, 'lingui.config.js'), join(publishedRoot, 'lingui.config.js'));
+            const translations = evaluateVirtualModule(await loadVirtualModule(fixtureRoot, publishedRoot));
+            expect(translations.en['extension.greeting']).toEqual(['Hello ', ['name']]);
+        } finally {
+            await rm(publishedRoot, { recursive: true, force: true });
         }
     });
 

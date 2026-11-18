@@ -71,8 +71,8 @@ const mockInjector = {
     },
 } as any;
 
-const channel1 = new Channel({ id: 1, trackInventory: true });
-const channel2 = new Channel({ id: 2, trackInventory: true });
+const channel1 = new Channel({ id: 1, trackInventory: true, outOfStockThreshold: 0 });
+const channel2 = new Channel({ id: 2, trackInventory: true, outOfStockThreshold: 0 });
 
 function contextForChannel(channel: Channel): RequestContext {
     return new RequestContext({
@@ -270,9 +270,6 @@ describe('MultiChannelStockLocationStrategy', () => {
                             : new StockLocation({ id: 1, channels: channelsInDb }),
                     ),
                 getRepository: () => ({ find: unlockedFind }),
-            };
-            (strategy as any).globalSettingsService = {
-                getSettings: () => Promise.resolve({ outOfStockThreshold: 0 }),
             };
             (strategy as any).stockLevelService = { getLockedStockLevelsForVariant: lockedRead };
             return { unlockedFind, lockedRead };

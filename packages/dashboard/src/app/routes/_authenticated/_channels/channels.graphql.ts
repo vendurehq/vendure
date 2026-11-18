@@ -9,6 +9,7 @@ export const channelItemFragment = graphql(`
         token
         pricesIncludeTax
         trackInventory
+        outOfStockThreshold
         availableCurrencyCodes
         availableLanguageCodes
         defaultCurrencyCode

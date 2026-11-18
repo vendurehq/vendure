@@ -251,6 +251,61 @@ describe('stripUntouchedTranslations', () => {
     it('returns null input unchanged', () => {
         expect(stripUntouchedTranslations(null as any, fields(), {})).toBeNull();
     });
+
+    // Dropping a clean row moves the rows after it to a lower index. A nested translations array in
+    // a kept row must still be read with that row's own dirty state.
+    it('reads nested dirty state by the original row index after dropping a clean row', () => {
+        const scalar = (name: string): FieldInfo => ({
+            name,
+            type: 'String',
+            nullable: true,
+            list: false,
+            isPaginatedList: false,
+            isScalar: true,
+        });
+        const nestedFields: FieldInfo[] = [
+            {
+                name: 'translations',
+                type: 'OuterTranslationInput',
+                nullable: true,
+                list: true,
+                isPaginatedList: false,
+                isScalar: false,
+                typeInfo: [
+                    scalar('languageCode'),
+                    scalar('name'),
+                    {
+                        name: 'labels',
+                        type: 'LabelTranslationInput',
+                        nullable: true,
+                        list: true,
+                        isPaginatedList: false,
+                        isScalar: false,
+                        typeInfo: [scalar('languageCode'), scalar('value')],
+                    },
+                ],
+            },
+        ];
+        const values = {
+            translations: [
+                { languageCode: 'en', name: 'Chair', labels: [{ languageCode: 'en', value: 'a' }] },
+                {
+                    languageCode: 'de',
+                    name: 'Stuhl',
+                    labels: [
+                        { languageCode: 'en', value: 'b' },
+                        { languageCode: 'de', value: 'c' },
+                    ],
+                },
+            ],
+        };
+        // Only the `de` row is dirty, and within it only its second nested row.
+        const dirty = { translations: [{}, { name: true, labels: [{}, { value: true }] }] };
+        const result = stripUntouchedTranslations(values, nestedFields, dirty);
+        expect(result.translations).toEqual([
+            { languageCode: 'de', name: 'Stuhl', labels: [{ languageCode: 'de', value: 'c' }] },
+        ]);
+    });
 });
 
 describe('mergeStartingValues', () => {

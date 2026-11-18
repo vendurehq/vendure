@@ -166,38 +166,50 @@ export class ShippingMethodService {
             input: omit(input, ['checker', 'calculator']),
             entityType: ShippingMethod,
             translationType: ShippingMethodTranslation,
+            beforeSave: sm => {
+                if (input.checker) {
+                    sm.checker = this.configArgService.parseInput(
+                        'ShippingEligibilityChecker',
+                        input.checker,
+                        shippingMethod.checker ?? undefined,
+                    );
+                }
+                if (input.calculator) {
+                    sm.calculator = this.configArgService.parseInput(
+                        'ShippingCalculator',
+                        input.calculator,
+                        shippingMethod.calculator ?? undefined,
+                    );
+                }
+                if (input.fulfillmentHandler) {
+                    sm.fulfillmentHandlerCode = this.ensureValidFulfillmentHandlerCode(
+                        sm.code ?? shippingMethod.code,
+                        input.fulfillmentHandler,
+                    );
+                }
+            },
         });
-        if (input.checker) {
-            updatedShippingMethod.checker = this.configArgService.parseInput(
-                'ShippingEligibilityChecker',
-                input.checker,
-                shippingMethod.checker ?? undefined,
-            );
-        }
-        if (input.calculator) {
-            updatedShippingMethod.calculator = this.configArgService.parseInput(
-                'ShippingCalculator',
-                input.calculator,
-                shippingMethod.calculator ?? undefined,
-            );
-        }
-        if (input.fulfillmentHandler) {
-            updatedShippingMethod.fulfillmentHandlerCode = this.ensureValidFulfillmentHandlerCode(
-                updatedShippingMethod.code,
-                input.fulfillmentHandler,
-            );
-        }
         await this.customFieldRelationService.updateRelations(
             ctx,
             ShippingMethod,
             input,
             updatedShippingMethod,
         );
-        await this.connection
-            .getRepository(ctx, ShippingMethod)
-            .save(updatedShippingMethod, { reload: false });
-        await this.eventBus.publish(new ShippingMethodEvent(ctx, updatedShippingMethod, 'updated', input));
-        return assertFound(this.findOne(ctx, shippingMethod.id));
+        // The reloaded entity, as `updatedShippingMethod` has `null` for every nullable column the
+        // input left out (see TranslatableSaver.update()).
+        const updated = await assertFound(
+            this.findOne(
+                ctx,
+                shippingMethod.id,
+                false,
+                this.customFieldRelationService.getRelationPathsInInput(
+                    ShippingMethod,
+                    input,
+                ) as RelationPaths<ShippingMethod>,
+            ),
+        );
+        await this.eventBus.publish(new ShippingMethodEvent(ctx, updated, 'updated', input));
+        return updated;
     }
 
     async softDelete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {

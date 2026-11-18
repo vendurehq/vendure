@@ -22,6 +22,7 @@ Back up your production data before you migrate. After you go live on v4, restor
 | [`migrateRoleAssignmentData`](/reference/typescript-api/migration/migrate-role-assignment-data) | [Role assignments](/developer-guide/migrating-from-v3/role-assignments#migrating-the-data) | [`previewRoleAssignmentMigration`](/developer-guide/migrating-from-v3/role-assignments#previewing-the-migration) | [`removeLegacyRoleData`](/reference/typescript-api/migration/remove-legacy-role-data) | Both steps run on the first v4 startup |
 | [`migrateTimestampColumnsToTimestamptz`](/reference/typescript-api/migration/migrate-timestamp-columns-to-timestamptz) (PostgreSQL) | [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#converting-the-columns) | [`previewTimestamptzMigration`](/developer-guide/migrating-from-v3/date-time-columns#checking-which-timezones-your-data-was-written-in) | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
 | [`migrateTrackInventoryToChannels`](/reference/typescript-api/migration/migrate-track-inventory-to-channels) | [Inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking#migrating-the-data) | None | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
+| [`migrateOutOfStockThresholdToChannels`](/reference/typescript-api/migration/migrate-out-of-stock-threshold-to-channels) | [Out-of-stock threshold](/developer-guide/migrating-from-v3/inventory-tracking#migrating-the-data) | None | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
 | [`prepareEntityIdForeignKeys`](/reference/typescript-api/migration/prepare-entity-id-foreign-keys) (runs **before** the generated statements) | [Id columns and foreign keys](/developer-guide/migrating-from-v3/entity-id-columns#migrating-the-data) | None | None | Not run. Set `synchronize: false` for the upgrade and use a migration |
 
 Each helper's guide explains what it does, how it checks its result, and any steps after go-live.
@@ -55,6 +56,7 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
    ```ts
    import { MigrationInterface, QueryRunner } from 'typeorm';
    import {
+       migrateOutOfStockThresholdToChannels,
        migrateRoleAssignmentData,
        migrateTimestampColumnsToTimestamptz,
        migrateTrackInventoryToChannels,
@@ -80,6 +82,8 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
            // Inventory tracking: copies the global setting to every Channel and fills
            // StockMovement.tracked for existing stock movements
            await migrateTrackInventoryToChannels(queryRunner);
+           // Out-of-stock threshold: copies the global setting to every Channel
+           await migrateOutOfStockThresholdToChannels(queryRunner);
        }
 
        public async down(queryRunner: QueryRunner): Promise<any> {
@@ -104,7 +108,7 @@ Set `dbConnectionOptions.synchronize` to `false` for the upgrade and follow [Wit
 
 Several v4 changes need a data migration that `synchronize` cannot do, so Vendure v4 refuses to start with a v3 database until they have run:
 
-- The [inventory tracking](/developer-guide/migrating-from-v3/inventory-tracking#with-synchronize-true) migration, on every database. `synchronize` keeps the v3 data, so nothing is lost.
+- The [inventory tracking and out-of-stock threshold](/developer-guide/migrating-from-v3/inventory-tracking#with-synchronize-true) migrations, on every database. `synchronize` keeps the v3 data, so nothing is lost.
 - The [id columns and foreign keys](/developer-guide/migrating-from-v3/entity-id-columns#with-synchronize-true) migration. Vendure refuses to start while rows refer to deleted Zones or Channels. With UUID ids on PostgreSQL or MariaDB 10.7+, it also refuses until the id columns are converted. It checks both before synchronizing.
 - On PostgreSQL, the [date columns](/developer-guide/migrating-from-v3/date-time-columns#with-synchronize-true). Here Vendure refuses before synchronizing, because the schema change would delete the dates.
 
@@ -116,12 +120,17 @@ The schema has then been synchronized, so `npx vendure migrate --generate` finds
 
 ```ts
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { migrateTrackInventoryToChannels, prepareEntityIdForeignKeys } from '@vendure/core';
+import {
+    migrateOutOfStockThresholdToChannels,
+    migrateTrackInventoryToChannels,
+    prepareEntityIdForeignKeys,
+} from '@vendure/core';
 
 export class V4DataMigration1234567890 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
         await prepareEntityIdForeignKeys(queryRunner);
         await migrateTrackInventoryToChannels(queryRunner);
+        await migrateOutOfStockThresholdToChannels(queryRunner);
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
@@ -141,6 +150,8 @@ While v3 and v4 servers both run, do not change Roles, Administrators, API keys 
 </Callout>
 
 A Customer who registers on a v4 server meanwhile sees errors on the remaining v3 servers. See [the role assignments guide](/developer-guide/migrating-from-v3/role-assignments#during-a-rolling-deployment).
+
+The inventory tracking and out-of-stock threshold helpers clear the v3 Global Settings columns, so the remaining v3 servers stop applying those settings. If your shop depends on either one, stop every v3 server first. See [the inventory tracking guide](/developer-guide/migrating-from-v3/inventory-tracking#during-a-rolling-deployment).
 
 ### Removing the legacy tables
 

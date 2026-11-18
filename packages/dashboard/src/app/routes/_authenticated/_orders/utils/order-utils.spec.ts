@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Order } from './order-types.js';
 import {
+    canCancelOrderWithoutRefund,
     getMaxRefundableQuantity,
     getRefundableQuantity,
     lineCanBeRefunded,
@@ -67,6 +68,67 @@ describe('lineCanBeRefunded', () => {
     it('does not allow refunding a fully refunded line', () => {
         const order = orderWithRefunds([{ orderLineId: 'L1', quantity: 2 }]);
         expect(lineCanBeRefunded(order, line({ orderPlacedQuantity: 2, quantity: 0 }))).toBe(false);
+    });
+});
+
+describe('canCancelOrderWithoutRefund', () => {
+    function placedOrder(overrides: Record<string, unknown> = {}): Order {
+        return {
+            type: 'Regular',
+            active: false,
+            state: 'PaymentAuthorized',
+            nextStates: ['PaymentSettled', 'Cancelled', 'Modifying', 'ArrangingAdditionalPayment'],
+            payments: [{ state: 'Authorized' }],
+            ...overrides,
+        } as any;
+    }
+
+    it('allows cancelling a placed order whose only payment is authorized', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder())).toBe(true);
+    });
+
+    it('allows cancelling an order awaiting an additional payment with only an authorized payment', () => {
+        const order = placedOrder({
+            state: 'ArrangingAdditionalPayment',
+            nextStates: ['PaymentAuthorized', 'PaymentSettled', 'Cancelled'],
+        });
+        expect(canCancelOrderWithoutRefund(order)).toBe(true);
+    });
+
+    it('ignores payments which never settled', () => {
+        const order = placedOrder({
+            payments: [{ state: 'Declined' }, { state: 'Cancelled' }, { state: 'Authorized' }],
+        });
+        expect(canCancelOrderWithoutRefund(order)).toBe(true);
+    });
+
+    it('does not allow it when a payment is settled, because the order can be refunded', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ payments: [{ state: 'Settled' }] }))).toBe(false);
+        expect(
+            canCancelOrderWithoutRefund(
+                placedOrder({ payments: [{ state: 'Authorized' }, { state: 'Settled' }] }),
+            ),
+        ).toBe(false);
+    });
+
+    it('does not allow it when the order cannot move to Cancelled', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ state: 'Cancelled', nextStates: [] }))).toBe(false);
+        expect(
+            canCancelOrderWithoutRefund(
+                placedOrder({ state: 'Modifying', nextStates: ['PaymentAuthorized'] }),
+            ),
+        ).toBe(false);
+    });
+
+    it('does not allow it for active orders', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ active: true, state: 'ArrangingPayment' }))).toBe(
+            false,
+        );
+    });
+
+    it('does not allow it for seller and aggregate orders', () => {
+        expect(canCancelOrderWithoutRefund(placedOrder({ type: 'Seller', payments: [] }))).toBe(false);
+        expect(canCancelOrderWithoutRefund(placedOrder({ type: 'Aggregate' }))).toBe(false);
     });
 });
 

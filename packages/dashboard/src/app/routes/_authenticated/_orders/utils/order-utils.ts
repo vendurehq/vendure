@@ -280,3 +280,14 @@ export function canRefundOrder(order: Order): boolean {
     const notInInitialState = order.state !== 'PaymentAuthorized' && order.active !== true;
     return hasSettled && notInInitialState;
 }
+
+/**
+ * Determines if the "Cancel order" action should be shown for an order.
+ * Covers placed regular orders with no settled payment, which `canRefundOrder` excludes.
+ * Requires `Cancelled` in `nextStates` because `cancelOrder` cancels the lines before
+ * it attempts the state transition.
+ */
+export function canCancelOrderWithoutRefund(order: Order): boolean {
+    if (!order || order.type !== 'Regular' || order.active === true) return false;
+    return !orderHasSettledPayments(order) && order.nextStates.includes('Cancelled');
+}
