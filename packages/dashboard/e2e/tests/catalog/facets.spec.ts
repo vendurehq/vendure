@@ -128,7 +128,7 @@ test.describe('Facet values', () => {
         await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 });
 
         // Use .first() in case a retry created duplicate entries
-        const testValueLink = page.locator('table').getByRole('link', { name: 'E2E Test Value' }).first();
+        const testValueLink = page.locator('table').getByRole('link', { name: 'E2E Test Value', exact: true }).first();
         await testValueLink.scrollIntoViewIfNeeded();
         await testValueLink.click();
         await expect(page).toHaveURL(new RegExp(`/facets/${seededFacetId}/values/[^/]+`));
@@ -145,7 +145,7 @@ test.describe('Facet values', () => {
         await expect(page.getByText('Facet values', { exact: true })).toBeVisible({ timeout: 10_000 });
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
 
-        const testValueLink = page.locator('table').getByRole('link', { name: 'E2E Test Value' }).first();
+        const testValueLink = page.locator('table').getByRole('link', { name: 'E2E Test Value', exact: true }).first();
         await testValueLink.scrollIntoViewIfNeeded();
         await testValueLink.click();
         await expect(page).toHaveURL(new RegExp(`/facets/${seededFacetId}/values/[^/]+`));
