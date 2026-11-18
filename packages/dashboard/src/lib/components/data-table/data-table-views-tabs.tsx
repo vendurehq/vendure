@@ -109,7 +109,7 @@ export const DataTableViewsTabs: React.FC = () => {
                             <ChevronDown className="h-3 w-3" />
                         </span>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
+                    <DropdownMenuContent>
                         {overflowViews.map(view => (
                             <DropdownMenuItem key={view.id} onClick={() => applyView(view)}>
                                 {view.name}
@@ -139,7 +139,7 @@ export const DataTableViewsTabs: React.FC = () => {
                 >
                     <MoreHorizontal />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent>
                     <DropdownMenuItem onClick={() => setUserSheetOpen(true)}>
                         <Trans>Manage my views</Trans>
                     </DropdownMenuItem>

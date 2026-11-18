@@ -374,7 +374,7 @@ function DashboardPage() {
                                     <PlusIcon />
                                     <Trans>Add widget</Trans>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent>
                                     {hasPickerOptions ? (
                                         <>
                                             {hiddenWidgets.map(widget => {

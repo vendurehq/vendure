@@ -236,7 +236,7 @@ function JobQueuePage() {
                                         >
                                             <EllipsisIcon />
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
+                                        <DropdownMenuContent>
                                             <DropdownMenuItem
                                                 onClick={() => cancelJobMutation.mutate(row.original.id)}
                                                 disabled={cancelJobMutation.isPending}
@@ -303,7 +303,7 @@ function JobQueuePage() {
                         </span>
                         <ChevronDown className="h-4 w-4" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent>
                         {REFRESH_INTERVALS.map(interval => (
                             <DropdownMenuItem
                                 key={interval.value}

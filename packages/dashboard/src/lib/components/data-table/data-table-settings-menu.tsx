@@ -67,7 +67,7 @@ export function DataTableSettingsMenu<TData>({
                     <Trans>Table settings</Trans>
                 </TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="flex max-h-[70vh] w-max min-w-56 max-w-80 flex-col">
+            <DropdownMenuContent className="flex max-h-[70vh] w-max min-w-56 max-w-80 flex-col">
                 {onRefresh && (
                     <>
                         <DropdownMenuItem onClick={onRefresh} data-testid="dt-refresh-button">

@@ -230,7 +230,7 @@ export const ViewsSheet: React.FC<ViewsSheetProps> = ({ open, onOpenChange, type
                                                         <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
                                                                 <MoreHorizontal className="h-4 w-4" />
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
+                                                        <DropdownMenuContent>
                                                             <DropdownMenuItem
                                                                 onClick={() => handleStartEdit(view)}
                                                             >

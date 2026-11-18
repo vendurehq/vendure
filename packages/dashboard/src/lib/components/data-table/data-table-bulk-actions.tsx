@@ -115,7 +115,7 @@ export function DataTableBulkActions<TData>({
                     <Trans>Actions</Trans>
                     <ChevronDown className="ml-1 h-4 w-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-56">
+                <DropdownMenuContent className="min-w-56">
                     {hasActions ? (
                         allBulkActionGroups.map((group, groupIndex) => {
                             if (group.actions.length === 0) return null;

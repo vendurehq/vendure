@@ -40,7 +40,7 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                             >
                                 <EllipsisIcon />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent>
                                 <DropdownMenuItem
                                     onClick={() => {
                                         onEditNote(entry.id, entry.data.note, !entry.isPublic);

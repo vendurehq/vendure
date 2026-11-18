@@ -412,7 +412,7 @@ export function RelationSelector<T>({
                                 ? <Trans>Change selection</Trans>
                                 : (selectorLabel ?? <Trans>Select item</Trans>)}
                 </PopoverTrigger>
-                <PopoverContent className="p-0 w-[400px]" align="start">
+                <PopoverContent className="p-0 w-[400px]">
                     <Command shouldFilter={false}>
                         <CommandInput
                             placeholder={config.placeholder ?? t`Search...`}

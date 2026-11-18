@@ -176,7 +176,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                         <Trans>Column settings</Trans>
                     </TooltipContent>
                 </Tooltip>
-                <DropdownMenuContent align="end" className="flex max-h-[70vh] w-max max-w-80 flex-col">
+                <DropdownMenuContent className="flex max-h-[70vh] w-max max-w-80 flex-col">
                     <DataTableColumnControls table={table} />
                 </DropdownMenuContent>
             </DropdownMenu>
