@@ -259,6 +259,9 @@ export class CustomFieldRelationResolverService {
 
         if (fieldDef.entity === ProductVariant) {
             if (Array.isArray(result)) {
+                // The tax category of each variant is loaded first, so the prices would otherwise
+                // be loaded one variant at a time.
+                await this.productPriceApplicator.preloadChannelPrices(ctx, result as ProductVariant[]);
                 await Promise.all(result.map(r => this.applyVariantPrices(ctx, r as any)));
             } else {
                 await this.applyVariantPrices(ctx, result as any);

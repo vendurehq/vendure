@@ -291,7 +291,6 @@ export class OrderService implements OnApplicationBootstrap {
             'lines',
             'lines.productVariant',
             'lines.productVariant.taxCategory',
-            'lines.productVariant.productVariantPrices',
             'lines.productVariant.translations',
             'lines.featuredAsset',
             'lines.taxCategory',
@@ -355,6 +354,10 @@ export class OrderService implements OnApplicationBootstrap {
             }
 
             if (wantsLineVariant) {
+                await this.productVariantService.preloadChannelPrices(
+                    ctx,
+                    order.lines.map(line => line.productVariant),
+                );
                 for (const line of order.lines) {
                     line.productVariant = this.translator.translate(
                         await this.productVariantService.applyChannelPriceAndTax(
@@ -2605,14 +2608,7 @@ export class OrderService implements OnApplicationBootstrap {
         const order = await this.findOne(
             ctx,
             orderId,
-            relations ?? [
-                'lines',
-                'lines.productVariant',
-                'lines.productVariant.productVariantPrices',
-                'shippingLines',
-                'surcharges',
-                'customer',
-            ],
+            relations ?? ['lines', 'lines.productVariant', 'shippingLines', 'surcharges', 'customer'],
         );
         if (!order) {
             throw new EntityNotFoundError('Order', orderId);
@@ -2952,12 +2948,17 @@ export class OrderService implements OnApplicationBootstrap {
             const orders = await this.connection.getRepository(orderCtx, Order).find({
                 where: { id: In(affectedOrders.map(o => o.id)) },
                 relations: {
-                    lines: { productVariant: { productVariantPrices: true } },
+                    lines: { productVariant: true },
                     shippingLines: true,
                     surcharges: true,
                 },
             });
 
+            // applyPriceAdjustments() prices the lines one after another.
+            await this.productVariantService.preloadChannelPrices(
+                orderCtx,
+                orders.flatMap(order => order.lines.map(line => line.productVariant)),
+            );
             for (const order of orders) {
                 // Remove the lines manually: the method is still visible via the
                 // channel-scoped ctx inside this transaction, so applyShipping would

@@ -328,7 +328,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         });
 
         // join the tables required by calculated columns
-        this.joinCalculatedColumnRelations(qb, entity, options);
+        this.joinCalculatedColumnRelations(qb, entity, options, extendedOptions.ctx);
 
         const { customPropertyMap: providedCustomPropertyMap } = extendedOptions;
         // A list scoped to a Channel joins the assignment rows of that Channel. A list which is not,
@@ -962,6 +962,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         qb: SelectQueryBuilder<T>,
         entity: Type<T>,
         options: ListQueryOptions<T>,
+        ctx?: RequestContext,
     ) {
         const calculatedColumns = getCalculatedColumns(entity);
         const filterAndSortFields = this.getFilterAndSortFields(options);
@@ -989,7 +990,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                     }
                 }
                 if (typeof instruction.query === 'function') {
-                    instruction.query(qb);
+                    instruction.query(qb, ctx);
                 }
             }
         }
