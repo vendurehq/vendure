@@ -150,11 +150,13 @@ function renderActionBar(
     } as unknown as UserSettingsContextType;
 
     return renderToStaticMarkup(
-        <UserSettingsContext.Provider value={contextValue}>
-            <PageContext.Provider value={{ pageId, entity }}>
-                <PageActionBar>{children}</PageActionBar>
-            </PageContext.Provider>
-        </UserSettingsContext.Provider>,
+        <I18nProvider i18n={i18n}>
+            <UserSettingsContext.Provider value={contextValue}>
+                <PageContext.Provider value={{ pageId, entity }}>
+                    <PageActionBar>{children}</PageActionBar>
+                </PageContext.Provider>
+            </UserSettingsContext.Provider>
+        </I18nProvider>,
     );
 }
 
