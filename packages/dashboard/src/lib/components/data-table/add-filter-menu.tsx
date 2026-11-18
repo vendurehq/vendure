@@ -46,7 +46,7 @@ export function AddFilterMenu({
                     <PlusIcon />
                     <Trans>Filter</Trans>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[200px]">
+                <DropdownMenuContent className="w-[200px]">
                     {facetedEntries.map(([key, filter]) => (
                         <DropdownMenuItem key={key} onClick={() => onSelectFacetedFilter?.(key)}>
                             {filter?.title}

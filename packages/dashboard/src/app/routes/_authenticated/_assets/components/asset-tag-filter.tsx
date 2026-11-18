@@ -50,7 +50,7 @@ export function AssetTagFacetedFilter<TData, TValue>({
                 }
                 onClear={() => column?.setFilterValue(undefined)}
             />
-            <PopoverContent className="w-80 p-0" align="start">
+            <PopoverContent className="w-80 p-0">
                 <AssetTagFilterOptions
                     selectedTags={selectedTags}
                     onTagsChange={tags => column?.setFilterValue(tags.length > 0 ? tags : undefined)}
@@ -80,7 +80,7 @@ export function AssetGridTagFilter({
                 <Trans>Filter</Trans>
                 {selectedTags.length > 0 && <Badge variant="default">{selectedTags.length}</Badge>}
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="start">
+            <PopoverContent className="w-80 p-0">
                 <AssetTagFilterOptions selectedTags={selectedTags} onTagsChange={onTagsChange} />
             </PopoverContent>
         </Popover>

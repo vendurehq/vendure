@@ -222,7 +222,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
         return (
             <Popover open={open} onOpenChange={setOpen}>
                 {trigger}
-                <PopoverContent className="p-0 w-[350px]" align="start">
+                <PopoverContent className="p-0 w-[350px]">
                     <CustomerSearch
                         onSelect={customer => {
                             props.onSelect(customer);
@@ -249,7 +249,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
             }}
         >
             {trigger}
-            <PopoverContent className="w-[420px] p-0" align="start">
+            <PopoverContent className="w-[420px] p-0">
                 <div className="p-4">
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-2">

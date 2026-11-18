@@ -75,7 +75,7 @@ export const GlobalViewsBar: React.FC = () => {
                         <Trans>More views</Trans>
                         <ChevronDown className="h-3 w-3" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent>
                     {dropdownViews.map(view => (
                         <DropdownMenuItem
                             key={view.id}

@@ -115,10 +115,7 @@ export function CustomerAddressSelector({
                     <Trans>Select address</Trans>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent
-                className="w-[520px] p-0"
-                align="start"
-            >
+            <PopoverContent className="w-[520px] p-0">
                 <div className="p-4">
                     <Tabs value={effectiveTab} onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-2">

@@ -145,7 +145,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
                 valueLabel={valueLabel}
                 onClear={() => column?.setFilterValue(undefined)}
             />
-            <PopoverContent className="w-[400px] p-0" align="start">
+            <PopoverContent className="w-[400px] p-0">
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder={t`Search facet values...`}

@@ -29,7 +29,7 @@ export function Alerts() {
                     <BellIcon />
                     <AlertsIndicator />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-w-[800px] min-w-96">
+            <DropdownMenuContent className="max-w-[800px] min-w-96">
                 <DropdownMenuGroup>
                     <DropdownMenuLabel>
                         <Trans>Alerts</Trans>

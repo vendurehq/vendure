@@ -118,7 +118,7 @@ export function FacetValueSelector({
                     <Plus className="h-4 w-4" />
                     <Trans>Add facet values</Trans>
             </PopoverTrigger>
-            <PopoverContent className="p-0 w-[400px]" align="start">
+            <PopoverContent className="p-0 w-[400px]">
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder={placeholder ?? t`Search facet values...`}

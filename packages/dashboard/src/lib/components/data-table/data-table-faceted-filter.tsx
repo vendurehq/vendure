@@ -140,7 +140,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 valueLabel={valueLabel}
                 onClear={() => column?.setFilterValue(undefined)}
             />
-            <PopoverContent className="w-auto min-w-50 max-w-75 p-0" align="start">
+            <PopoverContent className="w-auto min-w-50 max-w-75 p-0">
                 <Command>
                     {resolvedOptions.length > 2 ? <CommandInput placeholder={title} /> : null}
                     <CommandList>

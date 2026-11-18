@@ -146,7 +146,7 @@ function SortableAsset({
                         >
                             <EllipsisIcon className="h-4 w-4" />
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent>
                             <DropdownMenuItem onClick={() => onPreview(asset)}>
                                 <Trans>Preview</Trans>
                             </DropdownMenuItem>
