@@ -11,9 +11,11 @@ import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatab
 import { Button } from '@/vdb/components/ui/button.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { Label } from '@/vdb/components/ui/label.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { Separator } from '@/vdb/components/ui/separator.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -38,7 +40,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Settings2, Trash } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type UseFormReturn } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -510,40 +512,52 @@ function ProductVariantDetailPage() {
             </PageTitle>
             <PageActionBar>
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
-                    <Button
-                        type="submit"
-                        disabled={
-                            !(form.formState.isDirty || optionsDirty) ||
-                            !form.formState.isValid ||
-                            (optionsDirty && anyOptionEmpty) ||
-                            !!duplicateOptionsError ||
-                            !!optionCreatePermissionError ||
-                            isPending ||
-                            isSavingOptions
-                        }
-                    >
-                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <Controller
+                            control={form.control}
+                            name="enabled"
+                            render={({ field }) => (
+                                <div className="flex items-center gap-2" data-testid="variant-enabled-switch">
+                                    <Label htmlFor="variant-enabled-switch-input">
+                                        <Trans>Enabled</Trans>
+                                    </Label>
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
+                                                <Switch
+                                                    id="variant-enabled-switch-input"
+                                                    checked={field.value ?? false}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            }
+                                        />
+                                        <TooltipContent>
+                                            {channels.length > 1
+                                                ? t`When enabled, this variant is available in the shop of every channel where it is not hidden`
+                                                : t`When enabled, this variant is available in the shop`}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                            )}
+                        />
+                        <Button
+                            type="submit"
+                            disabled={
+                                !(form.formState.isDirty || optionsDirty) ||
+                                !form.formState.isValid ||
+                                (optionsDirty && anyOptionEmpty) ||
+                                !!duplicateOptionsError ||
+                                !!optionCreatePermissionError ||
+                                isPending ||
+                                isSavingOptions
+                            }
+                        >
+                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                        </Button>
+                    </div>
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                <PageBlock column="side" blockId="enabled">
-                    <div data-testid="variant-enabled-switch">
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="enabled"
-                            label={<Trans>Enabled</Trans>}
-                            description={
-                                channels.length > 1
-                                    ? t`When enabled, this variant is available in the shop of every channel where it is not hidden`
-                                    : t`When enabled, this variant is available in the shop`
-                            }
-                            render={({ field }) => (
-                                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
-                            )}
-                        />
-                    </div>
-                </PageBlock>
                 {channels.length > 1 && (
                     <PageBlock
                         column="side"
