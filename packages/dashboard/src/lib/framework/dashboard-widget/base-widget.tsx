@@ -1,4 +1,11 @@
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/vdb/components/ui/card.js';
 import { DashboardBaseWidgetProps } from '@/vdb/framework/extension-api/types/index.js';
 import { Trans } from '@lingui/react/macro';
 import { createContext, useEffect, useRef, useState } from 'react';
@@ -58,18 +65,23 @@ export function DashboardBaseWidget({
     }, []);
 
     return (
-        <Card
-            ref={wrapperRef}
-            key={`dashboard-widget-${id}`}
-            className="h-full w-full"
-        >
+        <Card ref={wrapperRef} key={`dashboard-widget-${id}`} className="h-full w-full">
             {title && (
                 <CardHeader>
                     <CardTitle>
                         <Trans>{title}</Trans>
                     </CardTitle>
-                    {description && <CardDescription>{description}</CardDescription>}
-                    {actions && <CardAction>{actions}</CardAction>}
+                    {description && (
+                        <CardDescription className="@max-md/card-header:col-start-1">
+                            {description}
+                        </CardDescription>
+                    )}
+                    {actions && (
+                        // In a narrow widget the actions move below the title instead of overflowing the card.
+                        <CardAction className="@max-md/card-header:col-span-2 @max-md/card-header:col-start-1 @max-md/card-header:row-span-1 @max-md/card-header:row-start-3 @max-md/card-header:mt-2 @max-md/card-header:h-auto @max-md/card-header:max-w-full @max-md/card-header:justify-self-start @max-md/card-header:overflow-x-auto">
+                            {actions}
+                        </CardAction>
+                    )}
                 </CardHeader>
             )}
             <CardContent ref={contentRef} className="grow">
