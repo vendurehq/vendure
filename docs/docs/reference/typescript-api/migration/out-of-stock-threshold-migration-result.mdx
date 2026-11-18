@@ -1,0 +1,30 @@
+---
+title: "OutOfStockThresholdMigrationResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_out_of_stock_threshold.ts" sourceLine="12" packageName="@vendure/core" since="4.0.0" />
+
+The result of [migrateOutOfStockThresholdToChannels](/reference/typescript-api/migration/migrate-out-of-stock-threshold-to-channels#migrateoutofstockthresholdtochannels).
+
+```ts title="Signature"
+interface OutOfStockThresholdMigrationResult {
+    globalOutOfStockThreshold: number | undefined;
+    overwrittenChannels: Array<{ code: string; previous: number }>;
+}
+```
+
+<div className="members-wrapper">
+
+### globalOutOfStockThreshold
+
+<MemberInfo kind="property" type={`number | undefined`}   />
+
+
+### overwrittenChannels
+
+<MemberInfo kind="property" type={`Array<{ code: string; previous: number }>`}   />
+
+
+
+
+</div>

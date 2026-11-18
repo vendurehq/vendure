@@ -1,0 +1,26 @@
+---
+title: "ResolveOutOfStockThreshold"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/catalog/out-of-stock-threshold.ts" sourceLine="16" packageName="@vendure/core" since="4.0.0" />
+
+Resolves the `outOfStockThreshold` of a ProductVariant: the stock level below which it may not
+be sold. A variant with `useGlobalOutOfStockThreshold` takes it from the Channel, otherwise it
+uses its own `outOfStockThreshold`.
+
+Pass the Channel the request (or Order) belongs to. `GlobalSettings.outOfStockThreshold` is no
+longer consulted from v4.0. Its value is copied to every Channel by the v4 migration.
+
+```ts title="Signature"
+function resolveOutOfStockThreshold(variant: Pick<ProductVariant, 'useGlobalOutOfStockThreshold' | 'outOfStockThreshold'>, channel: Pick<Channel, 'outOfStockThreshold'>): number
+```
+Parameters
+
+### variant
+
+<MemberInfo kind="parameter" type={`Pick<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, 'useGlobalOutOfStockThreshold' | 'outOfStockThreshold'>`} />
+
+### channel
+
+<MemberInfo kind="parameter" type={`Pick<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, 'outOfStockThreshold'>`} />
+

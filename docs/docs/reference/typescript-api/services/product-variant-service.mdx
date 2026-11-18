@@ -8,7 +8,7 @@ Contains methods relating to [ProductVariant](/reference/typescript-api/entities
 
 ```ts title="Signature"
 class ProductVariantService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, taxCategoryService: TaxCategoryService, facetValueService: FacetValueService, assetService: AssetService, translatableSaver: TranslatableSaver, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, globalSettingsService: GlobalSettingsService, stockMovementService: StockMovementService, stockLevelService: StockLevelService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, productPriceApplicator: ProductPriceApplicator, translator: TranslatorService, slugValidator: SlugValidator, buyerIdentityService: BuyerIdentityService, channelEnabledChecker: ChannelEnabledChecker)
+    constructor(connection: TransactionalConnection, configService: ConfigService, taxCategoryService: TaxCategoryService, facetValueService: FacetValueService, assetService: AssetService, translatableSaver: TranslatableSaver, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, stockMovementService: StockMovementService, stockLevelService: StockLevelService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, productPriceApplicator: ProductPriceApplicator, translator: TranslatorService, slugValidator: SlugValidator, buyerIdentityService: BuyerIdentityService, channelEnabledChecker: ChannelEnabledChecker)
     findAll(ctx: RequestContext, options?: ListQueryOptions<ProductVariant>) => Promise<PaginatedList<Translated<ProductVariant>>>;
     findOne(ctx: RequestContext, productVariantId: ID, relations?: RelationPaths<ProductVariant>) => Promise<Translated<ProductVariant> | undefined>;
     findByIds(ctx: RequestContext, ids: ID[]) => Promise<Array<Translated<ProductVariant>>>;
@@ -103,7 +103,8 @@ page, this method returns only the Product itself.
 
 Returns the number of saleable units of the ProductVariant, i.e. how many are available
 for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
-as well as the local and global `outOfStockThreshold` settings.
+as well as the `outOfStockThreshold` of the ProductVariant, or of the Channel of `ctx` when
+the variant uses the Channel's threshold.
 
 Pass `{ lockStockLevels: true }` when the result is used to decide whether stock may be
 allocated. This holds a write lock on the StockLevel rows until the surrounding

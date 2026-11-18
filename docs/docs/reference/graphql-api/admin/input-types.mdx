@@ -718,9 +718,9 @@ input BooleanOperators {
   token: StringOperators
   defaultLanguageCode: StringOperators
   defaultCurrencyCode: StringOperators
-  """Not yet used - will be implemented in a future release."""
+  """Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose \`trackInventory\` is \`INHERIT\`. Since 4.0.0"""
   trackInventory: BooleanOperators
-  """Not yet used - will be implemented in a future release."""
+  """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: NumberOperators
   pricesIncludeTax: BooleanOperators
   _and: [ChannelFilterParameter!]
@@ -773,7 +773,7 @@ input BooleanOperators {
   updatedAt: SortOrder
   code: SortOrder
   token: SortOrder
-  """Not yet used - will be implemented in a future release."""
+  """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: SortOrder
 }`}
 </GraphQLDoc>
@@ -3301,6 +3301,7 @@ input NumberOperators {
   """The total allocated stock, counted in the same way as \`stockOnHand\`."""
   stockAllocated: NumberOperators
   outOfStockThreshold: NumberOperators
+  """When true, the \`outOfStockThreshold\` of the Channel is used instead of the variant's own. Since 4.0.0 it comes from the Channel, not the GlobalSettings"""
   useGlobalOutOfStockThreshold: BooleanOperators
   id: IDOperators
   productId: IDOperators
@@ -5208,13 +5209,11 @@ input UpdateAddressInput {
   typeName="UpdateGlobalSettingsInput"
   typeLinks={{
     LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
-    Int: '/reference/graphql-api/admin/object-types#int',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input UpdateGlobalSettingsInput {
   availableLanguages: [LanguageCode!]
-  outOfStockThreshold: Int
   customFields: JSON
 }`}
 </GraphQLDoc>
