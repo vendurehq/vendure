@@ -125,8 +125,14 @@ type Mutation {
     An Order can have multiple shipping methods, in which case you can pass an array of ids. In this case,
     you should configure a custom ShippingLineAssignmentStrategy in order to know which OrderLines each
     shipping method will apply to.
+
+    To choose one of the options of a ShippingMethod which offers several (see `ShippingMethodQuote.options`),
+    pass `shippingMethods` instead of `shippingMethodId`. Exactly one of the two must be given.
     """
-    setOrderShippingMethod(shippingMethodId: [ID!]!): SetOrderShippingMethodResult!
+    setOrderShippingMethod(
+        shippingMethodId: [ID!]
+        shippingMethods: [ShippingMethodSelectionInput!]
+    ): SetOrderShippingMethodResult!
     "Sets the currency code for the active Order"
     setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
     "Add a Payment to the Order"

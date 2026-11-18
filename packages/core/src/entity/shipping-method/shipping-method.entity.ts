@@ -94,20 +94,54 @@ export class ShippingMethod
         return readChannelCustomFields(ctx, ShippingMethod, this, options);
     }
 
+    /**
+     * @description
+     * Runs the ShippingCalculator and returns the cheapest of the ShippingOptions it returns, or
+     * `undefined` if it returns none. Use {@link ShippingMethod.applyQuotes} to get every option.
+     */
     async apply(ctx: RequestContext, order: Order): Promise<ShippingCalculationResult | undefined> {
+        const quotes = await this.applyQuotes(ctx, order);
+        return quotes[0];
+    }
+
+    /**
+     * @description
+     * Runs the ShippingCalculator and returns every ShippingOption it returns, cheapest first.
+     * A calculator which returns a single result yields an array of one. Throws if a calculator
+     * returns several results which do not each have a unique `code`, since the chosen option
+     * could then not be identified when the Order is recalculated.
+     *
+     * @since 4.0.0
+     */
+    async applyQuotes(ctx: RequestContext, order: Order): Promise<ShippingCalculationResult[]> {
         const calculator = this.allCalculators[this.calculator.code];
-        if (calculator) {
-            const response = await calculator.calculate(ctx, order, this.calculator.args, this);
-            if (response) {
-                const { price, priceIncludesTax, taxRate, metadata } = response;
-                return {
-                    price: roundMoney(price),
-                    priceIncludesTax,
-                    taxRate,
-                    metadata,
-                };
+        if (!calculator) {
+            return [];
+        }
+        const response = await calculator.calculate(ctx, order, this.calculator.args, this);
+        if (!response) {
+            return [];
+        }
+        const results = Array.isArray(response) ? response : [response];
+        if (1 < results.length) {
+            const codes = results.map(result => result.code);
+            if (codes.some(code => !code) || new Set(codes).size !== codes.length) {
+                throw new Error(
+                    `The ShippingCalculator "${this.calculator.code}" returned ${results.length} results ` +
+                        'but they do not each have a unique "code"',
+                );
             }
         }
+        return results
+            .map(({ price, priceIncludesTax, taxRate, metadata, code, name }) => ({
+                price: roundMoney(price),
+                priceIncludesTax,
+                taxRate,
+                metadata,
+                code,
+                name,
+            }))
+            .sort((a, b) => a.price - b.price);
     }
 
     async test(ctx: RequestContext, order: Order): Promise<boolean> {

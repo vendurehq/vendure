@@ -35,6 +35,7 @@ import {
     SettlePaymentResult,
     SettleRefundInput,
     ShippingMethodQuote,
+    ShippingMethodSelectionInput,
     TransitionPaymentToStateResult,
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
@@ -84,7 +85,6 @@ import {
     PaymentFailedError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { RelationCustomFieldConfig } from '../../config';
@@ -131,7 +131,10 @@ import { OrderStateMachine } from '../helpers/order-state-machine/order-state-ma
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
-import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
+import {
+    ShippingCalculator,
+    toShippingMethodQuote,
+} from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
@@ -1313,19 +1316,10 @@ export class OrderService implements OnApplicationBootstrap {
     async getEligibleShippingMethods(ctx: RequestContext, orderId: ID): Promise<ShippingMethodQuote[]> {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const eligibleMethods = await this.shippingCalculator.getEligibleShippingMethods(ctx, order);
-        return eligibleMethods.map(eligible => {
-            const { price, taxRate, priceIncludesTax, metadata } = eligible.result;
-            return {
-                id: eligible.method.id,
-                price: priceIncludesTax ? netPriceOf(price, taxRate) : price,
-                priceWithTax: priceIncludesTax ? price : grossPriceOf(price, taxRate),
-                description: eligible.method.description,
-                name: eligible.method.name,
-                code: eligible.method.code,
-                metadata,
-                customFields: eligible.method.customFields,
-            };
-        });
+        return eligibleMethods.map(eligible => ({
+            ...toShippingMethodQuote(eligible),
+            customFields: eligible.method.customFields,
+        }));
     }
 
     /**
@@ -1339,19 +1333,21 @@ export class OrderService implements OnApplicationBootstrap {
 
     /**
      * @description
-     * Sets the ShippingMethod to be used on this Order.
+     * Sets the ShippingMethod to be used on this Order. Each entry is either a ShippingMethod id, or a
+     * selection which also names one of the ShippingMethod's options by its `shippingOptionCode`.
+     * Without a code, the cheapest option is used.
      */
     async setShippingMethod(
         ctx: RequestContext,
         orderId: ID,
-        shippingMethodIds: ID[],
+        shippingMethods: Array<ID | ShippingMethodSelectionInput>,
     ): Promise<ErrorResultUnion<SetOrderShippingMethodResult, Order>> {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const validationError = this.assertAddingItemsState(order);
         if (validationError) {
             return validationError;
         }
-        const result = await this.orderModifier.setShippingMethods(ctx, order, shippingMethodIds);
+        const result = await this.orderModifier.setShippingMethods(ctx, order, shippingMethods);
         if (isGraphQlErrorResult(result)) {
             return result;
         }

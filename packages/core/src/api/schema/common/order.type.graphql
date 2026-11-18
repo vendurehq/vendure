@@ -107,6 +107,10 @@ type ShippingLine {
     discountedPrice: Money!
     discountedPriceWithTax: Money!
     discounts: [Discount!]!
+    "The code of the chosen ShippingOption, if the ShippingMethod offers several"
+    shippingOptionCode: String
+    "The name of the chosen ShippingOption, as returned by the ShippingCalculator when it was chosen"
+    shippingOptionName: String
 }
 
 type Discount {

@@ -10,14 +10,17 @@ import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
+import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
 import { OrderLine, TaxRate } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
 import { Promotion } from '../../../entity/promotion/promotion.entity';
+import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
+import { ShippingMethod } from '../../../entity/shipping-method/shipping-method.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 import { ShippingMethodService } from '../../services/shipping-method.service';
 import { TaxRateService } from '../../services/tax-rate.service';
 import { ZoneService } from '../../services/zone.service';
-import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
+import { findShippingOption, ShippingCalculator } from '../shipping-calculator/shipping-calculator';
 
 import { prorate } from './prorate';
 
@@ -360,39 +363,54 @@ export class OrderCalculator {
                 continue;
             }
             const currentMethodStillEligible = await currentShippingMethod.test(ctx, order);
+            let currentMethodQuotes: ShippingCalculationResult[] = [];
             if (currentMethodStillEligible) {
-                const result = await currentShippingMethod.apply(ctx, order);
-                if (result) {
-                    shippingLine.listPrice = result.price;
-                    shippingLine.listPriceIncludesTax = result.priceIncludesTax;
-                    shippingLine.taxLines = [
-                        {
-                            description: 'shipping tax',
-                            taxRate: result.taxRate,
-                        },
-                    ];
+                currentMethodQuotes = await currentShippingMethod.applyQuotes(ctx, order);
+                if (!currentMethodQuotes.length) {
+                    // The calculator returned nothing: leave the ShippingLine as it is
+                    continue;
                 }
-                continue;
+                // With no stored code this is the cheapest option, whose code is then stored
+                const chosenOption = findShippingOption(currentMethodQuotes, shippingLine.shippingOptionCode);
+                if (chosenOption) {
+                    this.setShippingLineOption(shippingLine, currentShippingMethod, chosenOption);
+                    continue;
+                }
+                // The chosen ShippingOption is no longer offered. Fall back to the cheapest option
+                // of any eligible ShippingMethod, this one included.
             }
-            const results = await this.shippingCalculator.getEligibleShippingMethods(ctx, order, [
+            const otherMethods = await this.shippingCalculator.getEligibleShippingMethods(ctx, order, [
                 currentShippingMethod.id,
             ]);
-            if (results && results.length) {
-                const cheapest = results[0];
-                shippingLine.listPrice = cheapest.result.price;
-                shippingLine.listPriceIncludesTax = cheapest.result.priceIncludesTax;
-                shippingLine.shippingMethod = cheapest.method;
-                shippingLine.shippingMethodId = cheapest.method.id;
-                shippingLine.taxLines = [
-                    {
-                        description: 'shipping tax',
-                        taxRate: cheapest.result.taxRate,
-                    },
-                ];
+            const candidates = currentMethodQuotes.length
+                ? [{ method: currentShippingMethod, result: currentMethodQuotes[0] }, ...otherMethods]
+                : otherMethods;
+            const cheapest = candidates.sort((a, b) => a.result.price - b.result.price)[0];
+            if (cheapest) {
+                this.setShippingLineOption(shippingLine, cheapest.method, cheapest.result);
             } else {
                 order.shippingLines = order.shippingLines.filter(sl => sl !== shippingLine);
             }
         }
+    }
+
+    private setShippingLineOption(
+        shippingLine: ShippingLine,
+        shippingMethod: ShippingMethod,
+        result: ShippingCalculationResult,
+    ) {
+        shippingLine.listPrice = result.price;
+        shippingLine.listPriceIncludesTax = result.priceIncludesTax;
+        shippingLine.shippingMethod = shippingMethod;
+        shippingLine.shippingMethodId = shippingMethod.id;
+        shippingLine.shippingOptionCode = result.code ?? null;
+        shippingLine.shippingOptionName = result.name ?? null;
+        shippingLine.taxLines = [
+            {
+                description: 'shipping tax',
+                taxRate: result.taxRate,
+            },
+        ];
     }
 
     /**

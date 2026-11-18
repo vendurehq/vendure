@@ -6,6 +6,7 @@ import {
     ModifyOrderResult,
     OrderLineInput,
     RefundOrderInput,
+    ShippingMethodSelectionInput,
 } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
@@ -47,6 +48,7 @@ import { Order } from '../../../entity/order/order.entity';
 import { Payment } from '../../../entity/payment/payment.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
+import { ShippingMethod } from '../../../entity/shipping-method/shipping-method.entity';
 import { Allocation } from '../../../entity/stock-movement/allocation.entity';
 import { Cancellation } from '../../../entity/stock-movement/cancellation.entity';
 import { Release } from '../../../entity/stock-movement/release.entity';
@@ -649,8 +651,9 @@ export class OrderModifier {
         const updatedOrderLines = order.lines.filter(l => updatedOrderLineIds.includes(l.id));
         const promotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
-        if (input.shippingMethodIds) {
-            const result = await this.setShippingMethods(ctx, order, input.shippingMethodIds);
+        const shippingMethodSelections = input.shippingMethods ?? input.shippingMethodIds;
+        if (shippingMethodSelections) {
+            const result = await this.setShippingMethods(ctx, order, shippingMethodSelections);
             if (isGraphQlErrorResult(result)) {
                 return result;
             }
@@ -740,13 +743,37 @@ export class OrderModifier {
         return { order, modification: createdModification };
     }
 
-    async setShippingMethods(ctx: RequestContext, order: Order, shippingMethodIds: ID[]) {
-        for (const [i, shippingMethodId] of shippingMethodIds.entries()) {
-            const shippingMethod = await this.shippingCalculator.getMethodIfEligible(
-                ctx,
-                order,
-                shippingMethodId,
-            );
+    async setShippingMethods(
+        ctx: RequestContext,
+        order: Order,
+        shippingMethods: Array<ID | ShippingMethodSelectionInput>,
+    ) {
+        const selections = shippingMethods.map(selection =>
+            typeof selection === 'object' ? selection : { shippingMethodId: selection },
+        );
+        const shippingMethodIds = selections.map(selection => selection.shippingMethodId);
+        for (const [i, { shippingMethodId, shippingOptionCode }] of selections.entries()) {
+            let shippingMethod: ShippingMethod | undefined;
+            let shippingOptionName: string | null = null;
+            if (shippingOptionCode != null) {
+                // The calculator has to run to know whether it offers this option
+                const eligibleOption = await this.shippingCalculator.getOptionIfEligible(
+                    ctx,
+                    order,
+                    shippingMethodId,
+                    shippingOptionCode,
+                );
+                shippingMethod = eligibleOption?.method;
+                shippingOptionName = eligibleOption?.result.name ?? null;
+            } else {
+                // With no option code, OrderCalculator.applyShipping() picks the cheapest option
+                // and records its code on the ShippingLine
+                shippingMethod = await this.shippingCalculator.getMethodIfEligible(
+                    ctx,
+                    order,
+                    shippingMethodId,
+                );
+            }
             if (!shippingMethod) {
                 return new IneligibleShippingMethodError();
             }
@@ -754,6 +781,8 @@ export class OrderModifier {
             if (shippingLine) {
                 shippingLine.shippingMethod = shippingMethod;
                 shippingLine.shippingMethodId = shippingMethod.id;
+                shippingLine.shippingOptionCode = shippingOptionCode ?? null;
+                shippingLine.shippingOptionName = shippingOptionName;
             } else {
                 shippingLine = await this.connection.getRepository(ctx, ShippingLine).save(
                     new ShippingLine({
@@ -763,6 +792,8 @@ export class OrderModifier {
                         listPrice: 0,
                         listPriceIncludesTax: ctx.channel.pricesIncludeTax,
                         taxLines: [],
+                        shippingOptionCode: shippingOptionCode ?? null,
+                        shippingOptionName,
                     }),
                 );
                 if (order.shippingLines) {
@@ -812,7 +843,8 @@ export class OrderModifier {
             !input.updateBillingAddress &&
             !input.couponCodes &&
             !(input as any).customFields &&
-            (!input.shippingMethodIds || input.shippingMethodIds.length === 0);
+            (!input.shippingMethodIds || input.shippingMethodIds.length === 0) &&
+            (!input.shippingMethods || input.shippingMethods.length === 0);
         return noChanges;
     }
 

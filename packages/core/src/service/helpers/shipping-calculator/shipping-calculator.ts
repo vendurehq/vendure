@@ -1,17 +1,69 @@
 import { Injectable } from '@nestjs/common';
+import { ShippingMethodQuote, ShippingOptionQuote } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { grossPriceOf, netPriceOf } from '../../../common/tax-utils';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
 import { Order } from '../../../entity/order/order.entity';
 import { ShippingMethod } from '../../../entity/shipping-method/shipping-method.entity';
 import { ShippingMethodService } from '../../services/shipping-method.service';
 
-type EligibleShippingMethod = {
+export type EligibleShippingMethod = {
     method: ShippingMethod;
+    /**
+     * The cheapest of `quotes`.
+     */
     result: ShippingCalculationResult;
+    /**
+     * Every ShippingOption returned by the ShippingCalculator, cheapest first.
+     */
+    quotes: ShippingCalculationResult[];
 };
+
+/**
+ * Picks the ShippingOption with the given code from the results of a ShippingCalculator.
+ * With no code, the cheapest option is returned.
+ */
+export function findShippingOption(
+    quotes: ShippingCalculationResult[],
+    shippingOptionCode: string | null | undefined,
+): ShippingCalculationResult | undefined {
+    if (shippingOptionCode == null) {
+        return quotes[0];
+    }
+    return quotes.find(quote => quote.code === shippingOptionCode);
+}
+
+/**
+ * Converts an EligibleShippingMethod into the `ShippingMethodQuote` returned by the GraphQL APIs.
+ */
+export function toShippingMethodQuote(eligible: EligibleShippingMethod): ShippingMethodQuote {
+    const { method, result } = eligible;
+    const options = eligible.quotes.map(toShippingOptionQuote);
+    return {
+        id: method.id,
+        name: method.name,
+        code: method.code,
+        description: method.description,
+        price: options[0].price,
+        priceWithTax: options[0].priceWithTax,
+        metadata: result.metadata,
+        options,
+    };
+}
+
+export function toShippingOptionQuote(result: ShippingCalculationResult): ShippingOptionQuote {
+    const { price, taxRate, priceIncludesTax, metadata, code, name } = result;
+    return {
+        code,
+        name,
+        price: priceIncludesTax ? netPriceOf(price, taxRate) : price,
+        priceWithTax: priceIncludesTax ? price : grossPriceOf(price, taxRate),
+        metadata,
+    };
+}
 
 @Injectable()
 export class ShippingCalculator {
@@ -19,7 +71,7 @@ export class ShippingCalculator {
 
     /**
      * Returns an array of each eligible ShippingMethod for the given Order and sorts them by
-     * price, with the cheapest first.
+     * the price of their cheapest ShippingOption, cheapest first.
      *
      * The `skipIds` argument is used to skip ShippingMethods with those IDs from being checked and calculated.
      */
@@ -54,6 +106,27 @@ export class ShippingCalculator {
         }
     }
 
+    /**
+     * Returns the ShippingMethod and the result of the ShippingOption with the given code, if the
+     * ShippingMethod is eligible for the Order and its ShippingCalculator currently offers that option.
+     *
+     * @since 4.0.0
+     */
+    async getOptionIfEligible(
+        ctx: RequestContext,
+        order: Order,
+        shippingMethodId: ID,
+        shippingOptionCode: string,
+    ): Promise<{ method: ShippingMethod; result: ShippingCalculationResult } | undefined> {
+        const method = await this.getMethodIfEligible(ctx, order, shippingMethodId);
+        if (method) {
+            const result = findShippingOption(await method.applyQuotes(ctx, order), shippingOptionCode);
+            if (result) {
+                return { method, result };
+            }
+        }
+    }
+
     private async checkEligibilityByShippingMethod(
         ctx: RequestContext,
         order: Order,
@@ -61,9 +134,9 @@ export class ShippingCalculator {
     ): Promise<EligibleShippingMethod | undefined> {
         const eligible = await method.test(ctx, order);
         if (eligible) {
-            const result = await method.apply(ctx, order);
-            if (result) {
-                return { method, result };
+            const quotes = await method.applyQuotes(ctx, order);
+            if (quotes.length) {
+                return { method, result: quotes[0], quotes };
             }
         }
     }
