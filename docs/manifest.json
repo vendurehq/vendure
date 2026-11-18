@@ -1512,7 +1512,7 @@
                   "title": "CustomFieldConfig",
                   "slug": "custom-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/custom-field-config.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-18T11:13:14Z"
                 },
                 {
                   "title": "CustomFieldScope",
@@ -1548,13 +1548,13 @@
                   "title": "StructCustomFieldConfig",
                   "slug": "struct-custom-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/struct-custom-field-config.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-18T11:13:14Z"
                 },
                 {
                   "title": "StructFieldConfig",
                   "slug": "struct-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/struct-field-config.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-18T11:13:14Z"
                 },
                 {
                   "title": "TypedCustomSingleFieldConfig",
@@ -1569,7 +1569,7 @@
                   "lastModified": "2026-11-16T12:34:58Z"
                 }
               ],
-              "lastModified": "2026-11-16T14:25:32Z"
+              "lastModified": "2026-11-18T11:13:14Z"
             },
             {
               "title": "Data Access",
@@ -3292,7 +3292,7 @@
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-11-16T13:02:19Z"
+                  "lastModified": "2026-11-18T11:13:14Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3462,7 +3462,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-11-16T13:02:19Z"
+                  "lastModified": "2026-11-18T11:13:14Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -5123,7 +5123,7 @@
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T11:13:14Z"
                 },
                 {
                   "title": "PageTitle",
