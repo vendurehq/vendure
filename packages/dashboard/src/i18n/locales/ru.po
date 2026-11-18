@@ -428,6 +428,7 @@ msgstr "Не удалось создать администратора"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "No"
 msgstr "Нет"
 
@@ -3234,6 +3235,10 @@ msgstr "Отправлен"
 msgid "Save View"
 msgstr "Сохранить вид"
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "In channel"
+msgstr ""
+
 #. placeholder {0}: selectedIds.size
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
@@ -4481,6 +4486,7 @@ msgstr "Способы доставки"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Yes"
 msgstr "Да"
 

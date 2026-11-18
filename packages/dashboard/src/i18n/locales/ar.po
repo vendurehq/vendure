@@ -428,6 +428,7 @@ msgstr "فشل في إنشاء المسؤول"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "No"
 msgstr "لا"
 
@@ -3234,6 +3235,10 @@ msgstr "تم الشحن"
 msgid "Save View"
 msgstr "حفظ العرض"
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "In channel"
+msgstr ""
+
 #. placeholder {0}: selectedIds.size
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
@@ -4481,6 +4486,7 @@ msgstr "طرق الشحن"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Yes"
 msgstr "نعم"
 

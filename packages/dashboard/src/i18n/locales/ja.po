@@ -428,6 +428,7 @@ msgstr "管理者の作成に失敗しました"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "No"
 msgstr "いいえ"
 
@@ -3234,6 +3235,10 @@ msgstr "発送済み"
 msgid "Save View"
 msgstr "ビューを保存"
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "In channel"
+msgstr ""
+
 #. placeholder {0}: selectedIds.size
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
@@ -4481,6 +4486,7 @@ msgstr "配送方法"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Yes"
 msgstr "はい"
 

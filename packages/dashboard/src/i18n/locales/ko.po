@@ -424,6 +424,7 @@ msgstr "관리자 생성 실패"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "No"
 msgstr "아니요"
 
@@ -3220,6 +3221,10 @@ msgstr "배송됨"
 msgid "Save View"
 msgstr "뷰 저장"
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "In channel"
+msgstr ""
+
 #. placeholder {0}: selectedIds.size
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
@@ -4459,6 +4464,7 @@ msgstr "배송 방법"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Yes"
 msgstr "예"
 

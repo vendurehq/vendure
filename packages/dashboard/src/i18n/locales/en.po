@@ -428,6 +428,7 @@ msgstr "Failed to create administrator"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "No"
 msgstr "No"
 
@@ -3234,6 +3235,10 @@ msgstr "Shipped"
 msgid "Save View"
 msgstr "Save View"
 
+#: src/lib/hooks/use-channel-availability-list.tsx
+msgid "In channel"
+msgstr "In channel"
+
 #. placeholder {0}: selectedIds.size
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
@@ -4481,6 +4486,7 @@ msgstr "Shipping Methods"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
+#: src/lib/hooks/use-channel-availability-list.tsx
 msgid "Yes"
 msgstr "Yes"
 
