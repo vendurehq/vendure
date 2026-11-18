@@ -2,6 +2,7 @@ import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js'
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
+import { EmptyState } from '@/vdb/components/ui/state-views.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
@@ -265,17 +266,21 @@ export function OrderDetailShared({
                     </PageBlock>
                 ) : null}
                 <PageBlock column="main" blockId="payment-details" title={<Trans>Payment details</Trans>}>
-                    <div className="space-y-3">
-                        {entity?.payments?.map((payment: any) => (
-                            <div key={payment.id} className="rounded-lg bg-muted/30 p-4">
-                                <PaymentDetails
-                                    payment={payment}
-                                    currencyCode={entity.currencyCode}
-                                    onSuccess={refreshPage}
-                                />
-                            </div>
-                        ))}
-                    </div>
+                    {entity?.payments?.length ? (
+                        <div className="divide-y [&>*]:py-4 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
+                            {entity.payments.map((payment: any) => (
+                                <div key={payment.id}>
+                                    <PaymentDetails
+                                        payment={payment}
+                                        currencyCode={entity.currencyCode}
+                                        onSuccess={refreshPage}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <EmptyState size="compact" title={<Trans>No payments</Trans>} />
+                    )}
                 </PageBlock>
                 <PageBlock
                     column="main"
@@ -283,9 +288,9 @@ export function OrderDetailShared({
                     title={<Trans>Fulfillment details</Trans>}
                 >
                     {entity.fulfillments?.length ? (
-                        <div className="space-y-3">
+                        <div className="divide-y [&>*]:py-4 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
                             {entity.fulfillments.map((fulfillment: any) => (
-                                <div key={fulfillment.id} className="rounded-lg bg-muted/30 p-4">
+                                <div key={fulfillment.id}>
                                     <FulfillmentDetails
                                         order={entity}
                                         fulfillment={fulfillment}
@@ -297,9 +302,7 @@ export function OrderDetailShared({
                             ))}
                         </div>
                     ) : (
-                        <div className="text-muted-foreground text-sm">
-                            <Trans>No fulfillments</Trans>
-                        </div>
+                        <EmptyState size="compact" title={<Trans>No fulfillments</Trans>} />
                     )}
                 </PageBlock>
                 <PageBlock column="main" blockId="order-history" title={<Trans>Order history</Trans>}>
@@ -313,9 +316,7 @@ export function OrderDetailShared({
                             {entity.customer.firstName} {entity.customer.lastName}
                         </Button>
                     ) : (
-                        <div className="text-muted-foreground text-xs font-medium p-3 border rounded-md">
-                            <Trans>No customer</Trans>
-                        </div>
+                        <EmptyState size="compact" title={<Trans>No customer</Trans>} />
                     )}
                     <div className="mt-4 divide-y">
                         {entity?.shippingAddress && (

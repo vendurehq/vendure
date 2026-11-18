@@ -634,6 +634,10 @@ msgstr "Nu s-au putut încărca nivelurile de stoc"
 msgid "City"
 msgstr "Oraș"
 
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+msgid "Default billing"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
@@ -1024,6 +1028,7 @@ msgstr "Nume"
 msgid "Failed to fulfill order"
 msgstr "Nu s-a putut livra comanda"
 
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
@@ -1060,6 +1065,10 @@ msgstr "Dimensiuni"
 #: src/lib/components/ui/password-input.tsx
 msgid "Show password"
 msgstr "Afișează parola"
+
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
+msgid "Public"
+msgstr ""
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -1253,6 +1262,10 @@ msgstr "Locație stoc nouă"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Inherit from variant (Track)"
+msgstr ""
+
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+msgid "Default shipping"
 msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
@@ -1877,12 +1890,14 @@ msgstr "Folosește ca adresă de facturare implicită"
 #: src/app/common/delete-bulk-action.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 #: src/lib/components/data-table/use-generated-columns.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/data-table/views-sheet.tsx
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Delete"
 msgstr "Șterge"
 
@@ -2344,6 +2359,7 @@ msgstr ""
 msgid "Filter role assignments"
 msgstr ""
 
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
@@ -2397,6 +2413,7 @@ msgstr "{count, plural, one {Ștergerea a {count} locație de stoc a eșuat} few
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
@@ -4581,6 +4598,10 @@ msgstr "Inserează imagine"
 msgid "Failed to update seller"
 msgstr "Nu s-a putut actualiza vânzătorul"
 
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "No payments"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 msgid "Successfully created country"
 msgstr "Țara a fost creată cu succes"
@@ -4614,6 +4635,10 @@ msgstr "{0} variante"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to settle payment"
 msgstr "Nu s-a putut soluționa plata"
+
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
+msgid "Total with Tax"
+msgstr ""
 
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
@@ -5457,6 +5482,10 @@ msgstr "Adaugă grupuri de clienți"
 msgid "Available Languages"
 msgstr "Limbi disponibile"
 
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
+msgid "Note actions"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-bulk-actions.tsx
 msgid "Reset selection"
 msgstr "Resetează selecția"
@@ -5951,6 +5980,7 @@ msgstr "Membri grup client pentru {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "Nu s-a putut seta adresa pentru comandă: {0}"
 
+#: src/app/routes/_authenticated/_customers/components/customer-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/orders.tsx
 #: src/app/routes/_authenticated/_system/job-queue.tsx
@@ -7234,7 +7264,6 @@ msgid "Show all permissions"
 msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
-#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "Editează adresă"
 
@@ -7657,6 +7686,7 @@ msgstr "Număr de telefon"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
 #: src/lib/components/data-input/default-relation-input.tsx
+#: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Private"
 msgstr "Privat"
 

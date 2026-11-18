@@ -14,6 +14,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { cn } from '@/vdb/lib/utils.js';
 import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
@@ -240,13 +241,18 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                 </div>
                 {payment.refunds && payment.refunds.length > 0 && (
                     <Collapsible className="mt-2 border-t pt-2">
-                        <CollapsibleTrigger className="flex items-center justify-between w-full text-sm hover:underline text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md p-1 -m-1">
+                        <CollapsibleTrigger
+                            className={cn(
+                                'group flex w-full items-center justify-between rounded-md p-1 -m-1 text-sm text-muted-foreground hover:underline',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                            )}
+                        >
                             <Trans>Refunds ({payment.refunds.length})</Trans>
-                            <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[panel-open]:rotate-180" />
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-3">
+                        <CollapsibleContent className="mt-2 divide-y">
                             {payment.refunds.map(refund => (
-                                <div key={refund.id} className="p-3 rounded-md bg-muted/50">
+                                <div key={refund.id} className="py-3 first:pt-1 last:pb-0">
                                     <div className="space-y-1">
                                         <LabeledData label={<Trans>Refund ID</Trans>} value={refund.id} />
                                         <LabeledData
@@ -297,8 +303,9 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                                         )}
                                     </div>
                                     {refund.state === 'Pending' && (
-                                        <div className="mt-3 pt-3 border-t">
+                                        <div className="mt-3">
                                             <Button
+                                                variant="outline"
                                                 size="sm"
                                                 onClick={() => handleSettleRefund(refund.id)}
                                                 disabled={settleRefundMutation.isPending}
