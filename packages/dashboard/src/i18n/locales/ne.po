@@ -158,8 +158,8 @@ msgstr ""
 #~ msgstr "के तपाईं निश्चित हुनुहुन्छ कि तपाईं {0} {entityName} मेट्न चाहनुहुन्छ?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Global out of stock threshold"
-msgstr "ग्लोबल स्टक बाहिर थ्रेसहोल्ड"
+#~ msgid "Global out of stock threshold"
+#~ msgstr "ग्लोबल स्टक बाहिर थ्रेसहोल्ड"
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -276,6 +276,10 @@ msgstr "मस्यौदा अर्डर पूरा भयो"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Auto refresh: {0}"
 msgstr "स्वत: रिफ्रेस: {0}"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Out of stock threshold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} job"
@@ -484,6 +488,7 @@ msgstr "थप्नका लागि कुनै विजेटहरू �
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -848,6 +853,10 @@ msgstr "भूमिकाहरू"
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "More with Vendure Platform"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "This cancels every item in the order and releases the allocated stock. No payment is refunded or cancelled."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -1291,6 +1300,10 @@ msgstr "यी <0>{facetName}</0> विशेषताका विशेषत
 msgid "Successfully added payment to order"
 msgstr "अर्डरमा भुक्तानी सफलतापूर्वक थपियो"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Sets the stock level at which a variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can override this."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Billing address set for order"
 msgstr "अर्डरको लागि बिलिङ ठेगाना सेट गरिएको"
@@ -1637,6 +1650,7 @@ msgstr "मूल्यहरूमा पूर्वनिर्धारि�
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
@@ -1718,8 +1732,8 @@ msgid "No customers found"
 msgstr "कुनै ग्राहकहरू फेला परेन"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Use global out-of-stock threshold"
-msgstr "ग्लोबल स्टक बाहिर थ्रेसहोल्ड प्रयोग गर्नुहोस्"
+#~ msgid "Use global out-of-stock threshold"
+#~ msgstr "ग्लोबल स्टक बाहिर थ्रेसहोल्ड प्रयोग गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "New product option group"
@@ -2122,6 +2136,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
 msgstr "अर्डरको बिलिङ ठेगाना हटाउन असफल भयो: {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant uses the out-of-stock threshold set on the channel instead of its own value."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -3522,6 +3540,7 @@ msgstr "रिडु गर्नुहोस्"
 msgid "Select a role"
 msgstr "भूमिका चयन गर्नुहोस्"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
@@ -4652,6 +4671,10 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "Owner"
+msgstr ""
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Use the channel's out-of-stock threshold"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -5805,8 +5828,8 @@ msgstr "भेरियन्टहरू सिर्जना गर्न अ
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
-msgstr "यो भेरियन्ट स्टक बाहिर मानिने स्टक स्तर सेट गर्दछ। नकारात्मक मान प्रयोग गर्दा ब्याकअर्डर समर्थन सक्षम हुन्छ। उत्पादन भेरियन्टहरूद्वारा ओभरराइड गर्न सकिन्छ।"
+#~ msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
+#~ msgstr "यो भेरियन्ट स्टक बाहिर मानिने स्टक स्तर सेट गर्दछ। नकारात्मक मान प्रयोग गर्दा ब्याकअर्डर समर्थन सक्षम हुन्छ। उत्पादन भेरियन्टहरूद्वारा ओभरराइड गर्न सकिन्छ।"
 
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Search promotions..."
@@ -6803,6 +6826,12 @@ msgstr "मैले यो API Key सुरक्षित गरिसके�
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
 msgstr "तपाईंको स्टोर र च्यानलहरूको लागि उपलब्ध भाषाहरू कन्फिगर गर्नुहोस्"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Cancel order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully created product"
@@ -7855,8 +7884,8 @@ msgid "Load more"
 msgstr "थप लोड गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
-msgstr ""
+#~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Refund settled"
@@ -8029,6 +8058,11 @@ msgstr ""
 msgid "Zones"
 msgstr "क्षेत्रहरू"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Failed to cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers.tsx
 #: src/lib/components/shared/seller-selector.tsx
 msgid "Search sellers..."
@@ -8055,6 +8089,10 @@ msgstr ""
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "फोन नम्बर"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Keep order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx

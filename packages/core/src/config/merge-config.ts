@@ -46,7 +46,10 @@ export function mergeConfig<T extends VendureConfig>(target: T, source: PartialV
             }
 
             if (isObject((source as any)[key])) {
-                if (!(target as any)[key]) {
+                // A primitive or an array in the target cannot hold the source's properties, so it is
+                // replaced. Otherwise `{ csrfPrevention: { requestHeaders } }` would be lost on a
+                // default of `true`.
+                if (!isObject((target as any)[key])) {
                     safeAssign(target, key, {});
                 }
                 if (!isClassInstance((source as any)[key])) {

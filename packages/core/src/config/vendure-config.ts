@@ -156,17 +156,21 @@ export interface ApiOptions {
      * @description
      * Set the CORS handling for the server. See the [express CORS docs](https://github.com/expressjs/cors#configuration-options).
      *
-     * :::warning
-     * The default value reflects the `Origin` header of any caller back as `Access-Control-Allow-Origin`
-     * and sets `Access-Control-Allow-Credentials: true`. This means that any website can make cross-origin
-     * requests to your Shop and Admin APIs. It is kept as the default because it is what makes a new
-     * project work with any storefront during development.
+     * By default no cross-origin browser requests are allowed: the server sends no
+     * `Access-Control-Allow-Origin` header, so a browser only lets pages on the server's own origin call
+     * the API. The Dashboard served by the `DashboardPlugin` is on that origin, so it works without any
+     * CORS setting. A storefront, or a Dashboard dev server, on another origin needs that origin listed
+     * in `origin`. Server-side requests, such as those from a server-rendered storefront, are not subject
+     * to CORS.
      *
-     * For production, replace `origin: true` with the list of origins you actually serve. If you set
-     * `authOptions.cookieOptions.sameSite` to `'none'` (needed when the storefront is on a different site
-     * to the server), an explicit origin list is the only thing preventing any website from acting as a
-     * logged-in user. Vendure logs a warning at startup when it detects `origin: true` together with
-     * `credentials: true`.
+     * Keep `credentials: true` when you list origins, so that cookie sessions work.
+     *
+     * :::warning
+     * Do not set `origin: true` outside local development. It reflects the `Origin` header of any caller
+     * back as `Access-Control-Allow-Origin`, and together with `credentials: true` it lets any website make
+     * cross-origin requests to your Shop and Admin APIs. If you also set `authOptions.cookieOptions.sameSite`
+     * to `'none'`, any website can act as a logged-in user. Vendure logs a warning at startup when it
+     * detects `origin: true` together with `credentials: true`.
      * :::
      *
      * @example
@@ -181,12 +185,13 @@ export interface ApiOptions {
      * };
      * ```
      *
-     * @default { origin: true, credentials: true }
+     * @default { origin: false, credentials: true }
      */
     cors?: boolean | CorsOptions;
     /**
      * @description
-     * Enables Apollo Server's built-in CSRF prevention on both the Shop API and the Admin API.
+     * Enables Apollo Server's built-in CSRF prevention on both the Shop API and the Admin API. It is on
+     * by default.
      *
      * When enabled, Apollo rejects any request whose `content-type` is one that a browser lets an
      * HTML form or a simple `fetch` send without a preflight, namely
@@ -201,32 +206,36 @@ export interface ApiOptions {
      * store a cookie with any `SameSite` value. The response sets a session cookie in the victim's
      * browser, and the victim continues shopping while logged in as the attacker.
      *
-     * Before enabling this, check that every client which uploads files to your API sends the
-     * `Apollo-Require-Preflight` header, since multipart uploads use one of the blocked content
-     * types. `@vendure/dashboard` and `@vendure/testing` both send it. A custom
-     * admin client built on `apollo-upload-client` does not send it unless you add it.
+     * Every client which uploads files to your API must send the `Apollo-Require-Preflight` header,
+     * since multipart uploads use one of the blocked content types. `@vendure/dashboard` and
+     * `@vendure/testing` both send it. A custom admin client built on `apollo-upload-client` does not
+     * send it unless you add it.
      *
      * The same applies to `GET` requests, which carry no content type at all: a storefront that uses
      * `GET` for cacheable queries must send the `Apollo-Require-Preflight` header as well.
      *
      * Passing an object instead of `true` replaces the list of headers which permit an operation,
      * which by default is `x-apollo-operation-name` and `apollo-require-preflight`. Use this when a
-     * client cannot be changed to send either of those: name a header the client already sends, for
-     * example `{ requestHeaders: ['x-my-client-header'] }`, rather than turning the protection off.
+     * client cannot be changed to send either of those: add a header the client already sends, for
+     * example `{ requestHeaders: ['x-my-client-header', 'apollo-require-preflight'] }`, rather than
+     * turning the protection off. Keep `apollo-require-preflight` in the list, since
+     * `@vendure/dashboard` and `@vendure/testing` send only that header.
      *
-     * The default is `false` to preserve the behaviour of existing clients. It is expected to change
-     * to `true` in a future major release.
+     * Setting it to `false` turns the protection off and makes Login CSRF possible for cookie
+     * sessions, and Vendure logs a warning at startup when you do. Bearer-only deployments are not
+     * affected by Login CSRF.
      *
      * @example
      * ```ts
      * const config: VendureConfig = {
      *   apiOptions: {
-     *     csrfPrevention: true,
+     *     // Also accept a header that a client which cannot send `Apollo-Require-Preflight` already sends
+     *     csrfPrevention: { requestHeaders: ['x-my-client-header', 'apollo-require-preflight'] },
      *   },
      * };
      * ```
      *
-     * @default false
+     * @default true
      * @since 3.7.3
      */
     csrfPrevention?: boolean | CSRFPreventionOptions;

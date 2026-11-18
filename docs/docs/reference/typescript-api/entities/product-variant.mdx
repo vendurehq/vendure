@@ -192,10 +192,11 @@ Specifies the value of stockOnHand at which the ProductVariant is considered
 out of stock.
 ### useGlobalOutOfStockThreshold
 
-<MemberInfo kind="property" type={`boolean`}   />
+<MemberInfo kind="property" type={`boolean`}  since="4.0.0 - The threshold is taken from the Channel, not from the GlobalSettings"  />
 
-When true, the `outOfStockThreshold` value will be taken from the GlobalSettings and the
-value set on this ProductVariant will be ignored.
+When true, the `outOfStockThreshold` of the Channel is used and the value set on this
+ProductVariant is ignored. The Channel is the one of the request, or of the Order when stock
+is allocated or sold.
 ### trackInventory
 
 <MemberInfo kind="property" type={`GlobalFlag`}   />

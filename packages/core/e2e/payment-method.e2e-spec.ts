@@ -183,6 +183,26 @@ describe('PaymentMethod resolver', () => {
         });
     });
 
+    // https://github.com/vendurehq/vendure/issues/5763
+    it('a partial update keeps the checker it does not name', async () => {
+        const { updatePaymentMethod } = await adminClient.query(updatePaymentMethodDocument, {
+            input: {
+                id: 'T_1',
+                enabled: true,
+            },
+        });
+
+        const expectedChecker = {
+            args: [{ name: 'minPrice', value: '0' }],
+            code: minPriceChecker.code,
+        };
+        expect(updatePaymentMethod.checker).toEqual(expectedChecker);
+
+        const { paymentMethod } = await adminClient.query(getPaymentMethodDocument, { id: 'T_1' });
+        paymentMethodGuard.assertSuccess(paymentMethod);
+        expect(paymentMethod.checker).toEqual(expectedChecker);
+    });
+
     it('unset checker', async () => {
         const { updatePaymentMethod } = await adminClient.query(updatePaymentMethodDocument, {
             input: {

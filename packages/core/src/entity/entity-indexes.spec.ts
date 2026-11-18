@@ -39,8 +39,9 @@ describe('entity indexes', () => {
         await ensureConfigLoaded();
         setEntityIdStrategy(new AutoIncrementIdStrategy(), entities);
         // sqljs stands in for the supported databases here: indices are resolved by
-        // EntityMetadataBuilder before any driver sees them, and none of the columns above is a
-        // relation, so no driver-specific foreign key indexes are in play.
+        // EntityMetadataBuilder before any driver sees them. MySQL and MariaDB add their own index
+        // for a foreign key only when no index leads with its column, and every foreign key column
+        // tested below already leads one.
         dataSource = new DataSource({ type: 'sqljs', entities, synchronize: true });
         await dataSource.initialize();
         const queryRunner = dataSource.createQueryRunner();
@@ -57,5 +58,16 @@ describe('entity indexes', () => {
     it.each(singlyIndexedColumns)('indexes %s.%s exactly once', (tableName, column) => {
         const table = tables.find(t => t.name === tableName);
         expect(table?.indices.filter(index => index.columnNames[0] === column)).toHaveLength(1);
+    });
+
+    // #5522: the unique (productVariantId, stockLocationId) key leads with productVariantId, so it
+    // serves lookups by that column and backs the product_variant foreign key. A single-column
+    // index on productVariantId next to it would be redundant.
+    it('indexes stock_level.productVariantId only through the unique key', () => {
+        const table = tables.find(t => t.name === 'stock_level');
+        const leading = table?.indices.filter(index => index.columnNames[0] === 'productVariantId');
+        expect(leading?.map(index => ({ columns: index.columnNames, unique: index.isUnique }))).toEqual([
+            { columns: ['productVariantId', 'stockLocationId'], unique: true },
+        ]);
     });
 });

@@ -379,9 +379,9 @@ type BuyerPrice {
   availableLanguageCodes: [LanguageCode!]
   defaultCurrencyCode: CurrencyCode!
   availableCurrencyCodes: [CurrencyCode!]!
-  """Not yet used - will be implemented in a future release."""
+  """Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose \`trackInventory\` is \`INHERIT\`. Since 4.0.0"""
   trackInventory: Boolean
-  """Not yet used - will be implemented in a future release."""
+  """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: Int
   pricesIncludeTax: Boolean!
   seller: Seller

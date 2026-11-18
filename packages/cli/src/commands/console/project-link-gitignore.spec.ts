@@ -5,11 +5,11 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-    PROJECT_LINK_IGNORE_CONTENTS,
-    PROJECT_LINK_KEEP_MANIFEST,
     applyProjectLinkGitignoreRules,
     ensureProjectLinkGitignore,
     getProjectLinkGitignorePath,
+    PROJECT_LINK_IGNORE_CONTENTS,
+    PROJECT_LINK_KEEP_MANIFEST,
 } from './project-link-gitignore.js';
 
 const temporaryDirectories: string[] = [];

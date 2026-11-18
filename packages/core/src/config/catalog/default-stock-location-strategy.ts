@@ -13,6 +13,7 @@ import { StockLocation } from '../../entity/stock-location/stock-location.entity
 import { OrderLineStockLedger } from '../../service/helpers/utils/order-line-stock-ledger';
 import { Logger } from '../logger/vendure-logger';
 
+import { resolveOutOfStockThreshold } from './out-of-stock-threshold';
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
 import { resolveTrackInventory } from './track-inventory';
 
@@ -74,11 +75,11 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
     }
 
     /**
-     * GlobalSettingsService and StockLevelService are resolved on first use rather than in
-     * `init()`. Both have to be imported dynamically to break a circular dependency, and that is
-     * asynchronous, while `init()` has to stay synchronous: it is a documented extension point,
-     * so a subclass may override it with a synchronous method, and may call `super.init()`
-     * without awaiting it. Resolving here means neither leaves a service unset.
+     * Resolved on first use, like {@link BaseStockLocationStrategy.getStockLevelService}.
+     *
+     * @deprecated since 4.0.0. Not used by the built-in strategies any more: the out-of-stock
+     * threshold comes from the Channel (see {@link resolveOutOfStockThreshold}). Kept for
+     * subclasses which call it, and removed in v5.
      */
     protected async getGlobalSettingsService(): Promise<GlobalSettingsService> {
         if (!this.globalSettingsService) {
@@ -90,8 +91,11 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
     }
 
     /**
-     * See {@link BaseStockLocationStrategy.getGlobalSettingsService} for why this is resolved
-     * lazily.
+     * StockLevelService is resolved on first use rather than in `init()`. It has to be imported
+     * dynamically to break a circular dependency, and that is asynchronous, while `init()` has to
+     * stay synchronous: it is a documented extension point, so a subclass may override it with a
+     * synchronous method, and may call `super.init()` without awaiting it. Resolving here means
+     * the service is never left unset.
      */
     protected async getStockLevelService(): Promise<StockLevelService> {
         if (!this.stockLevelService) {
@@ -242,7 +246,8 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
 
     /**
      * Resolves the ProductVariant setting which decides how much of it may be allocated: the
-     * threshold below which its stock may not fall.
+     * threshold below which its stock may not fall, taken from `ctx.channel` when the variant
+     * uses the Channel's threshold (see {@link resolveOutOfStockThreshold}).
      *
      * `inventoryNotTracked` is the variant/Channel-level setting only. It ignores StockLevel
      * overrides, so it does not say whether a given allocation is tracked.
@@ -253,11 +258,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         ctx: RequestContext,
         variant: ProductVariant,
     ): Promise<{ inventoryNotTracked: boolean; effectiveOutOfStockThreshold: number }> {
-        const globalSettingsService = await this.getGlobalSettingsService();
-        const { outOfStockThreshold } = await globalSettingsService.getSettings(ctx);
-        const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
-            ? outOfStockThreshold
-            : variant.outOfStockThreshold;
+        const effectiveOutOfStockThreshold = resolveOutOfStockThreshold(variant, ctx.channel);
         return {
             get inventoryNotTracked() {
                 // Kept for subclasses written before v4.0, and only computed if read.

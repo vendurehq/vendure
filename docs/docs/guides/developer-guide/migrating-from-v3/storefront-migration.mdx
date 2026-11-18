@@ -5,7 +5,7 @@ metaDescription: "Shop API changes in Vendure v4 that affect storefronts, such a
 order: 4
 ---
 
-This page lists the v4 changes to the Shop API that affect storefronts.
+This page lists the v4 changes to the Shop API, and to the server defaults, that affect storefronts.
 
 ## Role assignments
 
@@ -15,6 +15,15 @@ Single-channel storefronts are not affected. Where Customers use more than one C
 - `CurrentUser.channels`, returned by `login`, `authenticate` and `me`, lists only the Channels the Customer is a member of.
 
 For details, see [Storefront changes](/developer-guide/migrating-from-v3/role-assignments#storefront-changes).
+
+## CORS and CSRF prevention
+
+Two server defaults changed, and both can stop a storefront from reaching the Shop API:
+
+- `apiOptions.cors` no longer allows cross-origin requests. A storefront that calls the Shop API from the browser on a different origin, including another port on `localhost`, gets a CORS error until its origin is listed in `apiOptions.cors.origin`. Requests from a server, such as server-side rendering, are not affected.
+- `apiOptions.csrfPrevention` is on. A storefront that sends queries as `GET`, for example to cache them, must send an `Apollo-Require-Preflight: true` header. Requests sent as `POST` with `application/json` are not affected.
+
+For details, see [Changed defaults](/developer-guide/migrating-from-v3/breaking-api-changes#cors-allows-no-cross-origin-requests).
 
 ## Removed deprecated fields
 

@@ -158,8 +158,8 @@ msgstr ""
 #~ msgstr "Ești sigur că vrei să ștergi {0} {entityName}?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Global out of stock threshold"
-msgstr "Prag global stoc epuizat"
+#~ msgid "Global out of stock threshold"
+#~ msgstr "Prag global stoc epuizat"
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -268,6 +268,10 @@ msgstr "Comandă ciornă finalizată"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Auto refresh: {0}"
 msgstr "Reîmprospătare automată: {0}"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Out of stock threshold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} job"
@@ -460,6 +464,7 @@ msgstr "Niciun widget de adăugat"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -820,6 +825,10 @@ msgstr "Roluri"
 
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgid "More with Vendure Platform"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "This cancels every item in the order and releases the allocated stock. No payment is refunded or cancelled."
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -1263,6 +1272,10 @@ msgstr "Acestea sunt valorile pentru atributul <0>{facetName}</0>."
 msgid "Successfully added payment to order"
 msgstr "Plata a fost adăugată cu succes la comandă"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Sets the stock level at which a variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can override this."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Billing address set for order"
 msgstr "Adresă de facturare setată pentru comandă"
@@ -1601,6 +1614,7 @@ msgstr "Prețurile includ taxa pentru zona de taxare implicită"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
@@ -1682,8 +1696,8 @@ msgid "No customers found"
 msgstr "Nu s-au găsit clienți"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Use global out-of-stock threshold"
-msgstr "Folosește pragul global de stoc epuizat"
+#~ msgid "Use global out-of-stock threshold"
+#~ msgstr "Folosește pragul global de stoc epuizat"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment state updated successfully"
@@ -2069,6 +2083,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
 msgstr "Nu s-a putut elimina adresa de facturare a comenzii: {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant uses the out-of-stock threshold set on the channel instead of its own value."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -3443,6 +3461,7 @@ msgstr "Refă"
 msgid "Select a role"
 msgstr "Selectează un rol"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
@@ -4552,6 +4571,10 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "Owner"
+msgstr ""
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Use the channel's out-of-stock threshold"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
@@ -5669,8 +5692,8 @@ msgstr "Nu s-au putut crea variantele"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
-msgstr "Setează nivelul de stoc la care o variantă este considerată a fi în afara stocului. Folosirea unei valori negative activează suportul pentru precomandă. Poate fi suprascris de variantele de produs."
+#~ msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
+#~ msgstr "Setează nivelul de stoc la care o variantă este considerată a fi în afara stocului. Folosirea unei valori negative activează suportul pentru precomandă. Poate fi suprascris de variantele de produs."
 
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Search promotions..."
@@ -6627,6 +6650,12 @@ msgstr "Am salvat această cheie API"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
 msgstr "Configurează limbile disponibile pentru magazin și canale"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Cancel order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully created product"
@@ -7651,8 +7680,8 @@ msgid "Load more"
 msgstr "Încarcă mai multe"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
-msgstr ""
+#~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Refund settled"
@@ -7821,6 +7850,11 @@ msgstr ""
 msgid "Zones"
 msgstr "Zone"
 
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Failed to cancel order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers.tsx
 #: src/lib/components/shared/seller-selector.tsx
 msgid "Search sellers..."
@@ -7847,6 +7881,10 @@ msgstr ""
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "Număr de telefon"
+
+#: src/app/routes/_authenticated/_orders/components/cancel-order-dialog.tsx
+msgid "Keep order"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx

@@ -335,6 +335,26 @@ describe('Channels', () => {
         });
     });
 
+    // OSS-1299 — the stock settings are nullable in the input, so they can be omitted, but a
+    // null must not reach the NOT NULL columns
+    it(
+        'rejects a null outOfStockThreshold',
+        assertThrowsWithMessage(async () => {
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', outOfStockThreshold: null },
+            });
+        }, 'outOfStockThreshold cannot be null'),
+    );
+
+    it(
+        'rejects a null trackInventory',
+        assertThrowsWithMessage(async () => {
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', trackInventory: null },
+            });
+        }, 'trackInventory cannot be null'),
+    );
+
     it('deleteChannel', async () => {
         const PROD_ID = 'T_1';
         await adminClient.asSuperAdmin();

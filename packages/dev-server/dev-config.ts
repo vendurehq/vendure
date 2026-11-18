@@ -77,6 +77,12 @@ export const devConfig: VendureConfig = {
         trustProxy: process.env.VENDURE_TRUST_PROXY === 'true',
         adminApiPath: ADMIN_API_PATH,
         shopApiPath: SHOP_API_PATH,
+        // Local development only: reflect any origin, so the Dashboard Vite dev server and a
+        // storefront on another port can call the API. The core default allows no cross-origin requests.
+        cors: {
+            origin: true,
+            credentials: true,
+        },
     },
     authOptions: {
         disableAuth: false,

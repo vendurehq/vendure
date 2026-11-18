@@ -27,6 +27,7 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -37,6 +38,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Settings2, Trash } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { type UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -47,8 +49,8 @@ import {
     createProductOptionDocument,
     createProductVariantDocument,
     productOptionSlugForEntityDocument,
+    productVariantChannelStockSettingsDocument,
     productVariantDetailDocument,
-    productVariantGlobalSettingsDocument,
     stockLocationsQueryDocument,
     updateProductVariantDocument,
 } from './product-variants.graphql.js';
@@ -104,9 +106,9 @@ function ProductVariantDetailPage() {
         queryFn: () => api.query(stockLocationsQueryDocument, {}),
     });
 
-    const { data: globalSettingsData } = useQuery({
-        queryKey: ['productVariantGlobalStockSettings'],
-        queryFn: () => api.query(productVariantGlobalSettingsDocument, {}),
+    const { data: channelStockSettingsData } = useQuery({
+        queryKey: ['productVariantChannelStockSettings', activeChannel?.id],
+        queryFn: () => api.query(productVariantChannelStockSettingsDocument, {}),
     });
 
     // Free-text value per option group (the source of truth for the option comboboxes).
@@ -157,19 +159,22 @@ function ProductVariantDetailPage() {
                 customFields: entity.customFields,
             };
         },
-        transformUpdateInput: input => {
-            // Only send stock levels the admin actually edited — see getChangedStockLevels
-            // and #4803 for why resending unchanged stock is destructive.
-            const changedStockLevels = getChangedStockLevels(
-                input.stockLevels,
-                originalStockLevelsRef.current,
-            );
-            if (changedStockLevels.length === 0) {
-                const { stockLevels: _omittedStockLevels, ...rest } = input;
-                return rest;
-            }
-            return { ...input, stockLevels: changedStockLevels };
-        },
+        transformUpdateInput: dropUnchangedTranslationRows(
+            (): UseFormReturn<any> => form,
+            (input: VariablesOf<typeof updateProductVariantDocument>['input']) => {
+                // Only send stock levels the admin actually edited — see getChangedStockLevels
+                // and #4803 for why resending unchanged stock is destructive.
+                const changedStockLevels = getChangedStockLevels(
+                    input.stockLevels,
+                    originalStockLevelsRef.current,
+                );
+                if (changedStockLevels.length === 0) {
+                    const { stockLevels: _omittedStockLevels, ...rest } = input;
+                    return rest;
+                }
+                return { ...input, stockLevels: changedStockLevels };
+            },
+        ),
         params: { id: params.id },
         onSuccess: data => {
             toast.success(
@@ -410,8 +415,8 @@ function ProductVariantDetailPage() {
         trackInventory: (trackInventory ?? 'INHERIT') as 'INHERIT' | 'TRUE' | 'FALSE',
         useGlobalOutOfStockThreshold: useGlobalOutOfStockThreshold ?? false,
         outOfStockThreshold: form.getValues('outOfStockThreshold'),
-        channelTrackInventory: globalSettingsData?.activeChannel.trackInventory,
-        globalOutOfStockThreshold: globalSettingsData?.globalSettings.outOfStockThreshold,
+        channelTrackInventory: channelStockSettingsData?.activeChannel.trackInventory,
+        channelOutOfStockThreshold: channelStockSettingsData?.activeChannel.outOfStockThreshold,
     });
 
     const inheritTrackInventoryLabel =
@@ -718,11 +723,11 @@ function ProductVariantDetailPage() {
                         <FormFieldWrapper
                             control={form.control}
                             name="useGlobalOutOfStockThreshold"
-                            label={<Trans>Use global out-of-stock threshold</Trans>}
+                            label={<Trans>Use the channel's out-of-stock threshold</Trans>}
                             description={
                                 <Trans>
-                                    When enabled, this variant uses the global out-of-stock threshold
-                                    configured in Settings instead of its own value.
+                                    When enabled, this variant uses the out-of-stock threshold set on the
+                                    channel instead of its own value.
                                 </Trans>
                             }
                             render={({ field }) => (

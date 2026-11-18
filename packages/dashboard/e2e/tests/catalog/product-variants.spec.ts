@@ -787,15 +787,15 @@ test.describe('new variant breadcrumb', () => {
 });
 
 // product-variants-option-groups-ux PRD — in-place option editing (reassign + inline
-// create + duplicate-combination rejection) and inherited global stock settings on the
-// variant detail page.
+// create + duplicate-combination rejection) and stock settings inherited from the Channel on
+// the variant detail page.
 test.describe('variant detail option & stock editing (PRD)', () => {
     test.describe.configure({ mode: 'serial' });
 
     let productId: string;
     let smallVariantId: string;
     let mediumVariantId: string;
-    let globalThreshold: number;
+    let channelThreshold: number;
 
     // Locates the field wrapper carrying a given (exact) label, so its control can be scoped.
     const fieldByLabel = (page: import('@playwright/test').Page, label: string) =>
@@ -806,8 +806,8 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         const client = new VendureAdminClient(page);
         await client.login();
 
-        const global = await client.gql(`query { globalSettings { outOfStockThreshold } }`);
-        globalThreshold = global.globalSettings.outOfStockThreshold;
+        const channel = await client.gql(`query { activeChannel { outOfStockThreshold } }`);
+        channelThreshold = channel.activeChannel.outOfStockThreshold;
 
         const product = await client.gql(
             `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
@@ -866,8 +866,8 @@ test.describe('variant detail option & stock editing (PRD)', () => {
                         sku: 'E2E-VO-SM',
                         price: 1000,
                         optionIds: [optionByName.Small],
-                        // Distinct own threshold with global-inheritance ON, to prove the input
-                        // shows the global value while the switch is on and the variant's own
+                        // Distinct own threshold with Channel inheritance ON, to prove the input
+                        // shows the Channel's value while the switch is on and the variant's own
                         // value reappears when it is off.
                         outOfStockThreshold: 7,
                         useGlobalOutOfStockThreshold: true,
@@ -1052,22 +1052,24 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         });
     });
 
-    // product-variants-option-groups-ux PRD — while the global-threshold switch is on, the
-    // threshold input is disabled and shows the global value; turning it off re-enables the
-    // input and restores the variant's own value.
-    test('threshold input reflects the global switch state', async ({ page }) => {
+    // product-variants-option-groups-ux PRD — while the Channel-threshold switch is on, the
+    // threshold input is disabled and shows the Channel's value (OSS-1299: no longer the
+    // GlobalSettings value); turning it off re-enables the input and restores the variant's own value.
+    test('threshold input reflects the channel switch state', async ({ page }) => {
         await page.goto(`/product-variants/${smallVariantId}`);
 
         const thresholdInput = fieldByLabel(page, 'Out-of-stock threshold').getByRole('spinbutton');
-        const globalSwitch = fieldByLabel(page, 'Use global out-of-stock threshold').getByRole('switch');
+        const channelSwitch = fieldByLabel(page, "Use the channel's out-of-stock threshold").getByRole(
+            'switch',
+        );
 
-        // Switch on by default: input disabled and showing the global threshold value.
-        await expect(globalSwitch).toBeChecked();
+        // Switch on by default: input disabled and showing the Channel's threshold value.
+        await expect(channelSwitch).toBeChecked();
         await expect(thresholdInput).toBeDisabled();
-        await expect(thresholdInput).toHaveValue(String(globalThreshold));
+        await expect(thresholdInput).toHaveValue(String(channelThreshold));
 
         // Turn it off: input re-enables and shows the variant's own stored value (7).
-        await globalSwitch.click();
+        await channelSwitch.click();
         await expect(thresholdInput).toBeEnabled();
         await expect(thresholdInput).toHaveValue('7');
     });

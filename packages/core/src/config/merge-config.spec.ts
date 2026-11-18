@@ -97,6 +97,30 @@ describe('mergeConfig()', () => {
         });
     });
 
+    it('replaces a boolean with an object', () => {
+        const input: any = {
+            apiOptions: { csrfPrevention: true, cors: true },
+        };
+
+        const result = mergeConfig(input, {
+            apiOptions: {
+                csrfPrevention: { requestHeaders: ['x-my-client-header'] },
+                cors: { origin: ['https://example.com'], credentials: true },
+            },
+        });
+
+        expect(result.apiOptions.csrfPrevention).toEqual({ requestHeaders: ['x-my-client-header'] });
+        expect(result.apiOptions.cors).toEqual({ origin: ['https://example.com'], credentials: true });
+    });
+
+    it('replaces an array with an object', () => {
+        const input: any = { a: [1, 2] };
+
+        const result = mergeConfig(input, { a: { b: 1 } } as any);
+
+        expect(result).toEqual({ a: { b: 1 } });
+    });
+
     it('replaces class instances rather than merging their properties', () => {
         class Foo {
             name = 'foo';

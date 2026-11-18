@@ -92,17 +92,21 @@ export class Channel extends VendureEntity {
 
     /**
      * @description
-     * Specifies the default value for inventory tracking for ProductVariants.
-     * Can be overridden per ProductVariant, but this value determines the default
-     * if not otherwise specified.
+     * Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose
+     * `trackInventory` is `INHERIT`. ProductVariants and StockLevels can override it.
+     *
+     * @since 4.0.0 - Used as the default; it was not read before
      */
     @Column({ default: true })
     trackInventory: boolean;
 
     /**
      * @description
-     * Specifies the value of stockOnHand at which a given ProductVariant is considered
-     * out of stock.
+     * The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be
+     * sold in this Channel. A negative value allows backorders. Variants with
+     * `useGlobalOutOfStockThreshold: false` use their own `outOfStockThreshold` instead.
+     *
+     * @since 4.0.0 - Used for those variants; it was not read before
      */
     @Column({ default: 0 })
     outOfStockThreshold: number;

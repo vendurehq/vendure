@@ -1,4 +1,5 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -208,5 +209,45 @@ describe('Globally installed CLI plugins E2E', () => {
         expect(result.stderr).not.toContain('plugins add');
         expect(result.stderr).not.toContain('provides CLI commands');
         expect(result.exitCode).toBe(1);
+    });
+
+    // CLO-1561: a plugin enabled globally from another project made every
+    // command in a project without it print a load failure.
+    describe('a globally enabled plugin the project does not have', () => {
+        const packageName = '@vendure-e2e/cloud-cli-plugin';
+        let configDir: string;
+
+        afterEach(() => rmSync(configDir, { recursive: true, force: true }));
+
+        async function run(args: string[]) {
+            configDir = mkdtempSync(join(tmpdir(), 'vendure-cli-e2e-config-'));
+            writeFileSync(join(configDir, 'cli.json'), JSON.stringify({ plugins: [packageName] }));
+            project = createTestProject('global-plugin-not-installed');
+            project.writeFile('bun.lock', '');
+            return project.runCliCommand(args, {
+                expectError: true,
+                env: { VENDURE_CLI_CONFIG_DIR: configDir },
+            });
+        }
+
+        it('does not report it on an unrelated command', async () => {
+            const result = await run(['--version']);
+
+            expect(result.stderr).not.toContain('Failed to load CLI plugin');
+            expect(result.stderr).not.toContain('plugins remove');
+            expect(result.exitCode).toBe(0);
+        });
+
+        it('names the fix for this project when an unknown command could be its own', async () => {
+            const result = await run(['project', 'list']);
+
+            expect(result.stderr).toContain('Unknown command "project"');
+            expect(result.stderr).toContain(`${packageName} is enabled globally but not installed in `);
+            expect(result.stderr).toContain(
+                `Install it with: bun add -D ${packageName} && vendure plugins add ${packageName}`,
+            );
+            expect(result.stderr).not.toContain('plugins remove --global');
+            expect(result.exitCode).toBe(1);
+        });
     });
 });

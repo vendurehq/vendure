@@ -2,9 +2,11 @@
 import { CurrencyCode, DeletionResult, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     ChangeChannelEvent,
+    manualFulfillmentHandler as coreManualFulfillmentHandler,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     EventBus,
+    FulfillmentHandler,
     ShippingCalculator,
     ShippingMethod,
 } from '@vendure/core';
@@ -46,6 +48,13 @@ const TEST_METADATA = {
     baz: [1, 2, 3],
 };
 
+const otherFulfillmentHandler = new FulfillmentHandler({
+    code: 'other-fulfillment-handler',
+    description: [{ languageCode: LanguageCode.en, value: 'Other fulfillment handler' }],
+    args: {},
+    createFulfillment: () => ({}),
+});
+
 const calculatorWithMetadata = new ShippingCalculator({
     code: 'calculator-with-metadata',
     description: [{ languageCode: LanguageCode.en, value: 'Has metadata' }],
@@ -76,6 +85,7 @@ describe('ShippingMethod resolver', () => {
         shippingOptions: {
             shippingEligibilityCheckers: [defaultShippingEligibilityChecker],
             shippingCalculators: [defaultShippingCalculator, calculatorWithMetadata],
+            fulfillmentHandlers: [coreManualFulfillmentHandler, otherFulfillmentHandler],
         },
     });
 
@@ -335,6 +345,26 @@ describe('ShippingMethod resolver', () => {
         });
 
         expect(updateShippingMethod.name).toBe('changed method');
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5763
+    it('updateShippingMethod sets the fulfillment handler', async () => {
+        await adminClient.query(updateShippingMethodDocument, {
+            input: { id: 'T_4', translations: [], fulfillmentHandler: otherFulfillmentHandler.code },
+        });
+
+        const { shippingMethod } = await adminClient.query(
+            graphql(`
+                query ShippingMethodFulfillmentHandler($id: ID!) {
+                    shippingMethod(id: $id) {
+                        id
+                        fulfillmentHandlerCode
+                    }
+                }
+            `),
+            { id: 'T_4' },
+        );
+        expect(shippingMethod?.fulfillmentHandlerCode).toBe(otherFulfillmentHandler.code);
     });
 
     it('deleteShippingMethod', async () => {
