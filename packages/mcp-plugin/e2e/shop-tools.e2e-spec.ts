@@ -219,18 +219,24 @@ const UK_ADDRESS = {
     countryCode: 'GB',
 };
 const CARRIER_SHIPPING_METHOD_CODE = 'mcp-e2e-carrier';
+const REMOTE_CITY = 'Remote Town';
 /**
  * Returns two options, as a carrier API does. Both cost more than the other methods, so the
- * tests which take the cheapest eligible method never take this one.
+ * tests which take the cheapest eligible method never take this one, except at REMOTE_CITY.
  */
 const carrierRatesCalculator = new ShippingCalculator({
     code: 'mcp-e2e-carrier-rates',
     description: [{ languageCode: LanguageCode.en, value: 'Carrier rates' }],
     args: {},
-    calculate: () => [
-        { code: 'ground', name: 'Ground', price: 5000, priceIncludesTax: false, taxRate: 0 },
-        { code: 'next-day', name: 'Next day', price: 9000, priceIncludesTax: false, taxRate: 0 },
-    ],
+    calculate: (ctx, order) =>
+        // A remote address only gets Ground, and at a price below every other method, so that the
+        // set_checkout_details test sees the line keep its method but fall back to another option
+        order.shippingAddress?.city === REMOTE_CITY
+            ? [{ code: 'ground', name: 'Ground', price: 100, priceIncludesTax: false, taxRate: 0 }]
+            : [
+                  { code: 'ground', name: 'Ground', price: 5000, priceIncludesTax: false, taxRate: 0 },
+                  { code: 'next-day', name: 'Next day', price: 9000, priceIncludesTax: false, taxRate: 0 },
+              ],
 });
 
 const usOnlyShippingChecker = new ShippingEligibilityChecker({
@@ -2718,6 +2724,40 @@ describe('MCP built-in shop tools', () => {
             );
             expect(unknown.body.result.isError).toBe(true);
             expect(unknown.body.result.structuredContent.errorCode).toBe('INELIGIBLE_SHIPPING_METHOD_ERROR');
+        });
+
+        // #2649 — keeping the ShippingMethod but falling back to another of its options is a change too
+        it('set_checkout_details reports shippingMethodChanged when the new address withdraws the chosen option', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+            const usAddress = {
+                streetLine1: '451 Sansome Street',
+                city: 'San Francisco',
+                postalCode: '94111',
+                countryCode: 'US',
+            };
+            await call('set_checkout_details', { shippingAddress: usAddress }, 2);
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const carrier = quotes.body.result.structuredContent.methods.find(
+                (method: any) => method.code === CARRIER_SHIPPING_METHOD_CODE,
+            );
+            await call('set_shipping_method', { methodId: carrier.id, optionCode: 'next-day' }, 4);
+
+            const moved = await call(
+                'set_checkout_details',
+                { shippingAddress: { ...usAddress, city: REMOTE_CITY } },
+                5,
+            );
+
+            expect(moved.body.result.isError).toBeUndefined();
+            expect(moved.body.result.structuredContent.shippingMethodChanged).toBe(true);
+            expect(moved.body.result.structuredContent.message).toMatch(/replaced it with the cheapest/);
+            expect(moved.body.result.structuredContent.order.shippingLines).toEqual([
+                expect.objectContaining({ shippingMethodId: carrier.id, shippingOptionCode: 'ground' }),
+            ]);
         });
 
         it('set_checkout_details reports shippingMethodChanged when the new address makes the store swap the method', async () => {

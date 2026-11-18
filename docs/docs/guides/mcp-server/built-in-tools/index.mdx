@@ -263,13 +263,13 @@ Notes on the tools whose behavior is not obvious from the tables. Tools not list
 - Refused: a call with none of `shippingAddress`, `billingAddress`, `billingSameAsShipping`, or `customer`, and
   a call with both `billingAddress` and `billingSameAsShipping`.
 
-A new shipping address can make the shipping method the shopper already chose ineligible. Vendure then swaps
-the cart's shipping line to the cheapest method that is still eligible, or drops the line when none is. Vendure
-does either without reporting it, so the tool reports it instead:
+A new shipping address can make the shipping method or option the shopper already chose ineligible. Vendure
+then swaps the cart's shipping line to the cheapest method or option that is still eligible, or drops the line
+when none is. Vendure does either without reporting it, so the tool reports it instead:
 
 - The response carries `shippingMethodChanged: true` and a `message` saying which of the two happened.
 - `order.shippingLines` shows the current state.
-- A response without `shippingMethodChanged` means the chosen method survived the change.
+- A response without `shippingMethodChanged` means the chosen method and option survived the change.
 
 ### `get_eligible_shipping_methods`
 
