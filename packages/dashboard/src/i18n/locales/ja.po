@@ -289,6 +289,10 @@ msgstr ""
 #~ msgid "Health checks"
 #~ msgstr "ヘルスチェック"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted}{entityName}を削除しました"
@@ -955,6 +959,10 @@ msgstr "支払い適格性チェッカー"
 msgid "Default tax zone"
 msgstr "デフォルト税ゾーン"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "書式をクリア"
@@ -1038,6 +1046,7 @@ msgstr "このキーをローテーションすると、現在のキーは直ち
 msgid "The data that has been passed to the job"
 msgstr "ジョブに渡されたデータ"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1104,8 +1113,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "この返金決済の取引IDを入力してください"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "あなたの API Key"
+#~ msgid "Your API Key"
+#~ msgstr "あなたの API Key"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1208,6 +1217,10 @@ msgstr "コレクションの作成に失敗しました"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "最初のページへ"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2263,6 +2276,10 @@ msgstr "カスタムフィールドを設定"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "コレクション"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3468,6 +3485,10 @@ msgstr "チャネルから{successCount}個のファセットを削除しまし�
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "新しい商品"
@@ -3940,6 +3961,11 @@ msgstr "水平線"
 msgid "Testing shipping method..."
 msgstr "配送方法をテスト中..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4167,8 +4193,8 @@ msgid "Job Queue"
 msgstr "ジョブキュー"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "閉じる前に API Key を保存したことを確認してください。"
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "閉じる前に API Key を保存したことを確認してください。"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5332,6 +5358,10 @@ msgstr "以下の住所の詳細を編集してください。"
 msgid "Successfully created tax category"
 msgstr "税カテゴリを作成しました"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "コレクションの移動に失敗しました"
@@ -5939,8 +5969,8 @@ msgid "Failed to update role"
 msgstr "ロールの更新に失敗しました"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "完全な API Key が表示されるのはこの1回のみです。今すぐコピーまたはダウンロードしてください。後から取得することはできません。"
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "完全な API Key が表示されるのはこの1回のみです。今すぐコピーまたはダウンロードしてください。後から取得することはできません。"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -6081,6 +6111,10 @@ msgstr "クーポンコードを追加"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "クーポンコードが注文に設定されました"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6820,8 +6854,8 @@ msgid "Failed to create tax rate"
 msgstr "税率の作成に失敗しました"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "この API Key を保存しました"
+#~ msgid "I have saved this API key"
+#~ msgstr "この API Key を保存しました"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7294,6 +7328,10 @@ msgstr "返金して注文をキャンセル"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "アセットを選択"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7892,8 +7930,8 @@ msgid "Refund settled"
 msgstr "返金を決済しました"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API Key"
+#~ msgid "API Key"
+#~ msgstr "API Key"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7938,7 +7976,6 @@ msgstr "より大きい"
 msgid "Underline"
 msgstr "下線"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "閉じる"

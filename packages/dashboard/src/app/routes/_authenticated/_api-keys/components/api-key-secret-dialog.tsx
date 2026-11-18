@@ -1,11 +1,10 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { Checkbox } from '@/vdb/components/ui/checkbox.js';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/vdb/components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/vdb/components/ui/dialog.js';
+import { IssuedSecret, IssuedSecretFooter, useIssuedSecretGuard } from '@/vdb/components/ui/issued-secret.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { DownloadIcon, TriangleAlertIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { DownloadIcon } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface ApiKeySecretDialogProps {
     open: boolean;
@@ -28,103 +27,76 @@ function downloadAsEnvFile(apiKey: string, lookupId?: string) {
     URL.revokeObjectURL(url);
 }
 
+/**
+ * Shown once, right after an API key is created. The key is never rendered: it is copied with a
+ * button or downloaded as a .env file. Closing before either shows a warning first.
+ */
 export function ApiKeySecretDialog({ open, apiKey, lookupId, onClose }: ApiKeySecretDialogProps) {
-    const [confirmed, setConfirmed] = useState(false);
     const { t } = useLingui();
+    const guard = useIssuedSecretGuard(onClose);
 
+    // Warn before leaving the page while the key has not been copied.
     useEffect(() => {
-        if (open) {
-            setConfirmed(false);
-        }
-    }, [open]);
-
-    // Warn user before leaving while the secret is still visible
-    useEffect(() => {
-        if (!open) return;
+        if (!open || guard.copied) return;
         const handler = (e: BeforeUnloadEvent) => {
             e.preventDefault();
         };
         window.addEventListener('beforeunload', handler);
         return () => window.removeEventListener('beforeunload', handler);
-    }, [open]);
-
-    const handleDismissAttempt = (val: boolean) => {
-        if (!val && !confirmed) {
-            toast.info(t`Please confirm you have saved the API key before closing.`);
-            return;
-        }
-        if (!val && confirmed) {
-            onClose();
-        }
-    };
+    }, [open, guard.copied]);
 
     if (!open) return null;
 
     return (
-        <Dialog open={open} onOpenChange={handleDismissAttempt}>
-            <DialogContent showCloseButton className="sm:max-w-lg">
+        <Dialog open={open} onOpenChange={guard.onOpenChange}>
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle><Trans>Your API Key</Trans></DialogTitle>
+                    <DialogTitle>
+                        <Trans>Your API key</Trans>
+                    </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
-                    <div
-                        className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3"
-                        role="alert"
-                        aria-live="assertive"
-                    >
-                        <TriangleAlertIcon className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                        <p className="text-sm">
-                            <Trans>
-                                This is the only time the full API key will be displayed.
-                                Copy or download it now — it cannot be retrieved later.
-                            </Trans>
-                        </p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium"><Trans>API Key</Trans></label>
-                        <div className="rounded-md border bg-muted/50 p-3">
-                            <CopyableText value={apiKey}>
-                                <code className="font-mono text-xs break-all select-all">{apiKey}</code>
-                            </CopyableText>
-                        </div>
-                    </div>
-
+                <IssuedSecret
+                    guard={guard}
+                    value={apiKey}
+                    secretName={t`API key`}
+                    copyLabel={t`Copy API key`}
+                    copiedLabel={t`Copied`}
+                    notice={t`You can copy or download the API key only now.`}
+                    fallbackLabel={t`API key`}
+                    fallbackDescription={t`The clipboard is not available. Select the API key and copy it by hand.`}
+                    warningTitle={t`The API key is not copied`}
+                    warningDescription={t`You cannot copy it after you close. Copy or download it now, or close without copying.`}
+                >
                     {lookupId && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium"><Trans>Lookup ID</Trans></label>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground text-xs">
+                                <Trans>Lookup ID</Trans>
+                            </span>
                             <CopyableText value={lookupId}>
                                 <code className="font-mono text-xs">{lookupId}</code>
                             </CopyableText>
                         </div>
                     )}
-
+                </IssuedSecret>
+                <div>
+                    {/* A download is a second way to take the key, so it counts as a copy for the close guard. */}
                     <Button
+                        type="button"
                         variant="outline"
-                        className="w-full"
-                        onClick={() => downloadAsEnvFile(apiKey, lookupId)}
+                        onClick={() => {
+                            downloadAsEnvFile(apiKey, lookupId);
+                            guard.markCopied();
+                        }}
                     >
                         <DownloadIcon />
                         <Trans>Download as .env file</Trans>
                     </Button>
-
-                    <div className="flex items-center gap-2 pt-2">
-                        <Checkbox
-                            id="confirm-saved"
-                            checked={confirmed}
-                            onCheckedChange={val => setConfirmed(val === true)}
-                        />
-                        <label htmlFor="confirm-saved" className="text-sm cursor-pointer select-none">
-                            <Trans>I have saved this API key</Trans>
-                        </label>
-                    </div>
                 </div>
-
-                <DialogFooter>
-                    <Button onClick={onClose} disabled={!confirmed}>
-                        <Trans>Close</Trans>
-                    </Button>
-                </DialogFooter>
+                <IssuedSecretFooter
+                    guard={guard}
+                    doneLabel={t`Done`}
+                    closeAnywayLabel={t`Close without copying`}
+                />
             </DialogContent>
         </Dialog>
     );

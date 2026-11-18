@@ -289,6 +289,10 @@ msgstr ""
 #~ msgid "Health checks"
 #~ msgstr "Provjere zdravlja"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "Obrisano {deleted} {entityName}"
@@ -955,6 +959,10 @@ msgstr "Provjera prihvatljivosti plaćanja"
 msgid "Default tax zone"
 msgstr "Zadana porezna zona"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "Ukloni oblikovanje"
@@ -1038,6 +1046,7 @@ msgstr "Rotiranje ovog ključa odmah će poništiti trenutni ključ. Sve integra
 msgid "The data that has been passed to the job"
 msgstr "Podaci koji su proslijeđeni zadatku"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1104,8 +1113,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "Unesite ID transakcije za ovo izvršenje povrata"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "Vaš API ključ"
+#~ msgid "Your API Key"
+#~ msgstr "Vaš API ključ"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1208,6 +1217,10 @@ msgstr "Stvaranje kolekcije nije uspjelo"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "Idi na prvu stranicu"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2263,6 +2276,10 @@ msgstr "Postavi prilagođena polja"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "Kolekcije"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3468,6 +3485,10 @@ msgstr "Uspješno uklonjeno {successCount} svojstava iz kanala"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "Novi proizvod"
@@ -3940,6 +3961,11 @@ msgstr "Vodoravna crta"
 msgid "Testing shipping method..."
 msgstr "Testiranje načina dostave..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4167,8 +4193,8 @@ msgid "Job Queue"
 msgstr "Red zadataka"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "Potvrdite da ste spremili API ključ prije zatvaranja."
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "Potvrdite da ste spremili API ključ prije zatvaranja."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5332,6 +5358,10 @@ msgstr "Uredite detalje adrese u nastavku."
 msgid "Successfully created tax category"
 msgstr "Porezna kategorija uspješno stvorena"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "Premještanje kolekcija nije uspjelo"
@@ -5939,8 +5969,8 @@ msgid "Failed to update role"
 msgstr "Ažuriranje uloge nije uspjelo"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "Ovo je jedini put kada će se prikazati cijeli API ključ. Kopirajte ga ili preuzmite sada — kasnije ga neće biti moguće dohvatiti."
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "Ovo je jedini put kada će se prikazati cijeli API ključ. Kopirajte ga ili preuzmite sada — kasnije ga neće biti moguće dohvatiti."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -6081,6 +6111,10 @@ msgstr "Dodaj kod kupona"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Kod kupona postavljen za narudžbu"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6820,8 +6854,8 @@ msgid "Failed to create tax rate"
 msgstr "Stvaranje porezne stope nije uspjelo"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "Spremio sam ovaj API ključ"
+#~ msgid "I have saved this API key"
+#~ msgstr "Spremio sam ovaj API ključ"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7294,6 +7328,10 @@ msgstr "Povrat i otkazivanje narudžbe"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "Odaberi datoteke"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7892,8 +7930,8 @@ msgid "Refund settled"
 msgstr "Povrat izvršen"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API ključ"
+#~ msgid "API Key"
+#~ msgstr "API ključ"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7938,7 +7976,6 @@ msgstr "veće je od"
 msgid "Underline"
 msgstr "Podcrtano"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Zatvori"

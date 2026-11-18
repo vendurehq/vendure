@@ -277,6 +277,10 @@ msgstr ""
 #~ msgid "Successfully cancelled {fulfilled} job"
 #~ msgstr "{fulfilled} ta ish bekor qilindi"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} o'chirildi"
@@ -927,6 +931,10 @@ msgstr "To'lov muvofiqligi tekshiruvchisi"
 msgid "Default tax zone"
 msgstr "Standart soliq hududi"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "Formatlashni tozalash"
@@ -1010,6 +1018,7 @@ msgstr "Bu kalitni almashtirish joriy kalitni darhol bekor qiladi. Undan foydala
 msgid "The data that has been passed to the job"
 msgstr "Vazifaga uzatilgan ma'lumotlar"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1076,8 +1085,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "Ushbu pul qaytarish uchun tranzaksiya ID raqamini kiriting"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "Sizning API kalitingiz"
+#~ msgid "Your API Key"
+#~ msgstr "Sizning API kalitingiz"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1180,6 +1189,10 @@ msgstr "To'plamni yaratib bo'lmadi"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "Birinchi sahifaga o'tish"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2202,6 +2215,10 @@ msgstr "Maxsus maydonlarni o'rnatish"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "To'plamlar"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3393,6 +3410,10 @@ msgstr "Kanaldan {successCount} faset olib tashlandi"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "Yangi mahsulot"
@@ -3848,6 +3869,11 @@ msgstr "Gorizontal chiziq"
 msgid "Testing shipping method..."
 msgstr "Yetkazib berish usuli sinovdan oʻtkazilmoqda..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4075,8 +4101,8 @@ msgid "Job Queue"
 msgstr "Vazifalar navbati"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "Yopishdan oldin API kalitini saqlaganingizni tasdiqlang."
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "Yopishdan oldin API kalitini saqlaganingizni tasdiqlang."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5208,6 +5234,10 @@ msgstr "Quyida manzil tafsilotlarini tahrirlang."
 msgid "Successfully created tax category"
 msgstr "Soliq toifasi yaratildi"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "To'plamlarni ko'chirib bo'lmadi"
@@ -5795,8 +5825,8 @@ msgid "Failed to update role"
 msgstr "Rolni yangilab bo'lmadi"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "To'liq API kaliti faqat hozir ko'rsatiladi. Hozir nusxalang yoki yuklab oling — keyin uni qayta olib bo'lmaydi."
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "To'liq API kaliti faqat hozir ko'rsatiladi. Hozir nusxalang yoki yuklab oling — keyin uni qayta olib bo'lmaydi."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -5929,6 +5959,10 @@ msgstr "Kupon kodini qo'shish"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Buyurtma uchun kupon kodi o'rnatildi"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6644,8 +6678,8 @@ msgid "Failed to create tax rate"
 msgstr "Soliq stavkasini yaratib bo'lmadi"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "Men bu API kalitini saqladim"
+#~ msgid "I have saved this API key"
+#~ msgstr "Men bu API kalitini saqladim"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7106,6 +7140,10 @@ msgstr "Pul qaytarish va buyurtmani bekor qilish"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "Resurslarni tanlash"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7688,8 +7726,8 @@ msgid "Refund settled"
 msgstr "Pul qaytarish hisoblashildi"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API kaliti"
+#~ msgid "API Key"
+#~ msgstr "API kaliti"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7734,7 +7772,6 @@ msgstr "dan katta"
 msgid "Underline"
 msgstr "Tagiga chizilgan"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Yopish"
