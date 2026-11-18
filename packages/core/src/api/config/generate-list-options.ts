@@ -148,7 +148,7 @@ function createSortParameter(schema: GraphQLSchema, targetType: GraphQLObjectTyp
         fields.push(...Object.values(existingInput.getFields()));
     }
 
-    const sortableTypes = ['ID', 'String', 'Int', 'Float', 'DateTime', 'Money'];
+    const sortableTypes = ['ID', 'String', 'Int', 'Float', 'DateTime', 'Money', 'Boolean'];
     const fieldConfigMap = fields
         .map(field => {
             if (unwrapNonNullType(field.type) === SortOrder) {
