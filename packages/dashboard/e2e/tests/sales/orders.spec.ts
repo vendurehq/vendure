@@ -1358,11 +1358,7 @@ test.describe('Orders', () => {
             await dialog.getByRole('combobox').click();
             await page.getByRole('option').first().click();
 
-            await dialog
-                .getByTestId(/^refund-target-payment-/)
-                .getByRole('checkbox')
-                .first()
-                .uncheck();
+            await dialog.getByTestId(/^refund-target-payment-/).getByRole('checkbox').first().uncheck();
             await storeCreditRow.getByRole('checkbox').first().check();
 
             const expiryInput = dialog.getByTestId('store-credit-expiry-input');
@@ -1505,10 +1501,7 @@ test.describe('Orders', () => {
                 .getByTestId('refund-target-amount')
                 .fill(remainingAmount);
 
-            await dialog
-                .getByRole('button', { name: /Refund/i })
-                .last()
-                .click();
+            await dialog.getByRole('button', { name: /Refund/i }).last().click();
 
             const toast = page
                 .locator('[data-sonner-toast]')
@@ -1854,9 +1847,7 @@ async function createNewOrder(client: VendureAdminClient) {
         { orderId },
     );
     if (!methods.some((method: { id: string }) => method.id === shippingMethodId)) {
-        throw new Error(
-            `The test-shipping method (${shippingMethodId}) is not eligible for draft order ${orderId}.`,
-        );
+        throw new Error(`The test-shipping method (${shippingMethodId}) is not eligible for draft order ${orderId}.`);
     }
     await client.gql(
         `
