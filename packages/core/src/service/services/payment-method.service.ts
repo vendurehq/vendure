@@ -12,7 +12,6 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -307,19 +306,10 @@ export class PaymentMethodService {
         // Only the methods of the active Channel: loading every enabled method grows with the number
         // of Channels. Their `channels` stay complete, because an eligibility checker may read them
         // (e.g. to find the seller Channel of a method in a multi-vendor setup).
-        const idsInChannel = await this.connection
-            .getRepository(ctx, PaymentMethod)
-            .createQueryBuilder('method')
-            .select('method.id', 'id')
-            .innerJoin('method.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
-            .where('method.enabled = :enabled', { enabled: true })
-            .getRawMany<{ id: ID }>();
-        const paymentMethods = idsInChannel.length
-            ? await this.connection.getRepository(ctx, PaymentMethod).find({
-                  where: { id: In(idsInChannel.map(row => row.id)) },
-                  relations: { channels: true },
-              })
-            : [];
+        const paymentMethods = await this.connection.findInChannel(ctx, PaymentMethod, ctx.channelId, {
+            where: { enabled: true },
+            relations: { channels: true },
+        });
         const results: PaymentMethodQuote[] = [];
         const paymentMethodsInChannel = paymentMethods.map(p => this.translator.translate(p, ctx));
         for (const method of paymentMethodsInChannel) {

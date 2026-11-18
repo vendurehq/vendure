@@ -388,6 +388,32 @@ export class TransactionalConnection {
 
     /**
      * @description
+     * Like the TypeOrm `Repository.find()` method, but limits the results to entities assigned to
+     * the given Channel. Relations are loaded with separate queries (`relationLoadStrategy:
+     * 'query'`), so a relation such as `channels` is loaded in full rather than limited to the
+     * Channel, and eager relations of different entities are not multiplied in one result set.
+     *
+     * @since 4.0.0
+     */
+    findInChannel<T extends ChannelAware & VendureEntity>(
+        ctx: RequestContext,
+        entity: Type<T>,
+        channelId: ID,
+        options: FindManyOptions<T> = {},
+    ): Promise<T[]> {
+        const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
+        qb.setFindOptions({
+            relationLoadStrategy: 'query',
+            ...options,
+        });
+        qb.innerJoin('entity.channels', '__channel', '__channel.id = :__findInChannelId', {
+            __findInChannelId: channelId,
+        });
+        return qb.getMany();
+    }
+
+    /**
+     * @description
      * Like the TypeOrm `Repository.findByIds()` method, but limits the results to
      * the given Channel.
      */

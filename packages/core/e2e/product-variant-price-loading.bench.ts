@@ -10,7 +10,8 @@
  *   DB=postgres bun run bench -- e2e/product-variant-price-loading.bench.ts
  *
  * To compare two builds, run it once per build of `packages/core/dist`. `BENCH_OUT` writes the
- * results as JSON, `BENCH_CHANNELS` sets the channel counts (default `2,50,200`), and
+ * results as JSON, `BENCH_CHANNELS` sets the channel counts (default `2,50,200`),
+ * `BENCH_LANGUAGES=<1-4>` adds translations in that many languages (default 1), and
  * `BENCH_DUMP=<file>` appends the three queries which read the most rows for each scenario.
  *
  * Latencies vary a lot between runs on a busy machine. The queries and rows read do not.
@@ -199,6 +200,29 @@ const SET_VARIANT_FACET_VALUES = gql`
         }
     }
 `;
+const UPDATE_GLOBAL_SETTINGS = gql`
+    mutation BenchUpdateGlobalSettings($input: UpdateGlobalSettingsInput!) {
+        updateGlobalSettings(input: $input) {
+            ... on GlobalSettings {
+                id
+            }
+        }
+    }
+`;
+const UPDATE_FACET = gql`
+    mutation BenchUpdateFacet($input: UpdateFacetInput!) {
+        updateFacet(input: $input) {
+            id
+        }
+    }
+`;
+const UPDATE_FACET_VALUES = gql`
+    mutation BenchUpdateFacetValues($input: [UpdateFacetValueInput!]!) {
+        updateFacetValues(input: $input) {
+            id
+        }
+    }
+`;
 const PRODUCT_IDS = gql`
     query BenchProductIds {
         products(options: { take: 100 }) {
@@ -229,9 +253,9 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
     const results: ScenarioResult[] = [];
     let channelCount = 1;
     let productIds: string[] = [];
-    let setupIds = {
-        facetIds: [] as string[],
-    };
+    let facetIds: string[] = [];
+    /** The token of the first Channel created, which the method scenarios run in. */
+    let ownChannelToken: string | undefined;
 
     const query = (sql: string) => server.app.get(TransactionalConnection).rawConnection.query(sql);
 
@@ -254,10 +278,7 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
         const { products } = await adminClient.query(PRODUCT_IDS);
         productIds = products.items.map((p: { id: string }) => p.id);
         const ids = await adminClient.query(SETUP_IDS);
-        const toIds = (list: { items: Array<{ id: string }> }) => list.items.map(item => item.id);
-        setupIds = {
-            facetIds: toIds(ids.facets),
-        };
+        facetIds = ids.facets.items.map((facet: { id: string }) => facet.id);
         // The fixture's variants have no facet values of their own.
         const facetValueIds = ids.facets.items
             .flatMap((facet: { values: Array<{ id: string }> }) => facet.values.map(value => value.id))
@@ -265,6 +286,37 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
         await adminClient.query(SET_VARIANT_FACET_VALUES, {
             input: ids.product.variants.map((variant: { id: string }) => ({ id: variant.id, facetValueIds })),
         });
+
+        // Every language multiplies the eager translations which a query joins in one result set.
+        const extraLanguages = [LanguageCode.de, LanguageCode.fr, LanguageCode.es].slice(
+            0,
+            Number(process.env.BENCH_LANGUAGES ?? 1) - 1,
+        );
+        if (extraLanguages.length) {
+            const translations = (name: string) =>
+                extraLanguages.map(languageCode => ({ languageCode, name: `${name} ${languageCode}` }));
+            await adminClient.query(UPDATE_GLOBAL_SETTINGS, {
+                input: { availableLanguages: [LanguageCode.en, ...extraLanguages] },
+            });
+            for (const facet of ids.facets.items) {
+                await adminClient.query(UPDATE_FACET, {
+                    input: { id: facet.id, translations: translations('facet') },
+                });
+                // One value per call: several in one updateFacetValues call fail on Postgres with
+                // "savepoint does not exist".
+                for (const value of facet.values) {
+                    await adminClient.query(UPDATE_FACET_VALUES, {
+                        input: [{ id: value.id, translations: translations('value') }],
+                    });
+                }
+            }
+            await adminClient.query(SET_VARIANT_FACET_VALUES, {
+                input: ids.product.variants.map((variant: { id: string }) => ({
+                    id: variant.id,
+                    translations: translations('variant'),
+                })),
+            });
+        }
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -278,6 +330,7 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
     async function growToChannels(target: number) {
         while (channelCount < target) {
             const code = `bench-${channelCount}`;
+            ownChannelToken ??= code;
             const { createChannel } = await adminClient.query(CREATE_CHANNEL, {
                 input: {
                     code,
@@ -295,7 +348,7 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
             // Every Channel offers the same facets, so that the facet values of a variant grow with
             // the number of Channels too.
             await adminClient.query(ASSIGN_FACETS, {
-                input: { channelId: createChannel.id, facetIds: setupIds.facetIds },
+                input: { channelId: createChannel.id, facetIds },
             });
             // Each Channel has a shipping and a payment method of its own, as each tenant or seller
             // would. Created in the Channel, they are also assigned to the default Channel.
@@ -425,7 +478,10 @@ describe.skipIf(process.env.DB !== 'postgres')('ProductVariant price loading ben
                 await record('Shop: addItemToOrder', () => shopClient.query(ADD_ITEM, { id: 'T_3' }));
                 // The default Channel holds every method, so the methods are checked out in a Channel
                 // of its own.
-                shopClient.setChannelToken('bench-1');
+                if (!ownChannelToken) {
+                    throw new Error('The method scenarios need at least 2 channels (BENCH_CHANNELS)');
+                }
+                shopClient.setChannelToken(ownChannelToken);
                 await shopClient.asAnonymousUser();
                 await shopClient.query(ADD_ITEM, { id: 'T_1' });
                 await shopClient.query(SET_ADDRESS, {

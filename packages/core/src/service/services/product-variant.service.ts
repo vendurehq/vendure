@@ -378,24 +378,21 @@ export class ProductVariantService {
     }
 
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID): Promise<Array<Translated<FacetValue>>> {
-        // Only the FacetValues of the active Channel, each with only that Channel joined: the
-        // `facetValues` resolver keeps exactly those, and joining every Channel brings one row per
-        // Channel per value. A variant without FacetValues in the Channel is not found, which gives
-        // the same empty result.
-        // `find()` rather than `findOne()`: with joins, the limit of `findOne()` costs TypeORM a
-        // separate query for the id.
+        // Only the FacetValues of the active Channel, of a variant in the active Channel: joining
+        // every Channel brings one row per Channel per value. The relations are loaded with separate
+        // queries, so the eager translations of the facet and of its values are not multiplied in
+        // one result set. `channels` is set to the active Channel, the only one the `facetValues`
+        // resolver keeps.
         return this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({
-                where: {
-                    id: variantId,
-                    channels: { id: ctx.channelId },
-                    facetValues: { channels: { id: ctx.channelId } },
-                },
-                relations: { facetValues: { facet: true, channels: true } },
+            .findInChannel(ctx, FacetValue, ctx.channelId, {
+                where: { productVariants: { id: variantId, channels: { id: ctx.channelId } } },
+                relations: { facet: true },
             })
-            .then(([variant]) =>
-                !variant ? [] : variant.facetValues.map(o => this.translator.translate(o, ctx, ['facet'])),
+            .then(facetValues =>
+                facetValues.map(facetValue => {
+                    facetValue.channels = [ctx.channel];
+                    return this.translator.translate(facetValue, ctx, ['facet']);
+                }),
             );
     }
 

@@ -1,5 +1,16 @@
 import { CurrencyCode, DeletionResult, ErrorCode } from '@vendure/common/lib/generated-shop-types';
-import { dummyPaymentHandler, LanguageCode, PaymentMethodEligibilityChecker } from '@vendure/core';
+import {
+    defaultShippingCalculator,
+    defaultShippingEligibilityChecker,
+    dummyPaymentHandler,
+    LanguageCode,
+    manualFulfillmentHandler,
+    Order,
+    PaymentMethodEligibilityChecker,
+    PaymentMethodService,
+    RequestContextService,
+    ShippingMethodService,
+} from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -14,7 +25,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { FragmentOf, graphql } from './graphql/graphql-admin';
 import { ResultOf as ResultOfShop } from './graphql/graphql-shop';
-import { createChannelDocument } from './graphql/shared-definitions';
+import { createChannelDocument, createShippingMethodDocument } from './graphql/shared-definitions';
 import {
     activePaymentMethodsQueryDocument,
     addItemToOrderDocument,
@@ -405,6 +416,52 @@ describe('PaymentMethod resolver', () => {
                 'no-checks',
                 'price-check',
             ]);
+        });
+
+        // The eligible methods of a Channel are loaded in SQL, and only that Channel's. Each method
+        // keeps all its Channels, which an eligibility checker may read (e.g. multi-vendor).
+        it('eligible payment and shipping methods are only those of the channel', async () => {
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            await adminClient.query(createShippingMethodDocument, {
+                input: {
+                    code: 'channel-2-shipping',
+                    fulfillmentHandler: manualFulfillmentHandler.code,
+                    checker: { code: defaultShippingEligibilityChecker.code, arguments: [] },
+                    calculator: {
+                        code: defaultShippingCalculator.code,
+                        arguments: [
+                            { name: 'rate', value: '500' },
+                            { name: 'includesTax', value: 'auto' },
+                            { name: 'taxRate', value: '0' },
+                        ],
+                    },
+                    translations: [
+                        { languageCode: LanguageCode.en, name: 'Channel 2 shipping', description: '' },
+                    ],
+                },
+            });
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const ctxFor = (token: string) =>
+                server.app.get(RequestContextService).create({ apiType: 'shop', channelOrToken: token });
+            const paymentMethodService = server.app.get(PaymentMethodService);
+            const shippingMethodService = server.app.get(ShippingMethodService);
+
+            const secondCtx = await ctxFor(SECOND_CHANNEL_TOKEN);
+            const eligiblePayment = await paymentMethodService.getEligiblePaymentMethods(
+                secondCtx,
+                new Order({}),
+            );
+            expect(eligiblePayment.map(m => m.code)).toEqual(['channel-2-method']);
+            const activeShipping = await shippingMethodService.getActiveShippingMethods(secondCtx);
+            expect(activeShipping.map(m => m.code)).toEqual(['channel-2-shipping']);
+            expect(activeShipping[0].channels.map(c => c.code).sort()).toEqual([
+                '__default_channel__',
+                'second-channel',
+            ]);
+
+            const thirdCtx = await ctxFor(THIRD_CHANNEL_TOKEN);
+            expect(await paymentMethodService.getEligiblePaymentMethods(thirdCtx, new Order({}))).toEqual([]);
+            expect(await shippingMethodService.getActiveShippingMethods(thirdCtx)).toEqual([]);
         });
 
         it('delete from channel', async () => {

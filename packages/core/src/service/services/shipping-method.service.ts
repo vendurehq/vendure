@@ -11,7 +11,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In, IsNull } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -317,19 +317,10 @@ export class ShippingMethodService {
         // Only the methods of the active Channel: loading every method grows with the number of
         // Channels. Their `channels` stay complete, because an eligibility checker may read them
         // (e.g. to find the seller Channel of a method in a multi-vendor setup).
-        const idsInChannel = await this.connection
-            .getRepository(ctx, ShippingMethod)
-            .createQueryBuilder('method')
-            .select('method.id', 'id')
-            .innerJoin('method.channels', 'channel', 'channel.id = :channelId', { channelId: ctx.channelId })
-            .where('method.deletedAt IS NULL')
-            .getRawMany<{ id: ID }>();
-        const shippingMethods = idsInChannel.length
-            ? await this.connection.getRepository(ctx, ShippingMethod).find({
-                  relations: { channels: true, customFields: true },
-                  where: { id: In(idsInChannel.map(row => row.id)) },
-              })
-            : [];
+        const shippingMethods = await this.connection.findInChannel(ctx, ShippingMethod, ctx.channelId, {
+            where: { deletedAt: IsNull() },
+            relations: { channels: true, customFields: true },
+        });
         return shippingMethods.map(m => this.translator.translate(m, ctx));
     }
 
