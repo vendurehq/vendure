@@ -84,13 +84,15 @@ export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, miss
                     other={`Cancel ${cancellableCount} jobs`}
                 />
             }
-            confirmationText={
+            confirmationTitle={
                 <Plural
                     value={cancellableCount}
-                    one={`Are you sure you want to cancel ${cancellableCount} job? This action cannot be undone.`}
-                    other={`Are you sure you want to cancel ${cancellableCount} jobs? This action cannot be undone.`}
+                    one={`Cancel ${cancellableCount} job?`}
+                    other={`Cancel ${cancellableCount} jobs?`}
                 />
             }
+            confirmationText={<Trans>This cannot be undone.</Trans>}
+            confirmLabel={<Trans>Cancel jobs</Trans>}
             icon={Ban}
             variant="destructive"
         />

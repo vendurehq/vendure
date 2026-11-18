@@ -54,13 +54,15 @@ export function createRemoveFromGroupBulkAction(customerGroupId: string): BulkAc
                 }
                 disabled={isPending}
                 label={<Trans>Remove from group</Trans>}
-                confirmationText={
+                confirmationTitle={
                     <Plural
                         value={count}
-                        one={`Are you sure you want to remove ${count} customer from this group?`}
-                        other={`Are you sure you want to remove ${count} customers from this group?`}
+                        one={`Remove ${count} customer from this group?`}
+                        other={`Remove ${count} customers from this group?`}
                     />
                 }
+                confirmationText={<Trans>The customers stay in the shop. Only the group membership is removed.</Trans>}
+                confirmLabel={<Trans>Remove from group</Trans>}
                 icon={UserMinus}
                 variant="destructive"
             />

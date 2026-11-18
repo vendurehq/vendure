@@ -54,13 +54,16 @@ export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionCompo
                     });
                 }}
                 label={<Trans>Remove from zone</Trans>}
-                confirmationText={
+                confirmationTitle={
                     <Plural
                         value={selectedRowIds.length}
-                        one="Are you sure you want to remove # country from this zone?"
-                        other="Are you sure you want to remove # countries from this zone?"
+                        one="Remove # country from this zone?"
+                        other="Remove # countries from this zone?"
                     />
                 }
+                confirmationText={<Trans>The countries stay available in other zones.</Trans>}
+                confirmLabel={<Trans>Remove from zone</Trans>}
+                variant="destructive"
                 icon={TrashIcon}
             />
         );
