@@ -22,6 +22,10 @@ function CustomerGroupListPage() {
             title={<Trans>Customer Groups</Trans>}
             listQuery={customerGroupListDocument}
             route={Route}
+            defaultVisibility={{
+                name: true,
+                customers: true,
+            }}
             customizeColumns={{
                 name: {
                     cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,

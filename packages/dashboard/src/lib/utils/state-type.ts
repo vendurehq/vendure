@@ -7,10 +7,11 @@ import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
  * `toneFor` (see `defineStateEntries`).
  *
  * Tone rationale (see design-system state dictionary):
- * - routine / healthy states stay `neutral` so badges do not create constant visual noise
- * - noteworthy but healthy states (authorized / partially fulfilled) → `info`
- * - awaiting action (ArrangingPayment / ArrangingAdditionalPayment / Pending) → `warning`
- * - work actively in progress (Modifying) → `progress`
+ * - states before payment and the shipping states stay `neutral`, so a list does not
+ *   create constant visual noise
+ * - paid states (authorized / settled) → `info`
+ * - the order reached the customer (Delivered) → `success`
+ * - the order needs attention (Modifying / ArrangingAdditionalPayment / Pending) → `warning`
  * - user/terminal cancellation → `neutral` (a cancelled order is an outcome,
  *   not a failure)
  * - hard failure (Declined / Error) → `critical`
@@ -19,14 +20,14 @@ export const orderStateDictionary = defineStateEntries({
     Created: { tone: 'neutral', defaultLabel: 'Created' },
     Draft: { tone: 'neutral', defaultLabel: 'Draft' },
     AddingItems: { tone: 'neutral', defaultLabel: 'Adding items' },
-    ArrangingPayment: { tone: 'warning', defaultLabel: 'Arranging payment' },
+    ArrangingPayment: { tone: 'neutral', defaultLabel: 'Arranging payment' },
     PaymentAuthorized: { tone: 'info', defaultLabel: 'Payment authorized' },
-    PaymentSettled: { tone: 'neutral', defaultLabel: 'Payment settled' },
-    PartiallyShipped: { tone: 'info', defaultLabel: 'Partially shipped' },
+    PaymentSettled: { tone: 'info', defaultLabel: 'Payment settled' },
+    PartiallyShipped: { tone: 'neutral', defaultLabel: 'Partially shipped' },
     Shipped: { tone: 'neutral', defaultLabel: 'Shipped' },
-    PartiallyDelivered: { tone: 'info', defaultLabel: 'Partially delivered' },
-    Delivered: { tone: 'neutral', defaultLabel: 'Delivered' },
-    Modifying: { tone: 'progress', defaultLabel: 'Modifying' },
+    PartiallyDelivered: { tone: 'neutral', defaultLabel: 'Partially delivered' },
+    Delivered: { tone: 'success', defaultLabel: 'Delivered' },
+    Modifying: { tone: 'warning', defaultLabel: 'Modifying' },
     ArrangingAdditionalPayment: { tone: 'warning', defaultLabel: 'Arranging additional payment' },
     Cancelled: { tone: 'neutral', defaultLabel: 'Cancelled' },
     Authorized: { tone: 'info', defaultLabel: 'Authorized' },

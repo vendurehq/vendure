@@ -48,7 +48,7 @@ function CustomerListPage() {
                     header: () => <Trans>Status</Trans>,
                     cell: ({ row }) => {
                         const value = row.original.user;
-                        return <CustomerStatusBadge user={value} />;
+                        return <CustomerStatusBadge user={value} reveal="row" />;
                     },
                 },
                 identityScopeChannels: {

@@ -1,6 +1,6 @@
-import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import {
     CustomerCell,
+    OrderCodeCell,
     OrderMoneyCell,
     OrderStateCell,
 } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
@@ -78,11 +78,7 @@ function OrderListPage() {
                     cell: OrderStateCell,
                 },
                 code: {
-                    cell: ({ cell, row }) => {
-                        const value = cell.getValue() as string;
-                        const id = row.original.id;
-                        return <DetailPageButton id={id} label={value} />;
-                    },
+                    cell: OrderCodeCell,
                 },
                 customer: {
                     cell: CustomerCell,
@@ -102,11 +98,15 @@ function OrderListPage() {
                     cell: ({ row }) => row.original.customer?.emailAddress,
                 },
             }}
+            defaultColumnOrder={['code', 'customer', 'state', 'totalWithTax', 'orderPlacedAt']}
             defaultVisibility={{
                 id: false,
                 customerEmailAddress: false,
                 createdAt: false,
-                orderPlacedAt: false,
+                // The pinned date columns would come before the code, so the list shows when
+                // the order was placed after the totals instead.
+                updatedAt: false,
+                orderPlacedAt: true,
                 type: false,
                 currencyCode: false,
             }}

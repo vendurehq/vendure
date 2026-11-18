@@ -22,8 +22,10 @@ export function BooleanDisplayBadge({
     labelFalse?: string | React.ReactNode;
 }) {
     const { t } = useLingui();
+    // Enabled is the normal state of a list row, so it shows only while the row is hovered or
+    // focused. Disabled is the exception and always shows.
     return (
-        <StatusBadge tone={value ? 'success' : 'neutral'}>
+        <StatusBadge tone={value ? 'success' : 'neutral'} reveal={value ? 'row' : 'always'}>
             {value ? (labelTrue ?? t`Enabled`) : (labelFalse ?? t`Disabled`)}
         </StatusBadge>
     );

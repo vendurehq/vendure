@@ -147,13 +147,13 @@ test.describe('product variant generation', () => {
         });
 
         // Only Small and Medium were created (Large was unchecked)
-        const variantLink = page.getByRole('button', { name: /E2E Variant Test Product Small/i });
+        const variantLink = page.getByRole('link', { name: /E2E Variant Test Product Small/i });
         await variantLink.scrollIntoViewIfNeeded();
         await expect(variantLink).toBeVisible({ timeout: 10_000 });
-        await expect(page.getByRole('button', { name: /E2E Variant Test Product Medium/i })).toBeVisible();
+        await expect(page.getByRole('link', { name: /E2E Variant Test Product Medium/i })).toBeVisible();
 
         // Large should NOT exist as a variant
-        await expect(page.getByRole('button', { name: /E2E Variant Test Product Large/i })).toHaveCount(0);
+        await expect(page.getByRole('link', { name: /E2E Variant Test Product Large/i })).toHaveCount(0);
 
         // The "Manage variants" link should be visible
         const manageLink = page.getByRole('button', { name: /Manage variants/i });
@@ -727,7 +727,7 @@ test.describe('variant option group label link', () => {
         // Click a variant that has options (Laptop variants have screen size + RAM)
         await page
             .locator('table')
-            .getByRole('button', { name: /Laptop/ })
+            .getByRole('link', { name: /Laptop/ })
             .first()
             .click();
         await expect(page).toHaveURL(/\/product-variants\/[^/]+$/);

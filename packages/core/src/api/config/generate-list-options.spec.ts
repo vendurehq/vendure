@@ -167,6 +167,36 @@ describe('generateListOptions()', () => {
         );
     });
 
+    it('includes Boolean fields in the sort parameter', () => {
+        const input = `
+                ${COMMON_TYPES}
+               type Query {
+                   people(options: PersonListOptions): PersonList
+               }
+
+               type Person {
+                   name: String!
+                   admin: Boolean!
+                   verified: Boolean
+                   tags: [String!]!
+               }
+
+               # Generated at runtime
+               input PersonListOptions
+           `;
+
+        const result = generateListOptions(buildSchema(input));
+
+        expect(printType(result.getType('PersonSortParameter')!)).toBe(
+            removeLeadingWhitespace(`
+                   input PersonSortParameter {
+                     name: SortOrder
+                     admin: SortOrder
+                     verified: SortOrder
+                   }`),
+        );
+    });
+
     it('creates the ListOptions interface and argument if not defined', () => {
         const input = `
                ${COMMON_TYPES}

@@ -101,7 +101,7 @@ test.describe('Issue #4388: Collection tree expanded state persists in URL', () 
         // Navigate directly to the collection detail — no expansion beforehand,
         // so no ?expanded= param will be in the URL when we return
         const parentRow = page.locator('tbody tr').filter({ has: page.getByText(PARENT_NAME) });
-        await parentRow.getByRole('button', { name: PARENT_NAME }).click();
+        await parentRow.locator('[data-slot="data-table-row-link"]', { hasText: PARENT_NAME }).click();
         await page.waitForURL(`/collections/${parentId}`, { timeout: 10_000 });
 
         // Navigate back — URL has no ?expanded= param
@@ -131,7 +131,7 @@ test.describe('Issue #4388: Collection tree expanded state persists in URL', () 
         await expect(page.getByText(CHILD_NAME, { exact: true })).toBeVisible({ timeout: 5_000 });
 
         // Navigate to the parent collection's detail page
-        await parentRow.getByRole('button', { name: PARENT_NAME }).click();
+        await parentRow.locator('[data-slot="data-table-row-link"]', { hasText: PARENT_NAME }).click();
         await page.waitForURL(`/collections/${parentId}`, { timeout: 10_000 });
         await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
 
@@ -546,20 +546,19 @@ test.describe('Collection tree toggles, search subtitles & detail breadcrumb', (
         await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
     });
 
-    // A top-level collection has no ancestors: its name shows in the breadcrumb, but
-    // the only collection-detail breadcrumb link is the current page itself. (Every
-    // crumb renders as a link; a nested collection would add one link per ancestor.)
+    // A top-level collection has no ancestors: its name shows in the breadcrumb as the
+    // current page (plain text, not a link), and no crumb links to a collection detail page.
+    // The "Collections" list link has href "/collections" (no trailing id) and is excluded
+    // by the trailing slash.
     test('top-level collection detail has no ancestor breadcrumb link', async ({ page }) => {
         await page.goto(`/collections/${parentId}`);
         await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
-        // The collection name is shown in the breadcrumb…
+        // The collection name is the current-page crumb…
         await expect(
-            page.locator('[data-slot="breadcrumb-link"]').filter({ hasText: PARENT_NAME }),
+            page.locator('[data-slot="breadcrumb-page"]').filter({ hasText: PARENT_NAME }),
         ).toBeVisible();
-        // …and the only collection-detail crumb link is the current page (no ancestor).
-        // The "Collections" list link has href "/collections" (no trailing id) and is
-        // excluded by the trailing slash.
-        await expect(page.locator('[data-slot="breadcrumb-link"][href^="/collections/"]')).toHaveCount(1);
+        // …and no crumb links to a collection detail page (no ancestor).
+        await expect(page.locator('[data-slot="breadcrumb-link"][href^="/collections/"]')).toHaveCount(0);
     });
 
     // The embedded contents table does not opt into saved views but keeps its own

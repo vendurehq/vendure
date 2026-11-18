@@ -50,7 +50,7 @@ export class BaseListPage {
 
     /** Click the first button in the data table matching `name` to navigate to its detail page. */
     async clickEntity(name: string) {
-        await this.dataTable.getByRole('button', { name }).first().click();
+        await this.dataTable.locator('[data-slot="data-table-row-link"]', { hasText: name }).first().click();
     }
 
     async clickNewButton() {

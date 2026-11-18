@@ -1090,6 +1090,33 @@ describe('ListQueryBuilder', () => {
             expect(testEntities.items.map((x: any) => x.label)).toEqual(['F', 'E', 'D', 'C', 'B', 'A']);
         });
 
+        // OSS-1125 — a list can be sorted by a Boolean field. false sorts before true on every database.
+        it('sort by boolean ASC', async () => {
+            const { testEntities } = await adminClient.query(GET_LIST_WITH_ACTIVE, {
+                options: {
+                    sort: {
+                        active: SortOrder.ASC,
+                    },
+                },
+            });
+            const items: Array<{ label: string; active: boolean }> = testEntities.items;
+            expect(items.map(x => x.active)).toEqual([false, false, false, true, true, true]);
+            expect(items.slice(0, 3).map(x => x.label).sort()).toEqual(['C', 'E', 'F']);
+        });
+
+        it('sort by boolean DESC', async () => {
+            const { testEntities } = await adminClient.query(GET_LIST_WITH_ACTIVE, {
+                options: {
+                    sort: {
+                        active: SortOrder.DESC,
+                    },
+                },
+            });
+            const items: Array<{ label: string; active: boolean }> = testEntities.items;
+            expect(items.map(x => x.active)).toEqual([true, true, true, false, false, false]);
+            expect(items.slice(0, 3).map(x => x.label).sort()).toEqual(['A', 'B', 'D']);
+        });
+
         it('sort by translated field en', async () => {
             const { testEntities } = await adminClient.query(GET_LIST, {
                 options: {
@@ -1907,6 +1934,19 @@ const GET_LIST = gql`
                 label
                 name
                 date
+            }
+        }
+    }
+`;
+
+const GET_LIST_WITH_ACTIVE = gql`
+    query GetTestEntitiesWithActive($options: TestEntityListOptions) {
+        testEntities(options: $options) {
+            totalItems
+            items {
+                id
+                label
+                active
             }
         }
     }

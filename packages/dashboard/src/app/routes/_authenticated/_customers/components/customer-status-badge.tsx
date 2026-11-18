@@ -7,6 +7,11 @@ export type CustomerStatus = 'guest' | 'registered' | 'verified';
 
 export interface CustomerStatusBadgeProps {
     user?: { verified: boolean } | null;
+    /**
+     * `'row'` shows Verified, the normal state of a list row, only while the row is hovered or
+     * focused. Registered and Unverified always show.
+     */
+    reveal?: 'always' | 'row';
 }
 
 // Customer account status. `verified` is a healthy terminal state (success);
@@ -18,12 +23,13 @@ const customerStatusDictionary = defineStateEntries<CustomerStatus>({
     guest: { tone: 'neutral', defaultLabel: 'Unverified' },
 });
 
-export function CustomerStatusBadge({ user }: Readonly<CustomerStatusBadgeProps>) {
+export function CustomerStatusBadge({ user, reveal = 'always' }: Readonly<CustomerStatusBadgeProps>) {
     const status: CustomerStatus = user ? (user.verified ? 'verified' : 'registered') : 'guest';
     return (
         <StatusBadge
             tone={customerStatusDictionary.toneFor(status)}
             icon={status === 'guest' ? <BadgeX /> : <BadgeCheck />}
+            reveal={status === 'verified' ? reveal : 'always'}
         >
             {status === 'verified' ? (
                 <Trans>Verified</Trans>

@@ -62,7 +62,7 @@ function renderColumnCell(
 }
 
 function renderCell(column: { cell?: any }, context: CellContext<any, any> = cellContext): string {
-    return renderToStaticMarkup(<>{flexRender(column.cell, context)}</>);
+    return renderToStaticMarkup(<I18nProvider i18n={i18n}>{flexRender(column.cell, context)}</I18nProvider>);
 }
 
 function generateColumn(
@@ -146,7 +146,11 @@ describe('useGeneratedColumns display component precedence', () => {
     });
 
     it('renders the default display component when a column has neither a core cell nor a registration', () => {
-        expect(renderColumnCell('test-page-default', 'sku')).toBe(String(PRICE));
+        // The default display of an identifier field (sku) is a row-reveal copy chip.
+        const markup = renderColumnCell('test-page-default', 'sku');
+        expect(markup).toContain('data-slot="id-chip"');
+        expect(markup).toContain('data-reveal="row"');
+        expect(markup).toContain(`>${PRICE}</span>`);
     });
 
     it('applies a display component registered through defineDashboardExtension', () => {
@@ -452,7 +456,11 @@ describe('useGeneratedColumns mounted table', () => {
         insideBlock.render();
         noRegistryKey.render();
 
-        expect(insideBlock.container.innerHTML).toBe(noRegistryKey.container.innerHTML);
+        // The sku column renders a copy chip, whose React-generated ids differ between two mounts.
+        const withoutIds = (html: string) => html.replace(/ (id|aria-[a-z]+)="[^"]*"/g, '');
+        expect(withoutIds(insideBlock.container.innerHTML)).toBe(
+            withoutIds(noRegistryKey.container.innerHTML),
+        );
         expect(insideBlock.container.textContent).toBe('SKU-1truefalse0text');
         insideBlock.unmount();
         noRegistryKey.unmount();

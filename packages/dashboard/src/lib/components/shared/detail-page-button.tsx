@@ -1,13 +1,19 @@
+import { DataTableContext } from '@/vdb/components/data-table/data-table-context.js';
 import { Link } from '@tanstack/react-router';
+import { DataTableRowLink } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import { ChevronRight } from 'lucide-react';
+import { useContext } from 'react';
 import { Button } from '../ui/button.js';
 
 /**
  * @description
  * DetailPageButton is a reusable navigation component designed to provide consistent UX
- * across list views when linking to detail pages. It renders as a ghost button with
- * a chevron indicator, making it easy for users to identify clickable links that
- * navigate to detail views.
+ * across list views when linking to detail pages.
+ *
+ * In a data table row it is the row link: a click on any point of the row opens the detail
+ * page, and a chevron shows at the end of the row while it is hovered or holds keyboard focus.
+ * Buttons, links, menus and copy chips in the row keep their own click. The label is the
+ * accessible name of the row. Outside a data table it renders as a ghost button with a chevron.
  *
  * @example
  * ```tsx
@@ -45,13 +51,32 @@ export function DetailPageButton({
     search?: Record<string, string>;
     className?: string;
 }>) {
+    const inDataTable = useContext(DataTableContext) !== undefined;
     if (!id && !href) {
-        return <span>{label}</span>;
+        return <span className={className}>{label}</span>;
+    }
+    if (inDataTable) {
+        if (disabled) {
+            return <span className={className}>{label}</span>;
+        }
+        return (
+            <DataTableRowLink
+                render={<Link to={href ?? `./${id}`} search={search ?? {}} preload={false} />}
+                className={className}
+            >
+                {label}
+            </DataTableRowLink>
+        );
     }
     return (
-        <Button render={<Link to={href ?? `./${id}`} search={search ?? {}} preload={false} />} variant="ghost" disabled={disabled} className={className}>
-                {label}
-                {!disabled && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+        <Button
+            render={<Link to={href ?? `./${id}`} search={search ?? {}} preload={false} />}
+            variant="ghost"
+            disabled={disabled}
+            className={className}
+        >
+            {label}
+            {!disabled && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
         </Button>
     );
 }
