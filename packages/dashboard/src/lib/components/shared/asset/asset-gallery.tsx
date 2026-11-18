@@ -430,7 +430,7 @@ export function AssetGallery({
 
     return (
         <>
-            <div className={`relative flex flex-col w-full ${fixedHeight ? 'h-[600px]' : 'h-full'} ${className}`}>
+            <div className={`relative isolate flex flex-col w-full ${fixedHeight ? 'h-[600px]' : 'h-full'} ${className}`}>
             {showHeader && (
                 <div className="space-y-4 mb-4 flex-shrink-0">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
