@@ -250,9 +250,9 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                             <Trans>Refunds ({payment.refunds.length})</Trans>
                             <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[panel-open]:rotate-180" />
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-3">
+                        <CollapsibleContent className="mt-2 divide-y">
                             {payment.refunds.map(refund => (
-                                <div key={refund.id} className="p-3 rounded-md bg-muted/50">
+                                <div key={refund.id} className="py-3 first:pt-1 last:pb-0">
                                     <div className="space-y-1">
                                         <LabeledData label={<Trans>Refund ID</Trans>} value={refund.id} />
                                         <LabeledData
@@ -303,8 +303,9 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                                         )}
                                     </div>
                                     {refund.state === 'Pending' && (
-                                        <div className="mt-3 pt-3 border-t">
+                                        <div className="mt-3">
                                             <Button
+                                                variant="outline"
                                                 size="sm"
                                                 onClick={() => handleSettleRefund(refund.id)}
                                                 disabled={settleRefundMutation.isPending}
