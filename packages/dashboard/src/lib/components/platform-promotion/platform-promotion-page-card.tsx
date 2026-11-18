@@ -89,7 +89,7 @@ export function PlatformPromotionPageCard({
     const [dialogOpen, setDialogOpen] = useState(false);
     const entries = card.capabilities.map(promotion => ({ label: promotion.title, promotion }));
     return (
-        <Card className="w-full animate-in fade-in duration-300">
+        <Card className="w-full">
             <CardContent>
                 <Collapsible data-testid="platform-promotion-page-card">
                     <CollapsibleTrigger className="group/promo flex w-full items-center gap-2 text-start text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">

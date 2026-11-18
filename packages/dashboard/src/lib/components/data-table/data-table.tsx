@@ -768,7 +768,7 @@ export function DataTable<TData>({
                             // the full visible width and render custom content.
                             if (tableMeta?.isUtilityRow?.(row) && tableMeta.renderUtilityRow) {
                                 return (
-                                    <TableRow className="animate-in fade-in duration-100">
+                                    <TableRow>
                                         <TableCell colSpan={columnCount}>
                                             {tableMeta.renderUtilityRow(row)}
                                         </TableCell>
