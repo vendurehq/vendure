@@ -35,6 +35,10 @@ msgstr "Sélectionner des éléments"
 msgid "View changes"
 msgstr "Voir les modifications"
 
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "The countries stay available in other zones."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Tracking code"
 msgstr "Code de suivi"
@@ -149,10 +153,9 @@ msgstr "Commande traitée avec succès"
 msgid "Inherit from variant"
 msgstr ""
 
-#. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
-msgid "Are you sure you want to delete {0} {entityName}?"
-msgstr "Êtes-vous sûr de vouloir supprimer {0} {entityName} ?"
+#~ msgid "Are you sure you want to delete {0} {entityName}?"
+#~ msgstr "Êtes-vous sûr de vouloir supprimer {0} {entityName} ?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
@@ -176,6 +179,10 @@ msgstr "Supprimé avec succès"
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 #~ msgid "Remove from current channel"
 #~ msgstr "Supprimer du canal actuel"
+
+#: src/app/common/delete-bulk-action.tsx
+msgid "Delete {count} {entityName}?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 msgid "Deleted {selectionLength} assets"
@@ -432,6 +439,10 @@ msgstr ""
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "Échec de la suppression de {failed} {entityName} : {allErrors}"
 
+#: src/lib/components/data-table/data-table-filter-dialog.tsx
+msgid "Filter by {columnName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully updated product"
 msgstr "Produit mis à jour avec succès"
@@ -517,9 +528,17 @@ msgstr "Voir les détails"
 msgid "Successfully created customer"
 msgstr "Client créé avec succès"
 
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job?} other {Cancel {cancellableCount} jobs?}}"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-views-tabs.tsx
 msgid "More"
 msgstr "Plus"
+
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "Global"
+msgstr ""
 
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
@@ -852,12 +871,16 @@ msgid "Fulfillment transitioned"
 msgstr "Exécution transférée"
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
-msgid "Are you sure you want to delete {selectionLength} assets?"
-msgstr "Êtes-vous sûr de vouloir supprimer {selectionLength} ressources ?"
+#~ msgid "Are you sure you want to delete {selectionLength} assets?"
+#~ msgstr "Êtes-vous sûr de vouloir supprimer {selectionLength} ressources ?"
 
 #: src/lib/components/login/login-form.tsx
 msgid "Sign in"
 msgstr "Se connecter"
+
+#: src/lib/components/shared/table-cell/order-table-cell-components.tsx
+msgid "Order {code}"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "List view"
@@ -1006,6 +1029,7 @@ msgstr "La rotation de cette clé invalidera immédiatement la clé actuelle. To
 msgid "The data that has been passed to the job"
 msgstr "Les données qui ont été transmises au travail"
 
+#: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "Copied"
@@ -1082,6 +1106,10 @@ msgstr "Êtes-vous sûr de vouloir supprimer ce brouillon de commande ?"
 msgid "Fulfillment created"
 msgstr "Exécution créée"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Failed"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
 #~ msgid "Found {0} eligible shipping method{1}"
 #~ msgstr "Trouvé {0} méthode(s) d'expédition éligible(s)"
@@ -1137,6 +1165,10 @@ msgstr "Ligne de commande supprimée"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "User"
+msgstr ""
+
 #: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Same as in <0/>"
 msgstr ""
@@ -1150,6 +1182,7 @@ msgid "Key"
 msgstr "Clé"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
+#: src/lib/components/data-table/data-table-bulk-action-item.tsx
 #: src/lib/components/shared/navigation-confirmation.tsx
 msgid "Confirm"
 msgstr "Confirmer"
@@ -1240,6 +1273,10 @@ msgstr "Actualiser les données"
 #: src/app/routes/_authenticated/index.tsx
 msgid "Add widget"
 msgstr "Ajouter un widget"
+
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "Custom"
+msgstr ""
 
 #. placeholder {0}: entityIds.length
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
@@ -1369,6 +1406,7 @@ msgid "Select what to do with remaining stock"
 msgstr "Choisissez ce qu'il advient du stock restant"
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
+#: src/lib/components/data-table/data-table-settings-menu.tsx
 msgid "Table settings"
 msgstr "Paramètres du tableau"
 
@@ -1449,6 +1487,10 @@ msgstr "Télécharger en tant que fichier .env"
 msgid "When enabled, a promotion is available in the shop"
 msgstr "Lorsqu'activée, une promotion est disponible dans la boutique"
 
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+msgid "Go to the pages of all selected jobs first"
+msgstr ""
+
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 #~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
 #~ msgstr "Lorsque suivi, les niveaux de stock des variantes de produit seront automatiquement ajustés lors de la vente. Ce paramètre peut être remplacé par les variantes de produit individuelles."
@@ -1481,10 +1523,9 @@ msgstr "API Keys"
 msgid "Search {name}..."
 msgstr "Rechercher {name}..."
 
-#. placeholder {0}: selection.length
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
-msgstr "{0, plural, one {Êtes-vous sûr de vouloir supprimer # pays de cette zone ?} other {Êtes-vous sûr de vouloir supprimer # pays de cette zone ?}}"
+#~ msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+#~ msgstr "{0, plural, one {Êtes-vous sûr de vouloir supprimer # pays de cette zone ?} other {Êtes-vous sûr de vouloir supprimer # pays de cette zone ?}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1927,7 +1968,7 @@ msgstr "Retour"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} de plus"
 
-#. placeholder {0}: selection.length
+#. placeholder {0}: selectedRowIds.length
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
 msgstr "{0, plural, one {# pays supprimé de la zone} other {# pays supprimés de la zone}}"
@@ -1937,7 +1978,9 @@ msgid "Use as the default billing address"
 msgstr "Utiliser comme adresse de facturation par défaut"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/common/delete-bulk-action.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
@@ -2134,7 +2177,7 @@ msgstr "Insérer un tableau de {row} par {col}"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
-#: src/lib/components/data-table/use-generated-columns.tsx
+#: src/lib/components/data-table/data-table-filter-dialog.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -2472,6 +2515,7 @@ msgid "No results"
 msgstr "Aucun résultat"
 
 #: src/lib/components/data-table/data-table-view-options.tsx
+#: src/lib/components/data-table/data-table-view-options.tsx
 msgid "Column settings"
 msgstr "Paramètres des colonnes"
 
@@ -2515,6 +2559,7 @@ msgid "Remaining stock"
 msgstr "Stock restant"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "Remove from zone"
 msgstr "Supprimer de la zone"
 
@@ -2547,8 +2592,8 @@ msgid "Successfully updated stock location"
 msgstr "Emplacement de stock mis à jour avec succès"
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
-msgid "Confirm Action"
-msgstr "Confirmer l'action"
+#~ msgid "Confirm Action"
+#~ msgstr "Confirmer l'action"
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 msgid "Successfully updated country"
@@ -3175,7 +3220,6 @@ msgstr "Enregistrer la vue"
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
-#: src/lib/components/data-table/data-table-bulk-actions.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
@@ -3202,6 +3246,10 @@ msgstr "Valeurs"
 msgid "Customer set for order"
 msgstr "Client défini pour la commande"
 
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "Delete this item?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets.tsx
@@ -3212,8 +3260,8 @@ msgid "Facets"
 msgstr "Facettes"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
-msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
-msgstr "{count, plural, one {Êtes-vous sûr de vouloir retirer {count} client de ce groupe ?} other {Êtes-vous sûr de vouloir retirer {count} clients de ce groupe ?}}"
+#~ msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+#~ msgstr "{count, plural, one {Êtes-vous sûr de vouloir retirer {count} client de ce groupe ?} other {Êtes-vous sûr de vouloir retirer {count} clients de ce groupe ?}}"
 
 #: src/app/routes/_authenticated/_countries/countries.tsx
 msgid "Search countries..."
@@ -3311,6 +3359,11 @@ msgstr "Échec de la mise à jour de l'option de produit"
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 msgid "Coupon code"
 msgstr "Code coupon"
+
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+msgid "Cancel jobs"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer verified"
@@ -3526,10 +3579,12 @@ msgstr "Ajouter des valeurs de facette"
 msgid "after"
 msgstr "après"
 
+#: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Channel"
 msgstr "Canal"
 
+#: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 msgid "Copy"
 msgstr "Copier"
@@ -3775,6 +3830,10 @@ msgstr "Hier"
 msgid "Adding {0} surcharge(s)"
 msgstr "Ajout de {0} supplément(s)"
 
+#: src/lib/components/data-table/data-table-filter-dialog.tsx
+msgid "Set filter criteria for the {columnName} column"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 #~ msgid "Link href"
 #~ msgstr "Lien href"
@@ -3823,6 +3882,10 @@ msgstr "Retour"
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View renamed successfully"
 msgstr "Vue renommée avec succès"
+
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "Delete \"{name}\"?"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Bullet list"
@@ -3991,6 +4054,10 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
+#: src/lib/components/data-table/data-table-bulk-action-item.tsx
+msgid "Confirm action"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header column"
 msgstr "Basculer la colonne d'en-tête"
@@ -4061,8 +4128,8 @@ msgid "Failed to create tax category"
 msgstr "Échec de la création de la catégorie de taxe"
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
-msgid "Set filter criteria for the {columnId} column"
-msgstr "Définir les critères de filtre pour la colonne {columnId}"
+#~ msgid "Set filter criteria for the {columnId} column"
+#~ msgstr "Définir les critères de filtre pour la colonne {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
@@ -4089,8 +4156,8 @@ msgid "View"
 msgstr ""
 
 #: src/lib/components/data-table/use-generated-columns.tsx
-msgid "Confirm deletion"
-msgstr "Confirmer la suppression"
+#~ msgid "Confirm deletion"
+#~ msgstr "Confirmer la suppression"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 msgid "Failed to modify order"
@@ -4115,6 +4182,10 @@ msgstr "Confirmer le nouveau mot de passe"
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Select display language"
 msgstr "Sélectionner la langue d'affichage"
+
+#: src/app/common/delete-bulk-action.tsx
+msgid "Failed to delete {count} {entityName}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx
 msgid "Select Payment Handler"
@@ -4265,6 +4336,10 @@ msgstr "Rechercher des valeurs de facettes..."
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Note"
 msgstr "Note"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
+msgid "{count, plural, one {Remove {count} customer from this group?} other {Remove {count} customers from this group?}}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
@@ -4550,6 +4625,7 @@ msgid "Duplicate {0}s"
 msgstr "Dupliquer {0}s"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "Remove from group"
 msgstr "Retirer du groupe"
 
@@ -4607,8 +4683,8 @@ msgstr ""
 #~ msgstr "Créé"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Not Running"
-msgstr "N'est pas en cours d'exécution"
+#~ msgid "Not Running"
+#~ msgstr "N'est pas en cours d'exécution"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
@@ -4687,10 +4763,15 @@ msgstr "supérieur à"
 msgid "Metrics Widget"
 msgstr "Widget Métriques"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Retrying"
+msgstr ""
+
 #: src/lib/components/shared/currency-selector.tsx
 msgid "Search currencies..."
 msgstr "Rechercher des devises..."
 
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 msgid "Remove from channel"
 msgstr "Retirer du canal"
@@ -5137,6 +5218,13 @@ msgstr "Filtrer"
 msgid "Failed to update administrator"
 msgstr "Échec de la mise à jour de l'administrateur"
 
+#: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "This cannot be undone."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "No payment or destination was selected"
 msgstr ""
@@ -5255,6 +5343,10 @@ msgstr "Produit avec options"
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 msgid "Showing all {0} results"
 msgstr "Affichage de tous les {0} résultats"
+
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+msgid "Delete {selectionLength} assets?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
@@ -5720,6 +5812,10 @@ msgstr "Définit le niveau de stock à partir duquel cette variante est considé
 msgid "Search promotions..."
 msgstr "Rechercher des promotions..."
 
+#: src/lib/components/data-table/data-table.tsx
+msgid "Select all on this page"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "Rotate Key"
@@ -5870,6 +5966,10 @@ msgstr "Code de coupon retiré de la commande"
 msgid "Never"
 msgstr "Jamais"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Completed"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "Échec de la mise à jour de la valeur de facette"
@@ -5958,6 +6058,10 @@ msgstr "Ajouter un code coupon"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Code de coupon défini pour la commande"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
+msgid "The customers stay in the shop. Only the group membership is removed."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx
 msgid "Custom Fields"
@@ -6052,6 +6156,7 @@ msgstr "Détails du paiement"
 msgid "Rebuild search index"
 msgstr "Reconstruire l'index de recherche"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
@@ -6151,6 +6256,10 @@ msgstr "État"
 msgid "Do not track"
 msgstr "Ne pas suivre"
 
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
+msgid "Remove {selectionLength} {entityType} from this channel?"
+msgstr ""
+
 #. placeholder {0}: entry.data.fulfillmentId
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "Fulfillment #{0} created"
@@ -6188,11 +6297,9 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
-#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
 #: src/lib/components/shared/channel-availability.tsx
@@ -6221,8 +6328,8 @@ msgstr ""
 #~ msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
-msgid "Filter by {columnId}"
-msgstr "Filtrer par {columnId}"
+#~ msgid "Filter by {columnId}"
+#~ msgstr "Filtrer par {columnId}"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "ID"
@@ -6266,6 +6373,10 @@ msgstr "Variante supprimée avec succès"
 msgid "Sales"
 msgstr "Ventes"
 
+#: src/lib/components/data-table/data-table-bulk-actions.tsx
+msgid "{selectedCount} selected"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Select a destination collection"
 msgstr "Sélectionner une collection de destination"
@@ -6284,8 +6395,8 @@ msgid "Use {sourceExtensionLabel} or remove the extension from the display name.
 msgstr ""
 
 #: src/lib/components/data-table/use-generated-columns.tsx
-msgid "Are you sure you want to delete this item? This action cannot be undone."
-msgstr "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action ne peut pas être annulée."
+#~ msgid "Are you sure you want to delete this item? This action cannot be undone."
+#~ msgstr "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action ne peut pas être annulée."
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Variants"
@@ -6322,6 +6433,10 @@ msgstr "Méthodes d'expédition"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} remboursable)"
+
+#: src/app/routes/_authenticated/_collections/components/collection-bulk-actions.tsx
+msgid "Go to the pages of all selected collections first"
+msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 msgid "Identifier"
@@ -6381,10 +6496,9 @@ msgstr "Réinitialisation de mot de passe demandée"
 #~ msgid "e.g. Small"
 #~ msgstr "ex. Petit"
 
-#. placeholder {0}: selection.length
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
-msgid "Are you sure you want to remove {0} {entityType} from the current channel?"
-msgstr "Êtes-vous sûr de vouloir supprimer {0} {entityType} du canal actuel ?"
+#~ msgid "Are you sure you want to remove {0} {entityType} from the current channel?"
+#~ msgstr "Êtes-vous sûr de vouloir supprimer {0} {entityType} du canal actuel ?"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Add tags..."
@@ -6703,6 +6817,10 @@ msgstr "Ajouter une variante de produit"
 msgid "Type and press Enter or comma to add..."
 msgstr "Saisissez et appuyez sur Entrée ou virgule pour ajouter..."
 
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "User & Channel"
+msgstr ""
+
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx
 msgid "Edit Note"
 msgstr "Modifier la note"
@@ -6760,8 +6878,11 @@ msgstr "Langue par défaut"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
+#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/hooks/use-channel-availability-list.tsx
 #: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-dynamic-translations.ts
 msgid "Status"
 msgstr "Statut"
 
@@ -6777,6 +6898,14 @@ msgstr "Aucune option trouvée"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Upload assets"
+msgstr ""
+
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+msgid "Failed to delete {selectionLength} assets"
+msgstr ""
+
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Pending"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -6822,6 +6951,11 @@ msgstr "Valeur d'option ajoutée avec succès"
 msgid "Collection moved to new parent"
 msgstr "Collection déplacée vers le nouveau parent"
 
+#. placeholder {0}: selectedRowIds.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Remove # country from this zone?} other {Remove # countries from this zone?}}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 msgid "Option group removed"
@@ -6830,6 +6964,10 @@ msgstr "Groupe d'options supprimé"
 #: src/lib/components/login/login-form.tsx
 msgid "Forgot password?"
 msgstr "Mot de passe oublié ?"
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "Clear selection on this page"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx
 msgid "Transition to selected state"
@@ -7092,6 +7230,10 @@ msgstr "inférieur à"
 msgid "Role Editor"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Cancelled"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "La variante n'a pas pu être ajoutée. Assurez-vous que le produit parent est activé."
@@ -7147,12 +7289,16 @@ msgstr "Test des méthodes d'expédition..."
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
-msgid "{label}"
-msgstr "{label}"
+#~ msgid "{label}"
+#~ msgstr "{label}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Failed to create shipping method"
 msgstr "Échec de la création du mode de livraison"
+
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
+msgid "They stay in the other channels they are assigned to."
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "New registrations in the selected period"
@@ -7186,6 +7332,10 @@ msgstr "Aucune action disponible"
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-colors-dialog.tsx
 msgid "Customize channel colors"
+msgstr ""
+
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
+msgid "Failed to remove {selectionLength} {entityType} from channel: {onErrorMessage}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -7286,8 +7436,8 @@ msgid "Hidden in this channel"
 msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
-msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr "{cancellableCount, plural, one {Êtes-vous sûr de vouloir annuler {cancellableCount} tâche ? Cette action est irréversible.} other {Êtes-vous sûr de vouloir annuler {cancellableCount} tâches ? Cette action est irréversible.}}"
+#~ msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
+#~ msgstr "{cancellableCount, plural, one {Êtes-vous sûr de vouloir annuler {cancellableCount} tâche ? Cette action est irréversible.} other {Êtes-vous sûr de vouloir annuler {cancellableCount} tâches ? Cette action est irréversible.}}"
 
 #: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx
 msgid "Go to option group"
@@ -7429,7 +7579,6 @@ msgstr "Nouvelle facette"
 #~ msgid "Assign {entityType} to channel"
 #~ msgstr "Assigner {entityType} au canal"
 
-#: src/lib/components/data-table/data-table-bulk-action-item.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
 msgid "Continue"
 msgstr "Continuer"
@@ -7463,6 +7612,10 @@ msgstr "Échec de la mise à jour de la facette"
 #: src/lib/hooks/use-widget-filters.ts
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters doit être utilisé dans un WidgetFiltersProvider"
+
+#: src/app/common/delete-bulk-action.tsx
+msgid "Delete \"{singleName}\"?"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-input.tsx
 msgid "Edit as form"
@@ -7723,8 +7876,8 @@ msgstr "Nouveau groupe d'options"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "No result yet"
-msgstr "Aucun résultat pour l'instant"
+#~ msgid "No result yet"
+#~ msgstr "Aucun résultat pour l'instant"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment settled"

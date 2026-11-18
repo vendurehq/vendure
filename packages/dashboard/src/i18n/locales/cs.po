@@ -35,6 +35,10 @@ msgstr "Vybrat položky"
 msgid "View changes"
 msgstr "Zobrazit změny"
 
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "The countries stay available in other zones."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Tracking code"
 msgstr "Sledovací kód"
@@ -149,10 +153,9 @@ msgstr "Objednávka úspěšně expedována"
 msgid "Inherit from variant"
 msgstr ""
 
-#. placeholder {0}: selection.length
 #: src/app/common/delete-bulk-action.tsx
-msgid "Are you sure you want to delete {0} {entityName}?"
-msgstr "Opravdu chcete smazat {0} {entityName}?"
+#~ msgid "Are you sure you want to delete {0} {entityName}?"
+#~ msgstr "Opravdu chcete smazat {0} {entityName}?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
@@ -176,6 +179,10 @@ msgstr "Úspěšně smazáno"
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 #~ msgid "Remove from current channel"
 #~ msgstr "Odebrat z aktuálního kanálu"
+
+#: src/app/common/delete-bulk-action.tsx
+msgid "Delete {count} {entityName}?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 msgid "Deleted {selectionLength} assets"
@@ -432,6 +439,10 @@ msgstr ""
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "Nepodařilo se smazat {failed} {entityName}: {allErrors}"
 
+#: src/lib/components/data-table/data-table-filter-dialog.tsx
+msgid "Filter by {columnName}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Successfully updated product"
 msgstr "Produkt úspěšně aktualizován"
@@ -517,9 +528,17 @@ msgstr "Zobrazit podrobnosti"
 msgid "Successfully created customer"
 msgstr "Zákazník úspěšně vytvořen"
 
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job?} other {Cancel {cancellableCount} jobs?}}"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-views-tabs.tsx
 msgid "More"
 msgstr "Více"
+
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "Global"
+msgstr ""
 
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
@@ -852,12 +871,16 @@ msgid "Fulfillment transitioned"
 msgstr "Expedice převedena"
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
-msgid "Are you sure you want to delete {selectionLength} assets?"
-msgstr "Opravdu chcete smazat {selectionLength} souborů?"
+#~ msgid "Are you sure you want to delete {selectionLength} assets?"
+#~ msgstr "Opravdu chcete smazat {selectionLength} souborů?"
 
 #: src/lib/components/login/login-form.tsx
 msgid "Sign in"
 msgstr "Přihlásit se"
+
+#: src/lib/components/shared/table-cell/order-table-cell-components.tsx
+msgid "Order {code}"
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "List view"
@@ -1006,6 +1029,7 @@ msgstr "Rotace tohoto klíče okamžitě zneplatní aktuální klíč. Všechny 
 msgid "The data that has been passed to the job"
 msgstr "Data předaná úloze"
 
+#: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "Copied"
@@ -1082,6 +1106,10 @@ msgstr "Opravdu chcete smazat tento koncept objednávky?"
 msgid "Fulfillment created"
 msgstr "Expedice vytvořena"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Failed"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
 #~ msgid "Found {0} eligible shipping method{1}"
 #~ msgstr "Nalezeno {0} vhodných způsobů dopravy"
@@ -1137,6 +1165,10 @@ msgstr "Řádek objednávky odebrán"
 msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "User"
+msgstr ""
+
 #: src/lib/hooks/use-channel-availability-option.tsx
 msgid "Same as in <0/>"
 msgstr ""
@@ -1150,6 +1182,7 @@ msgid "Key"
 msgstr "Klíč"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
+#: src/lib/components/data-table/data-table-bulk-action-item.tsx
 #: src/lib/components/shared/navigation-confirmation.tsx
 msgid "Confirm"
 msgstr "Potvrdit"
@@ -1240,6 +1273,10 @@ msgstr "Obnovit data"
 #: src/app/routes/_authenticated/index.tsx
 msgid "Add widget"
 msgstr "Přidat widget"
+
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "Custom"
+msgstr ""
 
 #. placeholder {0}: entityIds.length
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
@@ -1369,6 +1406,7 @@ msgid "Select what to do with remaining stock"
 msgstr "Zvolte, co se má stát se zbývajícími zásobami"
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
+#: src/lib/components/data-table/data-table-settings-menu.tsx
 msgid "Table settings"
 msgstr "Nastavení tabulky"
 
@@ -1449,6 +1487,10 @@ msgstr "Stáhnout jako soubor .env"
 msgid "When enabled, a promotion is available in the shop"
 msgstr "Když je povoleno, akce je dostupná v obchodě"
 
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+msgid "Go to the pages of all selected jobs first"
+msgstr ""
+
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 #~ msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
 #~ msgstr "Když je sledování povoleno, skladové úrovně variant produktů se automaticky upraví při prodeji. Toto nastavení může být přepsáno jednotlivými variantami produktů."
@@ -1481,10 +1523,9 @@ msgstr "API Keys"
 msgid "Search {name}..."
 msgstr "Hledat {name}..."
 
-#. placeholder {0}: selection.length
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
-msgstr "{0, plural, one {Opravdu chcete odebrat # zemi z této zóny?} few {Opravdu chcete odebrat # země z této zóny?} other {Opravdu chcete odebrat # zemí z této zóny?}}"
+#~ msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+#~ msgstr "{0, plural, one {Opravdu chcete odebrat # zemi z této zóny?} few {Opravdu chcete odebrat # země z této zóny?} other {Opravdu chcete odebrat # zemí z této zóny?}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1927,7 +1968,7 @@ msgstr "Vrátit se zpět"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} dalších"
 
-#. placeholder {0}: selection.length
+#. placeholder {0}: selectedRowIds.length
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
 msgstr "{0, plural, one {Odebrána # země ze zóny} few {Odebrány # země ze zóny} other {Odebráno # zemí ze zóny}}"
@@ -1937,7 +1978,9 @@ msgid "Use as the default billing address"
 msgstr "Použít jako výchozí fakturační adresu"
 
 #: src/app/common/delete-bulk-action.tsx
+#: src/app/common/delete-bulk-action.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
@@ -2134,7 +2177,7 @@ msgstr "Vložit tabulku {row} × {col}"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
-#: src/lib/components/data-table/use-generated-columns.tsx
+#: src/lib/components/data-table/data-table-filter-dialog.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -2472,6 +2515,7 @@ msgid "No results"
 msgstr "Žádné výsledky"
 
 #: src/lib/components/data-table/data-table-view-options.tsx
+#: src/lib/components/data-table/data-table-view-options.tsx
 msgid "Column settings"
 msgstr "Nastavení sloupců"
 
@@ -2515,6 +2559,7 @@ msgid "Remaining stock"
 msgstr "Zbývající zásoby"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "Remove from zone"
 msgstr "Odebrat ze zóny"
 
@@ -2547,8 +2592,8 @@ msgid "Successfully updated stock location"
 msgstr "Sklad úspěšně aktualizován"
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
-msgid "Confirm Action"
-msgstr "Potvrdit akci"
+#~ msgid "Confirm Action"
+#~ msgstr "Potvrdit akci"
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 msgid "Successfully updated country"
@@ -3175,7 +3220,6 @@ msgstr "Uložit zobrazení"
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
-#: src/lib/components/data-table/data-table-bulk-actions.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
@@ -3202,6 +3246,10 @@ msgstr "Hodnoty"
 msgid "Customer set for order"
 msgstr "Zákazník nastaven pro objednávku"
 
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "Delete this item?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/app/routes/_authenticated/_facets/facets.tsx
@@ -3212,8 +3260,8 @@ msgid "Facets"
 msgstr "Vlastnosti"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
-msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
-msgstr "{count, plural, one {Opravdu chcete odebrat {count} zákazníka z této skupiny?} few {Opravdu chcete odebrat {count} zákazníky z této skupiny?} other {Opravdu chcete odebrat {count} zákazníků z této skupiny?}}"
+#~ msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+#~ msgstr "{count, plural, one {Opravdu chcete odebrat {count} zákazníka z této skupiny?} few {Opravdu chcete odebrat {count} zákazníky z této skupiny?} other {Opravdu chcete odebrat {count} zákazníků z této skupiny?}}"
 
 #: src/app/routes/_authenticated/_countries/countries.tsx
 msgid "Search countries..."
@@ -3311,6 +3359,11 @@ msgstr "Nepodařilo se aktualizovat možnost produktu"
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 msgid "Coupon code"
 msgstr "Kód kupónu"
+
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+msgid "Cancel jobs"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer verified"
@@ -3526,10 +3579,12 @@ msgstr "Přidat hodnoty vlastností"
 msgid "after"
 msgstr "po"
 
+#: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Channel"
 msgstr "Kanál"
 
+#: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 msgid "Copy"
 msgstr "Kopírovat"
@@ -3775,6 +3830,10 @@ msgstr "Včera"
 msgid "Adding {0} surcharge(s)"
 msgstr "Přidávání {0} příplatků"
 
+#: src/lib/components/data-table/data-table-filter-dialog.tsx
+msgid "Set filter criteria for the {columnName} column"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 #~ msgid "Link href"
 #~ msgstr "URL odkazu"
@@ -3823,6 +3882,10 @@ msgstr "Zpět"
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View renamed successfully"
 msgstr "Pohled úspěšně přejmenován"
+
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "Delete \"{name}\"?"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Bullet list"
@@ -3991,6 +4054,10 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
+#: src/lib/components/data-table/data-table-bulk-action-item.tsx
+msgid "Confirm action"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header column"
 msgstr "Přepnout sloupec hlavičky"
@@ -4061,8 +4128,8 @@ msgid "Failed to create tax category"
 msgstr "Nepodařilo se vytvořit daňovou kategorii"
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
-msgid "Set filter criteria for the {columnId} column"
-msgstr "Nastavit kritéria filtru pro sloupec {columnId}"
+#~ msgid "Set filter criteria for the {columnId} column"
+#~ msgstr "Nastavit kritéria filtru pro sloupec {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
@@ -4089,8 +4156,8 @@ msgid "View"
 msgstr ""
 
 #: src/lib/components/data-table/use-generated-columns.tsx
-msgid "Confirm deletion"
-msgstr "Potvrdit smazání"
+#~ msgid "Confirm deletion"
+#~ msgstr "Potvrdit smazání"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 msgid "Failed to modify order"
@@ -4115,6 +4182,10 @@ msgstr "Potvrďte nové heslo"
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Select display language"
 msgstr "Vyberte jazyk rozhraní"
+
+#: src/app/common/delete-bulk-action.tsx
+msgid "Failed to delete {count} {entityName}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx
 msgid "Select Payment Handler"
@@ -4265,6 +4336,10 @@ msgstr "Hledat hodnoty faset..."
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Note"
 msgstr "Poznámka"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
+msgid "{count, plural, one {Remove {count} customer from this group?} other {Remove {count} customers from this group?}}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
@@ -4550,6 +4625,7 @@ msgid "Duplicate {0}s"
 msgstr "Duplikovat {0}"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "Remove from group"
 msgstr "Odebrat ze skupiny"
 
@@ -4607,8 +4683,8 @@ msgstr ""
 #~ msgstr "Vytvořeno"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Not Running"
-msgstr "Neběží"
+#~ msgid "Not Running"
+#~ msgstr "Neběží"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
@@ -4687,10 +4763,15 @@ msgstr "větší než"
 msgid "Metrics Widget"
 msgstr "Widget metrik"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Retrying"
+msgstr ""
+
 #: src/lib/components/shared/currency-selector.tsx
 msgid "Search currencies..."
 msgstr "Hledat měny..."
 
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 msgid "Remove from channel"
 msgstr "Odebrat z kanálu"
@@ -5137,6 +5218,13 @@ msgstr "Filtr"
 msgid "Failed to update administrator"
 msgstr "Aktualizace administrátora se nezdařila"
 
+#: src/app/common/delete-bulk-action.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "This cannot be undone."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "No payment or destination was selected"
 msgstr ""
@@ -5255,6 +5343,10 @@ msgstr "Produkt s volbami"
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 msgid "Showing all {0} results"
 msgstr "Zobrazeno všech {0} výsledků"
+
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+msgid "Delete {selectionLength} assets?"
+msgstr ""
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
@@ -5720,6 +5812,10 @@ msgstr "Nastavuje skladovou úroveň, při které je tato varianta považována 
 msgid "Search promotions..."
 msgstr "Hledat akce..."
 
+#: src/lib/components/data-table/data-table.tsx
+msgid "Select all on this page"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "Rotate Key"
@@ -5870,6 +5966,10 @@ msgstr "Kód kupónu odebrán z objednávky"
 msgid "Never"
 msgstr "Nikdy"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Completed"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to update facet value"
 msgstr "Nepodařilo se aktualizovat hodnotu vlastnosti"
@@ -5958,6 +6058,10 @@ msgstr "Přidat kód kupónu"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Kód kupónu nastaven pro objednávku"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
+msgid "The customers stay in the shop. Only the group membership is removed."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx
 msgid "Custom Fields"
@@ -6052,6 +6156,7 @@ msgstr "Detaily platby"
 msgid "Rebuild search index"
 msgstr "Přebudovat vyhledávací index"
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
@@ -6151,6 +6256,10 @@ msgstr "Stav"
 msgid "Do not track"
 msgstr "Nesledovat"
 
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
+msgid "Remove {selectionLength} {entityType} from this channel?"
+msgstr ""
+
 #. placeholder {0}: entry.data.fulfillmentId
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "Fulfillment #{0} created"
@@ -6188,11 +6297,9 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
-#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/data-display/boolean.tsx
 #: src/lib/components/layout/nav-user.tsx
 #: src/lib/components/shared/channel-availability.tsx
@@ -6221,8 +6328,8 @@ msgstr ""
 #~ msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
-msgid "Filter by {columnId}"
-msgstr "Filtrovat podle {columnId}"
+#~ msgid "Filter by {columnId}"
+#~ msgstr "Filtrovat podle {columnId}"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "ID"
@@ -6266,6 +6373,10 @@ msgstr "Varianta úspěšně smazána"
 msgid "Sales"
 msgstr "Prodej"
 
+#: src/lib/components/data-table/data-table-bulk-actions.tsx
+msgid "{selectedCount} selected"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Select a destination collection"
 msgstr "Vyberte cílovou kolekci"
@@ -6284,8 +6395,8 @@ msgid "Use {sourceExtensionLabel} or remove the extension from the display name.
 msgstr ""
 
 #: src/lib/components/data-table/use-generated-columns.tsx
-msgid "Are you sure you want to delete this item? This action cannot be undone."
-msgstr "Opravdu chcete smazat tuto položku? Tuto akci nelze vrátit zpět."
+#~ msgid "Are you sure you want to delete this item? This action cannot be undone."
+#~ msgstr "Opravdu chcete smazat tuto položku? Tuto akci nelze vrátit zpět."
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Variants"
@@ -6322,6 +6433,10 @@ msgstr "Způsoby dopravy"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} vratitelných)"
+
+#: src/app/routes/_authenticated/_collections/components/collection-bulk-actions.tsx
+msgid "Go to the pages of all selected collections first"
+msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 msgid "Identifier"
@@ -6381,10 +6496,9 @@ msgstr "Požadováno obnovení hesla"
 #~ msgid "e.g. Small"
 #~ msgstr "např. Malá"
 
-#. placeholder {0}: selection.length
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
-msgid "Are you sure you want to remove {0} {entityType} from the current channel?"
-msgstr "Opravdu chcete odebrat {0} {entityType} z aktuálního kanálu?"
+#~ msgid "Are you sure you want to remove {0} {entityType} from the current channel?"
+#~ msgstr "Opravdu chcete odebrat {0} {entityType} z aktuálního kanálu?"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Add tags..."
@@ -6703,6 +6817,10 @@ msgstr "Přidat variantu produktu"
 msgid "Type and press Enter or comma to add..."
 msgstr "Zadejte a stiskněte Enter nebo čárku pro přidání..."
 
+#: src/app/routes/_authenticated/_system/settings-store.tsx
+msgid "User & Channel"
+msgstr ""
+
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx
 msgid "Edit Note"
 msgstr "Upravit poznámku"
@@ -6760,8 +6878,11 @@ msgstr "Výchozí jazyk"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers.tsx
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
+#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/hooks/use-channel-availability-list.tsx
 #: src/lib/hooks/use-channel-availability-list.tsx
+#: src/lib/hooks/use-dynamic-translations.ts
 msgid "Status"
 msgstr "Stav"
 
@@ -6777,6 +6898,14 @@ msgstr "Nebyly nalezeny žádné možnosti"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Upload assets"
+msgstr ""
+
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
+msgid "Failed to delete {selectionLength} assets"
+msgstr ""
+
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Pending"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -6822,6 +6951,11 @@ msgstr "Hodnota volby úspěšně přidána"
 msgid "Collection moved to new parent"
 msgstr "Kolekce přesunuta do nového rodiče"
 
+#. placeholder {0}: selectedRowIds.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Remove # country from this zone?} other {Remove # countries from this zone?}}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 msgid "Option group removed"
@@ -6830,6 +6964,10 @@ msgstr "Skupina voleb odebrána"
 #: src/lib/components/login/login-form.tsx
 msgid "Forgot password?"
 msgstr "Zapomenuté heslo?"
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "Clear selection on this page"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx
 msgid "Transition to selected state"
@@ -7092,6 +7230,10 @@ msgstr "menší než"
 msgid "Role Editor"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Cancelled"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Variantu nelze přidat. Ujistěte se, že nadřazený produkt je povolen."
@@ -7147,12 +7289,16 @@ msgstr "Testování způsobů dopravy..."
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx
-msgid "{label}"
-msgstr "{label}"
+#~ msgid "{label}"
+#~ msgstr "{label}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Failed to create shipping method"
 msgstr "Nepodařilo se vytvořit způsob dopravy"
+
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
+msgid "They stay in the other channels they are assigned to."
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx
 msgid "New registrations in the selected period"
@@ -7186,6 +7332,10 @@ msgstr "Žádné akce k dispozici"
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/shared/channel-colors-dialog.tsx
 msgid "Customize channel colors"
+msgstr ""
+
+#: src/lib/components/shared/remove-from-channel-bulk-action.tsx
+msgid "Failed to remove {selectionLength} {entityType} from channel: {onErrorMessage}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -7286,8 +7436,8 @@ msgid "Hidden in this channel"
 msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
-msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr "{cancellableCount, plural, one {Opravdu chcete zrušit {cancellableCount} úlohu? Tuto akci nelze vrátit zpět.} few {Opravdu chcete zrušit {cancellableCount} úlohy? Tuto akci nelze vrátit zpět.} other {Opravdu chcete zrušit {cancellableCount} úloh? Tuto akci nelze vrátit zpět.}}"
+#~ msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
+#~ msgstr "{cancellableCount, plural, one {Opravdu chcete zrušit {cancellableCount} úlohu? Tuto akci nelze vrátit zpět.} few {Opravdu chcete zrušit {cancellableCount} úlohy? Tuto akci nelze vrátit zpět.} other {Opravdu chcete zrušit {cancellableCount} úloh? Tuto akci nelze vrátit zpět.}}"
 
 #: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx
 msgid "Go to option group"
@@ -7429,7 +7579,6 @@ msgstr "Nová vlastnost"
 #~ msgid "Assign {entityType} to channel"
 #~ msgstr "Přiřadit {entityType} ke kanálu"
 
-#: src/lib/components/data-table/data-table-bulk-action-item.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
 msgid "Continue"
 msgstr "Pokračovat"
@@ -7463,6 +7612,10 @@ msgstr "Nepodařilo se aktualizovat vlastnost"
 #: src/lib/hooks/use-widget-filters.ts
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters musí být použito v rámci WidgetFiltersProvider"
+
+#: src/app/common/delete-bulk-action.tsx
+msgid "Delete \"{singleName}\"?"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-input.tsx
 msgid "Edit as form"
@@ -7723,8 +7876,8 @@ msgstr "Nová skupina voleb"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "No result yet"
-msgstr "Zatím žádný výsledek"
+#~ msgid "No result yet"
+#~ msgstr "Zatím žádný výsledek"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Payment settled"
