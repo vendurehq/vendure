@@ -1,16 +1,15 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
@@ -20,8 +19,8 @@ import {
     ChevronDown,
     CircleXIcon,
     ClockIcon,
+    EllipsisIcon,
     LoaderIcon,
-    MoreVertical,
     RefreshCw,
     RotateCcw,
 } from 'lucide-react';
@@ -109,6 +108,11 @@ const STATES = [
     },
 ];
 
+// A per-row action that shows only while its row is hovered or holds keyboard focus, and
+// always on touch screens, so the list reads as data at rest.
+const ROW_ACTION_REVEAL_CLASS =
+    'opacity-0 transition-opacity duration-quick ease-soft group-hover/row:opacity-100 group-focus-within/row:opacity-100 has-[[aria-expanded=true]]:opacity-100 [@media(hover:none)]:opacity-100';
+
 const REFRESH_INTERVALS = [
     { label: <Trans>Off</Trans>, value: 0 },
     { label: <Trans>Every 5 seconds</Trans>, value: 5000 },
@@ -123,6 +127,14 @@ function JobQueuePage() {
     const { formatRelativeDate } = useLocalFormat();
     const [refreshInterval, setRefreshInterval] = useState(10000);
     const isActionMenuOpenRef = useRef(false);
+    const stateLabels: Record<string, string> = {
+        PENDING: t`Pending`,
+        RUNNING: t`Running`,
+        RETRYING: t`Retrying`,
+        COMPLETED: t`Completed`,
+        FAILED: t`Failed`,
+        CANCELLED: t`Cancelled`,
+    };
 
     useEffect(() => {
         if (refreshInterval === 0) return;
@@ -155,17 +167,19 @@ function JobQueuePage() {
                 },
                 data: {
                     cell: ({ row }) => (
-                        <PayloadDialog
-                            payload={row.original.data}
-                            title={<Trans>View job data</Trans>}
-                            onOpenChange={open => (isActionMenuOpenRef.current = open)}
-                            description={<Trans>The data that has been passed to the job</Trans>}
-                            trigger={
-                                <Button size="sm" variant="secondary">
-                                    <Trans>View data</Trans>
-                                </Button>
-                            }
-                        />
+                        <span className={ROW_ACTION_REVEAL_CLASS}>
+                            <PayloadDialog
+                                payload={row.original.data}
+                                title={<Trans>View job data</Trans>}
+                                onOpenChange={open => (isActionMenuOpenRef.current = open)}
+                                description={<Trans>The data that has been passed to the job</Trans>}
+                                trigger={
+                                    <Button size="sm" variant="secondary">
+                                        <Trans>View data</Trans>
+                                    </Button>
+                                }
+                            />
+                        </span>
                     ),
                 },
                 queueName: {
@@ -173,23 +187,22 @@ function JobQueuePage() {
                 },
                 result: {
                     cell: ({ row }) => {
+                        // A job without a result leaves the cell blank.
                         return row.original.result ? (
-                            <PayloadDialog
-                                payload={row.original.result}
-                                title={<Trans>View job result</Trans>}
-                                onOpenChange={open => (isActionMenuOpenRef.current = open)}
-                                description={<Trans>The result of the job</Trans>}
-                                trigger={
-                                    <Button size="sm" variant="secondary">
-                                        <Trans>View result</Trans>
-                                    </Button>
-                                }
-                            />
-                        ) : (
-                            <div className="text-muted-foreground">
-                                <Trans>No result yet</Trans>
-                            </div>
-                        );
+                            <span className={ROW_ACTION_REVEAL_CLASS}>
+                                <PayloadDialog
+                                    payload={row.original.result}
+                                    title={<Trans>View job result</Trans>}
+                                    onOpenChange={open => (isActionMenuOpenRef.current = open)}
+                                    description={<Trans>The result of the job</Trans>}
+                                    trigger={
+                                        <Button size="sm" variant="secondary">
+                                            <Trans>View result</Trans>
+                                        </Button>
+                                    }
+                                />
+                            </span>
+                        ) : null;
                     },
                 },
                 state: {
@@ -203,19 +216,25 @@ function JobQueuePage() {
                         const state = STATES.find(s => s.value === row.original.state);
                         return (
                             <div className="flex items-center gap-2">
+                                {/* In a list the state is an icon and a label. Completed is the normal
+                                    state, so it shows only while the row is hovered or focused. */}
                                 <StatusBadge
+                                    appearance="icon"
                                     tone={jobStateDictionary.toneFor(row.original.state)}
                                     // RUNNING keeps the progress tone's spinner.
-                                    icon={state && row.original.state !== 'RUNNING' ? <state.icon /> : undefined}
+                                    icon={
+                                        state && row.original.state !== 'RUNNING' ? <state.icon /> : undefined
+                                    }
+                                    reveal={row.original.state === 'COMPLETED' ? 'row' : 'always'}
                                 >
-                                    {row.original.state}
+                                    {stateLabels[row.original.state] ?? row.original.state}
                                 </StatusBadge>
                                 {row.original.state === 'RUNNING' && (
                                     <DropdownMenu onOpenChange={open => (isActionMenuOpenRef.current = open)}>
                                         <DropdownMenuTrigger
                                             render={<Button variant="ghost" size="icon-xs" />}
                                         >
-                                            <MoreVertical />
+                                            <EllipsisIcon />
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
