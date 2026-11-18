@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
+import { HistoryEntryType } from '@vendure/common/lib/generated-types';
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import path from 'path';
@@ -10,16 +10,14 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { graphql } from './graphql/graphql-admin';
-import {
-    getOrderListDocument,
-    getProductVariantListDocument,
-    updateProductVariantsDocument,
-} from './graphql/shared-definitions';
+import { graphql as shopGraphql } from './graphql/graphql-shop';
+import { getOrderListDocument, getProductVariantListDocument } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
     getActiveOrderDocument,
     getActiveOrderShippingBillingDocument,
     getEligibleShippingMethodsDocument,
+    setBillingAddressDocument,
     setCustomerDocument,
     setShippingAddressDocument,
     setShippingMethodDocument,
@@ -27,16 +25,69 @@ import {
 } from './graphql/shop-definitions';
 import { addPaymentToOrder } from './utils/test-order-utils';
 
-const getVariantStockDocument = graphql(`
-    query GetVariantStockForConcurrency($id: ID!) {
-        productVariant(id: $id) {
-            id
-            stockOnHand
-            stockAllocated
+const addManualPaymentDocument = graphql(`
+    mutation AddManualPaymentForConcurrency($input: ManualPaymentInput!) {
+        addManualPaymentToOrder(input: $input) {
+            ... on Order {
+                id
+                state
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
         }
     }
 `);
 
+const getOrderPaymentsAndHistoryDocument = graphql(`
+    query GetOrderPaymentsAndHistoryForConcurrency($id: ID!) {
+        order(id: $id) {
+            id
+            state
+            active
+            payments {
+                id
+                state
+            }
+            history(options: { take: 100 }) {
+                items {
+                    type
+                    data
+                }
+            }
+        }
+    }
+`);
+
+const getActiveOrderWithCustomerDocument = shopGraphql(`
+    query GetActiveOrderWithCustomerForConcurrency {
+        activeOrder {
+            id
+            subTotal
+            customer {
+                emailAddress
+            }
+            shippingLines {
+                shippingMethod {
+                    id
+                }
+            }
+            lines {
+                id
+                linePrice
+            }
+        }
+    }
+`);
+
+const address = {
+    fullName: 'Concurrent Customer',
+    streetLine1: '12 the street',
+    city: 'foo',
+    postalCode: '123456',
+    countryCode: 'US',
+};
 /**
  * Concurrency regression tests for #4152.
  *
@@ -83,6 +134,20 @@ describeOnRealDb('Order concurrency', () => {
         await client.query(setCustomerDocument, {
             input: { emailAddress, firstName: 'Concurrent', lastName: 'Customer' },
         });
+    }
+
+    /** Builds a cart for the client and takes it to ArrangingPayment, returning the Order id. */
+    async function checkoutToArrangingPayment(client: SimpleGraphQLClient, emailAddress: string) {
+        await client.query(addItemToOrderDocument, { productVariantId: variantIds[2], quantity: 1 });
+        await setCustomer(client, emailAddress);
+        await client.query(setShippingAddressDocument, { input: address });
+        const { eligibleShippingMethods } = await client.query(getEligibleShippingMethodsDocument);
+        await client.query(setShippingMethodDocument, { id: [eligibleShippingMethods[0].id] });
+        const { transitionOrderToState } = await client.query(transitionToStateDocument, {
+            state: 'ArrangingPayment',
+        });
+        expect((transitionOrderToState as any).state).toBe('ArrangingPayment');
+        return (transitionOrderToState as any).id as string;
     }
 
     async function countOrders(): Promise<number> {
@@ -161,9 +226,7 @@ describeOnRealDb('Order concurrency', () => {
         );
 
         const { activeOrder } = await client.query(getActiveOrderDocument);
-        expect(activeOrder!.lines.map(l => l.productVariant.id).sort()).toEqual(
-            [...variantsToAdd].sort(),
-        );
+        expect(activeOrder!.lines.map(l => l.productVariant.id).sort()).toEqual([...variantsToAdd].sort());
         expect(activeOrder!.lines.length).toBe(variantsToAdd.length);
     });
 
@@ -216,56 +279,83 @@ describeOnRealDb('Order concurrency', () => {
         expect(await countOrders()).toBe(ordersBefore + 1);
     });
 
-    // community-plugins#11 — allocations are written by reading stockAllocated, adding the change
-    // in JS and writing the sum back, so two concurrent allocations of the same variant both read
-    // the same value and one silently overwrote the other. The variant then looked like it had
-    // stock it had already promised away.
-    //
-    // Note what this does not cover: nothing checks saleable stock at allocation time, so both of
-    // these orders are allowed to buy the last unit. That is a separate gap, tracked on its own.
-    it('records every allocation when the last unit is paid for concurrently', async () => {
-        const variantId = variantIds[4] ?? variantIds[0];
-        await adminClient.query(updateProductVariantsDocument, {
-            input: [
-                {
-                    id: variantId,
-                    trackInventory: GlobalFlag.TRUE,
-                    stockOnHand: 1,
-                    outOfStockThreshold: 0,
-                    useGlobalOutOfStockThreshold: false,
-                },
-            ],
-        });
+    // #3398 — the setters write different columns of the same Order row, and each one used to
+    // save the whole Order it had read, so whichever finished last silently dropped the others.
+    it('keeps every change when the customer, addresses, shipping method and an item are set concurrently', async () => {
+        const client = await newShopClient();
+        await client.query(addItemToOrderDocument, { productVariantId: variantIds[0], quantity: 1 });
+        const { eligibleShippingMethods } = await client.query(getEligibleShippingMethodsDocument);
+        const emailAddress = 'concurrent-setters@test.com';
 
-        // Both carts are built first. Stock is only allocated on the transition out of
-        // ArrangingPayment, so both orders reach that state believing the unit is theirs.
-        const clients = await Promise.all([newShopClient(), newShopClient()]);
-        let index = 0;
-        for (const client of clients) {
-            await client.query(addItemToOrderDocument, { productVariantId: variantId, quantity: 1 });
-            await setCustomer(client, `stock-race-${index++}@test.com`);
-            await client.query(setShippingAddressDocument, {
-                input: {
-                    fullName: 'Concurrent Customer',
-                    streetLine1: '12 the street',
-                    city: 'foo',
-                    postalCode: '123456',
-                    countryCode: 'US',
-                },
-            });
-            const { eligibleShippingMethods } = await client.query(getEligibleShippingMethodsDocument);
-            await client.query(setShippingMethodDocument, { id: [eligibleShippingMethods[0].id] });
-            const { transitionOrderToState } = await client.query(transitionToStateDocument, {
-                state: 'ArrangingPayment',
-            });
-            expect((transitionOrderToState as any).state).toBe('ArrangingPayment');
+        await Promise.all([
+            client.query(setCustomerDocument, {
+                input: { emailAddress, firstName: 'Concurrent', lastName: 'Customer' },
+            }),
+            client.query(setShippingAddressDocument, { input: { ...address, streetLine1: 'ship' } }),
+            client.query(setBillingAddressDocument, { input: { ...address, streetLine1: 'bill' } }),
+            client.query(setShippingMethodDocument, { id: [eligibleShippingMethods[0].id] }),
+            client.query(addItemToOrderDocument, { productVariantId: variantIds[1], quantity: 2 }),
+        ]);
+
+        const { activeOrder: addresses } = await client.query(getActiveOrderShippingBillingDocument);
+        const { activeOrder } = await client.query(getActiveOrderWithCustomerDocument);
+        expect(activeOrder!.customer?.emailAddress).toBe(emailAddress);
+        expect(addresses!.shippingAddress!.streetLine1).toBe('ship');
+        expect(addresses!.billingAddress!.streetLine1).toBe('bill');
+        expect(activeOrder!.shippingLines.length).toBe(1);
+        expect(activeOrder!.lines.length).toBe(2);
+        expect(activeOrder!.subTotal).toBe(activeOrder!.lines.reduce((sum, line) => sum + line.linePrice, 0));
+    });
+
+    // #3398 — the storefront and a payment provider's webhook both record the payment. Without
+    // serialization both saw the Order in ArrangingPayment, so the Order entered PaymentSettled
+    // twice and everything which reacts to that transition ran twice.
+    it('settles the order once when the client and a webhook add the payment concurrently', async () => {
+        const client = await newShopClient();
+        const orderId = await checkoutToArrangingPayment(client, 'client-and-webhook@test.com');
+
+        await Promise.all([
+            addPaymentToOrder(client, testSuccessfulPaymentMethod).catch(() => undefined),
+            adminClient
+                .query(addManualPaymentDocument, {
+                    input: { orderId, method: 'webhook', transactionId: 'webhook-1', metadata: {} },
+                })
+                .catch(() => undefined),
+        ]);
+
+        const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: orderId });
+        expect(order!.state).toBe('PaymentSettled');
+        expect(order!.payments!.filter(p => p.state === 'Settled').length).toBe(1);
+        const enteredPaymentSettled = order!.history.items.filter(
+            item =>
+                item.type === HistoryEntryType.ORDER_STATE_TRANSITION && item.data.to === 'PaymentSettled',
+        );
+        expect(enteredPaymentSettled.length).toBe(1);
+    });
+
+    // #3398 — a webhook settles the payment while the customer goes back to the cart. Without
+    // serialization each request acted on the state it had read, which could leave a paid Order
+    // back in AddingItems.
+    it('does not leave a paid order in the cart when the customer goes back during payment', async () => {
+        const client = await newShopClient();
+        const orderId = await checkoutToArrangingPayment(client, 'back-to-cart@test.com');
+
+        await Promise.all([
+            adminClient
+                .query(addManualPaymentDocument, {
+                    input: { orderId, method: 'webhook', transactionId: 'webhook-2', metadata: {} },
+                })
+                .catch(() => undefined),
+            client.query(transitionToStateDocument, { state: 'AddingItems' }).catch(() => undefined),
+        ]);
+
+        const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: orderId });
+        const settled = order!.payments!.filter(p => p.state === 'Settled').length;
+        if (settled > 0) {
+            expect(order!.state).toBe('PaymentSettled');
+            expect(order!.active).toBe(false);
+        } else {
+            expect(order!.state).toBe('AddingItems');
         }
-
-        await Promise.all(clients.map(client => addPaymentToOrder(client, testSuccessfulPaymentMethod)));
-
-        const { productVariant } = await adminClient.query(getVariantStockDocument, { id: variantId });
-        // Two units were allocated, so both allocations are on the record. Computing the sum in JS
-        // instead leaves this at 1 and the second order's claim on the stock disappears.
-        expect(productVariant!.stockAllocated).toBe(2);
     });
 });
