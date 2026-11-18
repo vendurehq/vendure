@@ -1,6 +1,7 @@
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLingui } from '@lingui/react/macro';
 import { ColumnDef, HeaderContext } from '@tanstack/table-core';
+import type { DataTableColumnMeta } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import { DataTableColumnHeader as UiDataTableColumnHeader } from '@vendure-io/ui/components/molecules/data-table/data-table-column-header';
 import { useMemo } from 'react';
 import { ColumnHeaderWrapper } from './column-header-wrapper.js';
@@ -31,6 +32,7 @@ export function DataTableColumnHeader({ headerContext, customConfig }: Readonly<
             <UiDataTableColumnHeader
                 column={column}
                 sortLabel={typeof display === 'string' ? t`Sort by ${display}` : undefined}
+                align={(column.columnDef.meta as DataTableColumnMeta | undefined)?.align}
             >
                 {display}
             </UiDataTableColumnHeader>

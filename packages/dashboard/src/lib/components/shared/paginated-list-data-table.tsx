@@ -108,6 +108,14 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          * included in the visible table columns.
          */
         dependencies?: Array<AllItemFieldKeys<T>>;
+        /**
+         * @description
+         * Which side the column's header and cells align to. Use `'end'` for
+         * amounts and counts, so their digits line up.
+         *
+         * @default 'start'
+         */
+        align?: 'start' | 'end';
     };
 };
 
