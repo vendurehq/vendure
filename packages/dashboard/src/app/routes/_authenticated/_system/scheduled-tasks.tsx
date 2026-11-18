@@ -1,12 +1,21 @@
 import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
+import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/vdb/components/ui/dialog.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { ScrollArea } from '@/vdb/components/ui/scroll-area.js';
 import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     FullWidthPageBlock,
@@ -21,25 +30,19 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
-import { CirclePlay, EllipsisIcon } from 'lucide-react';
+import { CirclePlay, EllipsisIcon, FileJson } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { PayloadDialog } from './components/payload-dialog.js';
 
 // A scheduled task's enablement and execution status. `running` means the task
 // is executing right now (progress — renders a pulsing dot). Enabled is the
 // expected default and stays calm; disabled is the exception worth spotting
 // (critical, matching BooleanDisplayBadge). Keys are the local flag values,
 // not wire states.
-// A per-row action that shows only while its row is hovered or holds keyboard focus, and
-// always on touch screens, so the list reads as data at rest.
-const ROW_ACTION_REVEAL_CLASS =
-    'opacity-0 transition-opacity duration-quick ease-soft group-hover/row:opacity-100 group-focus-within/row:opacity-100 has-[[aria-expanded=true]]:opacity-100 [@media(hover:none)]:opacity-100';
-
 const scheduledTaskStateDictionary = defineStateEntries({
     enabled: { tone: 'neutral', defaultLabel: 'Enabled' },
     disabled: { tone: 'critical', defaultLabel: 'Disabled' },
     running: { tone: 'progress', defaultLabel: 'Running' },
-    idle: { tone: 'neutral', defaultLabel: 'Not Running' },
 });
 
 export const Route = createFileRoute('/_authenticated/_system/scheduled-tasks')({
@@ -85,6 +88,9 @@ type ScheduledTask = ResultOf<typeof getScheduledTasksDocument>['scheduledTasks'
 
 function ScheduledTasksPage() {
     const { t } = useLingui();
+    // The task whose last result is open in the dialog. The result opens from the row menu,
+    // so the table needs no column for it and fits its card.
+    const [resultTask, setResultTask] = useState<ScheduledTask>();
     const { data } = useQuery({
         queryKey: ['scheduledTasks'],
         queryFn: () => api.query(getScheduledTasksDocument),
@@ -111,13 +117,13 @@ function ScheduledTasksPage() {
         },
     });
     const { formatDate, formatRelativeDate } = useLocalFormat();
+    // Month, day and time: the next run is at most a few weeks away, so the year and the
+    // seconds only make the column wider.
     const intlDateOptions = {
-        year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: 'numeric',
-        second: 'numeric',
     } as const;
 
     const columnHelper = createColumnHelper<ScheduledTask>();
@@ -130,7 +136,7 @@ function ScheduledTasksPage() {
             header: t`Description`,
             // A long description is cut to one line, so the table fits its card.
             cell: ({ getValue }) => (
-                <div className="max-w-80 truncate" title={getValue()}>
+                <div className="max-w-48 truncate" title={getValue()}>
                     {getValue()}
                 </div>
             ),
@@ -138,7 +144,15 @@ function ScheduledTasksPage() {
         columnHelper.accessor('enabled', {
             header: t`Status`,
             cell: ({ row }) => {
+                // A running task and a disabled task are the exceptions and always show.
                 // Enabled is the normal state: it shows only while the row is hovered or focused.
+                if (row.original.isRunning) {
+                    return (
+                        <StatusBadge tone={scheduledTaskStateDictionary.toneFor('running')}>
+                            <Trans>Running</Trans>
+                        </StatusBadge>
+                    );
+                }
                 return (
                     <StatusBadge
                         tone={scheduledTaskStateDictionary.toneFor(
@@ -169,7 +183,7 @@ function ScheduledTasksPage() {
             header: t`Last Executed`,
             cell: ({ row }) => {
                 return row.original.lastExecutedAt ? (
-                    <div title={row.original.lastExecutedAt}>
+                    <div className="whitespace-nowrap" title={row.original.lastExecutedAt}>
                         {formatRelativeDate(row.original.lastExecutedAt)}
                     </div>
                 ) : (
@@ -181,40 +195,12 @@ function ScheduledTasksPage() {
             header: t`Next Execution`,
             cell: ({ row }) => {
                 return row.original.nextExecutionAt ? (
-                    formatDate(row.original.nextExecutionAt, intlDateOptions)
+                    <div className="whitespace-nowrap tabular-nums" title={row.original.nextExecutionAt}>
+                        {formatDate(row.original.nextExecutionAt, intlDateOptions)}
+                    </div>
                 ) : (
                     <Trans>Never</Trans>
                 );
-            },
-        }),
-        columnHelper.accessor('isRunning', {
-            header: t`Running`,
-            // Only a running task gets a badge; an idle one leaves the cell blank.
-            cell: ({ row }) => {
-                return row.original.isRunning ? (
-                    <StatusBadge tone={scheduledTaskStateDictionary.toneFor('running')}>
-                        <Trans>Running</Trans>
-                    </StatusBadge>
-                ) : null;
-            },
-        }),
-        columnHelper.accessor('lastResult', {
-            header: t`Last Result`,
-            cell: ({ row }) => {
-                return row.original.lastResult ? (
-                    <span className={ROW_ACTION_REVEAL_CLASS}>
-                        <PayloadDialog
-                            payload={row.original.lastResult}
-                            title={<Trans>View job result</Trans>}
-                            description={<Trans>The result of the job</Trans>}
-                            trigger={
-                                <Button size="sm" variant="secondary">
-                                    <Trans>View result</Trans>
-                                </Button>
-                            }
-                        />
-                    </span>
-                ) : null;
             },
         }),
         columnHelper.display({
@@ -223,10 +209,18 @@ function ScheduledTasksPage() {
             cell: ({ row }) => {
                 return (
                     <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+                        <DropdownMenuTrigger
+                            render={<Button variant="ghost" size="icon" aria-label={t`More actions`} />}
+                        >
                             <EllipsisIcon />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
+                            {row.original.lastResult ? (
+                                <DropdownMenuItem onClick={() => setResultTask(row.original)}>
+                                    <FileJson className="w-4 h-4" />
+                                    <Trans>View result</Trans>
+                                </DropdownMenuItem>
+                            ) : null}
                             {row.original.enabled && (
                                 <DropdownMenuItem
                                     onClick={() =>
@@ -273,6 +267,21 @@ function ScheduledTasksPage() {
                     />
                 </FullWidthPageBlock>
             </PageLayout>
+            <Dialog open={!!resultTask} onOpenChange={open => !open && setResultTask(undefined)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            <Trans>View job result</Trans>
+                        </DialogTitle>
+                        <DialogDescription>
+                            <Trans>The result of the job</Trans>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ScrollArea className="max-h-[600px]">
+                        <JsonViewer viewOnly data={resultTask?.lastResult} collapse={1} rootFontSize={12} />
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
         </Page>
     );
 }
