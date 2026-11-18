@@ -35,7 +35,6 @@ export interface DashboardDataTableDisplayComponent {
  *
  * @docsCategory list-views
  * @docsPage bulk-actions
- * @since 3.4.0
  */
 export type BulkActionContext<Item extends { id: string } & Record<string, any>> = {
     /**
@@ -50,7 +49,7 @@ export type BulkActionContext<Item extends { id: string } & Record<string, any>>
      * The id of every selected row, loaded or not. An action that needs only ids
      * (delete, assign to a channel) runs on these.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     selectedRowIds: string[];
     /**
@@ -58,7 +57,7 @@ export type BulkActionContext<Item extends { id: string } & Record<string, any>>
      * The selected ids that have no row in `selection`. An action that needs row data
      * must be disabled while this is not empty, or load these rows first.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     missingRowIds: string[];
     table: Table<Item>;

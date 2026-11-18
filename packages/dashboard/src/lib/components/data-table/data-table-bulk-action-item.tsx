@@ -26,7 +26,7 @@ export interface DataTableBulkActionItemProps {
      * The title of the confirm dialog. Name the action and the item, for example
      * "Delete 3 products?". Defaults to "Confirm action".
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     confirmationTitle?: React.ReactNode;
     /**
@@ -34,7 +34,7 @@ export interface DataTableBulkActionItemProps {
      * The label of the confirm button. Name the action, for example "Delete".
      * Defaults to "Confirm".
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     confirmLabel?: React.ReactNode;
     /**
@@ -43,7 +43,7 @@ export interface DataTableBulkActionItemProps {
      * confirm button that does not take the focus.
      *
      * @default 'default'
-     * @since 3.8.0
+     * @since 4.0.0
      */
     variant?: 'default' | 'destructive';
     onClick: () => void;
@@ -54,7 +54,7 @@ export interface DataTableBulkActionItemProps {
      * @description
      * Why the item is disabled, shown under its label while `disabled` is set.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     disabledReason?: React.ReactNode;
     closeOnClick?: boolean;

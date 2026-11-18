@@ -242,7 +242,7 @@ export interface PaginatedListDataTableProps<
      * Keeps the row selection in session storage under this key. See the
      * `selectionStorageKey` prop of {@link DataTable}.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     selectionStorageKey?: string;
     disableViewOptions?: boolean;

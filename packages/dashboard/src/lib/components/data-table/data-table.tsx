@@ -194,7 +194,7 @@ interface DataTableProps<TData> {
      * and anything that scopes its rows, such as the channel. Without it the
      * selection lasts until the table unmounts.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     selectionStorageKey?: string;
     enableViews?: boolean;
