@@ -1,4 +1,6 @@
-import { OrderByCondition, SelectQueryBuilder } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
+
+import type { RequestContext } from '../api/common/request-context';
 
 /**
  * The property name we use to store the CalculatedColumnDefinitions to the
@@ -22,7 +24,15 @@ export interface CalculatedColumnQueryInstruction {
      * up the quantities of each `OrderLine`), then those relations should be defined here.
      */
     relations?: string[];
-    query?: (qb: SelectQueryBuilder<any>) => void;
+    /**
+     * @description
+     * Called by the {@link ListQueryBuilder} when the list is sorted or filtered by the calculated
+     * property, e.g. to join what the `expression` refers to. `ctx` is the RequestContext of the
+     * list query, when it has one.
+     *
+     * @since 4.0.0 - The `ctx` argument
+     */
+    query?: (qb: SelectQueryBuilder<any>, ctx?: RequestContext) => void;
     expression?: string;
 }
 

@@ -3,7 +3,10 @@ import {
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
     mergeConfig,
+    ProductPriceApplicator,
     ProductVariant,
+    ProductVariantPrice,
+    RequestContextService,
     TransactionalConnection,
 } from '@vendure/core';
 import {
@@ -24,6 +27,7 @@ import {
     assignProductToChannelDocument,
     createChannelDocument,
     getProductWithVariantsDocument,
+    updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import { addItemToOrderDocument, searchProductsShopDocument } from './graphql/shop-definitions';
 import { awaitRunningJobs } from './utils/await-running-jobs';
@@ -135,7 +139,28 @@ describe('ProductVariant price loading', () => {
             where: { id: product.variants[0].id.replace('T_', '') },
             relations: { productVariantPrices: true },
         });
-        expect(withPrices?.productVariantPrices.map(p => p.channelId).length).toBe(2);
+        expect(withPrices?.productVariantPrices.map(p => String(p.channelId)).sort()).toEqual(['1', '2']);
+    });
+
+    // OSS-1009 — a priced variant carries only the active Channel's prices, so saving it must not
+    // detach the prices of its other Channels
+    it("saving a priced variant keeps the other channels' prices", async () => {
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const id = product.variants[0].id.replace('T_', '');
+        const variant = await connection.getRepository(ctx, ProductVariant).findOneOrFail({
+            where: { id },
+            relations: { taxCategory: true },
+        });
+        await server.app.get(ProductPriceApplicator).applyChannelPriceAndTax(variant, ctx);
+        expect(variant.productVariantPrices.length).toBe(1);
+
+        await connection.getRepository(ctx, ProductVariant).save(variant);
+
+        const prices = await connection
+            .getRepository(ctx, ProductVariantPrice)
+            .find({ where: { variantId: id } });
+        expect(prices.map(p => String(p.channelId)).sort()).toEqual(['1', '2']);
     });
 
     it('Admin API shows each Channel its own prices, with one price row per Channel', async () => {
@@ -214,18 +239,28 @@ describe('ProductVariant price loading', () => {
         expect(defaultChannelOrder.lines[0].unitPriceWithTax).toBe(variant.priceWithTax);
     });
 
-    it('a variant list sorted by price works without the eager relation', async () => {
+    // OSS-1009 — sorting by price uses the prices of the active Channel only: the cheapest variant
+    // of the default Channel is made the most expensive in the second Channel
+    it('a variant list sorted by price is sorted by the prices of the active channel', async () => {
+        const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0];
         adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-        const { productVariants } = await adminClient.query(getVariantsSortedByPriceDocument, {
-            options: { sort: { price: SortOrder.ASC }, take: 10 },
-        });
-        expect(productVariants.totalItems).toBe(product.variants.length);
-        const prices = productVariants.items.map(item => item.price);
-        expect(prices).toEqual([...prices].sort((a, b) => a - b));
-        expect(prices).toEqual(
-            product.variants.map(v => expectedSecondChannelPrice(v.price)).sort((a, b) => a - b),
-        );
-        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        try {
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: cheapest.id, price: 999_999 }],
+            });
+            const { productVariants } = await adminClient.query(getVariantsSortedByPriceDocument, {
+                options: { sort: { price: SortOrder.ASC }, take: 10 },
+            });
+            expect(productVariants.totalItems).toBe(product.variants.length);
+            const prices = productVariants.items.map(item => item.price);
+            expect(prices).toEqual([...prices].sort((a, b) => a - b));
+            expect(productVariants.items[productVariants.items.length - 1].id).toBe(cheapest.id);
+        } finally {
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: cheapest.id, price: expectedSecondChannelPrice(cheapest.price) }],
+            });
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        }
     });
 
     it('the search index holds each Channel its own price', async () => {

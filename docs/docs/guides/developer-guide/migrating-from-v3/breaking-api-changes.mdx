@@ -86,6 +86,10 @@ What breaks:
 - **A custom `ProductVariantPriceSelectionStrategy` or `ProductVariantPriceCalculationStrategy`** now sees only the prices of the active Channel, unless the variant was loaded with others. A strategy which falls back to the price of another Channel, such as the default Channel, has to load that price itself, for example with the `TransactionalConnection` from the `Injector`.
 - **Constructors:** `ProductPriceApplicator` takes a `TransactionalConnection` as its last argument, and `OrderService` a `ProductPriceApplicator`. This only matters if you create them with `new` or subclass them with your own constructor.
 
+Saving a priced variant leaves the prices of its other Channels in place, even though the variant carries only those of the active Channel.
+
+Sorting or filtering a variant list by `price` or `priceWithTax` now uses the prices of the active Channel in the active currency. In v3 it used the prices of every Channel, so a list could be out of order when a variant cost more in one Channel than another.
+
 Code which prices variants with `ProductPriceApplicator.applyChannelPriceAndTax()` or `ProductVariantService.applyChannelPriceAndTax()` needs no change. When you price variants one after another in a loop, call `ProductPriceApplicator.preloadChannelPrices(ctx, variants)` first, so their prices are loaded in one query rather than one per variant.
 
 ## Inventory tracking

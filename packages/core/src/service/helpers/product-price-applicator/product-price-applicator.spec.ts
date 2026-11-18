@@ -24,30 +24,18 @@ function createPriceConnection(stored: Array<{ variantId: string; price: Product
     const queries: Array<{ variantIds: string[]; channelId: string }> = [];
     const connection = {
         getRepository: () => ({
-            createQueryBuilder: () => {
-                let variantIds: string[] = [];
-                let channelId = '';
-                const qb = {
-                    where: (_sql: string, params: { variantIds: string[] }) => {
-                        variantIds = params.variantIds;
-                        return qb;
-                    },
-                    andWhere: (_sql: string, params: { channelId: string }) => {
-                        channelId = params.channelId;
-                        return qb;
-                    },
-                    getRawAndEntities: () => {
-                        queries.push({ variantIds, channelId });
-                        const rows = stored.filter(
-                            r => variantIds.includes(r.variantId) && r.price.channelId === channelId,
-                        );
-                        return Promise.resolve({
-                            entities: rows.map(r => r.price),
-                            raw: rows.map(r => ({ price_variantId: r.variantId })),
-                        });
-                    },
-                };
-                return qb;
+            find: ({ where }: { where: { variantId: { value: string[] }; channelId: string } }) => {
+                const variantIds = where.variantId.value;
+                const { channelId } = where;
+                queries.push({ variantIds, channelId });
+                return Promise.resolve(
+                    stored
+                        .filter(r => variantIds.includes(r.variantId) && r.price.channelId === channelId)
+                        .map(r => {
+                            r.price.variantId = r.variantId;
+                            return r.price;
+                        }),
+                );
             },
         }),
     };

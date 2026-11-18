@@ -2798,6 +2798,11 @@ export class OrderService implements OnApplicationBootstrap {
                 },
             });
 
+            // applyPriceAdjustments() prices the lines one after another.
+            await this.productPriceApplicator.preloadChannelPrices(
+                orderCtx,
+                orders.flatMap(order => order.lines.map(line => line.productVariant)),
+            );
             for (const order of orders) {
                 // Remove the lines manually: the method is still visible via the
                 // channel-scoped ctx inside this transaction, so applyShipping would

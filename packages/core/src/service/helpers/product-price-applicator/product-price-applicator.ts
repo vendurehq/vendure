@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import DataLoader from 'dataloader';
+import { In } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
@@ -172,19 +173,15 @@ export class ProductPriceApplicator {
         variantIds: ID[],
     ): Promise<ProductVariantPrice[][]> {
         const uniqueIds = [...new Map(variantIds.map(id => [String(id), id])).values()];
-        // ProductVariantPrice has no `variantId` property, so the variant id comes from the raw row
-        // of the same single-table query.
-        const { entities, raw } = await this.connection
-            .getRepository(ctx, ProductVariantPrice)
-            .createQueryBuilder('price')
-            .where('price.variant IN (:...variantIds)', { variantIds: uniqueIds })
-            .andWhere('price.channelId = :channelId', { channelId })
-            .getRawAndEntities();
-        const byVariantId = new Map<string, ProductVariantPrice[]>();
-        entities.forEach((price, index) => {
-            const variantId = String(raw[index].price_variantId);
-            byVariantId.set(variantId, [...(byVariantId.get(variantId) ?? []), price]);
+        const prices = await this.connection.getRepository(ctx, ProductVariantPrice).find({
+            where: { variantId: In(uniqueIds), channelId },
+            loadEagerRelations: false,
         });
+        const byVariantId = new Map<string, ProductVariantPrice[]>();
+        for (const price of prices) {
+            const variantId = String(price.variantId);
+            byVariantId.set(variantId, [...(byVariantId.get(variantId) ?? []), price]);
+        }
         return variantIds.map(id => byVariantId.get(String(id)) ?? []);
     }
 }

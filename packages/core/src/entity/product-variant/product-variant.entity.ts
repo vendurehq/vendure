@@ -44,15 +44,30 @@ import { ProductVariantTranslation } from './product-variant-translation.entity'
 const PRICES_LIST_QUERY_ALIAS = 'productvariant__productVariantPrices';
 
 /**
- * Joins the prices so that a list of variants can be sorted or filtered by price. It is a `query`
- * rather than a `relations` entry of `@Calculated()`, because the `@Relations()` decorator loads the
- * `relations` of every selected calculated field: selecting `price` would then load the price of
- * every Channel. The prices of the active Channel are loaded when a variant is priced instead.
+ * Joins the prices so that a list of variants can be sorted or filtered by price: those of the
+ * Channel and currency of the list's RequestContext, so that each variant is sorted by the price it
+ * is sold at there.
+ *
+ * It is a `query` rather than a `relations` entry of `@Calculated()`, because the `@Relations()`
+ * decorator loads the `relations` of every selected calculated field: selecting `price` would then
+ * load the price of every Channel. The prices of the active Channel are loaded when a variant is
+ * priced instead.
  */
-function joinPricesForListQuery(qb: SelectQueryBuilder<any>) {
-    if (!qb.expressionMap.joinAttributes.some(join => join.alias.name === PRICES_LIST_QUERY_ALIAS)) {
-        qb.leftJoinAndSelect(`${qb.alias}.productVariantPrices`, PRICES_LIST_QUERY_ALIAS);
+function joinPricesForListQuery(qb: SelectQueryBuilder<any>, ctx?: RequestContext) {
+    if (qb.expressionMap.joinAttributes.some(join => join.alias.name === PRICES_LIST_QUERY_ALIAS)) {
+        return;
     }
+    if (!ctx) {
+        qb.leftJoinAndSelect(`${qb.alias}.productVariantPrices`, PRICES_LIST_QUERY_ALIAS);
+        return;
+    }
+    qb.leftJoinAndSelect(
+        `${qb.alias}.productVariantPrices`,
+        PRICES_LIST_QUERY_ALIAS,
+        `${PRICES_LIST_QUERY_ALIAS}.channelId = :lqbPriceChannelId AND ` +
+            `${PRICES_LIST_QUERY_ALIAS}.currencyCode = :lqbPriceCurrencyCode`,
+        { lqbPriceChannelId: ctx.channelId, lqbPriceCurrencyCode: ctx.currencyCode },
+    );
 }
 
 /**
@@ -157,11 +172,11 @@ export class ProductVariant
      * @description
      * The prices of the ProductVariant, one per Channel and currency.
      *
-     * Not loaded with the ProductVariant: request the relation to read it. When a ProductVariant is
-     * priced (see {@link ProductPriceApplicator}), the prices of the active Channel are loaded and
-     * added here. To read every price of a variant, use
-     * `ProductVariantService.getProductVariantPrices()`, which returns those of the active Channel,
-     * or request the relation in your query.
+     * Not loaded by default. Request the relation to read every price.
+     * `ProductVariantService.getProductVariantPrices()` returns the prices of the active Channel.
+     * {@link ProductPriceApplicator} adds the prices of the active Channel when it prices the
+     * variant, so a priced variant may carry only those: saving it leaves the other prices
+     * untouched.
      *
      * @since 4.0.0 - No longer an eager relation
      */
