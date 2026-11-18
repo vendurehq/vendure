@@ -1248,7 +1248,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1260,7 +1260,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "Middleware",
@@ -1278,7 +1278,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1788,7 +1788,7 @@
                   "title": "Channel",
                   "slug": "channel",
                   "file": "docs/reference/typescript-api/entities/channel.mdx",
-                  "lastModified": "2026-11-06T10:17:03Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "ChannelAssignment",
@@ -1890,7 +1890,7 @@
                   "title": "GlobalSettings",
                   "slug": "global-settings",
                   "file": "docs/reference/typescript-api/entities/global-settings.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "HistoryEntry",
@@ -2004,7 +2004,7 @@
                   "title": "ProductVariant",
                   "slug": "product-variant",
                   "file": "docs/reference/typescript-api/entities/product-variant.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "ProductVariantChannel",
@@ -2218,7 +2218,7 @@
                   "title": "Event Types",
                   "slug": "event-types",
                   "file": "docs/reference/typescript-api/events/event-types.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "EventBus",
@@ -2575,6 +2575,12 @@
                   "lastModified": "2026-11-16T17:03:49+01:00"
                 },
                 {
+                  "title": "MigrateOutOfStockThresholdToChannels",
+                  "slug": "migrate-out-of-stock-threshold-to-channels",
+                  "file": "docs/reference/typescript-api/migration/migrate-out-of-stock-threshold-to-channels.mdx",
+                  "lastModified": "2026-11-18T09:54:30Z"
+                },
+                {
                   "title": "MigrateProductOptionGroupData",
                   "slug": "migrate-product-option-group-data",
                   "file": "docs/reference/typescript-api/migration/migrate-product-option-group-data.mdx",
@@ -2596,7 +2602,7 @@
                   "title": "MigrateTrackInventoryToChannels",
                   "slug": "migrate-track-inventory-to-channels",
                   "file": "docs/reference/typescript-api/migration/migrate-track-inventory-to-channels.mdx",
-                  "lastModified": "2026-11-16T13:02:19Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "MigrationDiagnostic",
@@ -2609,6 +2615,12 @@
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
                   "lastModified": "2026-11-11T15:14:50Z"
+                },
+                {
+                  "title": "OutOfStockThresholdMigrationResult",
+                  "slug": "out-of-stock-threshold-migration-result",
+                  "file": "docs/reference/typescript-api/migration/out-of-stock-threshold-migration-result.mdx",
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "PrepareEntityIdForeignKeys",
@@ -2692,7 +2704,7 @@
                   "title": "TrackInventoryMigrationResult",
                   "slug": "track-inventory-migration-result",
                   "file": "docs/reference/typescript-api/migration/track-inventory-migration-result.mdx",
-                  "lastModified": "2026-11-16T13:02:19Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "TranslationTableColumnNames",
@@ -3056,7 +3068,7 @@
                   "title": "DefaultStockLocationStrategy",
                   "slug": "default-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/default-stock-location-strategy.mdx",
-                  "lastModified": "2026-11-16T13:02:19Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "MultiChannelStockLocationStrategy",
@@ -3075,6 +3087,12 @@
                   "slug": "product-variant-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/products-stock/product-variant-price-calculation-strategy.mdx",
                   "lastModified": "2026-04-20T16:08:16+02:00"
+                },
+                {
+                  "title": "ResolveOutOfStockThreshold",
+                  "slug": "resolve-out-of-stock-threshold",
+                  "file": "docs/reference/typescript-api/products-stock/resolve-out-of-stock-threshold.mdx",
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "ResolveTrackInventory",
@@ -3360,7 +3378,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-11-16T17:03:49+01:00"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "CollectionService",
@@ -3486,7 +3504,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-11-16T13:02:19Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "PromotionService",
@@ -4542,7 +4560,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 },
                 {
                   "title": "Mutations",
@@ -4560,7 +4578,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4598,7 +4616,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-18T09:54:30Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
