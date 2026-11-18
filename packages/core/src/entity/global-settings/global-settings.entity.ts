@@ -39,14 +39,17 @@ export class GlobalSettings extends VendureEntity implements HasCustomFields {
     legacyTrackInventory: boolean | null;
 
     /**
-     * @description
-     * Specifies the value of stockOnHand at which a given ProductVariant is considered
-     * out of stock.
+     * The pre-v4 `GlobalSettings.outOfStockThreshold` value, kept in its original column until
+     * `migrateOutOfStockThresholdToChannels()` has copied it to every Channel and set it to `null`.
+     * It is not exposed in the API and nothing else reads it: from v4.0, `Channel.outOfStockThreshold`
+     * is used by every ProductVariant with `useGlobalOutOfStockThreshold`. Keeping the column on the
+     * entity stops `synchronize` and generated migrations from dropping the value before it has
+     * been copied.
      *
-     * @deprecated use `Channel.outOfStockThreshold`
+     * @internal
      */
-    @Column({ default: 0 })
-    outOfStockThreshold: number;
+    @Column({ name: 'outOfStockThreshold', type: Number, nullable: true, default: null, select: false })
+    legacyOutOfStockThreshold: number | null;
 
     @Column(type => CustomGlobalSettingsFields)
     customFields: CustomGlobalSettingsFields;

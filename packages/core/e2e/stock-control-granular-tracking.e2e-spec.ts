@@ -325,6 +325,30 @@ const UPDATE_CHANNEL = graphqlAdmin(`
     }
 `);
 
+const CREATE_DRAFT_ORDER = graphqlAdmin(`
+    mutation GranularCreateDraftOrder {
+        createDraftOrder {
+            id
+        }
+    }
+`);
+
+const ADD_ITEM_TO_DRAFT_ORDER = graphqlAdmin(`
+    mutation GranularAddItemToDraftOrder($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+        addItemToDraftOrder(orderId: $orderId, input: $input) {
+            ... on Order {
+                id
+                lines {
+                    quantity
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+            }
+        }
+    }
+`);
+
 const DUPLICATE_PRODUCT = graphqlAdmin(`
     mutation GranularDuplicate($input: DuplicateEntityInput!) {
         duplicateEntity(input: $input) {
@@ -686,6 +710,99 @@ describe('Stock control: granular trackInventory', () => {
             });
             // Before v4.0 Channel.trackInventory was ignored: an InsufficientStockError.
             expect((addItemToOrder as any).lines?.[0]?.quantity).toBe(500);
+        });
+
+        // OSS-1299 — a variant with useGlobalOutOfStockThreshold uses the outOfStockThreshold of
+        // the Channel it is sold in (before v4.0: the GlobalSettings value, in every Channel)
+        it('applies the outOfStockThreshold of the channel the variant is sold in', async () => {
+            const quantityAvailable = async (channelToken: string) => {
+                shopClient.setChannelToken(channelToken);
+                await shopClient.asAnonymousUser();
+                const { addItemToOrder } = await shopClient.query(ADD_ITEM, {
+                    productVariantId: 'T_3',
+                    quantity: 500,
+                });
+                expect((addItemToOrder as any).errorCode).toBe('INSUFFICIENT_STOCK_ERROR');
+                return (addItemToOrder as any).quantityAvailable as number;
+            };
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [{ id: 'T_3', useGlobalOutOfStockThreshold: true }],
+            });
+            await adminClient.query(UPDATE_CHANNEL, { input: { id: channelBId, trackInventory: true } });
+            try {
+                const defaultBefore = await quantityAvailable(E2E_DEFAULT_CHANNEL_TOKEN);
+                const channelBBefore = await quantityAvailable(CHANNEL_B_TOKEN);
+                expect(channelBBefore).toBeGreaterThan(0);
+
+                await adminClient.query(UPDATE_CHANNEL, { input: { id: 'T_1', outOfStockThreshold: 2 } });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: channelBId, outOfStockThreshold: -3 },
+                });
+
+                expect(await quantityAvailable(E2E_DEFAULT_CHANNEL_TOKEN)).toBe(defaultBefore - 2);
+                // A negative threshold allows backorders, in channel B only.
+                expect(await quantityAvailable(CHANNEL_B_TOKEN)).toBe(channelBBefore + 3);
+            } finally {
+                await adminClient.query(UPDATE_CHANNEL, { input: { id: 'T_1', outOfStockThreshold: 0 } });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: channelBId, trackInventory: false, outOfStockThreshold: 0 },
+                });
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            }
+        });
+
+        // OSS-1299 — a draft Order of channel B edited by an admin in the default Channel is
+        // limited by channel B's stock settings, as its transition to ArrangingPayment will be
+        it("limits a draft order edited from another channel by the order's channel", async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            const { createDraftOrder } = await adminClient.query(CREATE_DRAFT_ORDER);
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            // T_3 is tracked in the default Channel, and untracked in channel B.
+            const { addItemToDraftOrder } = await adminClient.query(ADD_ITEM_TO_DRAFT_ORDER, {
+                orderId: createDraftOrder.id,
+                input: { productVariantId: 'T_3', quantity: 500 },
+            });
+            expect((addItemToDraftOrder as any).errorCode).toBeUndefined();
+            expect((addItemToDraftOrder as any).lines[0].quantity).toBe(500);
+        });
+
+        // OSS-1299 — stockOnHand is shared by every Channel of the variant, so tracking and the
+        // threshold are decided per Channel of the variant: the lowest threshold of the Channels
+        // in which it is tracked applies, whichever Channel the admin is in
+        it('limits stockOnHand by the lowest threshold of the channels which track the variant', async () => {
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [{ id: 'T_3', useGlobalOutOfStockThreshold: true, trackInventory: 'INHERIT' as any }],
+            });
+            // The default Channel does not track T_3, so its leftover threshold has no effect.
+            await adminClient.query(UPDATE_CHANNEL, {
+                input: { id: 'T_1', trackInventory: false, outOfStockThreshold: -10 },
+            });
+            await adminClient.query(UPDATE_CHANNEL, {
+                input: { id: channelBId, trackInventory: true, outOfStockThreshold: -3 },
+            });
+            const original = levelAt(await getStock('T_3'), defaultLocationId)!.stockOnHand;
+            try {
+                // Allowed from the default Channel, though T_3 is untracked there.
+                await adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -2 }] });
+                expect(levelAt(await getStock('T_3'), defaultLocationId)!.stockOnHand).toBe(-2);
+                // Below channel B's threshold: refused in both Channels.
+                await expect(
+                    adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -4 }] }),
+                ).rejects.toThrow('stockOnHand cannot be a negative value');
+                adminClient.setChannelToken(CHANNEL_B_TOKEN);
+                await expect(
+                    adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: -4 }] }),
+                ).rejects.toThrow('stockOnHand cannot be a negative value');
+            } finally {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(UPDATE_VARIANT, { input: [{ id: 'T_3', stockOnHand: original }] });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: 'T_1', trackInventory: true, outOfStockThreshold: 0 },
+                });
+                await adminClient.query(UPDATE_CHANNEL, {
+                    input: { id: channelBId, trackInventory: false, outOfStockThreshold: 0 },
+                });
+            }
         });
     });
 

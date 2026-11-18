@@ -14,10 +14,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
-import {
-    assertTrackInventoryMigrated,
-    migrateTrackInventoryToChannels,
-} from '../src/migration-utils/v4_0_track_inventory';
+import { assertGlobalStockSettingsMigrated } from '../src/migration-utils/v4_0_global_stock_settings';
+import { migrateTrackInventoryToChannels } from '../src/migration-utils/v4_0_track_inventory';
 
 describe('v4.0 trackInventory migration helpers', () => {
     // Runs with a table prefix, so the helpers must honour `entityPrefix`.
@@ -142,9 +140,9 @@ describe('v4.0 trackInventory migration helpers', () => {
     });
 
     // #2908 — Vendure refuses to start while the v3 value has not been migrated
-    it('assertTrackInventoryMigrated() throws while the v3 value is pending', async () => {
-        await expect(assertTrackInventoryMigrated(queryRunner)).rejects.toThrow(
-            'inventory tracking data migration has not run',
+    it('the startup check throws while the v3 value is pending', async () => {
+        await expect(assertGlobalStockSettingsMigrated(queryRunner)).rejects.toThrow(
+            'Call migrateTrackInventoryToChannels() from your v4 migration',
         );
     });
 
@@ -167,7 +165,7 @@ describe('v4.0 trackInventory migration helpers', () => {
             `SELECT ${esc('trackInventory')} AS ${esc('v')} FROM ${esc(table('global_settings'))}`,
         );
         expect(legacy[0].v).toBeNull();
-        await expect(assertTrackInventoryMigrated(queryRunner)).resolves.toBeUndefined();
+        await expect(assertGlobalStockSettingsMigrated(queryRunner)).resolves.toBeUndefined();
     });
 
     // #2908 — keeps every StockLevel and StockMovement, defaulting the new columns

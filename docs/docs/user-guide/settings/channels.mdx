@@ -16,3 +16,10 @@ Each channel defines some basic default settings - currency, language, tax optio
 
 There is _always_ a **default channel** - this is the "root" channel which contains _everything_, and any sub-channels can then contain a subset of the contents of the default channel.
   
+
+## Stock settings
+
+Each channel also sets the stock defaults for the product variants sold in it:
+
+* **Track inventory by default** sets whether stock levels are tracked when products are sold in this channel. Product variants and individual stock levels can override it (see the [tracking inventory](/user-guide/catalog/products#tracking-inventory) guide).
+* **Out of stock threshold** sets the stock level at which a product variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can use their own threshold instead.

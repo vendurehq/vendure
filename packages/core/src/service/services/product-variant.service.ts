@@ -29,6 +29,7 @@ import { roundMoney } from '../../common/round-money';
 import { ListQueryOptions, PriceCalculationResult } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { idsAreEqual } from '../../common/utils';
+import { resolveOutOfStockThreshold } from '../../config/catalog/out-of-stock-threshold';
 import { Buyer } from '../../config/catalog/product-variant-buyer-price-strategy';
 import { UpdatedProductVariantPrice } from '../../config/catalog/product-variant-price-update-strategy';
 import { ConfigService } from '../../config/config.service';
@@ -67,7 +68,6 @@ import { AssetService } from './asset.service';
 import { BuyerIdentityService } from './buyer-identity.service';
 import { ChannelService } from './channel.service';
 import { FacetValueService } from './facet-value.service';
-import { GlobalSettingsService } from './global-settings.service';
 import { RoleService } from './role.service';
 import { StockLevelReadOptions, StockLevelService } from './stock-level.service';
 import { StockMovementService } from './stock-movement.service';
@@ -157,7 +157,6 @@ export class ProductVariantService {
         private translatableSaver: TranslatableSaver,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
-        private globalSettingsService: GlobalSettingsService,
         private stockMovementService: StockMovementService,
         private stockLevelService: StockLevelService,
         private channelService: ChannelService,
@@ -410,7 +409,8 @@ export class ProductVariantService {
      * @description
      * Returns the number of saleable units of the ProductVariant, i.e. how many are available
      * for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
-     * as well as the local and global `outOfStockThreshold` settings.
+     * as well as the `outOfStockThreshold` of the ProductVariant, or of the Channel of `ctx` when
+     * the variant uses the Channel's threshold.
      *
      * Pass `{ lockStockLevels: true }` when the result is used to decide whether stock may be
      * allocated. This holds a write lock on the StockLevel rows until the surrounding
@@ -424,7 +424,6 @@ export class ProductVariantService {
         variant: ProductVariant,
         options?: StockLevelReadOptions,
     ): Promise<number> {
-        const { outOfStockThreshold } = await this.globalSettingsService.getSettings(ctx);
         const available = await this.stockLevelService.getAvailableStock(ctx, variant.id, {
             ...options,
             productVariant: variant,
@@ -433,24 +432,41 @@ export class ProductVariantService {
         if (await this.stockLevelService.hasUntrackedStock(ctx, variant, available)) {
             return Number.MAX_SAFE_INTEGER;
         }
-        const effectiveOutOfStockThreshold = variant.useGlobalOutOfStockThreshold
-            ? outOfStockThreshold
-            : variant.outOfStockThreshold;
-
-        return stockOnHand - stockAllocated - effectiveOutOfStockThreshold;
+        return stockOnHand - stockAllocated - resolveOutOfStockThreshold(variant, ctx.channel);
     }
 
-    private async getOutOfStockThreshold(ctx: RequestContext, variant: ProductVariant): Promise<number> {
-        const { outOfStockThreshold } = await this.globalSettingsService.getSettings(ctx);
-
-        // Tracked if the variant/Channel says so, or if any of its StockLevels overrides that to
-        // tracked: the same rule the stock lock uses.
-        const tracked = (await this.stockLevelService.getTrackedVariantIds(ctx, [variant.id])).length > 0;
-        if (!tracked) {
-            return 0;
-        } else {
-            return variant.useGlobalOutOfStockThreshold ? outOfStockThreshold : variant.outOfStockThreshold;
+    /**
+     * The lowest value `stockOnHand` may be set to: the lowest out-of-stock threshold of the
+     * Channels in which the variant is tracked, or 0 if it is tracked in none. `stockOnHand` is
+     * shared by every Channel of the variant, so tracking and the threshold are decided per Channel
+     * of the variant, not by the Channel of the request. The same update then passes or fails
+     * whichever Channel the Administrator is in.
+     */
+    private async getStockOnHandLowerLimit(ctx: RequestContext, variant: ProductVariant): Promise<number> {
+        // Read separately rather than as a relation of the variant being updated, so that saving
+        // the variant cannot touch its Channel assignments.
+        const variantChannels = await this.connection
+            .getRepository(ctx, Channel)
+            .createQueryBuilder('channel')
+            .innerJoin('channel.productVariants', 'variant', 'variant.id = :variantId', {
+                variantId: variant.id,
+            })
+            .select(['channel.id', 'channel.token'])
+            .getMany();
+        const thresholds: number[] = [];
+        for (const { token } of variantChannels) {
+            // From the cache, so fully loaded, as `ctx.channel` is.
+            const channel = await this.channelService.getChannelFromToken(ctx, token);
+            // Tracked if the variant/Channel says so, or if any of its StockLevels overrides that
+            // to tracked: the same rule the stock lock uses.
+            const tracked = await this.stockLevelService.getTrackedVariantIds(ctx.copy(channel), [
+                variant.id,
+            ]);
+            if (tracked.length) {
+                thresholds.push(resolveOutOfStockThreshold(variant, channel));
+            }
         }
+        return thresholds.length ? Math.min(...thresholds) : 0;
     }
 
     /**
@@ -631,8 +647,10 @@ export class ProductVariantService {
             channelId: ctx.channelId,
             relations: ['facetValues', 'facetValues.channels'],
         });
-        const outOfStockThreshold = await this.getOutOfStockThreshold(ctx, existingVariant);
-        if (input.stockOnHand && input.stockOnHand < outOfStockThreshold) {
+        if (
+            input.stockOnHand &&
+            input.stockOnHand < (await this.getStockOnHandLowerLimit(ctx, existingVariant))
+        ) {
             throw new UserInputError('error.stockonhand-cannot-be-negative');
         }
         if (input.optionIds) {

@@ -155,8 +155,8 @@ msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "{0} {entityName} silmek istediğinizden emin misiniz?"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Global out of stock threshold"
-msgstr "Genel stok tükenmesi eşiği"
+#~ msgid "Global out of stock threshold"
+#~ msgstr "Genel stok tükenmesi eşiği"
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -256,8 +256,8 @@ msgstr "Bu etkinleştirildiğinde, ürün kataloğuna girilen fiyatlara varsayı
 #~ msgid "Create variants for your product"
 #~ msgstr "Ürününüz için varyantlar oluşturun"
 
+#: src/app/routes/_authenticated/_customers/components/customer-storefronts.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
-#: src/app/routes/_authenticated/_customers/customers.tsx
 msgid "Storefronts"
 msgstr "Mağazalar"
 
@@ -269,6 +269,10 @@ msgstr "Taslak sipariş tamamlandı"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Auto refresh: {0}"
 msgstr "Otomatik yenileme: {0}"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Out of stock threshold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} job"
@@ -1244,6 +1248,10 @@ msgstr "Bunlar <0>{facetName}</0> özelliği için özellik değerleridir."
 msgid "Successfully added payment to order"
 msgstr "Ödeme siparişe başarıyla eklendi"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "Sets the stock level at which a variant is considered to be out of stock in this channel. Using a negative value enables backorder support. Product variants can override this."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Billing address set for order"
 msgstr "Sipariş için fatura adresi ayarlandı"
@@ -1663,8 +1671,8 @@ msgid "No customers found"
 msgstr "Müşteri bulunamadı"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "Use global out-of-stock threshold"
-msgstr "Genel stok tükenmesi eşiğini kullan"
+#~ msgid "Use global out-of-stock threshold"
+#~ msgstr "Genel stok tükenmesi eşiğini kullan"
 
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "New product option group"
@@ -2059,6 +2067,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
 msgstr "Siparişin fatura adresi kaldırılamadı: {0}"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "When enabled, this variant uses the out-of-stock threshold set on the channel instead of its own value."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -4548,6 +4560,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Use the channel's out-of-stock threshold"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Failed to update fulfillment state"
@@ -5671,8 +5687,8 @@ msgstr "Varyantlar oluşturulamadı"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
-msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
-msgstr "Bu varyantın stokta olmadığı kabul edilen stok seviyesini ayarlar. Negatif değer kullanmak sipariş öncesi desteğini etkinleştirir. Ürün varyantları tarafından geçersiz kılınabilir."
+#~ msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
+#~ msgstr "Bu varyantın stokta olmadığı kabul edilen stok seviyesini ayarlar. Negatif değer kullanmak sipariş öncesi desteğini etkinleştirir. Ürün varyantları tarafından geçersiz kılınabilir."
 
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Search promotions..."
@@ -7643,8 +7659,8 @@ msgid "Load more"
 msgstr "Daha fazla yükle"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
-msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
-msgstr ""
+#~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Refund settled"
