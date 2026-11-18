@@ -277,6 +277,10 @@ msgstr ""
 #~ msgid "Successfully cancelled {fulfilled} job"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} șterse"
@@ -927,6 +931,10 @@ msgstr "Verificator eligibilitate plată"
 msgid "Default tax zone"
 msgstr "Zonă de taxare implicită"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "Elimină formatarea"
@@ -1010,6 +1018,7 @@ msgstr "Rotirea acestei chei va invalida imediat cheia curentă. Orice integrăr
 msgid "The data that has been passed to the job"
 msgstr "Datele care au fost transmise job-ului"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1076,8 +1085,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "Introdu ID-ul tranzacției pentru această soluționare rambursare"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "Cheia ta API"
+#~ msgid "Your API Key"
+#~ msgstr "Cheia ta API"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1180,6 +1189,10 @@ msgstr "Nu s-a putut crea colecția"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "Mergi la prima pagină"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2202,6 +2215,10 @@ msgstr "Setează câmpuri personalizate"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "Colecții"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3393,6 +3410,10 @@ msgstr "Au fost eliminate cu succes {successCount} atribute din canal"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "Produs Nou"
@@ -3848,6 +3869,11 @@ msgstr "Linie orizontală"
 msgid "Testing shipping method..."
 msgstr "Se testează metoda de livrare..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4075,8 +4101,8 @@ msgid "Job Queue"
 msgstr "Coadă de joburi"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "Confirmă că ai salvat cheia API înainte de a închide."
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "Confirmă că ai salvat cheia API înainte de a închide."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5208,6 +5234,10 @@ msgstr "Editează detaliile adresei de mai jos."
 msgid "Successfully created tax category"
 msgstr "Categoria de taxă a fost creată cu succes"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "Nu s-au putut muta colecțiile"
@@ -5795,8 +5825,8 @@ msgid "Failed to update role"
 msgstr "Nu s-a putut actualiza rolul"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "Aceasta este singura dată când cheia API completă va fi afișată. Copiaz-o sau descarc-o acum — nu va putea fi recuperată ulterior."
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "Aceasta este singura dată când cheia API completă va fi afișată. Copiaz-o sau descarc-o acum — nu va putea fi recuperată ulterior."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -5929,6 +5959,10 @@ msgstr "Adaugă cod cupon"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Cod cupon setat pentru comandă"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6644,8 +6678,8 @@ msgid "Failed to create tax rate"
 msgstr "Nu s-a putut crea cota de taxă"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "Am salvat această cheie API"
+#~ msgid "I have saved this API key"
+#~ msgstr "Am salvat această cheie API"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7106,6 +7140,10 @@ msgstr "Rambursează și anulează comanda"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "Selectează resurse"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7688,8 +7726,8 @@ msgid "Refund settled"
 msgstr "Rambursare soluționată"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "Cheie API"
+#~ msgid "API Key"
+#~ msgstr "Cheie API"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7734,7 +7772,6 @@ msgstr "este mai mare decât"
 msgid "Underline"
 msgstr "Subliniat"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Închide"

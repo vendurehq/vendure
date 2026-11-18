@@ -285,6 +285,10 @@ msgstr ""
 #~ msgid "Health checks"
 #~ msgstr "헬스체크"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted}개 {entityName}이(가) 삭제되었습니다"
@@ -943,6 +947,10 @@ msgstr "결제 적격성 확인"
 msgid "Default tax zone"
 msgstr "기본 세금 지역"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr ""
@@ -1026,6 +1034,7 @@ msgstr "이 키를 교체하면 현재 키가 즉시 무효화됩니다. 이 키
 msgid "The data that has been passed to the job"
 msgstr "작업에 전달된 데이터"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1092,8 +1101,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "이 환불 정산의 거래 ID를 입력하세요"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "내 API 키"
+#~ msgid "Your API Key"
+#~ msgstr "내 API 키"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1200,6 +1209,10 @@ msgstr "컬렉션 생성 실패"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "첫 페이지로 이동"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2255,6 +2268,10 @@ msgstr "사용자 정의 필드 설정"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "컬렉션"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3450,6 +3467,10 @@ msgstr "채널에서 {successCount}개 속성이 제거되었습니다"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "새 상품"
@@ -3922,6 +3943,11 @@ msgstr ""
 msgid "Testing shipping method..."
 msgstr "배송 방법 테스트 중..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4149,8 +4175,8 @@ msgid "Job Queue"
 msgstr "작업 큐"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "닫기 전에 API 키를 저장했는지 확인하세요."
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "닫기 전에 API 키를 저장했는지 확인하세요."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5295,6 +5321,10 @@ msgstr "아래 주소 정보를 편집하세요."
 msgid "Successfully created tax category"
 msgstr "세금 카테고리가 생성되었습니다"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "컬렉션 이동 실패"
@@ -5894,8 +5924,8 @@ msgid "Failed to update role"
 msgstr "역할 업데이트 실패"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "전체 API 키가 표시되는 것은 이번 한 번뿐입니다. 지금 복사하거나 다운로드하세요. 나중에는 다시 확인할 수 없습니다."
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "전체 API 키가 표시되는 것은 이번 한 번뿐입니다. 지금 복사하거나 다운로드하세요. 나중에는 다시 확인할 수 없습니다."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -6036,6 +6066,10 @@ msgstr "쿠폰 코드 추가"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "주문에 쿠폰 코드가 설정되었습니다"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6755,8 +6789,8 @@ msgid "Failed to create tax rate"
 msgstr "세율 생성 실패"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "이 API 키를 저장했습니다"
+#~ msgid "I have saved this API key"
+#~ msgstr "이 API 키를 저장했습니다"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7222,6 +7256,10 @@ msgstr "환불 및 주문 취소"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "에셋 선택"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7816,8 +7854,8 @@ msgid "Refund settled"
 msgstr "환불이 정산되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API 키"
+#~ msgid "API Key"
+#~ msgstr "API 키"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7862,7 +7900,6 @@ msgstr "보다 큼"
 msgid "Underline"
 msgstr ""
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "닫기"

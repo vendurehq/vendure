@@ -289,6 +289,10 @@ msgstr ""
 #~ msgid "Health checks"
 #~ msgstr "Állapot-ellenőrzések"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} törölve"
@@ -955,6 +959,10 @@ msgstr "Fizetési jogosultság ellenőrző"
 msgid "Default tax zone"
 msgstr "Alapértelmezett adózóna"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "Formázás törlése"
@@ -1038,6 +1046,7 @@ msgstr "A kulcs rotálása azonnal érvényteleníti a jelenlegi kulcsot. Az azt
 msgid "The data that has been passed to the job"
 msgstr "A feladathoz átadott adatok"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1104,8 +1113,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "Adja meg a tranzakció ID-t ehhez a visszatérítési elszámoláshoz"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "Az Ön API Key-e"
+#~ msgid "Your API Key"
+#~ msgstr "Az Ön API Key-e"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1208,6 +1217,10 @@ msgstr "Gyűjtemény létrehozása sikertelen"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "Ugrás az első oldalra"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2263,6 +2276,10 @@ msgstr "Egyéni mezők beállítása"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "Gyűjtemények"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3458,6 +3475,10 @@ msgstr "{successCount} tulajdonság sikeresen eltávolítva a csatornából"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "Új termék"
@@ -3930,6 +3951,11 @@ msgstr "Vízszintes elválasztó"
 msgid "Testing shipping method..."
 msgstr "Szállítási mód tesztelése folyamatban..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4157,8 +4183,8 @@ msgid "Job Queue"
 msgstr "Feladatsor"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "Kérjük, erősítse meg, hogy elmentette az API key-t a bezárás előtt."
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "Kérjük, erősítse meg, hogy elmentette az API key-t a bezárás előtt."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5319,6 +5345,10 @@ msgstr "Szerkessze az alábbi cím adatait."
 msgid "Successfully created tax category"
 msgstr "Az adókategória sikeresen létrehozva"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "Gyűjtemények áthelyezése sikertelen"
@@ -5926,8 +5956,8 @@ msgid "Failed to update role"
 msgstr "Szerepkör frissítése sikertelen"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "Ez az egyetlen alkalom, amikor a teljes API key megjelenik. Másolja ki vagy töltse le most — később nem lehet lekérni."
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "Ez az egyetlen alkalom, amikor a teljes API key megjelenik. Másolja ki vagy töltse le most — később nem lehet lekérni."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -6068,6 +6098,10 @@ msgstr "Kuponkód hozzáadása"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Kuponkód beállítva a megrendeléshez"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6807,8 +6841,8 @@ msgid "Failed to create tax rate"
 msgstr "Adókulcs létrehozása sikertelen"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "Elmentettem ezt az API key-t"
+#~ msgid "I have saved this API key"
+#~ msgstr "Elmentettem ezt az API key-t"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7281,6 +7315,10 @@ msgstr "Megrendelés visszatérítése és törlése"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "Eszközök kiválasztása"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7875,8 +7913,8 @@ msgid "Refund settled"
 msgstr "Visszatérítés rendezve"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API Key"
+#~ msgid "API Key"
+#~ msgstr "API Key"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7921,7 +7959,6 @@ msgstr "nagyobb mint"
 msgid "Underline"
 msgstr "Aláhúzott"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Bezárás"

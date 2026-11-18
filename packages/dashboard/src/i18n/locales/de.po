@@ -289,6 +289,10 @@ msgstr ""
 #~ msgid "Health checks"
 #~ msgstr "Gesundheitsprüfungen"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} gelöscht"
@@ -955,6 +959,10 @@ msgstr "Zahlungsberechtigungsprüfer"
 msgid "Default tax zone"
 msgstr "Standard-Steuerzone"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "Formatierung entfernen"
@@ -1038,6 +1046,7 @@ msgstr "Das Rotieren dieses Schlüssels macht den aktuellen Schlüssel sofort un
 msgid "The data that has been passed to the job"
 msgstr "Die Daten, die an den Job weitergegeben wurden"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1104,8 +1113,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "Geben Sie die Transaktions-ID für diese Rückerstattungsabrechnung ein"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "Ihr API Key"
+#~ msgid "Your API Key"
+#~ msgstr "Ihr API Key"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1208,6 +1217,10 @@ msgstr "Fehler beim Erstellen der Sammlung"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "Zur ersten Seite"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2263,6 +2276,10 @@ msgstr "Benutzerdefinierte Felder setzen"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "Sammlungen"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3468,6 +3485,10 @@ msgstr "{successCount} Facetten erfolgreich aus Kanal entfernt"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "Neues Produkt"
@@ -3940,6 +3961,11 @@ msgstr "Horizontale Linie"
 msgid "Testing shipping method..."
 msgstr "Teste Versandmethode..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4167,8 +4193,8 @@ msgid "Job Queue"
 msgstr "Job-Warteschlange"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "Bitte bestätigen Sie, dass Sie den API Key gespeichert haben, bevor Sie schließen."
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "Bitte bestätigen Sie, dass Sie den API Key gespeichert haben, bevor Sie schließen."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5332,6 +5358,10 @@ msgstr "Bearbeiten Sie die Adressdaten unten."
 msgid "Successfully created tax category"
 msgstr "Steuerkategorie erfolgreich erstellt"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "Fehler beim Verschieben der Sammlungen"
@@ -5939,8 +5969,8 @@ msgid "Failed to update role"
 msgstr "Fehler beim Aktualisieren der Rolle"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "Der vollständige API Key wird nur dieses eine Mal angezeigt. Kopieren oder laden Sie ihn jetzt herunter — er kann später nicht mehr abgerufen werden."
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "Der vollständige API Key wird nur dieses eine Mal angezeigt. Kopieren oder laden Sie ihn jetzt herunter — er kann später nicht mehr abgerufen werden."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -6081,6 +6111,10 @@ msgstr "Gutscheincode hinzufügen"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "Gutscheincode für Bestellung festgelegt"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6820,8 +6854,8 @@ msgid "Failed to create tax rate"
 msgstr "Fehler beim Erstellen des Steuersatzes"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "Ich habe diesen API Key gespeichert"
+#~ msgid "I have saved this API key"
+#~ msgstr "Ich habe diesen API Key gespeichert"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7294,6 +7328,10 @@ msgstr "Erstattung und Bestellung stornieren"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "Assets auswählen"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7892,8 +7930,8 @@ msgid "Refund settled"
 msgstr "Rückerstattung abgerechnet"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API Key"
+#~ msgid "API Key"
+#~ msgstr "API Key"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7938,7 +7976,6 @@ msgstr "ist größer als"
 msgid "Underline"
 msgstr "Unterstrichen"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Schließen"

@@ -289,6 +289,10 @@ msgstr ""
 #~ msgid "Health checks"
 #~ msgstr "健康检查"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You can copy or download the API key only now."
+msgstr ""
+
 #: src/app/common/delete-bulk-action.tsx
 msgid "Deleted {deleted} {entityName}"
 msgstr "已删除 {deleted} {entityName}"
@@ -955,6 +959,10 @@ msgstr "支付资格检查器"
 msgid "Default tax zone"
 msgstr "默认税务区域"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Close without copying"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Clear formatting"
 msgstr "清除格式"
@@ -1038,6 +1046,7 @@ msgstr "轮换此密钥将立即使当前密钥失效。所有使用该密钥的
 msgid "The data that has been passed to the job"
 msgstr "传递给作业的数据"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/data-display/identifier.tsx
 #: src/lib/components/shared/copyable-text.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
@@ -1104,8 +1113,8 @@ msgid "Enter the transaction ID for this refund settlement"
 msgstr "输入此退款结算的交易 ID"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Your API Key"
-msgstr "您的 API Key"
+#~ msgid "Your API Key"
+#~ msgstr "您的 API Key"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -1208,6 +1217,10 @@ msgstr "创建集合失败"
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
 msgstr "转到首页"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Copy API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -2263,6 +2276,10 @@ msgstr "设置自定义字段"
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collections"
 msgstr "集合"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Done"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
@@ -3468,6 +3485,10 @@ msgstr "已成功从渠道中删除 {successCount} 个属性"
 #~ msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The clipboard is not available. Select the API key and copy it by hand."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "New Product"
 msgstr "新商品"
@@ -3940,6 +3961,11 @@ msgstr "水平分割线"
 msgid "Testing shipping method..."
 msgstr "正在测试配送方式..."
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "API key"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "Dark"
@@ -4167,8 +4193,8 @@ msgid "Job Queue"
 msgstr "作业队列"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "Please confirm you have saved the API key before closing."
-msgstr "请在关闭前确认您已保存 API Key。"
+#~ msgid "Please confirm you have saved the API key before closing."
+#~ msgstr "请在关闭前确认您已保存 API Key。"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "View"
@@ -5332,6 +5358,10 @@ msgstr "编辑下面的地址详情。"
 msgid "Successfully created tax category"
 msgstr "已成功创建税务类别"
 
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "The API key is not copied"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Failed to move collections"
 msgstr "移动集合失败"
@@ -5939,8 +5969,8 @@ msgid "Failed to update role"
 msgstr "更新角色失败"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr "完整的 API Key 仅此一次显示。请立即复制或下载，之后将无法再次获取。"
+#~ msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
+#~ msgstr "完整的 API Key 仅此一次显示。请立即复制或下载，之后将无法再次获取。"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -6081,6 +6111,10 @@ msgstr "添加优惠券代码"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Coupon code set for order"
 msgstr "已为订单设置优惠券代码"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "Your API key"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "The customers stay in the shop. Only the group membership is removed."
@@ -6820,8 +6854,8 @@ msgid "Failed to create tax rate"
 msgstr "创建税率失败"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "I have saved this API key"
-msgstr "我已保存此 API Key"
+#~ msgid "I have saved this API key"
+#~ msgstr "我已保存此 API Key"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -7294,6 +7328,10 @@ msgstr "退款并取消订单"
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "选择资源"
+
+#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+msgid "You cannot copy it after you close. Copy or download it now, or close without copying."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -7892,8 +7930,8 @@ msgid "Refund settled"
 msgstr "退款已完成"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
-msgid "API Key"
-msgstr "API Key"
+#~ msgid "API Key"
+#~ msgstr "API Key"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7938,7 +7976,6 @@ msgstr "大于"
 msgid "Underline"
 msgstr "下划线"
 
-#: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "关闭"
