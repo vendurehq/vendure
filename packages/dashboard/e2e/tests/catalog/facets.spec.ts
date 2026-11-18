@@ -22,6 +22,36 @@ test.describe('Facets', () => {
     });
 });
 
+// The product list has no Boolean filter with several channels: its Status filter covers `enabled`.
+// The facet list's "Is private" field is the Boolean filter tested here.
+test.describe('Facet list filters', () => {
+    test('should apply a boolean filter', async ({ page }) => {
+        const lp = new BaseListPage(page, { path: '/facets', title: 'Facets', newButtonLabel: 'New Facet' });
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.expectRowsLoaded();
+
+        await lp.openAddFilterMenu();
+        const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
+        await dropdown.getByRole('menuitem', { name: 'Is private', exact: true }).click();
+
+        // The filter dialog opens with Boolean filter controls
+        const dialog = page.locator('[role="dialog"]');
+        await expect(dialog).toBeVisible();
+
+        // Default: operator "is equal to", value "True"
+        const filteredRequest = page.waitForRequest(req => {
+            const body = (req.postData() ?? '').replace(/\s/g, '');
+            return req.url().includes('/admin-api') && body.includes('"isPrivate":{"eq":true}');
+        });
+        await dialog.getByRole('button', { name: 'Apply filter' }).click();
+        await filteredRequest;
+
+        await page.getByRole('button', { name: 'Clear all' }).click();
+        await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+    });
+});
+
 test.describe('Facet values', () => {
     test.describe.configure({ mode: 'serial' });
 
@@ -98,9 +128,9 @@ test.describe('Facet values', () => {
         await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 });
 
         // Use .first() in case a retry created duplicate entries
-        const testValueButton = page.locator('table').getByRole('button', { name: 'E2E Test Value' }).first();
-        await testValueButton.scrollIntoViewIfNeeded();
-        await testValueButton.click();
+        const testValueLink = page.locator('table').getByRole('link', { name: 'E2E Test Value' }).first();
+        await testValueLink.scrollIntoViewIfNeeded();
+        await testValueLink.click();
         await expect(page).toHaveURL(new RegExp(`/facets/${seededFacetId}/values/[^/]+`));
 
         // Verify the name field shows the correct value
@@ -115,9 +145,9 @@ test.describe('Facet values', () => {
         await expect(page.getByText('Facet values', { exact: true })).toBeVisible({ timeout: 10_000 });
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
 
-        const testValueButton = page.locator('table').getByRole('button', { name: 'E2E Test Value' }).first();
-        await testValueButton.scrollIntoViewIfNeeded();
-        await testValueButton.click();
+        const testValueLink = page.locator('table').getByRole('link', { name: 'E2E Test Value' }).first();
+        await testValueLink.scrollIntoViewIfNeeded();
+        await testValueLink.click();
         await expect(page).toHaveURL(new RegExp(`/facets/${seededFacetId}/values/[^/]+`));
 
         // Wait for form data to fully load before editing

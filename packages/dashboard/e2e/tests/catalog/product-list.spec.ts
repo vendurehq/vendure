@@ -466,39 +466,6 @@ test.describe('Product List', () => {
             // Row count should return to the initial count
             await lp.expectRowCount(initialCount);
         });
-
-        test('should apply a boolean filter', async ({ page }) => {
-            const lp = listPage(page);
-            await lp.goto();
-            await lp.expectLoaded();
-            await lp.expectRowsLoaded();
-
-            const initialCount = await lp.getRows().count();
-
-            // Open the add filter menu and select the Boolean "Downloadable" custom field. With several
-            // channels, `enabled` is filtered through the Status filter, not a Boolean filter.
-            await lp.openAddFilterMenu();
-            const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
-            await dropdown.getByRole('menuitem', { name: 'Downloadable', exact: true }).click();
-
-            // The filter dialog should open with boolean filter controls
-            const dialog = page.locator('[role="dialog"]');
-            await expect(dialog).toBeVisible();
-
-            // Default: operator "is equal to", value "True"
-            // Apply the filter as-is (Downloadable = true)
-            await dialog.getByRole('button', { name: 'Apply filter' }).click();
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
-
-            // All visible rows should be downloadable products
-            const filteredCount = await lp.getRows().count();
-            expect(filteredCount).toBeGreaterThan(0);
-            expect(filteredCount).toBeLessThanOrEqual(initialCount);
-
-            // Clean up: clear the filter
-            await page.getByRole('button', { name: 'Clear all' }).click();
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
-        });
     });
 });
 
