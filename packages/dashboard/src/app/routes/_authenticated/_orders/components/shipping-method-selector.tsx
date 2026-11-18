@@ -6,18 +6,13 @@ import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans } from '@lingui/react/macro';
 
 import { draftOrderEligibleShippingMethodsDocument } from '../orders.graphql.js';
+import type { ShippingMethodSelection } from '../utils/order-utils.js';
 
 type ShippingMethodQuote = ResultOf<
     typeof draftOrderEligibleShippingMethodsDocument
 >['eligibleShippingMethodsForDraftOrder'][number];
 
-export interface ShippingMethodSelection {
-    shippingMethodId: string;
-    /**
-     * The code of one of the ShippingMethod's options. Omitted to let the server pick the cheapest.
-     */
-    shippingOptionCode?: string;
-}
+export type { ShippingMethodSelection };
 
 interface ShippingMethodSelectorProps {
     eligibleShippingMethods: ShippingMethodQuote[];

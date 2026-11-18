@@ -145,9 +145,6 @@ export function toModifyOrderInput(
 }
 
 /**
- * Computes a pending order based on the current order and modification input
- */
-/**
  * One of the options of a ShippingMethod, as listed by `eligibleShippingMethodsForDraftOrder`.
  */
 export interface ShippingOptionInfo {
@@ -157,11 +154,22 @@ export interface ShippingOptionInfo {
 }
 
 /**
+ * A ShippingMethod chosen for an Order, and optionally one of its options.
+ */
+export interface ShippingMethodSelection {
+    shippingMethodId: string;
+    /**
+     * The code of one of the ShippingMethod's options. Omitted to let the server pick the cheapest.
+     */
+    shippingOptionCode?: string | null;
+}
+
+/**
  * The shipping method selections of a ModifyOrderInput, whichever of its two fields holds them.
  */
 export function getShippingSelections(
     input: Pick<ModifyOrderInput, 'shippingMethods' | 'shippingMethodIds'>,
-): Array<{ shippingMethodId: string; shippingOptionCode?: string | null }> | undefined {
+): ShippingMethodSelection[] | undefined {
     return input.shippingMethods ?? input.shippingMethodIds?.map(shippingMethodId => ({ shippingMethodId }));
 }
 
@@ -176,6 +184,9 @@ export function findSelectedShippingOption<T extends { code?: string | null }>(
     return shippingOptionCode != null ? options?.find(o => o.code === shippingOptionCode) : options?.[0];
 }
 
+/**
+ * Computes a pending order based on the current order and modification input
+ */
 export function computePendingOrder(
     order: Order,
     input: ModifyOrderInput,
