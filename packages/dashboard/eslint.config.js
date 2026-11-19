@@ -140,6 +140,18 @@ export default [{
         selector: "JSXOpeningElement[name.name='kbd']",
         message: 'Use Kbd or KbdGroup from @/vdb/components/ui/kbd.js, not a raw <kbd>.',
       },
+      // A heading sets its own size or weight instead of a title role, so its
+      // size, tracking and line height differ from the page, card and dialog
+      // titles around it. Any string in the className counts, so cn() arguments
+      // are checked too. Belongs in @vendure-io/design-lint once it has a rule
+      // for it.
+      ...[
+        'Literal[value=/(^|[\\s:])(text-(xs|sm|base|lg|xl|[2-9]xl)|font-(medium|semibold|bold))(\\s|$)/]',
+        'TemplateElement[value.raw=/(^|[\\s:])(text-(xs|sm|base|lg|xl|[2-9]xl)|font-(medium|semibold|bold))(\\s|$)/]',
+      ].map(selector => ({
+        selector: `JSXOpeningElement[name.name=/^h[1-6]$/] > JSXAttribute[name.name='className'] ${selector}`,
+        message: 'A heading takes a title role, not its own size or weight: text-style-page-title, text-style-section-title, text-style-card-title (or PageHeader, CardTitle, DialogTitle). Remove text-* sizes and font-* weights.',
+      })),
     ],
   },
 }, {
