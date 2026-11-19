@@ -5,6 +5,7 @@ import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { useLingui } from '@lingui/react/macro';
 import { CheckIcon, PencilIcon, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { Controller, ControllerRenderProps, useFormContext, useWatch } from 'react-hook-form';
@@ -44,18 +45,19 @@ function DisplayMode({
     getTranslation,
     formatFieldValue,
 }: Readonly<DisplayModeProps>) {
+    const { t } = useLingui();
     return (
         <div className="border rounded-md p-4">
             <div className="flex justify-end">
                 {!isReadonly && (
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => setIsEditing(true)}
-                        className="h-8 w-8 p-0 -mt-2 -mr-2 text-muted-foreground hover:text-foreground"
+                        className="-mt-2 -me-2"
+                        aria-label={t`Edit`}
                     >
-                        <PencilIcon className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
+                        <PencilIcon />
                     </Button>
                 )}
             </div>
@@ -74,6 +76,7 @@ function DisplayMode({
 }
 
 export function StructFormInput({ fieldDef, disabled, ...field }: Readonly<DashboardFormComponentProps>) {
+    const { t } = useLingui();
     const { formatDate } = useLocalFormat();
     const [isEditing, setIsEditing] = useState(false);
     const { control } = useFormContext();
@@ -106,12 +109,11 @@ export function StructFormInput({ fieldDef, disabled, ...field }: Readonly<Dashb
                         <div className="flex justify-end">
                             <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon"
                                 onClick={() => setIsEditing(false)}
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                aria-label={t`Done`}
                             >
-                                <CheckIcon className="h-4 w-4" />
-                                <span className="sr-only">Done</span>
+                                <CheckIcon />
                             </Button>
                         </div>
                     )}

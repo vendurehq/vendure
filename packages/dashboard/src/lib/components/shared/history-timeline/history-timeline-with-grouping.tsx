@@ -115,18 +115,17 @@ export function HistoryTimelineWithGrouping({
                                     <li className="ps-6.5 pb-4">
                                         <Button
                                             variant="ghost"
-                                            size="sm"
+                                            size="xs"
                                             onClick={() => toggleGroup(groupIndex)}
-                                            className="text-muted-foreground hover:text-foreground h-6 text-xs"
                                         >
                                             {isExpanded ? (
                                                 <>
-                                                    <ChevronUp className="w-3 h-3 mr-1" />
+                                                    <ChevronUp data-icon="inline-start" />
                                                     <Trans>Show less</Trans>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <ChevronDown className="w-3 h-3 mr-1" />
+                                                    <ChevronDown data-icon="inline-start" />
                                                     <Trans>
                                                         Show all ({group.entries.length - 2})
                                                     </Trans>
