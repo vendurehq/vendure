@@ -42,8 +42,10 @@ export function DataTableFilterBadge({
                     </span>
                 </TooltipTrigger>
                 <TooltipContent className="flex flex-wrap items-center gap-1">
-                    {fieldName}
-                    <HumanReadableOperator operator={operator as Operator} mode="short" />
+                    <span>{fieldName}</span>
+                    <span>
+                        <HumanReadableOperator operator={operator as Operator} mode="short" />
+                    </span>
                     <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} fullDate />
                 </TooltipContent>
             </Tooltip>
