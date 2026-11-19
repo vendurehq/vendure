@@ -2,9 +2,14 @@ import { ErrorCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     idsAreEqual,
     manualFulfillmentHandler,
+    Order,
+    OrderLine,
+    RequestContext,
     ShippingCalculationResult,
     ShippingCalculator,
     ShippingEligibilityChecker,
+    ShippingLine,
+    ShippingLineAssignmentStrategy,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
@@ -48,6 +53,8 @@ let carrierCalls = 0;
 let flatRateCode: string | undefined;
 /** Whether the ShippingMethod priced by its assigned OrderLines is eligible */
 let assignedLinesMethodEligible = false;
+/** When set, the ShippingMethod priced by its assigned OrderLines is only eligible up to this subTotal */
+let assignedLinesMaxSubTotal: number | undefined;
 
 /**
  * Stands in for a carrier API: one result per service, priced by the quantity in the Order,
@@ -111,7 +118,9 @@ const assignedLinesChecker = new ShippingEligibilityChecker({
     code: 'assigned-lines-checker',
     description: [{ languageCode: LanguageCode.en, value: 'Only when enabled by a test' }],
     args: {},
-    check: () => assignedLinesMethodEligible,
+    check: (_ctx, order) =>
+        assignedLinesMethodEligible &&
+        (assignedLinesMaxSubTotal === undefined || order.subTotal <= assignedLinesMaxSubTotal),
 });
 
 const alwaysEligible = new ShippingEligibilityChecker({
@@ -338,12 +347,21 @@ const testShippingMethodDocument = adminGraphql(`
     }
 `);
 
+class ClonedLinesAssignmentStrategy implements ShippingLineAssignmentStrategy {
+    assignShippingLineToOrderLines(_ctx: RequestContext, _shippingLine: ShippingLine, order: Order) {
+        return order.lines.map(line => new OrderLine({ id: line.id }));
+    }
+}
+
 describe('ShippingMethod with several options', () => {
     const { server, adminClient, shopClient } = createTestEnvironment({
         ...testConfig(),
         shippingOptions: {
             shippingEligibilityCheckers: [alwaysEligible, assignedLinesChecker],
             shippingCalculators: [carrierCalculator, flatRateCalculator, assignedLinesCalculator],
+            // Returns other instances than those of order.lines, which a strategy is free to do: the
+            // detection of refused options must not depend on them being the same objects
+            shippingLineAssignmentStrategy: new ClonedLinesAssignmentStrategy(),
         },
         paymentOptions: {
             paymentMethodHandlers: [testSuccessfulPaymentMethod],
@@ -795,6 +813,32 @@ describe('ShippingMethod with several options', () => {
             }
         });
 
+        it('checks the eligibility on the modified Order when shipping is not recalculated', async () => {
+            const { order } = await adminClient.query(adminOrderShippingDocument, { id: placedOrderId });
+            const line = order?.lines[0];
+            if (!line) {
+                throw new Error('The placed Order has no lines');
+            }
+            // Eligible for the 2 x T_1 of the placed Order (259800), but not the 3 x T_1 (389700) it becomes
+            assignedLinesMethodEligible = true;
+            assignedLinesMaxSubTotal = 300000;
+            try {
+                const { modifyOrder } = await adminClient.query(modifyOrderShippingDocument, {
+                    input: {
+                        orderId: placedOrderId,
+                        dryRun: true,
+                        options: { recalculateShipping: false },
+                        adjustOrderLines: [{ orderLineId: line.id, quantity: line.quantity + 1 }],
+                        shippingMethods: [{ shippingMethodId: assignedLinesMethodId }],
+                    },
+                });
+                expect((modifyOrder as any).errorCode).toBe(ErrorCode.INELIGIBLE_SHIPPING_METHOD_ERROR);
+            } finally {
+                assignedLinesMethodEligible = false;
+                assignedLinesMaxSubTotal = undefined;
+            }
+        });
+
         it('applies the shipping promotions to the new price when modifyOrder does not recalculate shipping', async () => {
             const { createPromotion } = await adminClient.query(createPromotionDocument, {
                 input: {
@@ -916,8 +960,7 @@ describe('ShippingMethod with several options', () => {
                 },
             );
 
-            // The ShippingLine has no OrderLine to ship, so the recalculation removes it, as it did
-            // before ShippingOptions. That is not a refusal.
+            // A ShippingLine without OrderLines is removed by the recalculation, and is not a refusal
             expect((setDraftOrderShippingMethod as any).errorCode).toBeUndefined();
             expect((setDraftOrderShippingMethod as any).shippingLines).toEqual([]);
         });

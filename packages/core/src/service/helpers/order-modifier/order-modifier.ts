@@ -69,7 +69,7 @@ import { CustomFieldRelationService } from '../custom-field-relation/custom-fiel
 import { OrderCalculator } from '../order-calculator/order-calculator';
 import {
     findShippingOption,
-    getSelectedShippingLines,
+    SelectedShippingLine,
     setShippingLineOption,
     ShippingCalculator,
     shippingSelectionsKept,
@@ -81,6 +81,8 @@ import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrderChannelContext } from '../utils/order-channel-context';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
+
+import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
 /**
  * @description
@@ -99,8 +101,6 @@ export interface SetShippingMethodsResult {
      */
     selectionKept: (pricedShippingLines: ShippingLine[]) => boolean;
 }
-
-import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
 /**
  * @description
@@ -852,6 +852,7 @@ export class OrderModifier {
             line.shippingLineId = undefined;
         }
         const { shippingLineAssignmentStrategy } = this.configService.shippingOptions;
+        const selectedLines: SelectedShippingLine[] = [];
         for (const shippingLine of order.shippingLines) {
             const orderLinesForShippingLine =
                 await shippingLineAssignmentStrategy.assignShippingLineToOrderLines(ctx, shippingLine, order);
@@ -861,13 +862,15 @@ export class OrderModifier {
                 .update({ shippingLineId: shippingLine.id })
                 .whereInIds(orderLinesForShippingLine.map(l => l.id))
                 .execute();
-            orderLinesForShippingLine.forEach(line => {
-                line.shippingLine = shippingLine;
-                line.shippingLineId = shippingLine.id;
-            });
+            // Matched by id, as the strategy may return other instances than those of order.lines
+            for (const line of order.lines) {
+                if (orderLinesForShippingLine.some(assigned => idsAreEqual(assigned.id, line.id))) {
+                    line.shippingLine = shippingLine;
+                    line.shippingLineId = shippingLine.id;
+                }
+            }
+            selectedLines.push({ id: shippingLine.id, hasOrderLines: orderLinesForShippingLine.length > 0 });
         }
-        // Taken now: the recalculation reassigns the OrderLines and may remove ShippingLines
-        const selectedLines = getSelectedShippingLines(order);
         return {
             order,
             selectionKept: pricedShippingLines =>
@@ -894,6 +897,16 @@ export class OrderModifier {
                 : new IneligibleShippingMethodError();
         }
         for (const shippingLine of order.shippingLines) {
+            // A ShippingLine without OrderLines is removed when the Order is next recalculated, and is not
+            // a refusal, as in shippingSelectionsKept()
+            if (!order.lines.some(line => idsAreEqual(line.shippingLineId, shippingLine.id))) {
+                continue;
+            }
+            // The eligibility was checked on the Order before the modification, so check it again on the
+            // modified Order
+            if (!(await shippingLine.shippingMethod.test(ctx, order))) {
+                return new IneligibleShippingMethodError();
+            }
             const quotes = await shippingLine.shippingMethod.applyQuotes(ctx, order);
             const result = findShippingOption(quotes, shippingLine.shippingOptionCode);
             if (!result) {

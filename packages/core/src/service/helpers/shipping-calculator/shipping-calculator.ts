@@ -59,21 +59,13 @@ export function toShippingMethodSelections(
  */
 export type SelectedShippingLine = { id: ID; hasOrderLines: boolean };
 
-export function getSelectedShippingLines(order: Order): SelectedShippingLine[] {
-    return order.shippingLines.map(shippingLine => ({
-        id: shippingLine.id,
-        hasOrderLines: order.lines.some(line => idsAreEqual(line.shippingLineId, shippingLine.id)),
-    }));
-}
-
 /**
  * Whether each selection is still held by its own ShippingLine once the Order has been priced.
  * OrderCalculator falls back to another option or ShippingMethod when the selected option is not
  * offered, or when the ShippingCalculator returns nothing, which makes the selection a refused one.
  *
- * A ShippingLine to which no OrderLine was assigned is removed by the recalculation, as it was
- * before ShippingOptions existed, and is not a refusal: an empty Order can still have its
- * ShippingMethod set.
+ * A ShippingLine to which no OrderLine was assigned is removed by OrderCalculator.applyShipping() and
+ * is not a refusal: an empty Order can still have its ShippingMethod set.
  */
 export function shippingSelectionsKept(
     selections: ShippingMethodSelectionInput[],
