@@ -1,6 +1,16 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
-import { manualFulfillmentHandler, mergeConfig } from '@vendure/core';
+import {
+    defaultOrderProcess,
+    Injector,
+    LanguageCode,
+    manualFulfillmentHandler,
+    mergeConfig,
+    OrderHistoryEntry,
+    OrderProcess,
+    PaymentMethodHandler,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -19,6 +29,7 @@ import {
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
+    addPaymentDocument,
     getActiveOrderDocument,
     getActiveOrderShippingBillingDocument,
     getEligibleShippingMethodsDocument,
@@ -121,6 +132,68 @@ const address = {
     postalCode: '123456',
     countryCode: 'US',
 };
+const DEADLOCK_CODE = process.env.DB === 'postgres' ? '40P01' : 'ER_LOCK_DEADLOCK';
+/** Orders of this customer hit a simulated deadlock once, after the payment provider was called. */
+const DEADLOCK_AFTER_PAYMENT_EMAIL = 'deadlock-after-payment@test.com';
+/** Orders of this customer write a row referencing the Order on a second connection. */
+const SECOND_CONNECTION_EMAIL = 'second-connection-insert@test.com';
+let deadlockAfterPaymentThrown = false;
+let processInjector: Injector;
+
+/**
+ * Lets single tests make an Order transition misbehave in ways a plugin's OrderProcess could.
+ * Only Orders of the customers above are affected.
+ */
+const misbehavingOrderProcess: OrderProcess<any> = {
+    init(injector) {
+        processInjector = injector;
+    },
+    async onTransitionEnd(fromState, toState, { order }) {
+        const emailAddress = order.customer?.emailAddress;
+        if (
+            toState === 'PaymentSettled' &&
+            emailAddress === DEADLOCK_AFTER_PAYMENT_EMAIL &&
+            !deadlockAfterPaymentThrown
+        ) {
+            deadlockAfterPaymentThrown = true;
+            throw Object.assign(new Error('simulated deadlock after payment'), { code: DEADLOCK_CODE });
+        }
+        if (toState === 'ArrangingPayment' && emailAddress === SECOND_CONNECTION_EMAIL) {
+            // A plugin writing through the raw connection rather than the request's transaction.
+            const queryRunner = processInjector
+                .get(TransactionalConnection)
+                .rawConnection.createQueryRunner();
+            try {
+                // Fail instead of hanging the suite if the insert is blocked by the Order lock.
+                await queryRunner.query("SET lock_timeout = '3s'");
+                await queryRunner.manager.save(
+                    new OrderHistoryEntry({
+                        type: HistoryEntryType.ORDER_NOTE,
+                        isPublic: false,
+                        data: { note: 'written on a second connection' } as any,
+                        order,
+                    }),
+                );
+            } finally {
+                await queryRunner.release();
+            }
+        }
+    },
+};
+
+let paymentProviderCalls = 0;
+/** Counts how often the payment provider is asked to take a payment. */
+const countingPaymentMethod = new PaymentMethodHandler({
+    code: 'counting-payment-method',
+    description: [{ languageCode: LanguageCode.en, value: 'Counting payment method' }],
+    args: {},
+    createPayment: (ctx, order, amount) => {
+        paymentProviderCalls++;
+        return { amount, state: 'Settled', transactionId: `counted-${paymentProviderCalls}` };
+    },
+    settlePayment: () => ({ success: true }),
+});
+
 /**
  * Concurrency regression tests for #4152.
  *
@@ -137,7 +210,10 @@ describeOnRealDb('Order concurrency', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: {
-                paymentMethodHandlers: [testSuccessfulPaymentMethod],
+                paymentMethodHandlers: [testSuccessfulPaymentMethod, countingPaymentMethod],
+            },
+            orderOptions: {
+                process: [defaultOrderProcess, misbehavingOrderProcess],
             },
         }),
     );
@@ -196,6 +272,10 @@ describeOnRealDb('Order concurrency', () => {
                     {
                         name: testSuccessfulPaymentMethod.code,
                         handler: { code: testSuccessfulPaymentMethod.code, arguments: [] },
+                    },
+                    {
+                        name: countingPaymentMethod.code,
+                        handler: { code: countingPaymentMethod.code, arguments: [] },
                     },
                 ],
             },
@@ -446,4 +526,30 @@ describeOnRealDb('Order concurrency', () => {
         const refunded = after!.payments![0].refunds.reduce((sum, r) => sum + r.total, 0);
         expect(refunded).toBe(payment.amount);
     });
+
+    // #4152 — a deadlock which happens after the payment provider has been charged must not re-run
+    // the request: the retry would charge the provider a second time.
+    it('does not call the payment provider again when a deadlock follows the payment', async () => {
+        const client = await newShopClient();
+        await checkoutToArrangingPayment(client, DEADLOCK_AFTER_PAYMENT_EMAIL);
+        paymentProviderCalls = 0;
+
+        await client
+            .query(addPaymentDocument, { input: { method: countingPaymentMethod.code, metadata: {} } })
+            .catch(() => undefined);
+
+        expect(deadlockAfterPaymentThrown).toBe(true);
+        expect(paymentProviderCalls).toBe(1);
+    });
+
+    // #4152 — on Postgres, the Order lock must not block a row which merely references the Order,
+    // such as a plugin writing a history entry through the raw connection during a transition.
+    const itOnPostgres = process.env.DB === 'postgres' ? it : it.skip;
+    itOnPostgres(
+        'does not block inserts which reference the locked order from another connection',
+        async () => {
+            const client = await newShopClient();
+            await checkoutToArrangingPayment(client, SECOND_CONNECTION_EMAIL);
+        },
+    );
 });

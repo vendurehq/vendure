@@ -43,9 +43,11 @@ function mockQueryRunner() {
 
 let runner: any;
 
-function mockConnection(type = 'postgres') {
+function mockConnection(type = 'postgres', isolationLevel?: string) {
     runner = mockQueryRunner();
-    return { createQueryRunner: () => runner, options: { type } } as any;
+    // Lets a nested executeInTransaction() inherit the runner, as TypeORM's manager would.
+    runner.manager.queryRunner = runner;
+    return { createQueryRunner: () => runner, options: { type, isolationLevel } } as any;
 }
 
 let transactionSubscriber: { announceRollback: ReturnType<typeof vi.fn> };
@@ -144,6 +146,36 @@ describe('TransactionWrapper', () => {
         expect(runner.calls).toEqual(['start', 'rollback', 'release']);
     });
 
+    it('keeps the mark when a nested transaction runs after it', async () => {
+        const connection = mockConnection();
+        const w = wrapper();
+        let attempts = 0;
+        await expect(
+            w.executeInTransaction(
+                ctx,
+                async innerCtx => {
+                    attempts++;
+                    // What PaymentService.createPayment() does: mark, call the provider, then
+                    // record the payment in a nested transaction.
+                    runner.data[TRANSACTION_NO_RETRY_KEY] = true;
+                    await w.executeInTransaction(
+                        innerCtx,
+                        async () => 'saved',
+                        'auto',
+                        undefined,
+                        connection,
+                    );
+                    throw deadlock();
+                },
+                'auto',
+                undefined,
+                connection,
+            ),
+        ).rejects.toThrow('deadlock detected');
+
+        expect(attempts).toBe(1);
+    });
+
     it('does not retry an attempt which was marked as unsafe to retry', async () => {
         const connection = mockConnection();
         let attempts = 0;
@@ -236,6 +268,12 @@ describe('TransactionWrapper', () => {
         it('uses the configured level over the default', async () => {
             expect(await startedWith('mysql', undefined, 'REPEATABLE READ')).toBe('REPEATABLE READ');
             expect(await startedWith('postgres', undefined, 'SERIALIZABLE')).toBe('SERIALIZABLE');
+        });
+
+        it('keeps an isolation level set in dbConnectionOptions', async () => {
+            const connection = mockConnection('mysql', 'SERIALIZABLE');
+            await wrapper().executeInTransaction(ctx, async () => 'done', 'auto', undefined, connection);
+            expect(runner.startTransaction.mock.calls[0][0]).toBe('SERIALIZABLE');
         });
 
         it('uses an explicitly requested level over the configured one', async () => {

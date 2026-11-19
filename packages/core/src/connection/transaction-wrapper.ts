@@ -49,23 +49,36 @@ export class TransactionWrapper {
             entityManager?.queryRunner && !entityManager.queryRunner.isReleased
                 ? entityManager.queryRunner
                 : undefined;
-        const queryRunner = inheritedQueryRunner ?? connection.createQueryRunner();
+        let queryRunner = inheritedQueryRunner ?? connection.createQueryRunner();
         const effectiveIsolationLevel = this.resolveIsolationLevel(isolationLevel, connection);
         if (mode === 'auto') {
             await this.startTransaction(queryRunner, effectiveIsolationLevel);
+        }
+        if (!inheritedQueryRunner) {
+            // Only the owner of the runner clears the mark: a nested transaction which runs after
+            // the mark was set must not erase it. (SQLite drivers share one runner between requests.)
+            delete queryRunner.data[TRANSACTION_NO_RETRY_KEY];
         }
         (ctx as any)[TRANSACTION_MANAGER_KEY] = queryRunner.manager;
 
         try {
             const result = await this.runWithRetries(
                 () => work(ctx),
-                queryRunner,
-                effectiveIsolationLevel,
+                () => queryRunner,
                 // A retry has to roll the transaction back and start a fresh one. That is only
                 // ours to do when we opened the transaction in the first place. When the runner
                 // was inherited from an outer transaction, or the caller manages the transaction
                 // itself, the retry belongs to whoever owns it.
-                mode === 'auto' && !inheritedQueryRunner,
+                mode === 'auto' && !inheritedQueryRunner
+                    ? async () => {
+                          queryRunner = await this.restartTransaction(
+                              queryRunner,
+                              connection,
+                              effectiveIsolationLevel,
+                          );
+                          (ctx as any)[TRANSACTION_MANAGER_KEY] = queryRunner.manager;
+                      }
+                    : undefined,
             );
             if (queryRunner.isTransactionActive) {
                 await queryRunner.commitTransaction();
@@ -107,42 +120,78 @@ export class TransactionWrapper {
      */
     private async runWithRetries<T>(
         work: () => Observable<T> | Promise<T>,
-        queryRunner: QueryRunner,
-        isolationLevel: TransactionIsolationLevel | undefined,
-        canRestartTransaction: boolean,
+        getQueryRunner: () => QueryRunner,
+        restartTransaction: (() => Promise<void>) | undefined,
     ): Promise<T> {
         const maxRetries = 5;
         let attempts = 0;
         // eslint-disable-next-line no-constant-condition
         while (true) {
-            delete queryRunner.data[TRANSACTION_NO_RETRY_KEY];
             try {
                 return await lastValueFrom(from(work()));
             } catch (err: any) {
                 attempts++;
                 if (
-                    !canRestartTransaction ||
+                    !restartTransaction ||
                     !this.isRetriableError(err) ||
                     attempts > maxRetries ||
                     // The attempt did something a rollback cannot undo, such as calling a payment
                     // provider, so running it again would repeat that. See
                     // TransactionalConnection.preventTransactionRetry.
-                    queryRunner.data[TRANSACTION_NO_RETRY_KEY] === true
+                    getQueryRunner().data[TRANSACTION_NO_RETRY_KEY] === true
                 ) {
                     throw err;
                 }
-                if (queryRunner.isTransactionActive) {
-                    await queryRunner.rollbackTransaction();
-                }
-                await this.startTransaction(queryRunner, isolationLevel);
+                await restartTransaction();
             }
         }
     }
 
     /**
+     * Ends the transaction of a failed attempt and starts a new one for the next attempt, returning
+     * the QueryRunner to use from then on.
+     *
+     * That is a new QueryRunner when the old one can no longer be trusted. When the database ended
+     * the transaction inside a nested transaction, as MySQL and MariaDB do on a deadlock, TypeORM
+     * still counts the savepoint: rolling back fails again, and starting a transaction on that
+     * runner would only create another savepoint. The old runner is then reset and released, as in
+     * `rollbackAfterError()`.
+     */
+    private async restartTransaction(
+        queryRunner: QueryRunner,
+        connection: DataSource,
+        isolationLevel: TransactionIsolationLevel | undefined,
+    ): Promise<QueryRunner> {
+        try {
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.rollbackTransaction();
+            }
+            if (!queryRunner.isTransactionActive) {
+                await this.startTransaction(queryRunner, isolationLevel);
+                return queryRunner;
+            }
+        } catch {
+            // Handled below
+        }
+        await queryRunner.query('ROLLBACK').catch(() => undefined);
+        this.transactionSubscriber.announceRollback(queryRunner);
+        if (!queryRunner.isReleased) {
+            await queryRunner.release();
+        }
+        const freshQueryRunner = connection.createQueryRunner();
+        try {
+            await this.startTransaction(freshQueryRunner, isolationLevel);
+        } catch (e) {
+            await freshQueryRunner.release();
+            throw e;
+        }
+        return freshQueryRunner;
+    }
+
+    /**
      * The isolation level asked for explicitly wins. Otherwise the configured
-     * `entityOptions.transactionIsolationLevel` applies, and failing that `READ COMMITTED` on
-     * MySQL and MariaDB.
+     * `entityOptions.transactionIsolationLevel` applies, then an `isolationLevel` set in
+     * `dbConnectionOptions`, and failing those `READ COMMITTED` on MySQL and MariaDB.
      *
      * InnoDB defaults to `REPEATABLE READ`, under which a transaction keeps reading the snapshot
      * taken at its first read. A row lock acquired later then cannot make the transaction see the
@@ -160,6 +209,11 @@ export class TransactionWrapper {
         const configured = this.configService.entityOptions.transactionIsolationLevel;
         if (configured) {
             return configured;
+        }
+        const fromDataSource = (connection.options as { isolationLevel?: TransactionIsolationLevel })
+            .isolationLevel;
+        if (fromDataSource) {
+            return fromDataSource;
         }
         const dbType = getDatabaseType(connection);
         return dbType === 'mysql' || dbType === 'mariadb' ? 'READ COMMITTED' : undefined;

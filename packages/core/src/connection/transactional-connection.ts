@@ -33,6 +33,7 @@ import {
 } from '../entity/channel-assignment/channel-custom-fields';
 import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-relations-qb-joiner';
 
+import { getDatabaseType } from './database-type';
 import { findOptionsArrayToObject } from './find-options-array-to-object';
 import { findOptionsObjectToArray } from './find-options-object-to-array';
 import { toTypeOrmFindOptions } from './to-typeorm-find-options';
@@ -313,7 +314,8 @@ export class TransactionalConnection {
      * same row are serialized rather than overwriting each other. The lock is held until the
      * surrounding transaction commits or rolls back.
      *
-     * The lock is a standalone `SELECT ... FOR UPDATE` by primary key. It deliberately does not
+     * The lock is a standalone `SELECT ... FOR UPDATE` by primary key (`FOR NO KEY UPDATE` on
+     * Postgres, which does not block inserts of rows referencing this one). It deliberately does not
      * load relations: locking a query which left-joins is rejected by Postgres, and making the
      * join inner to satisfy it would silently change which rows the query returns.
      *
@@ -356,7 +358,14 @@ export class TransactionalConnection {
             .getRepository(entityType)
             .createQueryBuilder('entity')
             .select('entity.id')
-            .setLock('pessimistic_write')
+            // On Postgres, FOR NO KEY UPDATE: it serializes writers like FOR UPDATE, but does not
+            // conflict with the FOR KEY SHARE lock an insert of a row referencing this one takes,
+            // which a plain UPDATE of the row would not block either.
+            .setLock(
+                getDatabaseType(this.rawConnection) === 'postgres'
+                    ? 'for_no_key_update'
+                    : 'pessimistic_write',
+            )
             .where('entity.id = :id', { id })
             .getOne();
     }

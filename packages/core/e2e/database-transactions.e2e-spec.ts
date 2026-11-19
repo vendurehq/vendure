@@ -8,6 +8,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
+    nestedDeadlock,
     TRANSACTION_ENDED_BY_DATABASE,
     TransactionTestPlugin,
     TRIGGER_ATTEMPTED_READ_EMAIL,
@@ -242,6 +243,20 @@ describe('Transaction infrastructure', () => {
         },
     );
 
+    // Relates to #4152. After a deadlock inside a nested transaction, the database has ended the
+    // transaction, so the retry must start from a clean connection rather than roll back again.
+    itIfDb(['postgres', 'mysql', 'mariadb'])(
+        'retries a deadlock which happened inside a nested transaction',
+        async () => {
+            nestedDeadlock.attempts = 0;
+            const { retryAfterDeadlockInNestedTransaction } = await adminClient.query(
+                retryAfterDeadlockInNestedTransactionDocument,
+            );
+            expect(retryAfterDeadlockInNestedTransaction).toBe(2);
+            await adminClient.query(verifyTestDocument);
+        },
+    );
+
     it('event do not publish after transaction rollback', async () => {
         TransactionTestPlugin.reset();
         try {
@@ -421,6 +436,12 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, message: string):
         clearTimeout(timer);
     }
 }
+
+const retryAfterDeadlockInNestedTransactionDocument = graphql(`
+    mutation RetryAfterDeadlockInNestedTransaction {
+        retryAfterDeadlockInNestedTransaction
+    }
+`);
 
 const failAfterDatabaseEndedNestedTransactionDocument = graphql(`
     mutation FailAfterDatabaseEndedNestedTransaction {

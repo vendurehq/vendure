@@ -32,6 +32,8 @@ export const TRIGGER_NO_OPERATION = 'trigger-no-operation';
 export const TRIGGER_ATTEMPTED_UPDATE_EMAIL = 'trigger-attempted-update-email';
 export const TRIGGER_ATTEMPTED_READ_EMAIL = 'trigger-attempted-read-email';
 export const TRANSACTION_ENDED_BY_DATABASE = 'transaction-ended-by-database';
+/** How often `retryAfterDeadlockInNestedTransaction` has been attempted. */
+export const nestedDeadlock = { attempts: 0 };
 
 @Injectable()
 class TestUserService {
@@ -275,6 +277,25 @@ class TestResolver {
         return true;
     }
 
+    /**
+     * Fails its first attempt with a deadlock from inside a nested transaction, after ending the
+     * transaction as MySQL and MariaDB do on a deadlock. Later attempts succeed.
+     */
+    @Mutation()
+    @Transaction()
+    async retryAfterDeadlockInNestedTransaction(@Ctx() ctx: RequestContext) {
+        const attempt = ++nestedDeadlock.attempts;
+        await this.connection.withTransaction(ctx, async innerCtx => {
+            if (attempt === 1) {
+                await this.connection.getRepository(innerCtx, User).query('ROLLBACK');
+                throw Object.assign(new Error('simulated deadlock'), {
+                    code: process.env.DB === 'postgres' ? '40P01' : 'ER_LOCK_DEADLOCK',
+                });
+            }
+        });
+        return attempt;
+    }
+
     @Query()
     async verify() {
         const admins = await this.connection.rawConnection.getRepository(Administrator).find();
@@ -326,6 +347,7 @@ class TestResolver {
                 createNTestAdministrators2(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 createNTestAdministrators3(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 failAfterDatabaseEndedNestedTransaction: Boolean
+                retryAfterDeadlockInNestedTransaction: Int
             }
             type VerifyResult {
                 admins: [Administrator!]!
