@@ -966,12 +966,14 @@ const AssetCard = memo(function AssetCard({
                 )}
             </div>
             <div className="px-2 py-1.5">
-                <p
-                    className="text-sm font-medium leading-tight line-clamp-1"
-                    title={asset.name}
-                >
-                    {asset.name}
-                </p>
+                <Tooltip>
+                    <TooltipTrigger
+                        render={<p className="text-sm font-medium leading-tight line-clamp-1" />}
+                    >
+                        {asset.name}
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-80 break-all">{asset.name}</TooltipContent>
+                </Tooltip>
                 <div className="flex items-center justify-between mt-0.5">
                     <span className="text-xs text-muted-foreground">
                         {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
@@ -1057,13 +1059,19 @@ function AssetListDataTable({
                     name: {
                         header: t`Name`,
                         cell: ({ row }) => (
-                            <Link
-                                to={`/assets/${row.original.id}`}
-                                className="block max-w-[20rem] truncate font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                title={row.original.name}
-                            >
-                                {row.original.name}
-                            </Link>
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Link
+                                            to={`/assets/${row.original.id}`}
+                                            className="block max-w-[20rem] truncate font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                        />
+                                    }
+                                >
+                                    {row.original.name}
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-80 break-all">{row.original.name}</TooltipContent>
+                            </Tooltip>
                         ),
                     },
                     type: {
