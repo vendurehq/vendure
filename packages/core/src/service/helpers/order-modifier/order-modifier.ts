@@ -562,7 +562,10 @@ export class OrderModifier {
                         },
                     ];
                     await this.cancelOrderByOrderLines(ctx, { orderId: order.id }, cancelLinesInput);
-                    orderLine.quantity = quantity;
+                    // cancelOrderByOrderLines() rescales the stored PROMOTION adjustments, but on its
+                    // own copy of the line. This copy is saved below, so it must be rescaled too:
+                    // frozen Promotions do not recompute them.
+                    orderLine.setQuantityRescalingAdjustments(quantity);
                 } else {
                     await this.updateOrderLineQuantity(ctx, orderLine, quantity, order);
                 }
@@ -647,6 +650,17 @@ export class OrderModifier {
         if (input.couponCodes) {
             const canonicalCouponCodes: string[] = [];
             for (const couponCode of input.couponCodes) {
+                const existingCouponCode = order.couponCodes.find(cc => couponCodesMatch(cc, couponCode));
+                if (existingCouponCode) {
+                    // The customer paid with this code. Clients send the Order's codes with every
+                    // modification, so validating it again would reject any modification once its
+                    // Promotion has been disabled or has ended, or count this Order against its
+                    // own usage limit.
+                    if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, existingCouponCode))) {
+                        canonicalCouponCodes.push(existingCouponCode);
+                    }
+                    continue;
+                }
                 const validationResult = await this.promotionService.validateCouponCode(
                     ctx,
                     couponCode,
@@ -662,15 +676,12 @@ export class OrderModifier {
                 if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, canonicalCode))) {
                     canonicalCouponCodes.push(canonicalCode);
                 }
-                if (!order.couponCodes.some(cc => couponCodesMatch(cc, canonicalCode))) {
-                    // This is a new coupon code that hadn't been applied before
-                    await this.historyService.createHistoryEntryForOrder({
-                        ctx,
-                        orderId: order.id,
-                        type: HistoryEntryType.ORDER_COUPON_APPLIED,
-                        data: { couponCode: canonicalCode, promotionId: validationResult.id },
-                    });
-                }
+                await this.historyService.createHistoryEntryForOrder({
+                    ctx,
+                    orderId: order.id,
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: { couponCode: canonicalCode, promotionId: validationResult.id },
+                });
             }
             for (const existingCouponCode of order.couponCodes) {
                 if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, existingCouponCode))) {

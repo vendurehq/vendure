@@ -175,10 +175,14 @@ export function OrderModificationPreviewDialog({
             ...toModifyOrderInput(modifyOrderInput, orderLineCustomFields),
             dryRun: false,
         };
-        // When both previews are the same, the server's PromotionFreezeStrategy decides
-        const input = needsPromotionChoice
-            ? withFreezePromotions(modification, promotionChoice === 'keep')
-            : modification;
+        // Send the flag of the preview that was shown, so the result is the one the admin approved.
+        // When both previews are the same, either flag gives that result.
+        const freezePromotions = changesCouponCodes
+            ? false
+            : needsPromotionChoice
+              ? promotionChoice === 'keep'
+              : true;
+        const input = withFreezePromotions(modification, freezePromotions);
         if (priceDifference < 0) {
             // Create refunds array from form data
             const { note, payments } = refundForm.getValues();

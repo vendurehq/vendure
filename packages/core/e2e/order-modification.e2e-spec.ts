@@ -3283,10 +3283,13 @@ describe('Order modification', () => {
         expect(order2!.totalQuantity).toBe(order.totalQuantity);
     }
 
-    async function createOrderAndCheckout(items: AddItemInput[]) {
+    async function createOrderAndCheckout(items: AddItemInput[], couponCodes: string[] = []) {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         for (const itemInput of items) {
             await shopClient.query(addItemToOrderWithCustomFieldsDocument, itemInput);
+        }
+        for (const couponCode of couponCodes) {
+            await shopClient.query(applyCouponCodeDocument, { couponCode });
         }
 
         await shopClient.query(setShippingAddressDocument, {
@@ -3314,8 +3317,9 @@ describe('Order modification', () => {
 
     async function createOrderAndTransitionToModifyingState(
         items: AddItemInput[],
+        couponCodes: string[] = [],
     ): Promise<TestOrderWithPaymentsFragment> {
-        const order = await createOrderAndCheckout(items);
+        const order = await createOrderAndCheckout(items, couponCodes);
         await adminTransitionOrderToState(order.id, 'Modifying');
         return order;
     }
@@ -3468,6 +3472,46 @@ describe('Order modification', () => {
                 );
             });
 
+            it('keeps a coupon whose Promotion was disabled after payment on an address change', async () => {
+                const couponPromoId = await createPromotion(
+                    'Disabled coupon',
+                    [{ code: orderPercentageDiscount.code, arguments: [{ name: 'discount', value: '5' }] }],
+                    'DISABLED_AFTER_PAYMENT',
+                );
+                try {
+                    const order = await createOrderAndTransitionToModifyingState(
+                        [{ productVariantId: footballId, quantity: 2 }],
+                        ['DISABLED_AFTER_PAYMENT'],
+                    );
+                    expect(order.couponCodes).toEqual(['DISABLED_AFTER_PAYMENT']);
+                    await disablePromotion(couponPromoId);
+
+                    // Clients send the Order's coupon codes with every modification
+                    const { modifyOrder } = await modify(order.id, {
+                        ...addressChange,
+                        couponCodes: ['DISABLED_AFTER_PAYMENT'],
+                    });
+                    orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                    expect(modifyOrder.totalWithTax).toBe(order.totalWithTax);
+                    expect(modifyOrder.promotions.map(p => p.id).sort()).toEqual(
+                        [promoId, couponPromoId].sort(),
+                    );
+
+                    // Re-tested on a line change, the disabled coupon Promotion still applies
+                    const { modifyOrder: retested } = await modify(order.id, {
+                        adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 3 }],
+                        couponCodes: ['DISABLED_AFTER_PAYMENT'],
+                    });
+                    orderWithModificationsGuard.assertSuccess(retested);
+                    expect(retested.promotions.map(p => p.id).sort()).toEqual(
+                        [promoId, couponPromoId].sort(),
+                    );
+                } finally {
+                    await adminClient.query(deletePromotionDocument, { id: couponPromoId });
+                }
+            });
+
             it('records the decision on the ORDER_MODIFIED history entry', async () => {
                 const order = await createDiscountedOrderInModifyingState();
 
@@ -3492,7 +3536,8 @@ describe('Order modification', () => {
 
                 expect(modifyOrder.discounts.length).toBe(0);
                 expect(modifyOrder.promotions).toEqual([]);
-                expect(modifyOrder.totalWithTax).toBeGreaterThan(order.totalWithTax);
+                // Exactly the discount the Order was paid with is lost
+                expect(modifyOrder.totalWithTax).toBe(order.totalWithTax - order.discounts[0].amountWithTax);
             });
         });
 
@@ -3516,6 +3561,48 @@ describe('Order modification', () => {
                 const line = modifyOrder.lines[0];
                 expect(line.linePriceWithTax - line.proratedLinePriceWithTax).toBe(discountBefore);
                 expect(modifyOrder.promotions.map(p => p.id)).toEqual([promoId]);
+            });
+
+            it('scales down the discount of a line whose quantity falls', async () => {
+                const halfPricePromoId = await createPromotion('Half-price footballs', [
+                    {
+                        code: productsPercentageDiscount.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            { name: 'productVariantIds', value: JSON.stringify([footballId]) },
+                        ],
+                    },
+                ]);
+                try {
+                    const order = await createOrderAndTransitionToModifyingState([
+                        { productVariantId: footballId, quantity: 4 },
+                    ]);
+                    const { order: before } = await adminClient.query(getOrderWithModificationsDocument, {
+                        id: order.id,
+                    });
+                    const lineBefore = before!.lines[0];
+                    expect(lineBefore.discountedLinePriceWithTax).toBeLessThan(lineBefore.linePriceWithTax);
+
+                    const { modifyOrder } = await modify(
+                        order.id,
+                        {
+                            adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 1 }],
+                            refunds: [{ paymentId: order.payments![0].id }],
+                        },
+                        true,
+                    );
+                    orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                    // The remaining unit keeps the same per-unit discount
+                    const line = modifyOrder.lines[0];
+                    expect(line.quantity).toBe(1);
+                    expect(line.discountedLinePriceWithTax).toBeGreaterThan(0);
+                    expect(
+                        Math.abs(line.discountedLinePriceWithTax - lineBefore.discountedLinePriceWithTax / 4),
+                    ).toBeLessThanOrEqual(1);
+                } finally {
+                    await adminClient.query(deletePromotionDocument, { id: halfPricePromoId });
+                }
             });
 
             it('rejects a change of the coupon codes', async () => {
@@ -3563,9 +3650,10 @@ describe('Order modification', () => {
                     );
                     // A dry run is what the Dashboard uses to preview a modification, so every
                     // Promotion it returns must be translated.
-                    for (const promotion of modifyOrder.promotions) {
-                        expect(promotion.name).toBeTruthy();
-                    }
+                    expect(modifyOrder.promotions.map(p => p.name).sort()).toEqual([
+                        '10% off the order',
+                        '5% off the order',
+                    ]);
                 } finally {
                     await adminClient.query(deletePromotionDocument, { id: secondPromoId });
                 }

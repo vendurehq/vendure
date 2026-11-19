@@ -1598,6 +1598,57 @@ describe('OrderCalculator', () => {
         });
 
         describe('freezePromotions', () => {
+            describe('capShippingDiscounts()', () => {
+                function promotionAdjustment(source: string, amount: number) {
+                    return {
+                        adjustmentSource: source,
+                        type: AdjustmentType.PROMOTION,
+                        description: source,
+                        amount,
+                        data: {},
+                    };
+                }
+
+                it('scales several discounts down to the shipping price, and leaves other adjustments', () => {
+                    const shippingLine = new ShippingLine({
+                        listPrice: 500,
+                        listPriceIncludesTax: false,
+                        taxLines: [],
+                        adjustments: [
+                            promotionAdjustment('PROMOTION:1', -300),
+                            {
+                                adjustmentSource: 'CANCEL_ORDER',
+                                type: AdjustmentType.OTHER,
+                                description: 'other',
+                                amount: -10,
+                                data: {},
+                            },
+                            promotionAdjustment('PROMOTION:2', -400),
+                        ],
+                    });
+                    const order = new Order({ shippingLines: [shippingLine] });
+
+                    orderCalculator.capShippingDiscounts(order);
+
+                    // 300 and 400 scaled by 500/700; the last takes the rounding remainder
+                    expect(shippingLine.adjustments.map(a => a.amount)).toEqual([-214, -10, -286]);
+                });
+
+                it('leaves a discount within the shipping price untouched', () => {
+                    const shippingLine = new ShippingLine({
+                        listPrice: 500,
+                        listPriceIncludesTax: false,
+                        taxLines: [],
+                        adjustments: [promotionAdjustment('PROMOTION:1', -500)],
+                    });
+                    const order = new Order({ shippingLines: [shippingLine] });
+
+                    orderCalculator.capShippingDiscounts(order);
+
+                    expect(shippingLine.adjustments.map(a => a.amount)).toEqual([-500]);
+                });
+            });
+
             let conditionPasses = true;
             const toggleableCondition = new PromotionCondition({
                 args: {},
