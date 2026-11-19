@@ -27,7 +27,9 @@ function render(pathname: string, breadcrumb: unknown): string {
 }
 
 function crumbTexts(markup: string): string[] {
-    return Array.from(markup.matchAll(/<(?:a href|span data-slot="breadcrumb-page")[^>]*>([^<]+)<\/(?:a|span)>/g)).map(m => m[1]);
+    return Array.from(
+        markup.matchAll(/<(?:a href|span data-slot="breadcrumb-page")[^>]*>([^<]+)<\/(?:a|span)>/g),
+    ).map(m => m[1]);
 }
 
 describe('GeneratedBreadcrumbs', () => {
@@ -86,10 +88,18 @@ describe('GeneratedBreadcrumbs', () => {
             'Laptop 13 inch',
         ]);
 
-        expect(markup).toMatch(/<li[^>]*class="[^"]*md:hidden[^"]*"[^>]*><span data-slot="breadcrumb-ellipsis"/);
-        expect(markup).toMatch(/<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products">Catalog<\/a>/);
-        expect(markup).toMatch(/<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products">Products<\/a>/);
-        expect(markup).not.toMatch(/<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products\/1">Laptop/);
+        expect(markup).toMatch(
+            /<li[^>]*class="(?:[^"]* )?md:hidden[^"]*"[^>]*><span data-slot="breadcrumb-ellipsis"/,
+        );
+        expect(markup).toMatch(
+            /<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products">Catalog<\/a>/,
+        );
+        expect(markup).toMatch(
+            /<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products">Products<\/a>/,
+        );
+        expect(markup).not.toMatch(
+            /<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products\/1">Laptop/,
+        );
     });
 
     it('shows no ellipsis when the trail has only a parent and the current page', () => {
