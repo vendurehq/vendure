@@ -32,13 +32,16 @@ interface DataTableViewOptionsProps<TData> {
 
 function SortableItem({
     id,
+    label,
     children,
     disableSort,
 }: {
     id: string;
+    label: string;
     children: React.ReactNode;
     disableSort?: boolean;
 }) {
+    const { t } = useLingui();
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
     const style = {
@@ -49,7 +52,12 @@ function SortableItem({
     return (
         <div ref={setNodeRef} style={style} className="flex items-center gap-1">
             {!disableSort ? (
-                <div {...attributes} {...listeners} className="flex w-4 shrink-0 cursor-grab">
+                <div
+                    {...attributes}
+                    {...listeners}
+                    aria-label={t`Reorder ${label}`}
+                    className="flex w-4 shrink-0 cursor-grab"
+                >
                     <GripVertical className="size-4 text-muted-foreground" />
                 </div>
             ) : (
@@ -116,6 +124,7 @@ export function DataTableColumnControls<TData>({ table }: DataTableViewOptionsPr
                             <SortableItem
                                 key={column.id}
                                 id={column.id}
+                                label={getTranslatedFieldName(column.id)}
                                 disableSort={pinnedLeadingColumns.includes(column.id)}
                             >
                                 {/* The default trailing checkmark indicator is hidden in

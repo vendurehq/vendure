@@ -2,7 +2,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
@@ -102,6 +102,7 @@ interface OptionGroupsEditorProps {
 }
 
 export function OptionGroupsEditor({ onChange, initialGroups = [] }: Readonly<OptionGroupsEditorProps>) {
+    const { t } = useLingui();
     const form = useForm<MultiGroupForm>({
         resolver: zodResolver(multiGroupFormSchema),
         defaultValues: {
@@ -156,7 +157,8 @@ export function OptionGroupsEditor({ onChange, initialGroups = [] }: Readonly<Op
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => removeOptionGroup(index)}
-                                title="Remove Option"
+                                title={t`Remove option group`}
+                                aria-label={t`Remove option group`}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>

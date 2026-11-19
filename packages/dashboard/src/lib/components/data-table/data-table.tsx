@@ -1,5 +1,6 @@
 import { DataTableSettingsMenu } from '@/vdb/components/data-table/data-table-settings-menu.js';
 import { DataTableViewsTabs } from '@/vdb/components/data-table/data-table-views-tabs.js';
+import { getRowLabel } from '@/vdb/components/data-table/row-label.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { CardTitle } from '@/vdb/components/ui/card.js';
 import { EmptyCollectionIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
@@ -73,12 +74,15 @@ function DraggableRow<TData>({
     cellProps,
     selectProps,
 }: Readonly<DraggableRowProps<TData>>) {
+    const { t } = useLingui();
     const rowCanDrag = getRowCanDrag ? getRowCanDrag(row) : true;
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: row.id,
         disabled: !rowCanDrag,
     });
+
+    const rowLabel = getRowLabel(row.original);
 
     return (
         <TableRow
@@ -102,6 +106,7 @@ function DraggableRow<TData>({
                                 <div
                                     {...attributes}
                                     {...listeners}
+                                    aria-label={rowLabel ? t`Reorder ${rowLabel}` : t`Reorder row`}
                                     className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     <GripVertical className="size-4" />

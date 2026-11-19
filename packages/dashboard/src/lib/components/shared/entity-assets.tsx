@@ -23,7 +23,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { EllipsisIcon, ImageIcon, PaperclipIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { AssetPickerDialog } from './asset/asset-picker-dialog.js';
@@ -108,6 +108,7 @@ function SortableAsset({
     onSetAsFeatured: (asset: Asset) => void;
     onRemove: (asset: Asset) => void;
 }) {
+    const { t } = useLingui();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: asset.id,
         disabled: !updatePermissions,
@@ -141,7 +142,12 @@ function SortableAsset({
                     <DropdownMenu>
                         <DropdownMenuTrigger
                             render={
-                                <Button variant="secondary" size="icon" className="h-6 w-6 rounded-full" />
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-6 w-6 rounded-full"
+                                    aria-label={t`Actions for ${asset.name}`}
+                                />
                             }
                         >
                             <EllipsisIcon className="h-4 w-4" />

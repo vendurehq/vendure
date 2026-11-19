@@ -2,7 +2,7 @@ import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Settings2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -13,6 +13,7 @@ interface OrderLineCustomFieldsFormProps {
 }
 
 export function OrderLineCustomFieldsForm({ onUpdate, value }: Readonly<OrderLineCustomFieldsFormProps>) {
+    const { t } = useLingui();
     const [open, setOpen] = useState(false);
     const form = useForm<Record<string, any>>({
         defaultValues: {
@@ -31,7 +32,7 @@ export function OrderLineCustomFieldsForm({ onUpdate, value }: Readonly<OrderLin
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger render={<Button variant="ghost" size="icon" />}>
+            <PopoverTrigger render={<Button variant="ghost" size="icon" aria-label={t`Edit custom fields`} />}>
                 <Settings2 className="h-4 w-4" />
             </PopoverTrigger>
             <PopoverContent className="w-80">

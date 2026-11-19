@@ -1,5 +1,5 @@
 import { useDataTableContext } from '@/vdb/hooks/use-data-table-context.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Bookmark } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useSavedViews } from '../../hooks/use-saved-views.js';
@@ -32,6 +32,7 @@ export const MyViewsButton: React.FC = () => {
                                 variant={activeView ? 'default' : 'secondary'}
                                 size="icon-sm"
                                 onClick={() => setSheetOpen(true)}
+                                aria-label={t`My saved views`}
                             />
                         }
                     >

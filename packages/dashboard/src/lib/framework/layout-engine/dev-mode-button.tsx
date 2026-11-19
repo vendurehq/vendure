@@ -1,15 +1,18 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { cn } from '@/vdb/lib/utils.js';
+import { useLingui } from '@lingui/react/macro';
 import { Crosshair } from 'lucide-react';
 import { forwardRef } from 'react';
 
 export const DevModeButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
     (props, ref) => {
         const { className, ...rest } = props;
+        const { t } = useLingui();
         return (
             <div className="relative">
                 <Button
                     ref={ref}
+                    aria-label={t`Show dev mode details`}
                     variant="secondary"
                     size="icon"
                     className={cn(

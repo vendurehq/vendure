@@ -52,6 +52,7 @@ import {
 } from '../ui/dropdown-menu.js';
 import { DataTableBulkActionItem } from './data-table-bulk-action-item.js';
 import { DataTableColumnHeader } from './data-table-column-header.js';
+import { getRowLabel } from './row-label.js';
 
 /**
  * @description
@@ -295,13 +296,7 @@ function getRowActions(
         cell: ({ row, table }) => {
             return (
                 <DropdownMenu>
-                    <DropdownMenuTrigger
-                        render={
-                            <Button variant="ghost" size="icon-sm" data-testid="dt-row-actions-trigger" />
-                        }
-                    >
-                        <EllipsisIcon />
-                    </DropdownMenuTrigger>
+                    <RowActionsTrigger entity={row.original} />
                     <DropdownMenuContent className="min-w-56">
                         {hasRowActions && (
                             <DropdownMenuGroup>
@@ -368,6 +363,25 @@ const renderDefaultCell: CellRenderer = cellContext => cellContext.renderValue()
  * so it is read from `row.original.customFields` instead. The CellWrapper path and the
  * withDisplayComponentOverride path both need this fallback, so it lives in one function.
  */
+function RowActionsTrigger({ entity }: Readonly<{ entity: unknown }>) {
+    const { t } = useLingui();
+    const rowLabel = getRowLabel(entity);
+    return (
+        <DropdownMenuTrigger
+            render={
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    data-testid="dt-row-actions-trigger"
+                    aria-label={rowLabel ? t`Actions for ${rowLabel}` : t`Row actions`}
+                />
+            }
+        >
+            <EllipsisIcon />
+        </DropdownMenuTrigger>
+    );
+}
+
 function resolveCellValue(
     cellContext: CellContext<any, any>,
     isCustomField: boolean | undefined,

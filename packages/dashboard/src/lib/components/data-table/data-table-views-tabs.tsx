@@ -1,6 +1,6 @@
 import { useDataTableContext } from '@/vdb/hooks/use-data-table-context.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { ChevronDown, MoreHorizontal } from 'lucide-react';
 import React, { useState } from 'react';
 import { useSavedViews } from '../../hooks/use-saved-views.js';
@@ -33,6 +33,7 @@ const INLINE_TAB_LIMIT = 5;
  * @since 3.8.0
  */
 export const DataTableViewsTabs: React.FC = () => {
+    const { t } = useLingui();
     const { userViews, globalViews, savedViewsAreAvailable, canManageGlobalViews } = useSavedViews();
     const { columnFilters, searchTerm, handleApplyView } = useDataTableContext();
     const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -135,7 +136,14 @@ export const DataTableViewsTabs: React.FC = () => {
             )}
             <DropdownMenu>
                 <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon-sm" className="text-muted-foreground" />}
+                    render={
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground"
+                            aria-label={t`View options`}
+                        />
+                    }
                 >
                     <MoreHorizontal />
                 </DropdownMenuTrigger>
