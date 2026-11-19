@@ -1278,7 +1278,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -2082,13 +2082,13 @@
                   "title": "ShippingLine",
                   "slug": "shipping-line",
                   "file": "docs/reference/typescript-api/entities/shipping-line.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "ShippingMethod",
                   "slug": "shipping-method",
                   "file": "docs/reference/typescript-api/entities/shipping-method.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "ShippingMethodChannel",
@@ -2876,13 +2876,13 @@
                   "title": "OrderProcess",
                   "slug": "order-process",
                   "file": "docs/reference/typescript-api/orders/order-process.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "OrderRecalculationStrategy",
                   "slug": "order-recalculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-recalculation-strategy.mdx",
-                  "lastModified": "2026-07-22T11:48:45+02:00"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "OrderSellerStrategy",
@@ -3286,19 +3286,25 @@
                   "title": "OrderCalculator",
                   "slug": "order-calculator",
                   "file": "docs/reference/typescript-api/service-helpers/order-calculator.mdx",
-                  "lastModified": "2026-07-22T11:48:45+02:00"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-11-18T11:13:14Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
                   "slug": "product-price-applicator",
                   "file": "docs/reference/typescript-api/service-helpers/product-price-applicator.mdx",
                   "lastModified": "2026-11-18T12:55:50Z"
+                },
+                {
+                  "title": "SetShippingMethodsResult",
+                  "slug": "set-shipping-methods-result",
+                  "file": "docs/reference/typescript-api/service-helpers/set-shipping-methods-result.mdx",
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "SlugValidator",
@@ -3462,13 +3468,13 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-11-18T11:13:14Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "OrderTestingService",
                   "slug": "order-testing-service",
                   "file": "docs/reference/typescript-api/services/order-testing-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "PaymentMethodService",
@@ -3706,7 +3712,7 @@
                   "title": "ShippingCalculator",
                   "slug": "shipping-calculator",
                   "file": "docs/reference/typescript-api/shipping/shipping-calculator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "ShippingEligibilityChecker",
@@ -4560,13 +4566,13 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/admin/mutations.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "Queries",
@@ -4578,7 +4584,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4598,13 +4604,13 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/shop/input-types.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/shop/mutations.mdx",
-                  "lastModified": "2026-08-25T13:57:08Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 },
                 {
                   "title": "Queries",
@@ -4616,7 +4622,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-19T07:53:12Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
