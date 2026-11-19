@@ -57,6 +57,11 @@ export default [{
           "JSXElement[openingElement.name.name='Badge'] JSXElement[openingElement.name.name=/^(button|Button)$/]",
         message: 'A removable tag is Chip with onRemove and removeLabel, not a Badge with its own button.',
       },
+      // Label/value lists use the design-system DescriptionList, not hand-built dl/dt/dd.
+      {
+        selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
+        message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
+      },
       // transition-all also animates layout properties, and a numeric duration
       // or delay skips the motion tokens. List the properties that change
       // (transition-[box-shadow]) and use duration-fast, ease-default and the
@@ -71,13 +76,6 @@ export default [{
       })),
     ],
   },
-}, {
-  // Follow-up: payment-details.tsx still has a literal duration-200 on its
-  // refunds chevron. Its file is held by another change (OSS-1376); remove this
-  // block once that chevron uses the motion tokens. The file has none of the
-  // other restricted patterns.
-  files: ['src/app/routes/_authenticated/_orders/components/payment-details.tsx'],
-  rules: { 'no-restricted-syntax': 'off' },
 }, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
