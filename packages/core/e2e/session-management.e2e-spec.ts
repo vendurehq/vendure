@@ -251,8 +251,10 @@ describe('Session caching', () => {
                             throw new Error('Roll back to the savepoint');
                         }),
                     ).rejects.toThrow('Roll back to the savepoint');
+                    expect(testSessionCache.get(token)!.activeOrderId).toBe(session.activeOrderId);
                 });
 
+                expect(testSessionCache.has(token)).toBe(false);
                 expect((await readDatabaseSession()).activeOrderId).toBe(session.activeOrderId);
                 expect((await service.getSessionFromToken(token))!.activeOrderId).toBe(session.activeOrderId);
             },
