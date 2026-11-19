@@ -2,7 +2,7 @@
 title: "OrderModifier"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="118" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="119" packageName="@vendure/core" />
 
 This helper is responsible for modifying the contents of an Order.
 
@@ -21,7 +21,10 @@ class OrderModifier {
     getOrCreateOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => ;
     updateOrderLineQuantity(ctx: RequestContext, orderLine: OrderLine, quantity: number, order: Order) => Promise<OrderLine>;
     cancelOrderByOrderLines(ctx: RequestContext, input: CancelOrderInput, lineInputs: OrderLineInput[]) => ;
-    modifyOrder(ctx: RequestContext, input: ModifyOrderInput, order: Order) => Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }>;
+    modifyOrder(ctx: RequestContext, input: ModifyOrderInput, order: Order) => Promise<
+        | JustErrorResults<ModifyOrderResult>
+        | { order: Order; modification: OrderModification; promotionsFrozen: boolean }
+    >;
     setShippingMethods(ctx: RequestContext, order: Order, shippingMethods: Array<ID | ShippingMethodSelectionInput>) => Promise<SetShippingMethodsResult | IneligibleShippingMethodError>;
 }
 ```
@@ -71,7 +74,7 @@ Returns the actual quantity that the OrderLine was updated to (which may be less
 
 ### modifyOrder
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: ModifyOrderInput, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<JustErrorResults<ModifyOrderResult> | { order: <a href='/reference/typescript-api/entities/order#order'>Order</a>; modification: <a href='/reference/typescript-api/entities/order-modification#ordermodification'>OrderModification</a> }>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: ModifyOrderInput, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<         | JustErrorResults<ModifyOrderResult>         | { order: <a href='/reference/typescript-api/entities/order#order'>Order</a>; modification: <a href='/reference/typescript-api/entities/order-modification#ordermodification'>OrderModification</a>; promotionsFrozen: boolean }     >`}   />
 
 
 ### setShippingMethods
