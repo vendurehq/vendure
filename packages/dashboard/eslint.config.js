@@ -50,6 +50,14 @@ export default [{
         selector,
         message: 'A link row is ListRow + ListRowLink, or DataTableRowLink in a table. Do not give a Link or <a> its own hover fill.',
       })),
+      // An icon-only Button has no text, so a screen reader announces it only as
+      // "button". Name it with aria-label, with the row's name where there is a
+      // row ("Actions for Laptop"). A tooltip does not name it.
+      {
+        selector:
+          "JSXOpeningElement[name.name='Button']:has(> JSXAttribute[name.name='size'][value.value=/^icon/]):not(:has(> JSXAttribute[name.name=/^aria-label(ledby)?$/]))",
+        message: 'An icon-only Button needs an accessible name. Add aria-label={t`…`}.',
+      },
     ],
   },
 }, {
