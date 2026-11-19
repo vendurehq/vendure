@@ -207,13 +207,9 @@ function InlineEditValue({ value, onSave }: { value: any; onSave: (value: any) =
 
     if (!editing) {
         return (
-            <button
-                type="button"
-                onClick={startEditing}
-                className="text-left hover:bg-muted rounded px-1 py-0.5 cursor-pointer w-full min-h-[1.5rem]"
-            >
-                {formatDisplayValue(value)}
-            </button>
+            <Button type="button" variant="ghost" size="sm" onClick={startEditing} className="w-full justify-start">
+                <span className="truncate">{formatDisplayValue(value)}</span>
+            </Button>
         );
     }
 

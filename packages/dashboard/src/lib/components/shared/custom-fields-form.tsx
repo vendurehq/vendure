@@ -1,6 +1,7 @@
 import { CustomFieldListInput } from '@/vdb/components/data-input/custom-field-list-input.js';
 import { StructFormInput } from '@/vdb/components/data-input/struct-form-input.js';
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
+import { Button } from '@/vdb/components/ui/button.js';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
@@ -144,6 +145,7 @@ export function CustomFieldsForm({
 }
 
 function ScrollableTabsList({ children }: Readonly<{ children: React.ReactNode }>) {
+    const { t } = useLingui();
     const scrollRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
@@ -180,14 +182,16 @@ function ScrollableTabsList({ children }: Readonly<{ children: React.ReactNode }
     return (
         <div className="relative">
             {canScrollLeft && (
-                <button
+                <Button
                     type="button"
+                    variant="outline"
+                    size="icon-sm"
                     onClick={() => scroll('left')}
-                    className="absolute left-0 top-0 z-10 flex h-full items-center bg-gradient-to-r from-muted via-muted/80 to-transparent pl-1 pr-3"
-                    aria-label="Scroll tabs left"
+                    className="absolute start-0.5 top-1/2 z-10 -translate-y-1/2"
+                    aria-label={t`Scroll tabs left`}
                 >
-                    <ChevronLeft className="h-4 w-4" />
-                </button>
+                    <ChevronLeft />
+                </Button>
             )}
             <TabsList
                 ref={scrollRef}
@@ -196,14 +200,16 @@ function ScrollableTabsList({ children }: Readonly<{ children: React.ReactNode }
                 {children}
             </TabsList>
             {canScrollRight && (
-                <button
+                <Button
                     type="button"
+                    variant="outline"
+                    size="icon-sm"
                     onClick={() => scroll('right')}
-                    className="absolute right-0 top-0 z-10 flex h-full items-center bg-gradient-to-l from-muted via-muted/80 to-transparent pl-3 pr-1"
-                    aria-label="Scroll tabs right"
+                    className="absolute end-0.5 top-1/2 z-10 -translate-y-1/2"
+                    aria-label={t`Scroll tabs right`}
                 >
-                    <ChevronRight className="h-4 w-4" />
-                </button>
+                    <ChevronRight />
+                </Button>
             )}
         </div>
     );
