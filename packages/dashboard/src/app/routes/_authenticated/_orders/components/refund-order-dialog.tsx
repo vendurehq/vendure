@@ -212,7 +212,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
 
         return (
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="!max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent size="xl" className="max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
                             <Trans>Refund and cancel order</Trans>

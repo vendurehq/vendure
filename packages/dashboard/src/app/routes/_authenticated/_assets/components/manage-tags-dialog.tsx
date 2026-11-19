@@ -187,7 +187,7 @@ export function ManageTagsDialog({ open, onOpenChange, onTagsUpdated }: Readonly
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Manage Tags</Trans>

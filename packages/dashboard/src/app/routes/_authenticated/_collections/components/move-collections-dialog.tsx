@@ -383,7 +383,8 @@ export function MoveCollectionsDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[600px] h-[90vh] flex flex-col p-0 gap-0"
+                size="xl"
+                className="h-[90vh] flex flex-col p-0 gap-0"
                 // The "Move" menu item keeps its DropdownMenu open (closeOnClick={false}) so
                 // this dialog can open on top of it. React bubbles synthetic keyboard events
                 // through the component tree, not the DOM tree. Without stopping propagation
