@@ -26,6 +26,8 @@ type StateTransitionControlProps = {
     statesTranslationFunction: (state: string) => string;
     actions: StateTransitionAction[];
     isLoading?: boolean;
+    /** Extra buttons that join the group between the state label and the state menu. */
+    children?: ReactNode;
 };
 
 export function StateTransitionControl({
@@ -33,6 +35,7 @@ export function StateTransitionControl({
     statesTranslationFunction,
     actions,
     isLoading,
+    children,
 }: Readonly<StateTransitionControlProps>) {
     const { t } = useLingui();
     const currentTone = orderStateDictionary.toneFor(currentState);
@@ -62,6 +65,7 @@ export function StateTransitionControl({
                     {label}
                 </span>
             </ButtonGroupText>
+            {children}
             {actions.length > 0 && (
                 <DropdownMenu>
                     <DropdownMenuTrigger
