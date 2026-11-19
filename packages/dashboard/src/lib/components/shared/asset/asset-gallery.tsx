@@ -953,9 +953,7 @@ const AssetCard = memo(function AssetCard({
                     className="w-full h-full object-cover"
                 />
                 {selectable && (
-                    // The label makes the whole 32px corner the checkbox's target, so a tap
-                    // at 390 wide does not fall through to the card's select button.
-                    <label className="absolute top-0 left-0 z-20 flex size-8 cursor-pointer items-center justify-center">
+                    <div className="absolute top-1.5 left-1.5 z-20">
                         <Checkbox
                             checked={isSelected}
                             aria-label={t`Toggle selection for ${asset.name}`}
@@ -964,7 +962,7 @@ const AssetCard = memo(function AssetCard({
                                 onToggleAsset(asset);
                             }}
                         />
-                    </label>
+                    </div>
                 )}
             </div>
             <div className="px-2 py-1.5">
