@@ -432,7 +432,7 @@ export function GridLayout({
                         key={`grid-${row}-${col}`}
                         style={cellStyle}
                         className={cn(
-                            'transition-colors duration-200 border-dashed rounded-sm',
+                            'transition-colors duration-normal ease-default border-dashed rounded-sm',
                             showGrid ? 'border-2 border-primary bg-primary/10' : 'border border-border',
                         )}
                     />,

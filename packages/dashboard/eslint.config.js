@@ -62,6 +62,18 @@ export default [{
         selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
         message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
       },
+      // transition-all also animates layout properties, and a numeric duration
+      // or delay skips the motion tokens. List the properties that change
+      // (transition-[box-shadow]) and use duration-fast, ease-default and the
+      // other motion tokens. Any string is checked, so cn() arguments count too.
+      // Belongs in @vendure-io/design-lint once it has a rule for it.
+      ...[
+        'Literal[value=/(^|[\\s:])transition-all(\\s|$)|(^|[\\s:])(duration|delay)-\\d+(\\s|$)/]',
+        'TemplateElement[value.raw=/(^|[\\s:])transition-all(\\s|$)|(^|[\\s:])(duration|delay)-\\d+(\\s|$)/]',
+      ].map(selector => ({
+        selector,
+        message: 'List the transition properties instead of transition-all, and use a motion token (duration-fast, duration-normal, ease-default…) instead of a numeric duration or delay.',
+      })),
     ],
   },
 }, {

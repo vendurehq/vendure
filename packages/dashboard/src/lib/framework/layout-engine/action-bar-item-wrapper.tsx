@@ -57,7 +57,7 @@ function DevModeActionBarWrapper({
     return (
         <div
             className={cn(
-                'ring-1 ring-transparent rounded transition-all delay-50 relative',
+                'ring-1 ring-transparent rounded transition-[box-shadow] duration-fast ease-default relative',
                 isHovered || isPopoverOpen ? 'ring-dev-mode ring-offset-1 ring-offset-background' : '',
             )}
             onMouseEnter={handleMouseEnter}
@@ -65,7 +65,7 @@ function DevModeActionBarWrapper({
         >
             <div
                 className={cn(
-                    'absolute -top-1 -right-1 transition-all delay-50 z-10',
+                    'absolute -top-1 -right-1 transition-[visibility] duration-fast ease-default z-10',
                     isHovered || isPopoverOpen ? 'visible' : 'invisible',
                 )}
             >
