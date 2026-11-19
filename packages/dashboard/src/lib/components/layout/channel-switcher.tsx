@@ -1,4 +1,4 @@
-import { ChevronsUpDown, Languages, Palette, Plus } from 'lucide-react';
+import { Languages, Palette, Plus } from 'lucide-react';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { ChannelColorsDialog } from '@/vdb/components/shared/channel-colors-dialog.js';
@@ -18,7 +18,7 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { ScrollArea } from '@/vdb/components/ui/scroll-area.js';
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/vdb/components/ui/sidebar.js';
+import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/vdb/components/ui/sidebar.js';
 import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
 import { useChannelColors } from '@/vdb/hooks/use-channel-colors.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -28,6 +28,7 @@ import { useSortedLanguages } from '@/vdb/hooks/use-sorted-languages.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
+import { SidebarIdentityButton, SidebarIdentityText } from '@vendure-io/ui/components/atoms/sidebar';
 import { useEffect, useState } from 'react';
 import { ManageLanguagesDialog } from './manage-languages-dialog.js';
 
@@ -100,26 +101,12 @@ export function ChannelSwitcher() {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <DropdownMenu onOpenChange={open => !open && setChannelFilter('')}>
-                        <DropdownMenuTrigger
-                            render={
-                                <SidebarMenuButton
-                                    size="lg"
-                                    className="bg-background border border-border/60 data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
-                                />
-                            }
-                        >
+                        <DropdownMenuTrigger render={<SidebarIdentityButton />}>
                             <ChannelIdentity color={getColor(displayChannel?.id ?? '')} />
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">
-                                    <ChannelCodeLabel code={displayChannel?.code} />
-                                </span>
-                                <span className="truncate text-xs">
-                                    <span>
-                                        <Trans>Language: {formatLanguageName(contentLanguage)}</Trans>
-                                    </span>
-                                </span>
-                            </div>
-                            <ChevronsUpDown className="ml-auto" />
+                            <SidebarIdentityText
+                                title={<ChannelCodeLabel code={displayChannel?.code} />}
+                                caption={<Trans>Language: {formatLanguageName(contentLanguage)}</Trans>}
+                            />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                             className="w-(--anchor-width) min-w-72 rounded-lg pt-0 pr-0"

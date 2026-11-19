@@ -1,7 +1,7 @@
 import { MenuBranding } from '@/vdb/components/shared/powered-by-vendure.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
 import { Link, useNavigate, useRouter } from '@tanstack/react-router';
-import { ChevronsUpDown, LogOut, Monitor, Moon, Sparkles, Sun } from 'lucide-react';
+import { LogOut, Monitor, Moon, Sparkles, Sun } from 'lucide-react';
 
 import {
     DropdownMenu,
@@ -17,17 +17,18 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/vdb/components/ui/sidebar.js';
+import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/vdb/components/ui/sidebar.js';
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Theme } from '@/vdb/providers/theme-provider.js';
 import { Trans } from '@lingui/react/macro';
+import { SidebarIdentityButton } from '@vendure-io/ui/components/atoms/sidebar';
 import { Dialog, DialogTrigger } from '../ui/dialog.js';
 import { LanguageDialog } from './language-dialog.js';
 import { NavUserIdentity } from './nav-user-identity.js';
 
 export function NavUser() {
-    const { isMobile, state } = useSidebar();
+    const { isMobile } = useSidebar();
     const router = useRouter();
     const navigate = useNavigate();
     const { humanReadableLanguage } = useDisplayLocale();
@@ -53,16 +54,8 @@ export function NavUser() {
             <SidebarMenuItem>
                 <Dialog>
                     <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={
-                                <SidebarMenuButton
-                                    size="lg"
-                                    className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
-                                />
-                            }
-                        >
-                            <NavUserIdentity user={user} showDetails={state === 'expanded'} />
-                            {state === 'expanded' ? <ChevronsUpDown className="ml-auto size-4" /> : null}
+                        <DropdownMenuTrigger render={<SidebarIdentityButton />}>
+                            <NavUserIdentity user={user} />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                             className="w-(--anchor-width) min-w-56 rounded-lg"
@@ -74,7 +67,7 @@ export function NavUser() {
                         >
                             <DropdownMenuGroup>
                                 <DropdownMenuLabel className="p-0 font-normal">
-                                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                                    <div className="flex items-center gap-2 px-1 py-1.5">
                                         <NavUserIdentity user={user} />
                                     </div>
                                 </DropdownMenuLabel>
