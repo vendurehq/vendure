@@ -647,7 +647,7 @@ export function DataTable<TData>({
                                     onRemoveFilter={id =>
                                         setColumnFilters(old => old.filter(x => x.id !== id))
                                     }
-                                    onClearAll={clearNonFacetedFilters}
+                                    onClearAll={hasNoMatches ? undefined : clearNonFacetedFilters}
                                 />
                             ))}
                         {columnFilters.length > 0 && !hasNoMatches && (

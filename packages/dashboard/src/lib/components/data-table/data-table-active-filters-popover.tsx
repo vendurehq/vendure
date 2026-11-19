@@ -11,7 +11,8 @@ interface ActiveFiltersPopoverProps {
     table: Table<any>;
     currencyCode: string;
     onRemoveFilter: (id: string) => void;
-    onClearAll: () => void;
+    /** When omitted, the popover offers no clear action. */
+    onClearAll?: () => void;
 }
 
 export function ActiveFiltersPopover({
@@ -44,14 +45,16 @@ export function ActiveFiltersPopover({
                         />
                     );
                 })}
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClearAll}
-                    className="text-xs opacity-60 hover:opacity-100"
-                >
-                    <Trans>Clear filters</Trans>
-                </Button>
+                {onClearAll && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClearAll}
+                        className="text-xs opacity-60 hover:opacity-100"
+                    >
+                        <Trans>Clear filters</Trans>
+                    </Button>
+                )}
             </PopoverContent>
         </Popover>
     );
