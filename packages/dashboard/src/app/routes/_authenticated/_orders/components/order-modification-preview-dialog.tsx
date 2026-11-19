@@ -176,12 +176,8 @@ export function OrderModificationPreviewDialog({
             dryRun: false,
         };
         // Send the flag of the preview that was shown, so the result is the one the admin approved.
-        // When both previews are the same, either flag gives that result.
-        const freezePromotions = changesCouponCodes
-            ? false
-            : needsPromotionChoice
-              ? promotionChoice === 'keep'
-              : true;
+        // Unless the admin chose to keep the discounts, that is the preview which re-applied them.
+        const freezePromotions = needsPromotionChoice && promotionChoice === 'keep';
         const input = withFreezePromotions(modification, freezePromotions);
         if (priceDifference < 0) {
             // Create refunds array from form data

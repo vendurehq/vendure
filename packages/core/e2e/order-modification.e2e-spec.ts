@@ -3512,6 +3512,42 @@ describe('Order modification', () => {
                 }
             });
 
+            it("does not count the Order against its own coupon's per-customer usage limit", async () => {
+                const { createPromotion: limited } = await adminClient.query(createPromotionDocument, {
+                    input: {
+                        enabled: true,
+                        couponCode: 'ONCE_PER_CUSTOMER',
+                        perCustomerUsageLimit: 1,
+                        conditions: [],
+                        actions: [
+                            {
+                                code: orderPercentageDiscount.code,
+                                arguments: [{ name: 'discount', value: '5' }],
+                            },
+                        ],
+                        translations: [{ languageCode: LanguageCode.en, name: 'Once per customer' }],
+                    },
+                });
+                const limitedPromoId = (limited as any).id as string;
+                try {
+                    const order = await createOrderAndTransitionToModifyingState(
+                        [{ productVariantId: footballId, quantity: 2 }],
+                        ['ONCE_PER_CUSTOMER'],
+                    );
+                    expect(order.couponCodes).toEqual(['ONCE_PER_CUSTOMER']);
+
+                    const { modifyOrder } = await modify(order.id, {
+                        adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 3 }],
+                        couponCodes: ['ONCE_PER_CUSTOMER'],
+                    });
+                    orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                    expect(modifyOrder.promotions.map(p => p.id)).toContain(limitedPromoId);
+                } finally {
+                    await adminClient.query(deletePromotionDocument, { id: limitedPromoId });
+                }
+            });
+
             it('records the decision on the ORDER_MODIFIED history entry', async () => {
                 const order = await createDiscountedOrderInModifyingState();
 
@@ -3573,6 +3609,8 @@ describe('Order modification', () => {
                         ],
                     },
                 ]);
+                // Only the item discount, so that the line's prices follow from it exactly
+                await disablePromotion(promoId);
                 try {
                     const order = await createOrderAndTransitionToModifyingState([
                         { productVariantId: footballId, quantity: 4 },
@@ -3593,13 +3631,15 @@ describe('Order modification', () => {
                     );
                     orderWithModificationsGuard.assertSuccess(modifyOrder);
 
-                    // The remaining unit keeps the same per-unit discount
+                    // The remaining unit keeps the same per-unit discount: half price
                     const line = modifyOrder.lines[0];
                     expect(line.quantity).toBe(1);
-                    expect(line.discountedLinePriceWithTax).toBeGreaterThan(0);
-                    expect(
-                        Math.abs(line.discountedLinePriceWithTax - lineBefore.discountedLinePriceWithTax / 4),
-                    ).toBeLessThanOrEqual(1);
+                    expect(line.discountedLinePriceWithTax).toBe(Math.round(line.linePriceWithTax * 0.5));
+                    expect(line.proratedLinePriceWithTax).toBe(line.discountedLinePriceWithTax);
+                    // The price change is exactly what the Order lost
+                    const lineReduction = lineBefore.proratedLinePriceWithTax - line.proratedLinePriceWithTax;
+                    expect(modifyOrder.totalWithTax).toBe(before!.totalWithTax - lineReduction);
+                    expect(modifyOrder.modifications.at(-1)?.priceChange).toBe(-lineReduction);
                 } finally {
                     await adminClient.query(deletePromotionDocument, { id: halfPricePromoId });
                 }

@@ -652,10 +652,10 @@ export class OrderModifier {
             for (const couponCode of input.couponCodes) {
                 const existingCouponCode = order.couponCodes.find(cc => couponCodesMatch(cc, couponCode));
                 if (existingCouponCode) {
-                    // The customer paid with this code. Clients send the Order's codes with every
-                    // modification, so validating it again would reject any modification once its
-                    // Promotion has been disabled or has ended, or count this Order against its
-                    // own usage limit.
+                    // The code is already on the Order, and clients send the Order's codes with every
+                    // modification. Validating it again would reject any modification once its
+                    // Promotion has been disabled or has ended. It would also count this Order
+                    // against the code's per-customer usage limit.
                     if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, existingCouponCode))) {
                         canonicalCouponCodes.push(existingCouponCode);
                     }
