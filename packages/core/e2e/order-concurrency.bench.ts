@@ -709,6 +709,57 @@ describe(`Order concurrency load [${VARIANT} / ${DB}]`, () => {
         results.throughput = { trials };
     }, 900_000);
 
+    // K orders at ArrangingPayment each receive R concurrent payment attempts (double clicks,
+    // webhook redeliveries) while the payment provider is slow (BENCH_PAYMENT_DELAY_MS), and B
+    // bystanders shop normally. Measures how long the queued attempts hold pool connections, and
+    // what that does to everybody else.
+    it('paymentPileUp', async () => {
+        if (!SCENARIOS.includes('paymentPileUp')) return;
+        const K = +(process.env.BENCH_K ?? 3);
+        const R = +(process.env.BENCH_R ?? 6);
+        const B = +(process.env.BENCH_B ?? 10);
+        const rounds = +(process.env.BENCH_ROUNDS ?? 3);
+        const trials: Trial[] = [];
+        for (let r = 0; r < rounds; r++) {
+            const payers = await Promise.all(Array.from({ length: K }, () => newClient()));
+            const orders = [];
+            for (const c of payers) {
+                orders.push(await toArrangingPayment(c, [V[2]]));
+            }
+            const bystanders = await Promise.all(Array.from({ length: B }, () => newClient()));
+            const errors: string[] = [];
+            const t0 = performance.now();
+            await Promise.all([
+                ...payers.flatMap(c =>
+                    Array.from({ length: R }, () =>
+                        attempt('pileUp:addPayment', errors, () => c.query(D.addPayment)),
+                    ),
+                ),
+                ...bystanders.map(async c => {
+                    for (let k = 0; k < 5; k++) {
+                        await attempt('pileUp:bystanderAddItem', errors, () =>
+                            c.query(D.addItem, { v: V[16 + k], q: 1 }),
+                        );
+                    }
+                }),
+            ]);
+            const anomalies: string[] = [];
+            for (const order of orders) {
+                const { order: o } = await adminClient.query(D.adminOrder, { id: order.id });
+                const settled = o.payments.filter((p: any) => p.state === 'Settled').length;
+                if (settled !== 1) anomalies.push(`order paid ${settled as number} times`);
+            }
+            const dbErrors = errors.filter(e => !/: [A-Z_]+_ERROR$/.test(e));
+            trials.push({
+                ok: anomalies.length === 0 && dbErrors.length === 0,
+                anomalies,
+                errors: dbErrors,
+                ms: performance.now() - t0,
+            });
+        }
+        results.paymentPileUp = { trials };
+    }, 900_000);
+
     // One cart receives H concurrent mutations while B bystanders shop normally. Measures
     // head-of-line blocking: requests waiting on the order lock hold a pool connection.
     it('hotCart', async () => {
