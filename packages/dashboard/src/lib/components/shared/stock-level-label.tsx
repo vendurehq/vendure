@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { useLingui } from '@lingui/react/macro';
 
 export type StockLevel = {
@@ -15,8 +16,13 @@ export function StockLevelLabel({ stockLevels }: Readonly<{ stockLevels: StockLe
     const totalAllocated = stockLevels.reduce((acc, curr) => acc + curr.stockAllocated, 0);
 
     return (
-        <span title={`${t`Stock on hand`}: ${totalOnHand}, ${t`Stock allocated`}: ${totalAllocated}`}>
-            {totalOnHand} <span className="text-muted-foreground">/ {totalAllocated}</span>
-        </span>
+        <Tooltip>
+            <TooltipTrigger render={<span className="tabular-nums" />}>
+                {totalOnHand} <span className="text-muted-foreground">/ {totalAllocated}</span>
+            </TooltipTrigger>
+            <TooltipContent>
+                {`${t`Stock on hand`}: ${totalOnHand}, ${t`Stock allocated`}: ${totalAllocated}`}
+            </TooltipContent>
+        </Tooltip>
     );
 }

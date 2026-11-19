@@ -3,8 +3,8 @@ import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { NoKeysIllustration } from '@/vdb/components/ui/illustrations.js';
+import { RelativeTime } from '@/vdb/components/ui/relative-time.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
@@ -18,7 +18,6 @@ export const Route = createFileRoute('/_authenticated/_api-keys/api-keys')({
 
 function ApiKeyListPage() {
     const { t } = useLingui();
-    const { formatRelativeDate } = useLocalFormat();
 
     return (
         <ListPage
@@ -60,9 +59,7 @@ function ApiKeyListPage() {
                             );
                         }
                         return (
-                            <time title={new Date(lastUsed).toLocaleString()}>
-                                {formatRelativeDate(new Date(lastUsed))}
-                            </time>
+                            <RelativeTime value={lastUsed} />
                         );
                     },
                 },

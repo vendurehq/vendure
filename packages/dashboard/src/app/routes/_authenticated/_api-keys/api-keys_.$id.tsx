@@ -3,6 +3,7 @@ import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { RelativeTime } from '@/vdb/components/ui/relative-time.js';
 import { DEFAULT_CHANNEL_CODE, NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
@@ -56,7 +57,7 @@ function ApiKeyDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
-    const { formatDate, formatRelativeDate } = useLocalFormat();
+    const { formatDate } = useLocalFormat();
 
     const [secretDialogOpen, setSecretDialogOpen] = useState(false);
     const [generatedApiKey, setGeneratedApiKey] = useState('');
@@ -201,9 +202,7 @@ function ApiKeyDetailPage() {
                                 </div>
                                 <div>
                                     {entity.lastUsedAt ? (
-                                        <time title={formatDate(new Date(entity.lastUsedAt))}>
-                                            {formatRelativeDate(new Date(entity.lastUsedAt))}
-                                        </time>
+                                        <RelativeTime value={entity.lastUsedAt} />
                                     ) : (
                                         <span className="text-muted-foreground">
                                             <Trans>Never</Trans>

@@ -1,4 +1,5 @@
 import { Chip } from '@/vdb/components/ui/chip.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 
 // Interface for facet value type
 interface FacetValue {
@@ -33,15 +34,23 @@ export function FacetValueChip({
     displayFacetName = true,
 }: FacetValueChipProps) {
     return (
-        <Chip
-            title={displayFacetName ? `${facetValue.name} in ${facetValue.facet.name}` : facetValue.name}
-            onRemove={removable && onRemove ? () => onRemove(facetValue.id) : undefined}
-            removeLabel={`Remove ${facetValue.name} from ${facetValue.facet.name}`}
-        >
-            {facetValue.name}
-            {displayFacetName && (
-                <span className="text-muted-foreground"> in {facetValue.facet.name}</span>
-            )}
-        </Chip>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Chip
+                        onRemove={removable && onRemove ? () => onRemove(facetValue.id) : undefined}
+                        removeLabel={`Remove ${facetValue.name} from ${facetValue.facet.name}`}
+                    />
+                }
+            >
+                {facetValue.name}
+                {displayFacetName && (
+                    <span className="text-muted-foreground"> in {facetValue.facet.name}</span>
+                )}
+            </TooltipTrigger>
+            <TooltipContent>
+                {displayFacetName ? `${facetValue.name} in ${facetValue.facet.name}` : facetValue.name}
+            </TooltipContent>
+        </Tooltip>
     );
 }

@@ -1,4 +1,5 @@
 import { StatusBadge, orderStateDictionary, type Tone } from '@/vdb/components/ui/status-badge.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -65,7 +66,8 @@ function EntityLabel({
     tooltipText,
 }: Readonly<EntityLabelProps>) {
     return (
-        <div className="flex items-center gap-3 w-full" title={tooltipText || `${title} (${subtitle})`}>
+        <Tooltip>
+            <TooltipTrigger render={<div className="flex items-center gap-3 w-full" />}>
             <div
                 className={`w-8 h-8 ${rounded ? 'rounded-full' : 'rounded overflow-hidden'} bg-muted flex-shrink-0`}
             >
@@ -86,7 +88,9 @@ function EntityLabel({
                 </div>
                 <div className="text-sm text-muted-foreground truncate">{subtitle}</div>
             </div>
-        </div>
+            </TooltipTrigger>
+            <TooltipContent>{tooltipText || `${title} (${subtitle})`}</TooltipContent>
+        </Tooltip>
     );
 }
 

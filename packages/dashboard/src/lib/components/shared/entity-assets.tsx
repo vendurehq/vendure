@@ -289,19 +289,19 @@ export function EntityAssets({
         },
         [featuredAsset],
     );
-    // AddAssetButton component
-    const AddAssetButton = () =>
-        updatePermissions && (
-            <Button
-                variant="outline"
-                size={compact ? 'sm' : 'default'}
-                className={compact ? 'w-full' : ''}
-                onClick={handleSelectAssets}
-            >
-                <PaperclipIcon className="mr-2 h-4 w-4" />
-                <Trans>Add asset</Trans>
-            </Button>
-        );
+    // An element, not a component defined here: a new component on each render would remount the
+    // button, and the asset picker could not return focus to it when it closes.
+    const addAssetButton = updatePermissions && (
+        <Button
+            variant="outline"
+            size={compact ? 'sm' : 'default'}
+            className={compact ? 'w-full' : ''}
+            onClick={handleSelectAssets}
+        >
+            <PaperclipIcon className="mr-2 h-4 w-4" />
+            <Trans>Add asset</Trans>
+        </Button>
+    );
 
     return (
         <>
@@ -324,7 +324,7 @@ export function EntityAssets({
                         onRemove={handleRemoveAsset}
                         onDragEnd={handleDragEnd}
                     />
-                    <AddAssetButton />
+                    {addAssetButton}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-[256px_1fr] gap-4">
@@ -346,7 +346,7 @@ export function EntityAssets({
                             onRemove={handleRemoveAsset}
                             onDragEnd={handleDragEnd}
                         />
-                        <AddAssetButton />
+                        {addAssetButton}
                     </div>
                 </div>
             )}
