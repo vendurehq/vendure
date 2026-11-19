@@ -7,6 +7,14 @@ import { useWidgetConfig } from '@/vdb/hooks/use-widget-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import {
+    ListRow,
+    ListRowChevron,
+    ListRowContent,
+    ListRowLink,
+    ListRowMeta,
+    ListRowTrailing,
+} from '@vendure-io/ui/components/molecules/list-row';
 import { PackageCheck } from 'lucide-react';
 import { DashboardBaseWidget } from '../base-widget.js';
 import { lowStockVariantsQuery } from './low-stock-widget.graphql.js';
@@ -81,29 +89,26 @@ export function LowStockWidget() {
                     />
                 </div>
             ) : variants.length ? (
-                <ul className="flex flex-col gap-1 tabular-nums">
-                    {variants.map(({ saleable, ...variant }) => {
-                        return (
-                            <li key={variant.id}>
-                                <Link
-                                    to="/product-variants/$id"
-                                    params={{ id: variant.id }}
-                                    className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted"
+                <div role="list" className="-ms-(--card-ps) -me-(--card-px)">
+                    {variants.map(({ saleable, ...variant }) => (
+                        <ListRow key={variant.id} role="listitem">
+                            <ListRowContent>
+                                <ListRowLink
+                                    render={<Link to="/product-variants/$id" params={{ id: variant.id }} />}
                                 >
-                                    <div className="flex-1 truncate">
-                                        <div className="truncate text-sm font-medium">{variant.name}</div>
-                                        <div className="truncate text-xs text-muted-foreground">
-                                            {variant.sku}
-                                        </div>
-                                    </div>
-                                    <StatusBadge tone={saleable <= 0 ? 'critical' : 'warning'}>
-                                        <Trans>{saleable} in stock</Trans>
-                                    </StatusBadge>
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
+                                    {variant.name}
+                                </ListRowLink>
+                                <ListRowMeta>{variant.sku}</ListRowMeta>
+                            </ListRowContent>
+                            <ListRowTrailing>
+                                <StatusBadge tone={saleable <= 0 ? 'critical' : 'warning'}>
+                                    <Trans>{saleable} in stock</Trans>
+                                </StatusBadge>
+                            </ListRowTrailing>
+                            <ListRowChevron />
+                        </ListRow>
+                    ))}
+                </div>
             ) : (
                 <div className="flex h-full w-full items-center justify-center">
                     <EmptyState

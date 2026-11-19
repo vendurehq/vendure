@@ -35,10 +35,23 @@ export default [{
   },
   rules: {
     '@vendure-io/design/no-raw-colors': 'error',
-    // A Badge with its own button is a hand-made removable tag. Chip owns the
-    // remove button, its hover, focus ring and accessible name.
+    // A link row built by hand (a router Link or an anchor with its own hover
+    // fill) misses the row height, focus ring and "opens" chevron of the design
+    // system. Build the row with ListRow + ListRowLink, or DataTableRowLink in a
+    // table. Only a plain className string is checked: a cn() call also builds
+    // menu items (the collapsed sidebar flyout), which are not rows. Belongs in
+    // @vendure-io/design-lint once it has a rule for it.
     'no-restricted-syntax': [
       'error',
+      ...[
+        "JSXOpeningElement[name.name=/^(Link|a)$/] > JSXAttribute[name.name='className'] > Literal[value=/(^|\\s)hover:bg-/]",
+        "JSXOpeningElement[name.name=/^(Link|a)$/] > JSXAttribute[name.name='className'] > JSXExpressionContainer > TemplateLiteral > TemplateElement[value.raw=/(^|\\s)hover:bg-/]",
+      ].map(selector => ({
+        selector,
+        message: 'A link row is ListRow + ListRowLink, or DataTableRowLink in a table. Do not give a Link or <a> its own hover fill.',
+      })),
+      // A Badge with its own button is a hand-made removable tag. Chip owns the
+      // remove button, its hover, focus ring and accessible name.
       {
         selector:
           "JSXElement[openingElement.name.name='Badge'] JSXElement[openingElement.name.name=/^(button|Button)$/]",

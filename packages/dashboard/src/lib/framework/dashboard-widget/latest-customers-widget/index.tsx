@@ -6,6 +6,14 @@ import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import {
+    ListRow,
+    ListRowChevron,
+    ListRowContent,
+    ListRowLink,
+    ListRowMeta,
+    ListRowTrailing,
+} from '@vendure-io/ui/components/molecules/list-row';
 import { Users } from 'lucide-react';
 import { DashboardBaseWidget } from '../base-widget.js';
 import { latestCustomersQuery } from './latest-customers-widget.graphql.js';
@@ -59,29 +67,24 @@ export function LatestCustomersWidget() {
                     />
                 </div>
             ) : customers.length ? (
-                <ul className="flex flex-col gap-1">
+                <div role="list" className="-ms-(--card-ps) -me-(--card-px)">
                     {customers.map(customer => (
-                        <li key={customer.id}>
-                            <Link
-                                to="/customers/$id"
-                                params={{ id: customer.id }}
-                                className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted"
-                            >
-                                <div className="flex-1 truncate">
-                                    <div className="truncate text-sm font-medium">
-                                        {customer.firstName} {customer.lastName}
-                                    </div>
-                                    <div className="truncate text-xs text-muted-foreground">
-                                        {customer.emailAddress}
-                                    </div>
-                                </div>
-                                <span className="shrink-0 text-xs text-muted-foreground capitalize">
-                                    {formatRelativeDate(customer.createdAt)}
-                                </span>
-                            </Link>
-                        </li>
+                        <ListRow key={customer.id} role="listitem">
+                            <ListRowContent>
+                                <ListRowLink
+                                    render={<Link to="/customers/$id" params={{ id: customer.id }} />}
+                                >
+                                    {customer.firstName} {customer.lastName}
+                                </ListRowLink>
+                                <ListRowMeta>{customer.emailAddress}</ListRowMeta>
+                            </ListRowContent>
+                            <ListRowTrailing className="text-xs capitalize">
+                                {formatRelativeDate(customer.createdAt)}
+                            </ListRowTrailing>
+                            <ListRowChevron />
+                        </ListRow>
                     ))}
-                </ul>
+                </div>
             ) : (
                 <div className="flex h-full w-full items-center justify-center">
                     <EmptyState
