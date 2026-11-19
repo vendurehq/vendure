@@ -20,6 +20,7 @@ const EXCLUDED_PATHS = [
     'framework/platform-promotion/register-locked-navigation.tsx',
     'framework/form-engine/relation-id-value.ts',
     'framework/page/strip-unchanged-translations.ts',
+    'components/data-table/row-label.ts',
 ];
 const LIB_DIR = path.join(__dirname, '..', 'src', 'lib');
 const INDEX_FILE = path.join(LIB_DIR, 'index.ts');

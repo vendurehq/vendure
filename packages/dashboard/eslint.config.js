@@ -8,6 +8,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tsParser from '@typescript-eslint/parser'
 import designLint from '@vendure-io/design-lint/eslint'
+import { builtinRules } from 'eslint/use-at-your-own-risk'
 
 export default [{
   // Generated / build / test-fixture artifacts (all gitignored) — never source, so
@@ -74,6 +75,41 @@ export default [{
         selector,
         message: 'List the transition properties instead of transition-all, and use a motion token (duration-fast, duration-normal, ease-default…) instead of a numeric duration or delay.',
       })),
+      // An icon-only Button has no text, so a screen reader announces it only as
+      // "button". Name it with aria-label, with the row's name where there is a
+      // row ("Actions for Laptop"). A tooltip does not name it.
+      {
+        selector:
+          "JSXOpeningElement[name.name='Button']:has(> JSXAttribute[name.name='size'][value.value=/^icon/]):not(:has(> JSXAttribute[name.name=/^aria-label(ledby)?$/]))",
+        message: 'An icon-only Button needs an accessible name. Add aria-label={t`…`}.',
+      },
+    ],
+  },
+}, {
+  // Status markers come from the design system: TimelineMarker (a feed or a
+  // step list) or StatusBadge (a single state), with a state-dictionary tone.
+  // Warn on a small round element in a tone colour drawn by hand, and on the
+  // colour-class marker prop of HistoryEntry. Expect the odd false positive.
+  // A second copy of no-restricted-syntax under its own name, so this warning
+  // does not replace the link-row selectors above.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'status-marker': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'status-marker/no-restricted-syntax': [
+      'warn',
+      {
+        selector:
+          "JSXAttribute[name.name='className'] :matches(Literal[value=/\\brounded-full\\b/][value=/(^|\\s)(size|h)-[2-7](\\s|$)/][value=/(^|[\\s:])(bg|border)-(success|warning|destructive|info)/], TemplateElement[value.raw=/\\brounded-full\\b/][value.raw=/(^|\\s)(size|h)-[2-7](\\s|$)/][value.raw=/(^|[\\s:])(bg|border)-(success|warning|destructive|info)/])",
+        message:
+          'Hand-drawn status marker. Use TimelineMarker or StatusBadge with a state-dictionary tone.',
+      },
+      {
+        selector: ":matches(JSXAttribute[name.name='timelineIconClassName'], ObjectExpression > Property[key.name='timelineIconClassName'])",
+        message: 'timelineIconClassName is deprecated. Pass a state-dictionary `tone` to HistoryEntry.',
+      },
     ],
   },
 }, {

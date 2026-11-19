@@ -218,6 +218,7 @@ export interface ListPageProps<
      *               onClick={row.getToggleExpandedHandler()}
      *               disabled={!hasChildren}
      *               className={!hasChildren ? 'opacity-20' : ''}
+     *               aria-label={isExpanded ? 'Collapse' : 'Expand'}
      *             >
      *               {isExpanded ? <FolderOpen /> : <Folder />}
      *             </Button>

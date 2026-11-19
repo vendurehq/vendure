@@ -213,6 +213,7 @@ function AssetDetailPage() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setSettingFocalPoint(true)}
+                                aria-label={t`Edit focal point`}
                             >
                                 <FocusIcon className="h-4 w-4" />
                             </Button>

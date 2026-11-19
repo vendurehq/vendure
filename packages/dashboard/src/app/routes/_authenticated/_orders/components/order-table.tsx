@@ -11,7 +11,7 @@ import { addCustomFields } from '@/vdb/framework/document-introspection/add-cust
 import { getFieldsFromDocumentNode } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Ellipsis } from 'lucide-react';
 import { Fragment, ReactNode, useMemo } from 'react';
 
@@ -34,6 +34,22 @@ function NumericCell({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 // Factory function to create customizeColumns with inline components
+function FulfillmentLinesMenu({ fulfillmentLines }: Readonly<{ fulfillmentLines: unknown }>) {
+    const { t } = useLingui();
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon" aria-label={t`Show fulfillment lines`} />}
+            >
+                <Ellipsis />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <JsonViewer data={fulfillmentLines} viewOnly rootFontSize={12} />
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 function createCustomizeColumns(currencyCode: string) {
     return {
         featuredAsset: {
@@ -79,14 +95,7 @@ function createCustomizeColumns(currencyCode: string) {
         },
         fulfillmentLines: {
             cell: ({ row }: { row: any }) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
-                        <Ellipsis />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <JsonViewer data={row.original.fulfillmentLines} viewOnly rootFontSize={12} />
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <FulfillmentLinesMenu fulfillmentLines={row.original.fulfillmentLines} />
             ),
         },
         quantity: {

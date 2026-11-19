@@ -51,6 +51,7 @@ export function ProductOptionGroupBadge({
                     to={`/option-groups/${id}`}
                     search={{ from: 'product', productId }}
                     className="ml-1.5 inline-flex"
+                    aria-label={t`Edit option group ${name}`}
                 >
                     <Edit2 className="h-3 w-3" />
                 </Link>

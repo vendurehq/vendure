@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LS_KEY_SHIPPING_TEST_ORDER } from '@/vdb/constants.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { Plural, Trans } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import {
     ColumnDef,
     flexRender,
@@ -35,6 +35,7 @@ interface TestOrderBuilderProps {
 }
 
 export function TestOrderBuilder({ onOrderLinesChange }: Readonly<TestOrderBuilderProps>) {
+    const { t } = useLingui();
     const { formatCurrency } = useLocalFormat();
     const { activeChannel } = useChannel();
     const [lines, setLines] = useState<TestOrderLine[]>(() => {
@@ -128,6 +129,7 @@ export function TestOrderBuilder({ onOrderLinesChange }: Readonly<TestOrderBuild
                             size="icon"
                             onClick={() => removeLine(row.original.id)}
                             className="h-8 w-8"
+                            aria-label={t`Remove ${row.original.name}`}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>

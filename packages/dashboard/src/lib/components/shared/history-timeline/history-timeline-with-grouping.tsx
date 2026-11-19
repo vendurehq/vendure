@@ -3,7 +3,7 @@ import { HistoryEntryItem } from '@/vdb/framework/extension-api/types/history-en
 import { getCustomHistoryEntryForType } from '@/vdb/framework/history-entry/history-entry-extensions.js';
 import { Trans } from '@lingui/react/macro';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { ReactNode, useState } from 'react';
+import { Fragment, ReactNode, useState } from 'react';
 import { CustomerHistoryCustomerDetail } from '../../../../app/routes/_authenticated/_customers/components/customer-history/customer-history-types.js';
 import { OrderHistoryOrderDetail } from '../../../../app/routes/_authenticated/_orders/components/order-history/order-history-types.js';
 import { HistoryTimeline } from './history-timeline.js';
@@ -97,7 +97,7 @@ export function HistoryTimelineWithGrouping({
                 {groupedEntries.map((group, groupIndex) => {
                     if (group.type === 'primary') {
                         const entry = group.entry;
-                        return <div key={entry.id}>{renderEntry(entry)}</div>;
+                        return <Fragment key={entry.id}>{renderEntry(entry)}</Fragment>;
                     } else {
                         // Secondary group
                         const shouldCollapse = group.entries.length > 3;
@@ -106,12 +106,13 @@ export function HistoryTimelineWithGrouping({
                             shouldCollapse && !isExpanded ? group.entries.slice(0, 2) : group.entries;
 
                         return (
-                            <div key={`group-${groupIndex}`}>
+                            <Fragment key={`group-${groupIndex}`}>
                                 {visibleEntries.map(({ entry }) => (
-                                    <div key={entry.id}>{renderEntry(entry)}</div>
+                                    <Fragment key={entry.id}>{renderEntry(entry)}</Fragment>
                                 ))}
                                 {shouldCollapse && (
-                                    <div className="flex justify-center py-2">
+                                    // In the entry column, so the toggle sits on the rail's text edge.
+                                    <li className="ps-6.5 pb-4">
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -132,9 +133,9 @@ export function HistoryTimelineWithGrouping({
                                                 </>
                                             )}
                                         </Button>
-                                    </div>
+                                    </li>
                                 )}
-                            </div>
+                            </Fragment>
                         );
                     }
                 })}

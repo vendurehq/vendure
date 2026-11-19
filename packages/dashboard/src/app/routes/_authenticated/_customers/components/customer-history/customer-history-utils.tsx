@@ -1,35 +1,58 @@
+import { defineStateEntries, type Tone } from '@/vdb/components/ui/status-badge.js';
 import { HistoryEntryItem } from '@/vdb/framework/extension-api/types/index.js';
 import { Trans } from '@lingui/react/macro';
 import { CheckIcon, Edit3, KeyIcon, Mail, MapPin, SquarePen, User, UserCheck, Users } from 'lucide-react';
 import { CustomerHistoryCustomerDetail } from './customer-history-types.js';
 
+/**
+ * The marker tone of each customer history entry type. A verification the
+ * customer completed is `success`; every other entry is routine and stays
+ * `neutral`, so the verified steps stand out.
+ */
+const customerHistoryDictionary = defineStateEntries({
+    CUSTOMER_REGISTERED: { tone: 'neutral', defaultLabel: 'Registered' },
+    CUSTOMER_VERIFIED: { tone: 'success', defaultLabel: 'Verified' },
+    CUSTOMER_NOTE: { tone: 'neutral', defaultLabel: 'Note added' },
+    CUSTOMER_DETAIL_UPDATED: { tone: 'neutral', defaultLabel: 'Details updated' },
+    CUSTOMER_ADDED_TO_GROUP: { tone: 'neutral', defaultLabel: 'Added to group' },
+    CUSTOMER_REMOVED_FROM_GROUP: { tone: 'neutral', defaultLabel: 'Removed from group' },
+    CUSTOMER_ADDRESS_CREATED: { tone: 'neutral', defaultLabel: 'Address created' },
+    CUSTOMER_ADDRESS_UPDATED: { tone: 'neutral', defaultLabel: 'Address updated' },
+    CUSTOMER_ADDRESS_DELETED: { tone: 'neutral', defaultLabel: 'Address deleted' },
+    CUSTOMER_PASSWORD_UPDATED: { tone: 'neutral', defaultLabel: 'Password updated' },
+    CUSTOMER_PASSWORD_RESET_REQUESTED: { tone: 'neutral', defaultLabel: 'Password reset requested' },
+    CUSTOMER_PASSWORD_RESET_VERIFIED: { tone: 'success', defaultLabel: 'Password reset verified' },
+    CUSTOMER_EMAIL_UPDATE_REQUESTED: { tone: 'neutral', defaultLabel: 'Email update requested' },
+    CUSTOMER_EMAIL_UPDATE_VERIFIED: { tone: 'success', defaultLabel: 'Email update verified' },
+});
+
 export function customerHistoryUtils(customer: CustomerHistoryCustomerDetail) {
     const getTimelineIcon = (entry: HistoryEntryItem) => {
         switch (entry.type) {
             case 'CUSTOMER_REGISTERED':
-                return <User className="h-4 w-4" />;
+                return <User />;
             case 'CUSTOMER_VERIFIED':
-                return <UserCheck className="h-4 w-4" />;
+                return <UserCheck />;
             case 'CUSTOMER_NOTE':
-                return <SquarePen className="h-4 w-4" />;
+                return <SquarePen />;
             case 'CUSTOMER_ADDED_TO_GROUP':
             case 'CUSTOMER_REMOVED_FROM_GROUP':
-                return <Users className="h-4 w-4" />;
+                return <Users />;
             case 'CUSTOMER_DETAIL_UPDATED':
-                return <Edit3 className="h-4 w-4" />;
+                return <Edit3 />;
             case 'CUSTOMER_ADDRESS_CREATED':
             case 'CUSTOMER_ADDRESS_UPDATED':
             case 'CUSTOMER_ADDRESS_DELETED':
-                return <MapPin className="h-4 w-4" />;
+                return <MapPin />;
             case 'CUSTOMER_PASSWORD_UPDATED':
             case 'CUSTOMER_PASSWORD_RESET_REQUESTED':
             case 'CUSTOMER_PASSWORD_RESET_VERIFIED':
-                return <KeyIcon className="h-4 w-4" />;
+                return <KeyIcon />;
             case 'CUSTOMER_EMAIL_UPDATE_REQUESTED':
             case 'CUSTOMER_EMAIL_UPDATE_VERIFIED':
-                return <Mail className="h-4 w-4" />;
+                return <Mail />;
             default:
-                return <CheckIcon className="h-4 w-4" />;
+                return <CheckIcon />;
         }
     };
 
@@ -68,29 +91,7 @@ export function customerHistoryUtils(customer: CustomerHistoryCustomerDetail) {
         }
     };
 
-    const getIconColor = (entry: HistoryEntryItem) => {
-        // Check for success states
-        if (
-            entry.type === 'CUSTOMER_VERIFIED' ||
-            entry.type === 'CUSTOMER_EMAIL_UPDATE_VERIFIED' ||
-            entry.type === 'CUSTOMER_PASSWORD_RESET_VERIFIED'
-        ) {
-            return 'bg-success text-success-foreground';
-        }
-
-        // Check for destructive states
-        if (entry.type === 'CUSTOMER_REMOVED_FROM_GROUP' || entry.type === 'CUSTOMER_ADDRESS_DELETED') {
-            return 'bg-destructive text-destructive-foreground';
-        }
-
-        // Registration gets muted style
-        if (entry.type === 'CUSTOMER_REGISTERED') {
-            return 'bg-muted text-muted-foreground';
-        }
-
-        // All other entries use neutral colors
-        return 'bg-muted text-muted-foreground';
-    };
+    const getTone = (entry: HistoryEntryItem): Tone => customerHistoryDictionary.toneFor(entry.type);
 
     const getActorName = (entry: HistoryEntryItem) => {
         if (entry.administrator) {
@@ -117,7 +118,7 @@ export function customerHistoryUtils(customer: CustomerHistoryCustomerDetail) {
     return {
         getTimelineIcon,
         getTitle,
-        getIconColor,
+        getTone,
         getActorName,
         isPrimaryEvent,
     };

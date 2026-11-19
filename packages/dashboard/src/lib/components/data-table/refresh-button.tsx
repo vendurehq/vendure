@@ -1,6 +1,6 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -29,6 +29,7 @@ export function RefreshButton({
     isLoading,
 }: Readonly<{ onRefresh: () => void; isLoading: boolean }>) {
     const delayedLoading = useDelayedLoading(isLoading, 100);
+    const { t } = useLingui();
 
     const handleClick = () => {
         onRefresh();
@@ -36,7 +37,16 @@ export function RefreshButton({
 
     return (
         <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon-sm" onClick={handleClick} disabled={delayedLoading} data-testid="dt-refresh-button" />}>
+            <TooltipTrigger render={
+                    <Button
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={handleClick}
+                        disabled={delayedLoading}
+                        data-testid="dt-refresh-button"
+                        aria-label={t`Refresh data`}
+                    />
+                }>
                     <RefreshCw className={delayedLoading ? 'animate-rotate' : ''} />
             </TooltipTrigger>
             <TooltipContent>
