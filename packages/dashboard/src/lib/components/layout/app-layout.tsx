@@ -3,6 +3,7 @@ import { DevModeIndicator } from '@/vdb/components/layout/dev-mode-indicator.js'
 import { GeneratedBreadcrumbs } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { AppShellHeader, AppShellMain } from '@/vdb/components/ui/app-shell.js';
+import { Kbd } from '@/vdb/components/ui/kbd.js';
 import { Separator } from '@/vdb/components/ui/separator.js';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/vdb/components/ui/sidebar.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
@@ -146,7 +147,7 @@ export function AppLayout() {
                         <Tooltip>
                             <TooltipTrigger render={<SidebarTrigger className="-ml-1 shrink-0" />} />
                             <TooltipContent>
-                                Toggle sidebar <kbd className="ms-2 font-mono">{formatShortcut('mod+B')}</kbd>
+                                Toggle sidebar <Kbd className="ms-2">{formatShortcut('mod+B')}</Kbd>
                             </TooltipContent>
                         </Tooltip>
                         <Separator

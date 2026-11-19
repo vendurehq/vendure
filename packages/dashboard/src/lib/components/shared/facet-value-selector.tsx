@@ -1,5 +1,6 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { LoadingState } from '@/vdb/components/ui/state-views.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import {
     Command,
     CommandEmpty,
@@ -11,7 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { useFacetValueBrowser } from '@/vdb/hooks/use-facet-value-browser.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 // Re-export types for backward compatibility — these are part of the public API
@@ -207,7 +208,7 @@ export function FacetValueSelector({
                                 </CommandGroup>
                                 {(isFetchingNextPage || isLoadingExpandedFacet) && (
                                     <div className="flex items-center justify-center py-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Spinner />
                                     </div>
                                 )}
                                 {!hasNextPage && expandedFacetValues.length > 0 && (
@@ -235,7 +236,7 @@ export function FacetValueSelector({
                                         </CommandGroup>
                                         {browseMode && isFetchingNextFacetsPage && (
                                             <div className="flex items-center justify-center py-2">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <Spinner />
                                             </div>
                                         )}
                                         {browseMode && !hasNextFacetsPage && facets.length > 0 && (

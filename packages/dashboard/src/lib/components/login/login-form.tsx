@@ -6,7 +6,6 @@ import { cn } from '@/vdb/lib/utils.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from '@/vdb/components/ui/sonner.js';
@@ -15,6 +14,7 @@ import { LogoMark } from '../shared/logo-mark.js';
 import { Form } from '../ui/form.js';
 import { Field, FieldError } from '../ui/field.js';
 import { Separator } from '../ui/separator.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 
 export type LoginFormProps = Readonly<
     {
@@ -107,7 +107,7 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
                                 <Button type="submit" className="w-full" disabled={isVerifying}>
                                     {isVerifying && (
                                         <>
-                                            <Loader2 className="animate-spin" />
+                                            <Spinner />
                                             Please wait
                                         </>
                                     )}

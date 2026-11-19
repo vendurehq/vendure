@@ -1,6 +1,7 @@
 import { LockedNavIcon } from '@/vdb/components/platform-promotion/platform-promo.js';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/vdb/components/ui/hover-card.js';
+import { Kbd } from '@/vdb/components/ui/kbd.js';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -46,9 +47,9 @@ const HOVER_CLOSE_DELAY = 250;
 
 function ShortcutBadge({ shortcut }: { shortcut?: string }) {
     return shortcut ? (
-        <kbd className="ms-auto inline-flex min-w-5 items-center justify-center rounded border bg-background px-1 font-mono text-[10px] text-muted-foreground shadow-xs">
+        <Kbd className="ms-auto">
             {shortcut.toUpperCase()}
-        </kbd>
+        </Kbd>
     ) : null;
 }
 

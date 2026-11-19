@@ -16,6 +16,7 @@ import {
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
 import { Page, PageBlock, PageLayout, PageTitle } from '@/vdb/framework/layout-engine/page-layout.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -26,7 +27,7 @@ import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Check, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -469,7 +470,7 @@ function ManageProductVariants() {
                                                             </SelectContent>
                                                         </Select>
                                                         {cell?.status === 'saving' && (
-                                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                            <Spinner className="text-muted-foreground" />
                                                         )}
                                                         {cell?.status === 'success' && (
                                                             <Check className="h-4 w-4 text-success" />

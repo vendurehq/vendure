@@ -1,5 +1,6 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isFieldDisabled } from '@/vdb/framework/form-engine/utils.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -313,7 +314,7 @@ export function SlugInput({
                 />
                 {showLoading && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                        <Spinner className="text-muted-foreground" />
                     </div>
                 )}
             </div>
