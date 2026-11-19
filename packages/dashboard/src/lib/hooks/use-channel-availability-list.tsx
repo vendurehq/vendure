@@ -1,6 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 
 import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
+import { FacetedFilter } from '@/vdb/components/data-table/data-table.js';
 import { ChannelAvailabilityBadge } from '@/vdb/components/shared/channel-availability.js';
 import { ColumnDefWithMetaDependencies } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -67,7 +68,14 @@ function transformChannelAvailabilityFilter<V>(variables: V): V {
  * @docsCategory hooks
  * @since 4.0.0
  */
-export function useChannelAvailabilityList() {
+export function useChannelAvailabilityList(): {
+    statusColumn: ColumnDefWithMetaDependencies<any>;
+    enabledInChannelColumn: ColumnDefWithMetaDependencies<any>;
+    filterId: typeof FILTER_ID;
+    filterColumn: ColumnDefWithMetaDependencies<any>;
+    facetedFilter: FacetedFilter | undefined;
+    transformVariables: typeof transformChannelAvailabilityFilter;
+} {
     const { t } = useLingui();
     const { channels } = useChannel();
     const multiChannel = channels.length > 1;
