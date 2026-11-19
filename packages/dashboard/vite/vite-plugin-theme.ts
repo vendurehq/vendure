@@ -3,6 +3,7 @@ import {
     brand,
     darkShadows,
     darkTheme,
+    destructive,
     duration,
     easing,
     fontFamily,
@@ -10,13 +11,18 @@ import {
     fontSize,
     fontSizeLineHeight,
     fontWeight,
+    info,
     keyframes,
     letterSpacing,
     lightShadows,
     lightTheme,
+    neutral,
     radii,
     shadows,
+    success,
     textStyles,
+    viz,
+    warning,
 } from '@vendure-io/design-tokens';
 import path from 'node:path';
 import { Plugin } from 'vite';
@@ -81,13 +87,32 @@ const fontVariables: ThemeColors = Object.fromEntries(
     Object.entries(fontFamily).map(([key, value]) => [`font-${key}`, value]),
 );
 
+/**
+ * The colour ramps (`--brand-500`, `--destructive-900`, `--viz-1`, …) and the
+ * default `--radius`, as `@vendure-io/design-tokens/css/variables` declares
+ * them. They are the same in light and dark. `@vendure-io/ui` reads them in
+ * arbitrary values, e.g. the destructive button hover mixes toward
+ * `--destructive-900` and the accent card border uses `--brand-500`. Without
+ * them those declarations are invalid and the browser drops the colour.
+ */
+const paletteVariables: ThemeColors = {
+    ...Object.fromEntries(
+        Object.entries({ brand, neutral, success, warning, destructive, info, viz }).flatMap(
+            ([range, steps]) => Object.entries(steps).map(([step, value]) => [`${range}-${step}`, value]),
+        ),
+    ),
+    radius: radii.md,
+};
+
 const dashboardLightExtensions: ThemeColors = {
+    ...paletteVariables,
     'dev-mode': brand[400],
     'dev-mode-foreground': brand[950],
     ...fontVariables,
 };
 
 const dashboardDarkExtensions: ThemeColors = {
+    ...paletteVariables,
     'dev-mode': brand[400],
     'dev-mode-foreground': brand[950],
     ...fontVariables,
