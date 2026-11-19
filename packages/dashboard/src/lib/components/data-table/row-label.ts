@@ -7,7 +7,7 @@ export function getRowLabel(entity: unknown): string | undefined {
         return undefined;
     }
     const record = entity as Record<string, unknown>;
-    for (const key of ['name', 'code', 'title', 'emailAddress']) {
+    for (const key of ['name', 'code', 'title']) {
         const value = record[key];
         if (typeof value === 'string' && value.trim()) {
             return value.trim();
@@ -16,5 +16,9 @@ export function getRowLabel(entity: unknown): string | undefined {
     const fullName = [record.firstName, record.lastName]
         .filter(part => typeof part === 'string' && part.trim())
         .join(' ');
-    return fullName || undefined;
+    if (fullName) {
+        return fullName;
+    }
+    const email = record.emailAddress;
+    return typeof email === 'string' && email.trim() ? email.trim() : undefined;
 }

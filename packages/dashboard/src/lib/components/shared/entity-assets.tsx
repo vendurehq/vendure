@@ -120,7 +120,13 @@ function SortableAsset({
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="relative group" {...attributes}>
+        <div
+            ref={setNodeRef}
+            style={style}
+            className="relative group"
+            {...attributes}
+            aria-label={t`Reorder ${asset.name}`}
+        >
             {/* Draggable Image Area */}
             <div
                 {...listeners}
