@@ -109,6 +109,11 @@ export interface UseFacetValueBrowserReturn {
 
     // Infinite scroll
     handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
+    /**
+     * Fetches the next page of the facet being browsed, or of the facet list in browse mode.
+     * @since 4.0.0
+     */
+    loadMore: () => void;
 
     // Reset all state
     reset: () => void;
@@ -247,16 +252,21 @@ export function useFacetValueBrowser(options?: UseFacetValueBrowserOptions): Use
     const isLoading =
         isLoadingFacetValues || isLoadingFacetSearch || isLoadingFacetBrowse || isLoadingExpandedFacet;
 
+    const loadMore = () => {
+        if (isFetchingNextPage) return;
+        if (expandedFacetId && hasNextPage) {
+            void fetchNextPage();
+        }
+        if (browseMode && !expandedFacetId && hasNextFacetsPage) {
+            void fetchNextFacetsPage();
+        }
+    };
+
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
         const scrolledToBottom = Math.abs(target.scrollHeight - target.clientHeight - target.scrollTop) < 1;
-        if (scrolledToBottom && !isFetchingNextPage) {
-            if (expandedFacetId && hasNextPage) {
-                void fetchNextPage();
-            }
-            if (browseMode && !expandedFacetId && hasNextFacetsPage) {
-                void fetchNextFacetsPage();
-            }
+        if (scrolledToBottom) {
+            loadMore();
         }
     };
 
@@ -287,6 +297,7 @@ export function useFacetValueBrowser(options?: UseFacetValueBrowserOptions): Use
         hasNextPage: hasNextPage ?? false,
         hasNextFacetsPage: hasNextFacetsPage ?? false,
         handleScroll,
+        loadMore,
         reset,
     };
 }
