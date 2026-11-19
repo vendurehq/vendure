@@ -9,6 +9,14 @@ import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import {
+    ListRow,
+    ListRowChevron,
+    ListRowContent,
+    ListRowLeading,
+    ListRowLink,
+    ListRowTrailing,
+} from '@vendure-io/ui/components/molecules/list-row';
 import { Package } from 'lucide-react';
 import { useMemo } from 'react';
 import { DashboardBaseWidget } from '../base-widget.js';
@@ -123,27 +131,28 @@ export function TopProductsWidget() {
                     />
                 </div>
             ) : topProducts.length ? (
-                <ol className="flex flex-col gap-1 tabular-nums">
+                <div role="list" className="-ms-(--card-ps) -me-(--card-px)">
                     {topProducts.map((product, index) => (
-                        <li key={product.variantId}>
-                            <Link
-                                to="/product-variants/$id"
-                                params={{ id: product.variantId }}
-                                className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted"
-                            >
-                                <span className="w-5 text-right text-sm text-muted-foreground">
-                                    {index + 1}
-                                </span>
-                                <span className="flex-1 truncate text-sm font-medium">{product.name}</span>
-                                <span className="text-sm text-muted-foreground">
-                                    {metric === 'revenue'
-                                        ? formatCurrency(product.revenue, currencyCode)
-                                        : formatNumber(product.quantity)}
-                                </span>
-                            </Link>
-                        </li>
+                        <ListRow key={product.variantId} role="listitem">
+                            <ListRowLeading className="w-5 justify-end tabular-nums">{index + 1}</ListRowLeading>
+                            <ListRowContent>
+                                <ListRowLink
+                                    render={
+                                        <Link to="/product-variants/$id" params={{ id: product.variantId }} />
+                                    }
+                                >
+                                    {product.name}
+                                </ListRowLink>
+                            </ListRowContent>
+                            <ListRowTrailing>
+                                {metric === 'revenue'
+                                    ? formatCurrency(product.revenue, currencyCode)
+                                    : formatNumber(product.quantity)}
+                            </ListRowTrailing>
+                            <ListRowChevron />
+                        </ListRow>
                     ))}
-                </ol>
+                </div>
             ) : (
                 <div className="flex h-full w-full items-center justify-center">
                     <EmptyState
