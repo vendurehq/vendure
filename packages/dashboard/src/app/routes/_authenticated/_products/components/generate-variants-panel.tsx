@@ -10,7 +10,7 @@ import { zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Save, Search } from 'lucide-react';
+import { ChevronLeft, Save, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -253,21 +253,16 @@ export function GenerateVariantsPanel({
                                     description={onBack.confirmation.description}
                                     onConfirm={onBack.handler}
                                 >
-                                    <button
-                                        type="button"
-                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                        ← <Trans>Back</Trans>
-                                    </button>
+                                    <Button type="button" variant="outline">
+                                        <ChevronLeft data-icon="inline-start" />
+                                        <Trans>Back</Trans>
+                                    </Button>
                                 </ConfirmationDialog>
                             ) : (
-                                <button
-                                    type="button"
-                                    onClick={onBack.handler}
-                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    ← <Trans>Back</Trans>
-                                </button>
+                                <Button type="button" variant="outline" onClick={onBack.handler}>
+                                    <ChevronLeft data-icon="inline-start" />
+                                    <Trans>Back</Trans>
+                                </Button>
                             ))}
                     </div>
                     <Button
