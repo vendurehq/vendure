@@ -10,6 +10,7 @@ import { UserViewsSheet } from './user-views-sheet.js';
 
 export const MyViewsButton: React.FC = () => {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const { t } = useLingui();
     const { userViews, savedViewsAreAvailable } = useSavedViews();
     const { columnFilters, searchTerm } = useDataTableContext();
 
