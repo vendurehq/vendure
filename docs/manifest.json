@@ -187,7 +187,7 @@
           "title": "Shipping",
           "slug": "shipping",
           "file": "docs/guides/core-concepts/shipping/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-19T08:52:22+01:00"
         }
       ],
       "lastModified": "2026-10-19T11:44:34+02:00"
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-18T15:19:02Z"
+              "lastModified": "2026-11-19T08:52:22+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -913,7 +913,7 @@
           "title": "Built-in Tool Reference",
           "slug": "built-in-tools",
           "file": "docs/guides/mcp-server/built-in-tools/index.mdx",
-          "lastModified": "2026-10-28T10:59:46+01:00"
+          "lastModified": "2026-11-19T08:52:22+01:00"
         },
         {
           "title": "OAuth Protocol Reference",
