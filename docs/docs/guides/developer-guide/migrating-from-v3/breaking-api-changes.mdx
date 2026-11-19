@@ -92,6 +92,8 @@ Sorting or filtering a variant list by `price` or `priceWithTax` now uses the pr
 
 Code which prices variants with `ProductPriceApplicator.applyChannelPriceAndTax()` or `ProductVariantService.applyChannelPriceAndTax()` needs no change. When you price variants one after another in a loop, call `ProductPriceApplicator.preloadChannelPrices(ctx, variants)` first, so their prices are loaded in one query rather than one per variant.
 
+`ProductVariantService.getFacetValuesForVariant()` now returns only the FacetValues of the active Channel, and no longer loads their `channels`. This is not exposed in GraphQL. To read the Channels of a FacetValue, load it with `relations: ['channels']`, for example with `TransactionalConnection.getEntityOrThrow()`.
+
 ## Inventory tracking
 
 Inventory tracking is resolved per stock level, then per variant, then per channel. The main breaks:
