@@ -1,13 +1,19 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { LoadingState } from '@/vdb/components/ui/state-views.js';
-import { Command, CommandEmpty, CommandItem, CommandList } from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/vdb/components/ui/combobox.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 const customerGroupsDocument = graphql(`
     query GetCustomerGroups($options: CustomerGroupListOptions) {
@@ -20,13 +26,18 @@ const customerGroupsDocument = graphql(`
     }
 `);
 
+type CustomerGroup = { id: string; name: string };
+
 export interface CustomerGroupSelectorProps {
     onSelect: (value: { id: string; name: string }) => void;
     readOnly?: boolean;
 }
 
 export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
+    const { t } = useLingui();
     const [open, setOpen] = useState(false);
+    const anchor = useRef<HTMLButtonElement>(null);
+    const labelId = useId();
 
     const { data: groups, isLoading } = useQuery({
         queryKey: ['customerGroups'],
@@ -39,29 +50,49 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
     });
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={props.readOnly} className="gap-2" />}>
-                    <Plus className="h-4 w-4" />
+        <Combobox
+            items={groups?.customerGroups.items ?? []}
+            value={null}
+            onValueChange={(group: CustomerGroup | null) => {
+                if (group) {
+                    props.onSelect(group);
+                    setOpen(false);
+                }
+            }}
+            open={open}
+            onOpenChange={setOpen}
+            itemToStringLabel={(group: CustomerGroup) => group.name}
+            isItemEqualToValue={(a: CustomerGroup, b: CustomerGroup) => a.id === b.id}
+            loading={isLoading}
+            disabled={props.readOnly}
+        >
+            <ComboboxPrimitive.Trigger
+                ref={anchor}
+                aria-labelledby={labelId}
+                render={<Button variant="outline" size="sm" type="button" />}
+            >
+                <Plus />
+                <span id={labelId}>
                     <Trans>Add customer groups</Trans>
-            </PopoverTrigger>
-            <PopoverContent className="p-0">
-                <Command shouldFilter={false}>
-                    <CommandList>
-                        {groups?.customerGroups.items.map(group => (
-                            <CommandItem key={group.id} onSelect={() => props.onSelect(group)}>
-                                {group.name}
-                            </CommandItem>
-                        ))}
-                        <CommandEmpty>
-                            {isLoading ? (
-                                <LoadingState variant="spinner" className="py-4" />
-                            ) : (
-                                <Trans>No results</Trans>
-                            )}
-                        </CommandEmpty>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                </span>
+            </ComboboxPrimitive.Trigger>
+            <ComboboxContent anchor={anchor} className="w-72">
+                <ComboboxInput
+                    aria-label={t`Search customer groups`}
+                    placeholder={t`Search customer groups`}
+                    showTrigger={false}
+                />
+                <ComboboxEmpty>
+                    <Trans>No results</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(group: CustomerGroup) => (
+                        <ComboboxItem key={group.id} value={group}>
+                            {group.name}
+                        </ComboboxItem>
+                    )}
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }

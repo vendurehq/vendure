@@ -1,20 +1,20 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/vdb/components/ui/combobox.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Plus, Search } from 'lucide-react';
-import { useState } from 'react';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
+import { Plus } from 'lucide-react';
+import { useId, useRef, useState } from 'react';
 
 const countryListDocument = graphql(`
     query CountryList($options: CountryListOptions) {
@@ -42,11 +42,14 @@ export interface CountrySelectorProps {
 }
 
 export function CountrySelector(props: CountrySelectorProps) {
+    const { t } = useLingui();
     const [open, setOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const anchor = useRef<HTMLButtonElement>(null);
+    const labelId = useId();
 
-    const { data, isLoading } = useQuery({
+    const { data, isFetching } = useQuery({
         queryKey: ['countries', debouncedSearchTerm],
         queryFn: () =>
             api.query(countryListDocument, {
@@ -63,50 +66,54 @@ export function CountrySelector(props: CountrySelectorProps) {
             }),
     });
 
-    const handleSearch = (value: string) => {
-        setSearchTerm(value);
-    };
-
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={props.readOnly} className="gap-2" />}>
-                    <Plus className="h-4 w-4" />
-                    {props.label ?? <Trans>Select country</Trans>}
-            </PopoverTrigger>
-            <PopoverContent className="p-0 w-[350px]">
-                <Command shouldFilter={false}>
-                    <div className="flex items-center border-b px-3">
-                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <CommandInput
-                            placeholder="Search countries..."
-                            onValueChange={handleSearch}
-                            className="h-10 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-                        />
-                    </div>
-                    <CommandList>
-                        <CommandEmpty>
-                            {isLoading ? (
-                                <LoadingState variant="spinner" className="py-4" />
-                            ) : (
-                                <Trans>No countries found</Trans>
-                            )}
-                        </CommandEmpty>
-                        {data?.countries.items.map(country => (
-                            <CommandItem
-                                key={country.id}
-                                onSelect={() => {
-                                    props.onSelect(country);
-                                    setOpen(false);
-                                }}
-                                className="flex flex-col items-start"
-                            >
-                                <div className="font-medium">{country.name}</div>
-                                <div className="text-sm text-muted-foreground">{country.code}</div>
-                            </CommandItem>
-                        ))}
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+        <Combobox
+            items={data?.countries.items ?? []}
+            filter={null}
+            value={null}
+            onValueChange={(country: Country | null) => {
+                if (country) {
+                    props.onSelect(country);
+                    setOpen(false);
+                }
+            }}
+            open={open}
+            onOpenChange={setOpen}
+            inputValue={searchTerm}
+            onInputValueChange={setSearchTerm}
+            itemToStringLabel={(country: Country) => country.name}
+            isItemEqualToValue={(a: Country, b: Country) => a.id === b.id}
+            loading={isFetching || searchTerm !== debouncedSearchTerm}
+            disabled={props.readOnly}
+        >
+            <ComboboxPrimitive.Trigger
+                ref={anchor}
+                aria-labelledby={labelId}
+                render={<Button variant="outline" size="sm" type="button" />}
+            >
+                <Plus />
+                <span id={labelId}>{props.label ?? <Trans>Select country</Trans>}</span>
+            </ComboboxPrimitive.Trigger>
+            <ComboboxContent anchor={anchor} className="w-72">
+                <ComboboxInput
+                    aria-label={t`Search countries`}
+                    placeholder={t`Search countries`}
+                    showTrigger={false}
+                />
+                <ComboboxEmpty>
+                    <Trans>No countries found</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(country: Country) => (
+                        <ComboboxItem key={country.id} value={country}>
+                            <span className="flex flex-col">
+                                <span className="font-medium">{country.name}</span>
+                                <span className="text-xs text-muted-foreground">{country.code}</span>
+                            </span>
+                        </ComboboxItem>
+                    )}
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }
