@@ -269,14 +269,17 @@ class TestResolver {
     }
 
     /**
-     * Simulates what MySQL and MariaDB do on a deadlock: the database rolls back the whole
-     * transaction, not only the statement, so the nested transaction's `ROLLBACK TO SAVEPOINT`
-     * then fails because the savepoint no longer exists.
+     * Ends the transaction from inside a nested transaction and then fails, as MySQL and MariaDB
+     * do on a deadlock. Publishes an event first, which must be dropped like any event published
+     * in a transaction which was rolled back.
      */
     @Mutation()
     @Transaction()
     async failAfterDatabaseEndedNestedTransaction(@Ctx() ctx: RequestContext) {
         await this.connection.withTransaction(ctx, async innerCtx => {
+            await this.eventBus.publish(
+                new TestEvent(innerCtx, { emailAddress: TRIGGER_NO_OPERATION } as Administrator),
+            );
             await this.connection.getRepository(innerCtx, User).query('ROLLBACK');
             throw new Error(TRANSACTION_ENDED_BY_DATABASE);
         });

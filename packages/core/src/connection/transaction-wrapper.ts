@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { from, lastValueFrom, Observable } from 'rxjs';
 import { retryWhen, take, tap } from 'rxjs/operators';
 import { DataSource, EntityManager, QueryRunner } from 'typeorm';
@@ -8,12 +9,17 @@ import { TransactionIsolationLevel, TransactionMode } from '../api/decorators/tr
 import { TRANSACTION_MANAGER_KEY } from '../common/constants';
 import { Logger } from '../config/logger/vendure-logger';
 
+import { TransactionSubscriber } from './transaction-subscriber';
+
 /**
  * @description
  * This helper class is used to wrap operations in a TypeORM transaction in order to ensure
  * atomic operations on the database.
  */
+@Injectable()
 export class TransactionWrapper {
+    constructor(private transactionSubscriber: TransactionSubscriber) {}
+
     /**
      * @description
      * Executes the `work` function within the context of a transaction. If the `work` function
@@ -90,15 +96,19 @@ export class TransactionWrapper {
      *
      * The rollback itself can fail when the database has already ended the transaction. MySQL and
      * MariaDB roll back the whole transaction, not only the statement, on a deadlock (and MariaDB
-     * 11.6.2+ also on `ER_CHECKREAD`), so a nested transaction's `ROLLBACK TO SAVEPOINT` then fails
-     * because the savepoint is gone. TypeORM leaves the QueryRunner marked as in a transaction when
-     * that happens, and a runner in that state is never released. Each such error used to leak a
-     * pool connection until the pool was empty and every request hung.
+     * 11.6.2+ also on `ER_CHECKREAD`), so a nested transaction's `ROLLBACK TO SAVEPOINT` fails
+     * because the savepoint is gone. TypeORM then leaves the QueryRunner marked as in a
+     * transaction, and the `finally` block of `executeInTransaction()` only releases a runner which
+     * is not, so the connection would never return to the pool.
      *
-     * So a failed rollback never replaces the original error. A nested transaction leaves the
-     * cleanup to the owner of the QueryRunner, which rolls back in turn and ends up here too. The
-     * owner ends whatever is left of the transaction with a plain `ROLLBACK` and hands the
-     * connection back to the pool.
+     * A failed rollback therefore never replaces the original error. A nested transaction leaves
+     * the cleanup to the owner of the QueryRunner: the owner's catch block calls this method again
+     * with `ownsQueryRunner` set, which ends what is left of the transaction with a plain
+     * `ROLLBACK`, tells the TransactionSubscriber that it was rolled back, so that the events
+     * published in it are dropped as after any rollback, and releases the connection.
+     *
+     * On SQLite drivers this case is not handled: they share one QueryRunner, whose state the
+     * release does not reset. Only errors such as `SQLITE_FULL` end a SQLite transaction early.
      */
     private async rollbackAfterError(queryRunner: QueryRunner, ownsQueryRunner: boolean) {
         try {
@@ -113,6 +123,7 @@ export class TransactionWrapper {
                 )}`,
             );
             await queryRunner.query('ROLLBACK').catch(() => undefined);
+            this.transactionSubscriber.announceRollback(queryRunner);
             if (!queryRunner.isReleased) {
                 await queryRunner.release();
             }

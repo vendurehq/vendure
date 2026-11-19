@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/typeorm';
-import { lastValueFrom, merge, ObservableInput, Subject } from 'rxjs';
+import { lastValueFrom, Subject } from 'rxjs';
 import { delay, filter, map, take, tap } from 'rxjs/operators';
 import { DataSource, EntitySubscriberInterface } from 'typeorm';
 import { EntityManager } from 'typeorm/entity-manager/EntityManager';
@@ -46,9 +46,15 @@ export interface TransactionSubscriberEvent {
  * This is used by the {@link EventBus} to prevent events from being published until their
  * associated transactions are complete.
  */
+/**
+ * An event announced by {@link TransactionSubscriber.announceRollback}, for a transaction which was
+ * ended without TypeORM's own rollback. TypeORM still marks its QueryRunner as in a transaction.
+ */
+type InternalTransactionSubscriberEvent = TransactionSubscriberEvent & { endedOutsideTypeOrm?: boolean };
+
 @Injectable()
 export class TransactionSubscriber implements EntitySubscriberInterface {
-    private subject$ = new Subject<TransactionSubscriberEvent>();
+    private subject$ = new Subject<InternalTransactionSubscriberEvent>();
 
     constructor(@InjectConnection() private connection: DataSource) {
         if (!connection.subscribers.find(subscriber => subscriber.constructor === TransactionSubscriber)) {
@@ -70,6 +76,25 @@ export class TransactionSubscriber implements EntitySubscriberInterface {
         });
     }
 
+    /**
+     * @description
+     * Tells everything waiting for the transaction of the given QueryRunner to end that it was
+     * rolled back. Needed when the transaction was ended without TypeORM's `rollbackTransaction()`,
+     * which leaves the QueryRunner marked as in a transaction and broadcasts nothing, so a
+     * pending `awaitCommit()` would otherwise never settle. See `TransactionWrapper`.
+     *
+     * @internal
+     */
+    announceRollback(queryRunner: QueryRunner): void {
+        this.subject$.next({
+            type: 'rollback',
+            connection: this.connection,
+            queryRunner,
+            manager: queryRunner.manager,
+            endedOutsideTypeOrm: true,
+        });
+    }
+
     awaitCommit(queryRunner: QueryRunner): Promise<QueryRunner> {
         return this.awaitTransactionEvent(queryRunner, 'commit');
     }
@@ -87,15 +112,19 @@ export class TransactionSubscriber implements EntitySubscriberInterface {
         type?: TransactionSubscriberEventType,
     ): Promise<QueryRunner> {
         if (queryRunner.isTransactionActive) {
-            return lastValueFrom(this.subject$
-                .pipe(
+            return lastValueFrom(
+                this.subject$.pipe(
                     filter(
-                        event => !event.queryRunner.isTransactionActive && event.queryRunner === queryRunner,
+                        event =>
+                            event.queryRunner === queryRunner &&
+                            (!event.queryRunner.isTransactionActive || event.endedOutsideTypeOrm === true),
                     ),
                     take(1),
                     tap(event => {
                         if (type && event.type !== type) {
-                            throw new TransactionSubscriberError(`Unexpected event type: ${event.type}. Expected ${type}.`);
+                            throw new TransactionSubscriberError(
+                                `Unexpected event type: ${event.type}. Expected ${type}.`,
+                            );
                         }
                     }),
                     map(event => event.queryRunner),
@@ -106,7 +135,7 @@ export class TransactionSubscriber implements EntitySubscriberInterface {
                     // in the database-transactions.e2e-spec.ts suite, and a bunch of errors
                     // in the default-search-plugin.e2e-spec.ts suite when using sqljs.
                     delay(0),
-                )
+                ),
             );
         } else {
             return Promise.resolve(queryRunner);
