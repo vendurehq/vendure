@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro';
 import { Editor } from '@tiptap/react';
 import { Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ export interface TableDeleteMenuProps {
 }
 
 export function TableDeleteMenu({ editor, disabled }: Readonly<TableDeleteMenuProps>) {
+    const { t } = useLingui();
     const [tableRect, setTableRect] = useState<DOMRect | null>(null);
 
     useEffect(() => {
@@ -90,14 +92,13 @@ export function TableDeleteMenu({ editor, disabled }: Readonly<TableDeleteMenuPr
         >
             <Button
                 type="button"
-                variant="outline"
-                size="sm"
+                variant="destructive-outline"
+                size="icon-xs"
                 onClick={() => editor.chain().focus().deleteTable().run()}
                 disabled={disabled || !editor.can().deleteTable()}
-                className="h-6 w-6 p-0 bg-background hover:bg-destructive/10 text-destructive hover:text-destructive"
-                title="Delete Table"
+                aria-label={t`Delete table`}
             >
-                <Trash2Icon className="h-3 w-3" />
+                <Trash2Icon />
             </Button>
         </div>
     );

@@ -302,15 +302,17 @@ function DashboardPage() {
         return (
             <div key={widget.id} className="relative h-full w-full">
                 {editMode && (
-                    <button
+                    <Button
                         type="button"
+                        variant="outline"
+                        size="icon-xs"
                         aria-label={t`Remove widget`}
-                        className="absolute -right-2 -top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground"
+                        className="absolute -end-2 -top-2 z-20"
                         onMouseDown={event => event.stopPropagation()}
                         onClick={() => handleRemoveWidget(widget.id)}
                     >
-                        <XIcon className="h-3.5 w-3.5" />
-                    </button>
+                        <XIcon />
+                    </Button>
                 )}
                 <WidgetInstanceProvider
                     value={{
