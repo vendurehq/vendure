@@ -1,5 +1,6 @@
 import { formatShortcut } from '../../../keyboard-shortcut.js';
 import { Button } from '../../ui/button.js';
+import { Kbd } from '../../ui/kbd.js';
 import { Toggle } from '../../ui/toggle.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip.js';
 export { formatShortcut } from '../../../keyboard-shortcut.js';
@@ -50,7 +51,7 @@ export function ToolbarButton({
             <TooltipContent>
                 <span className="flex items-center gap-1.5">
                     {label}
-                    {shortcut ? <kbd className="opacity-60">{formatShortcut(shortcut)}</kbd> : null}
+                    {shortcut ? <Kbd>{formatShortcut(shortcut)}</Kbd> : null}
                 </span>
             </TooltipContent>
         </Tooltip>
