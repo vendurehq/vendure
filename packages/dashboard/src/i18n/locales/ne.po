@@ -744,7 +744,6 @@ msgid "{0, plural, one {Assigned {entityIdsLength} {entityType} to {1} channel} 
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
 msgstr "अर्डर संख्या"
 
@@ -2135,6 +2134,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "ठेगानाहरू लोड गर्दै..."
+
+#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
+msgid "Remove {tag}"
+msgstr ""
 
 #. placeholder {0}: roleLabel(group.role)
 #. placeholder {1}: channelLabel(channel.code)
@@ -3692,6 +3695,10 @@ msgstr "{0, plural, one {# संग्रह शीर्ष स्तरमा
 msgid "Refund only partially completed"
 msgstr ""
 
+#: src/lib/components/data-input/relation-selector.tsx
+msgid "Remove {name}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -3941,8 +3948,8 @@ msgid "Apply filter"
 msgstr "फिल्टर लागू गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Last Result"
-msgstr "अन्तिम परिणाम"
+#~ msgid "Last Result"
+#~ msgstr "अन्तिम परिणाम"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Added to group"
@@ -4100,6 +4107,7 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 msgid "Color 1"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "More actions"
 msgstr ""
@@ -5532,7 +5540,6 @@ msgid "Manage my views"
 msgstr "मेरा दृश्यहरू व्यवस्थापन गर्नुहोस्"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
 msgstr "कुल अर्डर"
 
@@ -5663,7 +5670,6 @@ msgstr "पेन्डिङमा"
 msgid "paymentState.Settled"
 msgstr "मिलान गरिएको"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
 msgstr "औसत अर्डर मूल्य"
@@ -6220,7 +6226,6 @@ msgid "Rebuild search index"
 msgstr "खोज सूचकांक पुनर्निर्माण गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
 msgstr "चलिरहेको"
@@ -7312,6 +7317,7 @@ msgstr "भेरियन्ट थप्न सकिएन। सुनिश
 #~ msgstr "अज्ञात त्रुटि भयो"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
 msgstr "मेट्रिक्स"
 
@@ -7346,6 +7352,12 @@ msgstr "इमेल अपडेट प्रमाणित गरियो"
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgctxt "Vendure Platform plan name"
 msgid "Enterprise"
+msgstr ""
+
+#. placeholder {0}: field.value
+#: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/lib/components/shared/option-value-input.tsx
+msgid "Remove {0}"
 msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx

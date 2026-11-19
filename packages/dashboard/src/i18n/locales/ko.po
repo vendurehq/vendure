@@ -732,7 +732,6 @@ msgid "{0, plural, one {Assigned {entityIdsLength} {entityType} to {1} channel} 
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
 msgstr "주문 수"
 
@@ -2127,6 +2126,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "주소 로딩 중..."
+
+#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
+msgid "Remove {tag}"
+msgstr ""
 
 #. placeholder {0}: roleLabel(group.role)
 #. placeholder {1}: channelLabel(channel.code)
@@ -3674,6 +3677,10 @@ msgstr "{0, plural, other {컬렉션 # 개를 최상위 레벨로 이동 중}}"
 msgid "Refund only partially completed"
 msgstr ""
 
+#: src/lib/components/data-input/relation-selector.tsx
+msgid "Remove {name}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -3923,8 +3930,8 @@ msgid "Apply filter"
 msgstr "필터 적용"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Last Result"
-msgstr "마지막 결과"
+#~ msgid "Last Result"
+#~ msgstr "마지막 결과"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Added to group"
@@ -4082,6 +4089,7 @@ msgstr "이 페이지에서 나가시겠습니까? 저장하지 않은 변경사
 msgid "Color 1"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "More actions"
 msgstr ""
@@ -5495,7 +5503,6 @@ msgid "Manage my views"
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
 msgstr "주문 합계"
 
@@ -5626,7 +5633,6 @@ msgstr "대기 중"
 msgid "paymentState.Settled"
 msgstr "정산됨"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
 msgstr "평균 주문 금액"
@@ -6175,7 +6181,6 @@ msgid "Rebuild search index"
 msgstr "검색 인덱스 재구성"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
 msgstr "실행 중"
@@ -7240,6 +7245,7 @@ msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "변형을 추가할 수 없습니다. 상위 상품이 활성화되어 있는지 확인하세요."
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
 msgstr "지표"
 
@@ -7274,6 +7280,12 @@ msgstr "이메일 업데이트가 확인되었습니다"
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgctxt "Vendure Platform plan name"
 msgid "Enterprise"
+msgstr ""
+
+#. placeholder {0}: field.value
+#: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/lib/components/shared/option-value-input.tsx
+msgid "Remove {0}"
 msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx

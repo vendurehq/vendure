@@ -1,7 +1,7 @@
-import { GripVertical, X } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
-import { Badge } from '@/vdb/components/ui/badge.js';
+import { Chip } from '@/vdb/components/ui/chip.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import type { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isReadonlyField } from '@/vdb/framework/form-engine/utils.js';
@@ -82,30 +82,29 @@ function SortableItem({ id, item, isDisabled, isEditing, onRemove, onEdit, onSav
     }, [item]);
 
     return (
-        <Badge
+        <Chip
             ref={setNodeRef}
             style={style}
-            variant="default"
-            className={cn(
-                isDragging && 'opacity-50',
-                'flex items-center gap-1',
-                isEditing && 'border-muted-foreground/30',
-            )}
+            className={cn(isDragging && 'opacity-50', isEditing && 'border-muted-foreground/30')}
+            icon={
+                !isDisabled && (
+                    <button
+                        type="button"
+                        className={cn(
+                            'cursor-grab active:cursor-grabbing text-muted-foreground',
+                            'hover:bg-muted rounded p-0.5',
+                        )}
+                        {...attributes}
+                        {...listeners}
+                        aria-label={`Drag ${item}`}
+                    >
+                        <GripVertical className="h-3 w-3" />
+                    </button>
+                )
+            }
+            onRemove={isDisabled ? undefined : onRemove}
+            removeLabel={`Remove ${item}`}
         >
-            {!isDisabled && (
-                <button
-                    type="button"
-                    className={cn(
-                        'cursor-grab active:cursor-grabbing text-muted-foreground',
-                        'hover:bg-muted rounded p-0.5',
-                    )}
-                    {...attributes}
-                    {...listeners}
-                    aria-label={`Drag ${item}`}
-                >
-                    <GripVertical className="h-3 w-3" />
-                </button>
-            )}
             {isEditing ? (
                 <input
                     ref={inputRef}
@@ -126,23 +125,7 @@ function SortableItem({ id, item, isDisabled, isEditing, onRemove, onEdit, onSav
                     {item}
                 </button>
             )}
-            {!isDisabled && (
-                <button
-                    type="button"
-                    onClick={e => {
-                        e.stopPropagation();
-                        onRemove();
-                    }}
-                    className={cn(
-                        'ml-1 rounded-full outline-none ring-offset-background text-muted-foreground',
-                        'hover:bg-muted focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                    )}
-                    aria-label={`Remove ${item}`}
-                >
-                    <X className="h-3 w-3" />
-                </button>
-            )}
-        </Badge>
+        </Chip>
     );
 }
 

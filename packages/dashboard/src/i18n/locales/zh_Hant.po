@@ -744,7 +744,6 @@ msgid "{0, plural, one {Assigned {entityIdsLength} {entityType} to {1} channel} 
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
 msgstr "訂單數量"
 
@@ -2135,6 +2134,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "正在載入地址..."
+
+#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
+msgid "Remove {tag}"
+msgstr ""
 
 #. placeholder {0}: roleLabel(group.role)
 #. placeholder {1}: channelLabel(channel.code)
@@ -3692,6 +3695,10 @@ msgstr "{0, plural, other {正在將 # 個集合移動到頂層}}"
 msgid "Refund only partially completed"
 msgstr ""
 
+#: src/lib/components/data-input/relation-selector.tsx
+msgid "Remove {name}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -3941,8 +3948,8 @@ msgid "Apply filter"
 msgstr "套用篩選器"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Last Result"
-msgstr "上次結果"
+#~ msgid "Last Result"
+#~ msgstr "上次結果"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Added to group"
@@ -4100,6 +4107,7 @@ msgstr "確定要離開此頁面嗎？任何未儲存的變更都將遺失。"
 msgid "Color 1"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "More actions"
 msgstr ""
@@ -5532,7 +5540,6 @@ msgid "Manage my views"
 msgstr "管理我的檢視"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
 msgstr "訂單總額"
 
@@ -5663,7 +5670,6 @@ msgstr "待處理"
 msgid "paymentState.Settled"
 msgstr "已結算"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
 msgstr "平均訂單價值"
@@ -6220,7 +6226,6 @@ msgid "Rebuild search index"
 msgstr "重建搜尋索引"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
 msgstr "正在執行"
@@ -7312,6 +7317,7 @@ msgstr "無法新增變體。請確保父產品已啟用。"
 #~ msgstr "發生未知錯誤"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
 msgstr "指標"
 
@@ -7346,6 +7352,12 @@ msgstr "電子郵件更新已驗證"
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgctxt "Vendure Platform plan name"
 msgid "Enterprise"
+msgstr ""
+
+#. placeholder {0}: field.value
+#: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/lib/components/shared/option-value-input.tsx
+msgid "Remove {0}"
 msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx

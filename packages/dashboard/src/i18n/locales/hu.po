@@ -744,7 +744,6 @@ msgid "{0, plural, one {Assigned {entityIdsLength} {entityType} to {1} channel} 
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
 msgstr "Megrendelések száma"
 
@@ -2135,6 +2134,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Címek betöltése..."
+
+#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
+msgid "Remove {tag}"
+msgstr ""
 
 #. placeholder {0}: roleLabel(group.role)
 #. placeholder {1}: channelLabel(channel.code)
@@ -3682,6 +3685,10 @@ msgstr "{0, plural, one {# gyűjtemény áthelyezése a legfelső szintre} other
 msgid "Refund only partially completed"
 msgstr ""
 
+#: src/lib/components/data-input/relation-selector.tsx
+msgid "Remove {name}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -3931,8 +3938,8 @@ msgid "Apply filter"
 msgstr "Szűrő alkalmazása"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Last Result"
-msgstr "Utolsó eredmény"
+#~ msgid "Last Result"
+#~ msgstr "Utolsó eredmény"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Added to group"
@@ -4090,6 +4097,7 @@ msgstr "Biztosan elhagyja ezt az oldalt? A nem mentett módosítások elvesznek.
 msgid "Color 1"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "More actions"
 msgstr ""
@@ -5519,7 +5527,6 @@ msgid "Manage my views"
 msgstr "Nézeteim kezelése"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
 msgstr "Megrendelés összege"
 
@@ -5650,7 +5657,6 @@ msgstr "Függőben"
 msgid "paymentState.Settled"
 msgstr "Rendezve"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
 msgstr "Átlagos megrendelési érték"
@@ -6207,7 +6213,6 @@ msgid "Rebuild search index"
 msgstr "Keresési index újraépítése"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
 msgstr "Futás alatt"
@@ -7299,6 +7304,7 @@ msgstr "A termékváltozat nem adható hozzá. Győződjön meg arról, hogy a s
 #~ msgstr "Ismeretlen hiba történt"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
 msgstr "Mutatók"
 
@@ -7333,6 +7339,12 @@ msgstr "E-mail frissítés megerősítve"
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgctxt "Vendure Platform plan name"
 msgid "Enterprise"
+msgstr ""
+
+#. placeholder {0}: field.value
+#: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/lib/components/shared/option-value-input.tsx
+msgid "Remove {0}"
 msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
