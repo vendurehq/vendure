@@ -50,7 +50,7 @@ export function ActiveFiltersPopover({
                     onClick={onClearAll}
                     className="text-xs opacity-60 hover:opacity-100"
                 >
-                    <Trans>Clear all</Trans>
+                    <Trans>Clear filters</Trans>
                 </Button>
             </PopoverContent>
         </Popover>

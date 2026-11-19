@@ -503,6 +503,9 @@ export function DataTable<TData>({
         setColumnFilters([]);
         handleSearchChange('');
     };
+    // With filters that match no rows, the empty state holds the only "Clear
+    // filters" action, so the toolbar does not repeat it.
+    const hasNoMatches = hasActiveFilters && !isLoading && localData.length === 0;
 
     // Everything TanStack-related that the dashboard renders its own UI for
     // (sort headers, add-filter menu, editable filter badges, view options) is
@@ -647,14 +650,14 @@ export function DataTable<TData>({
                                     onClearAll={clearNonFacetedFilters}
                                 />
                             ))}
-                        {columnFilters.length > 0 && (
+                        {columnFilters.length > 0 && !hasNoMatches && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setColumnFilters([])}
                                 className="text-xs opacity-60 hover:opacity-100"
                             >
-                                <Trans>Clear all</Trans>
+                                <Trans>Clear filters</Trans>
                             </Button>
                         )}
                     </div>
