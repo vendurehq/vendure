@@ -4,6 +4,7 @@ import { RequestContext } from '../api/common/request-context';
 import { TRANSACTION_NO_RETRY_KEY } from '../common/constants';
 import { ConfigService } from '../config/config.service';
 
+import { TransactionSubscriber } from './transaction-subscriber';
 import { TransactionWrapper } from './transaction-wrapper';
 
 /**
@@ -47,8 +48,14 @@ function mockConnection(type = 'postgres') {
     return { createQueryRunner: () => runner, options: { type } } as any;
 }
 
+let transactionSubscriber: { announceRollback: ReturnType<typeof vi.fn> };
+
 function wrapper(entityOptions: Record<string, unknown> = {}) {
-    return new TransactionWrapper({ entityOptions } as unknown as ConfigService);
+    transactionSubscriber = { announceRollback: vi.fn() };
+    return new TransactionWrapper(
+        { entityOptions } as unknown as ConfigService,
+        transactionSubscriber as unknown as TransactionSubscriber,
+    );
 }
 
 function deadlock() {
@@ -199,6 +206,7 @@ describe('TransactionWrapper', () => {
         ).rejects.toThrow('bad input');
 
         expect(runner.query).toHaveBeenCalledWith('ROLLBACK');
+        expect(transactionSubscriber.announceRollback).toHaveBeenCalledWith(runner);
         expect(runner.release).toHaveBeenCalled();
     });
 

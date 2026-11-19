@@ -1,4 +1,4 @@
-import { mergeConfig } from '@vendure/core';
+import { mergeConfig, TransactionSubscriber } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'assert';
 import path from 'path';
@@ -16,7 +16,7 @@ import {
 } from './fixtures/test-plugins/transaction-test-plugin';
 import { FragmentOf, graphql } from './graphql/graphql-admin';
 
-type DBType = 'mysql' | 'postgres' | 'sqlite' | 'sqljs';
+type DBType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'sqljs';
 
 const itIfDb = (dbs: DBType[]) => {
     return dbs.includes((process.env.DB as DBType) || 'sqljs') ? it : it.skip;
@@ -215,25 +215,30 @@ describe('Transaction infrastructure', () => {
         expect(verify.users.filter(u => u.identifier.includes('testNestedTransactionsN'))).toHaveLength(1);
     });
 
-    // Relates to #4152. MySQL and MariaDB end the whole transaction on a deadlock, so the nested
-    // transaction's ROLLBACK TO SAVEPOINT fails. The QueryRunner then stayed marked as in a
-    // transaction and was never released, so each such error leaked a pool connection until the
-    // pool was empty and every request hung. The client also saw the savepoint error rather than
-    // the error which caused it. Skipped on sql.js, which has no connection pool to leak from.
-    const itIfPooledDb = process.env.DB && process.env.DB !== 'sqljs' ? it : it.skip;
-    itIfPooledDb(
+    // Relates to #4152. See TransactionWrapper.rollbackAfterError(). Not handled on SQLite drivers.
+    itIfDb(['postgres', 'mysql', 'mariadb'])(
         'releases the connection when the database ends the transaction inside a nested transaction',
         async () => {
+            TransactionTestPlugin.reset();
+            const transactionSubscriber = server.app.get(TransactionSubscriber);
+            const pendingTransactionWaits = () => (transactionSubscriber as any).subject$.observers.length;
+            const pendingBefore = pendingTransactionWaits();
+
             // More failures than the default pool of 10 connections can absorb.
-            for (let i = 0; i < 12; i++) {
-                await expect(
-                    adminClient.query(failAfterDatabaseEndedNestedTransactionDocument),
-                ).rejects.toThrow(TRANSACTION_ENDED_BY_DATABASE);
+            for (let i = 1; i <= 12; i++) {
+                await withTimeout(
+                    expect(
+                        adminClient.query(failAfterDatabaseEndedNestedTransactionDocument),
+                    ).rejects.toThrow(TRANSACTION_ENDED_BY_DATABASE),
+                    5000,
+                    `Request ${i} did not complete: the connection pool has run out of connections`,
+                );
             }
 
-            const stillServing = adminClient.query(verifyTestDocument).then(() => true);
-            const timedOut = new Promise(resolve => setTimeout(() => resolve(false), 5000));
-            expect(await Promise.race([stillServing, timedOut])).toBe(true);
+            // The event published in each failed transaction is dropped, rather than left
+            // waiting for a commit which will never come.
+            expect(pendingTransactionWaits()).toBe(pendingBefore);
+            expect(TransactionTestPlugin.callHandler).not.toHaveBeenCalled();
         },
     );
 
@@ -404,6 +409,18 @@ const createNTestAdministrators3Document = graphql(`
         createNTestAdministrators3(emailAddress: $emailAddress, failFactor: $failFactor, n: $n)
     }
 `);
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+    });
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
 
 const failAfterDatabaseEndedNestedTransactionDocument = graphql(`
     mutation FailAfterDatabaseEndedNestedTransaction {
