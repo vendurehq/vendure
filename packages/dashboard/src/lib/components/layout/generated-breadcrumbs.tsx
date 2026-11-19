@@ -1,5 +1,6 @@
 import {
     Breadcrumb,
+    BreadcrumbEllipsis,
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbList,
@@ -8,6 +9,7 @@ import {
 } from '@/vdb/components/ui/breadcrumb.js';
 import type { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import { getNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
+import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import * as React from 'react';
@@ -134,19 +136,38 @@ export function GeneratedBreadcrumbs() {
             (c, i, self) => self.findIndex(x => x.path === c.path && x.label === c.label) === i,
         );
     }, [sectionCrumb, pageCrumbs]);
+    const last = breadcrumbs.length - 1;
+    // Below 768px only the parent and the current page fit next to the sidebar
+    // toggle. The crumbs before them collapse into the ellipsis.
+    const collapsesBelowMd = (index: number) => index < last - 1;
     return (
-        <Breadcrumb>
-            <BreadcrumbList>
-                {breadcrumbs.map(({ label, path }, index, arr) => (
+        <Breadcrumb className="min-w-0">
+            <BreadcrumbList className="flex-nowrap">
+                {last > 1 && (
+                    <>
+                        <BreadcrumbItem className="md:hidden">
+                            <BreadcrumbEllipsis />
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="md:hidden" />
+                    </>
+                )}
+                {breadcrumbs.map(({ label, path }, index) => (
                     <Fragment key={`${path}-${index}`}>
-                        <BreadcrumbItem className="hidden md:block">
-                            {index === arr.length - 1 ? (
-                                <BreadcrumbPage>{label}</BreadcrumbPage>
+                        <BreadcrumbItem
+                            className={cn(
+                                index === last ? 'min-w-0' : 'shrink-0',
+                                collapsesBelowMd(index) && 'max-md:hidden',
+                            )}
+                        >
+                            {index === last ? (
+                                <BreadcrumbPage className="truncate">{label}</BreadcrumbPage>
                             ) : (
                                 <BreadcrumbLink render={<Link to={path} />}>{label}</BreadcrumbLink>
                             )}
                         </BreadcrumbItem>
-                        {index < arr.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
+                        {index < last && (
+                            <BreadcrumbSeparator className={cn(collapsesBelowMd(index) && 'max-md:hidden')} />
+                        )}
                     </Fragment>
                 ))}
             </BreadcrumbList>

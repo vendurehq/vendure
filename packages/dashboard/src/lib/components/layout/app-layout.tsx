@@ -151,7 +151,7 @@ export function AppLayout() {
                         </Tooltip>
                         <Separator
                             orientation="vertical"
-                            className="mr-2 hidden shrink-0 data-vertical:h-4 data-vertical:self-auto md:block"
+                            className="me-2 shrink-0 data-vertical:h-4 data-vertical:self-center"
                         />
                         <GeneratedBreadcrumbs />
                     </div>

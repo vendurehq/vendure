@@ -78,4 +78,24 @@ describe('GeneratedBreadcrumbs', () => {
 
         expect(crumbTexts(markup)).toEqual(['Customers', 'Customer Groups', 'VIP']);
     });
+
+    it('collapses the crumbs before the parent into an ellipsis below md', () => {
+        const markup = render('/products/1/variants/2', [
+            { path: '/products', label: 'Products' },
+            { path: '/products/1', label: 'Laptop' },
+            'Laptop 13 inch',
+        ]);
+
+        expect(markup).toMatch(/<li[^>]*class="[^"]*md:hidden[^"]*"[^>]*><span data-slot="breadcrumb-ellipsis"/);
+        expect(markup).toMatch(/<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products">Catalog<\/a>/);
+        expect(markup).toMatch(/<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products">Products<\/a>/);
+        expect(markup).not.toMatch(/<li[^>]*class="[^"]*max-md:hidden[^"]*"[^>]*><a href="\/products\/1">Laptop/);
+    });
+
+    it('shows no ellipsis when the trail has only a parent and the current page', () => {
+        const markup = render('/customers/1', [{ path: '/customers', label: 'Customers' }, 'Jane Doe']);
+
+        expect(markup).not.toContain('breadcrumb-ellipsis');
+        expect(markup).not.toContain('max-md:hidden');
+    });
 });
