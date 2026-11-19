@@ -163,7 +163,9 @@ export class EntityHydrator {
                         // Applied sequentially rather than with Promise.all: relation arrays are
                         // unbounded in size, and applyChannelPriceAndTax() is applied per variant
                         // the same way in ProductVariantService.assignProductVariantsToChannel()
-                        for (const variant of this.getProductVariantsToPrice(relationWithEntities.entity)) {
+                        const variants = this.getProductVariantsToPrice(relationWithEntities.entity);
+                        await this.productPriceApplicator.preloadChannelPrices(ctx, variants);
+                        for (const variant of variants) {
                             await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
                         }
                     }
@@ -320,8 +322,8 @@ export class EntityHydrator {
         for (const relation of missingRelations) {
             const entityType = this.getRelationEntityTypeAtPath(target, relation);
             if (entityType === ProductVariant) {
+                // The prices of the active Channel are loaded when the variant is priced.
                 relationsToAdd.push([relation, 'taxCategory'].join('.'));
-                relationsToAdd.push([relation, 'productVariantPrices'].join('.'));
             }
         }
         return relationsToAdd;

@@ -32,6 +32,7 @@ class ProductVariantService {
     calculateBuyerPrice(ctx: RequestContext, variant: ProductVariant, options: BuyerPriceOptions = {}) => Promise<BuyerPriceResult | undefined>;
     calculateBuyerPrices(ctx: RequestContext, inputs: Array<BuyerPriceOptions & { productVariantId: ID }>) => Promise<Array<BuyerPriceResult | undefined>>;
     calculateBuyerPriceForOrder(ctx: RequestContext, productVariant: ProductVariant, order: Order, options: BuyerPriceForOrderOptions) => Promise<PriceCalculationResult>;
+    preloadChannelPrices(ctx: RequestContext, variants: ProductVariant[]) => Promise<void>;
     applyChannelPriceAndTax(variant: ProductVariant, ctx: RequestContext, order?: Order, throwIfNoPriceFound:  = false) => Promise<ProductVariant>;
     assignProductVariantsToChannel(ctx: RequestContext, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<ProductVariant>>>;
     removeProductVariantsFromChannel(ctx: RequestContext, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<ProductVariant>>>;
@@ -208,6 +209,13 @@ change. The result includes the `metadata` of the strategy.
 If the strategy gives no price for this buyer, this method throws a [NoBuyerPriceError](/reference/typescript-api/errors/error-types#nobuyerpriceerror). Then
 Vendure does not add a new OrderLine, and an OrderLine that is already in the Order keeps its
 current price.
+### preloadChannelPrices
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variants: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]) => Promise<void>`}  since="4.0.0"  />
+
+Loads the Channel prices of the given ProductVariants in one query. Call it before pricing
+variants one after another with `applyChannelPriceAndTax()`, e.g. in a loop which awaits each
+one. See `ProductPriceApplicator.preloadChannelPrices`.
 ### applyChannelPriceAndTax
 
 <MemberInfo kind="method" type={`(variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>, throwIfNoPriceFound:  = false) => Promise<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>`}   />

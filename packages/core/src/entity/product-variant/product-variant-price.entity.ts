@@ -41,9 +41,24 @@ export class ProductVariantPrice extends VendureEntity implements HasCustomField
     @Column('varchar')
     currencyCode: CurrencyCode;
 
+    // `orphanedRowAction: 'disable'`: a priced ProductVariant carries only the prices of the
+    // active Channel (`productVariantPrices` is not eager), so saving it must not detach the prices
+    // of its other Channels. Prices are removed by deleting them, so nothing needs the nullify.
     @Index()
-    @ManyToOne(type => ProductVariant, variant => variant.productVariantPrices, { onDelete: 'CASCADE' })
+    @ManyToOne(type => ProductVariant, variant => variant.productVariantPrices, {
+        onDelete: 'CASCADE',
+        orphanedRowAction: 'disable',
+    })
     variant: ProductVariant;
+
+    /**
+     * @description
+     * The id of the ProductVariant this price belongs to.
+     *
+     * @since 4.0.0
+     */
+    @EntityId({ nullable: true })
+    variantId: ID;
 
     @Column(type => CustomProductVariantPriceFields)
     customFields: CustomProductVariantPriceFields;

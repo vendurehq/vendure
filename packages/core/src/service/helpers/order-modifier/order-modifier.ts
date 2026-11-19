@@ -924,7 +924,7 @@ export class OrderModifier {
             productVariantId,
             ctx.channelId,
             {
-                relations: ['product', 'productVariantPrices', 'taxCategory'],
+                relations: ['product', 'taxCategory'],
                 loadEagerRelations: false,
                 where: { deletedAt: IsNull() },
             },
