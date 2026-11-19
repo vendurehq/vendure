@@ -67,7 +67,7 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center text-center gap-1">
-                                    <h1 className="text-2xl font-semibold tracking-tight">
+                                    <h1 className="text-style-page-title">
                                         <Trans>Welcome to Vendure</Trans>
                                     </h1>
                                     <p className="text-sm text-muted-foreground">
