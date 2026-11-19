@@ -1,16 +1,17 @@
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
-import { cn } from '@/vdb/lib/utils.js';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxTrigger,
+    ComboboxValue,
+} from '@/vdb/components/ui/combobox.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProductOption {
@@ -42,6 +43,9 @@ export function ProductOptionSelect({
     const [open, setOpen] = useState(false);
     const [newOptionInput, setNewOptionInput] = useState('');
     const { t } = useLingui();
+    const selected = group.options.find(option => option.id === value) ?? null;
+    const name = group.name;
+    const searchLabel = t`Search ${name}...`;
 
     return (
         <FormFieldWrapper
@@ -49,60 +53,54 @@ export function ProductOptionSelect({
             name={`options.${group.id}`}
             label={group.name}
             render={() => (
-                <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between" />}>
-                            {value ? (
-                                group.options.find(option => option.id === value)?.name
-                            ) : (
-                                <Trans>Select {group.name}</Trans>
+                <Combobox
+                    items={group.options}
+                    value={selected}
+                    onValueChange={(option: ProductOption | null) => {
+                        if (option) {
+                            onChange(option.id);
+                        }
+                    }}
+                    open={open}
+                    onOpenChange={setOpen}
+                    inputValue={newOptionInput}
+                    onInputValueChange={setNewOptionInput}
+                    itemToStringLabel={(option: ProductOption) => option.name}
+                    isItemEqualToValue={(a: ProductOption, b: ProductOption) => a.id === b.id}
+                >
+                    <ComboboxTrigger aria-label={group.name} className="w-full">
+                        <ComboboxValue placeholder={t`Select ${group.name}`} />
+                    </ComboboxTrigger>
+                    <ComboboxContent>
+                        <ComboboxInput
+                            aria-label={searchLabel}
+                            placeholder={searchLabel}
+                            showTrigger={false}
+                        />
+                        <ComboboxEmpty className="p-1">
+                            <Button
+                                variant="ghost"
+                                type="button"
+                                className="w-full justify-start"
+                                disabled={!newOptionInput.trim()}
+                                onClick={() => {
+                                    onCreateOption(newOptionInput.trim());
+                                    setOpen(false);
+                                }}
+                            >
+                                <Plus />
+                                <Trans>Add "{newOptionInput}"</Trans>
+                            </Button>
+                        </ComboboxEmpty>
+                        <ComboboxList>
+                            {(option: ProductOption) => (
+                                <ComboboxItem key={option.id} value={option}>
+                                    {option.name}
+                                </ComboboxItem>
                             )}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                        <Command>
-                            <CommandInput
-                                placeholder={t`Search {name}...`.replace('{name}', group.name)}
-                                onValueChange={setNewOptionInput}
-                            />
-                            <CommandEmpty className="py-2">
-                                <div className="p-2">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full justify-start"
-                                        onClick={() => {
-                                            if (newOptionInput) {
-                                                onCreateOption(newOptionInput);
-                                            }
-                                        }}
-                                    >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        <Trans>Add "{newOptionInput}"</Trans>
-                                    </Button>
-                                </div>
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {group.options.map(option => (
-                                    <CommandItem
-                                        key={option.id}
-                                        value={option.name}
-                                        onSelect={() => {
-                                            onChange(option.id);
-                                            setOpen(false);
-                                        }}
-                                    >
-                                        <Check
-                                            className={cn(
-                                                'mr-2 h-4 w-4',
-                                                value === option.id ? 'opacity-100' : 'opacity-0',
-                                            )}
-                                        />
-                                        {option.name}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
+                        </ComboboxList>
+                    </ComboboxContent>
+                </Combobox>
             )}
         />
     );

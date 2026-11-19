@@ -1,20 +1,20 @@
 import { Column } from '@tanstack/react-table';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
 import { FilterIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/vdb/components/ui/button.js';
 import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
-import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+    useComboboxAnchor,
+} from '@/vdb/components/ui/combobox.js';
+import { PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 
@@ -41,41 +41,61 @@ export interface DataTableFacetedFilterProps<TData, TValue> {
 /**
  * The chip that represents a faceted filter in the toolbar's active-filter row.
  * Styled to match {@link DataTableFilterBadge} so faceted and column filters
- * read as one system. Must be rendered inside a `<Popover>` — the chip body is
- * the popover trigger; the ✕ segment clears the filter.
+ * read as one system. The chip body opens the filter; the ✕ segment clears it.
+ * By default it must be rendered inside a `<Popover>`. With `triggerType="combobox"`
+ * it must be rendered inside a `<Combobox>`, whose search input sits in the popup.
  */
 export function FacetedFilterChip({
     icon: Icon,
     title,
     valueLabel,
     onClear,
+    triggerType = 'popover',
 }: Readonly<{
     icon?: React.ComponentType<{ className?: string }>;
     title?: string;
     valueLabel?: string;
     onClear?: () => void;
+    /**
+     * The component the chip opens: a `<Popover>` (the default) or a `<Combobox>`.
+     */
+    triggerType?: 'popover' | 'combobox';
 }>) {
     const { t } = useLingui();
     const TriggerIcon = Icon ?? FilterIcon;
     const hasValue = valueLabel != null;
+    const Trigger = triggerType === 'combobox' ? ComboboxPrimitive.Trigger : PopoverTrigger;
+    // A combobox trigger takes no name from its content.
+    const labelId = React.useId();
+    const valueId = React.useId();
     const trigger = (
-        <PopoverTrigger
+        <Trigger
             render={<Button variant="outline" size="sm" className={cn(!hasValue && 'border-dashed')} />}
+            aria-labelledby={
+                triggerType === 'combobox' ? (hasValue ? `${labelId} ${valueId}` : labelId) : undefined
+            }
         >
             <TriggerIcon />
-            <span className="max-w-[200px] truncate">{title}</span>
-            {hasValue && <span className="max-w-[200px] truncate text-muted-foreground">{valueLabel}</span>}
-        </PopoverTrigger>
+            <span id={labelId} className="max-w-[200px] truncate">
+                {title}
+            </span>
+            {hasValue && (
+                <span id={valueId} className="max-w-[200px] truncate text-muted-foreground">
+                    {valueLabel}
+                </span>
+            )}
+        </Trigger>
     );
-    if (!hasValue || !onClear) {
-        return trigger;
-    }
+    // The group wraps the trigger with or without a value, so the trigger keeps its element
+    // when the first value is picked and focus stays in the open popup.
     return (
         <ButtonGroup>
             {trigger}
-            <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={onClear}>
-                <XIcon />
-            </Button>
+            {hasValue && onClear && (
+                <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={onClear}>
+                    <XIcon />
+                </Button>
+            )}
         </ButtonGroup>
     );
 }
@@ -90,6 +110,7 @@ export function DataTableFacetedFilter<TData, TValue>({
     onOpenChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
     const { t } = useLingui();
+    const anchor = useComboboxAnchor();
     const facets = column?.getFacetedUniqueValues();
     const filterValue = column?.getFilterValue();
 
@@ -121,107 +142,83 @@ export function DataTableFacetedFilter<TData, TValue>({
     }, [optionsFn]);
     const isBoolean = (column?.columnDef?.meta as any)?.fieldInfo.type === 'Boolean';
 
-    const selectedLabels = resolvedOptions
-        .filter(option => selectedValues.has(option.value))
-        .map(option => option.label);
+    const selectedOptions = resolvedOptions.filter(option => selectedValues.has(option.value));
     let valueLabel: string | undefined;
     if (selectedValues.size > 0) {
         valueLabel =
-            selectedValues.size > 2 || selectedLabels.length === 0
+            selectedValues.size > 2 || selectedOptions.length === 0
                 ? t`${selectedValues.size} selected`
-                : selectedLabels.join(', ');
+                : selectedOptions.map(option => option.label).join(', ');
     }
 
     return (
-        <Popover defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
-            <FacetedFilterChip
-                icon={icon}
-                title={title}
-                valueLabel={valueLabel}
-                onClear={() => column?.setFilterValue(undefined)}
-            />
-            <PopoverContent className="w-auto min-w-50 max-w-75 p-0">
-                <Command>
-                    {resolvedOptions.length > 2 ? <CommandInput placeholder={title} /> : null}
-                    <CommandList>
-                        <CommandEmpty>No results found.</CommandEmpty>
-                        <CommandGroup>
-                            {resolvedOptions.map(option => {
-                                const isSelected = selectedValues.has(option.value);
-                                return (
-                                    <CommandItem
-                                        key={option.value}
-                                        onSelect={() => {
-                                            if (isBoolean) {
-                                                // Radio button behavior: single selection only
-                                                if (isSelected) {
-                                                    // Deselect if clicking the same option
-                                                    column?.setFilterValue(undefined);
-                                                } else {
-                                                    // Select only this option
-                                                    column?.setFilterValue({ eq: option.value });
-                                                }
-                                            } else {
-                                                // Checkbox behavior: multi-selection
-                                                if (isSelected) {
-                                                    selectedValues.delete(option.value);
-                                                } else {
-                                                    selectedValues.add(option.value);
-                                                }
-                                                const filterValues = Array.from(selectedValues);
-                                                column?.setFilterValue(
-                                                    filterValues.length ? filterValues : undefined,
-                                                );
-                                            }
-                                        }}
-                                    >
-                                        {isBoolean ? (
-                                            <div
-                                                className={cn(
-                                                    'mr-2 flex h-4 w-4 items-center justify-center rounded-full border border-primary',
-                                                    isSelected ? 'bg-primary text-primary-foreground' : '',
-                                                )}
-                                            >
-                                                {isSelected && (
-                                                    <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <Checkbox
-                                                checked={isSelected}
-                                                className="mr-2 pointer-events-none"
-                                                tabIndex={-1}
-                                            />
-                                        )}
-                                        {option.icon && (
-                                            <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                                        )}
-                                        <span>{option.label}</span>
-                                        {facets?.get(option.value) && (
-                                            <span className="ml-auto flex h-4 w-4 items-center justify-center font-mono text-xs">
-                                                {facets.get(option.value)}
-                                            </span>
-                                        )}
-                                    </CommandItem>
-                                );
-                            })}
-                        </CommandGroup>
-                        {selectedValues.size > 0 && (
-                            <>
-                                <CommandSeparator />
-                                <CommandGroup>
-                                    <CommandItem
-                                        onSelect={() => column?.setFilterValue(undefined)}
-                                        className="justify-center text-center"
-                                    >
-                                        <Trans>Clear filters</Trans>
-                                    </CommandItem>
-                                </CommandGroup>
-                            </>
-                        )}
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+        <Combobox
+            items={resolvedOptions}
+            multiple
+            value={selectedOptions}
+            onValueChange={(next: DataTableFacetedFilterOption[]) => {
+                if (isBoolean) {
+                    // Radio behaviour: the option just picked replaces the current one,
+                    // and picking the current one again clears the filter.
+                    const picked = next.find(option => !selectedValues.has(option.value));
+                    column?.setFilterValue(picked ? { eq: picked.value } : undefined);
+                    return;
+                }
+                column?.setFilterValue(next.length ? next.map(option => option.value) : undefined);
+            }}
+            itemToStringLabel={(option: DataTableFacetedFilterOption) => option.label}
+            isItemEqualToValue={(a: DataTableFacetedFilterOption, b: DataTableFacetedFilterOption) =>
+                a.value === b.value
+            }
+            defaultOpen={defaultOpen}
+            onOpenChange={open => onOpenChange?.(open)}
+            loading={isLoading}
+        >
+            <span ref={anchor} className="inline-flex">
+                <FacetedFilterChip
+                    icon={icon}
+                    title={title}
+                    valueLabel={valueLabel}
+                    onClear={() => column?.setFilterValue(undefined)}
+                    triggerType="combobox"
+                />
+            </span>
+            {/* Opened from the toolbar's Filter menu, the popup has no trigger interaction to
+                return focus to when it closes, so it returns focus to the chip. */}
+            <ComboboxContent
+                anchor={anchor}
+                finalFocus={() => anchor.current?.querySelector('button') ?? true}
+            >
+                <ComboboxInput aria-label={title} placeholder={title} showTrigger={false} />
+                <ComboboxEmpty>
+                    <Trans>No results found.</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(option: DataTableFacetedFilterOption) => (
+                        <ComboboxItem key={String(option.value)} value={option}>
+                            {option.icon && <option.icon className="text-muted-foreground" />}
+                            <span className="truncate">{option.label}</span>
+                            {facets?.get(option.value) && (
+                                <span className="ms-auto font-mono text-xs text-muted-foreground">
+                                    {facets.get(option.value)}
+                                </span>
+                            )}
+                        </ComboboxItem>
+                    )}
+                </ComboboxList>
+                {selectedValues.size > 0 && (
+                    <div className="border-t p-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => column?.setFilterValue(undefined)}
+                        >
+                            <Trans>Clear filters</Trans>
+                        </Button>
+                    </div>
+                )}
+            </ComboboxContent>
+        </Combobox>
     );
 }

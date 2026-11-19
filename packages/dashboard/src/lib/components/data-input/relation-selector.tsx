@@ -1,25 +1,23 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { LoadingState } from '@/vdb/components/ui/state-views.js';
-import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import { Chip } from '@/vdb/components/ui/chip.js';
-import { Spinner } from '@/vdb/components/ui/spinner.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/vdb/components/ui/combobox.js';
 import { getQueryName } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import { api } from '@/vdb/graphql/api.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
 import type { DocumentNode } from 'graphql';
-import { CheckIcon, Plus, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import React, { useId, useRef, useState } from 'react';
 
 export interface RelationSelectorConfig<T = any> {
     /** The GraphQL query document for fetching items */
@@ -65,30 +63,17 @@ export interface RelationSelectorItemProps<T = any> {
 }
 
 /**
- * Abstract relation selector item component
+ * Abstract relation selector item component. It renders an option of the `RelationSelector`
+ * combobox, which tracks the selection and shows the check mark, so `isSelected`,
+ * `onSelect` and `showCheckbox` are not used.
  */
-export function RelationSelectorItem<T>({
-    item,
-    config,
-    isSelected,
-    onSelect,
-    showCheckbox = false,
-}: Readonly<RelationSelectorItemProps<T>>) {
-    const id = String(item[config.idKey]);
+export function RelationSelectorItem<T>({ item, config }: Readonly<RelationSelectorItemProps<T>>) {
     const label = config.label ? config.label(item) : String(item[config.labelKey]);
 
     return (
-        <CommandItem key={id} value={id} onSelect={onSelect} className="flex items-center gap-2">
-            {showCheckbox && (
-                <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => onSelect()}
-                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                />
-            )}
-            {isSelected && !showCheckbox && <CheckIcon className="h-4 w-4" />}
-            <span className="flex-1">{label}</span>
-        </CommandItem>
+        <ComboboxItem value={item}>
+            <span className="min-w-0 flex-1">{label}</span>
+        </ComboboxItem>
     );
 }
 
@@ -183,6 +168,7 @@ export function useRelationSelector<T>(config: RelationSelectorConfig<T>) {
         error,
         searchTerm,
         setSearchTerm,
+        debouncedSearch,
         fetchItemsByIds,
     };
 }
@@ -214,8 +200,11 @@ export function RelationSelector<T>({
         isFetchingNextPage,
         searchTerm,
         setSearchTerm,
+        debouncedSearch,
         fetchItemsByIds,
     } = useRelationSelector(config);
+    const anchor = useRef<HTMLButtonElement>(null);
+    const labelId = useId();
 
     // Store a stable reference to fetchItemsByIds
     const fetchItemsByIdsRef = React.useRef(fetchItemsByIds);
@@ -355,15 +344,6 @@ export function RelationSelector<T>({
         }
     };
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const target = e.currentTarget;
-        const scrolledToBottom = Math.abs(target.scrollHeight - target.clientHeight - target.scrollTop) < 1;
-
-        if (scrolledToBottom && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
-        }
-    };
-
     // Get selected items for display from cache, filtered by current selection
     const selectedItems = React.useMemo(() => {
         const filteredItems = selectedItemsCache.filter(item =>
@@ -420,65 +400,81 @@ export function RelationSelector<T>({
             )}
 
             {/* Selector trigger */}
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={disabled} className="gap-2" />}>
-                        <Plus className="h-4 w-4" />
-                        {isMultiple
-                            ? selectedItems.length > 0
-                                ? <Trans>Add more ({selectedItems.length} selected)</Trans>
-                                : (selectorLabel ?? <Trans>Select items</Trans>)
-                            : selectedItems.length > 0
-                                ? <Trans>Change selection</Trans>
-                                : (selectorLabel ?? <Trans>Select item</Trans>)}
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-[400px]">
-                    <Command shouldFilter={false}>
-                        <CommandInput
-                            placeholder={config.placeholder ?? t`Search...`}
-                            value={searchTerm}
-                            onValueChange={setSearchTerm}
-                            disabled={disabled}
-                        />
-                        <CommandList className="h-[300px] overflow-y-auto" onScroll={handleScroll}>
-                            <CommandEmpty>
-                                {isLoading ? (
-                                    <LoadingState variant="spinner" className="py-6" />
-                                ) : (
-                                    <Trans>No results found</Trans>
-                                )}
-                            </CommandEmpty>
-
-                            {items.map(item => {
-                                const itemId = String(item[config.idKey]);
-                                const isSelected = selectedIds.includes(itemId);
-
-                                return (
-                                    <RelationSelectorItem
-                                        key={itemId}
-                                        item={item}
-                                        config={config}
-                                        isSelected={isSelected}
-                                        onSelect={() => handleSelect(item)}
-                                        showCheckbox={isMultiple}
-                                    />
-                                );
-                            })}
-
-                            {(isFetchingNextPage || isLoading) && (
-                                <div className="flex items-center justify-center py-2">
-                                    <Spinner />
-                                </div>
-                            )}
-
-                            {!hasNextPage && items.length > 0 && (
-                                <div className="text-center py-2 text-sm text-muted-foreground">
-                                    <Trans>No more items</Trans>
-                                </div>
-                            )}
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
+            <Combobox
+                items={items}
+                filter={null}
+                multiple={isMultiple}
+                value={isMultiple ? selectedItems : (selectedItems[0] ?? null)}
+                onValueChange={(next: T | T[] | null) => {
+                    if (Array.isArray(next)) {
+                        // One item was toggled: the one added, or else the one removed.
+                        const nextIds = next.map(item => String(item[config.idKey]));
+                        const toggled =
+                            next.find(item => !selectedIds.includes(String(item[config.idKey]))) ??
+                            selectedItems.find(item => !nextIds.includes(String(item[config.idKey])));
+                        if (toggled) handleSelect(toggled);
+                    } else if (next) {
+                        handleSelect(next);
+                    }
+                }}
+                open={open}
+                onOpenChange={setOpen}
+                inputValue={searchTerm}
+                onInputValueChange={setSearchTerm}
+                itemToStringLabel={(item: T) => String(item[config.labelKey])}
+                isItemEqualToValue={(a: T, b: T) => String(a[config.idKey]) === String(b[config.idKey])}
+                onLoadMore={() => void fetchNextPage()}
+                hasMore={hasNextPage}
+                loading={isLoading || isFetchingNextPage || searchTerm !== debouncedSearch}
+                loadingLabel={t`Loading…`}
+                disabled={disabled}
+            >
+                <ComboboxPrimitive.Trigger
+                    ref={anchor}
+                    aria-labelledby={labelId}
+                    render={<Button variant="outline" size="sm" type="button" />}
+                >
+                    <Plus />
+                    <span id={labelId}>
+                        {isMultiple ? (
+                            selectedItems.length > 0 ? (
+                                <Trans>Add more ({selectedItems.length} selected)</Trans>
+                            ) : (
+                                (selectorLabel ?? <Trans>Select items</Trans>)
+                            )
+                        ) : selectedItems.length > 0 ? (
+                            <Trans>Change selection</Trans>
+                        ) : (
+                            (selectorLabel ?? <Trans>Select item</Trans>)
+                        )}
+                    </span>
+                </ComboboxPrimitive.Trigger>
+                <ComboboxContent anchor={anchor} className="w-100">
+                    <ComboboxInput
+                        aria-label={config.placeholder ?? t`Search...`}
+                        placeholder={config.placeholder ?? t`Search...`}
+                        showTrigger={false}
+                    />
+                    <ComboboxEmpty>
+                        <Trans>No results found</Trans>
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                        {(item: T) => {
+                            const itemId = String(item[config.idKey]);
+                            return (
+                                <RelationSelectorItem
+                                    key={itemId}
+                                    item={item}
+                                    config={config}
+                                    isSelected={selectedIds.includes(itemId)}
+                                    onSelect={() => handleSelect(item)}
+                                    showCheckbox={isMultiple}
+                                />
+                            );
+                        }}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
         </div>
     );
 }

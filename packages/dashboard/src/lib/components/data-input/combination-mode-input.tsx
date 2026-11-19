@@ -1,5 +1,6 @@
+import { ToggleGroup, ToggleGroupItem } from '@/vdb/components/ui/toggle-group.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 
 export type CombinationModeInputProps = DashboardFormComponentProps & {
     position?: number;
@@ -12,53 +13,37 @@ export const CombinationModeInput = ({
     disabled,
     ...props
 }: Readonly<CombinationModeInputProps>) => {
+    const { t } = useLingui();
     const booleanValue = value === 'true' || value === true;
 
     // Only show for items after the first one
     const selectable = position !== undefined && position > 0;
-
-    const setCombinationModeAnd = () => {
-        onChange(true);
-    };
-
-    const setCombinationModeOr = () => {
-        onChange(false);
-    };
 
     if (!selectable) {
         return null;
     }
 
     return (
-        <div className="flex items-center">
-            <div className="bg-muted border px-3 py-1.5 rounded-full flex gap-1.5 text-xs">
-                <button
-                    type="button"
-                    disabled={disabled}
-                    className={`px-2 py-0.5 rounded-full transition-colors ${
-                        booleanValue
-                            ? 'bg-primary text-background'
-                            : 'text-muted-foreground hover:bg-muted-foreground/10'
-                    }`}
-                    onClick={setCombinationModeAnd}
-                    {...props}
-                >
-                    <Trans>AND</Trans>
-                </button>
-                <button
-                    type="button"
-                    disabled={disabled}
-                    className={`px-2 py-0.5 rounded-full transition-colors ${
-                        !booleanValue
-                            ? 'bg-primary text-background'
-                            : 'text-muted-foreground hover:bg-muted-foreground/10'
-                    }`}
-                    onClick={setCombinationModeOr}
-                    {...props}
-                >
-                    <Trans>OR</Trans>
-                </button>
-            </div>
-        </div>
+        <ToggleGroup
+            variant="outline"
+            size="sm"
+            value={[booleanValue ? 'and' : 'or']}
+            onValueChange={values => {
+                // Keep one item pressed: a click on the pressed item clears the group.
+                if (values.length > 0) {
+                    onChange(values[0] === 'and');
+                }
+            }}
+            disabled={disabled}
+            aria-label={t`Combine with the condition before`}
+            {...props}
+        >
+            <ToggleGroupItem value="and">
+                <Trans>AND</Trans>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="or">
+                <Trans>OR</Trans>
+            </ToggleGroupItem>
+        </ToggleGroup>
     );
 };

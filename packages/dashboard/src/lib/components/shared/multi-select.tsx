@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/react/macro';
 import { MultiSelect as UiMultiSelect } from '@vendure-io/ui/components/molecules/multi-select';
 import { useState } from 'react';
+import { Button } from '../ui/button.js';
 import {
     Combobox,
     ComboboxChip,
@@ -86,9 +87,10 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
                             </ComboboxChip>
                         ))}
                         {collapsible && (
-                            <button
+                            <Button
                                 type="button"
-                                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                                variant="link"
+                                size="xs"
                                 onClick={event => {
                                     event.stopPropagation();
                                     setChipsExpanded(expanded => !expanded);
@@ -99,7 +101,7 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
                                 ) : (
                                     <Trans>Show fewer</Trans>
                                 )}
-                            </button>
+                            </Button>
                         )}
                         <ComboboxChipsInput
                             placeholder={selectedItems.length === 0 ? placeholder : searchPlaceholder}

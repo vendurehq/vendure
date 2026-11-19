@@ -33,22 +33,36 @@ export function AddFilterMenu({
 }: Readonly<AddFilterMenuProps>) {
     const [selectedColumn, setSelectedColumn] = useState<ColumnDef<any> | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    // A faceted filter opens its own popup, which takes focus. It opens once the menu has
+    // finished closing, and the menu does not hand focus back to its trigger: either would
+    // take focus from the popup, and the faceted filter closes when it loses focus.
+    const [pendingFacetedKey, setPendingFacetedKey] = useState<string | null>(null);
     const { getTranslatedFieldName } = useDynamicTranslations();
     const filterableColumns = columns.filter(column => column.getCanFilter());
     const facetedEntries = Object.entries(facetedFilters ?? {}).filter(([, filter]) => !!filter);
 
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DropdownMenu>
+            <DropdownMenu
+                onOpenChangeComplete={open => {
+                    if (!open && pendingFacetedKey) {
+                        onSelectFacetedFilter?.(pendingFacetedKey);
+                        setPendingFacetedKey(null);
+                    }
+                }}
+            >
                 <DropdownMenuTrigger
                     render={<Button variant="outline" data-testid="dt-add-filter-trigger" />}
                 >
                     <PlusIcon />
                     <Trans>Filter</Trans>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[200px]">
+                <DropdownMenuContent className="w-[200px]" finalFocus={!pendingFacetedKey}>
                     {facetedEntries.map(([key, filter]) => (
-                        <DropdownMenuItem key={key} onClick={() => onSelectFacetedFilter?.(key)}>
+                        <DropdownMenuItem
+                            key={key}
+                            onClick={() => setPendingFacetedKey(key)}
+                        >
                             {filter?.title}
                         </DropdownMenuItem>
                     ))}

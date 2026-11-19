@@ -1,15 +1,15 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/vdb/components/ui/command.js';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/vdb/components/ui/combobox.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
-import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
 import { type CreateCustomerInput } from '@/vdb/graphql/common-operations.js';
@@ -18,8 +18,9 @@ import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
 import { Plus, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { CustomFieldsForm } from './custom-fields-form.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
@@ -70,12 +71,24 @@ const createCustomerFormSchema = z.object({
 
 type CreateCustomerFormValues = z.infer<typeof createCustomerFormSchema>;
 
-function CustomerSearch({ onSelect }: Readonly<{ onSelect: (value: Customer) => void }>) {
+/**
+ * Searches customers on the server. With a `trigger`, an outline button with that content opens
+ * a popup that holds the search input; without one, the search input is shown in place and the
+ * list opens under it.
+ */
+function CustomerSearch({
+    onSelect,
+    trigger,
+    disabled,
+}: Readonly<{ onSelect: (value: Customer) => void; trigger?: React.ReactNode; disabled?: boolean }>) {
     const { t } = useLingui();
+    const [open, setOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const anchor = useRef<HTMLButtonElement>(null);
+    const labelId = useId();
 
-    const { data, isLoading } = useQuery({
+    const { data, isFetching } = useQuery({
         queryKey: ['customers', debouncedSearchTerm],
         queryFn: () =>
             api.query(customersDocument, {
@@ -93,35 +106,70 @@ function CustomerSearch({ onSelect }: Readonly<{ onSelect: (value: Customer) => 
             }),
     });
 
+    const input = (
+        <ComboboxInput
+            aria-label={t`Search customers`}
+            placeholder={t`Search customers...`}
+            showTrigger={false}
+            className={trigger ? undefined : 'w-full'}
+        />
+    );
+
     return (
-        <Command shouldFilter={false}>
-            <CommandInput
-                placeholder={t`Search customers...`}
-                onValueChange={setSearchTerm}
-                className="h-10 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-            />
-            <CommandList>
-                <CommandEmpty>
-                    {isLoading ? (
-                        <LoadingState variant="spinner" className="py-4" />
-                    ) : (
-                        <Trans>No customers found</Trans>
+        <Combobox
+            items={data?.customers.items ?? []}
+            filter={null}
+            value={null}
+            onValueChange={(customer: Customer | null) => {
+                if (customer) {
+                    onSelect(customer);
+                    setOpen(false);
+                    setSearchTerm('');
+                }
+            }}
+            open={open}
+            onOpenChange={setOpen}
+            inputValue={searchTerm}
+            onInputValueChange={setSearchTerm}
+            itemToStringLabel={(customer: Customer) => `${customer.firstName} ${customer.lastName}`}
+            isItemEqualToValue={(a: Customer, b: Customer) => a.id === b.id}
+            loading={isFetching || searchTerm !== debouncedSearchTerm}
+            disabled={disabled}
+        >
+            {trigger ? (
+                <ComboboxPrimitive.Trigger
+                    ref={anchor}
+                    aria-labelledby={labelId}
+                    render={<Button variant="outline" size="sm" type="button" className="gap-2" />}
+                >
+                    <span id={labelId} className="contents">
+                        {trigger}
+                    </span>
+                </ComboboxPrimitive.Trigger>
+            ) : (
+                input
+            )}
+            <ComboboxContent anchor={trigger ? anchor : undefined} className={trigger ? 'w-80' : undefined}>
+                {trigger ? input : null}
+                <ComboboxEmpty>
+                    <Trans>No customers found</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(customer: Customer) => (
+                        <ComboboxItem key={customer.id} value={customer}>
+                            <span className="flex min-w-0 flex-col">
+                                <span className="font-medium">
+                                    {customer.firstName} {customer.lastName}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    {customer.emailAddress}
+                                </span>
+                            </span>
+                        </ComboboxItem>
                     )}
-                </CommandEmpty>
-                {data?.customers.items.map(customer => (
-                    <CommandItem
-                        key={customer.id}
-                        onSelect={() => onSelect(customer)}
-                        className="flex flex-col items-start"
-                    >
-                        <div className="font-medium">
-                            {customer.firstName} {customer.lastName}
-                        </div>
-                        <div className="text-sm text-muted-foreground">{customer.emailAddress}</div>
-                    </CommandItem>
-                ))}
-            </CommandList>
-        </Command>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }
 
@@ -200,37 +248,21 @@ export function CustomerSelector(props: CustomerSelectorProps) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('existing');
 
-    const trigger = (
-        <PopoverTrigger
-            render={
-                <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    disabled={props.readOnly}
-                    className="gap-2"
-                />
-            }
-        >
+    const label = (
+        <>
             <Plus className="h-4 w-4" />
             {props.label ?? <Trans>Select customer</Trans>}
-        </PopoverTrigger>
+        </>
     );
 
-    // When inline creation is not enabled, preserve the original lightweight popover behaviour.
+    // When inline creation is not enabled, the trigger opens the customer search directly.
     if (!props.allowCreateNew) {
         return (
-            <Popover open={open} onOpenChange={setOpen}>
-                {trigger}
-                <PopoverContent className="p-0 w-[350px]">
-                    <CustomerSearch
-                        onSelect={customer => {
-                            props.onSelect(customer);
-                            setOpen(false);
-                        }}
-                    />
-                </PopoverContent>
-            </Popover>
+            <CustomerSearch
+                onSelect={props.onSelect}
+                trigger={label}
+                disabled={props.readOnly}
+            />
         );
     }
 
@@ -248,7 +280,19 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                 }
             }}
         >
-            {trigger}
+            <PopoverTrigger
+                render={
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        disabled={props.readOnly}
+                        className="gap-2"
+                    />
+                }
+            >
+                {label}
+            </PopoverTrigger>
             <PopoverContent className="w-[420px] p-0">
                 <div className="p-4">
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -263,7 +307,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="existing">
-                            <div className="mt-2 rounded-md border">
+                            <div className="mt-2">
                                 <CustomerSearch
                                     onSelect={customer => {
                                         props.onSelect(customer);

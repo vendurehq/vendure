@@ -16,7 +16,16 @@ import {
 import { Input } from '@/vdb/components/ui/input.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
-import { ChevronRight, Folder, FolderOpen, Search } from 'lucide-react';
+import {
+    ListRow,
+    ListRowContent,
+    ListRowLeading,
+    ListRowLink,
+    ListRowMeta,
+    ListRowTitle,
+    ListRowTrailing,
+} from '@vendure-io/ui/components/molecules/list-row';
+import { Check, ChevronRight, Folder, FolderOpen, Search } from 'lucide-react';
 
 import { collectionListForMoveDocument, moveCollectionDocument } from '../collections.graphql.js';
 import { usePaginatedChildCollections } from '../hooks/use-paginated-child-collections.js';
@@ -108,22 +117,37 @@ function MoveToTopLevel({
     topLevelCollectionId,
     onSelect,
 }: Readonly<MoveToTopLevelProps>) {
+    const isSelected = selectedCollectionId === topLevelCollectionId;
     return (
-        <button
-            type="button"
-            className={`flex items-center gap-2 py-2 px-3 hover:bg-accent rounded-sm cursor-pointer w-full text-left ${
-                selectedCollectionId === topLevelCollectionId ? 'bg-accent' : ''
-            }`}
-            onClick={() => onSelect(topLevelCollectionId)}
-        >
-            <div className="w-3 h-3" />
-            <div className="flex items-center gap-2">
-                <Folder className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">
+        <ListRow role="listitem">
+            <TreeIndent depth={0} />
+            <ListRowLeading>
+                <Folder />
+            </ListRowLeading>
+            <ListRowContent>
+                <ListRowLink aria-pressed={isSelected} onClick={() => onSelect(topLevelCollectionId)}>
                     <Trans>Move to the top level</Trans>
-                </span>
-            </div>
-        </button>
+                </ListRowLink>
+            </ListRowContent>
+            {isSelected && <SelectedMark />}
+        </ListRow>
+    );
+}
+
+/** Indents a tree row by its depth, and holds the expand button's place on a row without children. */
+function TreeIndent({ depth, children }: Readonly<{ depth: number; children?: React.ReactNode }>) {
+    return (
+        <div className="flex shrink-0 items-center" style={{ paddingInlineStart: depth * 20 }}>
+            {children || <div className="size-6" />}
+        </div>
+    );
+}
+
+function SelectedMark() {
+    return (
+        <ListRowTrailing>
+            <Check className="size-4 text-primary" aria-hidden="true" />
+        </ListRowTrailing>
     );
 }
 
@@ -153,61 +177,44 @@ function CollectionTreeNode({
     const hasMoreChildren = (childTotalsByParentId[collection.id] ?? 0) > childCollections.length;
 
     return (
-        <div className="my-0.5">
-            <div className="flex items-center" style={{ marginLeft: depth * 20 }}>
-                {hasChildren && (
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-4 w-4 p-0 mr-1"
-                        onClick={() => onToggleExpanded(collection.id)}
-                        aria-label={isExpanded ? t`Collapse ${collection.name}` : t`Expand ${collection.name}`}
-                        aria-expanded={isExpanded}
-                    >
-                        {isExpanded ? (
-                            <ChevronRight className="h-3 w-3 rotate-90" />
-                        ) : (
-                            <ChevronRight className="h-3 w-3" />
-                        )}
-                    </Button>
-                )}
-                {!hasChildren && <div className="w-5 h-4 mr-1" />}
-                <button
-                    type="button"
-                    className={`flex items-center gap-2 py-2 px-3 hover:bg-accent rounded-sm cursor-pointer w-full text-left ${
-                        isSelected ? 'bg-accent' : ''
-                    } ${!isSelectable ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => {
-                        if (isSelectable) {
-                            onSelect(collection);
-                        }
-                    }}
-                    disabled={!isSelectable}
-                >
-                    <div className="flex items-center gap-2">
-                        {hasChildren &&
-                            (isExpanded ? (
-                                <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                                <Folder className="h-4 w-4 text-muted-foreground" />
-                            ))}
-                        {!hasChildren && <div className="w-4 h-4" />}
-                        <div className="flex flex-col">
-                            <span className="text-sm">{collection.name}</span>
-                            {collection.breadcrumbs.length > 1 && (
-                                <span className="text-xs text-muted-foreground">
-                                    {collection.breadcrumbs
-                                        .slice(1)
-                                        .map(b => b.name)
-                                        .join(' / ')}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </button>
-            </div>
+        <>
+            <ListRow role="listitem">
+                <TreeIndent depth={depth}>
+                    {hasChildren && (
+                        <Button
+                            type="button"
+                            size="icon-xs"
+                            variant="ghost"
+                            onClick={() => onToggleExpanded(collection.id)}
+                            aria-label={isExpanded ? t`Collapse ${collection.name}` : t`Expand ${collection.name}`}
+                            aria-expanded={isExpanded}
+                        >
+                            <ChevronRight className={isExpanded ? 'rotate-90' : undefined} />
+                        </Button>
+                    )}
+                </TreeIndent>
+                <ListRowLeading>{isExpanded ? <FolderOpen /> : <Folder />}</ListRowLeading>
+                <ListRowContent className={isSelectable ? undefined : 'opacity-50'}>
+                    {isSelectable ? (
+                        <ListRowLink aria-pressed={isSelected} onClick={() => onSelect(collection)}>
+                            {collection.name}
+                        </ListRowLink>
+                    ) : (
+                        <ListRowTitle>{collection.name}</ListRowTitle>
+                    )}
+                    {collection.breadcrumbs.length > 1 && (
+                        <ListRowMeta>
+                            {collection.breadcrumbs
+                                .slice(1)
+                                .map(b => b.name)
+                                .join(' / ')}
+                        </ListRowMeta>
+                    )}
+                </ListRowContent>
+                {isSelected && <SelectedMark />}
+            </ListRow>
             {hasChildren && isExpanded && (
-                <div>
+                <>
                     {childCollections.map((childCollection: Collection) => (
                         <CollectionTreeNode
                             key={childCollection.id}
@@ -224,18 +231,21 @@ function CollectionTreeNode({
                         />
                     ))}
                     {hasMoreChildren && (
-                        <button
-                            type="button"
-                            className="text-xs text-muted-foreground hover:text-foreground py-1.5 px-3"
-                            style={{ marginLeft: (depth + 1) * 20 }}
-                            onClick={() => onLoadMoreChildren(collection.id)}
-                        >
-                            <Trans>Load more</Trans>
-                        </button>
+                        <ListRow role="listitem">
+                            <TreeIndent depth={depth + 1} />
+                            <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                onClick={() => onLoadMoreChildren(collection.id)}
+                            >
+                                <Trans>Load more</Trans>
+                            </Button>
+                        </ListRow>
                     )}
-                </div>
+                </>
             )}
-        </div>
+        </>
     );
 }
 
@@ -419,13 +429,13 @@ export function MoveCollectionsDialog({
                                 className="pl-10"
                             />
                         </div>
-                        <div className="space-y-1">
+                        <div>
                             {isLoading ? (
                                 <div className="flex items-center justify-center py-8">
                                     <Trans>Loading collections...</Trans>
                                 </div>
                             ) : (
-                                <>
+                                <div role="list">
                                     {!debouncedSearchTerm && !selectionHasTopLevelParent && (
                                         <MoveToTopLevel
                                             selectedCollectionId={selectedCollectionId}
@@ -448,7 +458,7 @@ export function MoveCollectionsDialog({
                                             onLoadMoreChildren={handleLoadMoreChildren}
                                         />
                                     ))}
-                                </>
+                                </div>
                             )}
                         </div>
                         <div className="shrink-0">
