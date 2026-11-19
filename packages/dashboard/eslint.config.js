@@ -155,6 +155,28 @@ export default [{
     ],
   },
 }, {
+  // A search picker is Combobox (ComboboxChips for several values), not a
+  // Popover with a Command list inside: Combobox owns the popup width, the
+  // empty state, the loading row, paging, the selected mark and the keyboard
+  // behaviour. A copy of no-restricted-syntax under its own name, so it does
+  // not replace the selectors above. Belongs in @vendure-io/design-lint once
+  // it has a rule for it.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'search-picker': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'search-picker/no-restricted-syntax': [
+      'warn',
+      {
+        selector:
+          "JSXElement[openingElement.name.name='PopoverContent'] JSXElement[openingElement.name.name='Command']",
+        message: 'Use Combobox from @/vdb/components/ui/combobox.js for a search picker, not a Popover with a Command list.',
+      },
+    ],
+  },
+}, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,
