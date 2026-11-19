@@ -208,7 +208,8 @@ describe('SqlJobQueueStrategy next()', () => {
                 singleConnectionStrategy.init({
                     get: () => ({
                         rawConnection: singleConnection,
-                        getDefaultIsolationLevel: () => 'READ COMMITTED',
+                        withRawTransaction: (work: any) =>
+                            singleConnection.transaction('READ COMMITTED', work),
                     }),
                 } as any);
                 const handlerReads = async () => {

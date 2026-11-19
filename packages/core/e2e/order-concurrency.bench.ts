@@ -15,13 +15,14 @@
  *
  * Env:
  *   BENCH_SCENARIOS  comma-separated scenario names, default all correctness scenarios. Add
- *                    `throughput` and `hotCart` for the latency scenarios.
+ *                    `throughput`, `hotCart` and `paymentPileUp` for the latency scenarios.
  *   BENCH_TRIALS     trials per correctness scenario (default 20)
  *   BENCH_OUT        output JSON path (default /tmp/order-concurrency-<variant>-<db>.json)
  *   BENCH_VARIANT    label written to the results, e.g. the branch name
  *   BENCH_PORT       API port, so that several databases can be benchmarked at once
  *   BENCH_PAYMENT_DELAY_MS  latency of the payment handler, to model a payment provider call
  *   BENCH_P, BENCH_ROUNDS, BENCH_H, BENCH_B  size of the throughput and hotCart scenarios
+ *   BENCH_K, BENCH_R  orders, and payment attempts per order, of the paymentPileUp scenario
  */
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { DefaultLogger, LogLevel, mergeConfig, PaymentMethodHandler, VendureLogger } from '@vendure/core';
@@ -41,7 +42,7 @@ const TRIALS = +(process.env.BENCH_TRIALS ?? 20);
 const PAYMENT_DELAY_MS = +(process.env.BENCH_PAYMENT_DELAY_MS ?? 0);
 const SCENARIOS = (
     process.env.BENCH_SCENARIOS ??
-    'fanoutExisting,fanoutFresh,mixedSetters,lastUnit,doublePayment,payVsBackToCart,overlappingAllocations,loginDuringCartMutation'
+    'fanoutExisting,fanoutFresh,mixedSetters,lastUnit,doublePayment,payVsBackToCart,overlappingAllocations,loginDuringCartMutation,setCustomerVsPay'
 ).split(',');
 
 // ---------------------------------------------------------------- capture

@@ -1085,10 +1085,7 @@ export class CollectionService implements OnModuleInit {
                 ),
             ]);
         };
-        const isolationLevel = this.connection.getDefaultIsolationLevel();
-        await (isolationLevel
-            ? this.connection.rawConnection.transaction(isolationLevel, writeMembership)
-            : this.connection.rawConnection.transaction(writeMembership));
+        await this.connection.withRawTransaction(writeMembership);
 
         if (applyToChangedVariantsOnly) {
             return [...toAddIds, ...toRemoveIds];

@@ -312,10 +312,7 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
 
                 return true;
             };
-            const isolationLevel = this.connection.getDefaultIsolationLevel();
-            return isolationLevel
-                ? this.connection.rawConnection.transaction(isolationLevel, tryAcquire)
-                : this.connection.rawConnection.transaction(tryAcquire);
+            return this.connection.withRawTransaction(tryAcquire);
         } else {
             // For databases without pessimistic locking support (SQLite, SQL.js),
             // use the atomic UPDATE approach. This works for single-connection scenarios

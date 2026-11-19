@@ -43,7 +43,7 @@ export class TransactionWrapper {
         connection: DataSource,
     ): Promise<T> {
         // Copy to make sure original context will remain valid after transaction completes
-        const ctx = originalCtx.copy();
+        let ctx = originalCtx.copy();
 
         const entityManager: EntityManager | undefined = (ctx as any)[TRANSACTION_MANAGER_KEY];
         const inheritedQueryRunner =
@@ -77,6 +77,9 @@ export class TransactionWrapper {
                               connection,
                               effectiveIsolationLevel,
                           );
+                          // A fresh copy for each attempt: request-scoped caches are keyed on the
+                          // context, and must not carry what the rolled-back attempt read.
+                          ctx = originalCtx.copy();
                           (ctx as any)[TRANSACTION_MANAGER_KEY] = queryRunner.manager;
                       }
                     : undefined,

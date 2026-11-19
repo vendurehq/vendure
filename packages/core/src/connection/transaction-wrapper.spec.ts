@@ -176,6 +176,30 @@ describe('TransactionWrapper', () => {
         expect(attempts).toBe(1);
     });
 
+    it('gives each attempt a fresh copy of the context', async () => {
+        const connection = mockConnection();
+        const seen: RequestContext[] = [];
+        await wrapper().executeInTransaction(
+            ctx,
+            async attemptCtx => {
+                seen.push(attemptCtx);
+                if (seen.length === 1) {
+                    throw deadlock();
+                }
+                return 'done';
+            },
+            'auto',
+            undefined,
+            connection,
+        );
+
+        // Request-scoped caches are keyed on the context, so a retry on the same object would see
+        // what the rolled-back attempt had read.
+        expect(seen).toHaveLength(2);
+        expect(seen[1]).not.toBe(seen[0]);
+        expect(seen[1]).not.toBe(ctx);
+    });
+
     it('does not retry an attempt which was marked as unsafe to retry', async () => {
         const connection = mockConnection();
         let attempts = 0;

@@ -13,7 +13,7 @@ In v3, two requests which changed the same Order at the same time could overwrit
 - On MySQL and MariaDB, transactions run at `READ COMMITTED` instead of InnoDB's default `REPEATABLE READ`. Postgres already uses `READ COMMITTED`.
 - A transaction which the database rejects with a deadlock or a serialization failure is retried, unless it has already called a payment provider.
 
-SQLite is not affected: it runs one write at a time anyway.
+SQLite is not affected: it runs one write at a time anyway. Aurora Postgres is covered like Postgres. Aurora MySQL keeps the v3 behaviour: TypeORM's Aurora MySQL driver never applies an isolation level, so Vendure takes no row locks there.
 
 ## Why the isolation level changes
 
@@ -29,7 +29,7 @@ MySQL and MariaDB reject writes at `READ COMMITTED` when the binary log uses the
 SELECT @@GLOBAL.binlog_format;
 ```
 
-`ROW` (the MySQL 8 default) and `MIXED` (the MariaDB default) both work. If it is `STATEMENT`, change it to `ROW` or `MIXED`.
+`ROW` (the MySQL 8 default) and `MIXED` (the MariaDB default) both work. If it is `STATEMENT`, change it to `ROW` or `MIXED`. Vendure also checks this at startup and logs an error if binary logging is on with the statement format.
 
 **Done when:** the query returns `ROW` or `MIXED`, or binary logging is off.
 
@@ -51,10 +51,10 @@ You can also change the default for every transaction with `entityOptions.transa
 
 ### 3. Work outside the database in a transaction
 
-A retried transaction runs again from the start. Database writes are rolled back first, but anything else is done twice. Vendure does not retry a transaction once it has called a `PaymentMethodHandler`. If your code calls another external service inside a transaction and must not do so twice, call `preventTransactionRetry()` before that call:
+A retried transaction runs again from the start. Database writes are rolled back first, but anything else is done twice. Vendure does not retry a transaction once it has called a `PaymentMethodHandler`, or a `FulfillmentHandler`'s `createFulfillment()` or `onFulfillmentTransition()`. If your code calls another external service inside a transaction and must not do so twice, call `preventTransactionRetry()` before that call:
 
 ```ts
-import { RequestContext, TransactionalConnection } from '@vendure/core';
+import { Order, RequestContext, TransactionalConnection } from '@vendure/core';
 
 export class MyErpService {
     constructor(private connection: TransactionalConnection) {}

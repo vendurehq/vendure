@@ -11,6 +11,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { RequestContext } from '../api/common/request-context';
+import { TRANSACTION_MANAGER_KEY } from '../common/constants';
 
 import { TransactionalConnection } from './transactional-connection';
 import { FindOptionsRelationsInput } from './types';
@@ -93,6 +94,52 @@ describe('TransactionalConnection', () => {
             const objectForm = await collectQueriesFor({ parent: true });
 
             expect(objectForm).toEqual(arrayForm);
+        });
+    });
+
+    describe('lockRow', () => {
+        /** The lock mode lockRow() asks for on the given database, or undefined if it takes none. */
+        async function lockModeOn(type: string): Promise<string | undefined> {
+            let lockMode: string | undefined;
+            const queryBuilder: any = {
+                select: () => queryBuilder,
+                setLock: (mode: string) => {
+                    lockMode = mode;
+                    return queryBuilder;
+                },
+                where: () => queryBuilder,
+                getOne: async () => undefined,
+            };
+            const manager = {
+                queryRunner: { isTransactionActive: true },
+                getRepository: () => ({ createQueryBuilder: () => queryBuilder }),
+            };
+            const lockingConnection = new TransactionalConnection(
+                { options: { type } } as any,
+                {} as any,
+                { authOptions: {} } as any,
+            );
+            const txCtx = RequestContext.empty();
+            (txCtx as any)[TRANSACTION_MANAGER_KEY] = manager;
+            await lockingConnection.lockRow(txCtx, TestNode, 1);
+            return lockMode;
+        }
+
+        it('takes FOR NO KEY UPDATE on Postgres and Aurora Postgres', async () => {
+            expect(await lockModeOn('postgres')).toBe('for_no_key_update');
+            expect(await lockModeOn('aurora-postgres')).toBe('for_no_key_update');
+        });
+
+        it('takes FOR UPDATE on MySQL and MariaDB', async () => {
+            expect(await lockModeOn('mysql')).toBe('pessimistic_write');
+            expect(await lockModeOn('mariadb')).toBe('pessimistic_write');
+        });
+
+        it('takes no lock where it would not help', async () => {
+            // Aurora MySQL never applies an isolation level, so it stays at REPEATABLE READ, where a
+            // lock serializes writers without letting them see each other's commits.
+            expect(await lockModeOn('aurora-mysql')).toBeUndefined();
+            expect(await lockModeOn('sqljs')).toBeUndefined();
         });
     });
 });

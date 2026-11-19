@@ -2,6 +2,9 @@
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
 import {
     configureDefaultOrderProcess,
+    defaultFulfillmentProcess,
+    FulfillmentHandler,
+    FulfillmentProcess,
     Injector,
     LanguageCode,
     manualFulfillmentHandler,
@@ -183,6 +186,32 @@ const misbehavingOrderProcess: OrderProcess<any> = {
     },
 };
 
+let carrierCalls = 0;
+let deadlockAfterFulfillmentThrown = false;
+/** Counts how often the carrier is asked to register a shipment. */
+const countingFulfillmentHandler = new FulfillmentHandler({
+    code: 'counting-fulfillment-handler',
+    description: [{ languageCode: LanguageCode.en, value: 'Counting fulfillment handler' }],
+    args: {},
+    createFulfillment: () => {
+        carrierCalls++;
+        return { method: 'carrier', trackingCode: `shipment-${carrierCalls}` };
+    },
+});
+/** Hits a simulated deadlock once, after the carrier was called for a counted Fulfillment. */
+const misbehavingFulfillmentProcess: FulfillmentProcess<any> = {
+    onTransitionEnd(fromState, toState, { fulfillment }) {
+        if (
+            toState === 'Pending' &&
+            fulfillment.handlerCode === countingFulfillmentHandler.code &&
+            !deadlockAfterFulfillmentThrown
+        ) {
+            deadlockAfterFulfillmentThrown = true;
+            throw Object.assign(new Error('simulated deadlock after fulfillment'), { code: DEADLOCK_CODE });
+        }
+    },
+};
+
 let paymentProviderCalls = 0;
 /** Counts how often the payment provider is asked to take a payment. */
 const countingPaymentMethod = new PaymentMethodHandler({
@@ -229,6 +258,10 @@ describeOnRealDb('Order concurrency', () => {
                     countingPaymentMethod,
                     slowPaymentMethod,
                 ],
+            },
+            shippingOptions: {
+                fulfillmentHandlers: [manualFulfillmentHandler, countingFulfillmentHandler],
+                process: [defaultFulfillmentProcess, misbehavingFulfillmentProcess],
             },
             orderOptions: {
                 // Without a Customer requirement, a guest Order can be paid and then merged on login.
@@ -453,14 +486,22 @@ describeOnRealDb('Order concurrency', () => {
         const client = await newShopClient();
         const orderId = await checkoutToArrangingPayment(client, 'client-and-webhook@test.com');
 
-        await Promise.all([
-            addPaymentToOrder(client, testSuccessfulPaymentMethod).catch(() => undefined),
-            adminClient
-                .query(addManualPaymentDocument, {
-                    input: { orderId, method: 'webhook', transactionId: 'webhook-1', metadata: {} },
-                })
-                .catch(() => undefined),
+        const [clientPayment, webhookPayment] = await Promise.allSettled([
+            addPaymentToOrder(client, testSuccessfulPaymentMethod),
+            adminClient.query(addManualPaymentDocument, {
+                input: { orderId, method: 'webhook', transactionId: 'webhook-1', metadata: {} },
+            }),
         ]);
+
+        // Neither request may fail with an error, such as a deadlock which was not retried or a
+        // lock timeout. The one which comes second gets an ErrorResult, as the Order is paid.
+        expect(clientPayment.status).toBe('fulfilled');
+        expect(webhookPayment.status).toBe('fulfilled');
+        const outcomes = [
+            (clientPayment as PromiseFulfilledResult<any>).value,
+            (webhookPayment as PromiseFulfilledResult<any>).value.addManualPaymentToOrder,
+        ];
+        expect(outcomes.filter(result => result.errorCode == null)).toHaveLength(1);
 
         const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: orderId });
         expect(order!.state).toBe('PaymentSettled');
@@ -479,21 +520,28 @@ describeOnRealDb('Order concurrency', () => {
         const client = await newShopClient();
         const orderId = await checkoutToArrangingPayment(client, 'back-to-cart@test.com');
 
-        await Promise.all([
-            adminClient
-                .query(addManualPaymentDocument, {
-                    input: { orderId, method: 'webhook', transactionId: 'webhook-2', metadata: {} },
-                })
-                .catch(() => undefined),
-            client.query(transitionToStateDocument, { state: 'AddingItems' }).catch(() => undefined),
+        const [webhookPayment, backToCart] = await Promise.allSettled([
+            adminClient.query(addManualPaymentDocument, {
+                input: { orderId, method: 'webhook', transactionId: 'webhook-2', metadata: {} },
+            }),
+            client.query(transitionToStateDocument, { state: 'AddingItems' }),
         ]);
+
+        // Neither request may fail with an error. Whichever comes second gets an ErrorResult.
+        expect(webhookPayment.status).toBe('fulfilled');
+        expect(backToCart.status).toBe('fulfilled');
+        const paid = (webhookPayment as PromiseFulfilledResult<any>).value.addManualPaymentToOrder;
+        const movedBack = (backToCart as PromiseFulfilledResult<any>).value.transitionOrderToState;
+        expect([paid, movedBack].filter(result => result.errorCode == null)).toHaveLength(1);
 
         const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: orderId });
         const settled = order!.payments!.filter(p => p.state === 'Settled').length;
-        if (settled > 0) {
+        if (paid.errorCode == null) {
+            expect(settled).toBe(1);
             expect(order!.state).toBe('PaymentSettled');
             expect(order!.active).toBe(false);
         } else {
+            expect(settled).toBe(0);
             expect(order!.state).toBe('AddingItems');
         }
     });
@@ -615,5 +663,24 @@ describeOnRealDb('Order concurrency', () => {
         const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: guestOrderId });
         expect(order?.state).toBe('PaymentSettled');
         expect(order!.payments!.filter(p => p.state === 'Settled').length).toBe(1);
+    });
+
+    // #4152 — like a payment provider, a carrier must not register a second shipment because the
+    // transaction which called it was retried after a deadlock.
+    it('does not call the carrier again when a deadlock follows the fulfillment', async () => {
+        const order = await placedOrder('deadlock-after-fulfillment@test.com');
+        carrierCalls = 0;
+
+        await adminClient
+            .query(createFulfillmentDocument, {
+                input: {
+                    lines: order.lines.map(line => ({ orderLineId: line.id, quantity: line.quantity })),
+                    handler: { code: countingFulfillmentHandler.code, arguments: [] },
+                },
+            })
+            .catch(() => undefined);
+
+        expect(deadlockAfterFulfillmentThrown).toBe(true);
+        expect(carrierCalls).toBe(1);
     });
 });

@@ -40,18 +40,18 @@ export interface TransactionSubscriberEvent {
 }
 
 /**
+ * An event announced by {@link TransactionSubscriber.announceRollback}, for a transaction which was
+ * ended without TypeORM's own rollback. TypeORM still marks its QueryRunner as in a transaction.
+ */
+type InternalTransactionSubscriberEvent = TransactionSubscriberEvent & { endedOutsideTypeOrm?: boolean };
+
+/**
  * This subscriber listens to all transaction commit/rollback events emitted by TypeORM
  * so that we can be notified as soon as a particular queryRunner's transactions ends.
  *
  * This is used by the {@link EventBus} to prevent events from being published until their
  * associated transactions are complete.
  */
-/**
- * An event announced by {@link TransactionSubscriber.announceRollback}, for a transaction which was
- * ended without TypeORM's own rollback. TypeORM still marks its QueryRunner as in a transaction.
- */
-type InternalTransactionSubscriberEvent = TransactionSubscriberEvent & { endedOutsideTypeOrm?: boolean };
-
 @Injectable()
 export class TransactionSubscriber implements EntitySubscriberInterface {
     private subject$ = new Subject<InternalTransactionSubscriberEvent>();

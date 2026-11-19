@@ -99,7 +99,7 @@ describe('CollectionService apply-collection-filters job', () => {
                 const collection = collections.find(c => c.id === id);
                 return collection ? Promise.resolve(collection) : Promise.reject(new Error('not found'));
             },
-            getDefaultIsolationLevel: () => undefined,
+            withRawTransaction: (work: any) => mockConnection.rawConnection.transaction(work),
             rawConnection: {
                 driver: {
                     get supportedUpsertTypes() {

@@ -32,7 +32,9 @@ Upgrade to the latest v3 release first, following [Updating Vendure](/developer-
 
 After you go live on v4, restoring this backup is the only way back to v3.
 
-**Done when:** you have a backup you have tested restoring.
+On MySQL or MariaDB, also check the binary log format of the server, as described in [Order concurrency](/developer-guide/migrating-from-v3/order-concurrency#1-binary-log-format-mysql-and-mariadb). With `binlog_format=STATEMENT`, every write fails after the upgrade.
+
+**Done when:** you have a backup you have tested restoring, and on MySQL or MariaDB the binary log format is `ROW` or `MIXED`, or binary logging is off.
 
 ### 3. Update your Vendure dependencies
 

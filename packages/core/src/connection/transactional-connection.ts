@@ -36,15 +36,18 @@ import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-rela
 import { getDatabaseType } from './database-type';
 import { findOptionsArrayToObject } from './find-options-array-to-object';
 import { findOptionsObjectToArray } from './find-options-object-to-array';
+import { isPostgresDatabase } from './timezone-utils';
 import { toTypeOrmFindOptions } from './to-typeorm-find-options';
 import { TransactionWrapper } from './transaction-wrapper';
 import { GetEntityOrThrowOptions, VendureFindManyOptions, VendureFindOneOptions } from './types';
 
 /**
- * The databases whose drivers support `SELECT ... FOR UPDATE`. SQLite and sql.js do not, and do
- * not need to: they serialize every write onto a single connection already.
+ * The databases on which `lockRow()` takes a lock. SQLite and sql.js support no row locks, and run
+ * every write on a single connection. Aurora MySQL is left out because TypeORM's Aurora MySQL driver
+ * never applies an isolation level, so it stays at `REPEATABLE READ`: a lock there would serialize
+ * writers without letting a writer that waited see what the one before it committed.
  */
-const ROW_LOCKING_DB_TYPES: string[] = ['postgres', 'mysql', 'mariadb'];
+const ROW_LOCKING_DB_TYPES: string[] = ['postgres', 'aurora-postgres', 'mysql', 'mariadb'];
 
 /**
  * Repository methods intercepted by the access control Proxy.
@@ -246,20 +249,10 @@ export class TransactionalConnection {
     /**
      * @description
      * The isolation level Vendure starts transactions at when none is asked for: the configured
-     * `entityOptions.transactionIsolationLevel`, otherwise `READ COMMITTED` on MySQL and MariaDB,
-     * otherwise `undefined`, meaning the database default.
-     *
-     * Use it when starting a TypeORM transaction directly rather than through
-     * {@link TransactionalConnection}`.withTransaction()`, so that it runs at the same level:
-     *
-     * @example
-     * ```ts
-     * const level = this.connection.getDefaultIsolationLevel();
-     * const work = (manager: EntityManager) => doWork(manager);
-     * await (level
-     *     ? this.connection.rawConnection.transaction(level, work)
-     *     : this.connection.rawConnection.transaction(work));
-     * ```
+     * `entityOptions.transactionIsolationLevel`, then (with TypeORM v1) an `isolationLevel` set in
+     * `dbConnectionOptions`, otherwise `READ COMMITTED` on MySQL and MariaDB, otherwise `undefined`,
+     * meaning the database default. To run a TypeORM transaction of your own at this level, use
+     * {@link TransactionalConnection}`.withRawTransaction()`.
      *
      * @since 4.0.0
      */
@@ -269,8 +262,33 @@ export class TransactionalConnection {
 
     /**
      * @description
+     * Runs `work` in a TypeORM transaction of its own, on a connection of its own, at the isolation
+     * level of {@link TransactionalConnection}`.getDefaultIsolationLevel()`. Unlike
+     * `withTransaction()`, it does not join the transaction of a RequestContext and is never
+     * retried, so it suits background work such as job queue and scheduler bookkeeping.
+     *
+     * @example
+     * ```ts
+     * await this.connection.withRawTransaction(async manager => {
+     *     const record = await manager.getRepository(MyRecord).findOne({ where: { id }, lock: { mode: 'pessimistic_write' } });
+     *     // ...
+     * });
+     * ```
+     *
+     * @since 4.0.0
+     */
+    withRawTransaction<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
+        const isolationLevel = this.getDefaultIsolationLevel();
+        return isolationLevel
+            ? this.rawConnection.transaction(isolationLevel, work)
+            : this.rawConnection.transaction(work);
+    }
+
+    /**
+     * @description
      * Manually start a transaction if one is not already in progress. This method should be used in
-     * conjunction with the `'manual'` mode of the {@link Transaction} decorator.
+     * conjunction with the `'manual'` mode of the {@link Transaction} decorator. Without an
+     * `isolationLevel`, it starts at {@link TransactionalConnection}`.getDefaultIsolationLevel()`.
      */
     async startTransaction(ctx: RequestContext, isolationLevel?: TransactionIsolationLevel) {
         const transactionManager = this.getTransactionManager(ctx);
@@ -362,7 +380,7 @@ export class TransactionalConnection {
             // conflict with the FOR KEY SHARE lock an insert of a row referencing this one takes,
             // which a plain UPDATE of the row would not block either.
             .setLock(
-                getDatabaseType(this.rawConnection) === 'postgres'
+                isPostgresDatabase(getDatabaseType(this.rawConnection))
                     ? 'for_no_key_update'
                     : 'pessimistic_write',
             )
