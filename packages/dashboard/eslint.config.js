@@ -311,6 +311,30 @@ export default [{
     ],
   },
 }, {
+  // A component defined inside another component's render is a new component on
+  // every render. React unmounts and mounts it each time, so it loses its state
+  // and the focus of anything inside it (the Add asset dialog of vendure#5884).
+  // Define it at module level and pass what it needs as props. allowAsProps lets
+  // a render function sit in a prop or a column definition (cell, header,
+  // render={() => …}): the owner calls it as a function, so nothing remounts.
+  // Without it the rule flags 112 such column definitions. Spec and story files
+  // are skipped: they define throwaway components on purpose.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx'],
+  languageOptions: {
+    parser: tsParser,
+    parserOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      ecmaFeatures: { jsx: true },
+    },
+  },
+  plugins: { react },
+  settings: { react: { version: '18.3' } },
+  rules: {
+    'react/no-unstable-nested-components': ['error', { allowAsProps: true }],
+  },
+}, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,
