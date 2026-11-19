@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Editor } from '@tiptap/react';
 import { MoreHorizontalIcon, MoreVerticalIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -24,6 +24,7 @@ interface TableCellPosition {
 }
 
 export function TableEditIcons({ editor, disabled }: Readonly<TableEditIconsProps>) {
+    const { t } = useLingui();
     const [cellPosition, setCellPosition] = useState<TableCellPosition | null>(null);
 
     useEffect(() => {
@@ -127,13 +128,10 @@ export function TableEditIcons({ editor, disabled }: Readonly<TableEditIconsProp
                 }}
             >
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border-0"
-                        />}>
-                            <MoreHorizontalIcon className="h-3 w-3" />
+                    <DropdownMenuTrigger
+                        render={<Button type="button" variant="ghost" size="icon-xs" aria-label={t`Column options`} />}
+                    >
+                        <MoreHorizontalIcon />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="center">
                         <DropdownMenuItem
@@ -177,13 +175,10 @@ export function TableEditIcons({ editor, disabled }: Readonly<TableEditIconsProp
                 }}
             >
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border-0"
-                        />}>
-                            <MoreVerticalIcon className="h-3 w-3" />
+                    <DropdownMenuTrigger
+                        render={<Button type="button" variant="ghost" size="icon-xs" aria-label={t`Row options`} />}
+                    >
+                        <MoreVerticalIcon />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="center">
                         <DropdownMenuItem
