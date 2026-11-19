@@ -86,15 +86,16 @@ export function FacetedFilterChip({
             )}
         </Trigger>
     );
-    if (!hasValue || !onClear) {
-        return trigger;
-    }
+    // The group wraps the trigger with or without a value, so the trigger keeps its element
+    // when the first value is picked and focus stays in the open popup.
     return (
         <ButtonGroup>
             {trigger}
-            <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={onClear}>
-                <XIcon />
-            </Button>
+            {hasValue && onClear && (
+                <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={onClear}>
+                    <XIcon />
+                </Button>
+            )}
         </ButtonGroup>
     );
 }
