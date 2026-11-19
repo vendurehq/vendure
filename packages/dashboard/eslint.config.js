@@ -35,6 +35,14 @@ export default [{
   },
   rules: {
     '@vendure-io/design/no-raw-colors': 'error',
+    // Label/value lists use the design-system DescriptionList, not hand-built dl/dt/dd.
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
+        message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
+      },
+    ],
   },
 }, {
   files: ['**/*.{js,jsx}'],
