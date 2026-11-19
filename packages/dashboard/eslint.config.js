@@ -285,6 +285,32 @@ export default [{
     ],
   },
 }, {
+  // A count pinned to the top corner of a bell or a filter trigger (absolute,
+  // a negative top and end offset, rounded-full) sets its own size, colour and
+  // position, so the three in the apps drifted apart. CountBadge owns them:
+  // placement="corner" on an icon button, the default inline form inside a
+  // button label. Matches only the corner placement. A count built another way
+  // is not caught. A copy of no-restricted-syntax under its own name, so it
+  // does not replace the selectors above. Belongs in @vendure-io/design-lint
+  // once it has a rule for it.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'count-badge': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'count-badge/no-restricted-syntax': [
+      'error',
+      ...[
+        ['Literal', 'value'],
+        ['TemplateElement', 'value.raw'],
+      ].map(([node, text]) => ({
+        selector: `JSXAttribute[name.name='className'] ${node}[${text}=/(^|[\\s:])absolute(\\s|$)/][${text}=/(^|[\\s:])-top-/][${text}=/(^|[\\s:])-(right|end)-/][${text}=/(^|[\\s:])rounded-full(\\s|$)/]`,
+        message: 'A count on the corner of an icon button is CountBadge from @/vdb/components/ui/count-badge.js with placement="corner" (and relative on the button). Do not position and colour it by hand.',
+      })),
+    ],
+  },
+}, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,

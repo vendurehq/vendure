@@ -28,7 +28,7 @@ export function Alerts() {
         <DropdownMenu>
             <DropdownMenuTrigger
                 render={
-                    <Button size="icon" variant="ghost" className="relative" aria-label={t`Notifications`} />
+                    <Button size="icon" variant="ghost" className="relative" aria-label={activeCount > 0 ? t`Notifications (${activeCount})` : t`Notifications`} />
                 }
             >
                     <BellIcon />
