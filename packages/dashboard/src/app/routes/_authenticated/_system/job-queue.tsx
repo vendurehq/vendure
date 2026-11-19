@@ -232,7 +232,13 @@ function JobQueuePage() {
                                 {row.original.state === 'RUNNING' && (
                                     <DropdownMenu onOpenChange={open => (isActionMenuOpenRef.current = open)}>
                                         <DropdownMenuTrigger
-                                            render={<Button variant="ghost" size="icon-xs" />}
+                                            render={
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-xs"
+                                                    aria-label={t`Actions for job ${row.original.id}`}
+                                                />
+                                            }
                                         >
                                             <EllipsisIcon />
                                         </DropdownMenuTrigger>

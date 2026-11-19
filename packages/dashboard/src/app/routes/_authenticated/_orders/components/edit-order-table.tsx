@@ -39,6 +39,7 @@ function QuantityCell({
     onAdjustLine: OrderTableProps['onAdjustLine'];
     onRemoveLine: OrderTableProps['onRemoveLine'];
 }) {
+    const { t } = useLingui();
     const [localValue, setLocalValue] = useState<string>(String(line.quantity));
 
     // Sync local value when server state changes (e.g. after mutation completes)
@@ -82,6 +83,7 @@ function QuantityCell({
                 type="button"
                 size="icon"
                 onClick={() => onRemoveLine({ lineId: line.id })}
+                aria-label={t`Remove ${line.productVariant.name}`}
             >
                 <Trash2 />
             </Button>

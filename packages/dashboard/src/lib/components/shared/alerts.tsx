@@ -1,7 +1,7 @@
 import { AlertItem } from '@/vdb/framework/alert/alert-item.js';
 import { AlertsIndicator } from '@/vdb/framework/alert/alerts-indicator.js';
 import { useAlerts } from '@/vdb/hooks/use-alerts.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { BellIcon } from 'lucide-react';
 import { Button } from '../ui/button.js';
 import {
@@ -18,6 +18,7 @@ import { EmptyState } from '../ui/state-views.js';
 
 export function Alerts() {
     const { alerts, activeCount } = useAlerts();
+    const { t } = useLingui();
 
     if (alerts.length === 0) {
         return null;
@@ -25,7 +26,11 @@ export function Alerts() {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="icon" variant="ghost" className="relative" />}>
+            <DropdownMenuTrigger
+                render={
+                    <Button size="icon" variant="ghost" className="relative" aria-label={t`Notifications`} />
+                }
+            >
                     <BellIcon />
                     <AlertsIndicator />
             </DropdownMenuTrigger>

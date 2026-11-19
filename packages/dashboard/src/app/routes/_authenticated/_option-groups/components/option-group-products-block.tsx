@@ -87,6 +87,7 @@ export function OptionGroupProductsBlock({
                             className="h-7 w-7"
                             disabled={page <= 1}
                             onClick={() => setPage(p => p - 1)}
+                            aria-label={t`Previous page`}
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -96,6 +97,7 @@ export function OptionGroupProductsBlock({
                             className="h-7 w-7"
                             disabled={page >= totalPages}
                             onClick={() => setPage(p => p + 1)}
+                            aria-label={t`Next page`}
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>

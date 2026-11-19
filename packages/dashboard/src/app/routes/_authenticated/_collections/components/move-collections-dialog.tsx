@@ -139,6 +139,7 @@ function CollectionTreeNode({
     childTotalsByParentId,
     onLoadMoreChildren,
 }: Readonly<CollectionTreeNodeProps>) {
+    const { t } = useLingui();
     const hasChildren = collection.children && collection.children.length > 0;
     const isExpanded = expanded[collection.id];
     const isSelected = selectedCollectionId === collection.id;
@@ -160,6 +161,8 @@ function CollectionTreeNode({
                         variant="ghost"
                         className="h-4 w-4 p-0 mr-1"
                         onClick={() => onToggleExpanded(collection.id)}
+                        aria-label={isExpanded ? t`Collapse ${collection.name}` : t`Expand ${collection.name}`}
+                        aria-expanded={isExpanded}
                     >
                         {isExpanded ? (
                             <ChevronRight className="h-3 w-3 rotate-90" />

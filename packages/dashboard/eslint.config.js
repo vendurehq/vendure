@@ -75,6 +75,14 @@ export default [{
         selector,
         message: 'List the transition properties instead of transition-all, and use a motion token (duration-fast, duration-normal, ease-default…) instead of a numeric duration or delay.',
       })),
+      // An icon-only Button has no text, so a screen reader announces it only as
+      // "button". Name it with aria-label, with the row's name where there is a
+      // row ("Actions for Laptop"). A tooltip does not name it.
+      {
+        selector:
+          "JSXOpeningElement[name.name='Button']:has(> JSXAttribute[name.name='size'][value.value=/^icon/]):not(:has(> JSXAttribute[name.name=/^aria-label(ledby)?$/]))",
+        message: 'An icon-only Button needs an accessible name. Add aria-label={t`…`}.',
+      },
     ],
   },
 }, {

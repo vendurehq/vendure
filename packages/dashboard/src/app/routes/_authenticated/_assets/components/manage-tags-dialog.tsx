@@ -10,7 +10,7 @@ import {
 import { Input } from '@/vdb/components/ui/input.js';
 import { api } from '@/vdb/graphql/api.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -24,6 +24,7 @@ interface ManageTagsDialogProps {
 }
 
 export function ManageTagsDialog({ open, onOpenChange, onTagsUpdated }: Readonly<ManageTagsDialogProps>) {
+    const { t } = useLingui();
     const queryClient = useQueryClient();
     const [toDelete, setToDelete] = useState<string[]>([]);
     const [toUpdate, setToUpdate] = useState<Array<{ id: string; value: string }>>([]);
@@ -120,6 +121,8 @@ export function ManageTagsDialog({ open, onOpenChange, onTagsUpdated }: Readonly
                         size="icon"
                         onClick={() => toggleDelete(tag.id)}
                         disabled={isSaving}
+                        aria-label={isDeleted ? t`Restore ${tag.value}` : t`Delete ${tag.value}`}
+                        aria-pressed={isDeleted}
                         className={cn(isDeleted && 'bg-destructive hover:bg-destructive/90')}
                     >
                         <Trash2 className="h-4 w-4" />

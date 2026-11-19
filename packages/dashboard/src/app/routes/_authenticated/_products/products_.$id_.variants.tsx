@@ -126,7 +126,9 @@ function AddOptionValueDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button size="icon" variant="ghost" />}>
+            <DialogTrigger
+                render={<Button size="icon" variant="ghost" aria-label={t`Add option value to ${groupName}`} />}
+            >
                 <Plus className="h-3 w-3" />
             </DialogTrigger>
             <DialogContent showCloseButton>
@@ -386,6 +388,7 @@ function ManageProductVariants() {
                                                     size="icon"
                                                     variant="ghost"
                                                     disabled={isRemovingOptionGroup}
+                                                    aria-label={t`Remove option group ${group.name}`}
                                                 >
                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                 </Button>
