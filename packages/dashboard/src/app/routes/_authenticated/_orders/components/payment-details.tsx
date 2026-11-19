@@ -256,7 +256,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                             )}
                         >
                             <Trans>Refunds ({payment.refunds.length})</Trans>
-                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[panel-open]:rotate-180" />
+                            <ChevronDown className="h-4 w-4 transition-[rotate] duration-slow ease-height motion-reduce:transition-none group-data-[panel-open]:rotate-180" />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 divide-y">
                             {payment.refunds.map(refund => (
