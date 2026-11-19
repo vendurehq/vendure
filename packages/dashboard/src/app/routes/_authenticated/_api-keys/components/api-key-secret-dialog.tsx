@@ -49,7 +49,7 @@ export function ApiKeySecretDialog({ open, apiKey, lookupId, onClose }: ApiKeySe
 
     return (
         <Dialog open={open} onOpenChange={guard.onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent size="lg">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Your API key</Trans>

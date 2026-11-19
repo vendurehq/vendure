@@ -38,7 +38,7 @@ export function NavigationConfirmation(props: Readonly<NavigationConfirmationPro
     });
     return (
         <Dialog open={status === 'blocked'} onOpenChange={reset}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Confirm navigation</Trans>

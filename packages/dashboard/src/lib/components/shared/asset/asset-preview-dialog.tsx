@@ -28,7 +28,7 @@ export function AssetPreviewDialog({
 }: AssetPreviewDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[800px] lg:max-w-[95vw] w-[95vw]">
+            <DialogContent size="full">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Asset</Trans>

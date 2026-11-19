@@ -161,7 +161,7 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
                                 {fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)})
                             </Trans>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                        <DialogContent size="lg" className="max-h-[85vh] overflow-hidden flex flex-col">
                             <DialogHeader>
                                 <DialogTitle>
                                     <Trans>Fulfilled items</Trans>

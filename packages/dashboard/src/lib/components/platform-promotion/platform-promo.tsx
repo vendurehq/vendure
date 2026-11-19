@@ -162,7 +162,7 @@ export function PlatformPromoDialog({
             // while the dialog fades out.
             onOpenChangeComplete={value => !value && setSelected(undefined)}
         >
-            <DialogContent className="sm:max-w-md">
+            <DialogContent>
                 {current ? (
                     <>
                         <DialogTitle className="sr-only">{current.promotion.title}</DialogTitle>

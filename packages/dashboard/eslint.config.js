@@ -285,6 +285,30 @@ export default [{
     ],
   },
 }, {
+  // A dialog or sheet takes its width from the design-system `size` prop
+  // (Dialog: default, lg, xl, full; Sheet: default, xl), not from its own
+  // w-*, min-w-* or max-w-* class. A consumer max-w-* overrides the size on a
+  // dialog and loses to it on a sheet, so the widths drift apart. Height and
+  // layout classes stay. A copy of no-restricted-syntax under its own name, so
+  // it does not replace the selectors above.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'dialog-width': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'dialog-width/no-restricted-syntax': [
+      'error',
+      ...[
+        'Literal[value=/(^|[\\s:!])(min-|max-)?w-/]',
+        'TemplateElement[value.raw=/(^|[\\s:!])(min-|max-)?w-/]',
+      ].map(selector => ({
+        selector: `JSXOpeningElement[name.name=/^(DialogContent|SheetContent)$/] > JSXAttribute[name.name='className'] ${selector}`,
+        message: 'Set the width with the size prop (DialogContent: default, lg, xl, full; SheetContent: default, xl), not a w-*, min-w-* or max-w-* class.',
+      })),
+    ],
+  },
+}, {
   // A count pinned to the top corner of a bell or a filter trigger (absolute,
   // a negative top and end offset, rounded-full) sets its own size, colour and
   // position, so the three in the apps drifted apart. CountBadge owns them:

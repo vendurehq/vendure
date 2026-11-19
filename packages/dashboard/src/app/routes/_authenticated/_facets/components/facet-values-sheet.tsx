@@ -25,7 +25,7 @@ export function FacetValuesSheet({ facetName, facetId, children }: Readonly<Face
             >
                 {children}
             </SheetTrigger>
-            <SheetContent className="min-w-[90vw] lg:min-w-[800px]">
+            <SheetContent size="xl">
                 <SheetHeader>
                     <SheetTitle>
                         <Trans>Facet values for {facetName}</Trans>

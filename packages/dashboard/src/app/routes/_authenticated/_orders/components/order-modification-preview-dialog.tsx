@@ -161,7 +161,7 @@ export function OrderModificationPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="min-w-[80vw] max-h-[90vh] p-8 overflow-hidden flex flex-col">
+            <DialogContent size="full" className="max-h-[90vh] p-8 overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Preview order modifications</Trans>

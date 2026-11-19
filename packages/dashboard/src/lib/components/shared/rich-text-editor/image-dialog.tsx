@@ -100,7 +100,7 @@ export function ImageDialog({ editor, isOpen, onClose }: Readonly<ImageDialogPro
     return (
         <>
             <Dialog open={isOpen} onOpenChange={open => !open && handleClose()}>
-                <DialogContent className="sm:max-w-[525px]">
+                <DialogContent size="lg">
                     <DialogHeader>
                         <DialogTitle>
                             {isEditing ? <Trans>Edit image</Trans> : <Trans>Insert image</Trans>}

@@ -157,7 +157,7 @@ export function AssetPickerDialog({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <PageContext.Provider value={pageContextValue}>
-                <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] flex flex-col">
+                <DialogContent size="full" className="h-[85vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle>{title === undefined ? defaultTitle : callerTitle}</DialogTitle>
                         <DialogDescription className="sr-only">
