@@ -1,20 +1,22 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { Chip } from '@/vdb/components/ui/chip.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-} from '@/vdb/components/ui/command.js';
+    Combobox,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxValue,
+    useComboboxAnchor,
+} from '@/vdb/components/ui/combobox.js';
 import { Label } from '@/vdb/components/ui/label.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { api } from '@/vdb/graphql/api.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Settings2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { Settings2 } from 'lucide-react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import { createTagDocument, tagListDocument } from '../assets.graphql.js';
 import { ManageTagsDialog } from './manage-tags-dialog.js';
@@ -32,14 +34,15 @@ export function AssetTagsEditor({
     disabled = false,
     onTagsUpdated,
 }: Readonly<AssetTagsEditorProps>) {
-    const [open, setOpen] = useState(false);
     const [searchValue, setSearchValue] = useState('');
     const [manageDialogOpen, setManageDialogOpen] = useState(false);
     const queryClient = useQueryClient();
     const { t } = useLingui();
+    const inputId = useId();
+    const anchor = useComboboxAnchor();
 
     // Fetch available tags
-    const { data: tagsData } = useQuery({
+    const { data: tagsData, isLoading } = useQuery({
         queryKey: ['tags'],
         queryFn: () => api.query(tagListDocument, { options: { take: 100 } }),
     });
@@ -62,140 +65,72 @@ export function AssetTagsEditor({
         },
     });
 
-    const availableTags = tagsData?.tags.items || [];
+    const availableTags = (tagsData?.tags.items ?? []).map(tag => tag.value);
 
-    // Filter tags based on search value
-    const filteredTags = availableTags.filter(tag =>
-        tag.value.toLowerCase().includes(searchValue.toLowerCase()),
-    );
-
-    // Check if search value would create a new tag
+    // A search that matches no tag exactly is offered as a new tag, first in the list.
     const isNewTag =
-        searchValue.trim() &&
-        !availableTags.some(tag => tag.value.toLowerCase() === searchValue.toLowerCase());
-
-    const handleSelectTag = useCallback(
-        (tagValue: string) => {
-            if (!selectedTags.includes(tagValue)) {
-                onTagsChange([...selectedTags, tagValue]);
-            }
-            setSearchValue('');
-            setOpen(false);
-        },
-        [selectedTags, onTagsChange],
-    );
-
-    const handleRemoveTag = useCallback(
-        (tagToRemove: string) => {
-            onTagsChange(selectedTags.filter(tag => tag !== tagToRemove));
-        },
-        [selectedTags, onTagsChange],
-    );
-
-    const handleCreateTag = useCallback(() => {
-        if (isNewTag) {
-            createTagMutation.mutate(searchValue.trim());
-        }
-    }, [isNewTag, searchValue, createTagMutation]);
+        !!searchValue.trim() &&
+        !availableTags.some(tag => tag.toLowerCase() === searchValue.trim().toLowerCase());
+    const items = isNewTag ? [searchValue.trim(), ...availableTags] : availableTags;
 
     return (
         <div className="space-y-3">
-            <Label>
+            <Label htmlFor={inputId}>
                 <Trans>Tags</Trans>
             </Label>
 
-            {/* Selected tags display */}
-            <div className="flex flex-wrap gap-2 min-h-[32px]">
-                {selectedTags.length === 0 ? (
-                    <span className="text-sm text-muted-foreground">
-                        <Trans>No tags selected</Trans>
-                    </span>
-                ) : (
-                    selectedTags.map(tag => (
-                        <Chip
-                            key={tag}
-                            onRemove={disabled ? undefined : () => handleRemoveTag(tag)}
-                            removeLabel={t`Remove ${tag}`}
-                        >
-                            {tag}
-                        </Chip>
-                    ))
-                )}
-            </div>
-
-            {/* Tag selector */}
-            {!disabled && (
-                <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger render={<Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={open}
-                            className="w-full justify-between"
-                        />}>
-                        <Trans>Add tags...</Trans>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                        <Command>
-                            <CommandInput
-                                placeholder="Search tags..."
-                                value={searchValue}
-                                onValueChange={setSearchValue}
-                            />
-                            <CommandEmpty>
-                                {searchValue.trim() ? (
-                                    <div className="">
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full justify-start"
-                                            onClick={handleCreateTag}
-                                            disabled={createTagMutation.isPending}
-                                        >
-                                            <Trans>Create "{searchValue.trim()}"</Trans>
-                                        </Button>
-                                    </div>
+            <Combobox
+                items={items}
+                multiple
+                value={selectedTags}
+                onValueChange={(next: string[]) => {
+                    const created = next.find(tag => !selectedTags.includes(tag) && !availableTags.includes(tag));
+                    if (created) {
+                        if (!createTagMutation.isPending) {
+                            createTagMutation.mutate(created);
+                        }
+                        return;
+                    }
+                    onTagsChange(next);
+                    setSearchValue('');
+                }}
+                inputValue={searchValue}
+                onInputValueChange={setSearchValue}
+                loading={isLoading || createTagMutation.isPending}
+                disabled={disabled}
+            >
+                <ComboboxChips ref={anchor} className="w-full">
+                    <ComboboxValue>
+                        {(values: string[]) =>
+                            values.map(tag => (
+                                <ComboboxChip key={tag} removeLabel={t`Remove ${tag}`}>
+                                    {tag}
+                                </ComboboxChip>
+                            ))
+                        }
+                    </ComboboxValue>
+                    <ComboboxChipsInput
+                        id={inputId}
+                        placeholder={selectedTags.length === 0 ? t`Add tags...` : undefined}
+                    />
+                </ComboboxChips>
+                <ComboboxContent anchor={anchor}>
+                    <ComboboxEmpty>
+                        <Trans>No tags found</Trans>
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                        {(tag: string) => (
+                            <ComboboxItem key={tag} value={tag}>
+                                {isNewTag && tag === searchValue.trim() ? (
+                                    <Trans>Create "{searchValue.trim()}"</Trans>
                                 ) : (
-                                    <div className="p-2 text-sm">
-                                        <Trans>No tags found</Trans>
-                                    </div>
+                                    tag
                                 )}
-                            </CommandEmpty>
-                            <CommandGroup>
-                                {/* Show option to create new tag if search doesn't match exactly */}
-                                {isNewTag && (
-                                    <CommandItem
-                                        onSelect={handleCreateTag}
-                                        disabled={createTagMutation.isPending}
-                                        className="font-medium"
-                                    >
-                                        <Trans>Create "{searchValue.trim()}"</Trans>
-                                    </CommandItem>
-                                )}
-
-                                {/* Show existing tags */}
-                                {filteredTags.map(tag => {
-                                    const isSelected = selectedTags.includes(tag.value);
-                                    return (
-                                        <CommandItem
-                                            key={tag.id}
-                                            onSelect={() => handleSelectTag(tag.value)}
-                                            disabled={isSelected}
-                                        >
-                                            <Check
-                                                className={cn(
-                                                    'mr-2 h-4 w-4',
-                                                    isSelected ? 'opacity-100' : 'opacity-0',
-                                                )}
-                                            />
-                                            {tag.value}
-                                        </CommandItem>
-                                    );
-                                })}
-                            </CommandGroup>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-            )}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
 
             {!disabled && (
                 <Button
