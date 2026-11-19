@@ -935,12 +935,14 @@ const AssetCard = memo(function AssetCard({
                 group relative overflow-hidden rounded-lg transition-[box-shadow] duration-fast ease-default
                 bg-card text-card-foreground ring-1 text-left
                 hover:ring-primary/40
+                has-[>button:focus-visible]:outline-solid has-[>button:focus-visible]:outline-2
+                has-[>button:focus-visible]:outline-offset-2 has-[>button:focus-visible]:outline-ring
                 ${isSelected ? 'ring-2 ring-primary' : 'ring-foreground/10'}
             `}
         >
             <button
                 type="button"
-                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none"
                 aria-label={t`Select ${asset.name}`}
                 onClick={e => onSelectAsset(asset, e)}
             />
