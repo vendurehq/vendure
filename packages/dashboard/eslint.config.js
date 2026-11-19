@@ -158,9 +158,10 @@ export default [{
   // A native title is a hover hint the design system does not draw: it opens
   // late, ignores keyboard focus and touch, and looks like the operating system.
   // Use Tooltip, RelativeTime for a time (its tooltip shows the full date), and
-  // aria-label plus Tooltip on an icon-only control. Only lower-case tags are
-  // checked: title on a component (PageTitle, Card…) is a prop. iframe and abbr
-  // keep title, where it names the frame or expands the abbreviation.
+  // aria-label plus Tooltip on an icon-only control. Lower-case tags are checked,
+  // and so is Button, which passes title through to the native button. Other
+  // components (PageTitle, Card…) take title as a prop. iframe and abbr keep
+  // title, where it names the frame or expands the abbreviation.
   files: ['src/**/*.tsx'],
   ignores: [
     'src/**/*.spec.tsx',
@@ -175,6 +176,10 @@ export default [{
       {
         selector: "JSXOpeningElement[name.name=/^(?!(iframe|abbr)$)[a-z]/] > JSXAttribute[name.name='title']",
         message: 'Use Tooltip from @/vdb/components/ui/tooltip.js, or RelativeTime for a time. Do not use a native title for a hover hint.',
+      },
+      {
+        selector: "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='title']",
+        message: 'Button passes title to the native button. An icon-only Button takes aria-label plus Tooltip; a Button with visible text drops the title.',
       },
     ],
   },
