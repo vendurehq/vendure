@@ -8,9 +8,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { PreviewCollectionVariantsInput } from '@vendure/common/lib/generated-types';
-import { Eye, Loader2 } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 import { getCollectionFiltersQueryOptions } from '../collections.graphql.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 
 export const previewCollectionContentsDocument = graphql(`
     query PreviewCollectionContents(
@@ -84,7 +85,7 @@ export function CollectionContentsPreviewTable({
         <div>
             {applying ? (
                 <Alert className="mb-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner />
                     <AlertTitle>
                         <Trans>Applying filters…</Trans>
                     </AlertTitle>

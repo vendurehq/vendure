@@ -2,6 +2,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import { Chip } from '@/vdb/components/ui/chip.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import {
     Command,
     CommandEmpty,
@@ -17,7 +18,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import type { DocumentNode } from 'graphql';
-import { CheckIcon, Loader2, Plus, X } from 'lucide-react';
+import { CheckIcon, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 
 export interface RelationSelectorConfig<T = any> {
@@ -465,7 +466,7 @@ export function RelationSelector<T>({
 
                             {(isFetchingNextPage || isLoading) && (
                                 <div className="flex items-center justify-center py-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Spinner />
                                 </div>
                             )}
 

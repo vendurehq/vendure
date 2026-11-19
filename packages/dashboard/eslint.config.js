@@ -113,6 +113,36 @@ export default [{
     ],
   },
 }, {
+  // A hand-drawn spinner keeps turning under reduced motion and has no role or
+  // name: Spinner and LoadingState own both. Shortcut hints use Kbd, which
+  // styles the key for tooltips and keeps key names left to right in RTL pages.
+  // A copy of no-restricted-syntax under its own name, so these errors do not
+  // replace the selectors above.
+  files: ['src/**/*.tsx'],
+  ignores: [
+    'src/**/*.spec.tsx',
+    'src/lib/components/ui/**',
+  ],
+  plugins: {
+    'design-primitives': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'design-primitives/no-restricted-syntax': [
+      'error',
+      ...[
+        "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)animate-spin(\\s|$)/]",
+        "JSXAttribute[name.name='className'] TemplateElement[value.raw=/(^|\\s)animate-spin(\\s|$)/]",
+      ].map(selector => ({
+        selector,
+        message: 'Use Spinner from @/vdb/components/ui/spinner.js, or LoadingState variant="spinner" for a loading region. Do not spin an icon or a border with animate-spin.',
+      })),
+      {
+        selector: "JSXOpeningElement[name.name='kbd']",
+        message: 'Use Kbd or KbdGroup from @/vdb/components/ui/kbd.js, not a raw <kbd>.',
+      },
+    ],
+  },
+}, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,
