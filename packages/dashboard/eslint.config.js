@@ -230,7 +230,7 @@ export default [{
   },
   rules: {
     'search-picker/no-restricted-syntax': [
-      'warn',
+      'error',
       {
         selector:
           "JSXElement[openingElement.name.name='PopoverContent'] JSXElement[openingElement.name.name='Command']",
