@@ -1,6 +1,7 @@
 import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Trans } from '@lingui/react/macro';
 import { PlayIcon } from 'lucide-react';
 import React from 'react';
@@ -73,10 +74,7 @@ export function ShippingMethodTestResultWrapper({
                 )}
 
                 {loading && (
-                    <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-sm text-muted-foreground">{loadingLabel}</p>
-                    </div>
+                    <LoadingState variant="spinner" label={loadingLabel} />
                 )}
 
                 {!loading && showEmptyState && emptyState}

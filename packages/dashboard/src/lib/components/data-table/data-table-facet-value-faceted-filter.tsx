@@ -1,4 +1,5 @@
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import {
     Command,
     CommandEmpty,
@@ -17,7 +18,7 @@ import {
 } from '@/vdb/hooks/use-facet-value-browser.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { DataTableFacetedFilterProps, FacetedFilterChip } from './data-table-faceted-filter.js';
 
@@ -164,7 +165,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
                         <CommandEmpty>
                             {isLoading ? (
                                 <div className="flex items-center justify-center py-4">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Spinner />
                                 </div>
                             ) : (
                                 <div className="text-sm text-muted-foreground">
@@ -203,7 +204,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
                                 </CommandGroup>
                                 {(isFetchingNextPage || isLoadingExpandedFacet) && (
                                     <div className="flex items-center justify-center py-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Spinner />
                                     </div>
                                 )}
                             </>
@@ -226,7 +227,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
                                         </CommandGroup>
                                         {browseMode && isFetchingNextFacetsPage && (
                                             <div className="flex items-center justify-center py-2">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <Spinner />
                                             </div>
                                         )}
                                     </>

@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import {
     Dialog,
     DialogContent,
@@ -11,7 +12,7 @@ import { Progress } from '@/vdb/components/ui/progress.js';
 import { api, UploadErrorCode, UploadWithProgressResult } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Plural, Trans } from '@lingui/react/macro';
-import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createAssetsDocument } from './asset-documents.js';
 
@@ -249,7 +250,7 @@ export function AssetUploadModal({ files, open, onClose, onComplete }: AssetUplo
 function UploadStatusIcon({ status }: { status: UploadStatus }) {
     switch (status) {
         case 'queued':    return <Clock        className="h-4 w-4 text-muted-foreground shrink-0" />;
-        case 'uploading': return <Loader2      className="h-4 w-4 animate-spin text-primary shrink-0" />;
+        case 'uploading': return <Spinner className="text-primary shrink-0" />;
         case 'done':      return <CheckCircle2 className="h-4 w-4 text-success shrink-0" />;
         case 'error':     return <XCircle      className="h-4 w-4 text-destructive shrink-0" />;
     }

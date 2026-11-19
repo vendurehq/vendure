@@ -1,6 +1,7 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { LoadingState } from '@/vdb/components/ui/state-views.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import {
     Command,
     CommandEmpty,
@@ -19,7 +20,7 @@ import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Check, Filter, Loader2 } from 'lucide-react';
+import { Check, Filter } from 'lucide-react';
 import { useState } from 'react';
 import { tagListDocument } from '../assets.graphql.js';
 
@@ -184,7 +185,7 @@ function AssetTagFilterOptions({
 
                     {(isFetchingNextPage || isLoading) && (
                         <div className="flex items-center justify-center py-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Spinner />
                         </div>
                     )}
 

@@ -9,9 +9,9 @@ import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 
 import { useLoginExtensions } from '../../framework/extension-api/use-login-extensions.js';
 import { LogoMark } from '../shared/logo-mark.js';
@@ -132,7 +132,7 @@ export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormPr
                                     <Button type="submit" className="w-full" disabled={isPending}>
                                         {isPending ? (
                                             <>
-                                                <Loader2 className="animate-spin" />
+                                                <Spinner />
                                                 <Trans>Please wait</Trans>
                                             </>
                                         ) : (
