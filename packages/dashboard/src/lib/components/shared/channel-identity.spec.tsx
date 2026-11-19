@@ -9,6 +9,12 @@ describe('ChannelIdentity', () => {
 
         expect(markup).toContain('size-3.5');
     });
+
+    it('draws the channel as a square avatar', () => {
+        const markup = renderToStaticMarkup(<ChannelIdentity color="viz-1" />);
+
+        expect(markup).toContain('data-shape="square"');
+    });
 });
 
 describe('ChannelColorSwatch', () => {

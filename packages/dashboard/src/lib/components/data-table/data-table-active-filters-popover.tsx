@@ -1,3 +1,4 @@
+import { CountBadge } from '@/vdb/components/ui/count-badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { Trans } from '@lingui/react/macro';
@@ -25,9 +26,7 @@ export function ActiveFiltersPopover({
             <PopoverTrigger render={<Button variant="outline" size="sm" className="border-dashed" />}>
                 <Filter className="h-4 w-4" />
                 <Trans>Active filters</Trans>
-                <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                    {filters.length}
-                </span>
+                <CountBadge count={filters.length} />
             </PopoverTrigger>
             <PopoverContent align="start" className="flex flex-col items-start gap-2 w-auto max-w-sm">
                 {filters.map(f => {

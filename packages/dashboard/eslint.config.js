@@ -212,6 +212,28 @@ export default [{
     ],
   },
 }, {
+  // An avatar takes its corners from Avatar: round for a person (the default),
+  // shape="square" for a channel or an account. A rounded-* class on Avatar,
+  // AvatarImage or AvatarFallback sets them by hand and misses the ::after
+  // border. Any string in the className counts, so cn() arguments are checked too.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'avatar-radius': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'avatar-radius/no-restricted-syntax': [
+      'error',
+      ...[
+        'Literal[value=/(^|[\\s:])rounded(-[a-z0-9]+)?(\\s|$)/]',
+        'TemplateElement[value.raw=/(^|[\\s:])rounded(-[a-z0-9]+)?(\\s|$)/]',
+      ].map(selector => ({
+        selector: `JSXOpeningElement[name.name=/^Avatar(Fallback|Image)?$/] > JSXAttribute[name.name='className'] ${selector}`,
+        message: 'Do not round an avatar by hand. Use Avatar shape="square" for a channel or an account; a person keeps the round default.',
+      })),
+    ],
+  },
+}, {
   // A Button that sets its own hover colour drifts from the design-system
   // variants. Pick the variant that matches the weight (ghost, outline,
   // destructive-outline) instead. Size overrides (h-*, w-*, size-*) are not
@@ -283,6 +305,32 @@ export default [{
       ].map(selector => ({
         selector: `JSXOpeningElement[name.name=/^(DialogContent|SheetContent)$/] > JSXAttribute[name.name='className'] ${selector}`,
         message: 'Set the width with the size prop (DialogContent: default, lg, xl, full; SheetContent: default, xl), not a w-*, min-w-* or max-w-* class.',
+      })),
+    ],
+  },
+}, {
+  // A count pinned to the top corner of a bell or a filter trigger (absolute,
+  // a negative top and end offset, rounded-full) sets its own size, colour and
+  // position, so the three in the apps drifted apart. CountBadge owns them:
+  // placement="corner" on an icon button, the default inline form inside a
+  // button label. Matches only the corner placement. A count built another way
+  // is not caught. A copy of no-restricted-syntax under its own name, so it
+  // does not replace the selectors above. Belongs in @vendure-io/design-lint
+  // once it has a rule for it.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'count-badge': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'count-badge/no-restricted-syntax': [
+      'error',
+      ...[
+        ['Literal', 'value'],
+        ['TemplateElement', 'value.raw'],
+      ].map(([node, text]) => ({
+        selector: `JSXAttribute[name.name='className'] ${node}[${text}=/(^|[\\s:])absolute(\\s|$)/][${text}=/(^|[\\s:])-top-/][${text}=/(^|[\\s:])-(right|end)-/][${text}=/(^|[\\s:])rounded-full(\\s|$)/]`,
+        message: 'A count on the corner of an icon button is CountBadge from @/vdb/components/ui/count-badge.js with placement="corner" (and relative on the button). Do not position and colour it by hand.',
       })),
     ],
   },

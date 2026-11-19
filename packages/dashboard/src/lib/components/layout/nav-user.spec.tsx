@@ -30,9 +30,13 @@ vi.mock('@/vdb/components/ui/dropdown-menu.js', () => ({
 
 vi.mock('@/vdb/components/ui/sidebar.js', () => ({
     SidebarMenu: Passthrough,
-    SidebarMenuButton: Passthrough,
     SidebarMenuItem: Passthrough,
     useSidebar: () => ({ isMobile: false, state: 'expanded' }),
+}));
+
+vi.mock('@vendure-io/ui/components/atoms/sidebar', async importOriginal => ({
+    ...(await importOriginal()),
+    SidebarIdentityButton: Passthrough,
 }));
 
 vi.mock('@/vdb/components/ui/dialog.js', () => ({ Dialog: Passthrough, DialogTrigger: Passthrough }));
@@ -55,7 +59,11 @@ vi.mock('@/vdb/hooks/use-display-locale.js', () => ({
     useDisplayLocale: () => ({ humanReadableLanguage: 'English' }),
 }));
 vi.mock('@/vdb/hooks/use-user-settings.js', () => ({
-    useUserSettings: () => ({ settings: { theme: 'system', devMode: false }, setTheme: vi.fn(), setDevMode: vi.fn() }),
+    useUserSettings: () => ({
+        settings: { theme: 'system', devMode: false },
+        setTheme: vi.fn(),
+        setDevMode: vi.fn(),
+    }),
 }));
 
 // All locked Platform items are hidden: the Dashboard opt-out, or License Guard without a report.
