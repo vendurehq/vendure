@@ -1636,6 +1636,10 @@ msgstr ", {0} geselecteerd"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Geen landen gevonden"
@@ -2196,6 +2200,10 @@ msgstr "Nieuwe belastingcategorie"
 #~ msgid "Partial refund completed"
 #~ msgstr "Gedeeltelijke restitutie voltooid"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Aangepaste velden instellen"
@@ -2333,6 +2341,10 @@ msgstr "Laatste 30 dagen"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Geen facetwaarden"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3472,6 +3484,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Korting"
 
@@ -4220,6 +4233,10 @@ msgstr "Probeer opnieuw"
 msgid "Successfully updated shipping method"
 msgstr "Verzendmethode succesvol bijgewerkt"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "Productvariant bijwerken mislukt"
@@ -4551,6 +4568,10 @@ msgstr "Wachtwoorden komen niet overeen"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Kies een datum en tijd"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -6442,6 +6463,10 @@ msgstr "Variantnaam"
 msgid "Remove"
 msgstr "Verwijderen"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
@@ -6755,6 +6780,10 @@ msgstr "Binair"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Optiegroep succesvol bijgewerkt"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7134,6 +7163,10 @@ msgstr "Globale talen"
 msgid "New administrator"
 msgstr "Nieuwe beheerder"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Concept verwijderen"
@@ -7492,6 +7525,10 @@ msgstr "groter dan of gelijk aan"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Stelt het voorraadniveau in waarbij deze variant als uitverkocht wordt beschouwd. Het gebruik van een negatieve waarde schakelt ondersteuning voor nabestellingen in."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Productopties aanmaken"
@@ -7729,6 +7766,10 @@ msgstr "Sluiten"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Link"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"

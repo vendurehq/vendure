@@ -1632,6 +1632,10 @@ msgstr ", {0} vybráno"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Nenalezeny žádné země"
@@ -2192,6 +2196,10 @@ msgstr "Nová daňová kategorie"
 #~ msgid "Partial refund completed"
 #~ msgstr "Částečné vrácení dokončeno"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Nastavit vlastní pole"
@@ -2329,6 +2337,10 @@ msgstr "Posledních 30 dní"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Žádné hodnoty vlastností"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3478,6 +3490,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Sleva"
 
@@ -4226,6 +4239,10 @@ msgstr "Zkusit znovu"
 msgid "Successfully updated shipping method"
 msgstr "Způsob dopravy byl úspěšně aktualizován"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "Nepodařilo se aktualizovat variantu produktu"
@@ -4557,6 +4574,10 @@ msgstr "Hesla se neshodují"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Vyberte datum a čas"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -6447,6 +6468,10 @@ msgstr "Název varianty"
 msgid "Remove"
 msgstr "Odebrat"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
@@ -6760,6 +6785,10 @@ msgstr "Binární"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Skupina voleb úspěšně aktualizována"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7139,6 +7168,10 @@ msgstr "Globální jazyky"
 msgid "New administrator"
 msgstr "Nový správce"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Smazat koncept"
@@ -7497,6 +7530,10 @@ msgstr "větší nebo rovno"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Nastavuje skladovou úroveň, při které je tato varianta považována za vyprodanou. Použití záporné hodnoty umožňuje podporu předobjednávek."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Vytvořit volby produktu"
@@ -7734,6 +7771,10 @@ msgstr "Zavřít"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Odkaz"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"

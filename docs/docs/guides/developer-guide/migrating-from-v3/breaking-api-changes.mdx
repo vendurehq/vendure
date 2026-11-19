@@ -194,6 +194,30 @@ An update mutation of your own must leave an absent field unchanged, which it do
 
 `updatePromotion` now computes the priority score from the stored conditions and actions when the input omits them. Before, an update without `conditions` and `actions` reset the score to 0.
 
+### Order modifications keep the discounts of a paid Order
+
+`modifyOrder` no longer re-tests every Promotion on every modification. The new `orderOptions.promotionFreezeStrategy` decides, and the default `DefaultPromotionFreezeStrategy` freezes the Promotions unless the modification changes the OrderLines, the coupon codes or the shipping methods. So an address change, a surcharge, a note or a custom field no longer changes what a paid Order costs, even if a Promotion has been disabled since payment or one of its conditions now answers differently. In v3 it could.
+
+- The `freezePromotions` option of `ModifyOrderInput.options` was never read in v3. It now overrides the strategy: `true` keeps the discounts, `false` re-tests the Promotions.
+- When the Promotions are frozen, the OrderLines keep their discount amounts, so units added to an existing line get no discount. Lowering a line's quantity scales its discount down in proportion. A shipping discount is capped at the new shipping price.
+- A modification that changes the coupon codes while the Promotions are frozen is rejected.
+- Coupon codes that are already on the Order are no longer validated again. In v3, re-sending a code whose Promotion had been disabled or had ended returned `CouponCodeInvalidError` or `CouponCodeExpiredError`, and a code with a per-customer usage limit could return `CouponCodeLimitError` because the Order counted against itself. Now the modification goes ahead. New codes are still validated.
+- When the Promotions are re-tested, the ones already on the Order are candidates too, so a Promotion disabled since payment still applies as long as its conditions pass.
+- The `ORDER_MODIFIED` history entry records the decision in `data.promotionsFrozen`.
+- The Dashboard previews a modification both ways. When the discounts would differ, the administrator chooses which ones the Order gets.
+
+To re-test the Promotions on every modification unless the client asks to freeze them, which is closest to v3:
+
+```ts
+import { PromotionFreezeStrategy } from '@vendure/core';
+
+orderOptions: {
+    promotionFreezeStrategy: {
+        shouldFreezePromotions: (ctx, order, input) => input.options?.freezePromotions === true,
+    } satisfies PromotionFreezeStrategy,
+},
+```
+
 ## The Dashboard is served from its pre-built bundle
 
 `vendureDashboardPlugin` now always loads the Dashboard from the pre-built bundle in the `@vendure/dashboard` package, which was opt-in through `useExperimentalBundle` since v3.7. Your Vite dev server no longer compiles the Dashboard's own source. This cuts the number of module requests on a cold load from about 3,000 to about 40.

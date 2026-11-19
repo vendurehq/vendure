@@ -354,3 +354,73 @@ export function canCancelOrderWithoutRefund(order: Order): boolean {
     if (!order || order.type !== 'Regular' || order.active === true) return false;
     return !orderHasSettledPayments(order) && order.nextStates.includes('Cancelled');
 }
+
+/**
+ * The parts of a modified Order that {@link compareModificationDiscounts} compares.
+ */
+export interface ModificationDiscountsPreview {
+    totalWithTax: number;
+    discounts: Array<{ adjustmentSource: string; description: string; amountWithTax: number }>;
+}
+
+/**
+ * One discount of a modification previewed twice: once keeping the discounts the Order was paid
+ * with, and once re-applying the promotions. An amount is `null` when the discount is absent.
+ */
+export interface DiscountComparisonRow {
+    adjustmentSource: string;
+    description: string;
+    keptAmountWithTax: number | null;
+    reappliedAmountWithTax: number | null;
+}
+
+/**
+ * Lines up the discounts of the two previews of a modification by their source. Returns an
+ * empty array when both previews have the same discounts and total, in which case there is
+ * nothing for the administrator to choose between.
+ */
+export function compareModificationDiscounts(
+    kept: ModificationDiscountsPreview,
+    reapplied: ModificationDiscountsPreview,
+): DiscountComparisonRow[] {
+    const rows = new Map<string, DiscountComparisonRow>();
+    for (const discount of kept.discounts) {
+        rows.set(discount.adjustmentSource, {
+            adjustmentSource: discount.adjustmentSource,
+            description: discount.description,
+            keptAmountWithTax: discount.amountWithTax,
+            reappliedAmountWithTax: null,
+        });
+    }
+    for (const discount of reapplied.discounts) {
+        const row = rows.get(discount.adjustmentSource);
+        if (row) {
+            row.reappliedAmountWithTax = discount.amountWithTax;
+        } else {
+            rows.set(discount.adjustmentSource, {
+                adjustmentSource: discount.adjustmentSource,
+                description: discount.description,
+                keptAmountWithTax: null,
+                reappliedAmountWithTax: discount.amountWithTax,
+            });
+        }
+    }
+    const differ =
+        kept.totalWithTax !== reapplied.totalWithTax ||
+        [...rows.values()].some(row => row.keptAmountWithTax !== row.reappliedAmountWithTax);
+    return differ ? [...rows.values()] : [];
+}
+
+/**
+ * Whether the coupon codes of a modification differ from the Order's, compared case-insensitively
+ * as the server does. The input usually carries the Order's coupon codes even when unchanged.
+ */
+export function couponCodesChanged(current: string[], next: string[] | null | undefined): boolean {
+    if (next == null) {
+        return false;
+    }
+    const lower = (codes: string[]) => new Set(codes.map(code => code.toLowerCase()));
+    const a = lower(current);
+    const b = lower(next);
+    return a.size !== b.size || [...a].some(code => !b.has(code));
+}

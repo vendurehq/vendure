@@ -825,6 +825,77 @@ test.describe('Orders', () => {
         expect(body.data.modifyOrder.__typename).toBe('Order');
     });
 
+    // #5356 — when re-applying the promotions would change the discounts of a paid order, the
+    // modification preview asks which discounts to keep
+    test('should ask which discounts to keep when a modification would change them', async ({ page }) => {
+        test.setTimeout(90_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { createPromotion } = await client.gql(`
+            mutation {
+                createPromotion(input: {
+                    enabled: true
+                    conditions: [{
+                        code: "minimum_order_amount"
+                        arguments: [{ name: "amount", value: "1" }, { name: "taxInclusive", value: "true" }]
+                    }]
+                    actions: [{ code: "order_percentage_discount", arguments: [{ name: "discount", value: "10" }] }]
+                    translations: [{ languageCode: en, name: "E2E 10% off paid orders" }]
+                }) { ... on Promotion { id } }
+            }
+        `);
+        const promotionId = createPromotion.id as string;
+        try {
+            const orderId = await createModifyingOrder(page);
+            // The Promotion stays enabled, but the modified order no longer meets its condition
+            await client.gql(
+                `
+                mutation ($id: ID!) {
+                    updatePromotion(input: {
+                        id: $id
+                        conditions: [{
+                            code: "minimum_order_amount"
+                            arguments: [{ name: "amount", value: "100000000" }, { name: "taxInclusive", value: "true" }]
+                        }]
+                    }) { ... on Promotion { id } }
+                }
+            `,
+                { id: promotionId },
+            );
+
+            await page.goto(`/orders/${orderId}/modify`);
+            await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({ timeout: 10_000 });
+            const quantityInput = page.getByTestId('order-line-quantity').first();
+            await quantityInput.fill('2');
+            await quantityInput.press('Enter');
+            await page.getByRole('button', { name: /Preview/i }).click();
+
+            const dialog = page.getByRole('dialog');
+            const choice = dialog.getByTestId('promotion-freeze-choice');
+            await expect(choice).toBeVisible({ timeout: 10_000 });
+            await expect(choice.getByText('E2E 10% off paid orders')).toBeVisible();
+            const confirmButton = dialog.getByRole('button', { name: 'Confirm' });
+            await expect(confirmButton).toBeDisabled();
+
+            await choice.getByText('Keep the discounts the order was paid with').click();
+            await expect(confirmButton).toBeEnabled();
+
+            const confirmRequest = page.waitForRequest(
+                req =>
+                    (req.postData()?.includes('mutation ModifyOrder(') ?? false) &&
+                    (req.postData()?.includes('"dryRun":false') ?? false),
+            );
+            await confirmButton.click();
+            const body = JSON.parse((await confirmRequest).postData() ?? '{}');
+            expect(body.variables.input.options.freezePromotions).toBe(true);
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deletePromotion(id: $id) { result } }`, {
+                id: promotionId,
+            });
+        }
+    });
+
     // #3389 — existing tax descriptions should be available when adding a surcharge
     test('should suggest existing tax descriptions when adding a surcharge', async ({ page }) => {
         test.setTimeout(60_000);

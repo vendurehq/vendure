@@ -2915,6 +2915,13 @@ export type ModifyOrderInput = {
 };
 
 export type ModifyOrderOptions = {
+  /**
+   * Whether to keep the discounts the Order was paid with. When true, the Promotions on the
+   * Order are not re-tested and their discounts stay as they are; the coupon codes cannot be
+   * changed. When false, the Promotions are re-tested against the modified Order. When omitted,
+   * the configured PromotionFreezeStrategy decides: by default the Promotions are frozen unless
+   * the modification changes the OrderLines, the coupon codes or the shipping methods.
+   */
   freezePromotions?: InputMaybe<Scalars['Boolean']['input']>;
   recalculateShipping?: InputMaybe<Scalars['Boolean']['input']>;
 };

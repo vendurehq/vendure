@@ -1596,6 +1596,10 @@ msgstr ", {0} ta tanlangan"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Mamlakatlar topilmadi"
@@ -2131,6 +2135,10 @@ msgstr "Yangi soliq toifasi"
 #~ msgid "Partial refund completed"
 #~ msgstr "Qisman pul qaytarish bajarildi"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Maxsus maydonlarni o'rnatish"
@@ -2268,6 +2276,10 @@ msgstr "So'nggi 30 kun"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Faset qiymatlari yo'q"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3399,6 +3411,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Chegirma"
 
@@ -4134,6 +4147,10 @@ msgstr "Qayta urinib ko'ring"
 msgid "Successfully updated shipping method"
 msgstr "Yetkazib berish usuli yangilandi"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "Mahsulot variantini yangilab bo'lmadi"
@@ -4457,6 +4474,10 @@ msgstr "Parollar mos kelmaydi"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Sana va vaqtni tanlang"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -6283,6 +6304,10 @@ msgstr "Variant nomi"
 msgid "Remove"
 msgstr "Olib tashlash"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
@@ -6580,6 +6605,10 @@ msgstr "Ikkilik"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Optsiya guruhi muvaffaqiyatli yangilandi"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -6951,6 +6980,10 @@ msgstr "Global tillar"
 msgid "New administrator"
 msgstr "Yangi administrator"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Qoralamani o'chirish"
@@ -7301,6 +7334,10 @@ msgstr "dan katta yoki teng"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Ushbu variant zaxirada tugagan deb hisoblanadigan zaxira darajasini belgilaydi. Manfiy qiymat oldindan buyurtmani yoqadi."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Upload cancelled"
 msgstr ""
@@ -7530,6 +7567,10 @@ msgstr "Yopish"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Havola"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"
