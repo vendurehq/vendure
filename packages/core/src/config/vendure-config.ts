@@ -1359,7 +1359,7 @@ export interface EntityOptions {
      * SQLite only supports `SERIALIZABLE` and `READ UNCOMMITTED`.
      *
      * @since 4.0.0
-     * @default `'READ COMMITTED'` on MySQL and MariaDB, the database default otherwise
+     * @default 'READ COMMITTED' on MySQL and MariaDB, the database default otherwise
      */
     transactionIsolationLevel?: TransactionIsolationLevel;
 }
