@@ -228,6 +228,19 @@ describe('themeVariablesPlugin', () => {
         expect(result).toMatch(/\.dark \{[^}]*--font-display: "Public Sans Variable"/);
     });
 
+    it('defines the colour ramps and the default radius in light and dark', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        for (const block of [/:root \{[^}]*\}/, /\.dark \{[^}]*\}/]) {
+            const declarations = result.match(block)?.[0];
+            expect(declarations).toContain('--destructive-900: oklch(');
+            expect(declarations).toContain('--brand-500: oklch(');
+            expect(declarations).toContain('--viz-1: oklch(');
+            expect(declarations).toContain('--radius: 0.25rem;');
+        }
+    });
+
     it('handles both virtual imports in the same file', () => {
         const plugin = themeVariablesPlugin({});
         const css = `@import 'virtual:admin-theme';\n@import 'virtual:admin-theme-inline';`;
