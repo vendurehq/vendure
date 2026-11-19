@@ -6,6 +6,7 @@ import { Chip } from '@/vdb/components/ui/chip.js';
 import { ConfirmDialog } from '@/vdb/components/ui/confirm-dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { DEFAULT_CHANNEL_CODE } from '@/vdb/constants.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -261,14 +262,24 @@ export function RoleAssignmentsTable({
                                                     disabled={removing}
                                                 >
                                                     {onChannelSelect ? (
-                                                        <button
-                                                            type="button"
-                                                            className="hover:underline"
-                                                            title={t`Show permissions`}
-                                                            onClick={() => onChannelSelect(channel.channelId)}
-                                                        >
-                                                            <ChannelCodeLabel code={channel.code} />
-                                                        </button>
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                render={
+                                                                    <button
+                                                                        type="button"
+                                                                        className="hover:underline"
+                                                                        onClick={() =>
+                                                                            onChannelSelect(channel.channelId)
+                                                                        }
+                                                                    />
+                                                                }
+                                                            >
+                                                                <ChannelCodeLabel code={channel.code} />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <Trans>Show permissions</Trans>
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     ) : (
                                                         <ChannelCodeLabel code={channel.code} />
                                                     )}
