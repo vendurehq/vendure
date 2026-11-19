@@ -33,6 +33,14 @@ import { useChannelAvailabilityOption } from '@/vdb/hooks/use-channel-availabili
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import {
+    ListRow,
+    ListRowChevron,
+    ListRowContent,
+    ListRowLeading,
+    ListRowLink,
+    ListRowMeta,
+} from '@vendure-io/ui/components/molecules/list-row';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Controller, type UseFormReturn } from 'react-hook-form';
@@ -94,39 +102,43 @@ function NoVariantsPrompt({
     }
 
     return (
-        <div className="grid grid-cols-2 gap-3">
-            <button
-                type="button"
-                onClick={() => setMode('single')}
-                className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
-            >
-                <Package className="h-8 w-8 text-muted-foreground" />
-                <span className="font-medium">
-                    <Trans>Simple product</Trans>
-                </span>
-                <span className="text-sm text-muted-foreground">
-                    <Trans>Single variant, no options</Trans>
-                </span>
-            </button>
-            <AddOptionGroupDialog
-                productId={productId}
-                existingGroupIds={[]}
-                onSuccess={onOptionGroupCreated}
-                trigger={
-                    <button
-                        type="button"
-                        className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
-                    >
-                        <Layers className="h-8 w-8 text-muted-foreground" />
-                        <span className="font-medium">
-                            <Trans>Product with options</Trans>
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                            <Trans>Size, colour, etc.</Trans>
-                        </span>
-                    </button>
-                }
-            />
+        // Rows flush with the card edges, as in the Insights widgets.
+        <div role="list" className="-ms-(--card-ps) -me-(--card-px)">
+            <ListRow role="listitem">
+                <ListRowLeading>
+                    <Package />
+                </ListRowLeading>
+                <ListRowContent>
+                    <ListRowLink onClick={() => setMode('single')}>
+                        <Trans>Simple product</Trans>
+                    </ListRowLink>
+                    <ListRowMeta>
+                        <Trans>Single variant, no options</Trans>
+                    </ListRowMeta>
+                </ListRowContent>
+                <ListRowChevron />
+            </ListRow>
+            <ListRow role="listitem">
+                <ListRowLeading>
+                    <Layers />
+                </ListRowLeading>
+                <ListRowContent>
+                    <AddOptionGroupDialog
+                        productId={productId}
+                        existingGroupIds={[]}
+                        onSuccess={onOptionGroupCreated}
+                        trigger={
+                            <ListRowLink>
+                                <Trans>Product with options</Trans>
+                            </ListRowLink>
+                        }
+                    />
+                    <ListRowMeta>
+                        <Trans>Size, colour, etc.</Trans>
+                    </ListRowMeta>
+                </ListRowContent>
+                <ListRowChevron />
+            </ListRow>
         </div>
     );
 }

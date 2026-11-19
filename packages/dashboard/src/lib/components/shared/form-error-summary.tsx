@@ -92,14 +92,17 @@ export function FormErrorSummary({ form }: Readonly<{ form: UseFormReturn<any> }
                 <ul className="list-disc pl-4">
                     {flatErrors.map(error => (
                         <li key={error.name}>
-                            {/* Focusing the field scrolls it into view. */}
-                            <button
-                                type="button"
-                                className="font-medium underline underline-offset-2 hover:no-underline"
-                                onClick={() => form.setFocus(error.name)}
+                            {/* An in-page link, styled by AlertDescription. Focusing the
+                                field scrolls it into view. */}
+                            <a
+                                href={`#${error.name}`}
+                                onClick={event => {
+                                    event.preventDefault();
+                                    form.setFocus(error.name);
+                                }}
                             >
                                 {humanizeFieldName(error.name, form.getValues())}
-                            </button>
+                            </a>
                             : {error.message ?? <Trans>This field is invalid</Trans>}
                         </li>
                     ))}

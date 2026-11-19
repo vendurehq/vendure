@@ -155,6 +155,68 @@ export default [{
     ],
   },
 }, {
+  // A raw <button> sets its own text size, colour, hover, focus ring and click
+  // area, so it looks and behaves unlike every other button. Use Button (a
+  // `link` variant for a text action), ToggleGroup for a two-way switch, or
+  // ListRow / Item for rows and choices. The ignored files are follow-ups of
+  // OSS-1375: held by other changes, editor controls with no design-system
+  // match, or not yet migrated. Drop a file from the list once it is fixed.
+  files: ['src/**/*.tsx'],
+  ignores: [
+    'src/**/*.spec.tsx',
+    'src/**/*.stories.tsx',
+    'src/lib/components/ui/**',
+    'src/lib/components/data-table/data-table-views-tabs.tsx',
+    'src/lib/components/shared/rich-text-editor/resizable-image.tsx',
+    'src/lib/components/shared/rich-text-editor/table-grid-picker.tsx',
+    'src/lib/components/shared/asset/asset-gallery.tsx',
+    'src/lib/components/shared/configurable-operation-sentence.tsx',
+    'src/lib/components/data-input/string-list-input.tsx',
+    'src/lib/components/platform-promotion/platform-promo.tsx',
+    'src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx',
+  ],
+  plugins: {
+    'raw-button': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'raw-button/no-restricted-syntax': [
+      'error',
+      {
+        selector: "JSXOpeningElement[name.name='button']",
+        message: 'Use Button from @/vdb/components/ui/button.js (variant="link" for a text action), ToggleGroup for a switch, or ListRow / Item for a row. Do not draw a raw <button>.',
+      },
+    ],
+  },
+}, {
+  // A Button that sets its own hover colour drifts from the design-system
+  // variants. Pick the variant that matches the weight (ghost, outline,
+  // destructive-outline) instead. Size overrides (h-*, w-*, size-*) are not
+  // checked yet: about twenty files still resize Button (follow-up of OSS-1375).
+  // The ignored files are follow-ups too.
+  files: ['src/**/*.tsx'],
+  ignores: [
+    'src/**/*.spec.tsx',
+    'src/**/*.stories.tsx',
+    'src/lib/components/ui/**',
+    'src/lib/components/data-input/custom-field-list-input.tsx',
+    'src/lib/framework/layout-engine/dev-mode-button.tsx',
+  ],
+  plugins: {
+    'button-repaint': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'button-repaint/no-restricted-syntax': [
+      'error',
+      ...[
+        'Literal[value=/(^|[\\s:])hover:(bg|text)-/]',
+        'TemplateElement[value.raw=/(^|[\\s:])hover:(bg|text)-/]',
+      ].map(selector => ({
+        selector: `JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='className'] ${selector}`,
+        message: 'Do not repaint Button with a hover colour. Use a design-system variant: ghost, outline or destructive-outline.',
+      })),
+    ],
+  },
+}, {
   // A search picker is Combobox (ComboboxChips for several values), not a
   // Popover with a Command list inside: Combobox owns the popup width, the
   // empty state, the loading row, paging, the selected mark and the keyboard

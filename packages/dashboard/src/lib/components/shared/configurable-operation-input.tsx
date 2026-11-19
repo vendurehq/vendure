@@ -112,14 +112,8 @@ export function ConfigurableOperationInput({
                                 />
                             </Button>
                             {removable !== false && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={onRemove}
-                                    className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                    aria-label={t`Remove`}
-                                >
-                                    <X className="h-3.5 w-3.5" />
+                                <Button variant="ghost" size="icon-sm" onClick={onRemove} aria-label={t`Remove`}>
+                                    <X />
                                 </Button>
                             )}
                         </div>
@@ -164,12 +158,12 @@ export function ConfigurableOperationInput({
                         {removable !== false && (
                             <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={onRemove}
-                                className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                 disabled={readonly}
+                                aria-label={t`Remove`}
                             >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                             </Button>
                         )}
                     </div>
