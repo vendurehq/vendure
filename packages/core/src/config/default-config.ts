@@ -47,6 +47,7 @@ import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-or
 import { DefaultOrderPlacedStrategy } from './order/default-order-placed-strategy';
 import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
+import { DefaultPromotionFreezeStrategy } from './order/default-promotion-freeze-strategy';
 import { DefaultStockAllocationStrategy } from './order/default-stock-allocation-strategy';
 import { MergeOrdersStrategy } from './order/merge-orders-strategy';
 import { NoOrderRecalculationStrategy } from './order/no-order-recalculation-strategy';
@@ -194,6 +195,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
         orderInterceptors: [],
         orderRecalculationStrategy: new NoOrderRecalculationStrategy(),
+        promotionFreezeStrategy: new DefaultPromotionFreezeStrategy(),
     },
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],

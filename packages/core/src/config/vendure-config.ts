@@ -53,6 +53,7 @@ import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
 import { OrderRecalculationStrategy } from './order/order-recalculation-strategy';
 import { OrderSellerStrategy } from './order/order-seller-strategy';
+import { PromotionFreezeStrategy } from './order/promotion-freeze-strategy';
 import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
 import { PaymentMethodHandler } from './payment/payment-method-handler';
@@ -810,6 +811,18 @@ export interface OrderOptions {
      * @since 3.8.0
      */
     orderRecalculationStrategy?: OrderRecalculationStrategy;
+    /**
+     * @description
+     * Decides whether the Promotions on an Order are frozen when the Order is modified via the
+     * `modifyOrder` mutation, keeping the discounts the customer paid with, or re-tested. The
+     * default {@link DefaultPromotionFreezeStrategy} follows the mutation's `freezePromotions`
+     * option when it is set, and otherwise freezes unless the modification changes the OrderLines,
+     * the coupon codes or the shipping methods.
+     *
+     * @default DefaultPromotionFreezeStrategy
+     * @since 4.0.0
+     */
+    promotionFreezeStrategy?: PromotionFreezeStrategy;
 }
 
 /**

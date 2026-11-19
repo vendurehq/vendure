@@ -10,7 +10,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { IsNull } from 'typeorm';
+import { In, IsNull } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { isGraphQlErrorResult, JustErrorResults } from '../../../common/error/error-result';
@@ -78,6 +78,7 @@ import {
 import { TranslatorService } from '../translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
+import { changesCouponCodes } from '../utils/modify-order-changes';
 import { getOrderChannelContext } from '../utils/order-channel-context';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
@@ -433,7 +434,10 @@ export class OrderModifier {
         ctx: RequestContext,
         input: ModifyOrderInput,
         order: Order,
-    ): Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }> {
+    ): Promise<
+        | JustErrorResults<ModifyOrderResult>
+        | { order: Order; modification: OrderModification; promotionsFrozen: boolean }
+    > {
         if (input.shippingMethods && input.shippingMethodIds) {
             throw new UserInputError('error.modify-order-shipping-method-arguments-conflict');
         }
@@ -451,7 +455,13 @@ export class OrderModifier {
         if (this.noChangesSpecified(input)) {
             return new NoChangesSpecifiedError();
         }
-        const { orderItemsLimit } = this.configService.orderOptions;
+        const { orderItemsLimit, promotionFreezeStrategy } = this.configService.orderOptions;
+        // Decided on the Order as it was paid for, before anything below changes it
+        const freezePromotions = await promotionFreezeStrategy.shouldFreezePromotions(ctx, order, input);
+        if (freezePromotions && changesCouponCodes(order, input)) {
+            // A coupon code only has an effect through its Promotion, which a freeze does not apply
+            throw new UserInputError('error.modify-order-freeze-promotions-coupon-codes-conflict');
+        }
         const existingOrderLineIds = new Set(order.lines.map(line => String(line.id)));
         let currentItemsCount = summate(order.lines, 'quantity');
         const updatedOrderLineIds: ID[] = [];
@@ -677,8 +687,8 @@ export class OrderModifier {
         }
 
         const updatedOrderLines = order.lines.filter(l => updatedOrderLineIds.includes(l.id));
-        const promotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
+        const promotions = await this.getPromotionCandidates(ctx, activePromotionsPre);
         const shippingMethodSelections = input.shippingMethods ?? input.shippingMethodIds;
         // An empty list is no shipping change, as noChangesSpecified() treats it
         let shippingMethodsSet: SetShippingMethodsResult | undefined;
@@ -716,8 +726,20 @@ export class OrderModifier {
             orderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
         }
 
+        if (freezePromotions) {
+            // The Promotions recorded on the Order are the ones the customer agreed to when they
+            // paid, so they are carried over verbatim rather than re-tested. These entities come
+            // from a QueryBuilder which does not join the translations, so the whole array is
+            // uniformly untranslated. That is deliberate: the Order entity resolver decides
+            // whether to translate in place or re-read from the database by inspecting the first
+            // element only, so mixing translated and untranslated Promotions here would make it
+            // translate an entity that has no translations, and a dry run would then fail on the
+            // non-nullable `Promotion.name`.
+            order.promotions = activePromotionsPre;
+        }
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,
+            freezePromotions,
         });
         if (shippingMethodsSet) {
             const shippingError = await this.priceSelectedShippingLines(
@@ -726,6 +748,7 @@ export class OrderModifier {
                 promotions,
                 shippingMethodsSet,
                 input.options?.recalculateShipping !== false,
+                freezePromotions,
             );
             if (shippingError) {
                 return shippingError;
@@ -739,7 +762,7 @@ export class OrderModifier {
         }
 
         if (dryRun) {
-            return { order, modification };
+            return { order, modification, promotionsFrozen: freezePromotions };
         }
 
         // Create the actual modification and commit all changes
@@ -784,7 +807,7 @@ export class OrderModifier {
         await this.connection.getRepository(ctx, Order).save(order);
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
         await this.eventBus.publish(new OrderEvent(ctx, order, 'updated', input));
-        return { order, modification: createdModification };
+        return { order, modification: createdModification, promotionsFrozen: freezePromotions };
     }
 
     /**
@@ -890,6 +913,7 @@ export class OrderModifier {
         promotions: Promotion[],
         shippingMethodsSet: SetShippingMethodsResult,
         shippingRecalculated: boolean,
+        freezePromotions: boolean,
     ): Promise<IneligibleShippingMethodError | undefined> {
         if (shippingRecalculated) {
             return shippingMethodsSet.selectionKept(order.shippingLines)
@@ -914,7 +938,34 @@ export class OrderModifier {
             }
             setShippingLineOption(shippingLine, shippingLine.shippingMethod, result);
         }
-        await this.orderCalculator.reapplyShippingPromotions(ctx, order, promotions);
+        if (freezePromotions) {
+            this.orderCalculator.capShippingDiscounts(order);
+            this.orderCalculator.calculateOrderTotals(order);
+        } else {
+            await this.orderCalculator.reapplyShippingPromotions(ctx, order, promotions);
+        }
+    }
+
+    /**
+     * The Promotions to re-test a modified Order against: those active in the Channel, plus those
+     * already on the Order. The customer paid with the latter, so one which has been disabled since
+     * still applies as long as its conditions pass. Soft-deleted Promotions are left out.
+     */
+    private async getPromotionCandidates(ctx: RequestContext, onOrder: Promotion[]): Promise<Promotion[]> {
+        const activeInChannel = await this.promotionService.getActivePromotionsInChannel(ctx);
+        const missingIds = onOrder
+            .filter(p => !activeInChannel.some(active => idsAreEqual(active.id, p.id)))
+            .map(p => p.id);
+        if (!missingIds.length) {
+            return activeInChannel;
+        }
+        const missing = await this.connection.getRepository(ctx, Promotion).find({
+            where: { id: In(missingIds), deletedAt: IsNull() },
+            relations: { translations: true },
+        });
+        return [...activeInChannel, ...missing.map(p => this.translator.translate(p, ctx))].sort(
+            (a, b) => a.priorityScore - b.priorityScore,
+        );
     }
 
     private noChangesSpecified(input: ModifyOrderInput): boolean {

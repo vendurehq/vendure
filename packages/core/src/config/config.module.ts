@@ -201,6 +201,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             orderInterceptors,
             orderRecalculationStrategy,
             orderPlacedStrategy,
+            promotionFreezeStrategy,
         } = this.configService.orderOptions;
         const { process: fulfillmentProcess, shippingLineAssignmentStrategy } =
             this.configService.shippingOptions;
@@ -244,6 +245,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             assetImportStrategy,
             changedPriceHandlingStrategy,
             ...(orderRecalculationStrategy ? [orderRecalculationStrategy] : []),
+            promotionFreezeStrategy,
             orderLineDiscountDistributionStrategy,
             ...(Array.isArray(activeOrderStrategy) ? activeOrderStrategy : [activeOrderStrategy]),
             orderSellerStrategy,

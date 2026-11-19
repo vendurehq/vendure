@@ -10,6 +10,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import { summate } from '@vendure/common/lib/shared-utils';
 import {
+    ConfigService,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     freeShipping,
@@ -27,7 +28,7 @@ import {
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -64,6 +65,7 @@ import {
     modifyOrderDocument,
     updateChannelDocument,
     updateProductVariantsDocument,
+    updatePromotionDocument,
 } from './graphql/shared-definitions';
 import {
     applyCouponCodeDocument,
@@ -1346,6 +1348,8 @@ describe('Order modification', () => {
             expect(history.history.totalItems).toBe(1);
             expect(history.history.items[0].data).toEqual({
                 modificationId: modifyOrder.modifications[0].id,
+                // Adding an item re-tests the Promotions
+                promotionsFrozen: false,
             });
         });
     });
@@ -3315,6 +3319,300 @@ describe('Order modification', () => {
         await adminTransitionOrderToState(order.id, 'Modifying');
         return order;
     }
+
+    // https://github.com/vendurehq/vendure/issues/5356
+    describe('freezePromotions', () => {
+        const minimumOrderAmountArgs = [
+            { name: 'amount', value: '100' },
+            { name: 'taxInclusive', value: 'true' },
+        ];
+        const unreachableAmountArgs = [
+            { name: 'amount', value: '100000000' },
+            { name: 'taxInclusive', value: 'true' },
+        ];
+        let promoId: string;
+        let footballId: string;
+
+        beforeAll(async () => {
+            const { productVariants } = await adminClient.query(getProductVariantListDocument, {
+                options: { filter: { name: { contains: 'football' } } },
+            });
+            footballId = productVariants.items[0].id;
+            promoId = await createPromotion('10% off the order', [
+                { code: orderPercentageDiscount.code, arguments: [{ name: 'discount', value: '10' }] },
+            ]);
+        });
+
+        beforeEach(async () => {
+            await adminClient.query(updatePromotionDocument, {
+                input: {
+                    id: promoId,
+                    enabled: true,
+                    conditions: [{ code: minimumOrderAmount.code, arguments: minimumOrderAmountArgs }],
+                },
+            });
+        });
+
+        afterAll(async () => {
+            await adminClient.query(deletePromotionDocument, { id: promoId });
+        });
+
+        async function createPromotion(
+            name: string,
+            actions: Array<{ code: string; arguments: Array<{ name: string; value: string }> }>,
+            couponCode?: string,
+        ) {
+            const { createPromotion: result } = await adminClient.query(createPromotionDocument, {
+                input: {
+                    enabled: true,
+                    couponCode,
+                    conditions: [{ code: minimumOrderAmount.code, arguments: minimumOrderAmountArgs }],
+                    actions,
+                    translations: [{ languageCode: LanguageCode.en, name }],
+                },
+            });
+            return (result as any).id as string;
+        }
+
+        async function createDiscountedOrderInModifyingState(expectedDiscountCount = 1) {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: footballId, quantity: 2 },
+            ]);
+            expect(order.discounts.length).toBe(expectedDiscountCount);
+            return order;
+        }
+
+        function disablePromotion(id: string) {
+            return adminClient.query(updatePromotionDocument, { input: { id, enabled: false } });
+        }
+
+        function makeConditionFail(id: string) {
+            // The Promotion stays enabled - only the answer given by its condition changes
+            // between the payment and the modification.
+            return adminClient.query(updatePromotionDocument, {
+                input: {
+                    id,
+                    conditions: [{ code: minimumOrderAmount.code, arguments: unreachableAmountArgs }],
+                },
+            });
+        }
+
+        function modify(
+            targetOrderId: string,
+            changes: Partial<Omit<VariablesOf<typeof modifyOrderDocument>['input'], 'orderId'>>,
+            freezePromotions?: boolean,
+        ) {
+            return adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: targetOrderId,
+                    ...changes,
+                    ...(freezePromotions == null ? {} : { options: { freezePromotions } }),
+                },
+            });
+        }
+
+        const addressChange = { updateShippingAddress: { streetLine1: '13 the other street' } };
+
+        describe('by default', () => {
+            it('keeps the discount of a Promotion disabled after payment on an address change', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+                await disablePromotion(promoId);
+
+                const { modifyOrder } = await modify(order.id, addressChange);
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.totalWithTax).toBe(order.totalWithTax);
+                expect(modifyOrder.discounts.length).toBe(1);
+                expect(modifyOrder.promotions.map(p => p.id)).toEqual([promoId]);
+            });
+
+            it('keeps the discount when a condition no longer passes on an address change', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+                await makeConditionFail(promoId);
+
+                const { modifyOrder } = await modify(order.id, addressChange);
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.totalWithTax).toBe(order.totalWithTax);
+                expect(modifyOrder.discounts.length).toBe(1);
+                expect(modifyOrder.promotions.map(p => p.id)).toEqual([promoId]);
+            });
+
+            it('re-tests the Promotions when the OrderLines change', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+                await makeConditionFail(promoId);
+
+                const { modifyOrder } = await modify(order.id, {
+                    adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 3 }],
+                });
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.discounts.length).toBe(0);
+                expect(modifyOrder.promotions).toEqual([]);
+            });
+
+            it('still applies a Promotion disabled after payment when re-testing', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+                await disablePromotion(promoId);
+
+                const { modifyOrder } = await modify(order.id, {
+                    adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 3 }],
+                });
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                // Re-tested against 3 units, so the discount grows with the line
+                expect(modifyOrder.promotions.map(p => p.id)).toEqual([promoId]);
+                expect(modifyOrder.lines[0].proratedLinePriceWithTax).toBe(
+                    Math.round(modifyOrder.lines[0].linePriceWithTax * 0.9),
+                );
+            });
+
+            it('records the decision on the ORDER_MODIFIED history entry', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+
+                const { modifyOrder } = await modify(order.id, addressChange);
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                const { order: history } = await adminClient.query(getOrderHistoryDocument, {
+                    id: order.id,
+                    options: { filter: { type: { eq: HistoryEntryType.ORDER_MODIFIED } } },
+                });
+                expect(history?.history.items.map(i => i.data.promotionsFrozen)).toEqual([true]);
+            });
+        });
+
+        describe('freezePromotions: false', () => {
+            it('re-tests the Promotions on an address change', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+                await makeConditionFail(promoId);
+
+                const { modifyOrder } = await modify(order.id, addressChange, false);
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.discounts.length).toBe(0);
+                expect(modifyOrder.promotions).toEqual([]);
+                expect(modifyOrder.totalWithTax).toBeGreaterThan(order.totalWithTax);
+            });
+        });
+
+        describe('freezePromotions: true', () => {
+            it('keeps the discount amount of a line whose quantity grows', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+                const { order: before } = await adminClient.query(getOrderWithModificationsDocument, {
+                    id: order.id,
+                });
+                const discountBefore =
+                    before!.lines[0].linePriceWithTax - before!.lines[0].proratedLinePriceWithTax;
+
+                const { modifyOrder } = await modify(
+                    order.id,
+                    { adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 3 }] },
+                    true,
+                );
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                // The added unit gets no discount
+                const line = modifyOrder.lines[0];
+                expect(line.linePriceWithTax - line.proratedLinePriceWithTax).toBe(discountBefore);
+                expect(modifyOrder.promotions.map(p => p.id)).toEqual([promoId]);
+            });
+
+            it('rejects a change of the coupon codes', async () => {
+                const couponPromoId = await createPromotion(
+                    'Coupon',
+                    [{ code: orderPercentageDiscount.code, arguments: [{ name: 'discount', value: '5' }] }],
+                    'FREEZE_COUPON',
+                );
+                try {
+                    const order = await createDiscountedOrderInModifyingState();
+
+                    await expect(
+                        modify(order.id, { ...addressChange, couponCodes: ['FREEZE_COUPON'] }, true),
+                    ).rejects.toThrow('cannot be changed while its promotions are frozen');
+                } finally {
+                    await adminClient.query(deletePromotionDocument, { id: couponPromoId });
+                }
+            });
+
+            it('accepts the unchanged coupon codes', async () => {
+                const order = await createDiscountedOrderInModifyingState();
+
+                const { modifyOrder } = await modify(order.id, { ...addressChange, couponCodes: [] }, true);
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.totalWithTax).toBe(order.totalWithTax);
+            });
+
+            it('returns translated Promotions from a dry run when one of two is disabled', async () => {
+                const secondPromoId = await createPromotion('5% off the order', [
+                    { code: orderPercentageDiscount.code, arguments: [{ name: 'discount', value: '5' }] },
+                ]);
+                try {
+                    const order = await createDiscountedOrderInModifyingState(2);
+                    // The frozen Order carries one Promotion which is still active in the Channel
+                    // and one which is not.
+                    await disablePromotion(secondPromoId);
+
+                    const { modifyOrder } = await modify(order.id, { ...addressChange, dryRun: true }, true);
+                    orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                    expect(modifyOrder.totalWithTax).toBe(order.totalWithTax);
+                    expect(modifyOrder.promotions.map(p => p.id).sort()).toEqual(
+                        [promoId, secondPromoId].sort(),
+                    );
+                    // A dry run is what the Dashboard uses to preview a modification, so every
+                    // Promotion it returns must be translated.
+                    for (const promotion of modifyOrder.promotions) {
+                        expect(promotion.name).toBeTruthy();
+                    }
+                } finally {
+                    await adminClient.query(deletePromotionDocument, { id: secondPromoId });
+                }
+            });
+        });
+
+        it('caps a frozen shipping discount at a cheaper shipping rate', async () => {
+            const freeShippingPromoId = await createPromotion('Free shipping', [
+                { code: freeShipping.code, arguments: [] },
+            ]);
+            try {
+                // Checked out to AT, which costs SHIPPING_OTHER
+                const order = await createDiscountedOrderInModifyingState(2);
+                expect(order.shippingWithTax).toBe(0);
+
+                // GB costs SHIPPING_GB, less than the SHIPPING_OTHER the discount was recorded at
+                const { modifyOrder } = await modify(order.id, {
+                    updateShippingAddress: { countryCode: 'GB' },
+                });
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.shippingWithTax).toBe(0);
+                expect(modifyOrder.totalWithTax).toBe(order.totalWithTax);
+            } finally {
+                await adminClient.query(deletePromotionDocument, { id: freeShippingPromoId });
+            }
+        });
+
+        it('orderOptions.promotionFreezeStrategy decides when the input does not', async () => {
+            const configService = server.app.get(ConfigService);
+            const originalStrategy = configService.orderOptions.promotionFreezeStrategy;
+            const order = await createDiscountedOrderInModifyingState();
+            await makeConditionFail(promoId);
+
+            configService.orderOptions.promotionFreezeStrategy = {
+                shouldFreezePromotions: () => false,
+            };
+            try {
+                const { modifyOrder } = await modify(order.id, addressChange);
+                orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+                expect(modifyOrder.discounts.length).toBe(0);
+            } finally {
+                configService.orderOptions.promotionFreezeStrategy = originalStrategy;
+            }
+        });
+    });
 
     function getOrderPaymentsTotalWithRefunds(_order: OrderWithModificationsFragment) {
         return _order.payments?.reduce((sum, p) => sum + p.amount - summate(p?.refunds, 'total'), 0) ?? 0;

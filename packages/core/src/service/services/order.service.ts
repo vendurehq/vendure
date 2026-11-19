@@ -1513,6 +1513,7 @@ export class OrderService implements OnApplicationBootstrap {
             type: HistoryEntryType.ORDER_MODIFIED,
             data: {
                 modificationId: result.modification.id,
+                promotionsFrozen: result.promotionsFrozen,
             },
         });
         return this.getOrderOrThrow(ctx, input.orderId);

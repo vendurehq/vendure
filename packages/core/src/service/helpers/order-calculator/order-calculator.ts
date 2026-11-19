@@ -51,6 +51,25 @@ export interface ApplyPriceAdjustmentsOptions {
      * re-selecting the method.
      */
     recalculateShippingPromotions?: boolean;
+    /**
+     * @description
+     * When `true`, the Promotions already applied to the Order are frozen: their conditions are
+     * not re-tested, the existing Adjustments on the OrderLines and ShippingLines are left in
+     * place, and `Order.promotions` is not re-built. Only taxes, prices and (unless
+     * `recalculateShipping` is `false`) the shipping rate are re-calculated.
+     *
+     * This is what `modifyOrder` uses to keep the discounts an Order was paid with, see
+     * {@link PromotionFreezeStrategy}. The caller is responsible for the Order's `promotions`
+     * relation being loaded, since it is kept rather than re-built.
+     *
+     * The OrderLines keep their discount amounts, so units added to an existing OrderLine get no
+     * discount. The shipping discounts are capped at the new shipping price, so a cheaper rate
+     * cannot make shipping negative.
+     *
+     * @default false
+     * @since 4.0.0
+     */
+    freezePromotions?: boolean;
 }
 
 /**
@@ -90,9 +109,12 @@ export class OrderCalculator {
         options?: ApplyPriceAdjustmentsOptions,
     ): Promise<Order> {
         const { taxZoneStrategy } = this.configService.taxOptions;
-        // We reset the promotions array as all promotions
-        // must be revalidated on any changes to an Order.
-        order.promotions = [];
+        const freezePromotions = options?.freezePromotions === true;
+        if (!freezePromotions) {
+            // We reset the promotions array as all promotions
+            // must be revalidated on any changes to an Order.
+            order.promotions = [];
+        }
         const zones = await this.zoneService.getAllWithMembers(ctx);
         const activeTaxZone = await this.requestContextCache.get(
             ctx,
@@ -123,14 +145,16 @@ export class OrderCalculator {
                 await this.applyTaxes(ctx, order, activeTaxZone);
             }
 
-            // Then test and apply promotions
-            const totalBeforePromotions = order.subTotal;
-            await this.applyPromotions(ctx, order, promotions);
+            if (!freezePromotions) {
+                // Then test and apply promotions
+                const totalBeforePromotions = order.subTotal;
+                await this.applyPromotions(ctx, order, promotions);
 
-            if (order.subTotal !== totalBeforePromotions) {
-                // Finally, re-calculate taxes because the promotions may have
-                // altered the unit prices, which in turn will alter the tax payable.
-                await this.applyTaxes(ctx, order, activeTaxZone);
+                if (order.subTotal !== totalBeforePromotions) {
+                    // Finally, re-calculate taxes because the promotions may have
+                    // altered the unit prices, which in turn will alter the tax payable.
+                    await this.applyTaxes(ctx, order, activeTaxZone);
+                }
             }
         }
         const recalculateShipping = options?.recalculateShipping !== false;
@@ -142,7 +166,9 @@ export class OrderCalculator {
         if (recalculateShipping) {
             await this.applyShipping(ctx, order);
         }
-        if (recalculateShippingPromotions) {
+        if (freezePromotions) {
+            this.capShippingDiscounts(order);
+        } else if (recalculateShippingPromotions) {
             await this.applyShippingPromotions(ctx, order, promotions);
         }
         this.calculateOrderTotals(order);
@@ -391,6 +417,40 @@ export class OrderCalculator {
             } else {
                 order.shippingLines = order.shippingLines.filter(sl => sl !== shippingLine);
             }
+        }
+    }
+
+    /**
+     * @description
+     * Scales down the Promotion Adjustments of each ShippingLine whose discount exceeds its price,
+     * so that the discount is at most the price. For use when the Promotions are frozen but the
+     * shipping price was recalculated: an Adjustment stored against a higher price would otherwise
+     * make shipping negative. Does not recalculate the Order's totals.
+     *
+     * @since 4.0.0
+     */
+    capShippingDiscounts(order: Order) {
+        for (const shippingLine of order.shippingLines ?? []) {
+            const promotionAdjustments = (shippingLine.adjustments ?? []).filter(
+                a => a.type === AdjustmentType.PROMOTION,
+            );
+            const discount = -promotionAdjustments.reduce((total, a) => total + a.amount, 0);
+            const maxDiscount = Math.max(shippingLine.listPrice, 0);
+            if (discount <= maxDiscount) {
+                continue;
+            }
+            const factor = maxDiscount / discount;
+            let remaining = maxDiscount;
+            shippingLine.adjustments = shippingLine.adjustments.map(adjustment => {
+                if (adjustment.type !== AdjustmentType.PROMOTION) {
+                    return adjustment;
+                }
+                const isLast = adjustment === promotionAdjustments[promotionAdjustments.length - 1];
+                // The last one takes the rounding remainder, so the discount equals the price exactly
+                const amount = isLast ? remaining : Math.round(-adjustment.amount * factor);
+                remaining -= amount;
+                return { ...adjustment, amount: -amount };
+            });
         }
     }
 
