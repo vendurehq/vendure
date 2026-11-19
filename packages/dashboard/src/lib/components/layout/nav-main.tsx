@@ -415,7 +415,7 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
                     >
                         {item.icon && <item.icon />}
                         <span>{i18n.t(item.title)}</span>
-                        <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-open/collapsible:rotate-90" />
+                        <ChevronRight className="ms-auto transition-[rotate] duration-slow ease-height motion-reduce:transition-none rtl:rotate-180 group-data-open/collapsible:rotate-90" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                         <SidebarMenuSub>
