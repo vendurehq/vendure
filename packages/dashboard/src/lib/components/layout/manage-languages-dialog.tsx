@@ -249,7 +249,7 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
                     {/* Global Settings Section */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <h3 className="font-semibold">
+                            <h3 className="text-style-card-title">
                                 <Trans>Global Languages</Trans>
                             </h3>
                             {!canReadGlobalSettings && <Lock className="h-4 w-4 text-muted-foreground" />}
@@ -302,7 +302,7 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
                     {/* Channel Settings Section */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <h3 className="font-semibold">
+                            <h3 className="text-style-card-title">
                                 <Trans>Channel Languages</Trans> -{' '}
                                 <ChannelCodeLabel code={displayChannel?.code} />
                             </h3>
