@@ -1593,7 +1593,8 @@ export class OrderService implements OnApplicationBootstrap {
      * The exact resolution under contention depends on the database's
      * transaction-isolation default:
      *
-     *   - Postgres (READ COMMITTED): each non-locking SELECT sees the
+     *   - READ COMMITTED (Postgres, and MySQL/MariaDB, which Vendure runs at
+     *     READ COMMITTED by default): each non-locking SELECT sees the
      *     latest committed data. The first lock holder observes N-1 other
      *     orders associated with the promotion (because `countPromotionUsages`
      *     joins through `order.promotions` and counts `ArrangingPayment`
@@ -1602,20 +1603,14 @@ export class OrderService implements OnApplicationBootstrap {
      *     final lock holder sees zero and succeeds. Net: exactly one winner,
      *     specifically whichever order acquires the lock last ("last-wins").
      *
-     *   - MySQL/MariaDB (REPEATABLE READ): the consistent-read snapshot is
-     *     established by the very first non-locking SELECT in the resolver's
-     *     transaction (the order lookup at the top of `addPaymentToOrder`),
-     *     before this lock is acquired. Every subsequent non-locking SELECT
-     *     in the same transaction reads from that fixed snapshot, so each
+     *   - REPEATABLE READ, if configured on MySQL/MariaDB through
+     *     `entityOptions.transactionIsolationLevel`: the consistent-read
+     *     snapshot is established by the very first non-locking SELECT in the
+     *     resolver's transaction, before this lock is acquired, so each
      *     concurrent transaction's count query still sees the *other* orders
-     *     as holding the coupon. Result: every contender sees `count >= 1`
-     *     and strips, yielding zero winners. This is over-protective rather
-     *     than buggy — the over-application invariant still holds — but it
-     *     is a worse outcome than Postgres's last-wins. Closing this gap
-     *     properly requires either bypassing the snapshot for the count
-     *     query (`SELECT ... FOR UPDATE`) or restructuring so the lock
-     *     query is the very first read in the transaction; both come with
-     *     trade-offs (gap locks, broader scope) and are deferred.
+     *     as holding the coupon. Every contender strips, yielding zero
+     *     winners. Over-protective rather than buggy: the over-application
+     *     invariant still holds.
      *
      * Do not "fix" the resolution into first-wins without re-deriving the
      * count semantics from scratch.
