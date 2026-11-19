@@ -1,26 +1,35 @@
-import { Checkbox } from '@/vdb/components/ui/checkbox.js';
-import { Spinner } from '@/vdb/components/ui/spinner.js';
+import { Button } from '@/vdb/components/ui/button.js';
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+    Combobox,
+    ComboboxCollection,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxGroup,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxLabel,
+    ComboboxList,
+    useComboboxAnchor,
+} from '@/vdb/components/ui/combobox.js';
 import { api } from '@/vdb/graphql/api.js';
 import {
+    type Facet,
     type FacetValue,
     getFacetValueListDocument,
     useFacetValueBrowser,
 } from '@/vdb/hooks/use-facet-value-browser.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { DataTableFacetedFilterProps, FacetedFilterChip } from './data-table-faceted-filter.js';
+
+type Entry =
+    | { kind: 'back'; id: 'back' }
+    | { kind: 'facet'; id: string; facet: Facet }
+    | { kind: 'value'; id: string; facetValue: FacetValue };
+
+type EntryGroup = { value: string; label?: string; items: Entry[] };
 
 /**
  * @description
@@ -63,6 +72,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
     onOpenChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
     const { t } = useLingui();
+    const anchor = useComboboxAnchor();
 
     const {
         searchTerm,
@@ -73,7 +83,6 @@ export function FacetValueFacetedFilter<TData, TValue>({
         setBrowseMode,
         expandedFacetId,
         setExpandedFacetId,
-        facetValues,
         facets,
         expandedFacetValues,
         expandedFacetName,
@@ -81,8 +90,9 @@ export function FacetValueFacetedFilter<TData, TValue>({
         isLoading,
         isFetchingNextPage,
         isFetchingNextFacetsPage,
-        isLoadingExpandedFacet,
-        handleScroll,
+        hasNextPage,
+        hasNextFacetsPage,
+        loadMore,
     } = useFacetValueBrowser({ initialBrowseMode: true, queryKeyPrefix: 'facetValuesFilter' });
 
     // Track known facet values so we can display names for selected IDs
@@ -117,17 +127,13 @@ export function FacetValueFacetedFilter<TData, TValue>({
         enabled: unknownSelectedIds.length > 0,
     });
 
-    const toggleValue = (fv: FacetValue) => {
-        const next = new Set(selectedIds);
-        if (next.has(fv.id)) {
-            next.delete(fv.id);
-        } else {
-            next.add(fv.id);
-            setKnownValues(prev => new Map(prev).set(fv.id, fv));
-        }
-        const arr = Array.from(next);
-        column?.setFilterValue(arr.length > 0 ? arr : undefined);
-    };
+    // The selected values as entries. A value that is not in the loaded pages still needs
+    // a label, so it comes from knownValues, or shows its id until that resolves.
+    const selectedEntries: Entry[] = Array.from(selectedIds).map(id => ({
+        kind: 'value',
+        id,
+        facetValue: knownValues.get(id) ?? { id, name: id, code: id, facet: { id: '', name: '', code: '' } },
+    }));
 
     const selectedLabels = Array.from(selectedIds).map(id => {
         const fv = knownValues.get(id);
@@ -138,140 +144,146 @@ export function FacetValueFacetedFilter<TData, TValue>({
         valueLabel = selectedIds.size > 2 ? t`${selectedIds.size} selected` : selectedLabels.join(', ');
     }
 
+    const groups: EntryGroup[] = [];
+    if (expandedFacetId) {
+        groups.push({ value: 'back', items: [{ kind: 'back', id: 'back' }] });
+        groups.push({
+            value: expandedFacetId,
+            label: expandedFacetName,
+            items: expandedFacetValues.map(fv => ({ kind: 'value', id: fv.id, facetValue: fv })),
+        });
+    } else {
+        if (facets.length > 0) {
+            groups.push({
+                value: 'facets',
+                label: t`Facets`,
+                items: facets.map(facet => ({ kind: 'facet', id: `facet-${facet.id}`, facet })),
+            });
+        }
+        for (const [facetId, values] of Object.entries(facetGroups)) {
+            groups.push({
+                value: facetId,
+                label: values[0]?.facet.name,
+                items: values.map(fv => ({ kind: 'value', id: fv.id, facetValue: fv })),
+            });
+        }
+    }
+
     return (
-        <Popover defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
-            <FacetedFilterChip
-                icon={icon}
-                title={title}
-                valueLabel={valueLabel}
-                onClear={() => column?.setFilterValue(undefined)}
-            />
-            <PopoverContent className="w-[400px] p-0">
-                <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder={t`Search facet values...`}
-                        value={searchTerm}
-                        onValueChange={value => {
-                            setSearchTerm(value);
-                            setExpandedFacetId(null);
-                            if (value.length >= minSearchLength) {
-                                setBrowseMode(false);
-                            } else {
-                                setBrowseMode(true);
-                            }
-                        }}
-                    />
-                    <CommandList className="h-[250px] overflow-y-auto" onScroll={handleScroll}>
-                        <CommandEmpty>
-                            {isLoading ? (
-                                <div className="flex items-center justify-center py-4">
-                                    <Spinner />
-                                </div>
-                            ) : (
-                                <div className="text-sm text-muted-foreground">
-                                    <Trans>No results found</Trans>
-                                </div>
-                            )}
-                        </CommandEmpty>
-
-                        {expandedFacetId ? (
-                            <>
-                                <CommandGroup>
-                                    <CommandItem
-                                        onSelect={() => {
-                                            setExpandedFacetId(null);
-                                            setBrowseMode(true);
-                                        }}
-                                        className="cursor-pointer"
-                                    >
-                                        ← <Trans>Back</Trans>
-                                    </CommandItem>
-                                </CommandGroup>
-                                <CommandGroup heading={expandedFacetName}>
-                                    {expandedFacetValues.map(fv => {
-                                        const isSelected = selectedIds.has(fv.id);
-                                        return (
-                                            <CommandItem
-                                                key={fv.id}
-                                                value={fv.id}
-                                                onSelect={() => toggleValue(fv)}
-                                            >
-                                                <FacetValueCheckbox isSelected={isSelected} />
-                                                {fv.name}
-                                            </CommandItem>
-                                        );
-                                    })}
-                                </CommandGroup>
-                                {(isFetchingNextPage || isLoadingExpandedFacet) && (
-                                    <div className="flex items-center justify-center py-2">
-                                        <Spinner />
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                {facets.length > 0 && (
-                                    <>
-                                        <CommandGroup heading={<Trans>Facets</Trans>}>
-                                            {facets.map(facet => (
-                                                <CommandItem
-                                                    key={facet.id}
-                                                    value={`facet-${facet.id}`}
-                                                    onSelect={() => setExpandedFacetId(facet.id)}
-                                                    className="cursor-pointer"
-                                                >
-                                                    <span className="flex-1">{facet.name}</span>
-                                                    <ChevronRight className="h-4 w-4" />
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                        {browseMode && isFetchingNextFacetsPage && (
-                                            <div className="flex items-center justify-center py-2">
-                                                <Spinner />
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-
-                                {Object.entries(facetGroups).map(([facetId, values]) => (
-                                    <CommandGroup key={facetId} heading={values[0]?.facet.name}>
-                                        {values.map(fv => {
-                                            const isSelected = selectedIds.has(fv.id);
-                                            return (
-                                                <CommandItem
-                                                    key={fv.id}
-                                                    value={fv.id}
-                                                    onSelect={() => toggleValue(fv)}
-                                                >
-                                                    <FacetValueCheckbox isSelected={isSelected} />
-                                                    {fv.name}
-                                                </CommandItem>
-                                            );
-                                        })}
-                                    </CommandGroup>
-                                ))}
-                            </>
-                        )}
-                    </CommandList>
-                    {selectedIds.size > 0 && (
-                        <>
-                            <CommandSeparator />
-                            <CommandGroup>
-                                <CommandItem
-                                    onSelect={() => column?.setFilterValue(undefined)}
-                                    className="justify-center text-center"
-                                >
-                                    <Trans>Clear filters</Trans>
-                                </CommandItem>
-                            </CommandGroup>
-                        </>
+        <Combobox
+            items={groups}
+            filter={null}
+            multiple
+            value={selectedEntries}
+            onValueChange={(next: Entry[], eventDetails) => {
+                const picked = next.find(entry => !selectedIds.has(entry.id));
+                if (picked && picked.kind !== 'value') {
+                    // Opening a facet or going back selects nothing.
+                    eventDetails.cancel();
+                    if (picked.kind === 'facet') {
+                        setExpandedFacetId(picked.facet.id);
+                    } else {
+                        setExpandedFacetId(null);
+                        setBrowseMode(true);
+                    }
+                    return;
+                }
+                if (picked?.kind === 'value') {
+                    setKnownValues(prev => new Map(prev).set(picked.id, picked.facetValue));
+                }
+                const ids = next.filter(entry => entry.kind === 'value').map(entry => entry.id);
+                column?.setFilterValue(ids.length > 0 ? ids : undefined);
+            }}
+            inputValue={searchTerm}
+            onInputValueChange={value => {
+                setSearchTerm(value);
+                setExpandedFacetId(null);
+                setBrowseMode(value.length < minSearchLength);
+            }}
+            itemToStringLabel={(entry: Entry) => entryLabel(entry)}
+            isItemEqualToValue={(a: Entry, b: Entry) => a.id === b.id}
+            onLoadMore={loadMore}
+            hasMore={expandedFacetId ? hasNextPage : browseMode && hasNextFacetsPage}
+            loading={
+                isLoading || isFetchingNextPage || isFetchingNextFacetsPage || searchTerm !== debouncedSearch
+            }
+            loadingLabel={t`Loading facet values`}
+            defaultOpen={defaultOpen}
+            onOpenChange={open => onOpenChange?.(open)}
+        >
+            <span ref={anchor} className="inline-flex">
+                <FacetedFilterChip
+                    icon={icon}
+                    title={title}
+                    valueLabel={valueLabel}
+                    onClear={() => column?.setFilterValue(undefined)}
+                    triggerType="combobox"
+                />
+            </span>
+            {/* Opened from the toolbar's Filter menu, the popup has no trigger interaction to
+                return focus to when it closes, so it returns focus to the chip. */}
+            <ComboboxContent
+                anchor={anchor}
+                className="w-100"
+                finalFocus={() => anchor.current?.querySelector('button') ?? true}
+            >
+                <ComboboxInput
+                    aria-label={t`Search facet values...`}
+                    placeholder={t`Search facet values...`}
+                    showTrigger={false}
+                />
+                <ComboboxEmpty>
+                    <Trans>No results found</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(group: EntryGroup) => (
+                        <ComboboxGroup key={group.value} items={group.items}>
+                            {group.label && <ComboboxLabel>{group.label}</ComboboxLabel>}
+                            <ComboboxCollection>
+                                {(entry: Entry) => <FacetEntryItem key={entry.id} entry={entry} />}
+                            </ComboboxCollection>
+                        </ComboboxGroup>
                     )}
-                </Command>
-            </PopoverContent>
-        </Popover>
+                </ComboboxList>
+                {selectedIds.size > 0 && (
+                    <div className="border-t p-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => column?.setFilterValue(undefined)}
+                        >
+                            <Trans>Clear filters</Trans>
+                        </Button>
+                    </div>
+                )}
+            </ComboboxContent>
+        </Combobox>
     );
 }
 
-function FacetValueCheckbox({ isSelected }: { isSelected: boolean }) {
-    return <Checkbox checked={isSelected} className="mr-2 pointer-events-none" tabIndex={-1} />;
+function entryLabel(entry: Entry) {
+    if (entry.kind === 'facet') return entry.facet.name;
+    if (entry.kind === 'value') return entry.facetValue.name;
+    return '';
+}
+
+function FacetEntryItem({ entry }: Readonly<{ entry: Entry }>) {
+    if (entry.kind === 'back') {
+        return (
+            <ComboboxItem value={entry}>
+                <ArrowLeft />
+                <Trans>Back</Trans>
+            </ComboboxItem>
+        );
+    }
+    if (entry.kind === 'facet') {
+        return (
+            <ComboboxItem value={entry}>
+                <span className="flex-1">{entry.facet.name}</span>
+                <ChevronRight />
+            </ComboboxItem>
+        );
+    }
+    return <ComboboxItem value={entry}>{entry.facetValue.name}</ComboboxItem>;
 }
