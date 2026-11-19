@@ -80,7 +80,7 @@ export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormPr
                     {submittedEmailAddress ? (
                         <div className="flex flex-col items-center text-center gap-6">
                             <div className="flex flex-col items-center text-center gap-1">
-                                <h1 className="text-2xl font-semibold tracking-tight">
+                                <h1 className="text-style-page-title">
                                     <Trans>Check your email</Trans>
                                 </h1>
                                 <p className="text-sm text-muted-foreground">
@@ -101,7 +101,7 @@ export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormPr
                                 onSubmit={form.handleSubmit(data => requestPasswordReset(data))}
                             >
                                 <div className="flex flex-col items-center text-center gap-1">
-                                    <h1 className="text-2xl font-semibold tracking-tight">
+                                    <h1 className="text-style-page-title">
                                         <Trans>Forgot your password?</Trans>
                                     </h1>
                                     <p className="text-sm text-muted-foreground">
