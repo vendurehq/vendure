@@ -464,16 +464,22 @@ function RemoveRoleButton({
     const single = isSuperAdminRole(group.role) || group.channels.length === 1;
     const label = single ? t`Remove role` : t`Remove from all channels`;
     return (
-        <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={label}
-            title={label}
-            disabled={disabled}
-            onClick={() => (single ? onRemove(group) : onConfirmRemove(group))}
-        >
-            <Trash2 className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={label}
+                        disabled={disabled}
+                        onClick={() => (single ? onRemove(group) : onConfirmRemove(group))}
+                    />
+                }
+            >
+                <Trash2 className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
     );
 }
