@@ -51,6 +51,18 @@ export default [{
         selector,
         message: 'A link row is ListRow + ListRowLink, or DataTableRowLink in a table. Do not give a Link or <a> its own hover fill.',
       })),
+      // A Badge with its own button is a hand-made removable tag. Chip owns the
+      // remove button, its hover, focus ring and accessible name.
+      {
+        selector:
+          "JSXElement[openingElement.name.name='Badge'] JSXElement[openingElement.name.name=/^(button|Button)$/]",
+        message: 'A removable tag is Chip with onRemove and removeLabel, not a Badge with its own button.',
+      },
+      // Label/value lists use the design-system DescriptionList, not hand-built dl/dt/dd.
+      {
+        selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
+        message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
+      },
     ],
   },
 }, {

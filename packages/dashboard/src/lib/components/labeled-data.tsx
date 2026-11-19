@@ -1,3 +1,10 @@
+import {
+    DescriptionDetail,
+    DescriptionItem,
+    DescriptionList,
+    DescriptionTerm,
+} from '@/vdb/components/ui/description-list.js';
+
 type LabeledDataProps = {
     label: string | React.ReactNode;
     value: React.ReactNode;
@@ -10,12 +17,17 @@ type LabeledDataProps = {
  *
  * Order Code
  * QWERTY
+ *
+ * Renders a one-item `DescriptionList`. To show several label/value pairs, use
+ * `DescriptionList` with `DescriptionListItem` directly, so they share one list.
  */
 export function LabeledData({ label, value, className }: Readonly<LabeledDataProps>) {
     return (
-        <div className="">
-            <span className="font-medium text-muted-foreground text-xs">{label}</span>
-            <div className={`col-span-2 text-sm ${className}`}>{value}</div>
-        </div>
+        <DescriptionList>
+            <DescriptionItem>
+                <DescriptionTerm>{label}</DescriptionTerm>
+                <DescriptionDetail className={className}>{value}</DescriptionDetail>
+            </DescriptionItem>
+        </DescriptionList>
     );
 }
