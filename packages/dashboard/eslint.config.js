@@ -62,7 +62,33 @@ export default [{
         selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
         message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
       },
+      // A hand-drawn spinner keeps turning under reduced motion and has no
+      // role or name. Spinner and LoadingState own both.
+      ...[
+        "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)animate-spin(\\s|$)/]",
+        "JSXAttribute[name.name='className'] TemplateElement[value.raw=/(^|\\s)animate-spin(\\s|$)/]",
+      ].map(selector => ({
+        selector,
+        message: 'Use Spinner from @/vdb/components/ui/spinner.js, or LoadingState variant="spinner" for a loading region. Do not spin an icon or a border with animate-spin.',
+      })),
+      // Shortcut hints use the design-system Kbd, which styles the key for
+      // tooltips and keeps key names left to right in RTL pages.
+      {
+        selector: "JSXOpeningElement[name.name='kbd']",
+        message: 'Use Kbd or KbdGroup from @/vdb/components/ui/kbd.js, not a raw <kbd>.',
+      },
     ],
+  },
+}, {
+  // OSS-1380 follow-up: these two files still draw a spinner (variants) and a
+  // raw kbd (nav-main). Other lanes hold them (OSS-1401, OSS-1385). Remove this
+  // block once they use Spinner and Kbd.
+  files: [
+    'src/lib/components/layout/nav-main.tsx',
+    'src/app/routes/_authenticated/_products/products_.$id_.variants.tsx',
+  ],
+  rules: {
+    'no-restricted-syntax': 'off',
   },
 }, {
   files: ['**/*.{js,jsx}'],
