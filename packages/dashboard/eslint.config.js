@@ -37,6 +37,28 @@ export default [{
     '@vendure-io/design/no-raw-colors': 'error',
   },
 }, {
+  // Status markers come from the design system: TimelineMarker (a feed or a
+  // step list) or StatusBadge (a single state), with a state-dictionary tone.
+  // Warn on a small round element in a tone colour drawn by hand, and on the
+  // colour-class marker prop of HistoryEntry. Expect the odd false positive.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  rules: {
+    'no-restricted-syntax': [
+      'warn',
+      {
+        selector:
+          "JSXAttribute[name.name='className'] :matches(Literal[value=/\\brounded-full\\b/][value=/(^|\\s)(size|h)-[2-7](\\s|$)/][value=/(^|[\\s:])(bg|border)-(success|warning|destructive|info)/], TemplateElement[value.raw=/\\brounded-full\\b/][value.raw=/(^|\\s)(size|h)-[2-7](\\s|$)/][value.raw=/(^|[\\s:])(bg|border)-(success|warning|destructive|info)/])",
+        message:
+          'Hand-drawn status marker. Use TimelineMarker or StatusBadge with a state-dictionary tone.',
+      },
+      {
+        selector: ":matches(JSXAttribute[name.name='timelineIconClassName'], ObjectExpression > Property[key.name='timelineIconClassName'])",
+        message: 'timelineIconClassName is deprecated. Pass a state-dictionary `tone` to HistoryEntry.',
+      },
+    ],
+  },
+}, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,
