@@ -8,6 +8,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tsParser from '@typescript-eslint/parser'
 import designLint from '@vendure-io/design-lint/eslint'
+import { builtinRules } from 'eslint/use-at-your-own-risk'
 
 export default [{
   // Generated / build / test-fixture artifacts (all gitignored) — never source, so
@@ -57,10 +58,15 @@ export default [{
   // step list) or StatusBadge (a single state), with a state-dictionary tone.
   // Warn on a small round element in a tone colour drawn by hand, and on the
   // colour-class marker prop of HistoryEntry. Expect the odd false positive.
+  // A second copy of no-restricted-syntax under its own name, so this warning
+  // does not replace the link-row selectors above.
   files: ['src/**/*.tsx'],
   ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'status-marker': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
   rules: {
-    'no-restricted-syntax': [
+    'status-marker/no-restricted-syntax': [
       'warn',
       {
         selector:
