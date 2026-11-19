@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import {
     closestCenter,
@@ -65,27 +66,41 @@ function SortableItem({
     };
 
     const DragHandle = !disabled && (
-        <div
-            {...attributes}
-            {...listeners}
-            className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
-            title={t`Drag to reorder`}
-        >
-            <GripVertical className="h-4 w-4" />
-        </div>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        aria-label={t`Drag to reorder`}
+                        className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+                    />
+                }
+            >
+                <GripVertical className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>{t`Drag to reorder`}</TooltipContent>
+        </Tooltip>
     );
 
     const RemoveButton = !disabled && (
-        <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemove(itemWithId._id)}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-            title={t`Remove item`}
-        >
-            <X className="h-3 w-3" />
-        </Button>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemove(itemWithId._id)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                        aria-label={t`Remove item`}
+                    />
+                }
+            >
+                <X className="h-3 w-3" />
+            </TooltipTrigger>
+            <TooltipContent>{t`Remove item`}</TooltipContent>
+        </Tooltip>
     );
 
     if (!isFullWidth) {

@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { RelativeTime } from '@/vdb/components/ui/relative-time.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,7 +10,6 @@ import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badg
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
-import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
@@ -124,7 +124,6 @@ const REFRESH_INTERVALS = [
 function JobQueuePage() {
     const refreshRef = useRef<() => void>(() => {});
     const { t } = useLingui();
-    const { formatRelativeDate } = useLocalFormat();
     const [refreshInterval, setRefreshInterval] = useState(10000);
     const isActionMenuOpenRef = useRef(false);
     const stateLabels: Record<string, string> = {
@@ -162,7 +161,7 @@ function JobQueuePage() {
             customizeColumns={{
                 createdAt: {
                     cell: ({ row }) => (
-                        <div title={row.original.createdAt}>{formatRelativeDate(row.original.createdAt)}</div>
+                        <RelativeTime value={row.original.createdAt} />
                     ),
                 },
                 data: {

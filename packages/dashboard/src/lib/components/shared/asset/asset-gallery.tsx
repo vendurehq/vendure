@@ -928,6 +928,7 @@ const AssetCard = memo(function AssetCard({
     onToggleAsset,
 }: Readonly<AssetCardProps>) {
     const { t } = useLingui();
+    const name = useRef<HTMLParagraphElement>(null);
 
     return (
         <div
@@ -940,12 +941,22 @@ const AssetCard = memo(function AssetCard({
                 ${isSelected ? 'ring-2 ring-primary' : 'ring-foreground/10'}
             `}
         >
-            <button
-                type="button"
-                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none"
-                aria-label={t`Select ${asset.name}`}
-                onClick={e => onSelectAsset(asset, e)}
-            />
+            {/* The select button covers the card, so it opens the full name, shown at the cut name. */}
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <button
+                            type="button"
+                            className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none"
+                            aria-label={t`Select ${asset.name}`}
+                            onClick={e => onSelectAsset(asset, e)}
+                        />
+                    }
+                />
+                <TooltipContent anchor={name} className="max-w-80 break-all">
+                    {asset.name}
+                </TooltipContent>
+            </Tooltip>
             <div className="relative aspect-square bg-muted/30 overflow-hidden">
                 <VendureImage
                     asset={asset}
@@ -966,10 +977,7 @@ const AssetCard = memo(function AssetCard({
                 )}
             </div>
             <div className="px-2 py-1.5">
-                <p
-                    className="text-sm font-medium leading-tight line-clamp-1"
-                    title={asset.name}
-                >
+                <p ref={name} className="text-sm font-medium leading-tight line-clamp-1">
                     {asset.name}
                 </p>
                 <div className="flex items-center justify-between mt-0.5">
@@ -1057,13 +1065,19 @@ function AssetListDataTable({
                     name: {
                         header: t`Name`,
                         cell: ({ row }) => (
-                            <Link
-                                to={`/assets/${row.original.id}`}
-                                className="block max-w-[20rem] truncate font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                title={row.original.name}
-                            >
-                                {row.original.name}
-                            </Link>
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Link
+                                            to={`/assets/${row.original.id}`}
+                                            className="block max-w-[20rem] truncate font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                        />
+                                    }
+                                >
+                                    {row.original.name}
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-80 break-all">{row.original.name}</TooltipContent>
+                            </Tooltip>
                         ),
                     },
                     type: {
