@@ -22,13 +22,18 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { ResultOf, VariablesOf } from 'gql.tada';
 import { CheckIcon } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { modifyOrderDocument, orderDetailDocument } from '../orders.graphql.js';
-import { toModifyOrderInput } from '../utils/order-utils.js';
+import {
+    compareModificationDiscounts,
+    couponCodesChanged,
+    toModifyOrderInput,
+} from '../utils/order-utils.js';
 
 import { OrderTable } from './order-table.js';
+import { PromotionFreezeChoice, PromotionFreezeChoiceValue } from './promotion-freeze-choice.js';
 
 export type OrderFragment = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
 export type ModifyOrderInput = VariablesOf<typeof modifyOrderDocument>['input'];
@@ -62,11 +67,16 @@ export function OrderModificationPreviewDialog({
     const orderLineCustomFields = useCustomFieldConfig('OrderLine');
     // Use a ref to track the last input sent to avoid duplicate calls
     const lastInputRef = useRef<ModifyOrderInput | null>(null);
-    const previewMutation = useMutation({
-        mutationFn: api.mutate(
-            addCustomFields(modifyOrderDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
-        ),
+    const modifyOrderWithCustomFields = addCustomFields(modifyOrderDocument, {
+        includeNestedFragments: ['OrderLine', 'Fulfillment'],
     });
+    // The modification is previewed twice: re-applying the promotions, and keeping the discounts
+    // the order was paid with. When the two differ, the administrator chooses.
+    const previewMutation = useMutation({ mutationFn: api.mutate(modifyOrderWithCustomFields) });
+    const keptDiscountsPreviewMutation = useMutation({ mutationFn: api.mutate(modifyOrderWithCustomFields) });
+    const [promotionChoice, setPromotionChoice] = useState<PromotionFreezeChoiceValue | null>(null);
+    // The server rejects a coupon code change while the promotions are frozen
+    const changesCouponCodes = couponCodesChanged(orderSnapshot.couponCodes, modifyOrderInput.couponCodes);
 
     // Create form with dynamic fields for each payment
     const refundForm = useForm<PaymentRefundForm>({
@@ -104,19 +114,42 @@ export function OrderModificationPreviewDialog({
                     ...toModifyOrderInput(modifyOrderInput, orderLineCustomFields),
                     dryRun: true,
                 };
-                previewMutation.mutate({ input });
+                previewMutation.mutate({ input: withFreezePromotions(input, false) });
+                if (changesCouponCodes) {
+                    keptDiscountsPreviewMutation.reset();
+                } else {
+                    keptDiscountsPreviewMutation.mutate({ input: withFreezePromotions(input, true) });
+                }
+                setPromotionChoice(null);
                 lastInputRef.current = modifyOrderInput;
             }
         }
     }, [open, modifyOrderInput]);
 
-    const previewOrder =
-        previewMutation.data?.modifyOrder?.__typename === 'Order' ? previewMutation.data.modifyOrder : null;
-    const error =
-        previewMutation.data && previewMutation.data.modifyOrder?.__typename !== 'Order'
-            ? previewMutation.data.modifyOrder?.message || t`Unknown error`
-            : previewMutation.error?.message || null;
-    const loading = previewMutation.isPending;
+    const previewResult = (mutation: typeof previewMutation) => {
+        const result = mutation.data?.modifyOrder;
+        return {
+            order: result?.__typename === 'Order' ? result : null,
+            error:
+                result && result.__typename !== 'Order'
+                    ? result.message || t`Unknown error`
+                    : mutation.error?.message || null,
+        };
+    };
+    const reapplied = previewResult(previewMutation);
+    const kept = previewResult(keptDiscountsPreviewMutation);
+    const error = reapplied.error ?? kept.error;
+    const loading = previewMutation.isPending || keptDiscountsPreviewMutation.isPending;
+    const discountComparison =
+        reapplied.order && kept.order ? compareModificationDiscounts(kept.order, reapplied.order) : [];
+    const needsPromotionChoice = discountComparison.length > 0;
+    const previewOrder = needsPromotionChoice
+        ? promotionChoice === 'keep'
+            ? kept.order
+            : promotionChoice === 'reapply'
+              ? reapplied.order
+              : null
+        : reapplied.order;
 
     // Price difference
     const priceDifference = previewOrder ? previewOrder.totalWithTax - orderSnapshot.totalWithTax : 0;
@@ -138,10 +171,14 @@ export function OrderModificationPreviewDialog({
     // Confirm handler
     const handleConfirm = async () => {
         if (!previewOrder) return;
-        const input: ModifyOrderInput = {
+        const modification: ModifyOrderInput = {
             ...toModifyOrderInput(modifyOrderInput, orderLineCustomFields),
             dryRun: false,
         };
+        // When both previews are the same, the server's PromotionFreezeStrategy decides
+        const input = needsPromotionChoice
+            ? withFreezePromotions(modification, promotionChoice === 'keep')
+            : modification;
         if (priceDifference < 0) {
             // Create refunds array from form data
             const { note, payments } = refundForm.getValues();
@@ -177,6 +214,16 @@ export function OrderModificationPreviewDialog({
                         </div>
                     )}
                     {error && <div className="text-destructive py-2">{error}</div>}
+                    {needsPromotionChoice && !loading && !error && kept.order && reapplied.order && (
+                        <PromotionFreezeChoice
+                            rows={discountComparison}
+                            keptTotalWithTax={kept.order.totalWithTax}
+                            reappliedTotalWithTax={reapplied.order.totalWithTax}
+                            currencyCode={orderSnapshot.currencyCode}
+                            value={promotionChoice}
+                            onChange={setPromotionChoice}
+                        />
+                    )}
                     {previewOrder && !loading && !error && (
                         <>
                             <OrderTable pageId="order-modification-preview" order={previewOrder} />
@@ -366,7 +413,13 @@ export function OrderModificationPreviewDialog({
                         type="button"
                         variant="default"
                         onClick={handleConfirm}
-                        disabled={loading || !!error || confirmMutation.isPending || !isRefundComplete}
+                        disabled={
+                            loading ||
+                            !!error ||
+                            !previewOrder ||
+                            confirmMutation.isPending ||
+                            !isRefundComplete
+                        }
                     >
                         <Trans>Confirm</Trans>
                     </Button>
@@ -374,4 +427,8 @@ export function OrderModificationPreviewDialog({
             </DialogContent>
         </Dialog>
     );
+}
+
+function withFreezePromotions(input: ModifyOrderInput, freezePromotions: boolean): ModifyOrderInput {
+    return { ...input, options: { ...input.options, freezePromotions } };
 }

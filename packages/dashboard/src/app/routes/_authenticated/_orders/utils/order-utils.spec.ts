@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { Order } from './order-types.js';
 import {
     canCancelOrderWithoutRefund,
+    compareModificationDiscounts,
     computePendingOrder,
+    couponCodesChanged,
     getMaxRefundableQuantity,
     getRefundableQuantity,
     getShippingLineLabel,
@@ -268,5 +270,63 @@ describe('getShippingLineLabel', () => {
         expect(
             getShippingLineLabel({ shippingMethod: { name: 'Flat rate' }, shippingOptionName: null }),
         ).toBe('Flat rate');
+    });
+});
+
+// #5356 — the modification preview asks which discounts to keep when re-applying the
+// promotions would change them
+describe('compareModificationDiscounts', () => {
+    const tenPercent = { adjustmentSource: 'PROMOTION:1', description: '10% off', amountWithTax: -400 };
+
+    it('returns nothing when both previews are the same', () => {
+        const preview = { totalWithTax: 3600, discounts: [tenPercent] };
+        expect(compareModificationDiscounts(preview, { ...preview })).toEqual([]);
+    });
+
+    it('lists a discount which re-applying the promotions removes', () => {
+        expect(
+            compareModificationDiscounts(
+                { totalWithTax: 3600, discounts: [tenPercent] },
+                { totalWithTax: 4000, discounts: [] },
+            ),
+        ).toEqual([
+            {
+                adjustmentSource: 'PROMOTION:1',
+                description: '10% off',
+                keptAmountWithTax: -400,
+                reappliedAmountWithTax: null,
+            },
+        ]);
+    });
+
+    it('lists a discount whose amount changes', () => {
+        expect(
+            compareModificationDiscounts(
+                { totalWithTax: 5600, discounts: [tenPercent] },
+                { totalWithTax: 5400, discounts: [{ ...tenPercent, amountWithTax: -600 }] },
+            ),
+        ).toEqual([
+            {
+                adjustmentSource: 'PROMOTION:1',
+                description: '10% off',
+                keptAmountWithTax: -400,
+                reappliedAmountWithTax: -600,
+            },
+        ]);
+    });
+});
+
+describe('couponCodesChanged', () => {
+    it('ignores case and order', () => {
+        expect(couponCodesChanged(['SUMMER', 'Gift'], ['gift', 'summer'])).toBe(false);
+    });
+
+    it('is false when no coupon codes are given', () => {
+        expect(couponCodesChanged(['SUMMER'], undefined)).toBe(false);
+    });
+
+    it('detects an added or a removed code', () => {
+        expect(couponCodesChanged(['SUMMER'], ['SUMMER', 'NEW'])).toBe(true);
+        expect(couponCodesChanged(['SUMMER'], [])).toBe(true);
     });
 });
