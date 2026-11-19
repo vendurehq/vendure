@@ -84,7 +84,8 @@ export function DashboardBaseWidget({
                     )}
                 </CardHeader>
             )}
-            <CardContent ref={contentRef} className="grow">
+            {/* min-h-0 lets the content shrink to the card, so a list longer than the widget scrolls instead of being cut off. */}
+            <CardContent ref={contentRef} className="min-h-0 grow overflow-y-auto">
                 <WidgetContentContext.Provider value={dimensions}>{children}</WidgetContentContext.Provider>
             </CardContent>
         </Card>

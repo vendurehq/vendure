@@ -1,5 +1,4 @@
-import { X } from 'lucide-react';
-import { Badge } from '../ui/badge.js';
+import { Chip } from '../ui/chip.js';
 
 export function CustomerGroupChip({
     group,
@@ -9,22 +8,11 @@ export function CustomerGroupChip({
     onRemove?: (id: string) => void;
 }) {
     return (
-        <Badge
-            key={group.id}
-            variant="default"
-            className="flex items-center gap-2 py-0.5 pl-2 pr-1 h-6 hover:bg-secondary/80"
+        <Chip
+            onRemove={onRemove ? () => onRemove(group.id) : undefined}
+            removeLabel={`Remove ${group.name}`}
         >
             {group.name}
-            {onRemove && (
-                <button
-                    type="button"
-                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-muted/30"
-                    onClick={() => onRemove(group.id)}
-                    aria-label={`Remove ${group.name}`}
-                >
-                    <X className="h-3 w-3" />
-                </button>
-            )}
-        </Badge>
+        </Chip>
     );
 }

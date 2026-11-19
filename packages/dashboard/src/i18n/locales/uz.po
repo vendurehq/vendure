@@ -716,7 +716,6 @@ msgid "{0, plural, one {Assigned {entityIdsLength} {entityType} to {1} channel} 
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
 msgstr "Buyurtmalar soni"
 
@@ -2082,6 +2081,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Manzillar yuklanmoqda..."
+
+#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
+msgid "Remove {tag}"
+msgstr ""
 
 #. placeholder {0}: roleLabel(group.role)
 #. placeholder {1}: channelLabel(channel.code)
@@ -3608,6 +3611,10 @@ msgstr "{0, plural, one {# ta to'plam eng yuqori darajaga ko'chirilmoqda} other 
 msgid "Refund only partially completed"
 msgstr ""
 
+#: src/lib/components/data-input/relation-selector.tsx
+msgid "Remove {name}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -3853,8 +3860,8 @@ msgid "Apply filter"
 msgstr "Filtrni qoʻllash"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Last Result"
-msgstr "Oxirgi natija"
+#~ msgid "Last Result"
+#~ msgstr "Oxirgi natija"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Added to group"
@@ -4008,6 +4015,7 @@ msgstr "Ushbu sahifadan chiqasizmi? Saqlanmagan oʻzgarishlar yoʻqoladi."
 msgid "Color 1"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "More actions"
 msgstr ""
@@ -5404,7 +5412,6 @@ msgid "Manage my views"
 msgstr "Ko'rinishlarimni boshqarish"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
 msgstr "Buyurtma jami"
 
@@ -5531,7 +5538,6 @@ msgstr "Kutilmoqda"
 msgid "paymentState.Settled"
 msgstr "Yakunlangan"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
 msgstr "O'rtacha buyurtma qiymati"
@@ -6068,7 +6074,6 @@ msgid "Rebuild search index"
 msgstr "Qidiruv indeksini qayta qurish"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
 msgstr "Ishlamoqda"
@@ -7124,6 +7129,7 @@ msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Variantni qo'shib bo'lmadi. Ota-mahsulot yoqilganiga ishonch hosil qiling."
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
 msgstr "Metrikalar"
 
@@ -7158,6 +7164,12 @@ msgstr "Elektron pochta yangilanishi tasdiqlandi"
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgctxt "Vendure Platform plan name"
 msgid "Enterprise"
+msgstr ""
+
+#. placeholder {0}: field.value
+#: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/lib/components/shared/option-value-input.tsx
+msgid "Remove {0}"
 msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
