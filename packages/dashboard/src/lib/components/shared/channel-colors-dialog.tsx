@@ -26,7 +26,7 @@ export function ChannelColorsDialog({ channels, open, onOpenChange }: ChannelCol
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+            <DialogContent size="lg" className="max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Customize channel colors</Trans>

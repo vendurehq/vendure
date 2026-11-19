@@ -154,7 +154,7 @@ export function DeleteStockLocationsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Delete stock locations</Trans>

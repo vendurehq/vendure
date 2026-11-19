@@ -203,7 +203,7 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
                 <Trans>Fulfill order</Trans>
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogContent size="xl" className="max-h-[90vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle>
                             <Trans>Fulfill order</Trans>

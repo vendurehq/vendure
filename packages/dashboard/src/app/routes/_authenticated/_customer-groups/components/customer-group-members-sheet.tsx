@@ -28,7 +28,7 @@ export function CustomerGroupMembersSheet({
                 {children}
                 <PanelLeftOpen className="w-4 h-4" />
             </SheetTrigger>
-            <SheetContent className="min-w-[90vw] lg:min-w-[800px]">
+            <SheetContent size="xl">
                 <SheetHeader>
                     <SheetTitle>
                         <Trans>Customer group members for {customerGroupName}</Trans>
