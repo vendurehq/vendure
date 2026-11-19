@@ -10,6 +10,7 @@ import { ConfigService } from '../config/config.service';
 import { Logger } from '../config/logger/vendure-logger';
 
 import { getDatabaseType } from './database-type';
+import { isRetriableTransactionError } from './is-retriable-transaction-error';
 import { TransactionSubscriber } from './transaction-subscriber';
 
 /**
@@ -133,7 +134,7 @@ export class TransactionWrapper {
                 attempts++;
                 if (
                     !restartTransaction ||
-                    !this.isRetriableError(err) ||
+                    !isRetriableTransactionError(err) ||
                     attempts > maxRetries ||
                     // The attempt did something a rollback cannot undo, such as calling a payment
                     // provider, so running it again would repeat that. See
@@ -191,7 +192,8 @@ export class TransactionWrapper {
     /**
      * The isolation level asked for explicitly wins. Otherwise the configured
      * `entityOptions.transactionIsolationLevel` applies, then an `isolationLevel` set in
-     * `dbConnectionOptions`, and failing those `READ COMMITTED` on MySQL and MariaDB.
+     * `dbConnectionOptions` (an option of TypeORM v1's DataSource, which TypeORM 0.3 does not
+     * have), and failing those `READ COMMITTED` on MySQL and MariaDB.
      *
      * InnoDB defaults to `REPEATABLE READ`, under which a transaction keeps reading the snapshot
      * taken at its first read. A row lock acquired later then cannot make the transaction see the
@@ -294,22 +296,5 @@ export class TransactionWrapper {
             await new Promise(resolve => setTimeout(resolve, attempts * 20));
         }
         throw lastError;
-    }
-
-    /**
-     * If the resolver function throws an error, there are certain cases in which
-     * we want to retry the whole thing again - notably in the case of a deadlock
-     * situation, which can usually be retried with success.
-     */
-    private isRetriableError(err: any): boolean {
-        // MySQL and MariaDB report both deadlocks and serialization failures as ER_LOCK_DEADLOCK.
-        const mysqlDeadlock = err.code === 'ER_LOCK_DEADLOCK';
-        // node-postgres puts the SQLSTATE in `err.code`, so a deadlock arrives as '40P01' rather
-        // than as its condition name. The name is kept too in case a driver reports it that way.
-        const postgresDeadlock = err.code === 'deadlock_detected' || err.code === '40P01';
-        // Raised in place of a deadlock when the database cannot order this transaction against a
-        // concurrent one, which happens at SERIALIZABLE and on Postgres at REPEATABLE READ.
-        const serializationFailure = err.code === '40001';
-        return mysqlDeadlock || postgresDeadlock || serializationFailure;
     }
 }

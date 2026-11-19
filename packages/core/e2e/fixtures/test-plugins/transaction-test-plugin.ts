@@ -34,6 +34,7 @@ export const TRIGGER_ATTEMPTED_READ_EMAIL = 'trigger-attempted-read-email';
 export const TRANSACTION_ENDED_BY_DATABASE = 'transaction-ended-by-database';
 /** How often `retryAfterDeadlockInNestedTransaction` has been attempted. */
 export const nestedDeadlock = { attempts: 0 };
+export const FAILED_AFTER_RETRY = 'failed-after-retry';
 
 @Injectable()
 class TestUserService {
@@ -296,6 +297,26 @@ class TestResolver {
         return attempt;
     }
 
+    /**
+     * Like `retryAfterDeadlockInNestedTransaction`, but the retried attempt creates an
+     * Administrator and then fails. Nothing of the retried attempt may then be committed.
+     */
+    @Mutation()
+    @Transaction()
+    async failAfterRetryingDeadlockInNestedTransaction(@Ctx() ctx: RequestContext, @Args() args: any) {
+        const attempt = ++nestedDeadlock.attempts;
+        await this.connection.withTransaction(ctx, async innerCtx => {
+            if (attempt === 1) {
+                await this.connection.getRepository(innerCtx, User).query('ROLLBACK');
+                throw Object.assign(new Error('simulated deadlock'), {
+                    code: process.env.DB === 'postgres' ? '40P01' : 'ER_LOCK_DEADLOCK',
+                });
+            }
+            await this.testAdminService.createAdministrator(innerCtx, args.emailAddress, false);
+        });
+        throw new Error(FAILED_AFTER_RETRY);
+    }
+
     @Query()
     async verify() {
         const admins = await this.connection.rawConnection.getRepository(Administrator).find();
@@ -348,6 +369,7 @@ class TestResolver {
                 createNTestAdministrators3(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 failAfterDatabaseEndedNestedTransaction: Boolean
                 retryAfterDeadlockInNestedTransaction: Int
+                failAfterRetryingDeadlockInNestedTransaction(emailAddress: String!): Boolean
             }
             type VerifyResult {
                 admins: [Administrator!]!

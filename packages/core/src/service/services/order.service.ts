@@ -42,7 +42,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { DEFAULT_CHANNEL_CODE, DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { EntityManager, In, IsNull } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -91,6 +91,7 @@ import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
+import { isRetriableTransactionError } from '../../connection/is-retriable-transaction-error';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
@@ -144,6 +145,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { compareIdsForLockOrder } from '../helpers/utils/stock-lock-order';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -1642,19 +1644,7 @@ export class OrderService implements OnApplicationBootstrap {
                 // until the resolver's @Transaction() commits. On SQLite the
                 // lock is not supported; SQLite serializes writes at the
                 // engine level instead.
-                try {
-                    await this.connection
-                        .getRepository(ctx, Promotion)
-                        .createQueryBuilder('promotion')
-                        .setLock('pessimistic_write')
-                        .where('promotion.id = :id', { id: promotion.id })
-                        .getOne();
-                } catch (e) {
-                    if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                        throw e;
-                    }
-                    // Lock not supported (e.g. SQLite) — continue without it
-                }
+                await this.connection.lockRow(ctx, Promotion, promotion.id);
             }
             const validationResult = await this.promotionService.validateCouponCode(
                 ctx,
@@ -2441,22 +2431,14 @@ export class OrderService implements OnApplicationBootstrap {
                 // Note: SQLite does not support pessimistic locks — the try-catch ensures we
                 // degrade gracefully (SQLite serializes writes at the engine level anyway).
                 if (existingOrder) {
-                    try {
-                        await this.connection
-                            .getRepository(txCtx, Order)
-                            .createQueryBuilder('order')
-                            .setLock('pessimistic_write')
-                            .where('order.id = :id', { id: existingOrder.id })
-                            .getOne();
-                    } catch {
-                        // Lock not supported (e.g. SQLite) — continue without it
-                    }
+                    await this.connection.lockRow(txCtx, Order, existingOrder.id);
                 }
 
                 // Re-read the guest order after acquiring the lock. A concurrent merge may have
-                // already deleted it, in which case there is nothing left to merge.
+                // already deleted it, in which case there is nothing left to merge. A concurrent
+                // payment may have placed it, in which case it is no longer a cart to merge.
                 const freshGuestOrder = guestOrder ? await this.findOne(txCtx, guestOrder.id) : undefined;
-                if (!freshGuestOrder && guestOrder) {
+                if (guestOrder && (!freshGuestOrder || !freshGuestOrder.active)) {
                     return existingOrder;
                 }
                 const relationFields = this.configService.customFields.OrderLine.filter(
@@ -2569,7 +2551,12 @@ export class OrderService implements OnApplicationBootstrap {
                 return order;
             });
         } catch (e: unknown) {
-            // If the merge fails for any reason, log the error and return the existing order
+            // A deadlock has ended the transaction on MySQL and MariaDB, so login cannot carry on
+            // without it. Let it through so that the login is retried as a whole.
+            if (isRetriableTransactionError(e)) {
+                throw e;
+            }
+            // If the merge fails for any other reason, log the error and return the existing order
             // unchanged rather than failing the entire login flow.
             const error = e instanceof Error ? e : new Error(String(e));
             Logger.error(`Failed to merge orders: ${error.message}`, undefined, error.stack);
@@ -2616,10 +2603,7 @@ export class OrderService implements OnApplicationBootstrap {
      */
     private async lockOrders(ctx: RequestContext, orderIds: ID[]): Promise<void> {
         const unique = [...new Map(orderIds.map(id => [String(id), id])).values()];
-        unique.sort((a, b) => {
-            const [x, y] = [String(a), String(b)];
-            return /^\d+$/.test(x) && /^\d+$/.test(y) ? Number(x) - Number(y) : x < y ? -1 : x > y ? 1 : 0;
-        });
+        unique.sort(compareIdsForLockOrder);
         for (const id of unique) {
             await this.connection.lockRow(ctx, Order, id);
         }
@@ -2894,25 +2878,11 @@ export class OrderService implements OnApplicationBootstrap {
             return order;
         }
         return this.connection.withTransaction(ctx, async txCtx => {
-            // Acquire a pessimistic write lock on the Order row to serialize concurrent reads.
-            // On SQLite the lock is not supported; SQLite serializes writes at the engine level.
-            let lockedOrder: Order | null = null;
-            try {
-                lockedOrder = await this.connection
-                    .getRepository(txCtx, Order)
-                    .createQueryBuilder('order')
-                    .setLock('pessimistic_write')
-                    .where('order.id = :id', { id: order.id })
-                    .getOne();
-            } catch (e) {
-                if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                    throw e;
-                }
-                // Lock not supported (e.g. SQLite) — continue without it
-                lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
-                    where: { id: order.id },
-                });
-            }
+            // Lock the Order row to serialize concurrent reads, then read it.
+            await this.connection.lockRow(txCtx, Order, order.id);
+            const lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
+                where: { id: order.id },
+            });
             if (!lockedOrder) {
                 return order;
             }
@@ -3009,7 +2979,9 @@ export class OrderService implements OnApplicationBootstrap {
             );
 
             const orders = await this.connection.getRepository(orderCtx, Order).find({
-                where: { id: In(affectedOrders.map(o => o.id)) },
+                // Read again after the lock, and only the Orders which are still carts: one may
+                // have been paid while this waited for it.
+                where: { id: In(affectedOrders.map(o => o.id)), active: true },
                 relations: {
                     lines: { productVariant: true },
                     shippingLines: true,

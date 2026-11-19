@@ -1342,7 +1342,9 @@ export interface EntityOptions {
      * explicitly.
      *
      * When not set, transactions on MySQL and MariaDB use `READ COMMITTED`, and on every other
-     * database the database's own default applies (which is `READ COMMITTED` on Postgres).
+     * database the database's own default applies (which is `READ COMMITTED` on Postgres). With
+     * TypeORM v1, an `isolationLevel` set in `dbConnectionOptions` is used instead of that default.
+     * TypeORM 0.3 has no such option.
      *
      * Concurrent writes to the same Order are serialized with a row lock. Under InnoDB's own
      * default of `REPEATABLE READ`, a transaction keeps reading the snapshot taken at its first

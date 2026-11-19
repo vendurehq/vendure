@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
 import {
-    defaultOrderProcess,
+    configureDefaultOrderProcess,
     Injector,
     LanguageCode,
     manualFulfillmentHandler,
@@ -22,7 +22,9 @@ import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { graphql } from './graphql/graphql-admin';
 import { graphql as shopGraphql } from './graphql/graphql-shop';
 import {
+    attemptLoginDocument,
     createFulfillmentDocument,
+    getCustomerListDocument,
     getOrderListDocument,
     getProductVariantListDocument,
     refundOrderDocument,
@@ -194,6 +196,18 @@ const countingPaymentMethod = new PaymentMethodHandler({
     settlePayment: () => ({ success: true }),
 });
 
+/** A payment provider which takes a while to answer. */
+const slowPaymentMethod = new PaymentMethodHandler({
+    code: 'slow-payment-method',
+    description: [{ languageCode: LanguageCode.en, value: 'Slow payment method' }],
+    args: {},
+    createPayment: async (ctx, order, amount) => {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return { amount, state: 'Settled', transactionId: `slow-${order.code}` };
+    },
+    settlePayment: () => ({ success: true }),
+});
+
 /**
  * Concurrency regression tests for #4152.
  *
@@ -210,10 +224,18 @@ describeOnRealDb('Order concurrency', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: {
-                paymentMethodHandlers: [testSuccessfulPaymentMethod, countingPaymentMethod],
+                paymentMethodHandlers: [
+                    testSuccessfulPaymentMethod,
+                    countingPaymentMethod,
+                    slowPaymentMethod,
+                ],
             },
             orderOptions: {
-                process: [defaultOrderProcess, misbehavingOrderProcess],
+                // Without a Customer requirement, a guest Order can be paid and then merged on login.
+                process: [
+                    configureDefaultOrderProcess({ arrangingPaymentRequiresCustomer: false }),
+                    misbehavingOrderProcess,
+                ],
             },
         }),
     );
@@ -276,6 +298,10 @@ describeOnRealDb('Order concurrency', () => {
                     {
                         name: countingPaymentMethod.code,
                         handler: { code: countingPaymentMethod.code, arguments: [] },
+                    },
+                    {
+                        name: slowPaymentMethod.code,
+                        handler: { code: slowPaymentMethod.code, arguments: [] },
                     },
                 ],
             },
@@ -552,4 +578,42 @@ describeOnRealDb('Order concurrency', () => {
             await checkoutToArrangingPayment(client, SECOND_CONNECTION_EMAIL);
         },
     );
+
+    // #4152 — paying for a guest Order while logging in on the same session. Payment locked the
+    // Order and held it through the provider call before writing the Session, while login deletes
+    // the Session first and then merges, which deletes the guest Order: a deadlock, after the
+    // provider had already been charged.
+    it('pays and logs in on the same guest session without a deadlock', async () => {
+        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 1 } });
+        const emailAddress = customers.items[0].emailAddress;
+        // The Customer already has an active Order, so logging in merges the guest Order into it.
+        const owner = await newShopClient();
+        await owner.query(attemptLoginDocument, { username: emailAddress, password: 'test' });
+        await owner.query(addItemToOrderDocument, { productVariantId: variantIds[3], quantity: 1 });
+
+        const guest = await newShopClient();
+        await guest.query(addItemToOrderDocument, { productVariantId: variantIds[1], quantity: 1 });
+        await guest.query(setShippingAddressDocument, { input: address });
+        const { eligibleShippingMethods } = await guest.query(getEligibleShippingMethodsDocument);
+        await guest.query(setShippingMethodDocument, { id: [eligibleShippingMethods[0].id] });
+        const { transitionOrderToState } = await guest.query(transitionToStateDocument, {
+            state: 'ArrangingPayment',
+        });
+        const guestOrderId = (transitionOrderToState as any).id as string;
+
+        const [payment, login] = await Promise.all([
+            guest.query(addPaymentDocument, { input: { method: slowPaymentMethod.code, metadata: {} } }),
+            // Logs in while the payment provider is still busy.
+            new Promise(resolve => setTimeout(resolve, 300)).then(() =>
+                guest.query(attemptLoginDocument, { username: emailAddress, password: 'test' }),
+            ),
+        ]);
+
+        expect((payment.addPaymentToOrder as any).state).toBe('PaymentSettled');
+        expect((login.login as any).identifier).toBe(emailAddress);
+        // The paid guest Order must survive the login: it is placed, not a cart to merge.
+        const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: guestOrderId });
+        expect(order?.state).toBe('PaymentSettled');
+        expect(order!.payments!.filter(p => p.state === 'Settled').length).toBe(1);
+    });
 });

@@ -8,6 +8,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
+    FAILED_AFTER_RETRY,
     nestedDeadlock,
     TRANSACTION_ENDED_BY_DATABASE,
     TransactionTestPlugin,
@@ -257,6 +258,24 @@ describe('Transaction infrastructure', () => {
         },
     );
 
+    // Relates to #4152. The retry continues on a fresh QueryRunner, so the work of the retried
+    // attempt has to run in that runner's transaction: if a later failure rolls it back, nothing of
+    // the attempt may remain.
+    itIfDb(['postgres', 'mysql', 'mariadb'])(
+        'rolls back the retried attempt as a whole when it fails',
+        async () => {
+            nestedDeadlock.attempts = 0;
+            const emailAddress = 'created-in-retried-attempt';
+            await expect(
+                adminClient.query(failAfterRetryingDeadlockInNestedTransactionDocument, { emailAddress }),
+            ).rejects.toThrow(FAILED_AFTER_RETRY);
+
+            expect(nestedDeadlock.attempts).toBe(2);
+            const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
+            expect(verify.admins.filter(a => a.emailAddress === emailAddress)).toHaveLength(0);
+        },
+    );
+
     it('event do not publish after transaction rollback', async () => {
         TransactionTestPlugin.reset();
         try {
@@ -436,6 +455,12 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, message: string):
         clearTimeout(timer);
     }
 }
+
+const failAfterRetryingDeadlockInNestedTransactionDocument = graphql(`
+    mutation FailAfterRetryingDeadlockInNestedTransaction($emailAddress: String!) {
+        failAfterRetryingDeadlockInNestedTransaction(emailAddress: $emailAddress)
+    }
+`);
 
 const retryAfterDeadlockInNestedTransactionDocument = graphql(`
     mutation RetryAfterDeadlockInNestedTransaction {

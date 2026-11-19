@@ -7,6 +7,7 @@ import {
     defaultShippingEligibilityChecker,
     EventBus,
     FulfillmentHandler,
+    PaymentMethodHandler,
     ShippingCalculator,
     ShippingMethod,
 } from '@vendure/core';
@@ -42,6 +43,18 @@ import {
     setShippingMethodDocument,
     transitionToStateDocument,
 } from './graphql/shop-definitions';
+
+/** A payment provider which takes a while to answer. */
+const slowPaymentMethod = new PaymentMethodHandler({
+    code: 'slow-shipping-test-payment-method',
+    description: [{ languageCode: LanguageCode.en, value: 'Slow payment method' }],
+    args: {},
+    createPayment: async (ctx, order, amount) => {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return { amount, state: 'Settled', transactionId: `slow-${order.code}` };
+    },
+    settlePayment: () => ({ success: true }),
+});
 
 const TEST_METADATA = {
     foo: 'bar',
@@ -80,7 +93,7 @@ describe('ShippingMethod resolver', () => {
     const { server, adminClient, shopClient } = createTestEnvironment({
         ...testConfig(),
         paymentOptions: {
-            paymentMethodHandlers: [testSuccessfulPaymentMethod],
+            paymentMethodHandlers: [testSuccessfulPaymentMethod, slowPaymentMethod],
         },
         shippingOptions: {
             shippingEligibilityCheckers: [defaultShippingEligibilityChecker],
@@ -712,6 +725,65 @@ describe('ShippingMethod resolver', () => {
                 expect(order!.shippingLines).toHaveLength(1);
                 expect(order!.shippingLines[0].shippingMethod.id).toBe(shippingMethodId);
                 expect(order!.shippingLines[0].shippingMethod.name).toBe('Channel Test Method');
+            } finally {
+                shopClient.setChannelToken('e2e-default-channel');
+                adminClient.setChannelToken('e2e-default-channel');
+            }
+        });
+
+        // #4152 — an Order which is paid while the unassignment waits for its lock is no longer a
+        // cart, so its shipping line and totals must be left alone.
+        it('does not reprice an order which was paid while the unassignment waited for it', async () => {
+            try {
+                await adminClient.query(assignShippingMethodsToChannelDocument, {
+                    input: { channelId, shippingMethodIds: [shippingMethodId] },
+                });
+                adminClient.setChannelToken('shipping-test-channel-token');
+                await adminClient.query(createPaymentMethodForShippingTestDocument, {
+                    input: {
+                        code: slowPaymentMethod.code,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Slow', description: '' }],
+                        enabled: true,
+                        handler: { code: slowPaymentMethod.code, arguments: [] },
+                    },
+                });
+                adminClient.setChannelToken('e2e-default-channel');
+
+                shopClient.setChannelToken('shipping-test-channel-token');
+                await shopClient.asAnonymousUser();
+                await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+                await shopClient.query(setShippingMethodDocument, { id: [shippingMethodId] });
+                await shopClient.query(setCustomerDocument, {
+                    input: {
+                        firstName: 'Paid',
+                        lastName: 'Meanwhile',
+                        emailAddress: 'paid-meanwhile@test.com',
+                    },
+                });
+                await shopClient.query(setShippingAddressDocument, {
+                    input: { streetLine1: '1 Test Street', countryCode: 'GB' },
+                });
+                await shopClient.query(transitionToStateDocument, { state: 'ArrangingPayment' });
+
+                const [{ addPaymentToOrder: paidOrder }] = await Promise.all([
+                    shopClient.query(addPaymentDocument, {
+                        input: { method: slowPaymentMethod.code, metadata: {} },
+                    }),
+                    // Starts while the payment holds the Order, which is still active until it commits.
+                    new Promise(resolve => setTimeout(resolve, 300)).then(() =>
+                        adminClient.query(removeShippingMethodsFromChannelDocument, {
+                            input: { channelId, shippingMethodIds: [shippingMethodId] },
+                        }),
+                    ),
+                ]);
+                expect((paidOrder as { state: string }).state).toBe('PaymentSettled');
+
+                adminClient.setChannelToken('shipping-test-channel-token');
+                const { order } = await adminClient.query(getOrderDocument, {
+                    id: (paidOrder as { id: string }).id,
+                });
+                expect(order!.shippingLines).toHaveLength(1);
+                expect(order!.shipping).toBe(500);
             } finally {
                 shopClient.setChannelToken('e2e-default-channel');
                 adminClient.setChannelToken('e2e-default-channel');
