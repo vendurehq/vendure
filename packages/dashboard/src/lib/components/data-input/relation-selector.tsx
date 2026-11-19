@@ -380,26 +380,27 @@ export function RelationSelector<T>({
                     {selectedItems.map(item => {
                         const itemId = String(item[config.idKey]);
                         const name = String(item[config.labelKey]);
+                        const label = config.label ? config.label(item) : name;
                         const removeLabel = t`Remove ${name}`;
-                        if (!config.label) {
+                        if (typeof label === 'string') {
                             return (
                                 <Chip
                                     key={itemId}
                                     onRemove={disabled ? undefined : () => handleRemove(itemId)}
                                     removeLabel={removeLabel}
                                 >
-                                    {name}
+                                    {label}
                                 </Chip>
                             );
                         }
-                        // A custom label is a rich entity row (thumbnail, title, subtitle), too tall
-                        // for a Chip, so it keeps its card and only the remove button is shared.
+                        // A rich label (thumbnail, title, subtitle) is too tall for a Chip,
+                        // so it keeps its card and uses the design-system remove button.
                         return (
                             <div
                                 key={itemId}
                                 className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm max-w-full min-w-0"
                             >
-                                <div className="min-w-0 flex-1">{config.label(item)}</div>
+                                <div className="min-w-0 flex-1">{label}</div>
                                 {!disabled && (
                                     <Button
                                         type="button"
