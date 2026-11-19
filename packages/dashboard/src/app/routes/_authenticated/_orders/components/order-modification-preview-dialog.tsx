@@ -326,7 +326,7 @@ export function OrderModificationPreviewDialog({
                                 </>
                             )}
                             <div className="w-full flex justify-end">
-                                <div className="max-w-lg mb-2">
+                                <div className="w-full max-w-lg mb-2">
                                     {priceDifference > 0 && (
                                         <Alert variant="destructive">
                                             <AlertTitle>
