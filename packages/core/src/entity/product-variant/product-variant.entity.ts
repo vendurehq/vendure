@@ -1,6 +1,15 @@
 import { CurrencyCode, GlobalFlag } from '@vendure/common/lib/generated-types';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
-import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+    OneToMany,
+    SelectQueryBuilder,
+} from 'typeorm';
 
 import type { RequestContext } from '../../api/common/request-context';
 import { Calculated } from '../../common/calculated-decorator';
@@ -30,6 +39,42 @@ import { TaxRate } from '../tax-rate/tax-rate.entity';
 import { ProductVariantAsset } from './product-variant-asset.entity';
 import { ProductVariantPrice } from './product-variant-price.entity';
 import { ProductVariantTranslation } from './product-variant-translation.entity';
+
+/** The alias under which the list query joins the prices, named in the `price` expressions. */
+const PRICES_LIST_QUERY_ALIAS = 'productvariant__productVariantPrices';
+
+/**
+ * Joins the prices so that a list of variants can be sorted or filtered by price: those of the
+ * Channel and currency of the list's RequestContext, so that each variant is sorted by the price it
+ * is sold at there.
+ *
+ * ProductVariantPrice is joined as an entity, not through the `productVariantPrices` relation: the
+ * rows are selected, as the paginated query needs for its sort, but not stored on the variants.
+ * Stored there, the one row of the sort would pass for the variant's prices in the Channel, and
+ * the other currencies would not be loaded.
+ *
+ * It is a `query` rather than a `relations` entry of `@Calculated()`, because the `@Relations()`
+ * decorator loads the `relations` of every selected calculated field: selecting `price` would then
+ * load the price of every Channel. The prices of the active Channel are loaded when a variant is
+ * priced instead.
+ */
+function joinPricesForListQuery(qb: SelectQueryBuilder<any>, ctx?: RequestContext) {
+    if (qb.expressionMap.joinAttributes.some(join => join.alias.name === PRICES_LIST_QUERY_ALIAS)) {
+        return;
+    }
+    const onVariant = `${PRICES_LIST_QUERY_ALIAS}.variantId = ${qb.alias}.id`;
+    if (!ctx) {
+        qb.leftJoinAndSelect(ProductVariantPrice, PRICES_LIST_QUERY_ALIAS, onVariant);
+        return;
+    }
+    qb.leftJoinAndSelect(
+        ProductVariantPrice,
+        PRICES_LIST_QUERY_ALIAS,
+        `${onVariant} AND ${PRICES_LIST_QUERY_ALIAS}.channelId = :lqbPriceChannelId AND ` +
+            `${PRICES_LIST_QUERY_ALIAS}.currencyCode = :lqbPriceCurrencyCode`,
+        { lqbPriceChannelId: ctx.channelId, lqbPriceCurrencyCode: ctx.currencyCode },
+    );
+}
 
 /**
  * @description
@@ -76,8 +121,8 @@ export class ProductVariant
     currencyCode: CurrencyCode;
 
     @Calculated({
-        relations: ['productVariantPrices'],
-        expression: 'productvariant__productVariantPrices.price',
+        query: joinPricesForListQuery,
+        expression: `${PRICES_LIST_QUERY_ALIAS}.price`,
     })
     get price(): number {
         if (this.listPrice == null) {
@@ -89,12 +134,12 @@ export class ProductVariant
     }
 
     @Calculated({
-        relations: ['productVariantPrices'],
+        query: joinPricesForListQuery,
         // Note: this works fine for sorting by priceWithTax, but filtering will return inaccurate
         // results due to this expression not taking taxes into account. This is because the tax
         // rate is calculated at run-time in the application layer based on the current context,
         // and is unknown to the database.
-        expression: 'productvariant__productVariantPrices.price',
+        expression: `${PRICES_LIST_QUERY_ALIAS}.price`,
     })
     get priceWithTax(): number {
         if (this.listPrice == null) {
@@ -129,7 +174,19 @@ export class ProductVariant
     @EntityId({ nullable: true })
     taxCategoryId: ID;
 
-    @OneToMany(type => ProductVariantPrice, price => price.variant, { eager: true })
+    /**
+     * @description
+     * The prices of the ProductVariant, one per Channel and currency.
+     *
+     * Not loaded by default. Request the relation to read every price.
+     * `ProductVariantService.getProductVariantPrices()` returns the prices of the active Channel.
+     * {@link ProductPriceApplicator} adds the prices of the active Channel when it prices the
+     * variant, so a priced variant may carry only those: saving it leaves the other prices
+     * untouched.
+     *
+     * @since 4.0.0 - No longer an eager relation
+     */
+    @OneToMany(type => ProductVariantPrice, price => price.variant)
     productVariantPrices: ProductVariantPrice[];
 
     @OneToMany(type => ProductVariantTranslation, translation => translation.base, { eager: true })

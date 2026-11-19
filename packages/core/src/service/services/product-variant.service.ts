@@ -1008,7 +1008,7 @@ export class ProductVariantService {
             unique(inputs.map(input => input.productVariantId)),
             ctx.channelId,
             {
-                relations: ['product', 'productVariantPrices', 'taxCategory'],
+                relations: ['product', 'taxCategory'],
                 where: { deletedAt: IsNull() },
             },
         );
@@ -1102,15 +1102,6 @@ export class ProductVariantService {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             populatePricesPromise = new Promise(async (resolve, reject) => {
                 try {
-                    if (!variant.productVariantPrices?.length) {
-                        const variantWithPrices = await this.connection.getEntityOrThrow(
-                            ctx,
-                            ProductVariant,
-                            variant.id,
-                            { relations: ['productVariantPrices'], includeSoftDeleted: true },
-                        );
-                        variant.productVariantPrices = variantWithPrices.productVariantPrices;
-                    }
                     if (!variant.taxCategory) {
                         const variantWithTaxCategory = await this.connection.getEntityOrThrow(
                             ctx,
@@ -1149,6 +1140,18 @@ export class ProductVariantService {
                 ]);
             }),
         );
+    }
+
+    /**
+     * @description
+     * Loads the Channel prices of the given ProductVariants in one query. Call it before pricing
+     * variants one after another with `applyChannelPriceAndTax()`, e.g. in a loop which awaits each
+     * one. See {@link ProductPriceApplicator.preloadChannelPrices}.
+     *
+     * @since 4.0.0
+     */
+    preloadChannelPrices(ctx: RequestContext, variants: ProductVariant[]): Promise<void> {
+        return this.productPriceApplicator.preloadChannelPrices(ctx, variants);
     }
 
     /**
@@ -1204,6 +1207,7 @@ export class ProductVariantService {
         const assignedVariantIds: ID[] = [];
         const optionIds: ID[] = [];
         const optionGroupIds: ID[] = [];
+        await this.productPriceApplicator.preloadChannelPrices(ctx, variants);
         for (const variant of variants) {
             if (variant.deletedAt) {
                 continue;

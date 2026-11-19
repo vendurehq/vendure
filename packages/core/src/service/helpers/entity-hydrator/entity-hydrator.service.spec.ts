@@ -377,6 +377,7 @@ describe('EntityHydrator', () => {
                 { getApplicableTaxRate: () => Promise.resolve({ id: 1 }) } as any,
                 { getAllWithMembers: () => Promise.resolve([]) } as any,
                 { get: (_ctx: any, _key: any, getValue: () => any) => getValue() } as any,
+                {} as any,
             );
             const translator = { translate: (entity: any) => entity };
             const hydrator = new EntityHydrator(
@@ -392,7 +393,7 @@ describe('EntityHydrator', () => {
         function createVariant(id: number): ProductVariant {
             return new ProductVariant({
                 id,
-                productVariantPrices: [{ price: 4200, currencyCode: 'USD' }] as any,
+                productVariantPrices: [{ price: 4200, currencyCode: 'USD', channelId: 1 }] as any,
                 taxCategory: { id: 1 } as any,
             });
         }

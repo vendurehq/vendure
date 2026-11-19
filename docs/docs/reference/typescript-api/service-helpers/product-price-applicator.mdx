@@ -2,7 +2,7 @@
 title: "ProductPriceApplicator"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/product-price-applicator/product-price-applicator.ts" sourceLine="41" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/product-price-applicator/product-price-applicator.ts" sourceLine="47" packageName="@vendure/core" />
 
 This helper is used to apply the correct price to a ProductVariant based on the current context
 including active Channel, any current Order, etc. If you use the [TransactionalConnection](/reference/typescript-api/data-access/transactional-connection#transactionalconnection) to
@@ -31,8 +31,9 @@ export class MyCustomService {
 
 ```ts title="Signature"
 class ProductPriceApplicator {
-    constructor(configService: ConfigService, taxRateService: TaxRateService, zoneService: ZoneService, requestCache: RequestContextCacheService)
+    constructor(configService: ConfigService, taxRateService: TaxRateService, zoneService: ZoneService, requestCache: RequestContextCacheService, connection: TransactionalConnection)
     applyChannelPriceAndTax(variant: ProductVariant, ctx: RequestContext, order?: Order, throwIfNoPriceFound:  = false) => Promise<ProductVariant>;
+    preloadChannelPrices(ctx: RequestContext, variants: ProductVariant[]) => Promise<void>;
 }
 ```
 
@@ -45,8 +46,21 @@ class ProductPriceApplicator {
 Populates the `price` field with the price for the specified channel. Make sure that
 the ProductVariant being passed in has its `taxCategory` relation joined.
 
+The price rows of the Channel of `ctx` are loaded if the variant does not already carry them,
+batched with the other variants priced in the same tick. `ProductVariant.productVariantPrices`
+is not an eager relation, so a query which only loads a variant to price it need not request
+it. Rows of other Channels which the variant already carries are kept.
+
 If the `throwIfNoPriceFound` option is set to `true`, then an error will be thrown if no
 price is found for the given Channel.
+### preloadChannelPrices
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variants: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]) => Promise<void>`}  since="4.0.0"  />
+
+Loads the prices of the Channel of `ctx` for every given variant which does not carry them
+yet, in one query. `applyChannelPriceAndTax()` loads them itself, batched with the variants
+priced in the same tick, so call this first only when pricing variants one after the other,
+for example in a loop which awaits each one.
 
 
 </div>

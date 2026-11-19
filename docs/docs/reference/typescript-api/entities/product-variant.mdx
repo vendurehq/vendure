@@ -2,7 +2,7 @@
 title: "ProductVariant"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/product-variant/product-variant.entity.ts" sourceLine="43" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/product-variant/product-variant.entity.ts" sourceLine="88" packageName="@vendure/core" />
 
 A ProductVariant represents a single stock keeping unit (SKU) in the store's inventory.
 Whereas a [Product](/reference/typescript-api/entities/product#product) is a "container" of variants, the variant itself holds the
@@ -39,7 +39,7 @@ class ProductVariant extends VendureEntity implements Translatable, HasCustomFie
     taxCategory: TaxCategory;
     @EntityId({ nullable: true })
     taxCategoryId: ID;
-    @OneToMany(type => ProductVariantPrice, price => price.variant, { eager: true })
+    @OneToMany(type => ProductVariantPrice, price => price.variant)
     productVariantPrices: ProductVariantPrice[];
     @OneToMany(type => ProductVariantTranslation, translation => translation.base, { eager: true })
     translations: Array<Translation<ProductVariant>>;
@@ -166,9 +166,15 @@ class ProductVariant extends VendureEntity implements Translatable, HasCustomFie
 
 ### productVariantPrices
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant-price#productvariantprice'>ProductVariantPrice</a>[]`}   />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant-price#productvariantprice'>ProductVariantPrice</a>[]`}  since="4.0.0 - No longer an eager relation"  />
 
+The prices of the ProductVariant, one per Channel and currency.
 
+Not loaded by default. Request the relation to read every price.
+`ProductVariantService.getProductVariantPrices()` returns the prices of the active Channel.
+[ProductPriceApplicator](/reference/typescript-api/service-helpers/product-price-applicator#productpriceapplicator) adds the prices of the active Channel when it prices the
+variant, so a priced variant may carry only those: saving it leaves the other prices
+untouched.
 ### translations
 
 <MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>`}   />
