@@ -15,8 +15,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { RelativeTime } from '@/vdb/components/ui/relative-time.js';
 import { ScrollArea } from '@/vdb/components/ui/scroll-area.js';
 import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import {
     FullWidthPageBlock,
     Page,
@@ -25,8 +27,8 @@ import {
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
-import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { DateTime } from '@vendure-io/ui/components/molecules/date-time';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
@@ -116,7 +118,6 @@ function ScheduledTasksPage() {
             }
         },
     });
-    const { formatDate, formatRelativeDate } = useLocalFormat();
     // Month, day and time: the next run is at most a few weeks away, so the year and the
     // seconds only make the column wider.
     const intlDateOptions = {
@@ -136,9 +137,10 @@ function ScheduledTasksPage() {
             header: t`Description`,
             // A long description is cut to one line, so the table fits its card.
             cell: ({ getValue }) => (
-                <div className="max-w-48 truncate" title={getValue()}>
-                    {getValue()}
-                </div>
+                <Tooltip>
+                    <TooltipTrigger render={<div className="max-w-48 truncate" />}>{getValue()}</TooltipTrigger>
+                    <TooltipContent className="max-w-80">{getValue()}</TooltipContent>
+                </Tooltip>
             ),
         }),
         columnHelper.accessor('enabled', {
@@ -183,9 +185,7 @@ function ScheduledTasksPage() {
             header: t`Last Executed`,
             cell: ({ row }) => {
                 return row.original.lastExecutedAt ? (
-                    <div className="whitespace-nowrap" title={row.original.lastExecutedAt}>
-                        {formatRelativeDate(row.original.lastExecutedAt)}
-                    </div>
+                    <RelativeTime value={row.original.lastExecutedAt} className="whitespace-nowrap" />
                 ) : (
                     <Trans>Never</Trans>
                 );
@@ -195,9 +195,11 @@ function ScheduledTasksPage() {
             header: t`Next Execution`,
             cell: ({ row }) => {
                 return row.original.nextExecutionAt ? (
-                    <div className="whitespace-nowrap tabular-nums" title={row.original.nextExecutionAt}>
-                        {formatDate(row.original.nextExecutionAt, intlDateOptions)}
-                    </div>
+                    <DateTime
+                        value={row.original.nextExecutionAt}
+                        formatOptions={intlDateOptions}
+                        className="whitespace-nowrap"
+                    />
                 ) : (
                     <Trans>Never</Trans>
                 );
