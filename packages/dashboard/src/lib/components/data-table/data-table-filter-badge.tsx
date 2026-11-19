@@ -1,5 +1,6 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -23,20 +24,29 @@ export function DataTableFilterBadge({
     const { t } = useLingui();
     const { getTranslatedFieldName } = useDynamicTranslations();
     const [operator, value] = Object.entries(filter.value as Record<string, unknown>)[0];
+    const fieldName = getTranslatedFieldName(filter.id);
     return (
         <ButtonGroup>
-            <Button variant="outline" size="sm" onClick={() => onClick?.(filter)}>
-                <Filter />
-                <span className="max-w-[200px] truncate" title={filter.id}>
-                    {getTranslatedFieldName(filter.id)}
-                </span>
-                <span className="text-muted-foreground">
+            {/* The field name and the value are cut to one line; the tooltip shows the whole filter. */}
+            <Tooltip>
+                <TooltipTrigger
+                    render={<Button variant="outline" size="sm" onClick={() => onClick?.(filter)} />}
+                >
+                    <Filter />
+                    <span className="max-w-[200px] truncate">{fieldName}</span>
+                    <span className="text-muted-foreground">
+                        <HumanReadableOperator operator={operator as Operator} mode="short" />
+                    </span>
+                    <span className="max-w-[200px] truncate">
+                        <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} />
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent className="flex flex-wrap items-center gap-1">
+                    {fieldName}
                     <HumanReadableOperator operator={operator as Operator} mode="short" />
-                </span>
-                <span className="max-w-[200px] truncate">
-                    <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} />
-                </span>
-            </Button>
+                    <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} fullDate />
+                </TooltipContent>
+            </Tooltip>
             <Button variant="outline" size="icon-sm" aria-label={t`Remove filter`} onClick={() => onRemove(filter)}>
                 <XIcon />
             </Button>
@@ -48,10 +58,13 @@ function FilterValue({
     value,
     dataType,
     currencyCode,
+    fullDate = false,
 }: {
     value: unknown;
     dataType: ColumnDataType;
     currencyCode: string;
+    /** Show a date with its time, as the tooltip does. */
+    fullDate?: boolean;
 }) {
     const { formatDate, formatCurrency } = useLocalFormat();
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
@@ -65,9 +78,9 @@ function FilterValue({
             const range = value as Record<string, unknown>;
             return (
                 <span className="flex gap-1 items-center">
-                    <FilterValue value={range.start} dataType={dataType} currencyCode={currencyCode} />
+                    <FilterValue value={range.start} dataType={dataType} currencyCode={currencyCode} fullDate={fullDate} />
                     <span className="text-muted-foreground">–</span>
-                    <FilterValue value={range.end} dataType={dataType} currencyCode={currencyCode} />
+                    <FilterValue value={range.end} dataType={dataType} currencyCode={currencyCode} fullDate={fullDate} />
                 </span>
             );
         }
@@ -76,7 +89,7 @@ function FilterValue({
                 <span className="text-muted-foreground">
                     <FilterKeyLabel filterKey={key} />:{' '}
                 </span>
-                <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} />
+                <FilterValue value={value} dataType={dataType} currencyCode={currencyCode} fullDate={fullDate} />
             </span>
         ));
     }
@@ -85,7 +98,13 @@ function FilterValue({
             <div className="flex gap-1 items-center">
                 [
                 {value.map(v => (
-                    <FilterValue value={v} dataType={dataType} currencyCode={currencyCode} key={v} />
+                    <FilterValue
+                        value={v}
+                        dataType={dataType}
+                        currencyCode={currencyCode}
+                        fullDate={fullDate}
+                        key={v}
+                    />
                 ))}
                 ]
             </div>
@@ -93,9 +112,7 @@ function FilterValue({
     }
     if (typeof value === 'string' && isDateIsoString(value)) {
         return (
-            <div title={formatDate(value, { dateStyle: 'short', timeStyle: 'long' })}>
-                {formatDate(value, { dateStyle: 'short' })}
-            </div>
+            <div>{formatDate(value, fullDate ? { dateStyle: 'short', timeStyle: 'long' } : { dateStyle: 'short' })}</div>
         );
     }
     if (typeof value === 'boolean') {

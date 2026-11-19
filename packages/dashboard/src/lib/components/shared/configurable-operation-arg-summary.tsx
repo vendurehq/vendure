@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import {
     ConfigurableFieldDef,
@@ -147,7 +148,15 @@ export function compactText(value: unknown): { full: string; compact: string } {
 
 function RichTextSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
     const { full, compact } = compactText(value);
-    return <span title={full}>{compact}</span>;
+    if (full === compact) {
+        return <span>{compact}</span>;
+    }
+    return (
+        <Tooltip>
+            <TooltipTrigger render={<span />}>{compact}</TooltipTrigger>
+            <TooltipContent className="max-w-80">{full}</TooltipContent>
+        </Tooltip>
+    );
 }
 
 export type JsonSummary =
@@ -322,11 +331,17 @@ const MAX_DISPLAYED_NAMES = 2;
 function NameList({ names }: Readonly<{ names: string[] }>) {
     const displayed = names.slice(0, MAX_DISPLAYED_NAMES);
     const overflow = names.length - displayed.length;
+    if (overflow === 0) {
+        return <span>{displayed.join(', ')}</span>;
+    }
     return (
-        <span title={names.join(', ')}>
-            {displayed.join(', ')}
-            {overflow > 0 && <span className="text-muted-foreground"> +{overflow}</span>}
-        </span>
+        <Tooltip>
+            <TooltipTrigger render={<span />}>
+                {displayed.join(', ')}
+                <span className="text-muted-foreground"> +{overflow}</span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-80">{names.join(', ')}</TooltipContent>
+        </Tooltip>
     );
 }
 
