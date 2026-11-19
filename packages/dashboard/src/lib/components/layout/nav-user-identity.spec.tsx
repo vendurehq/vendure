@@ -11,10 +11,10 @@ const user = {
 };
 
 describe('NavUserIdentity', () => {
-    it('renders a circular avatar without a boxed override', () => {
+    it('renders the round avatar of a person', () => {
         const markup = renderToStaticMarkup(<NavUserIdentity user={user} />);
 
-        expect(markup).not.toContain('rounded-lg');
+        expect(markup).toContain('data-shape="circle"');
     });
 
     it('uses the interface font for the user identifier', () => {

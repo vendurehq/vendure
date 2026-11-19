@@ -212,6 +212,28 @@ export default [{
     ],
   },
 }, {
+  // An avatar takes its corners from Avatar: round for a person (the default),
+  // shape="square" for a channel or an account. A rounded-* class on Avatar,
+  // AvatarImage or AvatarFallback sets them by hand and misses the ::after
+  // border. Any string in the className counts, so cn() arguments are checked too.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'avatar-radius': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'avatar-radius/no-restricted-syntax': [
+      'error',
+      ...[
+        'Literal[value=/(^|[\\s:])rounded(-[a-z0-9]+)?(\\s|$)/]',
+        'TemplateElement[value.raw=/(^|[\\s:])rounded(-[a-z0-9]+)?(\\s|$)/]',
+      ].map(selector => ({
+        selector: `JSXOpeningElement[name.name=/^Avatar(Fallback|Image)?$/] > JSXAttribute[name.name='className'] ${selector}`,
+        message: 'Do not round an avatar by hand. Use Avatar shape="square" for a channel or an account; a person keeps the round default.',
+      })),
+    ],
+  },
+}, {
   // A Button that sets its own hover colour drifts from the design-system
   // variants. Pick the variant that matches the weight (ghost, outline,
   // destructive-outline) instead. Size overrides (h-*, w-*, size-*) are not
