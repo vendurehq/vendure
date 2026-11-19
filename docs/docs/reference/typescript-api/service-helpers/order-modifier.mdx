@@ -2,7 +2,7 @@
 title: "OrderModifier"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="91" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="118" packageName="@vendure/core" />
 
 This helper is responsible for modifying the contents of an Order.
 
@@ -22,7 +22,7 @@ class OrderModifier {
     updateOrderLineQuantity(ctx: RequestContext, orderLine: OrderLine, quantity: number, order: Order) => Promise<OrderLine>;
     cancelOrderByOrderLines(ctx: RequestContext, input: CancelOrderInput, lineInputs: OrderLineInput[]) => ;
     modifyOrder(ctx: RequestContext, input: ModifyOrderInput, order: Order) => Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }>;
-    setShippingMethods(ctx: RequestContext, order: Order, shippingMethodIds: ID[]) => ;
+    setShippingMethods(ctx: RequestContext, order: Order, shippingMethods: Array<ID | ShippingMethodSelectionInput>) => Promise<SetShippingMethodsResult | IneligibleShippingMethodError>;
 }
 ```
 
@@ -76,9 +76,15 @@ Returns the actual quantity that the OrderLine was updated to (which may be less
 
 ### setShippingMethods
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, shippingMethodIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, shippingMethods: Array<<a href='/reference/typescript-api/common/id#id'>ID</a> | ShippingMethodSelectionInput>) => Promise<<a href='/reference/typescript-api/service-helpers/set-shipping-methods-result#setshippingmethodsresult'>SetShippingMethodsResult</a> | IneligibleShippingMethodError>`}  since="4.0.0 returns a {@link SetShippingMethodsResult} rather than the Order"  />
 
+Sets the ShippingMethods of the Order and assigns its OrderLines to the resulting ShippingLines.
+Each selection may name one of the ShippingMethod's options by its `shippingOptionCode`.
 
+The ShippingLines are not priced here: the next recalculation of the Order prices each with the
+option it names, or with the cheapest option when it names none. If the option is not offered,
+the recalculation falls back to another option or ShippingMethod. Pass the ShippingLines of the
+recalculated Order to the returned `selectionKept()` to find out whether that happened.
 
 
 </div>

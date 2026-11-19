@@ -2549,6 +2549,7 @@ input IDOperators {
     String: '/reference/graphql-api/admin/object-types#string',
     AdministratorRefundInput: '/reference/graphql-api/admin/input-types#administratorrefundinput',
     ModifyOrderOptions: '/reference/graphql-api/admin/input-types#modifyorderoptions',
+    ShippingMethodSelectionInput: '/reference/graphql-api/admin/input-types#shippingmethodselectioninput',
   }}
 >
 {`input ModifyOrderInput {
@@ -2570,6 +2571,8 @@ input IDOperators {
   couponCodes: [String!]
   """Added in v2.2"""
   shippingMethodIds: [ID!]
+  """Like \`shippingMethodIds\`, but can also choose one of each ShippingMethod's options. Cannot be combined with \`shippingMethodIds\`."""
+  shippingMethods: [ShippingMethodSelectionInput!]
 }`}
 </GraphQLDoc>
 
@@ -4289,6 +4292,25 @@ input RoleAssignmentInput {
   filter: ShippingMethodFilterParameter
   """Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND."""
   filterOperator: LogicalOperator
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethodselectioninput"></a>
+
+## ShippingMethodSelectionInput
+
+<GraphQLDoc
+  type="input"
+  typeName="ShippingMethodSelectionInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`input ShippingMethodSelectionInput {
+  shippingMethodId: ID!
+  """The \`code\` of one of the ShippingMethod's options. If omitted, the cheapest option is used."""
+  shippingOptionCode: String
 }`}
 </GraphQLDoc>
 

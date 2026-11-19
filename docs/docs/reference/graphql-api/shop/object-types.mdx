@@ -3414,6 +3414,7 @@ type SellerTranslation {
     ShippingMethod: '/reference/graphql-api/shop/object-types#shippingmethod',
     Money: '/reference/graphql-api/shop/object-types#money',
     Discount: '/reference/graphql-api/shop/object-types#discount',
+    String: '/reference/graphql-api/shop/object-types#string',
     JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
@@ -3425,6 +3426,10 @@ type SellerTranslation {
   discountedPrice: Money!
   discountedPriceWithTax: Money!
   discounts: [Discount!]!
+  """The code of the chosen ShippingOption, as returned by the ShippingCalculator. Null when the calculator returns a single result without a code."""
+  shippingOptionCode: String
+  """The name of the chosen ShippingOption, as returned by the ShippingCalculator the last time the ShippingLine was priced"""
+  shippingOptionName: String
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -3492,6 +3497,7 @@ type SellerTranslation {
     Money: '/reference/graphql-api/shop/object-types#money',
     String: '/reference/graphql-api/shop/object-types#string',
     JSON: '/reference/graphql-api/shop/object-types#json',
+    ShippingOptionQuote: '/reference/graphql-api/shop/object-types#shippingoptionquote',
   }}
 >
 {`type ShippingMethodQuote {
@@ -3503,6 +3509,12 @@ type SellerTranslation {
   description: String!
   """Any optional metadata returned by the ShippingCalculator in the ShippingCalculationResult"""
   metadata: JSON
+  """
+  Every ShippingOption offered by this ShippingMethod, cheapest first. A ShippingCalculator which
+  returns a single result yields one option, with the \`code\` the calculator gave it, or null if it
+  gave none. The \`price\`, \`priceWithTax\` and \`metadata\` fields above are those of the cheapest option.
+  """
+  options: [ShippingOptionQuote!]!
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -3528,6 +3540,33 @@ type SellerTranslation {
   languageCode: LanguageCode!
   name: String!
   description: String!
+}`}
+</GraphQLDoc>
+
+<a name="shippingoptionquote"></a>
+
+## ShippingOptionQuote
+
+<GraphQLDoc
+  type="type"
+  typeName="ShippingOptionQuote"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`"""
+One priced option offered by a ShippingMethod, such as a carrier service ("UPS Ground",
+"UPS Next Day Air") returned by a carrier API.
+"""
+type ShippingOptionQuote {
+  """Identifies the option within its ShippingMethod. Pass it as \`shippingOptionCode\` to select this option."""
+  code: String
+  name: String
+  price: Money!
+  priceWithTax: Money!
+  metadata: JSON
 }`}
 </GraphQLDoc>
 

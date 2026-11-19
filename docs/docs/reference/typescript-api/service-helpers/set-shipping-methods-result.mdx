@@ -1,0 +1,32 @@
+---
+title: "SetShippingMethodsResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="94" packageName="@vendure/core" since="4.0.0" />
+
+The result of `OrderModifier.setShippingMethods`.
+
+```ts title="Signature"
+interface SetShippingMethodsResult {
+    order: Order;
+    selectionKept: (pricedShippingLines: ShippingLine[]) => boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### order
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
+
+
+### selectionKept
+
+<MemberInfo kind="property" type={`(pricedShippingLines: <a href='/reference/typescript-api/entities/shipping-line#shippingline'>ShippingLine</a>[]) => boolean`}   />
+
+Whether each selection is still held by the ShippingLine it was set on, given the ShippingLines
+of the Order after it has been recalculated. A ShippingLine to which no OrderLine was assigned,
+and which the recalculation therefore removed, does not count as refused.
+
+
+</div>
