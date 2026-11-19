@@ -667,7 +667,7 @@ function ProductVariantDetailPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => handleRemoveCurrency(actualIndex)}
-                                                aria-label={t`Remove price`}
+                                                aria-label={t`Remove ${price.currencyCode} price`}
                                             >
                                                 <Trash />
                                             </Button>
