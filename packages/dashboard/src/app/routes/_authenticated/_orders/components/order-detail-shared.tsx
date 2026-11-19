@@ -210,14 +210,15 @@ export function OrderDetailShared({
     const showRefundOption = canRefundOrder(entity);
     const showCancelOption = canCancelOrderWithoutRefund(entity);
     const orderStateControl = (
-        <div className="flex items-center gap-1.5" data-testid="order-state-control">
+        <div data-testid="order-state-control">
             <StateTransitionControl
                 currentState={entity.state}
                 statesTranslationFunction={getTranslatedOrderState}
                 actions={stateTransitionActions}
                 isLoading={transitionOrderToStateMutation.isPending}
-            />
-            <OrderProcessDialog currentState={entity.state} />
+            >
+                <OrderProcessDialog currentState={entity.state} />
+            </StateTransitionControl>
         </div>
     );
 
