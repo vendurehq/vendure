@@ -158,9 +158,10 @@ export default [{
   // A native title is a hover hint the design system does not draw: it opens
   // late, ignores keyboard focus and touch, and looks like the operating system.
   // Use Tooltip, RelativeTime for a time (its tooltip shows the full date), and
-  // aria-label plus Tooltip on an icon-only control. Only lower-case tags are
-  // checked: title on a component (PageTitle, Card…) is a prop. iframe and abbr
-  // keep title, where it names the frame or expands the abbreviation.
+  // aria-label plus Tooltip on an icon-only control. Lower-case tags are checked,
+  // and so is Button, which passes title through to the native button. Other
+  // components (PageTitle, Card…) take title as a prop. iframe and abbr keep
+  // title, where it names the frame or expands the abbreviation.
   files: ['src/**/*.tsx'],
   ignores: [
     'src/**/*.spec.tsx',
@@ -175,6 +176,10 @@ export default [{
       {
         selector: "JSXOpeningElement[name.name=/^(?!(iframe|abbr)$)[a-z]/] > JSXAttribute[name.name='title']",
         message: 'Use Tooltip from @/vdb/components/ui/tooltip.js, or RelativeTime for a time. Do not use a native title for a hover hint.',
+      },
+      {
+        selector: "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='title']",
+        message: 'Button passes title to the native button. An icon-only Button takes aria-label plus Tooltip; a Button with visible text drops the title.',
       },
     ],
   },
@@ -282,6 +287,30 @@ export default [{
           "JSXElement[openingElement.name.name='PopoverContent'] JSXElement[openingElement.name.name='Command']",
         message: 'Use Combobox from @/vdb/components/ui/combobox.js for a search picker, not a Popover with a Command list.',
       },
+    ],
+  },
+}, {
+  // A dialog or sheet takes its width from the design-system `size` prop
+  // (Dialog: default, lg, xl, full; Sheet: default, xl), not from its own
+  // w-*, min-w-* or max-w-* class. A consumer max-w-* overrides the size on a
+  // dialog and loses to it on a sheet, so the widths drift apart. Height and
+  // layout classes stay. A copy of no-restricted-syntax under its own name, so
+  // it does not replace the selectors above.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'dialog-width': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'dialog-width/no-restricted-syntax': [
+      'error',
+      ...[
+        'Literal[value=/(^|[\\s:!])(min-|max-)?w-/]',
+        'TemplateElement[value.raw=/(^|[\\s:!])(min-|max-)?w-/]',
+      ].map(selector => ({
+        selector: `JSXOpeningElement[name.name=/^(DialogContent|SheetContent)$/] > JSXAttribute[name.name='className'] ${selector}`,
+        message: 'Set the width with the size prop (DialogContent: default, lg, xl, full; SheetContent: default, xl), not a w-*, min-w-* or max-w-* class.',
+      })),
     ],
   },
 }, {

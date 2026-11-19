@@ -88,7 +88,7 @@ export function OrderProcessDialog({ currentState }: Readonly<OrderProcessDialog
             >
                 <Workflow className="h-4 w-4" />
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogContent size="xl" className="max-h-[85vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Order process</Trans>

@@ -16,7 +16,7 @@ export function ZoneCountriesSheet({ zoneId, zoneName, children }: Readonly<Zone
             <SheetTrigger render={<Button variant="outline" size="sm" className="flex items-center gap-2" />}>
                 {children}
             </SheetTrigger>
-            <SheetContent className="min-w-[800px]">
+            <SheetContent size="xl">
                 <SheetHeader>
                     <SheetTitle>{zoneName}</SheetTitle>
                     <SheetDescription className="sr-only">

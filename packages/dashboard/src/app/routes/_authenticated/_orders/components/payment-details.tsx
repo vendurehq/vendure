@@ -225,7 +225,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                         <DialogTrigger render={<Button variant="outline" size="sm" />}>
                             <Trans>View payment metadata</Trans>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                        <DialogContent size="xl" className="max-h-[85vh] overflow-hidden flex flex-col">
                             <DialogHeader>
                                 <DialogTitle>
                                     <Trans>Payment metadata</Trans>

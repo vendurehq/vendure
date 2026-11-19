@@ -21,7 +21,7 @@ export function TestShippingMethodsSheet() {
                 <FlaskConical />
                 <Trans>Test</Trans>
             </SheetTrigger>
-            <SheetContent className="w-[800px] sm:max-w-[800px]">
+            <SheetContent size="xl">
                 <SheetHeader>
                     <SheetTitle>
                         <Trans>Test shipping methods</Trans>

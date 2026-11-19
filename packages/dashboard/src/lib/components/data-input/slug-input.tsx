@@ -1,6 +1,7 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Spinner } from '@/vdb/components/ui/spinner.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isFieldDisabled } from '@/vdb/framework/form-engine/utils.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -217,6 +218,7 @@ export function SlugInput({
     const isFormReadonly = isFieldDisabled(disabled, fieldDef);
     const [isManuallyReadonly, setIsManuallyReadonly] = useState(defaultReadonly);
     const isReadonly = isFormReadonly || isManuallyReadonly;
+    const toggleLabel = isManuallyReadonly ? t`Edit slug manually` : t`Generate slug automatically`;
 
     const actualWatchFieldName = resolveWatchFieldPath(
         name || '',
@@ -322,33 +324,43 @@ export function SlugInput({
             {!isFormReadonly && (
                 <>
                     {isManuallyReadonly && value && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={handleRegenerate}
-                            className="shrink-0"
-                            title={t`Regenerate slug from source field`}
-                            aria-label={t`Regenerate slug from source field`}
-                            disabled={!watchedValue || isLoading}
-                        >
-                            <RefreshCw className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleRegenerate}
+                                        className="shrink-0"
+                                        aria-label={t`Regenerate slug from source field`}
+                                        disabled={!watchedValue || isLoading}
+                                    />
+                                }
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                            </TooltipTrigger>
+                            <TooltipContent>{t`Regenerate slug from source field`}</TooltipContent>
+                        </Tooltip>
                     )}
 
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={toggleReadonly}
-                        className="shrink-0"
-                        title={isManuallyReadonly ? t`Edit slug manually` : t`Generate slug automatically`}
-                        aria-label={
-                            isManuallyReadonly ? t`Edit slug manually` : t`Generate slug automatically`
-                        }
-                    >
-                        {isManuallyReadonly ? <Edit className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={toggleReadonly}
+                                    className="shrink-0"
+                                    aria-label={toggleLabel}
+                                />
+                            }
+                        >
+                            {isManuallyReadonly ? <Edit className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                        </TooltipTrigger>
+                        <TooltipContent>{toggleLabel}</TooltipContent>
+                    </Tooltip>
                 </>
             )}
         </div>

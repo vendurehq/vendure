@@ -177,7 +177,7 @@ export const ViewsSheet: React.FC<ViewsSheetProps> = ({ open, onOpenChange, type
     return (
         <>
             <Sheet open={open} onOpenChange={onOpenChange}>
-                <SheetContent className="w-[400px] sm:w-[540px]">
+                <SheetContent>
                     <SheetHeader>
                         <SheetTitle>{getTitle()}</SheetTitle>
                         <SheetDescription>{getDescription()}</SheetDescription>

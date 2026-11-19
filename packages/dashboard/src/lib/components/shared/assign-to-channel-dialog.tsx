@@ -137,7 +137,6 @@ export function AssignToChannelDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[425px]"
                 // This dialog is opened from a DropdownMenuItem with closeOnClick={false},
                 // which keeps the ancestor DropdownMenu mounted and open underneath this
                 // dialog. React bubbles synthetic keyboard events through the component

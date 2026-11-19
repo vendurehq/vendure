@@ -373,7 +373,7 @@ export function ProductMultiSelectorDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[95vw] md:max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+            <DialogContent size="full" className="max-h-[90vh] flex flex-col overflow-hidden">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>{mode === 'product' ? 'Select Products' : 'Select Variants'}</Trans>

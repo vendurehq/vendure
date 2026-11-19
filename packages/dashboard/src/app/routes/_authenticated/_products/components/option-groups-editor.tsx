@@ -2,6 +2,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Plus, Trash2 } from 'lucide-react';
@@ -153,15 +154,21 @@ export function OptionGroupsEditor({ onChange, initialGroups = [] }: Readonly<Op
                     <div key={group.id} className="flex items-start">
                         <SingleOptionGroupEditor control={control} fieldArrayPath={`optionGroups.${index}`} />
                         <div className="shrink-0 mt-6">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeOptionGroup(index)}
-                                title={t`Remove option group`}
-                                aria-label={t`Remove option group`}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeOptionGroup(index)}
+                                            aria-label={t`Remove option group`}
+                                        />
+                                    }
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </TooltipTrigger>
+                                <TooltipContent>{t`Remove option group`}</TooltipContent>
+                            </Tooltip>
                         </div>
                     </div>
                 ))}
