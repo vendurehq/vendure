@@ -1,5 +1,12 @@
+import type { Tone } from '@/vdb/components/ui/status-badge.js';
 import { HistoryEntryItem } from '@/vdb/framework/extension-api/types/index.js';
-import { cn } from '@/vdb/lib/utils.js';
+import {
+    TimelineContent,
+    TimelineItem,
+    TimelineMarker,
+    TimelineMeta,
+    TimelineTitle,
+} from '@vendure-io/ui/components/molecules/timeline';
 import React from 'react';
 import { HistoryEntryDate } from '../../components/shared/history-timeline/history-entry-date.js';
 
@@ -24,20 +31,31 @@ export interface HistoryEntryProps {
     title: string | React.ReactNode;
     /**
      * @description
-     * An icon which is used to represent the entry. Note that this will only
-     * display if `isPrimary` is `true`.
+     * An icon which is used to represent the entry. It takes the place of the
+     * timeline dot. Note that this will only display if `isPrimary` is `true`.
      */
     timelineIcon?: React.ReactNode;
     /**
      * @description
-     * Optional tailwind classes to apply to the icon. Prefer the subtle tone
-     * slots so the timeline reads as a calm status surface rather than a row of
-     * full-strength fills. For instance
+     * The tone of the entry's timeline marker, from the state dictionary. Most
+     * entries stay `neutral`; a tone marks an entry the user must notice. For
+     * instance, the tone of an order state transition:
      *
      * ```ts
-     * const success = 'bg-success-subtle text-success-subtle-foreground';
-     * const destructive = 'bg-destructive-subtle text-destructive-subtle-foreground';
+     * const tone = orderStateDictionary.toneFor(entry.data.to);
      * ```
+     *
+     * @since 4.0.0
+     */
+    tone?: Tone;
+    /**
+     * @description
+     * Deprecated: use `tone`. Without a `tone`, the tone is read from the tone
+     * name in these classes (`success`, `warning`, `destructive`, `info`), so
+     * `'bg-success text-success-foreground'` gives a `success` marker. Other
+     * classes are not applied.
+     *
+     * @deprecated Use `tone`.
      */
     timelineIconClassName?: string;
     /**
@@ -66,8 +84,33 @@ export interface HistoryEntryProps {
 }
 
 /**
+ * The tone named in a legacy `timelineIconClassName`, so extensions written
+ * before `tone` keep their colour.
+ */
+function toneFromClassName(className: string | undefined): Tone {
+    if (!className) {
+        return 'neutral';
+    }
+    if (/\bdestructive\b|-destructive/.test(className)) {
+        return 'critical';
+    }
+    if (/-warning/.test(className)) {
+        return 'warning';
+    }
+    if (/-success/.test(className)) {
+        return 'success';
+    }
+    if (/-info/.test(className)) {
+        return 'info';
+    }
+    return 'neutral';
+}
+
+/**
  * @description
  * A component which is used to display a history entry in the order/customer history timeline.
+ * It renders one entry of the design-system Timeline: a marker in the entry's tone, the title,
+ * the time and the actor, then any children.
  *
  * @docsCategory extensions-api
  * @docsPage HistoryEntries
@@ -76,6 +119,7 @@ export interface HistoryEntryProps {
 export function HistoryEntry({
     entry,
     timelineIcon,
+    tone,
     timelineIconClassName,
     actorName,
     title,
@@ -83,49 +127,20 @@ export function HistoryEntry({
     isPrimary = true,
 }: Readonly<HistoryEntryProps>) {
     return (
-        <div key={entry.id} className="relative group">
-            <div
-                className={`flex gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors ${!isPrimary ? 'opacity-90' : ''}`}
-            >
-                <div className={cn(`relative z-10 flex-shrink-0`, isPrimary ? 'ml-0' : 'ml-2 mt-1')}>
-                    <div
-                        className={`rounded-full flex items-center justify-center ${isPrimary ? 'h-6 w-6' : 'h-2 w-2 border'} ${timelineIconClassName ?? ''}`}
-                    >
-                        <div className={isPrimary ? 'text-current scale-80' : 'text-current scale-0'}>
-                            {timelineIcon ?? ''}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                            <h4
-                                className={`text-sm ${isPrimary ? 'font-medium text-foreground' : 'font-normal text-muted-foreground'}`}
-                            >
-                                {title}
-                            </h4>
-                            <div className="mt-1">{children}</div>
-                        </div>
-
-                        <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                            <div className="text-right">
-                                <HistoryEntryDate
-                                    date={entry.createdAt}
-                                    className={`text-xs cursor-help ${isPrimary ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}
-                                />
-                                {actorName && (
-                                    <div
-                                        className={`text-xs ${isPrimary ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}
-                                    >
-                                        {actorName}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <TimelineItem key={entry.id}>
+            <TimelineMarker tone={tone ?? toneFromClassName(timelineIconClassName)}>
+                {isPrimary ? timelineIcon : null}
+            </TimelineMarker>
+            <TimelineContent>
+                <TimelineTitle className={isPrimary ? 'font-medium' : 'text-muted-foreground'}>
+                    {title}
+                </TimelineTitle>
+                <TimelineMeta>
+                    <HistoryEntryDate date={entry.createdAt} className="cursor-help" />
+                    {actorName ? <> · {actorName}</> : null}
+                </TimelineMeta>
+                {children ? <div className="mt-2">{children}</div> : null}
+            </TimelineContent>
+        </TimelineItem>
     );
 }
