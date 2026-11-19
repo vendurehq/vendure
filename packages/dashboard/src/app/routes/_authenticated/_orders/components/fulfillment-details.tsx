@@ -1,4 +1,4 @@
-import { LabeledData } from '@/vdb/components/labeled-data.js';
+import { DescriptionList, DescriptionListItem } from '@/vdb/components/ui/description-list.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -134,14 +134,20 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
                         isLoading={transitionFulfillmentMutation.isPending}
                     />
                 </div>
-                <div className="grid gap-2 md:grid-cols-2 sm:col-start-1 sm:row-start-1">
-                    <LabeledData label={<Trans>Fulfillment ID</Trans>} value={fulfillment.id.slice(-8)} />
-                    <LabeledData label={<Trans>Method</Trans>} value={fulfillment.method} />
+                <DescriptionList className="grid gap-4 md:grid-cols-2 sm:col-start-1 sm:row-start-1">
+                    <DescriptionListItem label={<Trans>Fulfillment ID</Trans>}>
+                        {fulfillment.id.slice(-8)}
+                    </DescriptionListItem>
+                    <DescriptionListItem label={<Trans>Method</Trans>}>{fulfillment.method}</DescriptionListItem>
                     {fulfillment.trackingCode && (
-                        <LabeledData label={<Trans>Tracking code</Trans>} value={fulfillment.trackingCode} />
+                        <DescriptionListItem label={<Trans>Tracking code</Trans>}>
+                            {fulfillment.trackingCode}
+                        </DescriptionListItem>
                     )}
-                    <LabeledData label={<Trans>Created</Trans>} value={formatDate(fulfillment.createdAt)} />
-                </div>
+                    <DescriptionListItem label={<Trans>Created</Trans>}>
+                        {formatDate(fulfillment.createdAt)}
+                    </DescriptionListItem>
+                </DescriptionList>
             </div>
 
             {fulfillment.lines.length > 0 && (

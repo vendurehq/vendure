@@ -1,5 +1,11 @@
 import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
-import { LabeledData } from '@/vdb/components/labeled-data.js';
+import {
+    DescriptionDetail,
+    DescriptionItem,
+    DescriptionList,
+    DescriptionListItem,
+    DescriptionTerm,
+} from '@/vdb/components/ui/description-list.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
 import {
@@ -186,31 +192,33 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                             }
                         />
                     </div>
-                    <div className="grid gap-2 md:grid-cols-2 sm:col-start-1 sm:row-start-1">
-                        <LabeledData label={<Trans>Payment method</Trans>} value={payment.method} />
-                        <LabeledData
-                            label={<Trans>Amount</Trans>}
-                            value={formatCurrency(payment.amount, currencyCode)}
-                        />
-                        <LabeledData
-                            label={<Trans>Created at</Trans>}
-                            value={formatDate(payment.createdAt, { dateStyle: 'short', timeStyle: 'short' })}
-                        />
+                    <DescriptionList className="grid gap-4 md:grid-cols-2 sm:col-start-1 sm:row-start-1">
+                        <DescriptionListItem label={<Trans>Payment method</Trans>}>
+                            {payment.method}
+                        </DescriptionListItem>
+                        <DescriptionListItem label={<Trans>Amount</Trans>}>
+                            {formatCurrency(payment.amount, currencyCode)}
+                        </DescriptionListItem>
+                        <DescriptionListItem label={<Trans>Created at</Trans>}>
+                            {formatDate(payment.createdAt, { dateStyle: 'short', timeStyle: 'short' })}
+                        </DescriptionListItem>
                         {payment.transactionId && (
-                            <LabeledData
-                                label={<Trans>Transaction ID</Trans>}
-                                value={payment.transactionId}
-                            />
+                            <DescriptionListItem label={<Trans>Transaction ID</Trans>}>
+                                {payment.transactionId}
+                            </DescriptionListItem>
                         )}
                         {/* We need to check if there is errorMessage field in the Payment type */}
                         {payment.errorMessage && (
-                            <LabeledData
-                                label={<Trans>Error message</Trans>}
-                                value={payment.errorMessage}
-                                className="text-destructive"
-                            />
+                            <DescriptionItem>
+                                <DescriptionTerm>
+                                    <Trans>Error message</Trans>
+                                </DescriptionTerm>
+                                <DescriptionDetail className="text-destructive">
+                                    {payment.errorMessage}
+                                </DescriptionDetail>
+                            </DescriptionItem>
                         )}
-                    </div>
+                    </DescriptionList>
                 </div>
                 <div className="mt-4">
                     <Dialog>
@@ -253,44 +261,39 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                         <CollapsibleContent className="mt-2 divide-y">
                             {payment.refunds.map(refund => (
                                 <div key={refund.id} className="py-3 first:pt-1 last:pb-0">
-                                    <div className="space-y-1">
-                                        <LabeledData label={<Trans>Refund ID</Trans>} value={refund.id} />
-                                        <LabeledData
-                                            label={<Trans>State</Trans>}
-                                            value={getTranslatedRefundState(refund.state)}
-                                        />
-                                        <LabeledData
-                                            label={<Trans>Created at</Trans>}
-                                            value={formatDate(refund.createdAt, {
+                                    <DescriptionList orientation="horizontal">
+                                        <DescriptionListItem label={<Trans>Refund ID</Trans>}>
+                                            {refund.id}
+                                        </DescriptionListItem>
+                                        <DescriptionListItem label={<Trans>State</Trans>}>
+                                            {getTranslatedRefundState(refund.state)}
+                                        </DescriptionListItem>
+                                        <DescriptionListItem label={<Trans>Created at</Trans>}>
+                                            {formatDate(refund.createdAt, {
                                                 dateStyle: 'short',
                                                 timeStyle: 'short',
                                             })}
-                                        />
-                                        <LabeledData
-                                            label={<Trans>Total</Trans>}
-                                            value={formatCurrency(refund.total, currencyCode)}
-                                        />
+                                        </DescriptionListItem>
+                                        <DescriptionListItem label={<Trans>Total</Trans>}>
+                                            {formatCurrency(refund.total, currencyCode)}
+                                        </DescriptionListItem>
                                         {refund.destination && (
-                                            <LabeledData
-                                                label={<Trans>Destination</Trans>}
-                                                value={refund.destination}
-                                            />
+                                            <DescriptionListItem label={<Trans>Destination</Trans>}>
+                                                {refund.destination}
+                                            </DescriptionListItem>
                                         )}
                                         {refund.reason && (
-                                            <LabeledData
-                                                label={<Trans>Reason</Trans>}
-                                                value={refund.reason}
-                                            />
+                                            <DescriptionListItem label={<Trans>Reason</Trans>}>
+                                                {refund.reason}
+                                            </DescriptionListItem>
                                         )}
                                         {refund.transactionId && (
-                                            <LabeledData
-                                                label={<Trans>Transaction ID</Trans>}
-                                                value={refund.transactionId}
-                                            />
+                                            <DescriptionListItem label={<Trans>Transaction ID</Trans>}>
+                                                {refund.transactionId}
+                                            </DescriptionListItem>
                                         )}
                                         {refund.metadata && Object.keys(refund.metadata).length > 0 && (
-                                            <div className="mt-2">
-                                                <LabeledData label={<Trans>Metadata</Trans>} value="" />
+                                            <DescriptionListItem label={<Trans>Metadata</Trans>}>
                                                 <JsonViewer
                                                     viewOnly
                                                     rootFontSize={11}
@@ -299,9 +302,9 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                                                     data={refund.metadata}
                                                     collapse
                                                 />
-                                            </div>
+                                            </DescriptionListItem>
                                         )}
-                                    </div>
+                                    </DescriptionList>
                                     {refund.state === 'Pending' && (
                                         <div className="mt-3">
                                             <Button
