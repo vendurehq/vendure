@@ -2,10 +2,20 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
-import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
+import {
+    Brackets,
+    EntitySubscriberInterface,
+    InsertEvent,
+    QueryRunner,
+    RemoveEvent,
+    TransactionCommitEvent,
+    TransactionRollbackEvent,
+    UpdateEvent,
+} from 'typeorm';
 
 import { ApiType } from '../../api/common/get-api-type';
 import { DeserializedCachedSession, RequestContext } from '../../api/common/request-context';
+import { TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
@@ -40,6 +50,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     private cleanSessionsJobQueue: JobQueue<{ batchSize: number }>;
     private readonly sessionDurationInMs: number;
     private readonly sessionCacheTimeoutMs = 50;
+    private readonly pendingSessionCacheInvalidations = new WeakMap<QueryRunner, Set<string>>();
     /**
      * `user` is declared on AuthenticatedSession, not the abstract Session queried here, so an
      * object literal typed against Session does not compile.
@@ -97,6 +108,52 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /** @internal */
     async afterUpdate(event: UpdateEvent<any>): Promise<any> {
         await this.clearSessionCacheOnDataChange(event);
+    }
+
+    /** @internal */
+    async afterTransactionCommit(event: TransactionCommitEvent): Promise<void> {
+        await this.invalidateSessionCacheAfterTransaction(event.queryRunner);
+    }
+
+    /** @internal */
+    async afterTransactionRollback(event: TransactionRollbackEvent): Promise<void> {
+        await this.invalidateSessionCacheAfterTransaction(event.queryRunner);
+    }
+
+    private async invalidateSessionCacheAfterTransaction(queryRunner: QueryRunner): Promise<void> {
+        // Savepoints do not finish the outer transaction. Keep its invalidations until it ends.
+        if (queryRunner.isTransactionActive) {
+            return;
+        }
+        const tokens = this.pendingSessionCacheInvalidations.get(queryRunner);
+        this.pendingSessionCacheInvalidations.delete(queryRunner);
+        if (tokens) {
+            for (const token of tokens) {
+                try {
+                    await this.withTimeout(this.sessionCacheStrategy.delete(token));
+                } catch (error) {
+                    // The database outcome is already final; a cache failure must not change it.
+                    const message = error instanceof Error ? error.message : String(error);
+                    Logger.error(`Could not invalidate session cache after transaction: ${message}`);
+                }
+            }
+        }
+    }
+
+    private async cacheActiveOrderChange(ctx: RequestContext, session: CachedSession): Promise<void> {
+        const queryRunner: QueryRunner | undefined = (ctx as any)[TRANSACTION_MANAGER_KEY]?.queryRunner;
+        if (queryRunner?.isTransactionActive) {
+            // Publishing here would expose uncommitted state which might be rolled back. On
+            // either outcome, invalidate so the next request reloads the committed session.
+            let tokens = this.pendingSessionCacheInvalidations.get(queryRunner);
+            if (!tokens) {
+                tokens = new Set();
+                this.pendingSessionCacheInvalidations.set(queryRunner, tokens);
+            }
+            tokens.add(session.token);
+        } else {
+            await this.withTimeout(this.sessionCacheStrategy.set(session));
+        }
     }
 
     private async clearSessionCacheOnDataChange(
@@ -301,7 +358,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             session.activeOrder = order;
             await this.connection.getRepository(ctx, Session).save(session, { reload: false });
             const updatedSerializedSession = this.serializeSession(session);
-            await this.withTimeout(this.sessionCacheStrategy.set(updatedSerializedSession));
+            await this.cacheActiveOrderChange(ctx, updatedSerializedSession);
             return updatedSerializedSession;
         }
         return serializedSession;
@@ -326,7 +383,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 session.activeOrder = null;
                 await this.connection.getRepository(ctx, Session).save(session);
                 const updatedSerializedSession = this.serializeSession(session);
-                await this.configService.authOptions.sessionCacheStrategy.set(updatedSerializedSession);
+                await this.cacheActiveOrderChange(ctx, updatedSerializedSession);
                 return updatedSerializedSession;
             }
         }
