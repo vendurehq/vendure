@@ -667,7 +667,7 @@ function ProductVariantDetailPage() {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleRemoveCurrency(actualIndex)}
-                                                className="h-6 w-6 p-0 mb-2 hover:text-destructive hover:bg-destructive-100"
+                                                className="h-6 w-6 p-0 mb-2 hover:bg-destructive/10 hover:text-destructive-text"
                                             >
                                                 <Trash className="size-4" />
                                             </Button>
