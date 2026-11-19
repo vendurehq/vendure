@@ -365,6 +365,96 @@ test.describe('Orders', () => {
         }
     });
 
+    // #2649 — a shipping method whose calculator returns several priced options lets the
+    // admin choose one of them on a draft order
+    test('should set one of the options of a shipping method on a draft order', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const suffix = Date.now();
+        const methodName = `Carrier Rates ${suffix}`;
+        const { createShippingMethod } = await client.gql(
+            `mutation ($input: CreateShippingMethodInput!) {
+                createShippingMethod(input: $input) { id }
+            }`,
+            {
+                input: {
+                    code: `carrier-rates-${suffix}`,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: {
+                        code: 'default-shipping-eligibility-checker',
+                        arguments: [{ name: 'orderMinimum', value: '0' }],
+                    },
+                    calculator: { code: 'e2e-carrier-rates', arguments: [] },
+                    translations: [{ languageCode: 'en', name: methodName, description: '' }],
+                },
+            },
+        );
+        const orderId = await createDraftOrderWithAddress(client);
+        try {
+            await page.goto(`/orders/draft/${orderId}`);
+            await expect(page.getByText(methodName, { exact: true })).toBeVisible({ timeout: 10_000 });
+
+            const nextDay = page.getByRole('radio', { name: /Next day/ });
+            await expect(nextDay).not.toBeChecked();
+            const setShippingResponse = page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    (response.request().postData() ?? '').includes('SetDraftOrderShippingMethod'),
+            );
+            await nextDay.click();
+            await setShippingResponse;
+
+            await expect(nextDay).toBeChecked();
+            await expect(page.getByText(`${methodName}: Next day`)).toBeVisible();
+
+            // Clicking the selected method's card must not reset the option to the cheapest one
+            let shippingMutations = 0;
+            page.on('request', request => {
+                if ((request.postData() ?? '').includes('SetDraftOrderShippingMethod')) {
+                    shippingMutations++;
+                }
+            });
+            await page.getByText(methodName, { exact: true }).click();
+            await page.waitForLoadState('networkidle');
+            expect(shippingMutations).toBe(0);
+            await expect(nextDay).toBeChecked();
+            const { order } = await client.gql(
+                `query ($id: ID!) {
+                    order(id: $id) {
+                        shippingLines {
+                            priceWithTax
+                            shippingOptionCode
+                            shippingOptionName
+                            shippingMethod { id }
+                        }
+                    }
+                }`,
+                { id: orderId },
+            );
+            expect(order.shippingLines).toEqual([
+                {
+                    priceWithTax: 4000,
+                    shippingOptionCode: 'next-day',
+                    shippingOptionName: 'Next day',
+                    shippingMethod: { id: createShippingMethod.id },
+                },
+            ]);
+        } finally {
+            try {
+                await client.gql(
+                    `mutation ($orderId: ID!) { deleteDraftOrder(orderId: $orderId) { result } }`,
+                    { orderId },
+                );
+            } finally {
+                await client.gql(`mutation ($id: ID!) { deleteShippingMethod(id: $id) { result message } }`, {
+                    id: createShippingMethod.id,
+                });
+            }
+        }
+    });
+
     test('should show the completed order in the list', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -1737,6 +1827,44 @@ async function deleteCurrentDraft(page: Page) {
     await page.getByRole('button', { name: /Delete draft/i }).click();
     await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
     await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
+}
+
+/**
+ * Creates a draft order with a customer, one line and a shipping address, but no
+ * shipping method, and returns its ID.
+ */
+async function createDraftOrderWithAddress(client: VendureAdminClient): Promise<string> {
+    const { createDraftOrder } = await client.gql(`mutation { createDraftOrder { id } }`);
+    const orderId: string = createDraftOrder.id;
+    const { customers } = await client.gql(`query { customers(options: { take: 1 }) { items { id } } }`);
+    await client.gql(
+        `mutation ($orderId: ID!, $customerId: ID!) {
+            setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId) {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { orderId, customerId: customers.items[0].id },
+    );
+    const { productVariants } = await client.gql(
+        `query { productVariants(options: { take: 1 }) { items { id } } }`,
+    );
+    await client.gql(
+        `mutation ($orderId: ID!, $variantId: ID!) {
+            addItemToDraftOrder(orderId: $orderId, input: { productVariantId: $variantId, quantity: 1 }) {
+                ... on Order { id } ... on ErrorResult { errorCode message }
+            }
+        }`,
+        { orderId, variantId: productVariants.items[0].id },
+    );
+    await client.gql(
+        `mutation ($orderId: ID!) {
+            setDraftOrderShippingAddress(orderId: $orderId, input: {
+                fullName: "Test User", streetLine1: "123 Main St", city: "London", countryCode: "GB"
+            }) { id }
+        }`,
+        { orderId },
+    );
+    return orderId;
 }
 
 /**

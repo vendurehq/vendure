@@ -74,7 +74,12 @@ type Mutation {
     "Removes the given coupon code from the draft Order"
     removeCouponCodeFromDraftOrder(orderId: ID!, couponCode: String!): Order
     "Sets the shipping method by id, which can be obtained with the `eligibleShippingMethodsForDraftOrder` query"
-    setDraftOrderShippingMethod(orderId: ID!, shippingMethodId: ID!): SetOrderShippingMethodResult!
+    setDraftOrderShippingMethod(
+        orderId: ID!
+        shippingMethodId: ID!
+        "The `code` of one of the ShippingMethod's options. If omitted, the cheapest option is used."
+        shippingOptionCode: String
+    ): SetOrderShippingMethodResult!
 }
 
 type Order {
@@ -254,6 +259,8 @@ input ModifyOrderInput {
     Added in v2.2
     """
     shippingMethodIds: [ID!]
+    "Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Cannot be combined with `shippingMethodIds`."
+    shippingMethods: [ShippingMethodSelectionInput!]
 }
 
 input AddItemInput {

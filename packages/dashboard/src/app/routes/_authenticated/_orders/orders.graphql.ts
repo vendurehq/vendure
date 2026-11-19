@@ -31,6 +31,7 @@ export const orderListDocument = graphql(`
                     shippingMethod {
                         name
                     }
+                    shippingOptionName
                 }
             }
             totalItems
@@ -236,6 +237,8 @@ export const orderDetailFragment = graphql(
                     fulfillmentHandlerCode
                     description
                 }
+                shippingOptionCode
+                shippingOptionName
             }
             taxSummary {
                 description
@@ -491,14 +494,28 @@ export const draftOrderEligibleShippingMethodsDocument = graphql(`
             price
             priceWithTax
             metadata
+            options {
+                code
+                name
+                price
+                priceWithTax
+            }
         }
     }
 `);
 
 export const setDraftOrderShippingMethodDocument = graphql(
     `
-        mutation SetDraftOrderShippingMethod($orderId: ID!, $shippingMethodId: ID!) {
-            setDraftOrderShippingMethod(orderId: $orderId, shippingMethodId: $shippingMethodId) {
+        mutation SetDraftOrderShippingMethod(
+            $orderId: ID!
+            $shippingMethodId: ID!
+            $shippingOptionCode: String
+        ) {
+            setDraftOrderShippingMethod(
+                orderId: $orderId
+                shippingMethodId: $shippingMethodId
+                shippingOptionCode: $shippingOptionCode
+            ) {
                 __typename
                 ... on Order {
                     id

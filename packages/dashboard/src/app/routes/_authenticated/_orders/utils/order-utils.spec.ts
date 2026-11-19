@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { Order } from './order-types.js';
 import {
     canCancelOrderWithoutRefund,
+    computePendingOrder,
     getMaxRefundableQuantity,
     getRefundableQuantity,
+    getShippingLineLabel,
     lineCanBeRefunded,
     toCustomFieldsInput,
     toModifyOrderInput,
@@ -206,5 +208,65 @@ describe('toModifyOrderInput', () => {
         expect(result.adjustOrderLines[0].customFields).toEqual({ giftFromId: '3' });
         expect(result.addItems[0].customFields).toEqual({ giftFromId: null });
         expect(input.adjustOrderLines[0].customFields).toEqual({ giftFrom: { id: '3' } });
+    });
+});
+
+// OSS-1003 / #2649 — a ShippingMethod can offer several priced options
+describe('computePendingOrder shipping options', () => {
+    const order = { lines: [], shippingLines: [] } as unknown as Order;
+    const carrier = {
+        id: 'SM1',
+        name: 'Carrier',
+        priceWithTax: 500,
+        options: [
+            { code: 'economy', name: 'Economy', priceWithTax: 500 },
+            { code: 'express', name: 'Express', priceWithTax: 1500 },
+        ],
+    };
+
+    it('previews the chosen option', () => {
+        const pending = computePendingOrder(
+            order,
+            {
+                orderId: '1',
+                dryRun: true,
+                shippingMethods: [{ shippingMethodId: 'SM1', shippingOptionCode: 'express' }],
+            },
+            new Map(),
+            [carrier],
+        );
+        expect(pending.shippingLines[0]).toMatchObject({
+            discountedPriceWithTax: 1500,
+            shippingOptionCode: 'express',
+            shippingOptionName: 'Express',
+        });
+        expect(pending.shippingLines[0].shippingMethod).not.toHaveProperty('options');
+    });
+
+    it('previews the cheapest option when only the ShippingMethod id is given', () => {
+        const pending = computePendingOrder(
+            order,
+            { orderId: '1', dryRun: true, shippingMethodIds: ['SM1'] },
+            new Map(),
+            [carrier],
+        );
+        expect(pending.shippingLines[0]).toMatchObject({
+            discountedPriceWithTax: 500,
+            shippingOptionCode: 'economy',
+        });
+    });
+});
+
+describe('getShippingLineLabel', () => {
+    it('appends the name of the chosen option', () => {
+        expect(
+            getShippingLineLabel({ shippingMethod: { name: 'Carrier' }, shippingOptionName: 'Express' }),
+        ).toBe('Carrier: Express');
+    });
+
+    it('is the ShippingMethod name when there is no option', () => {
+        expect(
+            getShippingLineLabel({ shippingMethod: { name: 'Flat rate' }, shippingOptionName: null }),
+        ).toBe('Flat rate');
     });
 });

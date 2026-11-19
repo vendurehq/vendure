@@ -215,12 +215,14 @@ describe('OrderCalculator', () => {
                                 return {
                                     id: mockShippingMethodId,
                                     test: () => true,
-                                    apply() {
-                                        return {
-                                            price: 500,
-                                            priceIncludesTax: requestCtx.channel.pricesIncludeTax,
-                                            taxRate: 20,
-                                        };
+                                    applyQuotes() {
+                                        return [
+                                            {
+                                                price: 500,
+                                                priceIncludesTax: requestCtx.channel.pricesIncludeTax,
+                                                taxRate: 20,
+                                            },
+                                        ];
                                     },
                                 };
                             },
@@ -2343,12 +2345,14 @@ function createTestModule() {
                     findOne: (ctx: RequestContext) => ({
                         id: mockShippingMethodId,
                         test: () => true,
-                        apply() {
-                            return {
-                                price: 500,
-                                priceIncludesTax: ctx.channel.pricesIncludeTax,
-                                taxRate: 20,
-                            };
+                        applyQuotes() {
+                            return [
+                                {
+                                    price: 500,
+                                    priceIncludesTax: ctx.channel.pricesIncludeTax,
+                                    taxRate: 20,
+                                },
+                            ];
                         },
                     }),
                 },

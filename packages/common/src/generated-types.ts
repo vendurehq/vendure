@@ -2907,6 +2907,8 @@ export type ModifyOrderInput = {
   refunds?: InputMaybe<Array<AdministratorRefundInput>>;
   /** Added in v2.2 */
   shippingMethodIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Cannot be combined with `shippingMethodIds`. */
+  shippingMethods?: InputMaybe<Array<ShippingMethodSelectionInput>>;
   surcharges?: InputMaybe<Array<SurchargeInput>>;
   updateBillingAddress?: InputMaybe<UpdateOrderAddressInput>;
   updateShippingAddress?: InputMaybe<UpdateOrderAddressInput>;
@@ -4065,6 +4067,7 @@ export type MutationSetDraftOrderShippingAddressArgs = {
 export type MutationSetDraftOrderShippingMethodArgs = {
   orderId: Scalars['ID']['input'];
   shippingMethodId: Scalars['ID']['input'];
+  shippingOptionCode?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -6816,6 +6819,10 @@ export type ShippingLine = {
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
   shippingMethod: ShippingMethod;
+  /** The code of the chosen ShippingOption, as returned by the ShippingCalculator. Null when the calculator returns a single result without a code. */
+  shippingOptionCode?: Maybe<Scalars['String']['output']>;
+  /** The name of the chosen ShippingOption, as returned by the ShippingCalculator the last time the ShippingLine was priced */
+  shippingOptionName?: Maybe<Scalars['String']['output']>;
 };
 
 export type ShippingMethod = Node & {
@@ -6875,8 +6882,20 @@ export type ShippingMethodQuote = {
   /** Any optional metadata returned by the ShippingCalculator in the ShippingCalculationResult */
   metadata?: Maybe<Scalars['JSON']['output']>;
   name: Scalars['String']['output'];
+  /**
+   * Every ShippingOption offered by this ShippingMethod, cheapest first. A ShippingCalculator which
+   * returns a single result yields one option, with the `code` the calculator gave it, or null if it
+   * gave none. The `price`, `priceWithTax` and `metadata` fields above are those of the cheapest option.
+   */
+  options: Array<ShippingOptionQuote>;
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
+};
+
+export type ShippingMethodSelectionInput = {
+  shippingMethodId: Scalars['ID']['input'];
+  /** The `code` of one of the ShippingMethod's options. If omitted, the cheapest option is used. */
+  shippingOptionCode?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ShippingMethodSortParameter = {
@@ -6905,6 +6924,20 @@ export type ShippingMethodTranslationInput = {
   id?: InputMaybe<Scalars['ID']['input']>;
   languageCode: LanguageCode;
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/**
+ * One priced option offered by a ShippingMethod, such as a carrier service ("UPS Ground",
+ * "UPS Next Day Air") returned by a carrier API.
+ */
+export type ShippingOptionQuote = {
+  __typename?: 'ShippingOptionQuote';
+  /** Identifies the option within its ShippingMethod. Pass it as `shippingOptionCode` to select this option. */
+  code?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  price: Scalars['Money']['output'];
+  priceWithTax: Scalars['Money']['output'];
 };
 
 /** The price value where the result has a single price */
@@ -7338,6 +7371,9 @@ export type TestShippingMethodQuote = {
 export type TestShippingMethodResult = {
   __typename?: 'TestShippingMethodResult';
   eligible: Scalars['Boolean']['output'];
+  /** Every option returned by the ShippingCalculator, cheapest first */
+  options: Array<ShippingOptionQuote>;
+  /** The cheapest option */
   quote?: Maybe<TestShippingMethodQuote>;
 };
 

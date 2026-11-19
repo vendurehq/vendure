@@ -10,6 +10,7 @@ import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
+import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
 import { OrderLine, TaxRate } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
 import { Promotion } from '../../../entity/promotion/promotion.entity';
@@ -17,7 +18,11 @@ import { Zone } from '../../../entity/zone/zone.entity';
 import { ShippingMethodService } from '../../services/shipping-method.service';
 import { TaxRateService } from '../../services/tax-rate.service';
 import { ZoneService } from '../../services/zone.service';
-import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
+import {
+    findShippingOption,
+    setShippingLineOption,
+    ShippingCalculator,
+} from '../shipping-calculator/shipping-calculator';
 
 import { prorate } from './prorate';
 
@@ -360,39 +365,48 @@ export class OrderCalculator {
                 continue;
             }
             const currentMethodStillEligible = await currentShippingMethod.test(ctx, order);
+            let currentMethodQuotes: ShippingCalculationResult[] = [];
             if (currentMethodStillEligible) {
-                const result = await currentShippingMethod.apply(ctx, order);
-                if (result) {
-                    shippingLine.listPrice = result.price;
-                    shippingLine.listPriceIncludesTax = result.priceIncludesTax;
-                    shippingLine.taxLines = [
-                        {
-                            description: 'shipping tax',
-                            taxRate: result.taxRate,
-                        },
-                    ];
+                currentMethodQuotes = await currentShippingMethod.applyQuotes(ctx, order);
+                // With no stored code this is the cheapest option, whose code is then stored
+                const chosenOption = findShippingOption(currentMethodQuotes, shippingLine.shippingOptionCode);
+                if (chosenOption) {
+                    setShippingLineOption(shippingLine, currentShippingMethod, chosenOption);
+                    continue;
                 }
-                continue;
+                // The chosen ShippingOption is no longer offered, or the calculator returned nothing,
+                // which also leaves the ShippingMethod out of eligibleShippingMethods. Fall back to
+                // the cheapest option of any eligible ShippingMethod, this one included.
             }
-            const results = await this.shippingCalculator.getEligibleShippingMethods(ctx, order, [
+            const otherMethods = await this.shippingCalculator.getEligibleShippingMethods(ctx, order, [
                 currentShippingMethod.id,
             ]);
-            if (results && results.length) {
-                const cheapest = results[0];
-                shippingLine.listPrice = cheapest.result.price;
-                shippingLine.listPriceIncludesTax = cheapest.result.priceIncludesTax;
-                shippingLine.shippingMethod = cheapest.method;
-                shippingLine.shippingMethodId = cheapest.method.id;
-                shippingLine.taxLines = [
-                    {
-                        description: 'shipping tax',
-                        taxRate: cheapest.result.taxRate,
-                    },
-                ];
+            const candidates = currentMethodQuotes.length
+                ? [{ method: currentShippingMethod, result: currentMethodQuotes[0] }, ...otherMethods]
+                : otherMethods;
+            candidates.sort((a, b) => a.result.price - b.result.price);
+            const cheapest = candidates[0];
+            if (cheapest) {
+                setShippingLineOption(shippingLine, cheapest.method, cheapest.result);
             } else {
                 order.shippingLines = order.shippingLines.filter(sl => sl !== shippingLine);
             }
         }
+    }
+
+    /**
+     * @description
+     * Applies the shipping Promotions to the Order's ShippingLines again and recalculates its totals,
+     * leaving everything else as it is. For use after the price of a ShippingLine was set directly,
+     * without recalculating shipping.
+     *
+     * @since 4.0.0
+     */
+    async reapplyShippingPromotions(ctx: RequestContext, order: Order, promotions: Promotion[]) {
+        await this.applyShippingPromotions(ctx, order, promotions);
+        this.calculateOrderTotals(order);
+        this.removeIneffectivePromotions(order);
+        return order;
     }
 
     /**

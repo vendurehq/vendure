@@ -145,13 +145,58 @@ export function toModifyOrderInput(
 }
 
 /**
+ * One of the options of a ShippingMethod, as listed by `eligibleShippingMethodsForDraftOrder`.
+ */
+export interface ShippingOptionInfo {
+    code?: string | null;
+    name?: string | null;
+    priceWithTax: number;
+}
+
+/**
+ * A ShippingMethod chosen for an Order, and optionally one of its options.
+ */
+export interface ShippingMethodSelection {
+    shippingMethodId: string;
+    /**
+     * The code of one of the ShippingMethod's options. Omitted to let the server pick the cheapest.
+     */
+    shippingOptionCode?: string | null;
+}
+
+/**
+ * The shipping method selections of a ModifyOrderInput, whichever of its two fields holds them.
+ */
+export function getShippingSelections(
+    input: Pick<ModifyOrderInput, 'shippingMethods' | 'shippingMethodIds'>,
+): ShippingMethodSelection[] | undefined {
+    return input.shippingMethods ?? input.shippingMethodIds?.map(shippingMethodId => ({ shippingMethodId }));
+}
+
+/**
+ * The option the server uses for a selection: the one with the given code or, without a code,
+ * the cheapest, which is listed first.
+ */
+export function findSelectedShippingOption<T extends { code?: string | null }>(
+    options: T[] | undefined,
+    shippingOptionCode: string | null | undefined,
+): T | undefined {
+    return shippingOptionCode != null ? options?.find(o => o.code === shippingOptionCode) : options?.[0];
+}
+
+/**
  * Computes a pending order based on the current order and modification input
  */
 export function computePendingOrder(
     order: Order,
     input: ModifyOrderInput,
     addedVariants: Map<string, ProductVariantInfo>,
-    eligibleShippingMethods?: Array<{ id: string; name: string; priceWithTax: number }>,
+    eligibleShippingMethods?: Array<{
+        id: string;
+        name: string;
+        priceWithTax: number;
+        options?: ShippingOptionInfo[];
+    }>,
     orderLineCustomFieldNames?: string[],
 ): Order {
     // Adjust lines
@@ -192,31 +237,49 @@ export function computePendingOrder(
         })
         .filter(x => x != null);
 
+    const shippingSelections = getShippingSelections(input);
+
     return {
         ...order,
         lines: [...lines, ...(addedLines ?? [])],
         couponCodes: input.couponCodes ?? [],
-        shippingLines: input.shippingMethodIds
-            ? input.shippingMethodIds
-                  .map(shippingMethodId => {
+        shippingLines: shippingSelections
+            ? shippingSelections
+                  .map(({ shippingMethodId, shippingOptionCode }) => {
                       const shippingMethod = eligibleShippingMethods?.find(
                           method => method.id === shippingMethodId,
                       );
                       if (!shippingMethod) {
                           return;
                       }
+                      const option = findSelectedShippingOption(shippingMethod.options, shippingOptionCode);
+                      const { options: _options, ...method } = shippingMethod;
                       return {
                           shippingMethod: {
-                              ...shippingMethod,
+                              ...method,
                               fulfillmentHandlerCode: 'manual',
                           },
-                          discountedPriceWithTax: shippingMethod?.priceWithTax ?? 0,
+                          discountedPriceWithTax: option?.priceWithTax ?? shippingMethod.priceWithTax,
+                          shippingOptionCode: option?.code ?? null,
+                          shippingOptionName: option?.name ?? null,
                           id: shippingMethodId,
                       } as any;
                   })
                   .filter(x => x !== undefined)
             : order.shippingLines,
     };
+}
+
+/**
+ * The label for a ShippingLine: the ShippingMethod's name, followed by the chosen ShippingOption's
+ * name if the ShippingMethod offers several options.
+ */
+export function getShippingLineLabel(shippingLine: {
+    shippingMethod?: { name: string } | null;
+    shippingOptionName?: string | null;
+}): string {
+    const methodName = shippingLine.shippingMethod?.name ?? '';
+    return shippingLine.shippingOptionName ? `${methodName}: ${shippingLine.shippingOptionName}` : methodName;
 }
 
 /**

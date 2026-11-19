@@ -18,6 +18,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 
 import { createDraftOrderDocument, orderListDocument } from './orders.graphql.js';
+import { getShippingLineLabel } from './utils/order-utils.js';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders')({
     component: OrderListPage,
@@ -91,7 +92,7 @@ function OrderListPage() {
                     header: () => <Trans>Shipping</Trans>,
                     cell: ({ row }) => {
                         const value = row.original.shippingLines;
-                        return <div>{value?.map(line => line.shippingMethod.name).join(', ')}</div>;
+                        return <div>{value?.map(getShippingLineLabel).join(', ')}</div>;
                     },
                 },
             }}

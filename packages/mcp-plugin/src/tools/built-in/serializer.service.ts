@@ -346,6 +346,8 @@ export class McpToolSerializerService {
                 ? order.shippingLines.map(line => ({
                       id: line.id,
                       shippingMethodId: line.shippingMethodId,
+                      shippingOptionCode: line.shippingOptionCode,
+                      shippingOptionName: line.shippingOptionName,
                       priceWithTax: line.priceWithTax,
                       priceWithTaxDecimal: this.decimal(line.priceWithTax),
                   }))
@@ -391,6 +393,11 @@ export class McpToolSerializerService {
             customFields: this.shopVisibleCustomFields('ShippingMethod', quote.customFields),
             priceDecimal: this.decimal(quote.price),
             priceWithTaxDecimal: this.decimal(quote.priceWithTax),
+            options: quote.options.map(option => ({
+                ...option,
+                priceDecimal: this.decimal(option.price),
+                priceWithTaxDecimal: this.decimal(option.priceWithTax),
+            })),
             currencyCode,
         };
     }

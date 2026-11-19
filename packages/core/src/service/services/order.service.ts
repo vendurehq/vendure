@@ -35,6 +35,7 @@ import {
     SettlePaymentResult,
     SettleRefundInput,
     ShippingMethodQuote,
+    ShippingMethodSelectionInput,
     TransitionPaymentToStateResult,
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
@@ -50,7 +51,12 @@ import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { LocalizedStringArray } from '../../common/configurable-operation';
 import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
-import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
+import {
+    ErrorResultUnion,
+    GraphQLErrorResult,
+    isGraphQlErrorResult,
+    JustErrorResults,
+} from '../../common/error/error-result';
 import {
     EntityNotFoundError,
     InternalServerError,
@@ -73,6 +79,7 @@ import {
 } from '../../common/error/generated-graphql-admin-errors';
 import {
     CouponRemovedDuringCheckoutError,
+    IneligibleShippingMethodError,
     InsufficientStockError,
     NegativeQuantityError,
     OrderInterceptorError,
@@ -84,7 +91,6 @@ import {
     PaymentFailedError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { RelationCustomFieldConfig } from '../../config';
@@ -131,7 +137,10 @@ import { OrderStateMachine } from '../helpers/order-state-machine/order-state-ma
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
-import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
+import {
+    ShippingCalculator,
+    toShippingMethodQuote,
+} from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
@@ -170,8 +179,12 @@ interface AllowedCancelledTransition {
     finalize: () => Promise<any>;
 }
 
-class RefusedCancellation extends Error {
-    constructor(readonly result: OrderStateTransitionError) {
+/**
+ * Thrown inside `withTransaction()` to roll the transaction back, and caught outside it to return
+ * the error result it carries.
+ */
+class RollbackWithResult extends Error {
+    constructor(readonly result: GraphQLErrorResult) {
         super(result.message);
     }
 }
@@ -1313,19 +1326,10 @@ export class OrderService implements OnApplicationBootstrap {
     async getEligibleShippingMethods(ctx: RequestContext, orderId: ID): Promise<ShippingMethodQuote[]> {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const eligibleMethods = await this.shippingCalculator.getEligibleShippingMethods(ctx, order);
-        return eligibleMethods.map(eligible => {
-            const { price, taxRate, priceIncludesTax, metadata } = eligible.result;
-            return {
-                id: eligible.method.id,
-                price: priceIncludesTax ? netPriceOf(price, taxRate) : price,
-                priceWithTax: priceIncludesTax ? price : grossPriceOf(price, taxRate),
-                description: eligible.method.description,
-                name: eligible.method.name,
-                code: eligible.method.code,
-                metadata,
-                customFields: eligible.method.customFields,
-            };
-        });
+        return eligibleMethods.map(eligible => ({
+            ...toShippingMethodQuote(eligible),
+            customFields: eligible.method.customFields,
+        }));
     }
 
     /**
@@ -1339,25 +1343,47 @@ export class OrderService implements OnApplicationBootstrap {
 
     /**
      * @description
-     * Sets the ShippingMethod to be used on this Order.
+     * Sets the ShippingMethod to be used on this Order. Each entry is either a ShippingMethod id, or a
+     * selection which also names one of the ShippingMethod's options by its `shippingOptionCode`.
+     * Without a code, the cheapest option is used.
      */
     async setShippingMethod(
         ctx: RequestContext,
         orderId: ID,
-        shippingMethodIds: ID[],
+        shippingMethods: Array<ID | ShippingMethodSelectionInput>,
     ): Promise<ErrorResultUnion<SetOrderShippingMethodResult, Order>> {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const validationError = this.assertAddingItemsState(order);
         if (validationError) {
             return validationError;
         }
-        const result = await this.orderModifier.setShippingMethods(ctx, order, shippingMethodIds);
-        if (isGraphQlErrorResult(result)) {
-            return result;
+        if (shippingMethods.length === 0) {
+            throw new UserInputError('error.set-order-shipping-method-arguments-invalid');
         }
-        const updatedOrder = await this.getOrderOrThrow(ctx, orderId);
-        await this.applyPriceAdjustments(ctx, updatedOrder);
-        return this.connection.getRepository(ctx, Order).save(updatedOrder);
+        // In its own transaction (a savepoint inside the request's), so that a refused method or option
+        // leaves the Order in the database as it was, rather than with half-written ShippingLines.
+        // Events published by promotion side effects during the pricing are not undone.
+        try {
+            return await this.connection.withTransaction(ctx, async txCtx => {
+                const result = await this.orderModifier.setShippingMethods(txCtx, order, shippingMethods);
+                if (isGraphQlErrorResult(result)) {
+                    throw new RollbackWithResult(result);
+                }
+                const updatedOrder = await this.getOrderOrThrow(txCtx, orderId);
+                // Prices each ShippingLine once, with the option it names, after the promotions and
+                // the assignment of the OrderLines
+                await this.applyPriceAdjustments(txCtx, updatedOrder);
+                if (!result.selectionKept(updatedOrder.shippingLines)) {
+                    throw new RollbackWithResult(new IneligibleShippingMethodError());
+                }
+                return this.connection.getRepository(txCtx, Order).save(updatedOrder);
+            });
+        } catch (e: unknown) {
+            if (e instanceof RollbackWithResult && e.result instanceof IneligibleShippingMethodError) {
+                return e.result;
+            }
+            throw e;
+        }
     }
 
     /**
@@ -2022,10 +2048,10 @@ export class OrderService implements OnApplicationBootstrap {
                             'Cancelled',
                         );
                         if (isGraphQlErrorResult(transitionResult)) {
-                            throw new RefusedCancellation(transitionResult);
+                            throw new RollbackWithResult(transitionResult);
                         }
                         if (transitionResult.state !== 'Cancelled') {
-                            throw new RefusedCancellation(
+                            throw new RollbackWithResult(
                                 this.createCancelledTransitionError(txCtx, transitionResult.state),
                             );
                         }
@@ -2034,7 +2060,7 @@ export class OrderService implements OnApplicationBootstrap {
                 return assertFound(this.findOne(txCtx, input.orderId));
             });
         } catch (e: unknown) {
-            if (e instanceof RefusedCancellation) {
+            if (e instanceof RollbackWithResult && e.result instanceof OrderStateTransitionError) {
                 return e.result;
             }
             throw e;
