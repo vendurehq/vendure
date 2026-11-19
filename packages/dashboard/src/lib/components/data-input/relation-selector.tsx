@@ -374,7 +374,7 @@ export function RelationSelector<T>({
     }, [selectedItemsCache, selectedIds, config.idKey, isMultiple]);
 
     return (
-        <div className={cn('overflow-auto', className)}>
+        <div className={cn('min-w-0', className)}>
             {/* Display selected items */}
             {selectedItems.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">

@@ -26,7 +26,7 @@ export function CustomerHistoryContainer({ customerId }: Readonly<CustomerHistor
     if (loading && !customer) {
         return (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold">
+                <h2 className="text-style-section-title">
                     <Trans>Customer history</Trans>
                 </h2>
                 <div className="space-y-2">

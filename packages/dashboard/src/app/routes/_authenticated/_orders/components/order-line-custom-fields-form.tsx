@@ -44,7 +44,7 @@ export function OrderLineCustomFieldsForm({ onUpdate, value }: Readonly<OrderLin
                         }}
                         className="space-y-4"
                     >
-                        <h4 className="font-medium leading-none">
+                        <h4 className="text-style-card-title">
                             <Trans>Custom Fields</Trans>
                         </h4>
                         <CustomFieldsForm entityType="OrderLine" control={form.control} />

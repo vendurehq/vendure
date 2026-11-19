@@ -112,7 +112,7 @@ export function ResetPasswordForm({ className, token, onSuccess, ...props }: Res
                     {showTokenError ? (
                         <div className="flex flex-col items-center text-center gap-6">
                             <div className="flex flex-col items-center text-center gap-1">
-                                <h1 className="text-2xl font-semibold tracking-tight">
+                                <h1 className="text-style-page-title">
                                     <Trans>This link is invalid or has expired</Trans>
                                 </h1>
                                 <p className="text-sm text-muted-foreground">
@@ -139,7 +139,7 @@ export function ResetPasswordForm({ className, token, onSuccess, ...props }: Res
                                 )}
                             >
                                 <div className="flex flex-col items-center text-center gap-1">
-                                    <h1 className="text-2xl font-semibold tracking-tight">
+                                    <h1 className="text-style-page-title">
                                         <Trans>Reset your password</Trans>
                                     </h1>
                                     <p className="text-sm text-muted-foreground">
