@@ -1,5 +1,4 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
-import { X } from 'lucide-react';
+import { Chip } from '@/vdb/components/ui/chip.js';
 import type { SimpleChannel } from '@/vdb/providers/channel-provider.js';
 
 interface ChannelChipProps {
@@ -21,23 +20,11 @@ export function ChannelChip({
     onRemove,
 }: Readonly<ChannelChipProps>) {
     return (
-        <Badge
-            variant="default"
-            className="flex items-center gap-2 py-0.5 pl-2 pr-1 h-6 hover:bg-secondary/80"
+        <Chip
+            onRemove={removable && onRemove ? () => onRemove(channel.id) : undefined}
+            removeLabel={`Remove ${channel.code} from ${channel.token}`}
         >
-            <div className="flex items-center gap-1.5">
-                <span className="font-medium">{channel.code}</span>
-            </div>
-            {removable && (
-                <button
-                    type="button"
-                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-muted/30 hover:cursor-pointer"
-                    onClick={() => onRemove?.(channel.id)}
-                    aria-label={`Remove ${channel.code} from ${channel.token}`}
-                >
-                    <X className="h-3 w-3" />
-                </button>
-            )}
-        </Badge>
+            {channel.code}
+        </Chip>
     );
 }

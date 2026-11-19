@@ -1,8 +1,7 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Chip } from '@/vdb/components/ui/chip.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { useLingui } from '@lingui/react/macro';
-import { X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -61,18 +60,14 @@ export function OptionValueInput({
 
             <div className="flex flex-wrap gap-2">
                 {fields.map((field, index) => (
-                    <Badge key={field.id} variant="default" className="flex items-center gap-1 py-1 px-2">
+                    <Chip
+                        key={field.id}
+                        onRemove={() => onRemove(index)}
+                        removeLabel={t`Remove ${field.value}`}
+                        disabled={disabled}
+                    >
                         {field.value}
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 ml-1"
-                            onClick={() => onRemove(index)}
-                        >
-                            <X className="h-3 w-3" />
-                        </Button>
-                    </Badge>
+                    </Chip>
                 ))}
             </div>
         </div>

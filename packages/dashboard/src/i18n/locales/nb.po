@@ -744,7 +744,6 @@ msgid "{0, plural, one {Assigned {entityIdsLength} {entityType} to {1} channel} 
 msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
 msgstr "Antall bestillinger"
 
@@ -2135,6 +2134,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
 msgid "Loading addresses..."
 msgstr "Laster adresser..."
+
+#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
+msgid "Remove {tag}"
+msgstr ""
 
 #. placeholder {0}: roleLabel(group.role)
 #. placeholder {1}: channelLabel(channel.code)
@@ -3692,6 +3695,10 @@ msgstr "{0, plural, one {Flytter # samling til toppnivå} other {Flytter # samli
 msgid "Refund only partially completed"
 msgstr ""
 
+#: src/lib/components/data-input/relation-selector.tsx
+msgid "Remove {name}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -3941,8 +3948,8 @@ msgid "Apply filter"
 msgstr "Bruk filter"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
-msgid "Last Result"
-msgstr "Siste resultat"
+#~ msgid "Last Result"
+#~ msgstr "Siste resultat"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Added to group"
@@ -4100,6 +4107,7 @@ msgstr "Er du sikker på at du vil forlate denne siden? Alle ulagrede endringer 
 msgid "Color 1"
 msgstr ""
 
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/lib/framework/layout-engine/page-layout.tsx
 msgid "More actions"
 msgstr ""
@@ -5532,7 +5540,6 @@ msgid "Manage my views"
 msgstr "Administrer visningene mine"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
 msgstr "Totalt bestilling"
 
@@ -5663,7 +5670,6 @@ msgstr "Venter"
 msgid "paymentState.Settled"
 msgstr "Gjort opp"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
 msgstr "Gjennomsnittlig ordreverdi"
@@ -6220,7 +6226,6 @@ msgid "Rebuild search index"
 msgstr "Bygg søkeindeks på nytt"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Running"
 msgstr "Kjører"
@@ -7312,6 +7317,7 @@ msgstr "Varianten kunne ikke legges til. Sørg for at foreldreproduktet er aktiv
 #~ msgstr "En ukjent feil oppstod"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
 msgstr "Beregninger"
 
@@ -7346,6 +7352,12 @@ msgstr "E-postoppdatering verifisert"
 #: src/lib/components/platform-promotion/platform-promo.tsx
 msgctxt "Vendure Platform plan name"
 msgid "Enterprise"
+msgstr ""
+
+#. placeholder {0}: field.value
+#: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/lib/components/shared/option-value-input.tsx
+msgid "Remove {0}"
 msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx

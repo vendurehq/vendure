@@ -6,6 +6,12 @@ import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js'
 import { FormErrorSummary } from '@/vdb/components/shared/form-error-summary.js';
 import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confirmation.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
+import {
+    DescriptionDetail,
+    DescriptionItem,
+    DescriptionList,
+    DescriptionTerm,
+} from '@/vdb/components/ui/description-list.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { IdChip } from '@/vdb/components/ui/id-chip.js';
@@ -718,28 +724,37 @@ function PageActionBarMenu({
                         <DropdownMenuLabel>
                             <Trans>Entity information</Trans>
                         </DropdownMenuLabel>
-                        <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 px-2 pb-1.5 text-sm">
-                            <dt className="text-muted-foreground">ID</dt>
-                            <dd className="justify-self-end">
-                                <IdChip value={String(entity.id)} copyLabel={t`Copy ID`} copiedLabel={t`Copied`} />
-                            </dd>
+                        <DescriptionList
+                            orientation="horizontal"
+                            className="items-center gap-x-4 gap-y-1.5 px-2 pb-1.5"
+                        >
+                            <DescriptionItem>
+                                <DescriptionTerm>ID</DescriptionTerm>
+                                <DescriptionDetail className="justify-self-end">
+                                    <IdChip value={String(entity.id)} copyLabel={t`Copy ID`} copiedLabel={t`Copied`} />
+                                </DescriptionDetail>
+                            </DescriptionItem>
                             {entity.createdAt && (
-                                <>
-                                    <dt className="text-muted-foreground">
+                                <DescriptionItem>
+                                    <DescriptionTerm>
                                         <Trans>Created</Trans>
-                                    </dt>
-                                    <dd className="justify-self-end tabular-nums">{formatDate(entity.createdAt)}</dd>
-                                </>
+                                    </DescriptionTerm>
+                                    <DescriptionDetail className="justify-self-end tabular-nums">
+                                        {formatDate(entity.createdAt)}
+                                    </DescriptionDetail>
+                                </DescriptionItem>
                             )}
                             {entity.updatedAt && (
-                                <>
-                                    <dt className="text-muted-foreground">
+                                <DescriptionItem>
+                                    <DescriptionTerm>
                                         <Trans>Updated</Trans>
-                                    </dt>
-                                    <dd className="justify-self-end tabular-nums">{formatDate(entity.updatedAt)}</dd>
-                                </>
+                                    </DescriptionTerm>
+                                    <DescriptionDetail className="justify-self-end tabular-nums">
+                                        {formatDate(entity.updatedAt)}
+                                    </DescriptionDetail>
+                                </DescriptionItem>
                             )}
-                        </dl>
+                        </DescriptionList>
                     </DropdownMenuGroup>
                 )}
             </DropdownMenuContent>

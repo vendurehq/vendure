@@ -64,7 +64,7 @@ export function NavItemWrapper({
         return (
             <div
                 className={cn(
-                    'ring-2 ring-transparent rounded-md transition-all delay-50 relative',
+                    'ring-2 ring-transparent rounded-md transition-[box-shadow] duration-fast ease-default relative',
                     isHovered || isPopoverOpen ? 'ring-dev-mode ring-offset-1 ring-offset-background' : '',
                 )}
                 onMouseEnter={handleMouseEnter}
@@ -72,7 +72,7 @@ export function NavItemWrapper({
             >
                 <div
                     className={cn(
-                        `absolute right-0 transition-all delay-50 z-10`,
+                        `absolute right-0 transition-[visibility] duration-fast ease-default z-10`,
                         isHovered || isPopoverOpen ? 'visible' : 'invisible',
                         offset ? 'right-[26px] top-[3px]' : 'right-[3px] top-0.5 ',
                     )}

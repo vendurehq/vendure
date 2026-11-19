@@ -1,6 +1,4 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
-import { cn } from '@/vdb/lib/utils.js';
-import { X } from 'lucide-react';
+import { Chip } from '@/vdb/components/ui/chip.js';
 
 // Interface for facet value type
 interface FacetValue {
@@ -35,34 +33,15 @@ export function FacetValueChip({
     displayFacetName = true,
 }: FacetValueChipProps) {
     return (
-        <Badge
-            variant="default"
-            className={cn(
-                'flex items-center gap-2 py-0.5 pl-2 h-6 max-w-full shrink hover:bg-secondary/80',
-                // The tighter right padding hugs the remove button; without it, keep the padding symmetric
-                removable ? 'pr-1' : 'pr-2',
-            )}
+        <Chip
+            title={displayFacetName ? `${facetValue.name} in ${facetValue.facet.name}` : facetValue.name}
+            onRemove={removable && onRemove ? () => onRemove(facetValue.id) : undefined}
+            removeLabel={`Remove ${facetValue.name} from ${facetValue.facet.name}`}
         >
-            <div className="flex items-center gap-1.5 min-w-0 truncate">
-                <span className="font-medium truncate" title={facetValue.name}>
-                    {facetValue.name}
-                </span>
-                {displayFacetName && (
-                    <span className="text-muted-foreground text-xs truncate" title={facetValue.facet.name}>
-                        in {facetValue.facet.name}
-                    </span>
-                )}
-            </div>
-            {removable && (
-                <button
-                    type="button"
-                    className="ml-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full hover:bg-muted/30"
-                    onClick={() => onRemove?.(facetValue.id)}
-                    aria-label={`Remove ${facetValue.name} from ${facetValue.facet.name}`}
-                >
-                    <X className="h-3 w-3" />
-                </button>
+            {facetValue.name}
+            {displayFacetName && (
+                <span className="text-muted-foreground"> in {facetValue.facet.name}</span>
             )}
-        </Badge>
+        </Chip>
     );
 }

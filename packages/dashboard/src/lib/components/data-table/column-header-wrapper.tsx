@@ -58,7 +58,7 @@ export function ColumnHeaderWrapper({ children, columnId }: Readonly<ColumnHeade
         return (
             <div
                 className={cn(
-                    'ring-2 ring-transparent rounded-md transition-all delay-50 relative min-h-8 flex flex-col justify-center',
+                    'ring-2 ring-transparent rounded-md transition-[box-shadow] duration-fast ease-default relative min-h-8 flex flex-col justify-center',
                     isHovered || isPopoverOpen ? 'ring-dev-mode ring-offset-1 ring-offset-background' : '',
                 )}
                 onMouseEnter={handleMouseEnter}
@@ -66,7 +66,7 @@ export function ColumnHeaderWrapper({ children, columnId }: Readonly<ColumnHeade
             >
                 <div
                     className={cn(
-                        `absolute right-0 top-0 transition-all delay-50 z-10`,
+                        `absolute right-0 top-0 transition-[visibility] duration-fast ease-default z-10`,
                         isHovered || isPopoverOpen ? 'visible' : 'invisible',
                     )}
                 >
