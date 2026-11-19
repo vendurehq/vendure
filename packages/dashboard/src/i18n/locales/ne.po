@@ -2196,6 +2196,10 @@ msgstr "नयाँ कर वर्ग"
 #~ msgid "Partial refund completed"
 #~ msgstr "आंशिक फिर्ता सम्पन्न"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "कस्टम फिल्डहरू सेट गर्नुहोस्"
@@ -2333,6 +2337,10 @@ msgstr "पछिल्लो 30 दिन"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "कुनै विशेषता मानहरू छैनन्"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"

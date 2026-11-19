@@ -2196,6 +2196,10 @@ msgstr "Nová daňová kategorie"
 #~ msgid "Partial refund completed"
 #~ msgstr "Částečné vrácení dokončeno"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Nastavit vlastní pole"
@@ -2333,6 +2337,10 @@ msgstr "Posledních 30 dní"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Žádné hodnoty vlastností"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"

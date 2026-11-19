@@ -2188,6 +2188,10 @@ msgstr "새 세금 카테고리"
 #~ msgid "Partial refund completed"
 #~ msgstr "부분 환불이 완료되었습니다"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "사용자 정의 필드 설정"
@@ -2325,6 +2329,10 @@ msgstr "최근 30일"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "속성 값 없음"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"

@@ -2208,6 +2208,10 @@ msgstr "Нова данъчна категория"
 #~ msgid "Partial refund completed"
 #~ msgstr "Частичното възстановяване е завършено"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Задайте потребителски полета"
@@ -2348,6 +2352,10 @@ msgstr "Няма атрибутни стойности"
 
 #~ msgid "Today"
 #~ msgstr "Днес"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"

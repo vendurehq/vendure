@@ -1,9 +1,18 @@
 import { Money } from '@/vdb/components/data-display/money.js';
 import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.js';
-import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+    FieldTitle,
+} from '@/vdb/components/ui/field.js';
 import { RadioGroup, RadioGroupItem } from '@/vdb/components/ui/radio-group.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
 import { Trans } from '@lingui/react/macro';
+import type { ReactNode } from 'react';
 
 import { DiscountComparisonRow } from '../utils/order-utils.js';
 
@@ -35,9 +44,30 @@ export function PromotionFreezeChoice({
     onChange,
 }: Readonly<PromotionFreezeChoiceProps>) {
     const amount = (amountWithTax: number | null) =>
-        amountWithTax == null ? '—' : <Money value={amountWithTax} currency={currencyCode} />;
+        amountWithTax == null ? (
+            <>
+                <span aria-hidden="true">—</span>
+                <span className="sr-only">
+                    <Trans>None</Trans>
+                </span>
+            </>
+        ) : (
+            <Money value={amountWithTax} currency={currencyCode} />
+        );
+    const options: Array<{ value: PromotionFreezeChoiceValue; title: ReactNode; total: number }> = [
+        {
+            value: 'keep',
+            title: <Trans>Keep the discounts the order was paid with</Trans>,
+            total: keptTotalWithTax,
+        },
+        {
+            value: 'reapply',
+            title: <Trans>Re-apply the promotions to the modified order</Trans>,
+            total: reappliedTotalWithTax,
+        },
+    ];
     return (
-        <div className="space-y-3" data-testid="promotion-freeze-choice">
+        <div className="space-y-4" data-testid="promotion-freeze-choice">
             <Alert>
                 <AlertTitle>
                     <Trans>Discounts would change</Trans>
@@ -71,35 +101,36 @@ export function PromotionFreezeChoice({
                             <TableCell className="text-right">{amount(row.reappliedAmountWithTax)}</TableCell>
                         </TableRow>
                     ))}
-                    <TableRow>
-                        <TableCell className="font-medium">
-                            <Trans>Order total</Trans>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">{amount(keptTotalWithTax)}</TableCell>
-                        <TableCell className="text-right font-medium">
-                            {amount(reappliedTotalWithTax)}
-                        </TableCell>
-                    </TableRow>
                 </TableBody>
             </Table>
-            <RadioGroup
-                value={value ?? ''}
-                onValueChange={next => onChange(next as PromotionFreezeChoiceValue)}
-                className="gap-2"
-            >
-                <Field orientation="horizontal" className="gap-2">
-                    <RadioGroupItem value="keep" id="promotion-freeze-keep" />
-                    <FieldLabel htmlFor="promotion-freeze-keep" className="font-normal">
-                        <Trans>Keep the discounts the order was paid with</Trans>
-                    </FieldLabel>
-                </Field>
-                <Field orientation="horizontal" className="gap-2">
-                    <RadioGroupItem value="reapply" id="promotion-freeze-reapply" />
-                    <FieldLabel htmlFor="promotion-freeze-reapply" className="font-normal">
-                        <Trans>Re-apply the promotions to the modified order</Trans>
-                    </FieldLabel>
-                </Field>
-            </RadioGroup>
+            <FieldSet>
+                <FieldLegend variant="label">
+                    <Trans>Discounts for the modified order</Trans>
+                </FieldLegend>
+                <RadioGroup
+                    value={value ?? ''}
+                    onValueChange={next => onChange(next as PromotionFreezeChoiceValue)}
+                    className="grid gap-3 md:grid-cols-2"
+                >
+                    {options.map(option => {
+                        const id = `promotion-freeze-${option.value}`;
+                        return (
+                            <FieldLabel key={option.value} htmlFor={id}>
+                                <Field orientation="horizontal">
+                                    <FieldContent>
+                                        <FieldTitle>{option.title}</FieldTitle>
+                                        <FieldDescription>
+                                            <Trans>Order total</Trans>{' '}
+                                            <Money value={option.total} currency={currencyCode} />
+                                        </FieldDescription>
+                                    </FieldContent>
+                                    <RadioGroupItem value={option.value} id={id} />
+                                </Field>
+                            </FieldLabel>
+                        );
+                    })}
+                </RadioGroup>
+            </FieldSet>
         </div>
     );
 }

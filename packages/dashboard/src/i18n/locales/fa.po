@@ -2196,6 +2196,10 @@ msgstr "دسته‌بندی مالیاتی جدید"
 #~ msgid "Partial refund completed"
 #~ msgstr "بازپرداخت جزئی تکمیل شد"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "تنظیم فیلدهای سفارشی"
@@ -2333,6 +2337,10 @@ msgstr "30 روز گذشته"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "هیچ مقدار ویژگی وجود ندارد"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
