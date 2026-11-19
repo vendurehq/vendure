@@ -91,7 +91,7 @@ export function PlatformPromoPanel({ promotion }: Readonly<{ promotion: Dashboar
                     <Lock className="size-3" aria-hidden="true" />
                     <Trans>{tierLabel} plan</Trans>
                 </Badge>
-                <h2 className="text-lg font-semibold">{promotion.title}</h2>
+                <h2 className="text-style-section-title">{promotion.title}</h2>
                 <p className="text-sm text-muted-foreground">{promotion.summary}</p>
             </div>
             <ul className="space-y-2 text-sm">
