@@ -202,6 +202,7 @@ export * from './components/ui/command.js';
 export * from './components/ui/confirm-dialog.js';
 export * from './components/ui/context-menu.js';
 export * from './components/ui/copy-feedback-provider.js';
+export * from './components/ui/count-badge.js';
 export * from './components/ui/data-table-components.js';
 export * from './components/ui/date-picker.js';
 export * from './components/ui/description-list.js';
