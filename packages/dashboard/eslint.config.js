@@ -35,6 +35,16 @@ export default [{
   },
   rules: {
     '@vendure-io/design/no-raw-colors': 'error',
+    // A Badge with its own button is a hand-made removable tag. Chip owns the
+    // remove button, its hover, focus ring and accessible name.
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "JSXElement[openingElement.name.name='Badge'] JSXElement[openingElement.name.name=/^(button|Button)$/]",
+        message: 'A removable tag is Chip with onRemove and removeLabel, not a Badge with its own button.',
+      },
+    ],
   },
 }, {
   files: ['**/*.{js,jsx}'],
