@@ -953,7 +953,9 @@ const AssetCard = memo(function AssetCard({
                     className="w-full h-full object-cover"
                 />
                 {selectable && (
-                    <div className="absolute top-1.5 left-1.5 z-20">
+                    // The label makes the whole 32px corner the checkbox's target, so a tap
+                    // at 390 wide does not fall through to the card's select button.
+                    <label className="absolute top-0 left-0 z-20 flex size-8 cursor-pointer items-center justify-center">
                         <Checkbox
                             checked={isSelected}
                             aria-label={t`Toggle selection for ${asset.name}`}
@@ -962,7 +964,7 @@ const AssetCard = memo(function AssetCard({
                                 onToggleAsset(asset);
                             }}
                         />
-                    </div>
+                    </label>
                 )}
             </div>
             <div className="px-2 py-1.5">
@@ -980,7 +982,7 @@ const AssetCard = memo(function AssetCard({
                         to={`/assets/${asset.id}`}
                         onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         aria-label={t`Open ${asset.name}`}
-                        className="relative z-20 inline-flex items-center gap-1 rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="relative z-20 -my-0.5 -me-0.5 inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                         <Trans>Open</Trans>
                         <ChevronRight className="h-3 w-3" />

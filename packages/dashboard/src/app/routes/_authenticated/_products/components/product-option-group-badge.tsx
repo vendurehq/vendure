@@ -46,14 +46,16 @@ export function ProductOptionGroupBadge({
                 removeLabel={canRemove ? t`Remove option group ${name}` : undefined}
                 disabled={canRemove && isPending}
             >
-                <span>{name}</span>
+                {/* The name and the pencil are one link: a 12px pencil on its own sits too
+                    close to the remove button to tap at 390 wide. */}
                 <Link
                     to={`/option-groups/${id}`}
                     search={{ from: 'product', productId }}
-                    className="ml-1 inline-flex size-4 items-center justify-center rounded-full text-current/70 hover:text-current outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                    className="group/edit inline-flex max-w-full items-center gap-1 rounded-sm outline-none hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                     aria-label={t`Edit option group ${name}`}
                 >
-                    <Edit2 className="h-3 w-3" />
+                    <span className="truncate">{name}</span>
+                    <Edit2 className="size-3 shrink-0 text-current/70 group-hover/edit:text-current" />
                 </Link>
             </Chip>
             {canRemove && (
