@@ -244,6 +244,30 @@ export class TransactionalConnection {
 
     /**
      * @description
+     * The isolation level Vendure starts transactions at when none is asked for: the configured
+     * `entityOptions.transactionIsolationLevel`, otherwise `READ COMMITTED` on MySQL and MariaDB,
+     * otherwise `undefined`, meaning the database default.
+     *
+     * Use it when starting a TypeORM transaction directly rather than through
+     * {@link TransactionalConnection}`.withTransaction()`, so that it runs at the same level:
+     *
+     * @example
+     * ```ts
+     * const level = this.connection.getDefaultIsolationLevel();
+     * const work = (manager: EntityManager) => doWork(manager);
+     * await (level
+     *     ? this.connection.rawConnection.transaction(level, work)
+     *     : this.connection.rawConnection.transaction(work));
+     * ```
+     *
+     * @since 4.0.0
+     */
+    getDefaultIsolationLevel(): TransactionIsolationLevel | undefined {
+        return this.transactionWrapper.resolveIsolationLevel(undefined, this.rawConnection);
+    }
+
+    /**
+     * @description
      * Manually start a transaction if one is not already in progress. This method should be used in
      * conjunction with the `'manual'` mode of the {@link Transaction} decorator.
      */

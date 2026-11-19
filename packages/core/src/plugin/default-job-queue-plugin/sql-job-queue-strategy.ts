@@ -97,6 +97,10 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
             connectionType === 'sqlite' || connectionType === 'sqljs' || connectionType === 'better-sqlite3';
 
         const skipLocked = !isSQLite && (await this.supportsSkipLocked(connection));
+        // At the isolation level the rest of Vendure uses. Under REPEATABLE READ on MariaDB
+        // 11.6.2+, locking a job which another worker changed after this transaction's first
+        // read fails with ER_CHECKREAD.
+        const isolationLevel = isSQLite ? undefined : this.connection?.getDefaultIsolationLevel();
 
         return new Promise(async (resolve, reject) => {
             if (isSQLite) {
@@ -117,17 +121,19 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
                 // set a lock on that row and immediately update the status to "RUNNING".
                 // This prevents multiple worker processes from taking the same job when
                 // running concurrent workers.
-                connection
-                    .transaction(async transactionManager => {
-                        const result = await this.getNextAndSetAsRunning(
-                            transactionManager,
-                            queueName,
-                            true,
-                            skipLocked,
-                        );
-                        resolve(result);
-                    })
-                    .catch(err => reject(err));
+                const takeNext = async (transactionManager: EntityManager) => {
+                    const result = await this.getNextAndSetAsRunning(
+                        transactionManager,
+                        queueName,
+                        true,
+                        skipLocked,
+                    );
+                    resolve(result);
+                };
+                (isolationLevel
+                    ? connection.transaction(isolationLevel, takeNext)
+                    : connection.transaction(takeNext)
+                ).catch(err => reject(err));
             }
         });
     }
