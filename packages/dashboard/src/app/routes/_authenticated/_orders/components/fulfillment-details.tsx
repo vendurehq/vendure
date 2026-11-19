@@ -1,6 +1,6 @@
-import { DescriptionList, DescriptionListItem } from '@/vdb/components/ui/description-list.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { DescriptionList, DescriptionListItem } from '@/vdb/components/ui/description-list.js';
 import {
     Dialog,
     DialogContent,
@@ -138,7 +138,9 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
                     <DescriptionListItem label={<Trans>Fulfillment ID</Trans>}>
                         {fulfillment.id.slice(-8)}
                     </DescriptionListItem>
-                    <DescriptionListItem label={<Trans>Method</Trans>}>{fulfillment.method}</DescriptionListItem>
+                    <DescriptionListItem label={<Trans>Method</Trans>}>
+                        {fulfillment.method}
+                    </DescriptionListItem>
                     {fulfillment.trackingCode && (
                         <DescriptionListItem label={<Trans>Tracking code</Trans>}>
                             {fulfillment.trackingCode}

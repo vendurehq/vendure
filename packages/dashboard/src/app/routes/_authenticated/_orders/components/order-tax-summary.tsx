@@ -22,7 +22,10 @@ export function OrderTaxSummary({ order }: Readonly<{ order: Order }>) {
                         <DescriptionListItem label={<Trans>Tax base</Trans>} className="tabular-nums">
                             {formatCurrency(taxLine.taxBase, order.currencyCode)}
                         </DescriptionListItem>
-                        <DescriptionListItem label={<Trans>Tax total</Trans>} className="text-right tabular-nums">
+                        <DescriptionListItem
+                            label={<Trans>Tax total</Trans>}
+                            className="text-right tabular-nums"
+                        >
                             {formatCurrency(taxLine.taxTotal, order.currencyCode)}
                         </DescriptionListItem>
                     </DescriptionList>

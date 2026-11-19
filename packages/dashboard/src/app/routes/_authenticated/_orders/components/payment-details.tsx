@@ -1,4 +1,6 @@
 import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
+import { Button } from '@/vdb/components/ui/button.js';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
 import {
     DescriptionDetail,
     DescriptionItem,
@@ -6,8 +8,6 @@ import {
     DescriptionListItem,
     DescriptionTerm,
 } from '@/vdb/components/ui/description-list.js';
-import { Button } from '@/vdb/components/ui/button.js';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
 import {
     Dialog,
     DialogContent,
