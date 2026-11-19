@@ -73,7 +73,7 @@ export function LocationWrapper({ children, identifier }: Readonly<LocationWrapp
         return (
             <div
                 className={cn(
-                    `ring-2 transition-all delay-50 relative rounded-none`,
+                    `ring-2 transition-[box-shadow] duration-fast ease-default relative rounded-none`,
                     isHovered || isPopoverOpen
                         ? 'ring-dev-mode ring-offset-4 ring-offset-background'
                         : 'ring-transparent ring-offset-0',
@@ -83,7 +83,7 @@ export function LocationWrapper({ children, identifier }: Readonly<LocationWrapp
                 onMouseLeave={handleMouseLeave}
             >
                 <div
-                    className={`absolute top-1 right-1 transition-all delay-50 z-10 ${isHovered || isPopoverOpen ? 'visible' : 'invisible'}`}
+                    className={`absolute top-1 right-1 transition-[visibility] duration-fast ease-default z-10 ${isHovered || isPopoverOpen ? 'visible' : 'invisible'}`}
                 >
                     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                         <PopoverTrigger

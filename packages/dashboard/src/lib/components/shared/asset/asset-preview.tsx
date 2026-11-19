@@ -177,6 +177,7 @@ export function AssetPreview({
                             className="absolute left-4 z-10"
                             onClick={() => setAssetIndex(i => i - 1)}
                             disabled={assetIndex === 0}
+                            aria-label={t`Previous asset`}
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -186,6 +187,7 @@ export function AssetPreview({
                             className="absolute right-4 z-10"
                             onClick={() => setAssetIndex(i => i + 1)}
                             disabled={assetIndex === assets.length - 1}
+                            aria-label={t`Next asset`}
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>

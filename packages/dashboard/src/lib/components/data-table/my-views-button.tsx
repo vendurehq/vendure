@@ -1,5 +1,5 @@
 import { useDataTableContext } from '@/vdb/hooks/use-data-table-context.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { Bookmark } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useSavedViews } from '../../hooks/use-saved-views.js';
@@ -10,6 +10,7 @@ import { UserViewsSheet } from './user-views-sheet.js';
 
 export const MyViewsButton: React.FC = () => {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const { t } = useLingui();
     const { userViews, savedViewsAreAvailable } = useSavedViews();
     const { columnFilters, searchTerm } = useDataTableContext();
 
@@ -32,6 +33,7 @@ export const MyViewsButton: React.FC = () => {
                                 variant={activeView ? 'default' : 'secondary'}
                                 size="icon-sm"
                                 onClick={() => setSheetOpen(true)}
+                                aria-label={t`My saved views`}
                             />
                         }
                     >

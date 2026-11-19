@@ -76,7 +76,7 @@ export interface HistoryEntryItem {
  *                     <HistoryEntry
  *                         entry={entry}
  *                         title={'Tax ID verified'}
- *                         timelineIconClassName={'bg-success text-success-foreground'}
+ *                         tone="success"
  *                         timelineIcon={<IdCard />}
  *                     >
  *                         <div className="text-xs">Approval reference: {entry.data.ref}</div>

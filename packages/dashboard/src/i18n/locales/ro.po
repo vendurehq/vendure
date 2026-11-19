@@ -39,6 +39,10 @@ msgstr "Vizualizează modificările"
 msgid "The countries stay available in other zones."
 msgstr ""
 
+#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
+msgid "Next page"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Tracking code"
 msgstr "Cod de urmărire"
@@ -160,6 +164,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 #~ msgid "Global out of stock threshold"
 #~ msgstr "Prag global stoc epuizat"
+
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "Row actions"
+msgstr ""
 
 #: src/lib/components/layout/channel-switcher.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -493,6 +501,11 @@ msgstr "Eroare necunoscută"
 msgid "Uploading image..."
 msgstr "Se încarcă imaginea..."
 
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/entity-assets.tsx
+msgid "Reorder {0}"
+msgstr ""
+
 #. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "View fulfilled items ({0})"
@@ -748,6 +761,10 @@ msgstr "Gestionează vizualizările globale salvate care sunt vizibile tuturor u
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx
 msgid "Search payment methods..."
 msgstr "Caută metode de plată..."
+
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
+msgid "Edit option group {name}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/layout/channel-switcher.tsx
@@ -1122,6 +1139,10 @@ msgstr ""
 msgid "(max: {0})"
 msgstr "(max.: {0})"
 
+#: src/lib/framework/layout-engine/dev-mode-button.tsx
+msgid "Show dev mode details"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Company"
@@ -1260,6 +1281,7 @@ msgstr "Sarcini planificate"
 msgid "Enter transaction ID"
 msgstr "Introdu ID tranzacție"
 
+#: src/lib/components/data-table/refresh-button.tsx
 #: src/lib/components/data-table/refresh-button.tsx
 msgid "Refresh data"
 msgstr "Reîmprospătează datele"
@@ -1468,6 +1490,10 @@ msgstr "Eliminat din grup"
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Width"
 msgstr "Lățime"
+
+#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
+msgid "Previous page"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "No payment or refund required"
@@ -1749,6 +1775,7 @@ msgstr "Articol adăugat la comandă"
 msgid "Inherit from channel (Do not track)"
 msgstr ""
 
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
 msgstr "Editează punctul focal"
@@ -1908,6 +1935,10 @@ msgstr "înainte"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set customer for order: {0}"
 msgstr "Nu s-a putut seta clientul pentru comandă: {0}"
+
+#: src/app/routes/_authenticated/_orders/components/order-table.tsx
+msgid "Show fulfillment lines"
+msgstr ""
 
 #: src/lib/components/platform-promotion/platform-promotion-page-card.tsx
 msgid "{count, plural, one {# more for roles with Vendure Platform: {names}} other {# more for roles with Vendure Platform: {names}}}"
@@ -3285,6 +3316,10 @@ msgstr "Atribuie existent"
 msgid "Generate variants"
 msgstr "Generează variante"
 
+#: src/lib/components/shared/asset/asset-preview.tsx
+msgid "Previous asset"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 msgid "Role"
@@ -3300,6 +3335,7 @@ msgid "These are the customers in the <0>{customerGroupName}</0> customer group.
 msgstr "Aceștia sunt clienții din grupul de clienți <0>{customerGroupName}</0>."
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx
+#: src/lib/components/data-table/manage-global-views-button.tsx
 #: src/lib/components/data-table/manage-global-views-button.tsx
 msgid "Manage global views"
 msgstr "Gestionează vizualizări globale"
@@ -3815,6 +3851,10 @@ msgstr "Istoric comandă"
 msgid "Override"
 msgstr "Suprascrie"
 
+#: src/lib/components/shared/alerts.tsx
+msgid "Notifications"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/lib/components/shared/multi-select.tsx
 msgid "+{hiddenCount} more"
@@ -3972,6 +4012,10 @@ msgstr ""
 msgid "No global languages configured"
 msgstr "Nu sunt configurate limbi globale"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx
+msgid "View options"
+msgstr ""
+
 #. placeholder {0}: removedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Removing {0} item(s)"
@@ -4069,6 +4113,11 @@ msgstr "Este categoria de taxă implicită"
 msgid "Slug is set"
 msgstr "Identificator-ul URL este setat"
 
+#. placeholder {0}: tag.value
+#: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
+msgid "Restore {0}"
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Failed to update focal point"
 msgstr "Actualizarea punctului focal a eșuat"
@@ -4080,6 +4129,11 @@ msgstr "Zona a fost actualizată cu succes"
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "State/Province"
 msgstr "Județ/Provincie"
+
+#. placeholder {0}: row.original.id
+#: src/app/routes/_authenticated/_system/job-queue.tsx
+msgid "Actions for job {0}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Failed to update option group"
@@ -4415,6 +4469,10 @@ msgstr "Nu s-a putut actualiza metoda de livrare"
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
 msgstr "{deleted, plural, one {S-a șters {deleted} locație de stoc} few {S-au șters {deleted} locații de stoc} other {S-au șters {deleted} de locații de stoc}}"
 
+#: src/lib/components/data-table/data-table-view-options.tsx
+msgid "Reorder {label}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx
@@ -4499,6 +4557,10 @@ msgstr "Reîmprospătează"
 
 #: src/lib/components/shared/customer-selector.tsx
 msgid "Existing customer"
+msgstr ""
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "Reorder row"
 msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx
@@ -5078,6 +5140,8 @@ msgstr "Înapoi la căutare"
 msgid "View duplicated successfully"
 msgstr "Vizualizare duplicată cu succes"
 
+#: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
+#: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Remove option group"
@@ -6098,6 +6162,11 @@ msgstr "Metadate plată"
 msgid "Cancel modification"
 msgstr "Anulează modificarea"
 
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/entity-assets.tsx
+msgid "Actions for {0}"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 #~ msgid "Same window"
 #~ msgstr "Aceeași fereastră"
@@ -6190,6 +6259,7 @@ msgstr "Se rulează actualizările în așteptare ale indexului de căutare"
 msgid "This is a default Role and cannot be modified"
 msgstr "Acesta este un rol implicit și nu poate fi modificat"
 
+#: src/lib/components/data-table/my-views-button.tsx
 #: src/lib/components/data-table/my-views-button.tsx
 msgid "My saved views"
 msgstr "Vizualizările mele salvate"
@@ -6411,6 +6481,10 @@ msgstr "Resetare parolă solicitată"
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 #~ msgid "Are you sure you want to remove {0} {entityType} from the current channel?"
 #~ msgstr "Ești sigur că vrei să elimini {0} {entityType} din canalul curent?"
+
+#: src/lib/components/data-display/json.tsx
+msgid "Show JSON"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Add tags..."
@@ -6660,6 +6734,11 @@ msgstr "Previzualizare a {0}"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
 msgstr "Vânzătorul a fost actualizat cu succes"
+
+#. placeholder {0}: collection.name
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "Collapse {0}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 msgid "Assign role"
@@ -7094,6 +7173,10 @@ msgstr "Luna trecută"
 msgid "Add Country"
 msgstr "Adaugă țară"
 
+#: src/lib/components/shared/asset/asset-preview.tsx
+msgid "Next asset"
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/promotions.tsx
 msgid "Create your first promotion"
 msgstr "Creează prima ta promoție"
@@ -7149,6 +7232,11 @@ msgstr "Colecție Nouă"
 msgid "Refund and cancel order"
 msgstr "Rambursează și anulează comanda"
 
+#. placeholder {0}: group.name
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "Remove option group {0}"
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Select Assets"
 msgstr "Selectează resurse"
@@ -7167,7 +7255,12 @@ msgid "Enterprise"
 msgstr ""
 
 #. placeholder {0}: field.value
+#. placeholder {0}: getItemName(item)
+#. placeholder {0}: line.productVariant.name
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_products/components/option-value-input.tsx
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+#: src/lib/components/data-input/product-multi-selector-input.tsx
 #: src/lib/components/shared/option-value-input.tsx
 msgid "Remove {0}"
 msgstr ""
@@ -7179,6 +7272,10 @@ msgstr "este între"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 msgid "Refund & Cancel"
 msgstr "Rambursare și anulare"
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "Reorder {rowLabel}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
 msgid "Testing shipping methods..."
@@ -7360,6 +7457,11 @@ msgstr "Nota este privată"
 msgid "The collection contents will refresh once the update has finished."
 msgstr "Conținutul colecției se va actualiza după finalizarea actualizării."
 
+#. placeholder {0}: collection.name
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "Expand {0}"
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Medium date"
 msgstr "Dată medie"
@@ -7518,6 +7620,10 @@ msgstr ""
 msgid "Edit Address"
 msgstr "Editează adresă"
 
+#: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx
+msgid "Edit custom fields"
+msgstr ""
+
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx
 msgid "Failed to remove facet from channel: {message}"
 msgstr "Nu s-a putut elimina atributul din canal: {message}"
@@ -7615,6 +7721,11 @@ msgstr "Valoarea atributului a fost actualizată cu succes"
 msgid "Add asset"
 msgstr "Adaugă resursă"
 
+#. placeholder {0}: tag.value
+#: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
+msgid "Delete {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Client adăugat la grup"
@@ -7627,6 +7738,7 @@ msgstr "Comenzi vânzător"
 msgid "Failed to add option value"
 msgstr "Nu s-a putut adăuga valoarea opțiunii"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Add option value to {groupName}"
 msgstr "Adaugă valoare opțiune la {groupName}"
@@ -7817,6 +7929,10 @@ msgstr "Adaugă plată la comandă"
 
 #: src/lib/providers/auth.tsx
 msgid "You do not have access to any channel"
+msgstr ""
+
+#: src/lib/components/data-table/use-generated-columns.tsx
+msgid "Actions for {rowLabel}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx

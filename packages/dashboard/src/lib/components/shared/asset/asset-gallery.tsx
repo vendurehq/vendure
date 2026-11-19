@@ -582,7 +582,7 @@ export function AssetGallery({
                 className={`
                     ${fixedHeight ? 'flex-grow overflow-y-auto' : ''}
                     ${isAssetDropActive ? 'ring-2 ring-primary bg-primary/5' : ''}
-                    relative rounded-md transition-all
+                    relative rounded-md transition-[box-shadow,background-color] duration-fast ease-default
                 `}
             >
                 {viewMode === 'grid' && <input {...getInputProps()} />}
@@ -932,15 +932,17 @@ const AssetCard = memo(function AssetCard({
     return (
         <div
             className={`
-                group relative transition-all overflow-hidden rounded-lg
+                group relative overflow-hidden rounded-lg transition-[box-shadow] duration-fast ease-default
                 bg-card text-card-foreground ring-1 text-left
                 hover:ring-primary/40
+                has-[>button:focus-visible]:outline-solid has-[>button:focus-visible]:outline-2
+                has-[>button:focus-visible]:outline-offset-2 has-[>button:focus-visible]:outline-ring
                 ${isSelected ? 'ring-2 ring-primary' : 'ring-foreground/10'}
             `}
         >
             <button
                 type="button"
-                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none"
                 aria-label={t`Select ${asset.name}`}
                 onClick={e => onSelectAsset(asset, e)}
             />

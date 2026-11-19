@@ -8,6 +8,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tsParser from '@typescript-eslint/parser'
 import designLint from '@vendure-io/design-lint/eslint'
+import { builtinRules } from 'eslint/use-at-your-own-risk'
 
 export default [{
   // Generated / build / test-fixture artifacts (all gitignored) — never source, so
@@ -62,8 +63,72 @@ export default [{
         selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
         message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
       },
-      // A hand-drawn spinner keeps turning under reduced motion and has no
-      // role or name. Spinner and LoadingState own both.
+      // transition-all also animates layout properties, and a numeric duration
+      // or delay skips the motion tokens. List the properties that change
+      // (transition-[box-shadow]) and use duration-fast, ease-default and the
+      // other motion tokens. Any string is checked, so cn() arguments count too.
+      // Belongs in @vendure-io/design-lint once it has a rule for it.
+      ...[
+        'Literal[value=/(^|[\\s:])transition-all(\\s|$)|(^|[\\s:])(duration|delay)-\\d+(\\s|$)/]',
+        'TemplateElement[value.raw=/(^|[\\s:])transition-all(\\s|$)|(^|[\\s:])(duration|delay)-\\d+(\\s|$)/]',
+      ].map(selector => ({
+        selector,
+        message: 'List the transition properties instead of transition-all, and use a motion token (duration-fast, duration-normal, ease-default…) instead of a numeric duration or delay.',
+      })),
+      // An icon-only Button has no text, so a screen reader announces it only as
+      // "button". Name it with aria-label, with the row's name where there is a
+      // row ("Actions for Laptop"). A tooltip does not name it.
+      {
+        selector:
+          "JSXOpeningElement[name.name='Button']:has(> JSXAttribute[name.name='size'][value.value=/^icon/]):not(:has(> JSXAttribute[name.name=/^aria-label(ledby)?$/]))",
+        message: 'An icon-only Button needs an accessible name. Add aria-label={t`…`}.',
+      },
+    ],
+  },
+}, {
+  // Status markers come from the design system: TimelineMarker (a feed or a
+  // step list) or StatusBadge (a single state), with a state-dictionary tone.
+  // Warn on a small round element in a tone colour drawn by hand, and on the
+  // colour-class marker prop of HistoryEntry. Expect the odd false positive.
+  // A second copy of no-restricted-syntax under its own name, so this warning
+  // does not replace the link-row selectors above.
+  files: ['src/**/*.tsx'],
+  ignores: ['src/**/*.spec.tsx', 'src/**/*.stories.tsx', 'src/lib/components/ui/**'],
+  plugins: {
+    'status-marker': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'status-marker/no-restricted-syntax': [
+      'warn',
+      {
+        selector:
+          "JSXAttribute[name.name='className'] :matches(Literal[value=/\\brounded-full\\b/][value=/(^|\\s)(size|h)-[2-7](\\s|$)/][value=/(^|[\\s:])(bg|border)-(success|warning|destructive|info)/], TemplateElement[value.raw=/\\brounded-full\\b/][value.raw=/(^|\\s)(size|h)-[2-7](\\s|$)/][value.raw=/(^|[\\s:])(bg|border)-(success|warning|destructive|info)/])",
+        message:
+          'Hand-drawn status marker. Use TimelineMarker or StatusBadge with a state-dictionary tone.',
+      },
+      {
+        selector: ":matches(JSXAttribute[name.name='timelineIconClassName'], ObjectExpression > Property[key.name='timelineIconClassName'])",
+        message: 'timelineIconClassName is deprecated. Pass a state-dictionary `tone` to HistoryEntry.',
+      },
+    ],
+  },
+}, {
+  // A hand-drawn spinner keeps turning under reduced motion and has no role or
+  // name: Spinner and LoadingState own both. Shortcut hints use Kbd, which
+  // styles the key for tooltips and keeps key names left to right in RTL pages.
+  // A copy of no-restricted-syntax under its own name, so these errors do not
+  // replace the selectors above.
+  files: ['src/**/*.tsx'],
+  ignores: [
+    'src/**/*.spec.tsx',
+    'src/lib/components/ui/**',
+  ],
+  plugins: {
+    'design-primitives': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'design-primitives/no-restricted-syntax': [
+      'error',
       ...[
         "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)animate-spin(\\s|$)/]",
         "JSXAttribute[name.name='className'] TemplateElement[value.raw=/(^|\\s)animate-spin(\\s|$)/]",
@@ -71,24 +136,11 @@ export default [{
         selector,
         message: 'Use Spinner from @/vdb/components/ui/spinner.js, or LoadingState variant="spinner" for a loading region. Do not spin an icon or a border with animate-spin.',
       })),
-      // Shortcut hints use the design-system Kbd, which styles the key for
-      // tooltips and keeps key names left to right in RTL pages.
       {
         selector: "JSXOpeningElement[name.name='kbd']",
         message: 'Use Kbd or KbdGroup from @/vdb/components/ui/kbd.js, not a raw <kbd>.',
       },
     ],
-  },
-}, {
-  // OSS-1380 follow-up: these two files still draw a spinner (variants) and a
-  // raw kbd (nav-main). Other lanes hold them (OSS-1401, OSS-1385). Remove this
-  // block once they use Spinner and Kbd.
-  files: [
-    'src/lib/components/layout/nav-main.tsx',
-    'src/app/routes/_authenticated/_products/products_.$id_.variants.tsx',
-  ],
-  rules: {
-    'no-restricted-syntax': 'off',
   },
 }, {
   files: ['**/*.{js,jsx}'],

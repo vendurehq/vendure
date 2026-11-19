@@ -15,7 +15,7 @@ import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { DashboardFormComponent } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import { Plus, X } from 'lucide-react';
@@ -244,6 +244,7 @@ export function ProductMultiSelectorDialog({
     open,
     onOpenChange,
 }: Readonly<ProductMultiSelectorProps>) {
+    const { t } = useLingui();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedItems, setSelectedItems] = useState<SearchItem[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -455,6 +456,7 @@ export function ProductMultiSelectorDialog({
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => toggleSelection(item)}
+                                                aria-label={t`Remove ${getItemName(item)}`}
                                             >
                                                 <X className="h-4 w-4" />
                                             </Button>
