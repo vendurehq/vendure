@@ -665,11 +665,11 @@ function ProductVariantDetailPage() {
                                             <Button
                                                 type="button"
                                                 variant="ghost"
-                                                size="sm"
+                                                size="icon"
                                                 onClick={() => handleRemoveCurrency(actualIndex)}
-                                                className="h-6 w-6 p-0 mb-2 hover:bg-destructive/10 hover:text-destructive-text"
+                                                aria-label={t`Remove price`}
                                             >
-                                                <Trash className="size-4" />
+                                                <Trash />
                                             </Button>
                                         )}
                                     </div>
