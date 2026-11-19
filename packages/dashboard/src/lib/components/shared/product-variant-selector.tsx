@@ -1,20 +1,20 @@
 import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/vdb/components/ui/combobox.js';
 import { api } from '@/vdb/graphql/api.js';
 import { AssetFragment, assetFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Button } from '../ui/button.js';
 import { VendureImage } from './vendure-image.js';
 
@@ -56,11 +56,14 @@ export interface ProductVariantSelectorProps {
 }
 
 export function ProductVariantSelector({ onProductVariantSelect }: Readonly<ProductVariantSelectorProps>) {
+    const { t } = useLingui();
     const [search, setSearch] = useState('');
     const [open, setOpen] = useState(false);
     const debouncedSearch = useDebounce(search, 500);
+    const anchor = useRef<HTMLButtonElement>(null);
+    const labelId = useId();
 
-    const { data } = useQuery({
+    const { data, isFetching } = useQuery({
         queryKey: ['productVariants', debouncedSearch],
         enabled: debouncedSearch.length > 0,
         queryFn: () =>
@@ -75,60 +78,73 @@ export function ProductVariantSelector({ onProductVariantSelect }: Readonly<Prod
                 },
             }),
     });
+    const variants = debouncedSearch ? (data?.productVariants.items ?? []) : [];
+    type Variant = (typeof variants)[number];
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full" />}>
+        <Combobox
+            items={variants}
+            filter={null}
+            value={null}
+            onValueChange={(variant: Variant | null) => {
+                if (!variant) {
+                    return;
+                }
+                onProductVariantSelect({
+                    productVariantId: variant.id,
+                    productVariantName: variant.name,
+                    sku: variant.sku,
+                    productAsset: variant.featuredAsset ?? variant.product.featuredAsset ?? null,
+                    price: variant.price,
+                    priceWithTax: variant.priceWithTax,
+                });
+                setOpen(false);
+            }}
+            open={open}
+            onOpenChange={setOpen}
+            inputValue={search}
+            onInputValueChange={setSearch}
+            itemToStringLabel={(variant: Variant) => variant.name}
+            isItemEqualToValue={(a: Variant, b: Variant) => a.id === b.id}
+            loading={isFetching || search !== debouncedSearch}
+        >
+            <ComboboxPrimitive.Trigger
+                ref={anchor}
+                aria-labelledby={labelId}
+                render={<Button variant="outline" type="button" className="w-full" />}
+            >
+                <span id={labelId}>
                     <Trans>Add item to order</Trans>
-                    <Plus className="opacity-50" />
-            </PopoverTrigger>
-            <PopoverContent className="p-0">
-                <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder="Add item to order..."
-                        className="h-9"
-                        onValueChange={value => setSearch(value)}
-                    />
-                    <CommandList>
-                        <CommandEmpty>No products found.</CommandEmpty>
-                        <CommandGroup>
-                            {data?.productVariants.items.map(variant => (
-                                <CommandItem
-                                    key={variant.id}
-                                    value={variant.id}
-                                    onSelect={() => {
-                                        onProductVariantSelect({
-                                            productVariantId: variant.id,
-                                            productVariantName: variant.name,
-                                            sku: variant.sku,
-                                            productAsset:
-                                                variant.featuredAsset ??
-                                                variant.product.featuredAsset ??
-                                                null,
-                                            price: variant.price,
-                                            priceWithTax: variant.priceWithTax,
-                                        });
-                                        setOpen(false);
-                                    }}
-                                    className="flex items-center gap-2 p-2"
-                                >
-                                    {variant.featuredAsset && (
-                                        <VendureImage
-                                            asset={variant.featuredAsset}
-                                            preset="tiny"
-                                            className="size-8 rounded-md object-cover"
-                                        />
-                                    )}
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-medium">{variant.name}</span>
-                                        <span className="text-xs text-muted-foreground">{variant.sku}</span>
-                                    </div>
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                </span>
+                <Plus className="opacity-50" />
+            </ComboboxPrimitive.Trigger>
+            <ComboboxContent anchor={anchor} className="w-80">
+                <ComboboxInput
+                    aria-label={t`Add item to order`}
+                    placeholder={t`Add item to order...`}
+                    showTrigger={false}
+                />
+                <ComboboxEmpty>
+                    <Trans>No products found.</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(variant: Variant) => (
+                        <ComboboxItem key={variant.id} value={variant}>
+                            {variant.featuredAsset && (
+                                <VendureImage
+                                    asset={variant.featuredAsset}
+                                    preset="tiny"
+                                    className="size-8 rounded-md object-cover"
+                                />
+                            )}
+                            <span className="flex flex-col">
+                                <span className="font-medium">{variant.name}</span>
+                                <span className="text-xs text-muted-foreground">{variant.sku}</span>
+                            </span>
+                        </ComboboxItem>
+                    )}
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }

@@ -76,7 +76,7 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
                     <Trans>Add customer groups</Trans>
                 </span>
             </ComboboxPrimitive.Trigger>
-            <ComboboxContent anchor={anchor} className="w-72">
+            <ComboboxContent anchor={anchor} className="w-80">
                 <ComboboxInput
                     aria-label={t`Search customer groups`}
                     placeholder={t`Search customer groups`}

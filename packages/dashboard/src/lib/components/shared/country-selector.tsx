@@ -94,7 +94,7 @@ export function CountrySelector(props: CountrySelectorProps) {
                 <Plus />
                 <span id={labelId}>{props.label ?? <Trans>Select country</Trans>}</span>
             </ComboboxPrimitive.Trigger>
-            <ComboboxContent anchor={anchor} className="w-72">
+            <ComboboxContent anchor={anchor} className="w-80">
                 <ComboboxInput
                     aria-label={t`Search countries`}
                     placeholder={t`Search countries`}
