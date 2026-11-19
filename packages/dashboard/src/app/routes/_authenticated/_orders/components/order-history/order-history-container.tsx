@@ -27,7 +27,7 @@ export function OrderHistoryContainer({ orderId }: Readonly<OrderHistoryContaine
     if (loading && !order) {
         return (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold">
+                <h2 className="text-style-section-title">
                     <Trans>Order history</Trans>
                 </h2>
                 <div className="space-y-2">
