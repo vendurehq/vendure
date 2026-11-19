@@ -44,7 +44,7 @@ export function OrderHistory({
         onUpdateNote?.(noteId, note, isPrivate);
     };
 
-    const { getTimelineIcon, getTitle, getIconColor, getActorName, isPrimaryEvent } =
+    const { getTimelineIcon, getTitle, getTone, getActorName, isPrimaryEvent } =
         orderHistoryUtils(order);
 
     const renderEntryContent = (entry: HistoryEntryItem) => {
@@ -53,7 +53,7 @@ export function OrderHistory({
             title: getTitle(entry),
             actorName: getActorName(entry),
             timelineIcon: getTimelineIcon(entry),
-            timelineIconClassName: getIconColor(entry),
+            tone: getTone(entry),
             isPrimary: isPrimaryEvent(entry),
             children: null,
         };

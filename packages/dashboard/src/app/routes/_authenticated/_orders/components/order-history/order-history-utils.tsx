@@ -1,4 +1,6 @@
+import type { Tone } from '@/vdb/components/ui/status-badge.js';
 import { HistoryEntryItem } from '@/vdb/framework/extension-api/types/index.js';
+import { orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans } from '@lingui/react/macro';
 import {
     ArrowRightToLine,
@@ -18,40 +20,40 @@ export function orderHistoryUtils(order: OrderHistoryOrderDetail) {
     const getTimelineIcon = (entry: HistoryEntryItem) => {
         switch (entry.type) {
             case 'ORDER_PAYMENT_TRANSITION':
-                return <CreditCardIcon className="h-4 w-4" />;
+                return <CreditCardIcon />;
             case 'ORDER_REFUND_TRANSITION':
-                return <CreditCardIcon className="h-4 w-4" />;
+                return <CreditCardIcon />;
             case 'ORDER_NOTE':
-                return <SquarePen className="h-4 w-4" />;
+                return <SquarePen />;
             case 'ORDER_STATE_TRANSITION':
                 if (entry.data.to === 'Delivered') {
-                    return <CheckIcon className="h-4 w-4" />;
+                    return <CheckIcon />;
                 }
                 if (entry.data.to === 'Cancelled') {
-                    return <Ban className="h-4 w-4" />;
+                    return <Ban />;
                 }
-                return <ArrowRightToLine className="h-4 w-4" />;
+                return <ArrowRightToLine />;
             case 'ORDER_FULFILLMENT_TRANSITION':
                 if (entry.data.to === 'Shipped' || entry.data.to === 'Delivered') {
-                    return <Truck className="h-4 w-4" />;
+                    return <Truck />;
                 }
-                return <ArrowRightToLine className="h-4 w-4" />;
+                return <ArrowRightToLine />;
             case 'ORDER_FULFILLMENT':
-                return <Truck className="h-4 w-4" />;
+                return <Truck />;
             case 'ORDER_MODIFIED':
-                return <Edit3 className="h-4 w-4" />;
+                return <Edit3 />;
             case 'ORDER_CUSTOMER_UPDATED':
-                return <UserX className="h-4 w-4" />;
+                return <UserX />;
             case 'ORDER_CANCELLATION': {
                 const lines = entry.data.lines as Array<{ orderLineId: string; quantity: number }> | undefined;
                 const hasRefundData = (lines && lines.length > 0) || entry.data.reason;
                 if (hasRefundData) {
-                    return <RotateCcw className="h-4 w-4" />;
+                    return <RotateCcw />;
                 }
-                return <Ban className="h-4 w-4" />;
+                return <Ban />;
             }
             default:
-                return <CheckIcon className="h-4 w-4" />;
+                return <CheckIcon />;
         }
     };
 
@@ -117,33 +119,23 @@ export function orderHistoryUtils(order: OrderHistoryOrderDetail) {
         }
     };
 
-    const getIconColor = ({ type, data }: HistoryEntryItem) => {
-        const success = 'bg-success-subtle text-success-subtle-foreground';
-        const destructive = 'bg-destructive-subtle text-destructive-subtle-foreground';
-        const warning = 'bg-warning-subtle text-warning-subtle-foreground';
-        const regular = 'bg-muted text-muted-foreground';
-
-        if (type === 'ORDER_PAYMENT_TRANSITION' && data.to === 'Settled') {
-            return success;
+    /**
+     * The marker tone of an entry: the tone of the state it moved to, from the
+     * order state dictionary. A cancellation takes the tone of `Cancelled`.
+     * Every other entry stays neutral.
+     */
+    const getTone = ({ type, data }: HistoryEntryItem): Tone => {
+        switch (type) {
+            case 'ORDER_STATE_TRANSITION':
+            case 'ORDER_PAYMENT_TRANSITION':
+            case 'ORDER_REFUND_TRANSITION':
+            case 'ORDER_FULFILLMENT_TRANSITION':
+                return typeof data.to === 'string' ? orderStateDictionary.toneFor(data.to) : 'neutral';
+            case 'ORDER_CANCELLATION':
+                return orderStateDictionary.toneFor('Cancelled');
+            default:
+                return 'neutral';
         }
-        if (type === 'ORDER_STATE_TRANSITION' && data.to === 'Delivered') {
-            return success;
-        }
-        if (type === 'ORDER_FULFILLMENT_TRANSITION' && data.to === 'Delivered') {
-            return success;
-        }
-        if (type === 'ORDER_CANCELLATION') {
-            const lines = data.lines as Array<{ orderLineId: string; quantity: number }> | undefined;
-            const hasRefundData = (lines && lines.length > 0) || data.reason;
-            return hasRefundData ? warning : destructive;
-        }
-        if (type === 'ORDER_STATE_TRANSITION' && data.to === 'Cancelled') {
-            return destructive;
-        }
-        if (type === 'ORDER_PAYMENT_TRANSITION' && (data.to === 'Declined' || data.to === 'Cancelled')) {
-            return destructive;
-        }
-        return regular;
     };
 
     const getActorName = (entry: HistoryEntryItem) => {
@@ -183,7 +175,7 @@ export function orderHistoryUtils(order: OrderHistoryOrderDetail) {
     return {
         getTimelineIcon,
         getTitle,
-        getIconColor,
+        getTone,
         getActorName,
         isPrimaryEvent,
     };
