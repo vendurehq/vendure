@@ -1,26 +1,24 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
-import { Button } from '@/vdb/components/ui/button.js';
-import { LoadingState } from '@/vdb/components/ui/state-views.js';
-import { Spinner } from '@/vdb/components/ui/spinner.js';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/vdb/components/ui/command.js';
-import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import {
     DataTableFacetedFilterProps,
     FacetedFilterChip,
 } from '@/vdb/components/data-table/data-table-faceted-filter.js';
+import { Badge } from '@/vdb/components/ui/badge.js';
+import { Button } from '@/vdb/components/ui/button.js';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+    useComboboxAnchor,
+} from '@/vdb/components/ui/combobox.js';
 import { api } from '@/vdb/graphql/api.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Check, Filter } from 'lucide-react';
+import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
+import { Filter } from 'lucide-react';
 import { useState } from 'react';
 import { tagListDocument } from '../assets.graphql.js';
 
@@ -40,7 +38,12 @@ export function AssetTagFacetedFilter<TData, TValue>({
     const selectedTags = Array.isArray(filterValue) ? filterValue.map(String) : [];
 
     return (
-        <Popover defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+        <AssetTagCombobox
+            selectedTags={selectedTags}
+            onTagsChange={tags => column?.setFilterValue(tags.length > 0 ? tags : undefined)}
+            defaultOpen={defaultOpen}
+            onOpenChange={onOpenChange}
+        >
             <FacetedFilterChip
                 icon={Filter}
                 title={title ?? t`Tags`}
@@ -50,14 +53,9 @@ export function AssetTagFacetedFilter<TData, TValue>({
                         : selectedTags.join(', ') || undefined
                 }
                 onClear={() => column?.setFilterValue(undefined)}
+                triggerType="combobox"
             />
-            <PopoverContent className="w-80 p-0">
-                <AssetTagFilterOptions
-                    selectedTags={selectedTags}
-                    onTagsChange={tags => column?.setFilterValue(tags.length > 0 ? tags : undefined)}
-                />
-            </PopoverContent>
-        </Popover>
+        </AssetTagCombobox>
     );
 }
 
@@ -71,37 +69,43 @@ export function AssetGridTagFilter({
     const { t } = useLingui();
 
     return (
-        <Popover>
-            <PopoverTrigger
-                render={
-                    <Button variant="outline" aria-label={t`Filter assets by tags`} />
-                }
+        <AssetTagCombobox selectedTags={selectedTags} onTagsChange={onTagsChange}>
+            <ComboboxPrimitive.Trigger
+                render={<Button variant="outline" aria-label={t`Filter assets by tags`} />}
             >
                 <Filter className="h-4 w-4" />
                 <Trans>Filter</Trans>
                 {selectedTags.length > 0 && <Badge variant="default">{selectedTags.length}</Badge>}
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0">
-                <AssetTagFilterOptions selectedTags={selectedTags} onTagsChange={onTagsChange} />
-            </PopoverContent>
-        </Popover>
+            </ComboboxPrimitive.Trigger>
+        </AssetTagCombobox>
     );
 }
 
-function AssetTagFilterOptions({
+const pageSize = 25;
+
+/**
+ * A multi-value tag picker that searches the tags on the server and loads the next page as
+ * the list scrolls. `children` is the trigger; the search input sits in the popup.
+ */
+function AssetTagCombobox({
     selectedTags,
     onTagsChange,
+    defaultOpen,
+    onOpenChange,
+    children,
 }: Readonly<{
     selectedTags: string[];
     onTagsChange: (tags: string[]) => void;
+    defaultOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    children: React.ReactNode;
 }>) {
     const { t } = useLingui();
+    const anchor = useComboboxAnchor();
     const [searchValue, setSearchValue] = useState('');
     const debouncedSearch = useDebounce(searchValue, 300);
-    const pageSize = 25;
 
-    // Fetch available tags with infinite query
-    const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    const { data, isFetching, fetchNextPage, hasNextPage } = useInfiniteQuery({
         queryKey: ['tags', debouncedSearch],
         queryFn: async ({ pageParam = 0 }) => {
             const options: any = {
@@ -127,77 +131,53 @@ function AssetTagFilterOptions({
         initialPageParam: 0,
     });
 
-    const availableTags = data?.pages.flatMap(page => page?.items ?? []) ?? [];
-    const totalTags = data?.pages[0]?.totalItems ?? 0;
-
-    // Tags are already filtered server-side, so use them directly
-    const filteredTags = availableTags;
-
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const target = e.currentTarget;
-        const scrolledToBottom = Math.abs(target.scrollHeight - target.clientHeight - target.scrollTop) < 1;
-
-        if (scrolledToBottom && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
-        }
-    };
+    const availableTags = data?.pages.flatMap(page => page?.items.map(tag => tag.value) ?? []) ?? [];
 
     return (
-        <Command shouldFilter={false}>
-            <CommandInput placeholder={t`Search tags...`} value={searchValue} onValueChange={setSearchValue} />
-            <CommandList className="max-h-[300px] overflow-y-auto" onScroll={handleScroll}>
-                <CommandEmpty>
-                    {isLoading ? (
-                        <LoadingState variant="spinner" className="py-6" />
-                    ) : (
-                        <div className="p-2 text-sm">
-                            <Trans>No tags found</Trans>
-                        </div>
+        <Combobox
+            items={availableTags}
+            filter={null}
+            multiple
+            value={selectedTags}
+            onValueChange={(next: string[]) => {
+                onTagsChange(next);
+                setSearchValue('');
+            }}
+            inputValue={searchValue}
+            onInputValueChange={setSearchValue}
+            onLoadMore={() => void fetchNextPage()}
+            hasMore={hasNextPage}
+            loading={isFetching || searchValue !== debouncedSearch}
+            loadingLabel={t`Loading tags...`}
+            defaultOpen={defaultOpen}
+            onOpenChange={open => onOpenChange?.(open)}
+        >
+            <span ref={anchor} className="inline-flex">
+                {children}
+            </span>
+            <ComboboxContent
+                anchor={anchor}
+                className="w-80"
+                // Opened from the toolbar's Filter menu, the popup has no trigger interaction to
+                // return focus to when it closes, so it returns focus to the trigger.
+                finalFocus={() => anchor.current?.querySelector('button') ?? true}
+            >
+                <ComboboxInput
+                    aria-label={t`Search tags...`}
+                    placeholder={t`Search tags...`}
+                    showTrigger={false}
+                />
+                <ComboboxEmpty>
+                    <Trans>No tags found</Trans>
+                </ComboboxEmpty>
+                <ComboboxList>
+                    {(tag: string) => (
+                        <ComboboxItem key={tag} value={tag}>
+                            {tag}
+                        </ComboboxItem>
                     )}
-                </CommandEmpty>
-                <CommandGroup>
-                    {filteredTags.map(tag => {
-                        const isSelected = selectedTags.includes(tag.value);
-                        return (
-                            <CommandItem
-                                key={tag.id}
-                                onSelect={() => {
-                                    const next = new Set(selectedTags);
-                                    if (isSelected) {
-                                        next.delete(tag.value);
-                                    } else {
-                                        next.add(tag.value);
-                                    }
-                                    onTagsChange(Array.from(next));
-                                    setSearchValue('');
-                                }}
-                            >
-                                <Check
-                                    className={cn(
-                                        'mr-2 h-4 w-4',
-                                        isSelected ? 'opacity-100' : 'opacity-0',
-                                    )}
-                                />
-                                {tag.value}
-                            </CommandItem>
-                        );
-                    })}
-
-                    {(isFetchingNextPage || isLoading) && (
-                        <div className="flex items-center justify-center py-2">
-                            <Spinner />
-                        </div>
-                    )}
-
-                    {!hasNextPage &&
-                        filteredTags.length > 0 &&
-                        totalTags > filteredTags.length && (
-                            <div className="text-center py-2 text-xs text-muted-foreground">
-                                <Trans>Showing all {filteredTags.length} results</Trans>
-                            </div>
-                        )}
-                </CommandGroup>
-            </CommandList>
-        </Command>
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }
