@@ -1658,7 +1658,7 @@
                   "title": "TransactionalConnection",
                   "slug": "transactional-connection",
                   "file": "docs/reference/typescript-api/data-access/transactional-connection.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-19T07:02:22Z"
                 },
                 {
                   "title": "TypeOrmFindOptions",
