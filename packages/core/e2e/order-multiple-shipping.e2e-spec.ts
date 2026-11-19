@@ -187,7 +187,8 @@ describe('Multiple shipping orders', () => {
         expect(order?.shippingLines.length).toBe(2);
     });
 
-    // Setting fewer shipping methods than the Order has ShippingLines must only remove the unused lines
+    // The unused ShippingLines used to be removed from index `shippingMethodIds.length - 1`, which also
+    // removed the last ShippingLine just assigned a method
     it('keeps the remaining shipping line when fewer shipping methods are set', async () => {
         const { setOrderShippingMethod } = await shopClient.query(setShippingMethodDocument, {
             id: [lessThan100MethodId],
@@ -197,6 +198,9 @@ describe('Multiple shipping orders', () => {
         const order = await getInternalOrder(setOrderShippingMethod.id);
         expect(order?.shippingLines.map(line => line.shippingMethod.code)).toEqual(['less-than-100']);
         expect(order?.lines[1].shippingLine?.shippingMethod.code).toBe('less-than-100');
+        // The OrderLine of the removed ShippingMethod is left without a ShippingLine
+        expect(order?.lines[0].shippingLine ?? null).toBeNull();
+        expect(order?.lines[0].shippingLineId ?? null).toBeNull();
         const { activeOrder } = await shopClient.query(getActiveOrderDocument);
         expect(activeOrder?.shippingWithTax).toBe(1000);
 
