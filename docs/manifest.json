@@ -948,7 +948,7 @@
                   "title": "AssetOptions",
                   "slug": "asset-options",
                   "file": "docs/reference/typescript-api/assets/asset-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "AssetPreviewStrategy",
@@ -998,7 +998,7 @@
                   "title": "AuthOptions",
                   "slug": "auth-options",
                   "file": "docs/reference/typescript-api/auth/auth-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "BcryptPasswordHashingStrategy",
@@ -1010,7 +1010,7 @@
                   "title": "CookieOptions",
                   "slug": "cookie-options",
                   "file": "docs/reference/typescript-api/auth/cookie-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "CUSTOMER_PERMISSIONS",
@@ -1118,7 +1118,7 @@
                   "title": "SuperadminCredentials",
                   "slug": "superadmin-credentials",
                   "file": "docs/reference/typescript-api/auth/superadmin-credentials.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "VerificationTokenStrategy",
@@ -1278,7 +1278,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1378,7 +1378,7 @@
                   "title": "ApiOptions",
                   "slug": "api-options",
                   "file": "docs/reference/typescript-api/configuration/api-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "CollectionFilter",
@@ -1396,7 +1396,7 @@
                   "title": "DefaultConfig",
                   "slug": "default-config",
                   "file": "docs/reference/typescript-api/configuration/default-config.mdx",
-                  "lastModified": "2026-11-16T17:03:49+01:00"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "DefaultSlugStrategy",
@@ -1432,7 +1432,7 @@
                   "title": "EntityOptions",
                   "slug": "entity-options",
                   "file": "docs/reference/typescript-api/configuration/entity-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "MergeConfig",
@@ -1456,7 +1456,7 @@
                   "title": "RuntimeVendureConfig",
                   "slug": "runtime-vendure-config",
                   "file": "docs/reference/typescript-api/configuration/runtime-vendure-config.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "SecretAccessStrategy",
@@ -1486,19 +1486,19 @@
                   "title": "SystemOptions",
                   "slug": "system-options",
                   "file": "docs/reference/typescript-api/configuration/system-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "TrustProxyOptions",
                   "slug": "trust-proxy-options",
                   "file": "docs/reference/typescript-api/configuration/trust-proxy-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "VendureConfig",
                   "slug": "vendure-config",
                   "file": "docs/reference/typescript-api/configuration/vendure-config.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2338,7 +2338,7 @@
                   "title": "ImportExportOptions",
                   "slug": "import-export-options",
                   "file": "docs/reference/typescript-api/import-export/import-export-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "ImportParser",
@@ -2418,7 +2418,7 @@
                   "title": "JobQueueOptions",
                   "slug": "job-queue-options",
                   "file": "docs/reference/typescript-api/job-queue/job-queue-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "JobQueueService",
@@ -2864,7 +2864,7 @@
                   "title": "OrderOptions",
                   "slug": "order-options",
                   "file": "docs/reference/typescript-api/orders/order-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "OrderPlacedStrategy",
@@ -2882,13 +2882,19 @@
                   "title": "OrderRecalculationStrategy",
                   "slug": "order-recalculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-recalculation-strategy.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "OrderSellerStrategy",
                   "slug": "order-seller-strategy",
                   "file": "docs/reference/typescript-api/orders/order-seller-strategy.mdx",
                   "lastModified": "2026-04-20T16:08:16+02:00"
+                },
+                {
+                  "title": "PromotionFreezeStrategy",
+                  "slug": "promotion-freeze-strategy",
+                  "file": "docs/reference/typescript-api/orders/promotion-freeze-strategy.mdx",
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "StockAllocationStrategy",
@@ -2950,7 +2956,7 @@
                   "title": "PaymentOptions",
                   "slug": "payment-options",
                   "file": "docs/reference/typescript-api/payment/payment-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "PaymentProcess",
@@ -3050,7 +3056,7 @@
                   "title": "CatalogOptions",
                   "slug": "catalog-options",
                   "file": "docs/reference/typescript-api/products-stock/catalog-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "DefaultProductVariantPriceCalculationStrategy",
@@ -3148,7 +3154,7 @@
                   "title": "PromotionOptions",
                   "slug": "promotion-options",
                   "file": "docs/reference/typescript-api/promotions/promotion-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3248,7 +3254,7 @@
                   "title": "SchedulerOptions",
                   "slug": "scheduler-options",
                   "file": "docs/reference/typescript-api/scheduled-tasks/scheduler-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "SchedulerService",
@@ -3286,13 +3292,13 @@
                   "title": "OrderCalculator",
                   "slug": "order-calculator",
                   "file": "docs/reference/typescript-api/service-helpers/order-calculator.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3304,7 +3310,7 @@
                   "title": "SetShippingMethodsResult",
                   "slug": "set-shipping-methods-result",
                   "file": "docs/reference/typescript-api/service-helpers/set-shipping-methods-result.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "SlugValidator",
@@ -3450,7 +3456,7 @@
                   "title": "HistoryService",
                   "slug": "history-service",
                   "file": "docs/reference/typescript-api/services/history-service.mdx",
-                  "lastModified": "2026-11-05T14:55:16Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "IdentityScopeService",
@@ -3736,7 +3742,7 @@
                   "title": "ShippingOptions",
                   "slug": "shipping-options",
                   "file": "docs/reference/typescript-api/shipping/shipping-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "ShouldRunCheckFn",
@@ -3812,7 +3818,7 @@
                   "title": "TaxOptions",
                   "slug": "tax-options",
                   "file": "docs/reference/typescript-api/tax/tax-options.mdx",
-                  "lastModified": "2026-11-17T18:56:23Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "TaxZoneStrategy",
@@ -4566,7 +4572,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-19T12:08:49Z"
                 },
                 {
                   "title": "Mutations",
