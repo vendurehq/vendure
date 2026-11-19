@@ -20,7 +20,8 @@ html[dir="rtl"] * {
 
 /*
  * Tailwind @theme inline block generated at build time by the themeVariablesPlugin.
- * It produces --color-*, --radius-*, --shadow-*, --font-*, and motion
+ * It produces --color-*, --radius-*, --shadow-*, --font-*, the type scale
+ * (--text-*, --font-weight-*, --tracking-*, font feature settings) and motion
  * (--ease-*, --transition-duration-*, --animate-*) mappings directly from
  * @vendure-io/design-tokens JS exports, plus dashboard-specific extensions
  * (dev-mode, brand). It also emits the top-level @keyframes blocks backing the

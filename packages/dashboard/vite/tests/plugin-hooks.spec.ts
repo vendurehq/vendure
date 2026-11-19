@@ -198,11 +198,34 @@ describe('themeVariablesPlugin', () => {
         const css = `@import 'virtual:admin-theme-inline';`;
         const result = callTransform(plugin, css, '/app/styles.css');
         // All radius values should be direct token values, not calc() expressions
-        expect(result).not.toContain('calc(');
+        expect(result).not.toMatch(/--radius-[\w-]+: calc\(/);
         expect(result).toContain('--radius-sm: 0.125rem;');
         expect(result).toContain('--radius-md: 0.25rem;');
         expect(result).toContain('--radius-lg: 0.375rem;');
         expect(result).toContain('--radius-xl: 0.5rem;');
+    });
+
+    it('emits the design-system type scale inside the @theme inline block', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        // `text-sm` is the 13px body size on a 20px line, not Tailwind's 14px
+        expect(result).toContain('--text-sm: 0.8125rem;');
+        expect(result).toContain('--text-sm--line-height: calc(1.25 / 0.8125);');
+        expect(result).toContain('--text-2xs: 0.6875rem;');
+        expect(result).toContain('--text-xs: 0.75rem;');
+        expect(result).toContain('--font-weight-semibold: 600;');
+        expect(result).toContain('--tracking-tight: -0.025em;');
+        expect(result).toContain('--font-sans--font-feature-settings: "cv11", "ss01", "ss03";');
+        expect(result).toContain('--font-display: var(--font-display);');
+    });
+
+    it('defines a runtime variable for every design-token font family', () => {
+        const plugin = themeVariablesPlugin({ theme: { light: { 'font-display': 'serif' } } });
+        const css = `@import 'virtual:admin-theme';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--font-display: serif;');
+        expect(result).toMatch(/\.dark \{[^}]*--font-display: "Public Sans Variable"/);
     });
 
     it('handles both virtual imports in the same file', () => {
