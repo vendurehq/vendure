@@ -114,7 +114,7 @@ A ShippingMethod can now offer several priced [shipping options](/core-concepts/
 - **`modifyOrder` with `recalculateShipping: false`** now prices a ShippingMethod it sets with the chosen option's price, and applies the shipping promotions to that price. In v3 the ShippingLine kept the price of the previous method.
 - **`setOrderShippingMethod` and `setDraftOrderShippingMethod` leave the Order in the database as it was when they return an error.** They run in a savepoint of the request's transaction, which is rolled back when the method or option is refused. Events published by promotion side effects while the Order was priced are not undone.
 - **`OrderService.setShippingMethod()` and `OrderModifier.setShippingMethods()`** accept a `ShippingMethodSelectionInput` as well as an ID for each entry. An empty list is refused.
-- **`OrderModifier.setShippingMethods()`** no longer prices the ShippingLines, and returns a `SetShippingMethodsResult` with the `order` and a `selectionKept()` function rather than the Order itself. Recalculate the Order afterwards, then pass its ShippingLines to `selectionKept()` to find out whether a selected option was refused. `OrderService.setShippingMethod()` does both.
+- **`OrderModifier.setShippingMethods()`** returns a `SetShippingMethodsResult` with the `order` and a `selectionKept()` function rather than the Order itself. As before, it does not price the ShippingLines: recalculate the Order afterwards, then pass its ShippingLines to `selectionKept()` to find out whether a selected option was refused. `OrderService.setShippingMethod()` does both.
 - **`ShippingLine`** has two new nullable columns, `shippingOptionCode` and `shippingOptionName`. The generated migration adds them.
 
 ## Changed defaults
