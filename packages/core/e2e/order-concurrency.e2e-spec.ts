@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import { manualFulfillmentHandler, mergeConfig } from '@vendure/core';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -11,7 +11,12 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 import { graphql } from './graphql/graphql-admin';
 import { graphql as shopGraphql } from './graphql/graphql-shop';
-import { getOrderListDocument, getProductVariantListDocument } from './graphql/shared-definitions';
+import {
+    createFulfillmentDocument,
+    getOrderListDocument,
+    getProductVariantListDocument,
+    refundOrderDocument,
+} from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
     getActiveOrderDocument,
@@ -76,6 +81,34 @@ const getActiveOrderWithCustomerDocument = shopGraphql(`
             lines {
                 id
                 linePrice
+            }
+        }
+    }
+`);
+
+const getPlacedOrderDocument = graphql(`
+    query GetPlacedOrderForConcurrency($id: ID!) {
+        order(id: $id) {
+            id
+            state
+            lines {
+                id
+                quantity
+            }
+            payments {
+                id
+                amount
+                refunds {
+                    id
+                    total
+                }
+            }
+            fulfillments {
+                id
+                lines {
+                    orderLineId
+                    quantity
+                }
             }
         }
     }
@@ -357,5 +390,60 @@ describeOnRealDb('Order concurrency', () => {
         } else {
             expect(order!.state).toBe('AddingItems');
         }
+    });
+
+    /** Takes a fresh client's Order through payment, returning the placed Order. */
+    async function placedOrder(emailAddress: string) {
+        const client = await newShopClient();
+        const orderId = await checkoutToArrangingPayment(client, emailAddress);
+        await addPaymentToOrder(client, testSuccessfulPaymentMethod);
+        const { order } = await adminClient.query(getPlacedOrderDocument, { id: orderId });
+        expect(order!.state).toBe('PaymentSettled');
+        return order!;
+    }
+
+    // Order writers which do not read the Order through OrderService.getOrderOrThrow() checked
+    // what was left to fulfil before taking any lock, so two concurrent fulfillments of the same
+    // line both passed the check and the line was fulfilled twice.
+    it('fulfils a line only once when two fulfillments are created concurrently', async () => {
+        const order = await placedOrder('concurrent-fulfillment@test.com');
+        const lines = order.lines.map(line => ({ orderLineId: line.id, quantity: line.quantity }));
+        const fulfil = () =>
+            adminClient.query(createFulfillmentDocument, {
+                input: {
+                    lines,
+                    handler: {
+                        code: manualFulfillmentHandler.code,
+                        arguments: [{ name: 'method', value: 'Test' }],
+                    },
+                },
+            });
+
+        const results = await Promise.all([fulfil(), fulfil()]);
+
+        const created = results.filter(r => 'id' in r.addFulfillmentToOrder);
+        expect(created.length).toBe(1);
+        const { order: after } = await adminClient.query(getPlacedOrderDocument, { id: order.id });
+        const fulfilledQuantity = (after!.fulfillments ?? [])
+            .flatMap(f => f.lines)
+            .reduce((sum, line) => sum + line.quantity, 0);
+        expect(fulfilledQuantity).toBe(order.lines.reduce((sum, line) => sum + line.quantity, 0));
+    });
+
+    // The refundable amount was likewise computed before any lock, so two concurrent refunds of
+    // the full amount both passed and the Payment was refunded twice.
+    it('does not refund more than was paid when two refunds are requested concurrently', async () => {
+        const order = await placedOrder('concurrent-refund@test.com');
+        const payment = order.payments![0];
+        const refund = () =>
+            adminClient.query(refundOrderDocument, {
+                input: { paymentId: payment.id, amount: payment.amount, reason: 'concurrent' },
+            });
+
+        await Promise.all([refund(), refund()]);
+
+        const { order: after } = await adminClient.query(getPlacedOrderDocument, { id: order.id });
+        const refunded = after!.payments![0].refunds.reduce((sum, r) => sum + r.total, 0);
+        expect(refunded).toBe(payment.amount);
     });
 });

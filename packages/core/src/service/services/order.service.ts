@@ -1407,6 +1407,7 @@ export class OrderService implements OnApplicationBootstrap {
         fulfillmentId: ID,
         state: FulfillmentState,
     ): Promise<Fulfillment | FulfillmentStateTransitionError> {
+        await this.lockOrders(ctx, await this.getOrderIdsOfFulfillment(ctx, fulfillmentId));
         const result = await this.fulfillmentService.transitionToState(ctx, fulfillmentId, state);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -1501,6 +1502,7 @@ export class OrderService implements OnApplicationBootstrap {
         paymentId: ID,
         state: PaymentState,
     ): Promise<ErrorResultUnion<TransitionPaymentToStateResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         return this.paymentService.transitionToState(ctx, paymentId, state);
     }
 
@@ -1781,6 +1783,7 @@ export class OrderService implements OnApplicationBootstrap {
         ctx: RequestContext,
         paymentId: ID,
     ): Promise<ErrorResultUnion<SettlePaymentResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         const payment = await this.paymentService.settlePayment(ctx, paymentId);
         if (!isGraphQlErrorResult(payment)) {
             if (payment.state !== 'Settled') {
@@ -1799,6 +1802,7 @@ export class OrderService implements OnApplicationBootstrap {
         ctx: RequestContext,
         paymentId: ID,
     ): Promise<ErrorResultUnion<CancelPaymentResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         const payment = await this.paymentService.cancelPayment(ctx, paymentId);
         if (!isGraphQlErrorResult(payment)) {
             if (payment.state !== 'Cancelled') {
@@ -1819,6 +1823,12 @@ export class OrderService implements OnApplicationBootstrap {
         if (!input.lines || input.lines.length === 0 || summate(input.lines, 'quantity') === 0) {
             return new EmptyOrderLineSelectionError();
         }
+        // Lock the Orders before checking what is left to fulfil, then read them again: a
+        // concurrent fulfillment of the same lines may have committed while this one waited.
+        await this.lockOrders(
+            ctx,
+            (await getOrdersFromLines(ctx, this.connection, input.lines)).map(order => order.id),
+        );
         const orders = await getOrdersFromLines(ctx, this.connection, input.lines);
 
         if (await this.requestedFulfillmentQuantityExceedsLineQuantity(ctx, input)) {
@@ -1983,6 +1993,7 @@ export class OrderService implements OnApplicationBootstrap {
     ): Promise<ErrorResultUnion<CancelOrderResult, Order>> {
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
+                await this.connection.lockRow(txCtx, Order, input.orderId);
                 // Cancelling lines publishes events (OrderLineEvent, StockMovementEvent, HistoryEntryEvent)
                 // which subscribers receive once the outermost transaction commits, even when a savepoint
                 // inside it was rolled back. So a refusal must be known before the lines are cancelled.
@@ -2157,6 +2168,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (!input.amount && !input.targets?.length) {
             return new NothingToRefundError();
         }
+        // The refundable amount is computed from the Refunds already recorded, so a concurrent
+        // refund of the same Payment has to have committed before it is read.
+        await this.lockOrderOfPayment(ctx, input.paymentId);
         const orders = await getOrdersFromLines(ctx, this.connection, input.lines ?? []);
         if (1 < orders.length) {
             return new MultipleOrderError();
@@ -2595,6 +2609,49 @@ export class OrderService implements OnApplicationBootstrap {
         return getOrderChannelContext(ctx, this.connection, this.channelService, orderId);
     }
 
+    /**
+     * Locks the given Orders for the rest of the transaction, in ascending id order. Two requests
+     * which lock the same set of Orders then take the locks in the same order and cannot deadlock.
+     * See {@link TransactionalConnection.lockRow}.
+     */
+    private async lockOrders(ctx: RequestContext, orderIds: ID[]): Promise<void> {
+        const unique = [...new Map(orderIds.map(id => [String(id), id])).values()];
+        unique.sort((a, b) => {
+            const [x, y] = [String(a), String(b)];
+            return /^\d+$/.test(x) && /^\d+$/.test(y) ? Number(x) - Number(y) : x < y ? -1 : x > y ? 1 : 0;
+        });
+        for (const id of unique) {
+            await this.connection.lockRow(ctx, Order, id);
+        }
+    }
+
+    /** Locks the Order which the given Payment belongs to. */
+    private async lockOrderOfPayment(ctx: RequestContext, paymentId: ID): Promise<void> {
+        const row = await this.connection
+            .getRepository(ctx, Payment)
+            .createQueryBuilder('payment')
+            .innerJoin('payment.order', 'order')
+            .select('order.id', 'orderId')
+            .where('payment.id = :paymentId', { paymentId })
+            .getRawOne<{ orderId: ID }>();
+        if (row) {
+            await this.connection.lockRow(ctx, Order, row.orderId);
+        }
+    }
+
+    /** Returns the ids of the Orders which the given Fulfillment fulfils. */
+    private async getOrderIdsOfFulfillment(ctx: RequestContext, fulfillmentId: ID): Promise<ID[]> {
+        const orders = await this.connection
+            .getRepository(ctx, Order)
+            .createQueryBuilder('order')
+            .innerJoin('order.fulfillments', 'fulfillment', 'fulfillment.id = :fulfillmentId', {
+                fulfillmentId,
+            })
+            .select('order.id')
+            .getMany();
+        return orders.map(order => order.id);
+    }
+
     private async getOrderOrThrow(
         ctx: RequestContext,
         orderId: ID,
@@ -2945,6 +3002,11 @@ export class OrderService implements OnApplicationBootstrap {
             if (affectedOrders.length === 0) {
                 continue;
             }
+            // A shopper may be changing one of these carts at the same time.
+            await this.lockOrders(
+                orderCtx,
+                affectedOrders.map(o => o.id),
+            );
 
             const orders = await this.connection.getRepository(orderCtx, Order).find({
                 where: { id: In(affectedOrders.map(o => o.id)) },
