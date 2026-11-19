@@ -75,6 +75,8 @@ function ImageNodeView({ node, updateAttributes, selected, editor }: NodeViewPro
                 ref={imgRef}
                 src={node.attrs.src}
                 alt={node.attrs.alt ?? ''}
+                // The image's own title attribute, stored in the content: not a hover hint.
+                // eslint-disable-next-line native-title/no-restricted-syntax
                 title={node.attrs.title ?? undefined}
                 className={`rich-text-image ${selected ? 'ProseMirror-selectednode' : ''}`}
                 style={{

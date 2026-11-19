@@ -143,6 +143,33 @@ export default [{
     ],
   },
 }, {
+  // A native title is a hover hint the design system does not draw: it opens
+  // late, ignores keyboard focus and touch, and looks like the operating system.
+  // Use Tooltip, RelativeTime for a time (its tooltip shows the full date), and
+  // aria-label plus Tooltip on an icon-only control. Only lower-case tags are
+  // checked: title on a component (PageTitle, Card…) is a prop. iframe and abbr
+  // keep title, where it names the frame or expands the abbreviation.
+  // asset-gallery.tsx is held by another change (OSS-1405); drop it from the
+  // ignores when that lands (follow-up of OSS-1381).
+  files: ['src/**/*.tsx'],
+  ignores: [
+    'src/**/*.spec.tsx',
+    'src/lib/components/ui/**',
+    'src/lib/components/shared/asset/asset-gallery.tsx',
+  ],
+  plugins: {
+    'native-title': { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } },
+  },
+  rules: {
+    'native-title/no-restricted-syntax': [
+      'error',
+      {
+        selector: "JSXOpeningElement[name.name=/^(?!(iframe|abbr)$)[a-z]/] > JSXAttribute[name.name='title']",
+        message: 'Use Tooltip from @/vdb/components/ui/tooltip.js, or RelativeTime for a time. Do not use a native title for a hover hint.',
+      },
+    ],
+  },
+}, {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,
