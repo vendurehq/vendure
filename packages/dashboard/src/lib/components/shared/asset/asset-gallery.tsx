@@ -928,6 +928,7 @@ const AssetCard = memo(function AssetCard({
     onToggleAsset,
 }: Readonly<AssetCardProps>) {
     const { t } = useLingui();
+    const name = useRef<HTMLParagraphElement>(null);
 
     return (
         <div
@@ -940,12 +941,22 @@ const AssetCard = memo(function AssetCard({
                 ${isSelected ? 'ring-2 ring-primary' : 'ring-foreground/10'}
             `}
         >
-            <button
-                type="button"
-                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none"
-                aria-label={t`Select ${asset.name}`}
-                onClick={e => onSelectAsset(asset, e)}
-            />
+            {/* The select button covers the card, so it opens the full name, shown at the cut name. */}
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <button
+                            type="button"
+                            className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none"
+                            aria-label={t`Select ${asset.name}`}
+                            onClick={e => onSelectAsset(asset, e)}
+                        />
+                    }
+                />
+                <TooltipContent anchor={name} className="max-w-80 break-all">
+                    {asset.name}
+                </TooltipContent>
+            </Tooltip>
             <div className="relative aspect-square bg-muted/30 overflow-hidden">
                 <VendureImage
                     asset={asset}
@@ -966,14 +977,9 @@ const AssetCard = memo(function AssetCard({
                 )}
             </div>
             <div className="px-2 py-1.5">
-                <Tooltip>
-                    <TooltipTrigger
-                        render={<p className="text-sm font-medium leading-tight line-clamp-1" />}
-                    >
-                        {asset.name}
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-80 break-all">{asset.name}</TooltipContent>
-                </Tooltip>
+                <p ref={name} className="text-sm font-medium leading-tight line-clamp-1">
+                    {asset.name}
+                </p>
                 <div className="flex items-center justify-between mt-0.5">
                     <span className="text-xs text-muted-foreground">
                         {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
