@@ -1,3 +1,4 @@
+import { DescriptionList, DescriptionListItem } from '@/vdb/components/ui/description-list.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
 
@@ -17,24 +18,17 @@ export function OrderTaxSummary({ order }: Readonly<{ order: Order }>) {
                             {taxLine.taxRate}%
                         </div>
                     </div>
-                    <dl className="mt-2 grid grid-cols-2 gap-3">
-                        <div>
-                            <dt className="text-xs text-muted-foreground">
-                                <Trans>Tax base</Trans>
-                            </dt>
-                            <dd className="text-sm tabular-nums">
-                                {formatCurrency(taxLine.taxBase, order.currencyCode)}
-                            </dd>
-                        </div>
-                        <div className="text-right">
-                            <dt className="text-xs text-muted-foreground">
-                                <Trans>Tax total</Trans>
-                            </dt>
-                            <dd className="text-sm font-medium tabular-nums">
-                                {formatCurrency(taxLine.taxTotal, order.currencyCode)}
-                            </dd>
-                        </div>
-                    </dl>
+                    <DescriptionList className="mt-2 grid grid-cols-2 gap-3">
+                        <DescriptionListItem label={<Trans>Tax base</Trans>} className="tabular-nums">
+                            {formatCurrency(taxLine.taxBase, order.currencyCode)}
+                        </DescriptionListItem>
+                        <DescriptionListItem
+                            label={<Trans>Tax total</Trans>}
+                            className="text-right tabular-nums"
+                        >
+                            {formatCurrency(taxLine.taxTotal, order.currencyCode)}
+                        </DescriptionListItem>
+                    </DescriptionList>
                 </div>
             ))}
         </div>

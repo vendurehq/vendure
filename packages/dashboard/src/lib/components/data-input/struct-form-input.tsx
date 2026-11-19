@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { DescriptionList, DescriptionListItem } from '@/vdb/components/ui/description-list.js';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
@@ -58,18 +59,16 @@ function DisplayMode({
                     </Button>
                 )}
             </div>
-            <dl className="grid grid-cols-2 divide-y divide-muted -mt-2">
+            <DescriptionList orientation="horizontal" className="-mt-2">
                 {fieldDef.fields.map(structField => (
-                    <React.Fragment key={structField.name}>
-                        <dt className="text-sm font-medium text-muted-foreground py-2 min-w-0">
-                            {getTranslation(structField.label) ?? structField.name}
-                        </dt>
-                        <dd className="text-sm text-foreground py-2 min-w-0 break-words">
-                            {formatFieldValue(watchedStructValue[structField.name], structField)}
-                        </dd>
-                    </React.Fragment>
+                    <DescriptionListItem
+                        key={structField.name}
+                        label={getTranslation(structField.label) ?? structField.name}
+                    >
+                        {formatFieldValue(watchedStructValue[structField.name], structField)}
+                    </DescriptionListItem>
                 ))}
-            </dl>
+            </DescriptionList>
         </div>
     );
 }

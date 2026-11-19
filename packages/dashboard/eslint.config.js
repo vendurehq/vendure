@@ -57,6 +57,11 @@ export default [{
           "JSXElement[openingElement.name.name='Badge'] JSXElement[openingElement.name.name=/^(button|Button)$/]",
         message: 'A removable tag is Chip with onRemove and removeLabel, not a Badge with its own button.',
       },
+      // Label/value lists use the design-system DescriptionList, not hand-built dl/dt/dd.
+      {
+        selector: 'JSXOpeningElement[name.name=/^(dl|dt|dd)$/]',
+        message: 'Use DescriptionList, DescriptionItem or DescriptionListItem from @/vdb/components/ui/description-list.js.',
+      },
     ],
   },
 }, {
