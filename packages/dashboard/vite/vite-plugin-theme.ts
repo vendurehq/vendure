@@ -6,7 +6,12 @@ import {
     duration,
     easing,
     fontFamily,
+    fontFeatureSettings,
+    fontSize,
+    fontSizeLineHeight,
+    fontWeight,
     keyframes,
+    letterSpacing,
     lightShadows,
     lightTheme,
     radii,
@@ -67,22 +72,25 @@ export interface DashboardThemeOptions extends ThemeVariables {
  * Dashboard-specific tokens that extend the base design-tokens themes.
  * These are layered on top of `@vendure-io/design-tokens` `lightTheme`/`darkTheme`.
  */
+/**
+ * One `--font-<key>` runtime variable per design-token font family (`sans`,
+ * `heading`, `body`, `mono`, `display`), so a custom theme can override any of
+ * them, e.g. `light: { 'font-body': '…' }`.
+ */
+const fontVariables: ThemeColors = Object.fromEntries(
+    Object.entries(fontFamily).map(([key, value]) => [`font-${key}`, value]),
+);
+
 const dashboardLightExtensions: ThemeColors = {
     'dev-mode': brand[400],
     'dev-mode-foreground': brand[950],
-    'font-sans': fontFamily.sans,
-    'font-heading': fontFamily.heading,
-    'font-body': fontFamily.body,
-    'font-mono': fontFamily.mono,
+    ...fontVariables,
 };
 
 const dashboardDarkExtensions: ThemeColors = {
     'dev-mode': brand[400],
     'dev-mode-foreground': brand[950],
-    'font-sans': fontFamily.sans,
-    'font-heading': fontFamily.heading,
-    'font-body': fontFamily.body,
-    'font-mono': fontFamily.mono,
+    ...fontVariables,
 };
 
 /**
@@ -163,6 +171,27 @@ function generateThemeInlineBlock(): string {
     // options are picked up (the :root block sets --font-* from dashboardExtensions)
     const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
 
+    // Type — the design-system scale, as in `@vendure-io/design-tokens/css/theme`.
+    // `--text-*` and `--text-*--line-height` drive the `text-*` utilities
+    // (`text-sm` is 13px on a 20px line, not Tailwind's 14px).
+    // `--font-<family>--font-feature-settings` turns on Inter's `cv11`, `ss01`
+    // and `ss03` for the page and each `font-*` utility, and turns off Geist
+    // Mono's ligatures. Weights and tracking match Tailwind's defaults today and
+    // are emitted so they follow the design system if it changes them.
+    const fontFeatureLines = Object.entries(fontFeatureSettings).map(
+        ([key, value]) => `    --font-${key}--font-feature-settings: ${value};`,
+    );
+    const textLines = Object.entries(fontSize).map(([key, value]) => `    --text-${key}: ${value};`);
+    const textLineHeightLines = Object.entries(fontSizeLineHeight).map(
+        ([key, value]) => `    --text-${key}--line-height: ${value};`,
+    );
+    const fontWeightLines = Object.entries(fontWeight).map(
+        ([key, value]) => `    --font-weight-${key}: ${value};`,
+    );
+    const trackingLines = Object.entries(letterSpacing).map(
+        ([key, value]) => `    --tracking-${key}: ${value};`,
+    );
+
     // Motion — easing curves, transition durations and named animations, emitted
     // as direct values (like radius/shadows). The token keys are camelCase; the
     // CSS names are kebab-case, as `@vendure-io/ui` reads them (`rowEnter` →
@@ -195,6 +224,11 @@ function generateThemeInlineBlock(): string {
         ...shadowLines,
         ...themedShadowLines,
         ...fontLines,
+        ...fontFeatureLines,
+        ...textLines,
+        ...textLineHeightLines,
+        ...fontWeightLines,
+        ...trackingLines,
         ...easingLines,
         ...durationLines,
         ...animationLines,
