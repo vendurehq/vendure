@@ -138,7 +138,7 @@ function MoveToTopLevel({
 function TreeIndent({ depth, children }: Readonly<{ depth: number; children?: React.ReactNode }>) {
     return (
         <div className="flex shrink-0 items-center" style={{ paddingInlineStart: depth * 20 }}>
-            {children ?? <div className="size-6" />}
+            {children || <div className="size-6" />}
         </div>
     );
 }
