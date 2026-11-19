@@ -1,5 +1,5 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Chip } from '@/vdb/components/ui/chip.js';
 import {
     Command,
     CommandEmpty,
@@ -11,9 +11,9 @@ import { Label } from '@/vdb/components/ui/label.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { api } from '@/vdb/graphql/api.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Settings2, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Settings2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { createTagDocument, tagListDocument } from '../assets.graphql.js';
@@ -36,6 +36,7 @@ export function AssetTagsEditor({
     const [searchValue, setSearchValue] = useState('');
     const [manageDialogOpen, setManageDialogOpen] = useState(false);
     const queryClient = useQueryClient();
+    const { t } = useLingui();
 
     // Fetch available tags
     const { data: tagsData } = useQuery({
@@ -111,18 +112,13 @@ export function AssetTagsEditor({
                     </span>
                 ) : (
                     selectedTags.map(tag => (
-                        <Badge key={tag} variant="default" className="flex items-center gap-1">
+                        <Chip
+                            key={tag}
+                            onRemove={disabled ? undefined : () => handleRemoveTag(tag)}
+                            removeLabel={t`Remove ${tag}`}
+                        >
                             {tag}
-                            {!disabled && (
-                                <button
-                                    type="button"
-                                    onClick={() => handleRemoveTag(tag)}
-                                    className="ml-1 hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
-                                >
-                                    <X className="h-3 w-3" />
-                                </button>
-                            )}
-                        </Badge>
+                        </Chip>
                     ))
                 )}
             </div>

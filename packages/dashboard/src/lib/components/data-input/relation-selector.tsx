@@ -1,6 +1,7 @@
 import { Button } from '@/vdb/components/ui/button.js';
 import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
+import { Chip } from '@/vdb/components/ui/chip.js';
 import {
     Command,
     CommandEmpty,
@@ -378,21 +379,37 @@ export function RelationSelector<T>({
                 <div className="flex flex-wrap gap-2 mb-2">
                     {selectedItems.map(item => {
                         const itemId = String(item[config.idKey]);
-                        const label = config.label ? config.label(item) : String(item[config.labelKey]);
+                        const name = String(item[config.labelKey]);
+                        const removeLabel = t`Remove ${name}`;
+                        if (!config.label) {
+                            return (
+                                <Chip
+                                    key={itemId}
+                                    onRemove={disabled ? undefined : () => handleRemove(itemId)}
+                                    removeLabel={removeLabel}
+                                >
+                                    {name}
+                                </Chip>
+                            );
+                        }
+                        // A custom label is a rich entity row (thumbnail, title, subtitle), too tall
+                        // for a Chip, so it keeps its card and only the remove button is shared.
                         return (
                             <div
                                 key={itemId}
                                 className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm max-w-full min-w-0"
                             >
-                                <div className="min-w-0 flex-1">{label}</div>
+                                <div className="min-w-0 flex-1">{config.label(item)}</div>
                                 {!disabled && (
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="icon-xs"
                                         onClick={() => handleRemove(itemId)}
-                                        className="text-secondary-foreground/70 hover:text-secondary-foreground"
+                                        aria-label={removeLabel}
                                     >
-                                        <X className="h-3 w-3" />
-                                    </button>
+                                        <X />
+                                    </Button>
                                 )}
                             </div>
                         );
