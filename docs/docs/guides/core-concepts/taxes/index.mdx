@@ -60,7 +60,9 @@ Only enabled rates are considered. A rate that targets a Zone works as before, s
 
 Some things to know:
 
-* The country comes from the shipping address only. When there is no Order, for example when a product page shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, also set a default tax Zone on the Channel.
+* The country comes from the shipping address only. When there is no Order, for example when a product page or the search index shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, also create a zone rate for the Channel's default tax Zone, normally the rate of your own country. Without one, those prices show 0% tax.
+* A country rate applies whatever Zone the [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/) returns. A custom strategy which returns a special Zone, for example a 0% Zone for business customers under the reverse-charge rule, does not stop a country rate for the shipping country from applying.
+* When the shipping country of an Order changes, the taxes of all its lines are applied again. Changing a TaxRate does not by itself change the taxes of lines already in an Order.
 * A country rate must target a country. Other types of region, such as provinces, are rejected.
 * If two Zones contain the same country, [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy) uses the first Zone it finds, so the result depends on the order of the Zones. Put the rates in country rates instead of overlapping Zones.
 
@@ -68,10 +70,17 @@ In the Dashboard, the tax rate form has an "Applies to" field to choose between 
 
 ### EU One-Stop Shop
 
-Under the EU One-Stop Shop scheme, you charge the VAT rate of the country where the buyer lives. You do not need one Zone per member state. Use a single `eu` Zone for shipping and one country rate for each member state:
+Under the EU One-Stop Shop scheme, you charge the VAT rate of the country where the buyer lives. You do not need one Zone per member state. Use a single `eu` Zone for shipping, set it as the Channel's default tax Zone, give it a zone rate with your own country's VAT rate, and add one country rate for each member state:
 
 ```graphql
 mutation {
+  eu: createTaxRate(input: {
+    name: "Standard Tax EU",
+    enabled: true,
+    value: 19,
+    categoryId: "1",
+    zoneId: "<ID of the eu Zone>"
+  }) { id }
   de: createTaxRate(input: {
     name: "Standard Tax DE",
     enabled: true,
@@ -89,7 +98,7 @@ mutation {
 }
 ```
 
-An Order with a shipping address in Germany is taxed at 19%, and one in France at 20%. A member state with no country rate uses the rate of the `eu` Zone, if you create one, or else 0%.
+This example assumes a seller in Germany. An Order with a shipping address in Germany is taxed at 19%, and one in France at 20%. A member state with no country rate uses the rate of the `eu` Zone, 19%. Product pages and search results, which have no shipping address, also show prices with the `eu` Zone rate.
 
 ## Calculating tax on shipping
 

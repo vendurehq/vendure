@@ -126,7 +126,7 @@ A TaxRate can now target a country as well as a Zone, and a country rate wins ov
 - **`TaxRate.zone` is nullable** in the GraphQL APIs and on the entity (`zone?: Zone | null`, `zoneId?: ID | null`), because a country rate has no Zone. Code which reads `taxRate.zone.id` or `taxRate.zone.name` must handle `null`. The new `region` field holds the country of a country rate.
 - **`CreateTaxRateInput.zoneId` is optional.** Exactly one of `zoneId` and the new `regionId` must be set. Generated TypeScript types for the input change accordingly.
 - **`TaxRateService.getApplicableTaxRate()`** takes `{ countryCode, zone }` as its second argument, so that a country rate can be found. Passing a Zone or zone ID still works, but then only zone rates are found. To apply country rates in your own code, pass the country of the Order's shipping address as `countryCode`.
-- **`tax_rate`** has a new nullable column, `regionId`. The generated migration adds it.
+- **`tax_rate`** has a new nullable column, `regionId`, and **`order`** a new nullable column, `taxCountryCode`. The generated migration adds them. `Order.taxCountryCode` records the shipping country of the last tax calculation. An Order placed before v4 has none, so the next calculation of such an Order with a shipping address applies the taxes of all its lines again, with the current rates.
 
 ## Changed defaults
 

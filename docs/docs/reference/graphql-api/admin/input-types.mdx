@@ -1763,8 +1763,9 @@ input CreateApiKeyInput {
   enabled: Boolean!
   value: Float!
   categoryId: ID!
-  """Either zoneId or regionId must be set. In v4 the region must be a country."""
+  """The Zone the rate applies to. Exactly one of zoneId and regionId must be set."""
   zoneId: ID
+  """The Country the rate applies to. Exactly one of zoneId and regionId must be set."""
   regionId: ID
   customerGroupId: ID
   customFields: JSON
@@ -5709,7 +5710,9 @@ input UpdateProductVariantPriceInput {
   value: Float
   enabled: Boolean
   categoryId: ID
+  """The Zone the rate applies to. Setting it removes the Country."""
   zoneId: ID
+  """The Country the rate applies to. Setting it removes the Zone."""
   regionId: ID
   customerGroupId: ID
   customFields: JSON
