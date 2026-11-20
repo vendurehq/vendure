@@ -1,5 +1,12 @@
 import { logs, SeverityNumber } from '@opentelemetry/api-logs';
-import { DefaultLogger, LogLevel, VENDURE_VERSION, VendureLogger } from '@vendure/core';
+import {
+    DefaultLogger,
+    getRequestId,
+    LogLevel,
+    LogMeta,
+    VENDURE_VERSION,
+    VendureLogger,
+} from '@vendure/core';
 
 export const otelLogger = logs.getLogger('@vendure/core', VENDURE_VERSION);
 
@@ -55,39 +62,41 @@ export class OtelLogger implements VendureLogger {
         }
     }
 
-    debug(message: string, context?: string): void {
-        this.emitLog(SeverityNumber.DEBUG, message, context);
-        this.defaultLogger?.debug(message, context);
+    debug(message: string, context?: string, meta?: LogMeta): void {
+        this.emitLog(SeverityNumber.DEBUG, message, context, meta);
+        this.defaultLogger?.debug(message, context, meta);
     }
 
-    warn(message: string, context?: string): void {
-        this.emitLog(SeverityNumber.WARN, message, context);
-        this.defaultLogger?.warn(message, context);
+    warn(message: string, context?: string, meta?: LogMeta): void {
+        this.emitLog(SeverityNumber.WARN, message, context, meta);
+        this.defaultLogger?.warn(message, context, meta);
     }
 
-    info(message: string, context?: string): void {
-        this.emitLog(SeverityNumber.INFO, message, context);
-        this.defaultLogger?.info(message, context);
+    info(message: string, context?: string, meta?: LogMeta): void {
+        this.emitLog(SeverityNumber.INFO, message, context, meta);
+        this.defaultLogger?.info(message, context, meta);
     }
 
-    error(message: string, context?: string): void {
-        this.emitLog(SeverityNumber.ERROR, message, context);
-        this.defaultLogger?.error(message, context);
+    error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
+        this.emitLog(SeverityNumber.ERROR, message, context, meta);
+        this.defaultLogger?.error(message, context, trace, meta);
     }
 
-    verbose(message: string, context?: string): void {
-        this.emitLog(SeverityNumber.DEBUG, message, context);
-        this.defaultLogger?.verbose(message, context);
+    verbose(message: string, context?: string, meta?: LogMeta): void {
+        this.emitLog(SeverityNumber.DEBUG, message, context, meta);
+        this.defaultLogger?.verbose(message, context, meta);
     }
 
-    private emitLog(severityNumber: SeverityNumber, message: string, context?: string, label?: string): void {
+    private emitLog(severityNumber: SeverityNumber, message: string, context?: string, meta?: LogMeta): void {
+        const requestId = getRequestId();
         otelLogger.emit({
             severityNumber,
             body: message,
             attributes: {
                 context,
                 service_name: 'vendure',
-                ...(label ? { label } : {}),
+                ...(meta?.code ? { code: meta.code } : {}),
+                ...(requestId ? { request_id: requestId } : {}),
             },
         });
     }

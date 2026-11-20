@@ -2,6 +2,7 @@ import { LogLevelName, LogLine } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
 import { getRequestId } from '../../api/common/request-id';
+import { getProcessContextName } from '../../process-context/process-context';
 
 import { Logger, LogLevel, LogMeta, VendureLogger } from './vendure-logger';
 
@@ -64,9 +65,10 @@ export interface DefaultLoggerOptions {
      * selects it, so that a tool which starts the server can turn on the `json` format without a
      * change to the config.
      *
-     * In the `json` format, each line also has the name of the process from the
-     * `VENDURE_PROCESS` environment variable, and the ID of the current request
-     * (see {@link getRequestId}).
+     * In the `json` format, each line also has the name of the process and the ID of the
+     * current request (see {@link getRequestId}). The process is `server` or `worker`, as set by
+     * `bootstrap()` and `bootstrapWorker()`. The `VENDURE_PROCESS` environment variable
+     * overrides it.
      *
      * @default 'text'
      * @since 4.0.0
@@ -95,7 +97,9 @@ export function formatTextLine(line: LogLine, options?: { timestamp?: boolean })
         timestamp,
         pc.cyan(`[${line.ctx ?? DEFAULT_CONTEXT}]`),
         isHighlighted ? color(message) : message,
-    ].join(' ');
+    ]
+        .filter(part => part !== '')
+        .join(' ');
 }
 
 /**
@@ -122,7 +126,6 @@ export class DefaultLogger implements VendureLogger {
     level: LogLevel = LogLevel.Info;
     private readonly timestamp: boolean;
     private readonly format: DefaultLoggerFormat;
-    private readonly processName: string | undefined;
     private defaultContext = DEFAULT_CONTEXT;
     private static originalLogLevel: LogLevel;
 
@@ -130,7 +133,6 @@ export class DefaultLogger implements VendureLogger {
         this.level = options && options.level != null ? options.level : LogLevel.Info;
         this.timestamp = options && options.timestamp !== undefined ? options.timestamp : true;
         this.format = options?.format ?? (process.env.VENDURE_LOG_FORMAT === 'json' ? 'json' : 'text');
-        this.processName = process.env.VENDURE_PROCESS || undefined;
     }
 
     /**
@@ -217,7 +219,8 @@ export class DefaultLogger implements VendureLogger {
             level,
             ctx: context || this.defaultContext,
             msg: this.ensureString(message),
-            process: this.processName,
+            // Read for each line, because the logger is created before bootstrap sets the context.
+            process: process.env.VENDURE_PROCESS || getProcessContextName(),
             requestId: getRequestId(),
             code: meta?.code,
             stack: trace || undefined,

@@ -115,6 +115,23 @@ describe('Request IDs', () => {
         expect(line).toMatchObject({ level: 'verbose', requestId: 'e2e-graphql-error' });
     });
 
+    it('writes the ID on the log line of a job which failed', async () => {
+        const response = await adminClient.fetch(`${baseUrl}/request-id-test/failing-job`, {
+            headers: { 'x-request-id': 'e2e-failing-job' },
+        });
+        const { jobId } = await response.json();
+
+        let line: LogLine | undefined;
+        for (let i = 0; i < 100 && !line; i++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            line = logLines().find(
+                l => l.msg === `Job ${String(jobId)} [request-id-test-failing] failed and will not retry.`,
+            );
+        }
+
+        expect(line).toMatchObject({ level: 'warn', requestId: 'e2e-failing-job' });
+    });
+
     describe('a request which adds a job', () => {
         let ctxRequestId: string;
         let processed: ProcessedRequestIdJob;

@@ -39,8 +39,11 @@ export class AppModule implements NestModule, OnApplicationShutdown {
         const { adminApiPath, shopApiPath, middleware } = this.configService.apiOptions;
         const { cookieOptions } = this.configService.authOptions;
 
-        // Applied first and to every route, so that log lines written by later middleware,
-        // resolvers and controllers carry the ID of their request.
+        // Applied to every route, ahead of the other module middleware, so that log lines written
+        // by later middleware, resolvers and controllers carry the ID of their request. The body
+        // parser and any `beforeListen` middleware run before it. It is not registered before
+        // them with `app.use()`, because the body parser calls `next()` from a stream event,
+        // which would lose the AsyncLocalStorage context.
         consumer.apply(requestIdMiddleware).forRoutes({ path: '{*path}', method: RequestMethod.ALL });
 
         const i18nextHandler = this.i18nService.handle();

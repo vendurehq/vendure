@@ -22,6 +22,7 @@ export interface ProcessedRequestIdJob {
 @Controller('request-id-test')
 class RequestIdTestController implements OnModuleInit {
     private queue: JobQueue<{ ctx: any }>;
+    private failingQueue: JobQueue<{ reason: string }>;
 
     constructor(private jobQueueService: JobQueueService) {}
 
@@ -40,6 +41,19 @@ class RequestIdTestController implements OnModuleInit {
                 });
             },
         });
+        this.failingQueue = await this.jobQueueService.createQueue({
+            name: 'request-id-test-failing',
+            process: async job => {
+                await new Promise(resolve => setTimeout(resolve, 10));
+                throw new Error(job.data.reason);
+            },
+        });
+    }
+
+    @Get('failing-job')
+    async addFailingJob() {
+        const job = await this.failingQueue.add({ reason: 'The job failed on purpose' });
+        return { jobId: String(job.id) };
     }
 
     @Get()

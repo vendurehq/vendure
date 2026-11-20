@@ -120,13 +120,16 @@ describe('JobQueueService', () => {
     it('a job added outside a request is processed with no current request ID', async () => {
         const subject = new Subject<string | undefined>();
         const seenId = subject.pipe(take(1)).toPromise();
-        const testQueue = await jobQueueService.createQueue<string>({
-            name: 'test',
-            process: async () => {
-                await tick(1);
-                subject.next(getRequestId());
-            },
-        });
+        // The queue starts polling inside another request, so its loop inherits that request's ID.
+        const testQueue = await runWithRequestId('outer', () =>
+            jobQueueService.createQueue<string>({
+                name: 'test',
+                process: async () => {
+                    await tick(1);
+                    subject.next(getRequestId());
+                },
+            }),
+        );
 
         const testJob = await testQueue.add('hello');
 

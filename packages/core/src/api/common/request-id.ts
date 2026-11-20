@@ -28,7 +28,9 @@ const requestIdStorage = new AsyncLocalStorage<RequestIdStore>();
  *
  * Every request gets an ID. It is taken from the `x-request-id` request header when that is a short
  * string of safe characters (letters, digits, `.`, `_`, `:` and `-`, at most 128 of them), and is
- * otherwise generated. The response returns it in the `x-request-id` header.
+ * otherwise generated. The response returns it in the `x-request-id` header. Accepting an inbound
+ * ID lets a proxy or a client trace one request across several services. The inbound value is
+ * chosen by the caller, so it identifies log lines but must not be used for security decisions.
  *
  * While a worker processes a {@link Job}, this returns the ID of the request which added the job.
  * The same ID is available as `ctx.requestId` on the {@link RequestContext}. A custom

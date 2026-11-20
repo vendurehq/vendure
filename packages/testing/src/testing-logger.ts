@@ -1,4 +1,4 @@
-import { VendureLogger } from '@vendure/core';
+import { LogMeta, VendureLogger } from '@vendure/core';
 
 /**
  * @description
@@ -67,23 +67,23 @@ export class TestingLogger<Spy extends (...args: any[]) => any> implements Vendu
     verboseSpy: Spy;
     warnSpy: Spy;
 
-    debug(message: string, context?: string): void {
-        this.debugSpy(message, context);
+    debug(message: string, context?: string, meta?: LogMeta): void {
+        this.debugSpy(message, context, meta);
     }
 
-    error(message: string, context?: string, trace?: string): void {
-        this.errorSpy(message, context, trace);
+    error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
+        this.errorSpy(message, context, trace, meta);
     }
 
-    info(message: string, context?: string): void {
-        this.infoSpy(message, context);
+    info(message: string, context?: string, meta?: LogMeta): void {
+        this.infoSpy(message, context, meta);
     }
 
-    verbose(message: string, context?: string): void {
-        this.verboseSpy(message, context);
+    verbose(message: string, context?: string, meta?: LogMeta): void {
+        this.verboseSpy(message, context, meta);
     }
 
-    warn(message: string, context?: string): void {
-        this.warnSpy(message, context);
+    warn(message: string, context?: string, meta?: LogMeta): void {
+        this.warnSpy(message, context, meta);
     }
 }

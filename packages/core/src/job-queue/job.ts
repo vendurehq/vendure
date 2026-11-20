@@ -45,6 +45,9 @@ export class Job<T extends JobData<T> = any> {
      * job is processed, {@link getRequestId} returns this ID, so log lines written for the job
      * carry it.
      *
+     * Whether the ID survives storage depends on the {@link JobQueueStrategy}. The
+     * {@link SqlJobQueueStrategy} stores it only when the job data is an object.
+     *
      * @since 4.0.0
      */
     readonly requestId?: string;

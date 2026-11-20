@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
 
 import { runWithRequestId } from '../../api/common/request-id';
+import { setProcessContext } from '../../process-context/process-context';
 
 import { DefaultLogger, formatTextLine } from './default-logger';
 import { Logger, LogLevel } from './vendure-logger';
@@ -242,6 +243,26 @@ describe('DefaultLogger', () => {
             expect(writtenLines()[0].msg).toBe('Hello');
         });
 
+        it('the process name from VENDURE_PROCESS wins over the process context', () => {
+            setProcessContext('server');
+            vi.stubEnv('VENDURE_PROCESS', 'custom');
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            Logger.info('Hello');
+
+            expect(writtenLines()[0].process).toBe('custom');
+        });
+
+        // The process context cannot be unset, so the tests which set it run last.
+        it('writes the process context set by bootstrap, read when the line is written', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+            setProcessContext('worker');
+
+            Logger.info('Hello');
+
+            expect(writtenLines()[0].process).toBe('worker');
+        });
+
         it('the option wins over VENDURE_LOG_FORMAT', () => {
             vi.stubEnv('VENDURE_LOG_FORMAT', 'json');
             Logger.useLogger(new DefaultLogger({ format: 'text' }));
@@ -253,17 +274,24 @@ describe('DefaultLogger', () => {
     });
 
     describe('text format', () => {
+        const withoutColours = (text: string) => text.replace(/\u001b\[[0-9;]*m/g, '');
+
         it('writes the level, the context and the message on one line', () => {
             Logger.useLogger(new DefaultLogger({ timestamp: false }));
 
             runWithRequestId('req-1', () => Logger.info('Hello', 'MyPlugin'));
 
-            const output = String(stdOutSpy.mock.calls[0][0]);
-            expect(output).toContain('info');
-            expect(output).toContain('[MyPlugin]');
-            expect(output).toContain('Hello');
-            expect(output).not.toContain('req-1');
-            expect(output.endsWith('\n')).toBe(true);
+            expect(withoutColours(String(stdOutSpy.mock.calls[0][0]))).toBe('info [MyPlugin] Hello\n');
+        });
+
+        it('writes the timestamp after the level', () => {
+            Logger.useLogger(new DefaultLogger());
+
+            Logger.warn('Careful', 'MyPlugin');
+
+            expect(withoutColours(String(stdOutSpy.mock.calls[0][0]))).toMatch(
+                /^warn \S.* - \[MyPlugin\] Careful\n$/,
+            );
         });
 
         it('formatTextLine() appends the stack to the message', () => {
@@ -277,8 +305,7 @@ describe('DefaultLogger', () => {
                 },
                 { timestamp: false },
             );
-            expect(text).toContain('[MyPlugin]');
-            expect(text).toContain('Failed\nat x');
+            expect(withoutColours(text)).toBe('error [MyPlugin] Failed\nat x');
         });
     });
 });
