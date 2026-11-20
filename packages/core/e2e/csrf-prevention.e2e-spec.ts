@@ -293,35 +293,3 @@ describe('apiOptions.includeStackInErrors, by default with NODE_ENV unset', () =
         });
     }
 });
-
-describe('apiOptions.includeStackInErrors: true', () => {
-    const { server } = createTestEnvironment(
-        mergeConfig(config, { apiOptions: { includeStackInErrors: true } }),
-    );
-
-    beforeAll(async () => {
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
-            customerCount: 1,
-        });
-    }, TEST_SETUP_TIMEOUT_MS);
-
-    afterAll(async () => {
-        await server.destroy();
-    });
-
-    it("adds the project's stack frames to a resolver error, with relative paths", async () => {
-        const error = await getResolverError(SHOP_URL);
-        const stack = error.extensions.stack ?? [];
-
-        expect(error.extensions.code).toBe('FORBIDDEN');
-        expect(stack.length).toBeGreaterThan(0);
-        for (const frame of stack) {
-            expect(frame).toMatch(/^at /);
-            expect(frame).not.toContain('node_modules');
-            expect(frame).not.toContain(process.cwd());
-        }
-        expect(error.extensions.stacktrace).toBeUndefined();
-    });
-});

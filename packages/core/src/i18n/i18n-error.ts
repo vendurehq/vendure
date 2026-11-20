@@ -18,7 +18,9 @@ import { CORE_CODE_NAMESPACE, toVendureCode } from './vendure-code';
  * Each error has a namespaced code, `vendureCode`, which {@link toVendureCode} builds from its message
  * key, for example `core.entity-with-id-not-found`. The GraphQL APIs return it as `extensions.vendureCode`.
  * A plugin which defines its own error keys sets the static `namespace` on its error class, so
- * that its codes cannot clash with the core codes:
+ * that its codes cannot clash with the core codes. A plugin which throws one of core's own classes,
+ * such as `UserInputError`, with its own key gets a code in the `core` namespace, which is not part of
+ * the stable core codes. To get codes in its own namespace, it defines a subclass:
  *
  * @example
  * ```ts

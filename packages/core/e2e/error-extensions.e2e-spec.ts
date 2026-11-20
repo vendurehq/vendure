@@ -1,4 +1,5 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { spawnSync } from 'child_process';
 import gql from 'graphql-tag';
@@ -82,6 +83,38 @@ describe('GraphQL error extensions', () => {
     });
 });
 
+describe('apiOptions.includeStackInErrors: true', () => {
+    const { server, shopClient } = createTestEnvironment(
+        mergeConfig(testConfig(), { apiOptions: { includeStackInErrors: true } }),
+    );
+
+    beforeAll(async () => {
+        await server.init({
+            initialData,
+            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
+            customerCount: 0,
+        });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it("adds the project's stack frames to a resolver error, with relative paths", async () => {
+        const [error] = await getErrors(shopClient.query(GET_ME));
+        const stack: string[] = error.extensions?.stack ?? [];
+
+        expect(error.extensions?.code).toBe('FORBIDDEN');
+        expect(stack.length).toBeGreaterThan(0);
+        for (const frame of stack) {
+            expect(frame).toMatch(/^at /);
+            expect(frame).not.toContain('node_modules');
+            expect(frame).not.toContain(process.cwd());
+        }
+        expect(error.extensions?.stacktrace).toBeUndefined();
+    });
+});
+
 describe('startup errors', () => {
     /**
      * Runs `bootstrap()` with a config that fails validation in a child process, which exits as soon as
@@ -122,6 +155,14 @@ const GET_ADMINISTRATORS = gql`
     query GetAdministrators {
         administrators {
             totalItems
+        }
+    }
+`;
+
+const GET_ME = gql`
+    query GetMe {
+        me {
+            id
         }
     }
 `;

@@ -37,6 +37,7 @@
         "core.config.invalid-secret-config-arg",
         "core.config.missing-encryption-strategy",
         "core.config.reserved-refund-destination-code",
+        "core.config.secret-list-config-arg",
         "core.configurable-argument-is-required",
         "core.could-not-delete-asset-file",
         "core.could-not-find-matching-orderable-asset",

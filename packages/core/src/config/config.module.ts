@@ -56,7 +56,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
                 }
                 if (argDef.list === true) {
                     throw new VendureStartupError({
-                        code: CORE_STARTUP_ERROR_CODES.invalidSecretConfigArg,
+                        code: CORE_STARTUP_ERROR_CODES.secretListConfigArg,
                         message:
                             `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
                             '"secret: true" with "list: true".',

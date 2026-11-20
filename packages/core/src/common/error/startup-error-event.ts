@@ -34,16 +34,28 @@ export function toStartupErrorEvent(error: unknown): StartupErrorEvent {
     return { vendure: 'event', event: 'startup-error', code, message, fix };
 }
 
+const MAX_EAGAIN_RETRIES = 1000;
+
 /**
  * Writes the startup-error event for the error as one line of JSON to stderr. The write is synchronous,
  * so the line is complete even when the caller exits the process straight after.
  */
 export function writeStartupErrorEvent(error: unknown): void {
-    const line = JSON.stringify(toStartupErrorEvent(error)) + '\n';
-    try {
-        writeSync(process.stderr.fd, line);
-    } catch {
-        // A non-blocking stderr pipe can refuse a synchronous write with EAGAIN.
-        process.stderr.write(line);
+    const line = Buffer.from(JSON.stringify(toStartupErrorEvent(error)) + '\n');
+    let offset = 0;
+    let retries = 0;
+    while (offset < line.length) {
+        try {
+            // A write to a pipe can be partial, so write the rest until the whole line is out.
+            offset += writeSync(process.stderr.fd, line, offset);
+        } catch (e: any) {
+            // A non-blocking stderr pipe refuses a synchronous write with EAGAIN while it is full.
+            if (e?.code === 'EAGAIN' && retries++ < MAX_EAGAIN_RETRIES) {
+                continue;
+            }
+            // Hand the rest of the line to the stream, which writes it when the pipe drains.
+            process.stderr.write(line.subarray(offset));
+            return;
+        }
     }
 }
