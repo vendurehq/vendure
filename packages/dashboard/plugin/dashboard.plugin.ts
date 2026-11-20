@@ -50,6 +50,26 @@ export interface DashboardPluginOptions {
      * @default 5173
      */
     viteDevServerPort?: number;
+    /**
+     * @description
+     * Timeout in milliseconds for detecting a running Vite dev server.
+     * Increase this if you are using a slow or proxied connection to localhost
+     * and the default timeout is not sufficient.
+     *
+     * @default 1000
+     * @since 3.7.0
+     */
+    viteDevServerTimeout?: number;
+    /**
+     * @description
+     * When true, skip Vite dev server detection and always proxy requests to it.
+     * Use this when you know Vite is running but detection fails due to
+     * network latency, VPN, or proxy configurations.
+     *
+     * @default false
+     * @since 3.7.0
+     */
+    viteDevServerForceProxy?: boolean;
 }
 
 /**
@@ -178,11 +198,31 @@ export class DashboardPlugin implements NestModule {
             );
             return;
         }
-        const { route, appDir, viteDevServerPort = 5173 } = DashboardPlugin.options;
+        const {
+            route,
+            appDir,
+            viteDevServerPort = 5173,
+            viteDevServerTimeout = 1000,
+            viteDevServerForceProxy = false,
+        } = DashboardPlugin.options;
+
+        if (viteDevServerForceProxy) {
+            Logger.info(`Dashboard Vite dev server proxy mode forced (port ${viteDevServerPort})`, loggerCtx);
+        }
 
         Logger.verbose('Creating dashboard middleware', loggerCtx);
 
-        consumer.apply(this.createDynamicHandler(route, appDir, viteDevServerPort)).forRoutes(route);
+        consumer
+            .apply(
+                this.createDynamicHandler(
+                    route,
+                    appDir,
+                    viteDevServerPort,
+                    viteDevServerTimeout,
+                    viteDevServerForceProxy,
+                ),
+            )
+            .forRoutes(route);
 
         registerPluginStartupMessage('Dashboard UI', route);
     }
@@ -191,7 +231,7 @@ export class DashboardPlugin implements NestModule {
         return createDashboardStaticServer(dashboardPath, this.rateLimitRequests);
     }
 
-    private async checkViteDevServer(port: number): Promise<boolean> {
+    private async checkViteDevServer(port: number, timeout: number): Promise<boolean> {
         return new Promise(resolve => {
             const req = http.request(
                 {
@@ -199,7 +239,7 @@ export class DashboardPlugin implements NestModule {
                     port,
                     path: '/',
                     method: 'HEAD',
-                    timeout: 1000,
+                    timeout,
                 },
                 (res: http.IncomingMessage) => {
                     resolve(res.statusCode !== undefined && res.statusCode < 400);
@@ -255,7 +295,13 @@ export class DashboardPlugin implements NestModule {
         return defaultPageServer;
     }
 
-    private createDynamicHandler(route: string, appDir: string, viteDevServerPort: number) {
+    private createDynamicHandler(
+        route: string,
+        appDir: string,
+        viteDevServerPort: number,
+        viteDevServerTimeout: number,
+        viteDevServerForceProxy: boolean,
+    ) {
         const limiter = rateLimit({
             windowMs: 60 * 1000,
             limit: this.rateLimitRequests,
@@ -300,7 +346,10 @@ export class DashboardPlugin implements NestModule {
             },
             async (req, res) => {
                 try {
-                    const isViteRunning = await this.checkViteDevServer(viteDevServerPort);
+                    const isViteRunning = await this.checkViteDevServer(
+                        viteDevServerPort,
+                        viteDevServerTimeout,
+                    );
                     const hasBuiltFiles = this.checkBuiltFiles(appDir);
                     const mode = isViteRunning ? 'vite' : hasBuiltFiles ? 'built' : 'default';
                     res.json({
@@ -318,8 +367,15 @@ export class DashboardPlugin implements NestModule {
 
         dynamicRouter.use(async (req, res, next) => {
             try {
-                // Check for Vite dev server first (highest priority)
-                const isViteRunning = await this.checkViteDevServer(viteDevServerPort);
+                let isViteRunning: boolean;
+
+                if (viteDevServerForceProxy) {
+                    isViteRunning = true;
+                } else {
+                    // Check for Vite dev server first (highest priority)
+                    isViteRunning = await this.checkViteDevServer(viteDevServerPort, viteDevServerTimeout);
+                }
+
                 const hasBuiltFiles = this.checkBuiltFiles(appDir);
 
                 // Determine new mode
