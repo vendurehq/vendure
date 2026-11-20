@@ -10,11 +10,16 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { createCountryDocument } from './graphql/admin-definitions';
 import {
+    addMembersToZoneDocument,
     createTaxRateDocument,
     createZoneDocument,
+    getCountryListDocument,
     getProductsWithVariantPricesDocument,
     getTaxRatesListDocument,
+    getZonesDocument,
+    removeMembersFromZoneDocument,
     updateChannelDocument,
+    updateProductVariantsDocument,
     updateTaxRateDocument,
 } from './graphql/shared-definitions';
 import {
@@ -160,5 +165,139 @@ describe('Country tax rates', () => {
         expect(await taxRateFor('DE')).toBe(22);
         await adminClient.query(updateTaxRateDocument, { input: { id: de.id, enabled: true } });
         expect(await taxRateFor('DE')).toBe(19);
+    });
+
+    // With prices that include tax, an entered price is gross in the Channel's default tax Zone and
+    // net prices elsewhere are derived from the default Zone's rate. These cases record what an Order
+    // line costs when country rates are combined with that, next to the same rates modelled the v3
+    // way, as one Zone per country. The entered price is 120.00.
+    describe('Channel.pricesIncludeTax = true', () => {
+        let atId: string;
+        let europeZoneId: string;
+
+        async function linePricesFor(countryCode: string) {
+            await shopClient.query(setShippingAddressDocument, {
+                input: { countryCode, streetLine1: '1 Main St', city: 'City', postalCode: '12345' },
+            });
+            const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
+            const { unitPrice, unitPriceWithTax, taxRate } = activeOrder!.lines[0];
+            return { unitPrice, unitPriceWithTax, taxRate };
+        }
+
+        async function pricesForAtDeUs() {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, { productVariantId: variantId, quantity: 1 });
+            return {
+                AT: await linePricesFor('AT'),
+                DE: await linePricesFor('DE'),
+                US: await linePricesFor('US'),
+            };
+        }
+
+        async function rateByName(name: string) {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
+                options: { filter: { name: { eq: name } } },
+            });
+            return taxRates.items[0];
+        }
+
+        beforeAll(async () => {
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', pricesIncludeTax: true, defaultTaxZoneId: euZoneId },
+            });
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: variantId, price: 12000 }],
+            });
+            const { countries } = await adminClient.query(getCountryListDocument, {
+                options: { filter: { code: { eq: 'AT' } } },
+            });
+            atId = countries.items[0].id;
+            const { zones } = await adminClient.query(getZonesDocument, {
+                options: { filter: { name: { eq: 'Europe' } } },
+            });
+            europeZoneId = zones.items[0].id;
+            // AT is in the initial data's Europe Zone. Move it to 'eu', so that the
+            // AddressBasedTaxZoneStrategy returns the default tax Zone for AT and DE.
+            await adminClient.query(removeMembersFromZoneDocument, {
+                zoneId: europeZoneId,
+                memberIds: [atId],
+            });
+            await adminClient.query(addMembersToZoneDocument, { zoneId: euZoneId, memberIds: [atId] });
+            const euRate = await rateByName('EU fallback');
+            await adminClient.query(updateTaxRateDocument, {
+                input: { id: euRate.id, value: 20, enabled: true },
+            });
+            await adminClient.query(createTaxRateDocument, {
+                input: {
+                    name: 'AT',
+                    categoryId: standardTaxCategoryId,
+                    regionId: atId,
+                    enabled: true,
+                    value: 20,
+                },
+            });
+        });
+
+        it('eu zone rate 20%, country rates AT 20% and DE 19%', async () => {
+            // The active Zone for AT and DE is the default, so 120.00 is kept as gross and the country
+            // rate is taken out of it. US (Americas Zone) gets its net from the eu rate.
+            expect(await pricesForAtDeUs()).toEqual({
+                AT: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
+                DE: { unitPrice: 10084, unitPriceWithTax: 12000, taxRate: 19 },
+                US: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
+            });
+        });
+
+        it('eu without a zone rate, country rates AT 20% and DE 19%', async () => {
+            const euRate = await rateByName('EU fallback');
+            await adminClient.query(updateTaxRateDocument, { input: { id: euRate.id, enabled: false } });
+            // AT and DE are as above. US gets its net from the default Zone, which has no zone rate:
+            // 0% is taken out, so 20% is added to the whole 120.00.
+            expect(await pricesForAtDeUs()).toEqual({
+                AT: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
+                DE: { unitPrice: 10084, unitPriceWithTax: 12000, taxRate: 19 },
+                US: { unitPrice: 12000, unitPriceWithTax: 14400, taxRate: 20 },
+            });
+        });
+
+        it('v3 style: Zones AT 20% and DE 19%, default tax Zone AT', async () => {
+            for (const name of ['AT', 'DE']) {
+                const rate = await rateByName(name);
+                await adminClient.query(updateTaxRateDocument, { input: { id: rate.id, enabled: false } });
+            }
+            await adminClient.query(removeMembersFromZoneDocument, {
+                zoneId: euZoneId,
+                memberIds: [atId, countryIds.DE],
+            });
+            const zoneIds: Record<string, string> = {};
+            for (const [code, countryId, value] of [
+                ['AT', atId, 20],
+                ['DE', countryIds.DE, 19],
+            ] as const) {
+                const { createZone } = await adminClient.query(createZoneDocument, {
+                    input: { name: `zone ${code}`, memberIds: [countryId] },
+                });
+                zoneIds[code] = createZone.id;
+                await adminClient.query(createTaxRateDocument, {
+                    input: {
+                        name: `zone rate ${code}`,
+                        categoryId: standardTaxCategoryId,
+                        zoneId: createZone.id,
+                        enabled: true,
+                        value,
+                    },
+                });
+            }
+            await adminClient.query(updateChannelDocument, {
+                input: { id: 'T_1', defaultTaxZoneId: zoneIds.AT },
+            });
+            // DE is not the default Zone, so its net is taken out at AT's 20% and DE's 19% added:
+            // 119.00, where the country-rate setups above charge 120.00.
+            expect(await pricesForAtDeUs()).toEqual({
+                AT: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
+                DE: { unitPrice: 10000, unitPriceWithTax: 11900, taxRate: 19 },
+                US: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
+            });
+        });
     });
 });
