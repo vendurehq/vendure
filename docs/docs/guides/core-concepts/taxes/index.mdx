@@ -7,7 +7,7 @@ metaDescription: "Configure tax categories, rates, zones, and calculation strate
 E-commerce applications need to correctly handle taxes such as sales tax or value added tax (VAT). In Vendure, tax handling consists of:
 
 * **Tax categories** Each ProductVariant is assigned to a specific TaxCategory. In some tax systems, the tax rate differs depending on the type of good. For example, VAT in the UK has 3 rates, "standard" (most goods), "reduced" (e.g. child car seats) and "zero" (e.g. books).
-* **Tax rates** This is the tax rate applied to a specific tax category for a specific [Zone](/core-concepts/zones/). E.g., the tax rate for "standard" goods in the UK Zone is 20%.
+* **Tax rates** This is the tax rate applied to a specific tax category for a specific target. The target is either a country or a [Zone](/core-concepts/zones/). E.g., the tax rate for "standard" goods in the UK Zone is 20%, and the tax rate for "standard" goods in Germany is 19%.
 * **Channel tax settings** Each Channel can specify whether the prices of product variants are inclusive of tax or not, and also specify the default Zone to use for tax calculations.
 * **TaxZoneStrategy** Determines the active tax Zone used when calculating what TaxRate to apply. By default, it uses the default tax Zone from the Channel settings.
 * **TaxLineCalculationStrategy** This determines the taxes applied when adding an item to an Order. If you want to integrate a 3rd-party tax API or other async lookup, this is where it would be done.
@@ -44,9 +44,52 @@ When a customer adds an item to the Order, the following logic takes place:
 1. The price of the item, and whether that price is inclusive of tax, is determined according to the configured [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy/).
 2. The active tax Zone is determined based on the configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/). By default, Vendure will use the default tax Zone from the Channel settings.
   However, you often want to use the customer's address as the basis for determining the tax Zone. In this case, you should use the [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy).
-3. The applicable TaxRate is fetched based on the ProductVariant's TaxCategory and the active tax Zone determined in step 1.
+3. The applicable TaxRate is fetched based on the ProductVariant's TaxCategory, the country of the Order's shipping address and the active tax Zone determined in step 2. See [Tax rate resolution](#tax-rate-resolution).
 4. The `TaxLineCalculationStrategy.calculate()` of the configured [TaxLineCalculationStrategy](/reference/typescript-api/tax/tax-line-calculation-strategy/) is called, which will return one or more [TaxLines](/reference/graphql-api/admin/object-types/#taxline).
 5. The final `priceWithTax` of the order line is calculated based on all the above.
+
+## Tax rate resolution
+
+A TaxRate targets exactly one of a country or a Zone. When Vendure looks for the rate to apply, the most specific rate wins. It checks, in this order:
+
+1. A rate for the country of the Order's shipping address, with a matching TaxCategory.
+2. A rate for the active tax Zone, with a matching TaxCategory.
+3. If nothing matches, a rate of 0%.
+
+Only enabled rates are considered. A rate that targets a Zone works as before, so existing rates need no change.
+
+Some things to know:
+
+* The country comes from the shipping address only. When there is no Order, for example when a product page shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, also set a default tax Zone on the Channel.
+* A country rate must target a country. Other types of region, such as provinces, are rejected.
+* If two Zones contain the same country, [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy) uses the first Zone it finds, so the result depends on the order of the Zones. Put the rates in country rates instead of overlapping Zones.
+
+In the Dashboard, the tax rate form has an "Applies to" field to choose between a country and a Zone. In the Admin API, set either `zoneId` or `regionId` on `CreateTaxRateInput`. Setting both or neither is an error.
+
+### EU One-Stop Shop
+
+Under the EU One-Stop Shop scheme, you charge the VAT rate of the country where the buyer lives. You do not need one Zone per member state. Use a single `eu` Zone for shipping and one country rate for each member state:
+
+```graphql
+mutation {
+  de: createTaxRate(input: {
+    name: "Standard Tax DE",
+    enabled: true,
+    value: 19,
+    categoryId: "1",
+    regionId: "<ID of the country DE>"
+  }) { id }
+  fr: createTaxRate(input: {
+    name: "Standard Tax FR",
+    enabled: true,
+    value: 20,
+    categoryId: "1",
+    regionId: "<ID of the country FR>"
+  }) { id }
+}
+```
+
+An Order with a shipping address in Germany is taxed at 19%, and one in France at 20%. A member state with no country rate uses the rate of the `eu` Zone, if you create one, or else 0%.
 
 ## Calculating tax on shipping
 

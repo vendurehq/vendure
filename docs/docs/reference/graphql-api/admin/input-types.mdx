@@ -1763,7 +1763,9 @@ input CreateApiKeyInput {
   enabled: Boolean!
   value: Float!
   categoryId: ID!
-  zoneId: ID!
+  """Either zoneId or regionId must be set. In v4 the region must be a country."""
+  zoneId: ID
+  regionId: ID
   customerGroupId: ID
   customFields: JSON
 }`}
@@ -4730,6 +4732,7 @@ input StringOperators {
 >
 {`input TaxRateFilterParameter {
   zoneId: IDOperators
+  regionId: IDOperators
   categoryId: IDOperators
   id: IDOperators
   createdAt: DateOperators
@@ -5707,6 +5710,7 @@ input UpdateProductVariantPriceInput {
   enabled: Boolean
   categoryId: ID
   zoneId: ID
+  regionId: ID
   customerGroupId: ID
   customFields: JSON
 }`}
