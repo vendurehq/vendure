@@ -65,7 +65,9 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         const type = this.rawConnection && getDatabaseType(this.rawConnection);
         if (type === 'mysql' || type === 'mariadb') {
             const stringified = JSON.stringify(job.data);
-            if (64 * 1024 <= stringified.length) {
+            // Measured with the stored request ID, which toRecord() adds to the data.
+            const storedLength = JSON.stringify(withStoredRequestId(job.data, job.requestId)).length;
+            if (64 * 1024 <= storedLength) {
                 const truncatedKeys: Array<{ key: string; size: number }> = [];
                 const reduced = JSON.parse(stringified, (key, value) => {
                     if (typeof value === 'string' && 2048 < value.length) {

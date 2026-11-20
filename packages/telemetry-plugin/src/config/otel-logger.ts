@@ -78,7 +78,7 @@ export class OtelLogger implements VendureLogger {
     }
 
     error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
-        this.emitLog(SeverityNumber.ERROR, message, context, meta);
+        this.emitLog(SeverityNumber.ERROR, message, context, meta, trace);
         this.defaultLogger?.error(message, context, trace, meta);
     }
 
@@ -87,7 +87,13 @@ export class OtelLogger implements VendureLogger {
         this.defaultLogger?.verbose(message, context, meta);
     }
 
-    private emitLog(severityNumber: SeverityNumber, message: string, context?: string, meta?: LogMeta): void {
+    private emitLog(
+        severityNumber: SeverityNumber,
+        message: string,
+        context?: string,
+        meta?: LogMeta,
+        trace?: string,
+    ): void {
         const requestId = getRequestId();
         otelLogger.emit({
             severityNumber,
@@ -97,6 +103,7 @@ export class OtelLogger implements VendureLogger {
                 service_name: 'vendure',
                 ...(meta?.code ? { code: meta.code } : {}),
                 ...(requestId ? { request_id: requestId } : {}),
+                ...(trace ? { 'exception.stacktrace': trace } : {}),
             },
         });
     }

@@ -201,23 +201,46 @@ export class Logger implements LoggerService {
         this.instance.debug(message, context);
     }
 
+    // `meta` is passed on only when it is given, so that a logger which was called with
+    // `(message, context)` before `meta` existed is still called with exactly those arguments.
+
     static error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
-        Logger.logger.error(message, context, trace, meta);
+        if (meta === undefined) {
+            Logger.logger.error(message, context, trace);
+        } else {
+            Logger.logger.error(message, context, trace, meta);
+        }
     }
 
     static warn(message: string, context?: string, meta?: LogMeta): void {
-        Logger.logger.warn(message, context, meta);
+        if (meta === undefined) {
+            Logger.logger.warn(message, context);
+        } else {
+            Logger.logger.warn(message, context, meta);
+        }
     }
 
     static info(message: string, context?: string, meta?: LogMeta): void {
-        Logger.logger.info(message, context, meta);
+        if (meta === undefined) {
+            Logger.logger.info(message, context);
+        } else {
+            Logger.logger.info(message, context, meta);
+        }
     }
 
     static verbose(message: string, context?: string, meta?: LogMeta): void {
-        Logger.logger.verbose(message, context, meta);
+        if (meta === undefined) {
+            Logger.logger.verbose(message, context);
+        } else {
+            Logger.logger.verbose(message, context, meta);
+        }
     }
 
     static debug(message: string, context?: string, meta?: LogMeta): void {
-        Logger.logger.debug(message, context, meta);
+        if (meta === undefined) {
+            Logger.logger.debug(message, context);
+        } else {
+            Logger.logger.debug(message, context, meta);
+        }
     }
 }

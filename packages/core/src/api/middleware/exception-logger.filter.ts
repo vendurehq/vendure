@@ -23,7 +23,7 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
             const { code, message: msg, logLevel } = exception;
             message = `${code || 'Error'}: ${msg}`;
             statusCode = this.errorCodeToStatusCode(code);
-            const meta = { code };
+            const meta = code ? { code } : undefined;
 
             switch (logLevel) {
                 case LogLevel.Error:

@@ -117,6 +117,25 @@ describe('JobQueueService', () => {
         expect(await seenId).toBe('req-1');
     });
 
+    it('the process function runs with the job request ID when a strategy calls it directly', async () => {
+        const testQueue = await jobQueueService.createQueue<string>({
+            name: 'test',
+            process: async () => {
+                await tick(1);
+                return getRequestId();
+            },
+        });
+        // A strategy which does not poll, such as BullMQ, calls the process function it was given
+        // from its own context, outside any request ID.
+        const wrappedProcess = (testQueue as any).options.process as (job: Job<string>) => Promise<any>;
+
+        const seenId = await wrappedProcess(
+            new Job({ queueName: 'test', data: 'hello', requestId: 'req-1' }),
+        );
+
+        expect(seenId).toBe('req-1');
+    });
+
     it('a job added outside a request is processed with no current request ID', async () => {
         const subject = new Subject<string | undefined>();
         const seenId = subject.pipe(take(1)).toPromise();

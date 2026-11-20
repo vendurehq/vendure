@@ -125,14 +125,14 @@ export class DefaultLogger implements VendureLogger {
     /** @internal */
     level: LogLevel = LogLevel.Info;
     private readonly timestamp: boolean;
-    private readonly format: DefaultLoggerFormat;
+    private readonly format: DefaultLoggerFormat | undefined;
     private defaultContext = DEFAULT_CONTEXT;
     private static originalLogLevel: LogLevel;
 
     constructor(options?: DefaultLoggerOptions) {
         this.level = options && options.level != null ? options.level : LogLevel.Info;
         this.timestamp = options && options.timestamp !== undefined ? options.timestamp : true;
-        this.format = options?.format ?? (process.env.VENDURE_LOG_FORMAT === 'json' ? 'json' : 'text');
+        this.format = options?.format;
     }
 
     /**
@@ -225,11 +225,12 @@ export class DefaultLogger implements VendureLogger {
             code: meta?.code,
             stack: trace || undefined,
         };
+        // Without the option, the environment variable is read for each line, because the default
+        // logger is created when @vendure/core is imported, which can be before a .env file is loaded.
+        const format = this.format ?? (process.env.VENDURE_LOG_FORMAT === 'json' ? 'json' : 'text');
         // JSON.stringify() leaves out the fields which are undefined.
         const output =
-            this.format === 'json'
-                ? JSON.stringify(line)
-                : formatTextLine(line, { timestamp: this.timestamp });
+            format === 'json' ? JSON.stringify(line) : formatTextLine(line, { timestamp: this.timestamp });
         process.stdout.write(output + '\n');
     }
 

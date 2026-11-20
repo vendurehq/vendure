@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
 
 import { runWithRequestId } from '../../api/common/request-id';
-import { setProcessContext } from '../../process-context/process-context';
 
 import { DefaultLogger, formatTextLine } from './default-logger';
 import { Logger, LogLevel } from './vendure-logger';
@@ -243,24 +242,59 @@ describe('DefaultLogger', () => {
             expect(writtenLines()[0].msg).toBe('Hello');
         });
 
-        it('the process name from VENDURE_PROCESS wins over the process context', () => {
-            setProcessContext('server');
-            vi.stubEnv('VENDURE_PROCESS', 'custom');
-            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+        describe('process context', () => {
+            // The process context cannot be unset, so these tests set it on fresh copies of the
+            // modules, and the other tests keep an unset one.
+            async function loadFreshModules() {
+                vi.resetModules();
+                const processContext = await import('../../process-context/process-context');
+                const defaultLogger = await import('./default-logger');
+                const vendureLogger = await import('./vendure-logger');
+                return {
+                    setProcessContext: processContext.setProcessContext,
+                    FreshDefaultLogger: defaultLogger.DefaultLogger,
+                    FreshLogger: vendureLogger.Logger,
+                };
+            }
 
-            Logger.info('Hello');
+            it('writes the process context set by bootstrap, read when the line is written', async () => {
+                const { setProcessContext, FreshDefaultLogger, FreshLogger } = await loadFreshModules();
+                FreshLogger.useLogger(new FreshDefaultLogger({ format: 'json' }));
+                setProcessContext('worker');
 
-            expect(writtenLines()[0].process).toBe('custom');
+                FreshLogger.info('Hello');
+
+                expect(writtenLines()[0].process).toBe('worker');
+            });
+
+            it('the process name from VENDURE_PROCESS wins over the process context', async () => {
+                const { setProcessContext, FreshDefaultLogger, FreshLogger } = await loadFreshModules();
+                setProcessContext('server');
+                vi.stubEnv('VENDURE_PROCESS', 'custom');
+                FreshLogger.useLogger(new FreshDefaultLogger({ format: 'json' }));
+
+                FreshLogger.info('Hello');
+
+                expect(writtenLines()[0].process).toBe('custom');
+            });
         });
 
-        // The process context cannot be unset, so the tests which set it run last.
-        it('writes the process context set by bootstrap, read when the line is written', () => {
+        it('writes no process before bootstrap sets the context', () => {
             Logger.useLogger(new DefaultLogger({ format: 'json' }));
-            setProcessContext('worker');
 
             Logger.info('Hello');
 
-            expect(writtenLines()[0].process).toBe('worker');
+            expect(writtenLines()[0]).not.toHaveProperty('process');
+        });
+
+        it('reads VENDURE_LOG_FORMAT when each line is written', () => {
+            const logger = new DefaultLogger();
+            Logger.useLogger(logger);
+            vi.stubEnv('VENDURE_LOG_FORMAT', 'json');
+
+            Logger.info('Hello');
+
+            expect(writtenLines()[0].msg).toBe('Hello');
         });
 
         it('the option wins over VENDURE_LOG_FORMAT', () => {
@@ -306,6 +340,21 @@ describe('DefaultLogger', () => {
                 { timestamp: false },
             );
             expect(withoutColours(text)).toBe('error [MyPlugin] Failed\nat x');
+        });
+    });
+
+    describe('Logger', () => {
+        it('calls the logger with exactly the arguments it was given when there is no meta', () => {
+            const custom = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), verbose: vi.fn(), debug: vi.fn() };
+            Logger.useLogger(custom);
+
+            Logger.info('Hello', 'MyPlugin');
+            Logger.error('Failed', 'MyPlugin', 'trace');
+            Logger.warn('Careful', 'MyPlugin', { code: 'FORBIDDEN' });
+
+            expect(custom.info.mock.calls[0]).toEqual(['Hello', 'MyPlugin']);
+            expect(custom.error.mock.calls[0]).toEqual(['Failed', 'MyPlugin', 'trace']);
+            expect(custom.warn.mock.calls[0]).toEqual(['Careful', 'MyPlugin', { code: 'FORBIDDEN' }]);
         });
     });
 });

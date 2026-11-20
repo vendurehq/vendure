@@ -34,6 +34,8 @@ describe('Request IDs', () => {
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(activeConfig, {
             logger: new DefaultLogger({ format: 'json', level: LogLevel.Verbose }),
+            // CORS options as an object, so that exposed headers are set. `cors: true` exposes none.
+            apiOptions: { cors: { origin: true, credentials: true } },
             plugins: [
                 DefaultJobQueuePlugin.init({ pollInterval: 50, gracefulShutdownTimeout: 1_000 }),
                 RequestIdTestPlugin,
@@ -99,6 +101,13 @@ describe('Request IDs', () => {
         const response = await queryAdministrators();
 
         expect(response.headers.get('x-request-id')).toMatch(UUID);
+    });
+
+    it('lets a browser on another origin read the response header', async () => {
+        const response = await queryAdministrators({ Origin: 'http://storefront.example' });
+
+        const exposed = (response.headers.get('access-control-expose-headers') ?? '').toLowerCase();
+        expect(exposed.split(',').map(header => header.trim())).toContain('x-request-id');
     });
 
     it('replaces an unsafe inbound ID with a generated one', async () => {

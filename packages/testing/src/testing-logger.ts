@@ -68,22 +68,30 @@ export class TestingLogger<Spy extends (...args: any[]) => any> implements Vendu
     warnSpy: Spy;
 
     debug(message: string, context?: string, meta?: LogMeta): void {
-        this.debugSpy(message, context, meta);
+        this.debugSpy(...withMeta([message, context], meta));
     }
 
     error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
-        this.errorSpy(message, context, trace, meta);
+        this.errorSpy(...withMeta([message, context, trace], meta));
     }
 
     info(message: string, context?: string, meta?: LogMeta): void {
-        this.infoSpy(message, context, meta);
+        this.infoSpy(...withMeta([message, context], meta));
     }
 
     verbose(message: string, context?: string, meta?: LogMeta): void {
-        this.verboseSpy(message, context, meta);
+        this.verboseSpy(...withMeta([message, context], meta));
     }
 
     warn(message: string, context?: string, meta?: LogMeta): void {
-        this.warnSpy(message, context, meta);
+        this.warnSpy(...withMeta([message, context], meta));
     }
+}
+
+/**
+ * Adds `meta` to the spy's arguments only when it is given, so that assertions written before
+ * `meta` existed, such as `toHaveBeenCalledWith(message, context)`, still match.
+ */
+function withMeta(args: unknown[], meta: LogMeta | undefined): unknown[] {
+    return meta === undefined ? args : [...args, meta];
 }
