@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { ForbiddenError } from '../../common/error/errors';
+import { runWithRequestId } from '../common/request-id';
 
 import { createFormatGraphQLError } from './format-graphql-error';
 
@@ -64,5 +65,23 @@ describe('createFormatGraphQLError()', () => {
     it('adds no stack when includeStack is not set', () => {
         const format = createFormatGraphQLError({ includeStack: false, cwd });
         expect(format(formatted, wrap(new ForbiddenError())).extensions).not.toHaveProperty('stack');
+    });
+
+    it('adds the ID of the current request', () => {
+        const format = createFormatGraphQLError({ includeStack: false, cwd });
+        const result = runWithRequestId('req-123', () => format(formatted, wrap(new ForbiddenError())));
+
+        expect(result.extensions).toEqual({
+            code: 'FORBIDDEN',
+            vendureCode: 'core.forbidden',
+            requestId: 'req-123',
+        });
+    });
+
+    it('leaves the request ID out outside a request', () => {
+        const format = createFormatGraphQLError({ includeStack: false, cwd });
+        const result = runWithRequestId(undefined, () => format(formatted, wrap(new ForbiddenError())));
+
+        expect(result.extensions).not.toHaveProperty('requestId');
     });
 });

@@ -3,6 +3,7 @@ import { GraphQLError, GraphQLFormattedError } from 'graphql';
 import { trimStack } from '../../common/error/trim-stack';
 import { I18nError } from '../../i18n/i18n-error';
 import { UNEXPECTED_VENDURE_CODE } from '../../i18n/vendure-code';
+import { getRequestId } from '../common/request-id';
 
 export interface FormatGraphQLErrorOptions {
     /**
@@ -18,6 +19,8 @@ export interface FormatGraphQLErrorOptions {
  * thrown with, so `extensions.code` keeps its existing meaning, and gains:
  *
  * * `vendureCode`: the namespaced code of an {@link I18nError}, or `core.unexpected` for any other error;
+ * * `requestId`: the ID of the request, the same as the `x-request-id` response header. It is left out
+ *   when the error is formatted outside a request;
  * * `stack`: only when `includeStack` is set, the frames of the stack which point at the project's own files.
  *
  * When the thrown error has no `code`, the code from Apollo Server's formatted error is used, which is
@@ -34,6 +37,10 @@ export function createFormatGraphQLError(options: FormatGraphQLErrorOptions) {
             vendureCode:
                 originalError instanceof I18nError ? originalError.vendureCode : UNEXPECTED_VENDURE_CODE,
         };
+        const requestId = getRequestId();
+        if (requestId !== undefined) {
+            extensions.requestId = requestId;
+        }
         if (options.includeStack) {
             extensions.stack = trimStack(
                 originalError instanceof Error ? originalError.stack : undefined,
