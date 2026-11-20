@@ -4470,19 +4470,19 @@
               "title": "McpStandardSchema",
               "slug": "mcp-standard-schema",
               "file": "docs/reference/mcp-sdk/mcp-standard-schema.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-11-20T15:52:30Z"
             },
             {
               "title": "McpStandardSchemaIssue",
               "slug": "mcp-standard-schema-issue",
               "file": "docs/reference/mcp-sdk/mcp-standard-schema-issue.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-11-20T15:52:30Z"
             },
             {
               "title": "McpStandardSchemaResult",
               "slug": "mcp-standard-schema-result",
               "file": "docs/reference/mcp-sdk/mcp-standard-schema-result.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-11-20T15:52:30Z"
             },
             {
               "title": "McpTool",
@@ -4494,7 +4494,7 @@
               "title": "McpToolBehavior",
               "slug": "mcp-tool-behavior",
               "file": "docs/reference/mcp-sdk/mcp-tool-behavior.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-11-20T15:52:30Z"
             },
             {
               "title": "McpToolHandler",
@@ -4518,7 +4518,7 @@
               "title": "McpToolset",
               "slug": "mcp-toolset",
               "file": "docs/reference/mcp-sdk/mcp-toolset.mdx",
-              "lastModified": "2026-10-01T19:26:07+02:00"
+              "lastModified": "2026-11-20T15:52:30Z"
             },
             {
               "title": "NumberFilter",
