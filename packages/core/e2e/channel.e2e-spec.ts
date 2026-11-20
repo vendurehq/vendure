@@ -506,6 +506,19 @@ describe('Channels', () => {
                 );
             }, 'The currency "JPY" is not available in the current Channel'),
         );
+
+        // #5688: current ISO 4217 codes which replaced ANG, SLL and ZWL
+        it('accepts the XCG, SLE and ZWG currency codes', async () => {
+            const newCodes = ['XCG', 'SLE', 'ZWG'] as CurrencyCode[];
+            const { updateChannel } = await adminClient.query(updateChannelDocument, {
+                input: {
+                    id: 'T_1',
+                    availableCurrencyCodes: [CurrencyCode.GBP, CurrencyCode.AUD, ...newCodes],
+                },
+            });
+            channelGuard.assertSuccess(updateChannel);
+            expect(updateChannel.availableCurrencyCodes).toEqual(['GBP', 'AUD', 'XCG', 'SLE', 'ZWG']);
+        });
     });
 });
 
