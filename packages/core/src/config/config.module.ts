@@ -4,6 +4,7 @@ import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-cons
 import { ConfigArgType } from '@vendure/common/lib/shared-types';
 
 import { ConfigArgDef, ConfigurableOperationDef } from '../common/configurable-operation';
+import { VendureStartupError } from '../common/error/vendure-startup-error';
 import { Injector } from '../common/injector';
 import { InjectableStrategy } from '../common/types/injectable-strategy';
 
@@ -40,16 +41,26 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
                     continue;
                 }
                 if (argDef.type !== 'string') {
-                    throw new Error(
-                        `ERROR: The "${operation.code}" config arg "${name}" has "secret: true", ` +
+                    throw new VendureStartupError({
+                        code: 'core.config.invalid-secret-config-arg',
+                        message:
+                            `ERROR: The "${operation.code}" config arg "${name}" has "secret: true", ` +
                             'which is only supported on "string" args.',
-                    );
+                        fix: [
+                            {
+                                description: `Remove "secret: true" from "${name}", or make it a "string" arg`,
+                            },
+                        ],
+                    });
                 }
                 if (argDef.list === true) {
-                    throw new Error(
-                        `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
+                    throw new VendureStartupError({
+                        code: 'core.config.invalid-secret-config-arg',
+                        message:
+                            `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
                             '"secret: true" with "list: true".',
-                    );
+                        fix: [{ description: `Remove either "secret: true" or "list: true" from "${name}"` }],
+                    });
                 }
             }
         }
@@ -72,8 +83,10 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             Object.values<ConfigArgDef<ConfigArgType>>(op.args).some(arg => arg.secret === true),
         );
         if (hasSecretCustomField || hasSecretConfigArg) {
-            throw new Error(
-                '[Vendure] A `secret` custom field or config arg is configured, but no EncryptionStrategy ' +
+            throw new VendureStartupError({
+                code: 'core.config.missing-encryption-strategy',
+                message:
+                    '[Vendure] A `secret` custom field or config arg is configured, but no EncryptionStrategy ' +
                     'with a usable key is available. Configure one in your VendureConfig:\n\n' +
                     "  import { DefaultEncryptionStrategy } from '@vendure/core';\n\n" +
                     '  systemOptions: {\n' +
@@ -83,7 +96,14 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
                     '  }\n\n' +
                     'and set the VENDURE_ENCRYPTION_KEY environment variable to a stable, secret value. It ' +
                     'must not change once secret data has been written, or that data can no longer be decrypted.',
-            );
+                fix: [
+                    {
+                        description:
+                            'Set systemOptions.encryptionStrategy to a DefaultEncryptionStrategy, and set the ' +
+                            'VENDURE_ENCRYPTION_KEY environment variable to a stable secret value',
+                    },
+                ],
+            });
         }
     }
 
@@ -105,15 +125,29 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         const seen = new Set<string>();
         for (const strategy of refundDestinations) {
             if (strategy.code === DEFAULT_REFUND_DESTINATION_CODE) {
-                throw new Error(
-                    `RefundDestinationStrategy code "${DEFAULT_REFUND_DESTINATION_CODE}" is reserved ` +
+                throw new VendureStartupError({
+                    code: 'core.config.reserved-refund-destination-code',
+                    message:
+                        `RefundDestinationStrategy code "${DEFAULT_REFUND_DESTINATION_CODE}" is reserved ` +
                         `for the built-in default destination. Please use a different code for your strategy.`,
-                );
+                    fix: [
+                        {
+                            description:
+                                'Give the RefundDestinationStrategy in paymentOptions.refundDestinations a different code',
+                        },
+                    ],
+                });
             }
             if (seen.has(strategy.code)) {
-                throw new Error(
-                    `Duplicate RefundDestinationStrategy code "${strategy.code}". Each strategy must have a unique code.`,
-                );
+                throw new VendureStartupError({
+                    code: 'core.config.duplicate-refund-destination-code',
+                    message: `Duplicate RefundDestinationStrategy code "${strategy.code}". Each strategy must have a unique code.`,
+                    fix: [
+                        {
+                            description: `Give each RefundDestinationStrategy in paymentOptions.refundDestinations a unique code, instead of two with "${strategy.code}"`,
+                        },
+                    ],
+                });
             }
             seen.add(strategy.code);
         }
