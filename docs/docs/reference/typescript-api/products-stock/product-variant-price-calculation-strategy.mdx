@@ -4,7 +4,7 @@ generated: true
 ---
 ## ProductVariantPriceCalculationStrategy
 
-<GenerationInfo sourceFile="packages/core/src/config/catalog/product-variant-price-calculation-strategy.ts" sourceLine="23" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/product-variant-price-calculation-strategy.ts" sourceLine="24" packageName="@vendure/core" />
 
 Defines how ProductVariant are calculated based on the input price, tax zone and current request context.
 
@@ -36,7 +36,7 @@ interface ProductVariantPriceCalculationStrategy extends InjectableStrategy {
 </div>
 ## ProductVariantPriceCalculationArgs
 
-<GenerationInfo sourceFile="packages/core/src/config/catalog/product-variant-price-calculation-strategy.ts" sourceLine="36" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/product-variant-price-calculation-strategy.ts" sourceLine="37" packageName="@vendure/core" />
 
 The arguments passed the `calculate` method of the configured [ProductVariantPriceCalculationStrategy](/reference/typescript-api/products-stock/product-variant-price-calculation-strategy#productvariantpricecalculationstrategy).
 
@@ -50,6 +50,7 @@ interface ProductVariantPriceCalculationArgs {
     taxCategory: TaxCategory;
     activeTaxZone: Zone;
     ctx: RequestContext;
+    taxRate?: TaxRate;
 }
 ```
 
@@ -85,6 +86,13 @@ interface ProductVariantPriceCalculationArgs {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
 
 
+### taxRate
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>`}  since="4.0.0"  />
+
+The TaxRate which applies to the variant: the result of `TaxRateService.getApplicableTaxRate()`
+for the active tax Zone and, when the variant is priced for an Order with a shipping address,
+the country of that address. It can be a country rate. Not set by callers which predate it.
 
 
 </div>
