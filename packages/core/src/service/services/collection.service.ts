@@ -476,7 +476,9 @@ export class CollectionService implements OnModuleInit {
 
     /**
      * @description
-     * Returns all Collections which are associated with the given Product ID.
+     * Returns the Collections which contain the given Product and are assigned to the
+     * active Channel. Membership is stored against ProductVariants and is not scoped by
+     * Channel, so a Product can belong to Collections from other Channels.
      */
     async getCollectionsByProductId(
         ctx: RequestContext,
@@ -488,6 +490,9 @@ export class CollectionService implements OnModuleInit {
             .createQueryBuilder('collection')
             .leftJoinAndSelect('collection.translations', 'translation')
             .leftJoin('collection.productVariants', 'variant')
+            .innerJoin('collection.channels', 'channel', 'channel.id = :channelId', {
+                channelId: ctx.channelId,
+            })
             .where('variant.product = :productId', { productId })
             .groupBy('collection.id, translation.id')
             .orderBy('collection.id', 'ASC');

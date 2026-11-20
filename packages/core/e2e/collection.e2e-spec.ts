@@ -29,6 +29,7 @@ import { channelFragment, collectionFragment, facetValueFragment } from './graph
 import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import {
     assignCollectionsToChannelDocument,
+    assignProductToChannelDocument,
     createChannelDocument,
     createCollectionDocument,
     createProductDocument,
@@ -2755,6 +2756,91 @@ describe('Collection resolver', () => {
                 // eslint-disable-next-line @typescript-eslint/dot-notation
                 server.app.get(CollectionService)['rootCollection'] = undefined;
             }
+        });
+    });
+
+    describe('product collections are limited to the active channel', () => {
+        const defaultChannelCollectionName = 'Channel Filter Default';
+        const otherChannelCollectionName = 'Channel Filter Other';
+
+        afterAll(() => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it('returns only collections assigned to the active channel', async () => {
+            const electronicsFilter = {
+                code: facetValueCollectionFilter.code,
+                arguments: [
+                    { name: 'facetValueIds', value: `["${getFacetValueId('electronics')}"]` },
+                    { name: 'containsAny', value: 'false' },
+                ],
+            };
+
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { createCollection: defaultChannelCollection } = await adminClient.query(
+                createCollectionDocument,
+                {
+                    input: {
+                        filters: [electronicsFilter],
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: defaultChannelCollectionName,
+                                description: '',
+                                slug: 'channel-filter-default',
+                            },
+                        ],
+                    },
+                },
+            );
+
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            await adminClient.query(createCollectionDocument, {
+                input: {
+                    filters: [electronicsFilter],
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: otherChannelCollectionName,
+                            description: '',
+                            slug: 'channel-filter-other',
+                        },
+                    ],
+                },
+            });
+            await awaitRunningJobs(adminClient);
+
+            // Creating a Collection on a non-default Channel also assigns it to the default
+            // Channel, so the default Channel sees both. The second Channel must not see the
+            // Collection that was never assigned to it.
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { collection } = await adminClient.query(getCollectionProductVariantsDocument, {
+                id: defaultChannelCollection.id,
+            });
+            collectionResultGuard.assertSuccess(collection);
+            const productId = collection.productVariants.items[0].productId;
+
+            const { product: onDefaultChannel } = await adminClient.query(getProductCollectionsDocument, {
+                id: productId,
+            });
+            productResultGuard.assertSuccess(onDefaultChannel);
+            expect(onDefaultChannel.collections.map(c => c.name)).toEqual(
+                expect.arrayContaining([defaultChannelCollectionName, otherChannelCollectionName]),
+            );
+
+            await adminClient.query(assignProductToChannelDocument, {
+                input: {
+                    channelId: secondChannel.id,
+                    productIds: [productId],
+                },
+            });
+
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { product: onSecondChannel } = await adminClient.query(getProductCollectionsDocument, {
+                id: productId,
+            });
+            productResultGuard.assertSuccess(onSecondChannel);
+            expect(onSecondChannel.collections.map(c => c.name)).toEqual([otherChannelCollectionName]);
         });
     });
 
