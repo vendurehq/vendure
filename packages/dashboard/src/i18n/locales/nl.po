@@ -2044,6 +2044,10 @@ msgstr "Gebruikslimiet"
 msgid "Create your first collection"
 msgstr "Maak uw eerste collectie aan"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Globale instellingen laden..."

@@ -2040,6 +2040,10 @@ msgstr "Usage limit"
 msgid "Create your first collection"
 msgstr "Create your first collection"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr "Select a zone or a country"
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Loading global settings..."

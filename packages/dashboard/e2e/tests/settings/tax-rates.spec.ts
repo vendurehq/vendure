@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
@@ -44,5 +44,25 @@ test.describe('Tax Rates', () => {
         await detail.clickCreate();
         await detail.expectSuccessToast(/created/i);
         await detail.expectNavigatedToExisting();
+    });
+
+    test('should only allow saving a tax rate with a zone or a country', async ({ page }) => {
+        const detail = new BaseDetailPage(page, {
+            newPath: '/tax-rates/new',
+            pathPrefix: '/tax-rates/',
+            newTitle: 'New tax rate',
+        });
+        await detail.gotoNew();
+        await detail.expectNewPageLoaded();
+        await detail.fillFields([
+            { label: 'Name', value: 'E2E No Target Rate' },
+            { label: 'Rate', value: '7', type: 'number' },
+            { label: 'Tax category', value: 'Standard Tax', type: 'select' },
+            { label: 'Applies to', value: 'Country', type: 'select' },
+        ]);
+        const createButton = page.getByRole('button', { name: 'Create', exact: true });
+        await expect(createButton).toBeDisabled();
+        await detail.fillFields([{ label: 'Country', value: 'Australia', type: 'select' }]);
+        await expect(createButton).toBeEnabled();
     });
 });

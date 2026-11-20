@@ -2032,6 +2032,10 @@ msgstr "사용 제한"
 msgid "Create your first collection"
 msgstr ""
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "전역 설정 로딩 중..."

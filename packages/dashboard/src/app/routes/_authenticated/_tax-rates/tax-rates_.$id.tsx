@@ -22,6 +22,7 @@ import {
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { z } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -52,6 +53,8 @@ function TaxRateDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    // The target type follows the saved entity until the user picks one.
+    const [pickedTargetType, setPickedTargetType] = useState<TargetType | undefined>();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -72,11 +75,26 @@ function TaxRateDetailPage() {
             };
         },
         params: { id: params.id },
+        // A rate needs a zone or a country. Only the field of the chosen target type is shown,
+        // so the error is set on both.
+        extendSchema: schema =>
+            schema.superRefine((values, issues) => {
+                if (!values.zoneId && !values.regionId) {
+                    for (const path of ['zoneId', 'regionId']) {
+                        issues.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            path: [path],
+                            message: t`Select a zone or a country`,
+                        });
+                    }
+                }
+            }),
         onSuccess: async data => {
             toast.success(
                 creatingNewEntity ? t`Successfully created tax rate` : t`Successfully updated tax rate`,
             );
             resetForm();
+            setPickedTargetType(undefined);
             if (creatingNewEntity) {
                 await navigate({ to: `../$id`, params: { id: data.id } });
             }
@@ -88,8 +106,6 @@ function TaxRateDetailPage() {
         },
     });
 
-    // The target type follows the saved entity until the user picks one.
-    const [pickedTargetType, setPickedTargetType] = useState<TargetType | undefined>();
     const targetType: TargetType = pickedTargetType ?? (entity?.region ? 'country' : 'zone');
     const targetTypeItems = { zone: t`Zone`, country: t`Country` };
 

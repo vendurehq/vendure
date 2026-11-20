@@ -1987,6 +1987,10 @@ msgstr "Limită de utilizare"
 msgid "Create your first collection"
 msgstr "Creează prima ta colecție"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Se încarcă setările globale..."
