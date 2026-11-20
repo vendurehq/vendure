@@ -83,6 +83,8 @@ export const devConfig: VendureConfig = {
             origin: true,
             credentials: true,
         },
+        // Local development only: add the project's stack frames to API errors.
+        includeStackInErrors: true,
     },
     authOptions: {
         disableAuth: false,

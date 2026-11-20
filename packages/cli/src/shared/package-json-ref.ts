@@ -36,10 +36,27 @@ export class PackageJson {
         if (!packageJson) {
             return;
         }
-        const packagesToInstall = requiredPackages.filter(({ pkg, version, isDevDependency }) => {
+        for (const { command, args } of this.getInstallCommands(requiredPackages, packageJson)) {
+            await this.runInstallCommand(command, args);
+        }
+    }
+
+    /**
+     * @description
+     * The package manager commands that would install the packages the project does not have
+     * yet, one for dependencies and one for dev dependencies. Nothing is run.
+     */
+    getInstallCommands(
+        requiredPackages: PackageToInstall[],
+        packageJson: Record<string, any> | false = this.getPackageJsonContent(),
+    ): Array<{ command: string; args: string[] }> {
+        if (!packageJson) {
+            return [];
+        }
+        const packagesToInstall = requiredPackages.filter(({ pkg, isDevDependency }) => {
             const hasDependency = isDevDependency
-                ? packageJson.devDependencies[pkg]
-                : packageJson.dependencies[pkg];
+                ? packageJson.devDependencies?.[pkg]
+                : packageJson.dependencies?.[pkg];
             return !hasDependency;
         });
 
@@ -49,12 +66,14 @@ export class PackageJson {
         const devDepsToInstall = packagesToInstall
             .filter(p => p.isDevDependency && packageJson.devDependencies?.[p.pkg] === undefined)
             .map(p => `${p.pkg}${p.version ? `@${p.version}` : ''}`);
+        const commands: Array<{ command: string; args: string[] }> = [];
         if (depsToInstall.length) {
-            await this.runPackageManagerInstall(depsToInstall, false);
+            commands.push(this.buildInstallCommand(depsToInstall, false));
         }
         if (devDepsToInstall.length) {
-            await this.runPackageManagerInstall(devDepsToInstall, true);
+            commands.push(this.buildInstallCommand(devDepsToInstall, true));
         }
+        return commands;
     }
 
     getPackageJsonContent(): Record<string, any> | false {
@@ -169,32 +188,36 @@ export class PackageJson {
         return packageJsonPath;
     }
 
-    private async runPackageManagerInstall(dependencies: string[], isDev: boolean) {
-        return new Promise<void>((resolve, reject) => {
-            const packageManager = this.determinePackageManager();
-            let command = '';
-            let args: string[] = [];
-            if (packageManager === 'yarn') {
-                command = 'yarnpkg';
-                args = ['add', '--exact', '--ignore-engines'];
-                if (isDev) {
-                    args.push('--dev');
-                }
-
-                args = args.concat(dependencies);
-            } else if (packageManager === 'pnpm') {
-                command = 'pnpm';
-                args = ['add', '--save-exact'].concat(dependencies);
-                if (isDev) {
-                    args.push('--save-dev', '--workspace-root');
-                }
-            } else {
-                command = 'npm';
-                args = ['install', '--save', '--save-exact', '--loglevel', 'error'].concat(dependencies);
-                if (isDev) {
-                    args.push('--save-dev');
-                }
+    private buildInstallCommand(dependencies: string[], isDev: boolean): { command: string; args: string[] } {
+        const packageManager = this.determinePackageManager();
+        let command = '';
+        let args: string[] = [];
+        if (packageManager === 'yarn') {
+            command = 'yarnpkg';
+            args = ['add', '--exact', '--ignore-engines'];
+            if (isDev) {
+                args.push('--dev');
             }
+
+            args = args.concat(dependencies);
+        } else if (packageManager === 'pnpm') {
+            command = 'pnpm';
+            args = ['add', '--save-exact'].concat(dependencies);
+            if (isDev) {
+                args.push('--save-dev', '--workspace-root');
+            }
+        } else {
+            command = 'npm';
+            args = ['install', '--save', '--save-exact', '--loglevel', 'error'].concat(dependencies);
+            if (isDev) {
+                args.push('--save-dev');
+            }
+        }
+        return { command, args };
+    }
+
+    private async runInstallCommand(command: string, args: string[]) {
+        return new Promise<void>((resolve, reject) => {
             const child = spawn(command, args, { stdio: 'ignore' });
             child.on('close', code => {
                 if (code !== 0) {

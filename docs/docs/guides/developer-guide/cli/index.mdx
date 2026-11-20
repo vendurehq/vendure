@@ -32,6 +32,46 @@ The Vendure CLI supports both **interactive** and **non-interactive** modes:
 For guidance on using the CLI together with project instructions for AI coding agents, see the
 [AI-assisted development guide](/guides/developer-guide/ai-assisted-development/).
 
+## JSON Output for Scripts and Agents
+
+`doctor`, `add codegen`, `migrate revert` and `commands` accept `--json`. With `--json`, the command
+writes exactly one JSON document to stdout, and sends everything else, including output from libraries
+and the processes it starts, to stderr:
+
+```json
+{ "schemaVersion": 1, "status": "ok", "output": {}, "notices": [] }
+```
+
+`status` is one of:
+
+| Status       | Meaning                                                                                       | Exit code |
+| ------------ | --------------------------------------------------------------------------------------------- | --------- |
+| `ok`         | The command finished. `output` holds its result                                               | 0         |
+| `failed`     | The command finished, and its checks did not pass, for example a failed `doctor` check        | 1         |
+| `incomplete` | The command needs something before it can run. `needs` lists it                               | 3         |
+| `error`      | The command could not run. `error` holds a `code`, a `message` and structured `fixes`         | 1 or more |
+
+A need is one of:
+
+- `input`: a required field is missing. It names the `field`, and lists the valid `choices` when the
+  command can work them out, such as the plugins in your project.
+- `consent`: the command would do something destructive. It names the `consent`, shows a `preview` of
+  what would happen, and carries a `digest`. Pass the digest as the value of that consent, for example
+  `--revert-migration <digest>`, and run the same command again. If what the command would do has changed
+  since, it asks again.
+- `person`: a step only a person can take. It gives a `url`.
+
+`--input <json>` passes all of a command's options as one JSON document, and `--input -` reads that
+document from stdin. Options set as flags win over the same field in the document.
+
+The CLI prompts only when stdin and stdout are both terminals, and neither `CI` nor
+`VENDURE_CLI_NON_INTERACTIVE` is set. Otherwise a missing required option returns `incomplete` at once.
+
+While it runs, a command writes events to stderr as one JSON object per line, each tagged
+`"vendure": "event"`, so a script can tell them apart from other output.
+
+`vendure commands --json` lists these commands, with the JSON Schema of each one's input and output.
+
 ## The Dev Command
 
 The `dev` command runs the server, worker and Dashboard in development mode. Use a target to run one process:
@@ -128,6 +168,9 @@ npx vendure add -j MyPlugin --name my-job --selected-service MyService
 # Add GraphQL codegen to a plugin
 npx vendure add -c MyPlugin
 
+# The same, as a command that also supports --json
+npx vendure add codegen --plugin MyPlugin
+
 # Add API extension to a plugin
 npx vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
 
@@ -204,8 +247,8 @@ npx vendure migrate -g my-migration-name
 # Run pending migrations
 npx vendure migrate -r
 
-# Revert the last migration
-npx vendure migrate --revert
+# Revert the last migration, after showing what it reverts and asking first
+npx vendure migrate revert
 
 # Generate migration with custom output directory
 npx vendure migrate -g my-migration -o ./custom/migrations
@@ -220,9 +263,26 @@ npx vendure migrate -g initial --from-empty
 | ---- | --------------------- | -------------------------------------- | ------------------------------------------------- |
 | `-g` | `--generate <name>`   | Generate a new migration               | `vendure migrate -g add-user-table`               |
 | `-r` | `--run`               | Run all pending migrations             | `vendure migrate -r`                              |
-|      | `--revert`            | Revert the last migration              | `vendure migrate --revert`                        |
+|      | `--revert`            | Revert the last migration at once, without a preview. Use `vendure migrate revert` instead | `vendure migrate --revert` |
 | `-o` | `--output-dir <path>` | Custom output directory for migrations | `vendure migrate -g my-migration -o ./migrations` |
 |      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty` |
+
+### Reverting a Migration
+
+`vendure migrate revert` shows which config, database and migration a revert would undo, and asks you
+to confirm. With `--json`, it returns `incomplete` with a `revertMigration` consent need instead:
+
+```bash
+npx vendure migrate revert --json
+# → "needs": [{ "kind": "consent", "consent": "revertMigration", "digest": "c9bedc6757cd4396", "preview": { ... } }]
+
+npx vendure migrate revert --json --revert-migration c9bedc6757cd4396
+# → "status": "ok", "output": { "reverted": true, "migration": "First1795182600577" }
+```
+
+The digest belongs to that preview. If the last applied migration or the database changes in between, the
+command asks again. When the database has applied no migration, nothing is reverted and no consent is
+needed.
 
 ## The Schema Command
 
@@ -343,14 +403,32 @@ in-memory job queue/cache/session strategies, and missing asset storage.
 
 ### Using in CI
 
-For CI pipelines, combine `--strict` with `--format json`. The `--strict` flag treats warnings as
+For CI pipelines, combine `--strict` with `--json`. The `--strict` flag treats warnings as
 failures, and the command exits with a non-zero code when the overall result is a failure - so a
 warning will fail your build:
 
 ```bash
 # Fail the build on any warning or failure, and emit machine-readable output
-npx vendure doctor --strict --format json
+npx vendure doctor --strict --json
 ```
+
+With `--json`, the command writes one JSON document to stdout. The report is its `output`, and
+`status` is `failed` when the overall result is a failure:
+
+```json
+{
+    "schemaVersion": 1,
+    "status": "ok",
+    "output": {
+        "nodeVersion": "v22.12.0",
+        "checks": [{ "name": "Project", "status": "pass", "message": "Vendure project detected" }],
+        "overallStatus": "passed"
+    },
+    "notices": []
+}
+```
+
+`--format json` is an alias for `--json`.
 
 #### Doctor Command Options
 
@@ -359,8 +437,9 @@ npx vendure doctor --strict --format json
 | `--config <path>`   | Specify the path to a custom Vendure config file                                       | `vendure doctor --config ./src/my-config.ts`  |
 | `--check <names...>` | Run specific checks only (`project`, `dependencies`, `config`, `schema`, `database`)  | `vendure doctor --check config schema`        |
 | `--profile <name>`  | Run profile-specific checks (`production`)                                              | `vendure doctor --profile production`         |
-| `--format <type>`   | Output format: `text` (default) or `json`                                              | `vendure doctor --format json`                |
 | `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
+| `--json`            | Write one JSON document to stdout. `--format json` is an alias                        | `vendure doctor --json`                       |
+| `--input <json\|->` | Pass all options as one JSON document, or `-` to read it from stdin                   | `vendure doctor --input '{"strict":true}'`    |
 
 ## The Auth Command
 
@@ -726,6 +805,47 @@ Console host is not supported.
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
 requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. It accepts the matching production pair, the matching
 staging pair, or a loopback pair. It rejects other hosts.
+
+## The Developer MCP
+
+`vendure mcp` runs the Developer MCP: an [MCP](https://modelcontextprotocol.io) server over stdio that
+offers the commands listed by `vendure commands --json` to AI agents. It is for working on the code of a
+project. An agent that has a shell can run the same commands with `--json` instead.
+
+```json
+{
+    "mcpServers": {
+        "vendure": {
+            "command": "/absolute/path/to/my-shop/node_modules/.bin/vendure",
+            "args": ["mcp", "--dir", "/absolute/path/to/my-shop"]
+        }
+    }
+}
+```
+
+By default, it offers four tools:
+
+| Tool                  | What it does                                                         |
+| --------------------- | -------------------------------------------------------------------- |
+| `search_tools`        | Finds commands by name, description or keyword, with their input     |
+| `execute_readonly`    | Runs a command that only reads, such as `doctor`                     |
+| `execute_mutating`    | Runs a command that changes files or data, such as `add_codegen`     |
+| `execute_destructive` | Runs a command that is hard to undo, such as `migrate_revert`        |
+
+A tool's name is its command path joined with `_`. Because there is one executor per kind of command, your
+MCP client can ask for approval before every destructive call and allow read-only calls. With
+`--mode direct`, each command is its own tool instead.
+
+Every tool call runs the command as `vendure <command> --json` in a new process, so its result is the same
+JSON document. Changing commands run one at a time, and read-only commands run in parallel. When the
+client cancels a call, the command and the processes it started are stopped.
+
+#### MCP Command Options
+
+| Long Form       | Description                                                                  | Example                          |
+| --------------- | ---------------------------------------------------------------------------- | -------------------------------- |
+| `--dir <path>`  | The project directory. Defaults to the current directory                     | `vendure mcp --dir ./my-shop`    |
+| `--mode <mode>` | `discovery` (default) offers the four tools above, `direct` lists each command | `vendure mcp --mode direct`    |
 
 ## Working in Monorepos
 
