@@ -26,6 +26,7 @@ import {
 describe('Country tax rates', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
     let variantId: string;
+    let secondVariantId: string;
     let euZoneId: string;
     // 'Standard Tax' is the first TaxCategory in the initial data
     const standardTaxCategoryId = 'T_1';
@@ -59,6 +60,7 @@ describe('Country tax rates', () => {
         }
         const { products } = await adminClient.query(getProductsWithVariantPricesDocument);
         variantId = products.items[0].variants[0].id;
+        secondVariantId = products.items[0].variants[1].id;
 
         const { createZone } = await adminClient.query(createZoneDocument, {
             input: { name: 'eu', memberIds: [countryIds.DE, countryIds.FR, countryIds.IT] },
@@ -121,6 +123,24 @@ describe('Country tax rates', () => {
 
     it('a country outside every zone gets the channel default zone rate', async () => {
         expect(await taxRateFor('US')).toBe(22);
+    });
+
+    it('editing a rate does not re-tax the lines an update did not touch', async () => {
+        expect(await taxRateFor('DE')).toBe(19);
+        const { taxRates } = await adminClient.query(getTaxRatesListDocument);
+        const de = taxRates.items.find(r => r.name === 'DE')!;
+        await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 25 } });
+        try {
+            // Adding a line recalculates the Order, but only the new line gets the new rate.
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: secondVariantId,
+                quantity: 1,
+            });
+            const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
+            expect(activeOrder!.lines.map(l => l.taxRate).sort((a, b) => a - b)).toEqual([19, 25]);
+        } finally {
+            await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
+        }
     });
 
     it('a disabled country rate is skipped', async () => {

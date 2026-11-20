@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
  * Tests the v4.0 schema change for country tax rates on a database rolled back to the v3 schema:
- * `tax_rate` without the `regionId` column. `zoneId` was already nullable in v3, so the generated
- * migration only adds the column, its index and its foreign key, and existing zone rates are unchanged.
+ * `tax_rate` without the `regionId` column and `order` without `taxCountryCode`. `zoneId` was
+ * already nullable in v3, so the generated migration only adds the columns, an index and a foreign
+ * key, and existing zone rates are unchanged.
  *
  * The "generated" schema migration is produced the same way `generateMigration()` does it
  * (`createSchemaBuilder().log()`), so this works on every driver the e2e suite runs on.
@@ -65,6 +66,8 @@ describe('v4.0 TaxRate region migration', () => {
             await queryRunner.dropIndex(table, index);
         }
         await queryRunner.dropColumn(table, 'regionId');
+        // ...and order without taxCountryCode.
+        await queryRunner.dropColumn('order', 'taxCountryCode');
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -76,6 +79,7 @@ describe('v4.0 TaxRate region migration', () => {
         const log = await rawConnection.driver.createSchemaBuilder().log();
         const sql = log.upQueries.map(q => q.query).join('\n');
         expect(sql).toContain('regionId');
+        expect(sql).toContain('taxCountryCode');
     });
 
     it('the generated schema migration applies and leaves no further diff', async () => {

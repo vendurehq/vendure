@@ -123,26 +123,19 @@ export class OrderCalculator {
             () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
         );
 
-        let taxZoneChanged = false;
+        let taxTargetChanged = false;
         if (!activeTaxZone) {
             throw new InternalServerError('error.no-active-tax-zone');
         }
         if (!order.taxZoneId || !idsAreEqual(order.taxZoneId, activeTaxZone.id)) {
             order.taxZoneId = activeTaxZone.id;
-            taxZoneChanged = true;
+            taxTargetChanged = true;
         }
         const countryCode = getTaxCountryCode(order);
-        if (!taxZoneChanged && order.lines.length) {
-            // A country rate can change the applicable rate without the zone changing,
-            // e.g. when the shipping address moves to another country in the same zone.
-            const getTaxRate = this.createTaxRateGetter(ctx, activeTaxZone, countryCode);
-            for (const line of order.lines) {
-                const rate = await getTaxRate(line.taxCategoryId);
-                if (line.taxLines.length && line.taxRate !== rate.value) {
-                    taxZoneChanged = true;
-                    break;
-                }
-            }
+        if ((order.taxCountryCode ?? undefined) !== countryCode) {
+            // A country rate can apply when the shipping country changes, even within the same Zone.
+            order.taxCountryCode = countryCode ?? null;
+            taxTargetChanged = true;
         }
         for (const updatedOrderLine of updatedOrderLines) {
             await this.applyTaxesToOrderLine(
@@ -154,7 +147,7 @@ export class OrderCalculator {
         }
         this.calculateOrderTotals(order);
         if (order.lines.length) {
-            if (taxZoneChanged) {
+            if (taxTargetChanged) {
                 // First apply taxes to the non-discounted prices
                 await this.applyTaxes(ctx, order, activeTaxZone);
             }
