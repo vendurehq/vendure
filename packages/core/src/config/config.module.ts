@@ -4,6 +4,7 @@ import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-cons
 import { ConfigArgType } from '@vendure/common/lib/shared-types';
 
 import { ConfigArgDef, ConfigurableOperationDef } from '../common/configurable-operation';
+import { CORE_STARTUP_ERROR_CODES } from '../common/error/core-startup-error-codes';
 import { VendureStartupError } from '../common/error/vendure-startup-error';
 import { Injector } from '../common/injector';
 import { InjectableStrategy } from '../common/types/injectable-strategy';
@@ -42,7 +43,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
                 }
                 if (argDef.type !== 'string') {
                     throw new VendureStartupError({
-                        code: 'core.config.invalid-secret-config-arg',
+                        code: CORE_STARTUP_ERROR_CODES.invalidSecretConfigArg,
                         message:
                             `ERROR: The "${operation.code}" config arg "${name}" has "secret: true", ` +
                             'which is only supported on "string" args.',
@@ -55,7 +56,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
                 }
                 if (argDef.list === true) {
                     throw new VendureStartupError({
-                        code: 'core.config.invalid-secret-config-arg',
+                        code: CORE_STARTUP_ERROR_CODES.invalidSecretConfigArg,
                         message:
                             `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
                             '"secret: true" with "list: true".',
@@ -84,7 +85,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         );
         if (hasSecretCustomField || hasSecretConfigArg) {
             throw new VendureStartupError({
-                code: 'core.config.missing-encryption-strategy',
+                code: CORE_STARTUP_ERROR_CODES.missingEncryptionStrategy,
                 message:
                     '[Vendure] A `secret` custom field or config arg is configured, but no EncryptionStrategy ' +
                     'with a usable key is available. Configure one in your VendureConfig:\n\n' +
@@ -126,7 +127,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         for (const strategy of refundDestinations) {
             if (strategy.code === DEFAULT_REFUND_DESTINATION_CODE) {
                 throw new VendureStartupError({
-                    code: 'core.config.reserved-refund-destination-code',
+                    code: CORE_STARTUP_ERROR_CODES.reservedRefundDestinationCode,
                     message:
                         `RefundDestinationStrategy code "${DEFAULT_REFUND_DESTINATION_CODE}" is reserved ` +
                         `for the built-in default destination. Please use a different code for your strategy.`,
@@ -140,7 +141,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             }
             if (seen.has(strategy.code)) {
                 throw new VendureStartupError({
-                    code: 'core.config.duplicate-refund-destination-code',
+                    code: CORE_STARTUP_ERROR_CODES.duplicateRefundDestinationCode,
                     message: `Duplicate RefundDestinationStrategy code "${strategy.code}". Each strategy must have a unique code.`,
                     fix: [
                         {

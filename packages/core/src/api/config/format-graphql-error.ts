@@ -20,9 +20,9 @@ export interface FormatGraphQLErrorOptions {
  * * `vendureCode`: the namespaced code of an {@link I18nError}, or `core.unexpected` for any other error;
  * * `stack`: in development only, the frames of the stack which point at the project's own files.
  *
- * The extensions are taken from the error as thrown rather than from Apollo Server's formatted error,
- * so Apollo's default `code` and Nest's HTTP exception mapping are not applied. Those were never part
- * of Vendure's responses, because the TranslateErrorsPlugin used to send the unformatted errors.
+ * When the thrown error has no `code`, the code from Apollo Server's formatted error is used, which is
+ * `INTERNAL_SERVER_ERROR` unless Apollo or Nest set a more specific one. The internal `http` extension
+ * is not sent.
  */
 export function createFormatGraphQLError(options: FormatGraphQLErrorOptions) {
     return (formattedError: GraphQLFormattedError, error: unknown): GraphQLFormattedError => {
@@ -30,6 +30,7 @@ export function createFormatGraphQLError(options: FormatGraphQLErrorOptions) {
         const { http, ...thrownExtensions } = error instanceof GraphQLError ? error.extensions : {};
         const extensions: Record<string, unknown> = {
             ...thrownExtensions,
+            code: thrownExtensions.code ?? formattedError.extensions?.code,
             vendureCode:
                 originalError instanceof I18nError ? originalError.vendureCode : UNEXPECTED_VENDURE_CODE,
         };

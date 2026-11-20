@@ -1,7 +1,10 @@
 import { ErrorCode as ShopErrorCode } from '@vendure/common/lib/generated-shop-types';
 import { ErrorCode } from '@vendure/common/lib/generated-types';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { CORE_STARTUP_ERROR_CODES } from '../common/error/core-startup-error-codes';
 import { EntityNotFoundError, ForbiddenError, InternalServerError } from '../common/error/errors';
 
 import { I18nError } from './i18n-error';
@@ -60,19 +63,56 @@ describe('I18nError.vendureCode', () => {
 });
 
 /**
+ * Returns the `error.*` keys which core source files pass as literals, outside comments. Some of them
+ * have no entry in `en.json`, but they still produce a code.
+ */
+function getErrorKeysInSource(dir: string, keys = new Set<string>()): Set<string> {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const filePath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            getErrorKeysInSource(filePath, keys);
+            continue;
+        }
+        if (!entry.name.endsWith('.ts') || /\.spec(-d)?\.ts$/.test(entry.name)) {
+            continue;
+        }
+        for (const line of readFileSync(filePath, 'utf8').split('\n')) {
+            if (/^\s*(\*|\/\/|\/\*)/.test(line)) {
+                continue;
+            }
+            for (const match of line.matchAll(/['"`](error\.[a-z0-9]+(?:-[a-z0-9]+)*)['"`]/g)) {
+                keys.add(match[1]);
+            }
+        }
+    }
+    return keys;
+}
+
+/**
  * Codes are stable across releases: a client or an agent may act on them. This test compares the codes
- * of the core error keys and ErrorResults with `vendure-codes.snapshot.json`.
+ * of the core error keys (in `en.json` or thrown in source), the ErrorResults and the startup errors with
+ * `vendure-codes.snapshot.json`.
  *
  * - A new key: add its code to `codes` in the snapshot.
  * - A renamed or removed key: keep the old code in `codes`, and add it to `aliases`, mapping it to the
  *   code that replaces it. Never remove a code from `codes`.
  */
 describe('core Vendure codes', () => {
-    const i18nErrorCodes = Object.keys(en.error).map(key => toVendureCode(`error.${key}`));
+    const errorKeys = new Set([
+        ...Object.keys(en.error).map(key => `error.${key}`),
+        ...getErrorKeysInSource(path.join(__dirname, '..')),
+    ]);
+    const i18nErrorCodes = [...errorKeys].map(key => toVendureCode(key));
+    const startupErrorCodes: string[] = Object.values(CORE_STARTUP_ERROR_CODES);
     const errorResultCodes = [...new Set([...Object.values(ErrorCode), ...Object.values(ShopErrorCode)])].map(
         errorCode => getErrorResultVendureCode({ errorCode }),
     );
-    const currentCodes = new Set([UNEXPECTED_VENDURE_CODE, ...i18nErrorCodes, ...errorResultCodes]);
+    const currentCodes = new Set([
+        UNEXPECTED_VENDURE_CODE,
+        ...i18nErrorCodes,
+        ...errorResultCodes,
+        ...startupErrorCodes,
+    ]);
     const snapshotCodes = new Set<string>(snapshot.codes);
     const aliases: Record<string, string> = snapshot.aliases;
 
@@ -83,8 +123,20 @@ describe('core Vendure codes', () => {
         }
     });
 
-    it('no I18nError code clashes with an ErrorResult code', () => {
-        const clashes = i18nErrorCodes.filter(code => errorResultCodes.includes(code));
+    it('finds the keys which are thrown but have no translation', () => {
+        expect(errorKeys).toContain('error.no-active-session');
+    });
+
+    it('every startup error code is in the core.config namespace', () => {
+        for (const code of startupErrorCodes) {
+            expect(code).toMatch(/^core\.config\.[a-z0-9]+(-[a-z0-9]+)*$/);
+        }
+    });
+
+    it('no two sources produce the same code', () => {
+        const clashes = i18nErrorCodes.filter(
+            code => errorResultCodes.includes(code) || startupErrorCodes.includes(code),
+        );
         expect(clashes).toEqual([]);
     });
 

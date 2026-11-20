@@ -15,6 +15,7 @@ import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeor
 import cookieSession = require('cookie-session');
 
 import { tokenMethodIncludes } from './api/common/token-method-includes';
+import { CORE_STARTUP_ERROR_CODES } from './common/error/core-startup-error-codes';
 import { InternalServerError } from './common/error/errors';
 import { writeStartupErrorEvent } from './common/error/startup-error-event';
 import { VendureStartupError } from './common/error/vendure-startup-error';
@@ -399,7 +400,7 @@ export async function preBootstrapConfig(
     if (!customFieldValidationResult.valid) {
         process.exitCode = 1;
         throw new VendureStartupError({
-            code: 'core.config.invalid-custom-fields',
+            code: CORE_STARTUP_ERROR_CODES.invalidCustomFields,
             message: 'CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '),
             fix: [
                 {
@@ -446,8 +447,8 @@ function checkPluginCompatibility(
                 } else {
                     Logger.error(compatibilityErrorMessage);
                     throw new VendureStartupError({
-                        code: 'core.config.incompatible-plugin',
-                        message: `Plugin "${pluginName}" is not compatible with this version of Vendure.`,
+                        code: CORE_STARTUP_ERROR_CODES.incompatiblePlugin,
+                        message: compatibilityErrorMessage,
                         fix: [
                             {
                                 description: `Upgrade "${pluginName}" to a version that supports Vendure ${VENDURE_VERSION}`,

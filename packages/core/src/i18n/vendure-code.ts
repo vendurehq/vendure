@@ -63,7 +63,8 @@ export function toVendureCode(key: string, namespace: string = CORE_CODE_NAMESPA
  * Returns the namespaced code for an ErrorResult, derived from its `errorCode`. For example an ErrorResult
  * with the `errorCode` `COUPON_CODE_EXPIRED_ERROR` has the code `core.coupon-code-expired-error`.
  *
- * The code is not part of the GraphQL schema. It is used in logs and tooling only.
+ * The code is not part of the GraphQL schema, so a storefront still reads `errorCode`. This function is
+ * the one definition of the rule, for code which reports ErrorResults by their Vendure code.
  *
  * @docsCategory errors
  * @docsPage Vendure codes

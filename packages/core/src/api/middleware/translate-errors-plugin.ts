@@ -17,18 +17,16 @@ export class TranslateErrorsPlugin implements ApolloServerPlugin {
             willSendResponse: async requestContext => {
                 const { errors, contextValue } = requestContext;
                 const { body } = requestContext.response;
-                if (errors && body.kind === 'single') {
-                    // Apollo Server formats each error in `errors`, in order, so the two lists line up.
-                    const formattedErrors =
-                        body.singleResult.errors?.length === errors.length
-                            ? body.singleResult.errors
-                            : undefined;
-                    body.singleResult.errors = errors.map((err, i) => {
-                        const translated = this.i18nService.translateError(contextValue.req, err);
-                        const formatted = formattedErrors?.[i];
-                        return formatted
-                            ? { ...formatted, message: translated.message }
-                            : (translated as any);
+                if (errors && body.kind === 'single' && body.singleResult.errors) {
+                    // Apollo Server formats each error in `errors` in order, so `errors[i]` is the
+                    // error which was formatted as `body.singleResult.errors[i]`.
+                    body.singleResult.errors = body.singleResult.errors.map((formattedError, i) => {
+                        const error = errors[i];
+                        if (!error) {
+                            return formattedError;
+                        }
+                        const { message } = this.i18nService.translateError(contextValue.req, error);
+                        return { ...formattedError, message };
                     });
                 }
             },

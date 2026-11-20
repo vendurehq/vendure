@@ -25,14 +25,14 @@ describe('createFormatGraphQLError()', () => {
         });
     });
 
-    it('gives any other error the unexpected code, without adding a code', () => {
+    it('gives any other error the unexpected code, and the code Apollo Server formatted', () => {
         const format = createFormatGraphQLError({ includeStack: false, cwd });
         const result = format(
             { message: 'boom', extensions: { code: 'INTERNAL_SERVER_ERROR' } },
             wrap(new Error('boom')),
         );
 
-        expect(result.extensions).toEqual({ vendureCode: 'core.unexpected' });
+        expect(result.extensions).toEqual({ code: 'INTERNAL_SERVER_ERROR', vendureCode: 'core.unexpected' });
     });
 
     it('keeps the extensions the error was thrown with, except the http field', () => {

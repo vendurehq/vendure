@@ -1,7 +1,6 @@
 /**
  * @description
- * One way to fix a {@link VendureStartupError}. `description` says what to change. `path` and `input`
- * name a `vendure` CLI command and its input, when running a command is the fix.
+ * One way to fix a {@link VendureStartupError}. `description` says what to change.
  *
  * @docsCategory errors
  * @docsPage VendureStartupError
@@ -9,8 +8,6 @@
  */
 export interface VendureErrorFix {
     description: string;
-    path?: string[];
-    input?: Record<string, unknown>;
 }
 
 /**
