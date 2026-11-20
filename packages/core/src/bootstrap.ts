@@ -14,6 +14,7 @@ import { satisfies } from 'semver';
 import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
+import { REQUEST_ID_HEADER } from './api/common/request-id';
 import { tokenMethodIncludes } from './api/common/token-method-includes';
 import { CORE_STARTUP_ERROR_CODES } from './common/error/core-startup-error-codes';
 import { InternalServerError } from './common/error/errors';
@@ -534,32 +535,28 @@ export function getAllEntities(userConfig: Partial<VendureConfig>): Array<Type<a
 }
 
 /**
- * If the 'bearer' tokenMethod is being used, then we automatically expose the authTokenHeaderKey header
- * in the CORS options, making sure to preserve any user-configured exposedHeaders.
+ * Exposes the `x-request-id` header in the CORS options, so that a browser client can read the ID
+ * of its request. If the 'bearer' tokenMethod is being used, the authTokenHeaderKey header is
+ * exposed as well. Any user-configured exposedHeaders are preserved.
  */
 function setExposedHeaders(config: Readonly<RuntimeVendureConfig>) {
-    const { tokenMethod } = config.authOptions;
+    const corsOptions = config.apiOptions.cors;
+    if (typeof corsOptions === 'boolean') {
+        return;
+    }
+    const { tokenMethod, authTokenHeaderKey } = config.authOptions;
     const isUsingBearerToken =
         tokenMethod === 'bearer' || (Array.isArray(tokenMethod) && tokenMethod.includes('bearer'));
-    if (isUsingBearerToken) {
-        const authTokenHeaderKey = config.authOptions.authTokenHeaderKey;
-        const corsOptions = config.apiOptions.cors;
-        if (typeof corsOptions !== 'boolean') {
-            const { exposedHeaders } = corsOptions;
-            let exposedHeadersWithAuthKey: string[];
-            if (!exposedHeaders) {
-                exposedHeadersWithAuthKey = [authTokenHeaderKey];
-            } else if (typeof exposedHeaders === 'string') {
-                exposedHeadersWithAuthKey = exposedHeaders
-                    .split(',')
-                    .map(x => x.trim())
-                    .concat(authTokenHeaderKey);
-            } else {
-                exposedHeadersWithAuthKey = exposedHeaders.concat(authTokenHeaderKey);
-            }
-            corsOptions.exposedHeaders = exposedHeadersWithAuthKey;
-        }
-    }
+    const { exposedHeaders } = corsOptions;
+    const configuredHeaders = !exposedHeaders
+        ? []
+        : typeof exposedHeaders === 'string'
+          ? exposedHeaders.split(',').map(x => x.trim())
+          : exposedHeaders;
+    const addedHeaders = [REQUEST_ID_HEADER, ...(isUsingBearerToken ? [authTokenHeaderKey] : [])].filter(
+        header => !configuredHeaders.some(configured => configured.toLowerCase() === header.toLowerCase()),
+    );
+    corsOptions.exposedHeaders = configuredHeaders.concat(addedHeaders);
 }
 
 function logWelcomeMessage(config: RuntimeVendureConfig) {
