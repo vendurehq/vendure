@@ -11,6 +11,26 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 type ResponseError = { message: string; extensions?: Record<string, any> };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Posts a raw request to the Shop API, so that the test can read the response headers.
+ */
+async function postToShopApi(
+    config: ReturnType<typeof testConfig>,
+    body: string,
+    headers: Record<string, string> = {},
+) {
+    const url = `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath ?? 'shop-api'}`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+        body,
+    });
+    const json = (await response.json()) as { errors: ResponseError[] };
+    return { headerId: response.headers.get('x-request-id'), error: json.errors[0] };
+}
+
 async function getErrors(request: Promise<unknown>): Promise<ResponseError[]> {
     try {
         await request;
@@ -21,7 +41,8 @@ async function getErrors(request: Promise<unknown>): Promise<ResponseError[]> {
 }
 
 describe('GraphQL error extensions', () => {
-    const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
+    const config = testConfig();
+    const { server, adminClient, shopClient } = createTestEnvironment(config);
 
     beforeAll(async () => {
         await server.init({
@@ -79,7 +100,53 @@ describe('GraphQL error extensions', () => {
         await adminClient.asSuperAdmin();
         const [error] = await getErrors(adminClient.query(UPDATE_PRODUCT, { id: 'T_999' }));
 
-        expect(Object.keys(error.extensions ?? {}).sort()).toEqual(['code', 'vendureCode']);
+        expect(Object.keys(error.extensions ?? {}).sort()).toEqual(['code', 'requestId', 'vendureCode']);
+    });
+    describe('requestId', () => {
+        const ME_QUERY = JSON.stringify({ query: '{ me { id } }' });
+
+        it('is the ID in the x-request-id response header', async () => {
+            const { headerId, error } = await postToShopApi(config, ME_QUERY);
+
+            expect(error.extensions?.vendureCode).toBe('core.forbidden');
+            expect(headerId).toMatch(UUID);
+            expect(error.extensions?.requestId).toBe(headerId);
+        });
+
+        it('is the inbound x-request-id, which the response echoes back', async () => {
+            const { headerId, error } = await postToShopApi(config, ME_QUERY, {
+                'x-request-id': 'e2e-error-extensions-1',
+            });
+
+            expect(headerId).toBe('e2e-error-extensions-1');
+            expect(error.extensions?.requestId).toBe('e2e-error-extensions-1');
+        });
+
+        it('is the generated ID which replaces an unsafe inbound ID', async () => {
+            const { headerId, error } = await postToShopApi(config, ME_QUERY, {
+                'x-request-id': 'not safe!',
+            });
+
+            expect(headerId).toMatch(UUID);
+            expect(error.extensions?.requestId).toBe(headerId);
+        });
+
+        it('is on an error raised before execution', async () => {
+            const { headerId, error } = await postToShopApi(
+                config,
+                JSON.stringify({ query: '{ notAField }' }),
+            );
+
+            expect(error.extensions?.code).toBe('GRAPHQL_VALIDATION_FAILED');
+            expect(error.extensions?.requestId).toBe(headerId);
+        });
+
+        it('is on a request which Apollo Server rejects', async () => {
+            const { headerId, error } = await postToShopApi(config, '');
+
+            expect(error.extensions?.code).toBe('BAD_REQUEST');
+            expect(error.extensions?.requestId).toBe(headerId);
+        });
     });
 });
 
