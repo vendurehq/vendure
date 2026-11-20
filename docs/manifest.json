@@ -133,7 +133,7 @@
           "title": "Taxes",
           "slug": "taxes",
           "file": "docs/guides/core-concepts/taxes/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-20T17:56:50+01:00"
         },
         {
           "title": "User Management",
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-19T13:07:52+01:00"
+              "lastModified": "2026-11-20T17:56:50+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-18T10:31:49Z"
+          "lastModified": "2026-11-20T17:56:50+01:00"
         },
         {
           "title": "Worker & Job Queue",
@@ -1212,7 +1212,7 @@
                   "title": "CurrencyCode",
                   "slug": "currency-code",
                   "file": "docs/reference/typescript-api/common/currency-code.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "EntityRelationPaths",
@@ -1248,7 +1248,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1260,7 +1260,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-11-18T09:54:30Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "Middleware",
@@ -1278,7 +1278,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-11-19T12:08:49Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1908,7 +1908,7 @@
                   "title": "Order",
                   "slug": "order",
                   "file": "docs/reference/typescript-api/entities/order.mdx",
-                  "lastModified": "2026-11-17T08:59:18Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "OrderableAsset",
@@ -2142,7 +2142,7 @@
                   "title": "TaxRate",
                   "slug": "tax-rate",
                   "file": "docs/reference/typescript-api/entities/tax-rate.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "User",
@@ -2924,7 +2924,7 @@
                   "title": "OrderRecalculationStrategy",
                   "slug": "order-recalculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-recalculation-strategy.mdx",
-                  "lastModified": "2026-11-19T12:08:49Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "OrderSellerStrategy",
@@ -3104,7 +3104,7 @@
                   "title": "DefaultProductVariantPriceCalculationStrategy",
                   "slug": "default-product-variant-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/products-stock/default-product-variant-price-calculation-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "DefaultStockDisplayStrategy",
@@ -3134,7 +3134,7 @@
                   "title": "ProductVariantPriceCalculationStrategy",
                   "slug": "product-variant-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/products-stock/product-variant-price-calculation-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "ResolveOutOfStockThreshold",
@@ -3334,7 +3334,7 @@
                   "title": "OrderCalculator",
                   "slug": "order-calculator",
                   "file": "docs/reference/typescript-api/service-helpers/order-calculator.mdx",
-                  "lastModified": "2026-11-19T12:08:49Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "OrderModifier",
@@ -3346,7 +3346,7 @@
                   "title": "ProductPriceApplicator",
                   "slug": "product-price-applicator",
                   "file": "docs/reference/typescript-api/service-helpers/product-price-applicator.mdx",
-                  "lastModified": "2026-11-18T12:55:50Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "SetShippingMethodsResult",
@@ -3444,7 +3444,7 @@
                   "title": "CountryService",
                   "slug": "country-service",
                   "file": "docs/reference/typescript-api/services/country-service.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "CustomerChannelAssignmentService",
@@ -3666,7 +3666,7 @@
                   "title": "TaxRateService",
                   "slug": "tax-rate-service",
                   "file": "docs/reference/typescript-api/services/tax-rate-service.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "UserService",
@@ -4614,7 +4614,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-11-19T12:08:49Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 },
                 {
                   "title": "Mutations",
@@ -4632,7 +4632,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4670,7 +4670,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-11-19T07:53:12Z"
+                  "lastModified": "2026-11-20T17:56:50+01:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
