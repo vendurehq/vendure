@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
 
-import { DefaultLogger } from './default-logger';
+import { runWithRequestId } from '../../api/common/request-id';
+
+import { DefaultLogger, formatTextLine } from './default-logger';
 import { Logger, LogLevel } from './vendure-logger';
 
 describe('DefaultLogger', () => {
@@ -126,5 +128,157 @@ describe('DefaultLogger', () => {
         Logger.error('EEEE');
         expect(stdOutSpy).toHaveBeenCalledTimes(1);
         expect(stdOutSpy.mock.calls[0][0]).toContain('EEEE');
+    });
+
+    describe('json format', () => {
+        afterEach(() => {
+            vi.unstubAllEnvs();
+        });
+
+        function writtenLines() {
+            return stdOutSpy.mock.calls.map(call => {
+                const output = String(call[0]);
+                expect(output.endsWith('\n')).toBe(true);
+                expect(output.slice(0, -1)).not.toContain('\n');
+                return JSON.parse(output);
+            });
+        }
+
+        it('writes one LogLine object per line', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json', level: LogLevel.Debug }));
+
+            Logger.info('Hello', 'MyPlugin');
+
+            const [line] = writtenLines();
+            expect(Object.keys(line).sort()).toEqual(['ctx', 'level', 'msg', 'ts']);
+            expect(line).toMatchObject({ level: 'info', ctx: 'MyPlugin', msg: 'Hello' });
+            expect(new Date(line.ts).toISOString()).toBe(line.ts);
+        });
+
+        it('writes the level names', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json', level: LogLevel.Debug }));
+
+            Logger.error('a');
+            Logger.warn('b');
+            Logger.info('c');
+            Logger.verbose('d');
+            Logger.debug('e');
+
+            expect(writtenLines().map(line => line.level)).toEqual([
+                'error',
+                'warn',
+                'info',
+                'verbose',
+                'debug',
+            ]);
+        });
+
+        it('uses the default context when there is none', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            Logger.info('Hello');
+
+            expect(writtenLines()[0].ctx).toBe('Vendure Server');
+        });
+
+        it('writes the trace of an error as the stack, and the code from the meta', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            Logger.error('Failed', 'MyPlugin', 'Error: Failed\n    at foo.ts:1:1', { code: 'FORBIDDEN' });
+
+            expect(writtenLines()[0]).toMatchObject({
+                level: 'error',
+                msg: 'Failed',
+                stack: 'Error: Failed\n    at foo.ts:1:1',
+                code: 'FORBIDDEN',
+            });
+        });
+
+        it('writes the current request ID', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            runWithRequestId('req-1', () => Logger.info('In a request'));
+            Logger.info('Outside a request');
+
+            const [inRequest, outside] = writtenLines();
+            expect(inRequest.requestId).toBe('req-1');
+            expect(outside).not.toHaveProperty('requestId');
+        });
+
+        it('writes the process name from VENDURE_PROCESS', () => {
+            vi.stubEnv('VENDURE_PROCESS', 'worker');
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            Logger.info('Hello');
+
+            expect(writtenLines()[0].process).toBe('worker');
+        });
+
+        it('writes a message object as a string', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            Logger.info({ a: 1 } as any);
+
+            expect(JSON.parse(writtenLines()[0].msg)).toEqual({ a: 1 });
+        });
+
+        it('never writes colours', () => {
+            Logger.useLogger(new DefaultLogger({ format: 'json' }));
+
+            Logger.error('Failed', 'MyPlugin', 'trace');
+            Logger.warn('Careful');
+
+            for (const call of stdOutSpy.mock.calls) {
+                expect(String(call[0])).not.toContain('\u001b[');
+            }
+        });
+
+        it('is selected by VENDURE_LOG_FORMAT when the option is not set', () => {
+            vi.stubEnv('VENDURE_LOG_FORMAT', 'json');
+            Logger.useLogger(new DefaultLogger());
+
+            Logger.info('Hello');
+
+            expect(writtenLines()[0].msg).toBe('Hello');
+        });
+
+        it('the option wins over VENDURE_LOG_FORMAT', () => {
+            vi.stubEnv('VENDURE_LOG_FORMAT', 'json');
+            Logger.useLogger(new DefaultLogger({ format: 'text' }));
+
+            Logger.info('Hello');
+
+            expect(() => JSON.parse(String(stdOutSpy.mock.calls[0][0]))).toThrow();
+        });
+    });
+
+    describe('text format', () => {
+        it('writes the level, the context and the message on one line', () => {
+            Logger.useLogger(new DefaultLogger({ timestamp: false }));
+
+            runWithRequestId('req-1', () => Logger.info('Hello', 'MyPlugin'));
+
+            const output = String(stdOutSpy.mock.calls[0][0]);
+            expect(output).toContain('info');
+            expect(output).toContain('[MyPlugin]');
+            expect(output).toContain('Hello');
+            expect(output).not.toContain('req-1');
+            expect(output.endsWith('\n')).toBe(true);
+        });
+
+        it('formatTextLine() appends the stack to the message', () => {
+            const text = formatTextLine(
+                {
+                    ts: new Date().toISOString(),
+                    level: 'error',
+                    ctx: 'MyPlugin',
+                    msg: 'Failed',
+                    stack: 'at x',
+                },
+                { timestamp: false },
+            );
+            expect(text).toContain('[MyPlugin]');
+            expect(text).toContain('Failed\nat x');
+        });
     });
 });

@@ -23,6 +23,7 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
             const { code, message: msg, logLevel } = exception;
             message = `${code || 'Error'}: ${msg}`;
             statusCode = this.errorCodeToStatusCode(code);
+            const meta = { code };
 
             switch (logLevel) {
                 case LogLevel.Error:
@@ -30,19 +31,20 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
                         JSON.stringify({ message, variables: exception.variables }, null, 2),
                         undefined,
                         exception.stack,
+                        meta,
                     );
                     break;
                 case LogLevel.Warn:
-                    Logger.warn(message);
+                    Logger.warn(message, undefined, meta);
                     break;
                 case LogLevel.Info:
-                    Logger.info(message);
+                    Logger.info(message, undefined, meta);
                     break;
                 case LogLevel.Debug:
-                    Logger.debug(message);
+                    Logger.debug(message, undefined, meta);
                     break;
                 case LogLevel.Verbose:
-                    Logger.verbose(message);
+                    Logger.verbose(message, undefined, meta);
                     break;
             }
             if (exception.stack) {

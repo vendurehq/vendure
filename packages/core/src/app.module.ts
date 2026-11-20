@@ -1,7 +1,8 @@
-import { MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, OnApplicationShutdown, RequestMethod } from '@nestjs/common';
 import cookieSession from 'cookie-session';
 
 import { ApiModule } from './api/api.module';
+import { requestIdMiddleware } from './api/common/request-id';
 import { Middleware, MiddlewareHandler } from './common';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
@@ -37,6 +38,10 @@ export class AppModule implements NestModule, OnApplicationShutdown {
     configure(consumer: MiddlewareConsumer) {
         const { adminApiPath, shopApiPath, middleware } = this.configService.apiOptions;
         const { cookieOptions } = this.configService.authOptions;
+
+        // Applied first and to every route, so that log lines written by later middleware,
+        // resolvers and controllers carry the ID of their request.
+        consumer.apply(requestIdMiddleware).forRoutes({ path: '{*path}', method: RequestMethod.ALL });
 
         const i18nextHandler = this.i18nService.handle();
         const defaultMiddleware: Middleware[] = [

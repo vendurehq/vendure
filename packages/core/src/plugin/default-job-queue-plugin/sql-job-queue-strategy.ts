@@ -349,7 +349,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         return new JobRecord({
             id: job.id || undefined,
             queueName: job.queueName,
-            data: data ?? job.data,
+            data: withStoredRequestId(data ?? job.data, job.requestId),
             state: job.state,
             progress: job.progress,
             result: job.result,
@@ -363,8 +363,35 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
     }
 
     private fromRecord(this: void, jobRecord: JobRecord): Job<any> {
-        return new Job<any>(jobRecord);
+        return new Job<any>({ ...jobRecord, ...readStoredRequestId(jobRecord.data) });
     }
+}
+
+/**
+ * The key under which the request ID of a job is stored in the `data` column, so that storing it
+ * needs no schema change. The key is added on the way into the table and removed on the way out,
+ * so the `data` of a job is what the code which added it passed.
+ */
+const STORED_REQUEST_ID_KEY = '__vendureRequestId';
+
+// `any`, like the type of the `data` column of a JobRecord.
+function withStoredRequestId(data: any, requestId: string | undefined): any {
+    if (requestId === undefined || !isPlainObject(data)) {
+        return data;
+    }
+    return { ...data, [STORED_REQUEST_ID_KEY]: requestId };
+}
+
+function readStoredRequestId(storedData: unknown): { data: unknown; requestId?: string } {
+    if (!isPlainObject(storedData) || !(STORED_REQUEST_ID_KEY in storedData)) {
+        return { data: storedData };
+    }
+    const { [STORED_REQUEST_ID_KEY]: requestId, ...data } = storedData;
+    return { data, requestId: typeof requestId === 'string' ? requestId : undefined };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
