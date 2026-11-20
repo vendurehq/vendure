@@ -112,8 +112,7 @@ async function createGraphQLOptions(
         // "production". Use @vendure/graphiql-plugin for an in-browser IDE.
         playground: false,
         csrfPrevention: configService.apiOptions.csrfPrevention ?? true,
-        // Adds `vendureCode` to the extensions of every error and, when `includeStackInErrors` is set,
-        // the stack frames which point at the project's own files.
+        // Adds Vendure's fields to the extensions of every error. See `createFormatGraphQLError` for the list.
         formatError: createFormatGraphQLError({
             includeStack: configService.apiOptions.includeStackInErrors === true,
             cwd: process.cwd(),
