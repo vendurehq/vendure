@@ -12,8 +12,8 @@ import { PlaceOrderTool } from './place-order.tool';
 const serializer = {
     // Only reached for a Vendure error result now: the tool serializes a successful order itself so
     // that it can tag the answer with a status.
-    orderOrError: (result: unknown) => ({ passedThrough: result }),
-    order: (order: unknown) => order,
+    orderOrError: (_ctx: unknown, result: unknown) => ({ passedThrough: result }),
+    order: (_ctx: unknown, order: unknown) => order,
 } as any;
 
 /**

@@ -40,7 +40,7 @@ export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
         const order = await this.orderService.findOneByCode(ctx, input.code, ORDER_DETAIL_RELATIONS);
         const access = this.configService.orderOptions.orderByCodeAccessStrategy;
         if (order && (await access.canAccessOrder(ctx, order))) {
-            return { order: this.serializer.order(order) };
+            return { order: this.serializer.order(ctx, order) };
         }
         // One message for "no such code" and "someone else's order": telling them apart would let an
         // anonymous caller find out which codes exist.

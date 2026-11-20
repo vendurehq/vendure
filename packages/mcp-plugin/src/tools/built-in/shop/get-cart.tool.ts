@@ -35,6 +35,6 @@ export class GetCartTool implements McpToolHandler<Record<string, never>> {
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.findOrderWithLines(ctx);
         if (!order) return { order: null, message: NO_CART_MESSAGE };
-        return { order: this.serializer.order(order) };
+        return { order: this.serializer.order(ctx, order) };
     }
 }

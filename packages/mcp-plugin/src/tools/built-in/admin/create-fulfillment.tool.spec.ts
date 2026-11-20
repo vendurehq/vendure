@@ -13,7 +13,7 @@ import { CreateFulfillmentTool } from './create-fulfillment.tool';
 
 const serializer = {
     fulfillment: (fulfillment: unknown, lines: unknown) => ({ fulfillment, lines }),
-    order: (order: unknown) => order,
+    order: (_ctx: unknown, order: unknown) => order,
 } as any;
 
 /**

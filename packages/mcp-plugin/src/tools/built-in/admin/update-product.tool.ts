@@ -52,6 +52,7 @@ export class UpdateProductTool implements McpToolHandler<UpdateProductToolInput>
         await this.customFieldInput.assertWritable(ctx, 'Product', input.input.customFields);
         return {
             product: this.serializer.product(
+                ctx,
                 await this.productService.update(ctx, { ...input.input, id: input.id }),
             ),
         };

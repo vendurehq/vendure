@@ -62,7 +62,7 @@ export class ListCustomersTool implements McpToolHandler<ListCustomersInput> {
     async execute(ctx: RequestContext, input: ListCustomersInput) {
         const result = await this.customerService.findAll(ctx, listOptions<Customer>(input), ['user']);
         return page(
-            result.items.map(customer => this.serializer.customer(customer)),
+            result.items.map(customer => this.serializer.customer(ctx, customer)),
             result.totalItems,
             input,
         );
