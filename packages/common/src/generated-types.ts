@@ -1163,9 +1163,10 @@ export type CreateTaxRateInput = {
   customerGroupId?: InputMaybe<Scalars['ID']['input']>;
   enabled: Scalars['Boolean']['input'];
   name: Scalars['String']['input'];
+  /** The Country the rate applies to. Exactly one of zoneId and regionId must be set. */
   regionId?: InputMaybe<Scalars['ID']['input']>;
   value: Scalars['Float']['input'];
-  /** Either zoneId or regionId must be set. In v4 the region must be a country. */
+  /** The Zone the rate applies to. Exactly one of zoneId and regionId must be set. */
   zoneId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -7772,8 +7773,10 @@ export type UpdateTaxRateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  /** The Country the rate applies to. Setting it removes the Zone. */
   regionId?: InputMaybe<Scalars['ID']['input']>;
   value?: InputMaybe<Scalars['Float']['input']>;
+  /** The Zone the rate applies to. Setting it removes the Country. */
   zoneId?: InputMaybe<Scalars['ID']['input']>;
 };
 

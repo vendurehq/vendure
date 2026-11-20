@@ -19,6 +19,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Address } from '../../entity';
 import { Country } from '../../entity/region/country.entity';
 import { RegionTranslation } from '../../entity/region/region-translation.entity';
+import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
 import { EventBus } from '../../event-bus';
 import { CountryEvent } from '../../event-bus/events/country-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
@@ -134,6 +135,19 @@ export class CountryService {
             return {
                 result: DeletionResult.NOT_DELETED,
                 message: ctx.translate('message.country-used-in-addresses', { count: addressesUsingCountry }),
+            };
+        }
+        const taxRatesUsingCountry = await this.connection
+            .getRepository(ctx, TaxRate)
+            .createQueryBuilder('taxRate')
+            .where('taxRate.region = :id', { id })
+            .getMany();
+        if (0 < taxRatesUsingCountry.length) {
+            return {
+                result: DeletionResult.NOT_DELETED,
+                message: ctx.translate('message.country-used-in-tax-rates', {
+                    taxRateNames: taxRatesUsingCountry.map(t => t.name).join(', '),
+                }),
             };
         } else {
             const deletedCountry = new Country(country);

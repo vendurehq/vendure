@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { createCountryDocument } from './graphql/admin-definitions';
+import { createCountryDocument, deleteCountryDocument } from './graphql/admin-definitions';
 import {
     createCustomerGroupDocument,
     createTaxRateDocument,
@@ -193,6 +193,39 @@ describe('TaxRate resolver', () => {
             });
             expect(updateTaxRate.region?.code).toBe('DE');
             expect(updateTaxRate.zone).toBeNull();
+        });
+
+        it('update rejects both a zone and a region', async () => {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
+                options: { filter: { name: { eq: 'switch' } } },
+            });
+            await expect(
+                adminClient.query(updateTaxRateDocument, {
+                    input: { id: taxRates.items[0].id, zoneId: 'T_1', regionId: germanyId },
+                }),
+            ).rejects.toThrow('exactly one of zoneId or regionId');
+        });
+
+        it('update rejects removing the only target', async () => {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
+                options: { filter: { name: { in: ['DE', 'Standard Tax Oceania'] } } },
+            });
+            const countryRate = taxRates.items.find(r => r.name === 'DE')!;
+            const zoneRate = taxRates.items.find(r => r.name === 'Standard Tax Oceania')!;
+            await expect(
+                adminClient.query(updateTaxRateDocument, { input: { id: countryRate.id, regionId: null } }),
+            ).rejects.toThrow('exactly one of zoneId or regionId');
+            await expect(
+                adminClient.query(updateTaxRateDocument, { input: { id: zoneRate.id, zoneId: null } }),
+            ).rejects.toThrow('exactly one of zoneId or regionId');
+        });
+
+        it('a country used by a tax rate cannot be deleted', async () => {
+            const { deleteCountry } = await adminClient.query(deleteCountryDocument, { id: germanyId });
+            expect(deleteCountry.result).toBe(DeletionResult.NOT_DELETED);
+            expect(deleteCountry.message).toBe(
+                'The selected Country cannot be deleted as it is used in the following TaxRates: DE, switch',
+            );
         });
 
         it('filters by regionId', async () => {

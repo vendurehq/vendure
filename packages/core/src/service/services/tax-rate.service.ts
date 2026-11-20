@@ -31,7 +31,7 @@ import { patchEntity } from '../helpers/utils/patch-entity';
 
 /**
  * The enabled TaxRates, indexed by target and TaxCategory so that a lookup does not scan the list.
- * When several rates share a key, the first one wins, as `Array.find` did before.
+ * When several rates share a key, the first rate in the list wins.
  */
 interface ActiveTaxRates {
     rates: TaxRate[];
@@ -182,9 +182,11 @@ export class TaxRateService {
         if (!taxRate) {
             throw new EntityNotFoundError('TaxRate', input.id);
         }
-        if (input.zoneId && input.regionId) {
-            this.assertSingleTarget(input.zoneId, input.regionId);
-        }
+        // Setting one target clears the other, so check the targets the rate has after the update.
+        const nextZoneId = input.zoneId !== undefined ? input.zoneId : input.regionId ? null : taxRate.zoneId;
+        const nextRegionId =
+            input.regionId !== undefined ? input.regionId : input.zoneId ? null : taxRate.regionId;
+        this.assertSingleTarget(nextZoneId, nextRegionId);
         const updatedTaxRate = patchEntity(taxRate, input);
         if (input.categoryId) {
             updatedTaxRate.category = await this.connection.getEntityOrThrow(
@@ -195,12 +197,15 @@ export class TaxRateService {
         }
         if (input.zoneId) {
             updatedTaxRate.zone = await this.connection.getEntityOrThrow(ctx, Zone, input.zoneId);
-            updatedTaxRate.region = null;
-            updatedTaxRate.regionId = null;
-        } else if (input.regionId) {
-            updatedTaxRate.region = await this.getCountryOrThrow(ctx, input.regionId);
+        } else if (nextZoneId == null) {
             updatedTaxRate.zone = null;
             updatedTaxRate.zoneId = null;
+        }
+        if (input.regionId) {
+            updatedTaxRate.region = await this.getCountryOrThrow(ctx, input.regionId);
+        } else if (nextRegionId == null) {
+            updatedTaxRate.region = null;
+            updatedTaxRate.regionId = null;
         }
         if (input.customerGroupId) {
             updatedTaxRate.customerGroup = await this.connection.getEntityOrThrow(
@@ -305,7 +310,7 @@ export class TaxRateService {
     }
 
     private isTarget(value: unknown): value is { countryCode?: string; zone: Zone | ID } {
-        return typeof value === 'object' && value !== null && 'zone' in value && !('members' in value);
+        return typeof value === 'object' && value !== null && 'zone' in value;
     }
 
     private idOf(entityOrId: { id: ID } | ID): ID {
