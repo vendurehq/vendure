@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { DeletionResult } from '@vendure/common/lib/generated-types';
+import { DeletionResult, LanguageCode } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
-import { CustomerGroup, TransactionalConnection } from '@vendure/core';
+import { CustomerGroup, Province, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { createCountryDocument } from './graphql/admin-definitions';
 import {
     createCustomerGroupDocument,
     createTaxRateDocument,
@@ -52,7 +53,7 @@ describe('TaxRate resolver', () => {
             value: 20,
         });
         expect(taxRate!.category.name).toBe('Standard Tax');
-        expect(taxRate!.zone.name).toBe('Oceania');
+        expect(taxRate!.zone?.name).toBe('Oceania');
     });
 
     it('createTaxRate', async () => {
@@ -115,5 +116,90 @@ describe('TaxRate resolver', () => {
             .findOne({ where: { name: 'Tax Rate Group' }, relations: { taxRates: true } });
 
         expect(group!.taxRates.map(t => t.name)).toEqual(['Group Tax Rate']);
+    });
+
+    describe('target validation', () => {
+        let germanyId: string;
+        let provinceId: string;
+
+        beforeAll(async () => {
+            const { createCountry } = await adminClient.query(createCountryDocument, {
+                input: {
+                    code: 'DE',
+                    enabled: true,
+                    translations: [{ languageCode: LanguageCode.en, name: 'Germany' }],
+                },
+            });
+            germanyId = createCountry.id;
+            // There is no Admin API mutation for provinces yet, so save one directly.
+            const province = await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Province)
+                .save(new Province({ code: 'BY', type: 'province', enabled: true }));
+            provinceId = province.id as string;
+        });
+
+        it('creates a rate that targets a country', async () => {
+            const { createTaxRate } = await adminClient.query(createTaxRateDocument, {
+                input: { name: 'DE', categoryId: 'T_1', regionId: germanyId, enabled: true, value: 19 },
+            });
+            expect(createTaxRate.region?.code).toBe('DE');
+            expect(createTaxRate.zone).toBeNull();
+        });
+
+        it('rejects a rate with both a zone and a region', async () => {
+            await expect(
+                adminClient.query(createTaxRateDocument, {
+                    input: {
+                        name: 'both',
+                        categoryId: 'T_1',
+                        zoneId: 'T_1',
+                        regionId: germanyId,
+                        enabled: true,
+                        value: 19,
+                    },
+                }),
+            ).rejects.toThrow('exactly one of zoneId or regionId');
+        });
+
+        it('rejects a rate with neither a zone nor a region', async () => {
+            await expect(
+                adminClient.query(createTaxRateDocument, {
+                    input: { name: 'none', categoryId: 'T_1', enabled: true, value: 19 },
+                }),
+            ).rejects.toThrow('exactly one of zoneId or regionId');
+        });
+
+        it('rejects a region that is not a country', async () => {
+            await expect(
+                adminClient.query(createTaxRateDocument, {
+                    input: {
+                        name: 'province',
+                        categoryId: 'T_1',
+                        regionId: provinceId,
+                        enabled: true,
+                        value: 19,
+                    },
+                }),
+            ).rejects.toThrow('only target a Region of type "country"');
+        });
+
+        it('update switches the target from a zone to a country', async () => {
+            const { createTaxRate } = await adminClient.query(createTaxRateDocument, {
+                input: { name: 'switch', categoryId: 'T_1', zoneId: 'T_1', enabled: true, value: 5 },
+            });
+            const { updateTaxRate } = await adminClient.query(updateTaxRateDocument, {
+                input: { id: createTaxRate.id, regionId: germanyId },
+            });
+            expect(updateTaxRate.region?.code).toBe('DE');
+            expect(updateTaxRate.zone).toBeNull();
+        });
+
+        it('filters by regionId', async () => {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
+                options: { filter: { regionId: { eq: germanyId } } },
+            });
+            expect(taxRates.items.map(r => r.name).sort()).toEqual(['DE', 'switch']);
+        });
     });
 });

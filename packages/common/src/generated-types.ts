@@ -1163,8 +1163,10 @@ export type CreateTaxRateInput = {
   customerGroupId?: InputMaybe<Scalars['ID']['input']>;
   enabled: Scalars['Boolean']['input'];
   name: Scalars['String']['input'];
+  regionId?: InputMaybe<Scalars['ID']['input']>;
   value: Scalars['Float']['input'];
-  zoneId: Scalars['ID']['input'];
+  /** Either zoneId or regionId must be set. In v4 the region must be a country. */
+  zoneId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type CreateZoneInput = {
@@ -7306,9 +7308,10 @@ export type TaxRate = Node & {
   enabled: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  region?: Maybe<Region>;
   updatedAt: Scalars['DateTime']['output'];
   value: Scalars['Float']['output'];
-  zone: Zone;
+  zone?: Maybe<Zone>;
 };
 
 export type TaxRateFilterParameter = {
@@ -7319,6 +7322,7 @@ export type TaxRateFilterParameter = {
   enabled?: InputMaybe<BooleanOperators>;
   id?: InputMaybe<IdOperators>;
   name?: InputMaybe<StringOperators>;
+  regionId?: InputMaybe<IdOperators>;
   updatedAt?: InputMaybe<DateOperators>;
   value?: InputMaybe<NumberOperators>;
   zoneId?: InputMaybe<IdOperators>;
@@ -7768,6 +7772,7 @@ export type UpdateTaxRateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  regionId?: InputMaybe<Scalars['ID']['input']>;
   value?: InputMaybe<Scalars['Float']['input']>;
   zoneId?: InputMaybe<Scalars['ID']['input']>;
 };

@@ -8,6 +8,7 @@ import { RequestContextCacheService } from '../../../cache/request-context-cache
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
+import { getTaxCountryCode } from '../../../common/tax-utils';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
@@ -130,12 +131,25 @@ export class OrderCalculator {
             order.taxZoneId = activeTaxZone.id;
             taxZoneChanged = true;
         }
+        const countryCode = getTaxCountryCode(order);
+        if (!taxZoneChanged && order.lines.length) {
+            // A country rate can change the applicable rate without the zone changing,
+            // e.g. when the shipping address moves to another country in the same zone.
+            const getTaxRate = this.createTaxRateGetter(ctx, activeTaxZone, countryCode);
+            for (const line of order.lines) {
+                const rate = await getTaxRate(line.taxCategoryId);
+                if (line.taxLines.length && line.taxRate !== rate.value) {
+                    taxZoneChanged = true;
+                    break;
+                }
+            }
+        }
         for (const updatedOrderLine of updatedOrderLines) {
             await this.applyTaxesToOrderLine(
                 ctx,
                 order,
                 updatedOrderLine,
-                this.createTaxRateGetter(ctx, activeTaxZone),
+                this.createTaxRateGetter(ctx, activeTaxZone, countryCode),
             );
         }
         this.calculateOrderTotals(order);
@@ -181,7 +195,7 @@ export class OrderCalculator {
      * Applies the correct TaxRate to each OrderLine in the order.
      */
     private async applyTaxes(ctx: RequestContext, order: Order, activeZone: Zone) {
-        const getTaxRate = this.createTaxRateGetter(ctx, activeZone);
+        const getTaxRate = this.createTaxRateGetter(ctx, activeZone, getTaxCountryCode(order));
         for (const line of order.lines) {
             await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate);
         }
@@ -216,6 +230,7 @@ export class OrderCalculator {
     private createTaxRateGetter(
         ctx: RequestContext,
         activeZone: Zone,
+        countryCode?: string,
     ): (taxCategoryId: ID) => Promise<TaxRate> {
         const taxRateCache = new Map<ID, TaxRate>();
 
@@ -224,7 +239,11 @@ export class OrderCalculator {
             if (cached) {
                 return cached;
             }
-            const rate = await this.taxRateService.getApplicableTaxRate(ctx, activeZone, taxCategoryId);
+            const rate = await this.taxRateService.getApplicableTaxRate(
+                ctx,
+                { countryCode, zone: activeZone },
+                taxCategoryId,
+            );
             taxRateCache.set(taxCategoryId, rate);
             return rate;
         };

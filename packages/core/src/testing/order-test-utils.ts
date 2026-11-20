@@ -5,8 +5,8 @@ import { ID } from '@vendure/common/lib/shared-types';
 import { RequestContext } from '../api/common/request-context';
 import { Surcharge } from '../entity';
 import { Channel } from '../entity/channel/channel.entity';
-import { Order } from '../entity/order/order.entity';
 import { OrderLine } from '../entity/order-line/order-line.entity';
+import { Order } from '../entity/order/order.entity';
 import { ProductVariant } from '../entity/product-variant/product-variant.entity';
 import { TaxCategory } from '../entity/tax-category/tax-category.entity';
 import { TaxRate } from '../entity/tax-rate/tax-rate.entity';
@@ -136,9 +136,10 @@ export class MockTaxRateService {
 
     async getApplicableTaxRate(
         ctx: RequestContext,
-        zone: Zone | ID,
+        target: { countryCode?: string; zone: Zone | ID } | Zone | ID,
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
+        const zone = typeof target === 'object' && 'zone' in target ? target.zone : target;
         const rate = this.activeTaxRates.find(r => r.test(zone, taxCategory));
         return rate || taxRateDefaultStandard;
     }

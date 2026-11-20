@@ -3677,9 +3677,10 @@ export type TaxRate = Node & {
   enabled: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  region?: Maybe<Region>;
   updatedAt: Scalars['DateTime']['output'];
   value: Scalars['Float']['output'];
-  zone: Zone;
+  zone?: Maybe<Zone>;
 };
 
 export type TaxRateList = PaginatedList & {

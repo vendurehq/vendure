@@ -10,15 +10,16 @@ import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
-import { EntityNotFoundError } from '../../common/error/errors';
+import { EntityNotFoundError, UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { createSelfRefreshingCache, SelfRefreshingCache } from '../../common/self-refreshing-cache';
 import { ListQueryOptions } from '../../common/types/common-types';
-import { assertFound } from '../../common/utils';
+import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { CustomerGroup } from '../../entity/customer-group/customer-group.entity';
+import { Region } from '../../entity/region/region.entity';
 import { TaxCategory } from '../../entity/tax-category/tax-category.entity';
 import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -72,6 +73,10 @@ export class TaxRateService {
             options?.filter,
             'zoneId',
         );
+        const hasRegionIdFilter = this.listQueryBuilder.filterObjectHasProperty<TaxRateFilterParameter>(
+            options?.filter,
+            'regionId',
+        );
         const hasCategoryIdFilter = this.listQueryBuilder.filterObjectHasProperty<TaxRateFilterParameter>(
             options?.filter,
             'categoryId',
@@ -79,6 +84,10 @@ export class TaxRateService {
         if (hasZoneIdFilter) {
             effectiveRelations.push('zone');
             customPropertyMap.zoneId = 'zone.id';
+        }
+        if (hasRegionIdFilter) {
+            effectiveRelations.push('region');
+            customPropertyMap.regionId = 'region.id';
         }
         if (hasCategoryIdFilter) {
             effectiveRelations.push('category');
@@ -107,7 +116,7 @@ export class TaxRateService {
             .findOne({
                 where: { id: taxRateId },
                 relations: findOptionsArrayToObject<TaxRate>(
-                    relations ?? ['category', 'zone', 'customerGroup'],
+                    relations ?? ['category', 'zone', 'region', 'customerGroup'],
                 ),
             })
             .then(result => result ?? undefined);
@@ -116,7 +125,13 @@ export class TaxRateService {
     async create(ctx: RequestContext, input: CreateTaxRateInput): Promise<TaxRate> {
         const taxRate = new TaxRate(input);
         taxRate.category = await this.connection.getEntityOrThrow(ctx, TaxCategory, input.categoryId);
-        taxRate.zone = await this.connection.getEntityOrThrow(ctx, Zone, input.zoneId);
+        this.assertSingleTarget(input.zoneId, input.regionId);
+        if (input.zoneId) {
+            taxRate.zone = await this.connection.getEntityOrThrow(ctx, Zone, input.zoneId);
+        }
+        if (input.regionId) {
+            taxRate.region = await this.getCountryOrThrow(ctx, input.regionId);
+        }
         if (input.customerGroupId) {
             taxRate.customerGroup = await this.connection.getEntityOrThrow(
                 ctx,
@@ -136,6 +151,9 @@ export class TaxRateService {
         if (!taxRate) {
             throw new EntityNotFoundError('TaxRate', input.id);
         }
+        if (input.zoneId && input.regionId) {
+            this.assertSingleTarget(input.zoneId, input.regionId);
+        }
         const updatedTaxRate = patchEntity(taxRate, input);
         if (input.categoryId) {
             updatedTaxRate.category = await this.connection.getEntityOrThrow(
@@ -146,6 +164,12 @@ export class TaxRateService {
         }
         if (input.zoneId) {
             updatedTaxRate.zone = await this.connection.getEntityOrThrow(ctx, Zone, input.zoneId);
+            updatedTaxRate.region = null;
+            updatedTaxRate.regionId = null;
+        } else if (input.regionId) {
+            updatedTaxRate.region = await this.getCountryOrThrow(ctx, input.regionId);
+            updatedTaxRate.zone = null;
+            updatedTaxRate.zoneId = null;
         }
         if (input.customerGroupId) {
             updatedTaxRate.customerGroup = await this.connection.getEntityOrThrow(
@@ -186,16 +210,87 @@ export class TaxRateService {
 
     /**
      * @description
-     * Returns the applicable TaxRate based on the specified Zone and TaxCategory. Used when calculating Order
-     * prices.
+     * Returns the applicable TaxRate based on the specified target and TaxCategory. Used when calculating Order
+     * prices. The most specific rate wins: a country rate for `target.countryCode`, then a rate for
+     * `target.zone`, then a default rate with a value of 0.
+     *
+     * The older signature, which takes a Zone or zone ID, is still supported and only considers zone rates.
      */
     async getApplicableTaxRate(
         ctx: RequestContext,
-        zone: Zone | ID,
+        targetOrZone: { countryCode?: string; zone: Zone | ID } | Zone | ID,
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
-        const rate = (await this.getActiveTaxRates(ctx)).find(r => r.test(zone, taxCategory));
-        return rate || this.defaultTaxRate;
+        const target = this.isTarget(targetOrZone) ? targetOrZone : { zone: targetOrZone };
+        const rates = await this.getActiveTaxRates(ctx);
+        if (target.countryCode) {
+            const countryRate = rates.find(r => r.testRegion(target.countryCode as string, taxCategory));
+            if (countryRate) {
+                return countryRate;
+            }
+        }
+        const zoneRate = rates.find(r => r.test(target.zone, taxCategory));
+        return zoneRate || this.defaultTaxRate;
+    }
+
+    /**
+     * @description
+     * Returns the countries which are matched by two or more zone rates of the same TaxCategory
+     * and have no country rate for that TaxCategory. Read-only.
+     */
+    async findOverlappingZoneRates(
+        ctx: RequestContext,
+    ): Promise<Array<{ countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }>> {
+        const rates = await this.getActiveTaxRates(ctx);
+        const zones = await this.connection.getRepository(ctx, Zone).find({ relations: { members: true } });
+        const result: Array<{ countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }> = [];
+        const byKey = new Map<string, { countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }>();
+        for (const rate of rates) {
+            if (rate.zoneId == null) {
+                continue;
+            }
+            const zone = zones.find(z => idsAreEqual(z.id, rate.zoneId));
+            for (const member of zone?.members ?? []) {
+                if (member.type !== 'country') {
+                    continue;
+                }
+                const key = `${member.code}:${rate.categoryId}`;
+                let entry = byKey.get(key);
+                if (!entry) {
+                    entry = { countryCode: member.code, taxCategoryId: rate.categoryId, taxRates: [] };
+                    byKey.set(key, entry);
+                }
+                entry.taxRates.push(rate);
+            }
+        }
+        for (const entry of byKey.values()) {
+            const hasCountryRate = rates.some(r => r.testRegion(entry.countryCode, entry.taxCategoryId));
+            if (entry.taxRates.length > 1 && !hasCountryRate) {
+                result.push(entry);
+            }
+        }
+        return result;
+    }
+
+    private isTarget(value: unknown): value is { countryCode?: string; zone: Zone | ID } {
+        return typeof value === 'object' && value !== null && 'zone' in value && !('members' in value);
+    }
+
+    private assertSingleTarget(zoneId?: ID | null, regionId?: ID | null) {
+        if ((zoneId && regionId) || (!zoneId && !regionId)) {
+            throw new UserInputError('error.tax-rate-requires-exactly-one-target');
+        }
+    }
+
+    private async getCountryOrThrow(ctx: RequestContext, regionId: ID): Promise<Region> {
+        const region = await this.connection.getRepository(ctx, Region).findOne({ where: { id: regionId } });
+        if (!region) {
+            throw new EntityNotFoundError('Region', regionId);
+        }
+        if (region.type !== 'country') {
+            throw new UserInputError('error.tax-rate-region-must-be-country', { type: region.type });
+        }
+        return region;
     }
 
     private async getActiveTaxRates(ctx: RequestContext): Promise<TaxRate[]> {
@@ -208,7 +303,7 @@ export class TaxRateService {
 
     private async findActiveTaxRates(ctx: RequestContext): Promise<TaxRate[]> {
         return await this.connection.getRepository(ctx, TaxRate).find({
-            relations: { category: true, zone: true, customerGroup: true },
+            relations: { category: true, zone: true, region: true, customerGroup: true },
             where: {
                 enabled: true,
             },

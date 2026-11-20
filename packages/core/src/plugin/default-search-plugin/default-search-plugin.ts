@@ -213,7 +213,9 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
             )
             .subscribe(event => {
                 const defaultTaxZone = event.ctx.channel.defaultTaxZone;
-                if (defaultTaxZone && idsAreEqual(defaultTaxZone.id, event.entity.zone.id)) {
+                if (defaultTaxZone &&
+                    event.entity.zone &&
+                    idsAreEqual(defaultTaxZone.id, event.entity.zone.id)) {
                     return this.searchIndexService.reindex(event.ctx);
                 }
             });
