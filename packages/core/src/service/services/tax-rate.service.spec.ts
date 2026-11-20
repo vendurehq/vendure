@@ -15,7 +15,16 @@ async function makeService(
     options: { regions?: Array<Country | Province>; zones?: Zone[] } = {},
 ) {
     const repositories = new Map<unknown, unknown>([
-        [TaxRate, { find: () => Promise.resolve(rates.filter(r => r.enabled)) }],
+        [
+            TaxRate,
+            {
+                // Applies the `where` the service passes, so the service must ask for enabled rates.
+                find: ({ where }: any) =>
+                    Promise.resolve(
+                        rates.filter(r => where?.enabled === undefined || r.enabled === where.enabled),
+                    ),
+            },
+        ],
         [Zone, { find: () => Promise.resolve(options.zones ?? []) }],
         [
             Region,

@@ -132,9 +132,13 @@ export class OrderCalculator {
             taxTargetChanged = true;
         }
         const countryCode = getTaxCountryCode(order);
-        if ((order.taxCountryCode ?? undefined) !== countryCode) {
+        if (order.taxCountryCode == null && !taxTargetChanged) {
+            // The Order has not been calculated since taxCountryCode was added: record the country
+            // and keep the taxes it was placed with.
+            order.taxCountryCode = countryCode ?? '';
+        } else if (order.taxCountryCode !== (countryCode ?? '')) {
             // A country rate can apply when the shipping country changes, even within the same Zone.
-            order.taxCountryCode = countryCode ?? null;
+            order.taxCountryCode = countryCode ?? '';
             taxTargetChanged = true;
         }
         for (const updatedOrderLine of updatedOrderLines) {

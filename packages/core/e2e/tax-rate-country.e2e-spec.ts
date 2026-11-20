@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { AddressBasedTaxZoneStrategy, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -22,9 +23,12 @@ import {
     setShippingAddressDocument,
 } from './graphql/shop-definitions';
 
-// EU One-Stop Shop: one country rate per member state and a single 'eu' shipping zone.
+// EU One-Stop Shop: one country rate per member state and a single 'eu' shipping zone, with the
+// AddressBasedTaxZoneStrategy the tax guide recommends.
 describe('Country tax rates', () => {
-    const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
+    const { server, adminClient, shopClient } = createTestEnvironment(
+        mergeConfig(testConfig(), { taxOptions: { taxZoneStrategy: new AddressBasedTaxZoneStrategy() } }),
+    );
     let variantId: string;
     let secondVariantId: string;
     let euZoneId: string;
@@ -52,6 +56,7 @@ describe('Country tax rates', () => {
             ['DE', 'Germany'],
             ['FR', 'France'],
             ['IT', 'Italy'],
+            ['CH', 'Switzerland'],
         ]) {
             const { createCountry } = await adminClient.query(createCountryDocument, {
                 input: { code, enabled: true, translations: [{ languageCode: LanguageCode.en, name }] },
@@ -121,8 +126,13 @@ describe('Country tax rates', () => {
         expect(await taxRateFor('IT')).toBe(22);
     });
 
+    it('a country in another zone gets that zone rate', async () => {
+        // US is in the Americas zone of the initial data, with a 20% standard rate.
+        expect(await taxRateFor('US')).toBe(20);
+    });
+
     it('a country outside every zone gets the channel default zone rate', async () => {
-        expect(await taxRateFor('US')).toBe(22);
+        expect(await taxRateFor('CH')).toBe(22);
     });
 
     it('editing a rate does not re-tax the lines an update did not touch', async () => {

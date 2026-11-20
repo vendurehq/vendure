@@ -8,6 +8,7 @@ import { Channel } from '../entity/channel/channel.entity';
 import { OrderLine } from '../entity/order-line/order-line.entity';
 import { Order } from '../entity/order/order.entity';
 import { ProductVariant } from '../entity/product-variant/product-variant.entity';
+import { Country } from '../entity/region/country.entity';
 import { TaxCategory } from '../entity/tax-category/tax-category.entity';
 import { TaxRate } from '../entity/tax-rate/tax-rate.entity';
 import { Zone } from '../entity/zone/zone.entity';
@@ -121,6 +122,17 @@ export const taxRateOtherReduced = new TaxRate({
     categoryId: taxCategoryReduced.id,
 });
 
+export const taxRateCountryStandard = new TaxRate({
+    id: 'taxRateCountryStandard',
+    name: 'Country Standard',
+    value: 19,
+    enabled: true,
+    region: new Country({ id: 'countryXC', code: 'XC', type: 'country' }),
+    regionId: 'countryXC',
+    category: taxCategoryStandard,
+    categoryId: taxCategoryStandard.id,
+});
+
 export class MockTaxRateService {
     private activeTaxRates = [
         taxRateDefaultStandard,
@@ -139,7 +151,12 @@ export class MockTaxRateService {
         target: { countryCode?: string; zone: Zone | ID } | Zone | ID,
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
-        const zone = typeof target === 'object' && 'zone' in target ? target.zone : target;
+        const isTarget = typeof target === 'object' && 'zone' in target;
+        const countryCode = isTarget ? target.countryCode : undefined;
+        if (countryCode && taxRateCountryStandard.testRegion(countryCode, taxCategory)) {
+            return taxRateCountryStandard;
+        }
+        const zone = isTarget ? target.zone : target;
         const rate = this.activeTaxRates.find(r => r.test(zone, taxCategory));
         return rate || taxRateDefaultStandard;
     }

@@ -234,5 +234,16 @@ describe('TaxRate resolver', () => {
             });
             expect(taxRates.items.map(r => r.name).sort()).toEqual(['DE', 'switch']);
         });
+
+        it('update switches the target from a country back to a zone', async () => {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
+                options: { filter: { name: { eq: 'switch' } } },
+            });
+            const { updateTaxRate } = await adminClient.query(updateTaxRateDocument, {
+                input: { id: taxRates.items[0].id, zoneId: 'T_1' },
+            });
+            expect(updateTaxRate.zone?.id).toBe('T_1');
+            expect(updateTaxRate.region).toBeNull();
+        });
     });
 });
