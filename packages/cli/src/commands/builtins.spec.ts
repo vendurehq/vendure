@@ -43,7 +43,7 @@ describe('builtinCommandDefs project gate', () => {
     /**
      * `doctor` is declared with `defineCommand` and has no gate, deliberately:
      * reporting that a directory is not a Vendure project is one of its checks,
-     * so it has to run where that is true.
+     * so it has to run where that is true. `mcp` only reads manifests.
      */
     it('leaves commands with their own project resolution or no project requirement ungated', () => {
         const ungated = builtinCommandDefs
@@ -51,7 +51,7 @@ describe('builtinCommandDefs project gate', () => {
             .map(command => command.name)
             .sort();
 
-        expect(ungated).toEqual(['auth', 'codemod', 'console', 'dev', 'plugins']);
+        expect(ungated).toEqual(['auth', 'codemod', 'console', 'dev', 'mcp', 'plugins']);
     });
 
     /**
