@@ -12,6 +12,7 @@ import { Country } from '../entity/region/country.entity';
 import { TaxCategory } from '../entity/tax-category/tax-category.entity';
 import { TaxRate } from '../entity/tax-rate/tax-rate.entity';
 import { Zone } from '../entity/zone/zone.entity';
+import type { TaxRateTarget } from '../service/services/tax-rate.service';
 
 export type SimpleLine = { productVariantId: ID; quantity: number; lineId: ID; customFields?: any };
 
@@ -148,7 +149,7 @@ export class MockTaxRateService {
 
     async getApplicableTaxRate(
         ctx: RequestContext,
-        target: { countryCode?: string; zone: Zone | ID } | Zone | ID,
+        target: TaxRateTarget | Zone | ID,
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
         const isTarget = typeof target === 'object' && 'zone' in target;

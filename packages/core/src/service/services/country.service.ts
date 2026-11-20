@@ -141,6 +141,7 @@ export class CountryService {
             .getRepository(ctx, TaxRate)
             .createQueryBuilder('taxRate')
             .where('taxRate.region = :id', { id })
+            .orderBy('taxRate.id')
             .getMany();
         if (0 < taxRatesUsingCountry.length) {
             return {

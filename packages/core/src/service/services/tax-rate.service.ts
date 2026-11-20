@@ -30,6 +30,36 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 /**
+ * @description
+ * What {@link TaxRateService} `getApplicableTaxRate()` looks up a rate for: the country of the Order's
+ * shipping address, if there is one, and the tax Zone returned by the configured
+ * {@link TaxZoneStrategy}.
+ *
+ * @docsCategory services
+ * @docsPage TaxRateService
+ * @since 4.0.0
+ */
+export interface TaxRateTarget {
+    countryCode?: string;
+    zone: Zone | ID;
+}
+
+/**
+ * @description
+ * A country which two or more zone rates of one TaxCategory match, and which has no country rate
+ * for it. Returned by {@link TaxRateService} `findOverlappingZoneRates()`.
+ *
+ * @docsCategory services
+ * @docsPage TaxRateService
+ * @since 4.0.0
+ */
+export interface ZoneTaxRateOverlap {
+    countryCode: string;
+    taxCategoryId: ID;
+    taxRates: TaxRate[];
+}
+
+/**
  * The enabled TaxRates, indexed by target and TaxCategory so that a lookup does not scan the list.
  * When several rates share a key, the first rate in the list wins.
  */
@@ -250,11 +280,11 @@ export class TaxRateService {
      * prices. The most specific rate wins: a country rate for `target.countryCode`, then a rate for
      * `target.zone`, then a default rate with a value of 0.
      *
-     * The older signature, which takes a Zone or zone ID, is still supported and only considers zone rates.
+     * Passing a Zone or zone ID instead of a target finds zone rates only.
      */
     async getApplicableTaxRate(
         ctx: RequestContext,
-        targetOrZone: { countryCode?: string; zone: Zone | ID } | Zone | ID,
+        targetOrZone: TaxRateTarget | Zone | ID,
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
         const target = this.isTarget(targetOrZone) ? targetOrZone : { zone: targetOrZone };
@@ -272,16 +302,16 @@ export class TaxRateService {
 
     /**
      * @description
-     * Returns the countries which are matched by two or more zone rates of the same TaxCategory
-     * and have no country rate for that TaxCategory. Read-only.
+     * Returns the countries which two or more zone rates of the same TaxCategory match, and which
+     * have no country rate for that TaxCategory. For such a country, the rate depends on which Zone
+     * the {@link TaxZoneStrategy} returns; {@link AddressBasedTaxZoneStrategy} returns the first.
+     * Nothing is changed.
      */
-    async findOverlappingZoneRates(
-        ctx: RequestContext,
-    ): Promise<Array<{ countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }>> {
+    async findOverlappingZoneRates(ctx: RequestContext): Promise<ZoneTaxRateOverlap[]> {
         const { rates, byCountry } = await this.getActiveTaxRates(ctx);
         const zones = await this.connection.getRepository(ctx, Zone).find({ relations: { members: true } });
-        const result: Array<{ countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }> = [];
-        const byKey = new Map<string, { countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }>();
+        const result: ZoneTaxRateOverlap[] = [];
+        const byKey = new Map<string, ZoneTaxRateOverlap>();
         for (const rate of rates) {
             if (rate.zoneId == null) {
                 continue;
@@ -309,7 +339,7 @@ export class TaxRateService {
         return result;
     }
 
-    private isTarget(value: unknown): value is { countryCode?: string; zone: Zone | ID } {
+    private isTarget(value: unknown): value is TaxRateTarget {
         return typeof value === 'object' && value !== null && 'zone' in value;
     }
 
