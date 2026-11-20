@@ -1,5 +1,6 @@
 import { test } from '@playwright/test';
 
+import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 
 test.describe('Tax Rates', () => {
@@ -23,5 +24,25 @@ test.describe('Tax Rates', () => {
             { label: 'Rate', value: '25', type: 'number' },
         ],
         hasBulkDelete: true,
+    });
+
+    test('should create a tax rate that applies to a country', async ({ page }) => {
+        const detail = new BaseDetailPage(page, {
+            newPath: '/tax-rates/new',
+            pathPrefix: '/tax-rates/',
+            newTitle: 'New tax rate',
+        });
+        await detail.gotoNew();
+        await detail.expectNewPageLoaded();
+        await detail.fillFields([
+            { label: 'Name', value: 'E2E Country Rate' },
+            { label: 'Rate', value: '19', type: 'number' },
+            { label: 'Tax category', value: 'Standard Tax', type: 'select' },
+            { label: 'Applies to', value: 'Country', type: 'select' },
+            { label: 'Country', value: 'Australia', type: 'select' },
+        ]);
+        await detail.clickCreate();
+        await detail.expectSuccessToast(/created/i);
+        await detail.expectNavigatedToExisting();
     });
 });

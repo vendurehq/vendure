@@ -1,10 +1,13 @@
 import { NumberInput } from '@/vdb/components/data-input/number-input.js';
+import { CountryIdSelector } from '@/vdb/components/shared/country-id-selector.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TaxCategorySelector } from '@/vdb/components/shared/tax-category-selector.js';
 import { ZoneSelector } from '@/vdb/components/shared/zone-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -21,10 +24,13 @@ import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-lo
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { createTaxRateDocument, taxRateDetailDocument, updateTaxRateDocument } from './tax-rates.graphql.js';
 
 const pageId = 'tax-rate-detail';
+
+type TargetType = 'zone' | 'country';
 
 export const Route = createFileRoute('/_authenticated/_tax-rates/tax-rates_/$id')({
     component: TaxRateDetailPage,
@@ -59,7 +65,8 @@ function TaxRateDetailPage() {
                 value: entity.value,
                 enabled: entity.enabled,
                 categoryId: entity.category.id,
-                zoneId: entity.zone.id,
+                zoneId: entity.zone?.id,
+                regionId: entity.region?.id,
                 customerGroupId: entity.customerGroup?.id,
                 customFields: entity.customFields,
             };
@@ -80,6 +87,18 @@ function TaxRateDetailPage() {
             });
         },
     });
+
+    // The target type follows the saved entity until the user picks one.
+    const [pickedTargetType, setPickedTargetType] = useState<TargetType | undefined>();
+    const targetType: TargetType = pickedTargetType ?? (entity?.region ? 'country' : 'zone');
+    const targetTypeItems = { zone: t`Zone`, country: t`Country` };
+
+    const changeTargetType = (type: TargetType) => {
+        setPickedTargetType(type);
+        // A rate has exactly one target, so clear the other one.
+        form.setValue('zoneId', undefined, { shouldDirty: true, shouldValidate: true });
+        form.setValue('regionId', undefined, { shouldDirty: true, shouldValidate: true });
+    };
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
@@ -129,14 +148,53 @@ function TaxRateDetailPage() {
                                 <TaxCategorySelector value={field.value} onChange={field.onChange} />
                             )}
                         />
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="zoneId"
-                            label={<Trans>Zone</Trans>}
-                            render={({ field }) => (
-                                <ZoneSelector value={field.value} onChange={field.onChange} />
-                            )}
-                        />
+                        <Field>
+                            <FieldLabel>
+                                <Trans>Applies to</Trans>
+                            </FieldLabel>
+                            <Select
+                                items={targetTypeItems}
+                                value={targetType}
+                                onValueChange={value => value && changeTargetType(value as TargetType)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue>{(val: TargetType) => targetTypeItems[val]}</SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="zone">
+                                        <Trans>Zone</Trans>
+                                    </SelectItem>
+                                    <SelectItem value="country">
+                                        <Trans>Country</Trans>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                        {targetType === 'zone' ? (
+                            <FormFieldWrapper
+                                control={form.control}
+                                name="zoneId"
+                                label={<Trans>Zone</Trans>}
+                                render={({ field }) => (
+                                    <ZoneSelector
+                                        value={field.value ?? undefined}
+                                        onChange={field.onChange}
+                                    />
+                                )}
+                            />
+                        ) : (
+                            <FormFieldWrapper
+                                control={form.control}
+                                name="regionId"
+                                label={<Trans>Country</Trans>}
+                                render={({ field }) => (
+                                    <CountryIdSelector
+                                        value={field.value ?? undefined}
+                                        onChange={field.onChange}
+                                    />
+                                )}
+                            />
+                        )}
                     </DetailFormGrid>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="TaxRate" control={form.control} />

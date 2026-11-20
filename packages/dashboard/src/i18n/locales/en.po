@@ -3146,6 +3146,8 @@ msgstr "Browse facets"
 #~ msgstr "{0} items"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Zone"
@@ -4070,6 +4072,9 @@ msgid "Set filter criteria for the {columnId} column"
 msgstr "Set filter criteria for the {columnId} column"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -4368,6 +4373,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Select a country"
 
@@ -5454,6 +5460,10 @@ msgstr "If enabled, the filters will be inherited from the parent collection and
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Select a zone"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr "Applies to"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -7718,6 +7728,10 @@ msgstr "Refund settled"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "API Key"
 msgstr "API Key"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr "Target"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
