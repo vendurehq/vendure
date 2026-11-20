@@ -37,6 +37,7 @@ import { ChannelService } from '../../../service/services/channel.service';
 import { GlobalSettingsService } from '../../../service/services/global-settings.service';
 import { OrderService } from '../../../service/services/order.service';
 import { RequestContext } from '../../common/request-context';
+import { userHasPermissionsOnCustomField } from '../../common/user-has-permissions-on-custom-field';
 import { Allow } from '../../decorators/allow.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
 import { Transaction } from '../../decorators/transaction.decorator';
@@ -60,13 +61,13 @@ export class GlobalSettingsResolver {
      * Exposes a subset of the VendureConfig which may be of use to clients.
      */
     @ResolveField()
-    serverConfig(@Info() info: GraphQLResolveInfo): ServerConfig {
+    serverConfig(@Ctx() ctx: RequestContext, @Info() info: GraphQLResolveInfo): ServerConfig {
         const permissions = getAllPermissionsMetadata(
             this.configService.authOptions.customPermissions,
         ).filter(p => !p.internal);
         return {
-            customFieldConfig: this.generateCustomFieldConfig(info),
-            entityCustomFields: this.generateEntityCustomFieldConfig(info),
+            customFieldConfig: this.generateCustomFieldConfig(ctx, info),
+            entityCustomFields: this.generateEntityCustomFieldConfig(ctx, info),
             orderProcess: this.orderService.getOrderProcessStates(),
             permittedAssetTypes: this.configService.assetOptions.permittedFileTypes,
             permissions,
@@ -100,13 +101,17 @@ export class GlobalSettingsResolver {
     }
 
     // TODO: Remove in v3
-    private generateCustomFieldConfig(info: GraphQLResolveInfo): GraphQLCustomFields {
+    private generateCustomFieldConfig(ctx: RequestContext, info: GraphQLResolveInfo): GraphQLCustomFields {
         const exposedCustomFieldConfig: CustomFields = {};
         for (const [entityType, customFields] of Object.entries(this.configService.customFields)) {
             exposedCustomFieldConfig[entityType as keyof CustomFields] = customFields
                 // Do not expose custom fields marked as "internal".
                 ?.filter(c => !c.internal)
-                .map(c => ({ ...c, list: !!c.list as any }))
+                .map(c => ({
+                    ...c,
+                    list: !!c.list as any,
+                    defaultValue: this.getCustomFieldDefaultValue(ctx, c),
+                }))
                 .map((c: any) => {
                     // In the VendureConfig, the relation entity is specified
                     // as the class, but the GraphQL API exposes it as a string.
@@ -124,7 +129,10 @@ export class GlobalSettingsResolver {
         return exposedCustomFieldConfig as GraphQLCustomFields;
     }
 
-    private generateEntityCustomFieldConfig(info: GraphQLResolveInfo): EntityCustomFields[] {
+    private generateEntityCustomFieldConfig(
+        ctx: RequestContext,
+        info: GraphQLResolveInfo,
+    ): EntityCustomFields[] {
         return Object.entries(this.configService.customFields)
             .map(([entityType, customFields]) => {
                 if (!customFields || !customFields.length) {
@@ -133,7 +141,11 @@ export class GlobalSettingsResolver {
                 const customFieldsConfig = customFields
                     // Do not expose custom fields marked as "internal" or hidden from the dashboard.
                     .filter(c => !c.internal && (c as any).ui?.dashboard !== false)
-                    .map(c => ({ ...c, list: !!c.list as any }))
+                    .map(c => ({
+                        ...c,
+                        list: !!c.list as any,
+                        defaultValue: this.getCustomFieldDefaultValue(ctx, c),
+                    }))
                     .map(c => {
                         const { requiresPermission, deprecated } = c;
                         const result: any = { ...c };
@@ -178,6 +190,16 @@ export class GlobalSettingsResolver {
                 return { entityName: entityType, customFields: customFieldsConfig };
             })
             .filter(notNullOrUndefined);
+    }
+
+    private getCustomFieldDefaultValue(ctx: RequestContext, config: CustomFieldConfig) {
+        // Defaults are values, not just metadata: never expose secret defaults, or defaults
+        // for fields the requesting administrator cannot access, through either config API.
+        // Relation defaults can contain entity objects which require their own access checks.
+        if (config.secret || config.type === 'relation' || !userHasPermissionsOnCustomField(ctx, config)) {
+            return undefined;
+        }
+        return 'defaultValue' in config ? config.defaultValue : undefined;
     }
 
     private isRelationGraphQLType(
