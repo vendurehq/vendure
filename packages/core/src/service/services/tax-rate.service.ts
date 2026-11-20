@@ -30,6 +30,37 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 /**
+ * The enabled TaxRates, indexed by target and TaxCategory so that a lookup does not scan the list.
+ * When several rates share a key, the first one wins, as `Array.find` did before.
+ */
+interface ActiveTaxRates {
+    rates: TaxRate[];
+    /** Keyed by `${countryCode}:${categoryId}` */
+    byCountry: Map<string, TaxRate>;
+    /** Keyed by `${zoneId}:${categoryId}` */
+    byZone: Map<string, TaxRate>;
+}
+
+function indexActiveTaxRates(rates: TaxRate[]): ActiveTaxRates {
+    const byCountry = new Map<string, TaxRate>();
+    const byZone = new Map<string, TaxRate>();
+    const setFirst = (map: Map<string, TaxRate>, key: string, rate: TaxRate) => {
+        if (!map.has(key)) {
+            map.set(key, rate);
+        }
+    };
+    for (const rate of rates) {
+        if (rate.region?.type === 'country') {
+            setFirst(byCountry, `${rate.region.code}:${String(rate.categoryId)}`, rate);
+        }
+        if (rate.zoneId != null) {
+            setFirst(byZone, `${String(rate.zoneId)}:${String(rate.categoryId)}`, rate);
+        }
+    }
+    return { rates, byCountry, byZone };
+}
+
+/**
  * @description
  * Contains methods relating to {@link TaxRate} entities.
  *
@@ -44,7 +75,7 @@ export class TaxRateService {
         name: 'No configured tax rate',
         id: '0',
     });
-    private activeTaxRates: SelfRefreshingCache<TaxRate[], [RequestContext]>;
+    private activeTaxRates: SelfRefreshingCache<ActiveTaxRates, [RequestContext]>;
 
     constructor(
         private connection: TransactionalConnection,
@@ -222,15 +253,16 @@ export class TaxRateService {
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
         const target = this.isTarget(targetOrZone) ? targetOrZone : { zone: targetOrZone };
-        const rates = await this.getActiveTaxRates(ctx);
-        if (target.countryCode) {
-            const countryRate = rates.find(r => r.testRegion(target.countryCode as string, taxCategory));
-            if (countryRate) {
-                return countryRate;
-            }
-        }
-        const zoneRate = rates.find(r => r.test(target.zone, taxCategory));
-        return zoneRate || this.defaultTaxRate;
+        const { byCountry, byZone } = await this.getActiveTaxRates(ctx);
+        const categoryId = String(this.idOf(taxCategory));
+        const countryRate = target.countryCode
+            ? byCountry.get(`${target.countryCode}:${categoryId}`)
+            : undefined;
+        return (
+            countryRate ??
+            byZone.get(`${String(this.idOf(target.zone))}:${categoryId}`) ??
+            this.defaultTaxRate
+        );
     }
 
     /**
@@ -241,7 +273,7 @@ export class TaxRateService {
     async findOverlappingZoneRates(
         ctx: RequestContext,
     ): Promise<Array<{ countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }>> {
-        const rates = await this.getActiveTaxRates(ctx);
+        const { rates, byCountry } = await this.getActiveTaxRates(ctx);
         const zones = await this.connection.getRepository(ctx, Zone).find({ relations: { members: true } });
         const result: Array<{ countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }> = [];
         const byKey = new Map<string, { countryCode: string; taxCategoryId: ID; taxRates: TaxRate[] }>();
@@ -264,7 +296,7 @@ export class TaxRateService {
             }
         }
         for (const entry of byKey.values()) {
-            const hasCountryRate = rates.some(r => r.testRegion(entry.countryCode, entry.taxCategoryId));
+            const hasCountryRate = byCountry.has(`${entry.countryCode}:${String(entry.taxCategoryId)}`);
             if (entry.taxRates.length > 1 && !hasCountryRate) {
                 result.push(entry);
             }
@@ -274,6 +306,10 @@ export class TaxRateService {
 
     private isTarget(value: unknown): value is { countryCode?: string; zone: Zone | ID } {
         return typeof value === 'object' && value !== null && 'zone' in value && !('members' in value);
+    }
+
+    private idOf(entityOrId: { id: ID } | ID): ID {
+        return typeof entityOrId === 'object' ? entityOrId.id : entityOrId;
     }
 
     private assertSingleTarget(zoneId?: ID | null, regionId?: ID | null) {
@@ -293,7 +329,7 @@ export class TaxRateService {
         return region;
     }
 
-    private async getActiveTaxRates(ctx: RequestContext): Promise<TaxRate[]> {
+    private async getActiveTaxRates(ctx: RequestContext): Promise<ActiveTaxRates> {
         return this.activeTaxRates.value(ctx);
     }
 
@@ -321,7 +357,10 @@ export class TaxRateService {
         this.activeTaxRates = await createSelfRefreshingCache({
             name: 'TaxRateService.activeTaxRates',
             ttl: this.configService.entityOptions.taxRateCacheTtl,
-            refresh: { fn: ctx => this.findActiveTaxRates(ctx), defaultArgs: [RequestContext.empty()] },
+            refresh: {
+                fn: async ctx => indexActiveTaxRates(await this.findActiveTaxRates(ctx)),
+                defaultArgs: [RequestContext.empty()],
+            },
         });
     }
 }
