@@ -15,8 +15,8 @@ import { CORE_CODE_NAMESPACE, toVendureCode } from './vendure-code';
  * Note that this class should not be directly used in code, but should be extended by
  * a more specific Error class.
  *
- * Each error has a {@link toVendureCode namespaced code}, `vendureCode`, built from its message key,
- * for example `core.entity-with-id-not-found`. The GraphQL APIs return it as `extensions.vendureCode`.
+ * Each error has a namespaced code, `vendureCode`, which {@link toVendureCode} builds from its message
+ * key, for example `core.entity-with-id-not-found`. The GraphQL APIs return it as `extensions.vendureCode`.
  * A plugin which defines its own error keys sets the static `namespace` on its error class, so
  * that its codes cannot clash with the core codes:
  *
