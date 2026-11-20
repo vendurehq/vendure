@@ -4,6 +4,8 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
+import { registerManifestCommands } from './command-host/commander-adapter.js';
+import { loadMergedManifest } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
 import { devCommandDef } from './commands/dev/command.js';
@@ -101,6 +103,19 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         rootOptions: registry.getRootOptions(),
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
+
+    // Commands declared with `defineCommand` are built from the manifest alone. Their
+    // declarations load only when one of them runs.
+    try {
+        registerManifestCommands(program, loadMergedManifest(), {
+            loadDefinitions: async () =>
+                (await import('./command-host/core-commands.js')).coreCommandDefinitions,
+        });
+    } catch (e) {
+        process.stderr.write(
+            `Could not load the command manifest: ${e instanceof Error ? e.message : String(e)}\n`,
+        );
+    }
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';

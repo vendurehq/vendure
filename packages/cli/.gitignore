@@ -1,3 +1,4 @@
 dist/
 dist-e2e/
 node_modules/ 
+e2e/fixtures/.tmp-*

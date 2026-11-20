@@ -6,7 +6,6 @@ import { buildCommandDef } from './build/command.js';
 import { codemodCommandDef } from './codemod/command.js';
 import { consoleCommandDef } from './console/command.js';
 import { devCommandDef } from './dev/command.js';
-import { doctorCommandDef } from './doctor/command.js';
 import { migrateCommandDef } from './migrate/command.js';
 import { pluginsCommandDef } from './plugins/command.js';
 import { schemaCommandDef } from './schema/command.js';
@@ -24,7 +23,6 @@ export const builtinCommandDefs: CliCommandNode[] = [
     migrateCommandDef,
     codemodCommandDef,
     schemaCommandDef,
-    doctorCommandDef,
     consoleCommandDef,
     authCommandDef,
     pluginsCommandDef,
