@@ -146,6 +146,7 @@
     "entity-duplication-no-strategy-found": "No duplication strategy with code \"{ code }\" was found for the entity type \"{ entityName }\"",
     "facet-force-deleted": "The Facet was deleted and its FacetValues were removed from {products, plural, =0 {} one {1 Product} other {# Products}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
     "facet-used": "The Facet \"{ facetCode }\" includes FacetValues which are assigned to {products, plural, =0 {} one {1 Product} other {# Products}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
+    "facet-code-in-use-other-channel": "A Facet with code \"{ code }\" already exists in another Channel. Assign that Facet to this Channel or choose a different code.",
     "facet-value-force-deleted": "The selected FacetValue was removed from {products, plural, =0 {} one {1 Product} other {# Products}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}} and deleted",
     "facet-value-used": "The FacetValue \"{ facetValueCode }\" is assigned to {products, plural, =0 {} one {1 Product} other {# Products}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
     "payment-method-used-in-channels": "The selected PaymentMethod is assigned to the following Channels: { channelCodes }. Set \"force: true\" to delete from all Channels.",

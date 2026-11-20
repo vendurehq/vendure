@@ -253,28 +253,50 @@ export class FacetService {
      * Checks to ensure the Facet code is unique. If there is a conflict, then the code is suffixed
      * with an incrementing integer.
      */
+    private async findFacetByCodeInChannel(ctx: RequestContext, facetCode: string, excludeId?: ID) {
+        const qb = this.connection
+            .getRepository(ctx, Facet)
+            .createQueryBuilder('facet')
+            .innerJoin('facet.channels', 'channel')
+            .where('facet.code = :code', { code: facetCode })
+            .andWhere('channel.id = :channelId', { channelId: ctx.channelId });
+        if (excludeId != null) {
+            qb.andWhere('facet.id != :id', { id: excludeId });
+        }
+        return qb.getOne();
+    }
+
+    private async assertFacetCodeAvailableInChannel(ctx: RequestContext, facetCode: string, id?: ID) {
+        const globalMatch = await this.connection.getRepository(ctx, Facet).findOne({ where: { code: facetCode } });
+        if (!globalMatch) {
+            return;
+        }
+        if (id != null && idsAreEqual(globalMatch.id, id)) {
+            return;
+        }
+        const inCurrentChannel = await this.findFacetByCodeInChannel(ctx, facetCode);
+        if (!inCurrentChannel) {
+            throw new UserInputError('error.facet-code-in-use-other-channel', { code: facetCode });
+        }
+    }
+
     private async ensureUniqueCode(ctx: RequestContext, code: string, id?: ID) {
         let candidate = code;
         let suffix = 1;
-        let conflict = false;
         const alreadySuffixed = /-\d+$/;
-        do {
-            const match = await this.connection
-                .getRepository(ctx, Facet)
-                .findOne({ where: { code: candidate } });
-
-            conflict = !!match && ((id != null && !idsAreEqual(match.id, id)) || id == null);
-            if (conflict) {
-                suffix++;
-                if (alreadySuffixed.test(candidate)) {
-                    candidate = candidate.replace(alreadySuffixed, `-${suffix}`);
-                } else {
-                    candidate = `${candidate}-${suffix}`;
-                }
+        while (true) {
+            await this.assertFacetCodeAvailableInChannel(ctx, candidate, id);
+            const match = await this.findFacetByCodeInChannel(ctx, candidate, id);
+            if (!match) {
+                return candidate;
             }
-        } while (conflict);
-
-        return candidate;
+            suffix++;
+            if (alreadySuffixed.test(candidate)) {
+                candidate = candidate.replace(alreadySuffixed, `-${suffix}`);
+            } else {
+                candidate = `${candidate}-${suffix}`;
+            }
+        }
     }
 
     /**
