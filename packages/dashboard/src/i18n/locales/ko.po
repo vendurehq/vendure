@@ -2032,6 +2032,10 @@ msgstr "사용 제한"
 msgid "Create your first collection"
 msgstr ""
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "전역 설정 로딩 중..."
@@ -3132,6 +3136,8 @@ msgstr "속성 탐색"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "지역"
@@ -4052,8 +4058,12 @@ msgid "Set filter criteria for the {columnId} column"
 msgstr "{columnId} 열의 필터 조건 설정"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "국가"
@@ -4346,6 +4356,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "국가 선택"
 
@@ -5417,6 +5428,10 @@ msgstr "활성화하면 필터가 상위 컬렉션에서 상속되어 이 컬렉
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "지역 선택"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -7642,6 +7657,10 @@ msgstr "환불이 정산되었습니다"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "API Key"
 msgstr "API 키"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"

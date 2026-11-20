@@ -1,6 +1,6 @@
 import { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { SearchReindexResponse } from '@vendure/common/lib/generated-types';
+import { SearchReindexResponse, UpdateTaxRateInput } from '@vendure/common/lib/generated-types';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { buffer, debounceTime, delay, filter, map } from 'rxjs/operators';
 import { Column, PrimaryColumn } from 'typeorm';
@@ -213,7 +213,15 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
             )
             .subscribe(event => {
                 const defaultTaxZone = event.ctx.channel.defaultTaxZone;
-                if (defaultTaxZone && idsAreEqual(defaultTaxZone.id, event.entity.zone.id)) {
+                const usesDefaultTaxZone =
+                    defaultTaxZone &&
+                    idsAreEqual(defaultTaxZone.id, event.entity.zone?.id ?? event.entity.zoneId);
+                // A rate which now targets a country may have targeted the default tax Zone before.
+                const movedToCountry =
+                    event.type === 'updated' &&
+                    typeof event.input === 'object' &&
+                    !!(event.input as UpdateTaxRateInput).regionId;
+                if (usesDefaultTaxZone || movedToCountry) {
                     return this.searchIndexService.reindex(event.ctx);
                 }
             });

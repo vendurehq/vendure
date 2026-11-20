@@ -2049,6 +2049,10 @@ msgstr "Ограничение за използване"
 msgid "Create your first collection"
 msgstr "Създайте първата си колекция"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Глобалните настройки се зареждат..."
@@ -3164,6 +3168,8 @@ msgstr "Преглед на атрибути"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Зона"
@@ -4090,8 +4096,12 @@ msgid "Set filter criteria for the {columnId} column"
 msgstr "Задаване на критерии за филтриране за колона {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Държава"
@@ -4388,6 +4398,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Изберете държава"
 
@@ -5477,6 +5488,10 @@ msgstr "Ако е разрешено, филтрите ще бъдат насл�
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Изберете зона"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -7755,6 +7770,10 @@ msgstr "Възстановяването е приключено"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "API Key"
 msgstr "API Key"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"

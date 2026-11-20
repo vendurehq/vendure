@@ -98,6 +98,41 @@ describe('OrderCalculator', () => {
             expect(order.subTotalWithTax).toBe(443);
         });
 
+        it('re-taxes every line when the shipping country changes, with no updated lines', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(20);
+            expect(order.taxCountryCode).toBe('');
+
+            order.shippingAddress = { countryCode: 'XC' };
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(19);
+            expect(order.taxCountryCode).toBe('XC');
+
+            order.shippingAddress = {};
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(20);
+        });
+
+        it('keeps the taxes of an Order not calculated since taxCountryCode was added', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            // An Order placed before the column existed: tax Zone set, no tax country.
+            order.taxCountryCode = null;
+            order.shippingAddress = { countryCode: 'XC' };
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(20);
+            expect(order.taxCountryCode).toBe('XC');
+        });
+
         it('resets totals when lines array is empty', async () => {
             const ctx = createRequestContext({ pricesIncludeTax: false });
             const order = createOrder({

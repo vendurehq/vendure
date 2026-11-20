@@ -2040,6 +2040,10 @@ msgstr "Ograničenje korištenja"
 msgid "Create your first collection"
 msgstr "Stvorite svoju prvu kolekciju"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Učitavanje globalnih postavki..."
@@ -3146,6 +3150,8 @@ msgstr "Pregledaj facete"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Zona"
@@ -4070,8 +4076,12 @@ msgid "Set filter criteria for the {columnId} column"
 msgstr "Postavi kriterije filtriranja za stupac {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Država"
@@ -4368,6 +4378,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Odaberite državu"
 
@@ -5454,6 +5465,10 @@ msgstr "Ako je omogućeno, filteri će se naslijediti iz nadređene kolekcije i 
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Odaberite zonu"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -7718,6 +7733,10 @@ msgstr "Povrat izvršen"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "API Key"
 msgstr "API ključ"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
