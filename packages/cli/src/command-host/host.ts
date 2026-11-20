@@ -300,12 +300,13 @@ export async function executeCommand(
             }
         }
 
-        // Stage 3: run.
-        const { run } = await def.run();
-        const result = await run(parsed, ctx);
+        // Stage 3: run. Once `run()` has returned, its result is reported even when the caller
+        // cancelled meanwhile: the work it reports has happened.
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);
         }
+        const { run } = await def.run();
+        const result = await run(parsed, ctx);
         if (isIncompleteResult(result)) {
             return incompleteResult(result.needs, notices, result.output);
         }
@@ -333,9 +334,12 @@ export async function executeCommand(
 
 /** A fix as a command line, for a person at a terminal. */
 export function formatFix(fix: { path: string[]; input: Record<string, unknown> }): string {
-    const flags = Object.entries(fix.input).map(([key, value]) => {
-        const flag = `--${kebab(key)}`;
-        return value === true ? flag : `${flag} ${JSON.stringify(value)}`;
-    });
+    // A boolean flag is a switch, so `false` is the same as leaving it out.
+    const flags = Object.entries(fix.input)
+        .filter(([, value]) => value !== false && value !== undefined && value !== null)
+        .map(([key, value]) => {
+            const flag = `--${kebab(key)}`;
+            return value === true ? flag : `${flag} ${JSON.stringify(value)}`;
+        });
     return ['vendure', ...fix.path, ...flags].join(' ');
 }

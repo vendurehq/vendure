@@ -38,6 +38,10 @@ export function describeDatabase(config: VendureConfig): {
 /**
  * The name of the last migration the database has applied, or `null` when none has been applied.
  * It throws when the database cannot be read.
+ *
+ * It finds the migrations table and the last migration the same way TypeORM's `MigrationExecutor`
+ * does when it reverts: the table name with the configured schema and database, and the row with
+ * the highest `id`. So the preview names the migration the revert undoes.
  */
 export async function lastAppliedMigration(config: VendureConfig): Promise<string | null> {
     const { DataSource } = requireFromProjectCore<typeof import('typeorm')>('typeorm');
@@ -52,18 +56,29 @@ export async function lastAppliedMigration(config: VendureConfig): Promise<strin
     } as any);
     try {
         await dataSource.initialize();
-        const table = dataSource.options.migrationsTableName ?? 'migrations';
-        if (!(await dataSource.createQueryRunner().hasTable(table))) {
-            return null;
+        const { driver } = dataSource;
+        const tableName = dataSource.options.migrationsTableName ?? 'migrations';
+        const table = driver.buildTableName(
+            tableName,
+            (driver.options as { schema?: string }).schema,
+            driver.database,
+        );
+        const queryRunner = dataSource.createQueryRunner();
+        try {
+            if (!(await queryRunner.hasTable(table))) {
+                return null;
+            }
+            const row = await dataSource
+                .createQueryBuilder(queryRunner)
+                .select('m.name', 'name')
+                .from(table, 'm')
+                .orderBy(`m.${driver.escape('id')}`, 'DESC')
+                .limit(1)
+                .getRawOne<{ name: string }>();
+            return row?.name ?? null;
+        } finally {
+            await queryRunner.release();
         }
-        const row = await dataSource
-            .createQueryBuilder()
-            .select('m.name', 'name')
-            .from(table, 'm')
-            .orderBy('m.id', 'DESC')
-            .limit(1)
-            .getRawOne<{ name: string }>();
-        return row?.name ?? null;
     } finally {
         if (dataSource.isInitialized) {
             await dataSource.destroy();

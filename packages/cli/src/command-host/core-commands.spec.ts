@@ -50,7 +50,7 @@ describe('core command definitions', () => {
         },
     );
 
-    it('declares each consent the plan can ask for, on commands that have a plan', () => {
+    it('has a plan() on every command that declares consents', () => {
         for (const def of coreCommandDefinitions) {
             if (def.consents) {
                 expect(def.plan).toBeDefined();

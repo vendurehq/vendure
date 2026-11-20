@@ -27,6 +27,7 @@ export async function plan(
             database: describeDatabase(config),
             lastAppliedMigration: migration,
         },
-        requiredConsents: ['revertMigration'],
+        // With no migration applied, a revert changes nothing, so there is nothing to consent to.
+        requiredConsents: migration === null ? [] : ['revertMigration'],
     };
 }

@@ -28,7 +28,8 @@ export function defineError<Details = any>(
 
 /**
  * @description
- * Returned from `run` or `plan` when the caller must supply something. The caller does what the
+ * Returned from `run` when the caller must supply something, such as a consent for a risk that
+ * `run` found. The caller does what the
  * needs say, then runs the same command again. Running again must be safe, so a command that
  * changed something before it stopped reports that in `output`.
  */

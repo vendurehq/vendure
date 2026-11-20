@@ -110,8 +110,9 @@ export interface InputNeed {
 
 /**
  * @description
- * A named consent. The caller passes `digest` as the value of the input field named `consent`,
- * then runs the same command again. The host computes the preview again and asks again if the
+ * A named consent. The caller passes `digest` as the value of the input field whose name is the
+ * value of `consent`, for example `{ revertMigration: '<digest>' }`, then runs the same command
+ * again. The host computes the preview again and asks again if the
  * digest no longer matches, so a consent never applies to something the caller did not see.
  */
 export interface ConsentNeed {
@@ -349,12 +350,6 @@ export interface CommandDefinition {
     requires?: {
         /** The host refuses to run the command outside a Vendure project. */
         project?: boolean;
-        /**
-         * The login the command needs, for example `cloud`. The host does not check it yet: the
-         * first ported command that needs a login adds the check, as an `input` need for the
-         * secret credential field.
-         */
-        auth?: string;
     };
     /** Named consents, each with a description. */
     consents?: Record<string, string>;

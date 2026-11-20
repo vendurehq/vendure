@@ -58,6 +58,13 @@ describe('mergeManifests', () => {
         ).toThrow(/reserves/);
     });
 
+    // `add_codegen` and `add codegen` would both be the MCP tool `add_codegen`.
+    it.each([['add_codegen'], ['Add'], ['']])('refuses the path segment %j', segment => {
+        expect(() => mergeManifests([manifest('@a/one', entry([segment]))])).toThrow(
+            /is not a lowercase word/,
+        );
+    });
+
     it('refuses two fields that share a short flag', () => {
         expect(() =>
             mergeManifests([

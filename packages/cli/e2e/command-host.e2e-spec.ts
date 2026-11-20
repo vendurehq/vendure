@@ -229,7 +229,7 @@ describe('Command host E2E', () => {
                 output: { reverted: true, migration: need.preview.lastAppliedMigration },
             });
 
-            // The migration is gone, so the preview, and with it the digest, has changed.
+            // The migration is gone, so there is nothing left to revert, and no consent to give.
             const replayed = await runCli(fixtureDir, [
                 'migrate',
                 'revert',
@@ -237,10 +237,11 @@ describe('Command host E2E', () => {
                 '--revert-migration',
                 need.digest,
             ]);
-            expect(replayed.exitCode).toBe(3);
-            const again = JSON.parse(replayed.stdout).needs[0];
-            expect(again.digest).not.toBe(need.digest);
-            expect(again.preview.lastAppliedMigration).toBeNull();
+            expect(replayed.exitCode).toBe(0);
+            expect(JSON.parse(replayed.stdout)).toMatchObject({
+                status: 'ok',
+                output: { reverted: false, migration: null },
+            });
         });
 
         it('takes the consent digest as tool input over MCP', async () => {

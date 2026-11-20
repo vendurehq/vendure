@@ -14,6 +14,9 @@ export async function run(input: { config?: string }, ctx: CommandContext) {
     } catch (e) {
         return fail(databaseUnreadable, { message: e instanceof Error ? e.message : String(e) });
     }
+    if (migration === null) {
+        return { reverted: false, migration: null };
+    }
     ctx.progress('Reverting the last migration');
     // With this set, the core function throws instead of printing the error and setting an exit code.
     process.env.VENDURE_RUNNING_IN_CLI = 'true';

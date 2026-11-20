@@ -90,10 +90,8 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     for (const field of positional) {
         command.argument(`[${kebab(field)}]`, properties[field]?.description);
     }
+    // A positional field is also a flag, so that a fix or a need can always name it as one.
     for (const [field, schema] of Object.entries(properties)) {
-        if (positional.includes(field)) {
-            continue;
-        }
         const flag = `--${kebab(field)}`;
         const short = manifestCommand.cli.flags?.[field]?.short;
         const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
@@ -273,7 +271,7 @@ async function runLeaf(
     const definitions = await options.loadDefinitions();
     const key = manifestCommand.path.join(' ');
     const def = definitions.find(candidate => candidate.path.join(' ') === key);
-    const mismatch = def ? findMismatch(def, manifestCommand) : 'the command is not installed';
+    const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
     if (!def || mismatch) {
         return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
@@ -293,7 +291,9 @@ async function runLeaf(
         mcp: isMcpCall(),
         prompter: !json && !isNonInteractiveEnvironment() ? createClackPrompter() : undefined,
         emit,
-        spawn: createSpawn(process.cwd(), controller.signal, chunk => process.stdout.write(chunk)),
+        spawn: createSpawn(process.cwd(), controller.signal, text => process.stdout.write(text), {
+            wholeLines: json,
+        }),
         findProjectRoot: () => findVendureProjectRoot(),
     };
 
@@ -319,7 +319,10 @@ function ancestorOptionValue(command: Command, field: string): unknown {
 }
 
 /** Checks that the declaration the host loaded is the one the manifest was built from. */
-function findMismatch(def: CommandDefinition, manifestCommand: MergedManifestCommand): string | undefined {
+export async function findMismatch(
+    def: CommandDefinition,
+    manifestCommand: MergedManifestCommand,
+): Promise<string | undefined> {
     if (def.behavior !== manifestCommand.behavior) {
         return `its behavior is "${def.behavior}" but the manifest says "${manifestCommand.behavior}"`;
     }
@@ -331,6 +334,19 @@ function findMismatch(def: CommandDefinition, manifestCommand: MergedManifestCom
     }
     if ((def.plan !== undefined) !== manifestCommand.hasPlan) {
         return 'it differs in having a plan()';
+    }
+    // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
+    // in place, so a field that was added, renamed or removed is caught here.
+    const declared = Object.keys(
+        ((await def.schemas()).input['~standard'].jsonSchema.input({ target: 'draft-2020-12' }).properties as
+            | object
+            | undefined) ?? {},
+    );
+    const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
+        field => !(field in manifestCommand.consents),
+    );
+    if (declared.sort().join(',') !== listed.sort().join(',')) {
+        return 'its input fields differ';
     }
     return undefined;
 }

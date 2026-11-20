@@ -212,17 +212,44 @@ describe('executeCommand', () => {
         expect(result.envelope.output).toEqual({ mcp: true });
     });
 
-    it('stops with a cancelled error when the signal fired', async () => {
+    it('does not run when the signal fired before run()', async () => {
+        const controller = new AbortController();
+        controller.abort();
+        const run = vi.fn(async () => ({}));
+        const result = await runCommandInHarness(
+            makeCommand(run),
+            { name: 'a' },
+            { signal: controller.signal },
+        );
+        expect(result.envelope.error?.code).toBe('cancelled');
+        expect(run).not.toHaveBeenCalled();
+    });
+
+    it('stops with a cancelled error when run() throws after the signal fired', async () => {
         const controller = new AbortController();
         const result = await runCommandInHarness(
             makeCommand(async () => {
                 controller.abort();
-                return {};
+                throw new Error('aborted');
             }),
             { name: 'a' },
             { signal: controller.signal },
         );
         expect(result.envelope.error?.code).toBe('cancelled');
+    });
+
+    // A revert or a file write that finished must not be reported as cancelled.
+    it('reports what run() returned, even when the signal fired while it ran', async () => {
+        const controller = new AbortController();
+        const result = await runCommandInHarness(
+            makeCommand(async () => {
+                controller.abort();
+                return { reverted: true };
+            }),
+            { name: 'a' },
+            { signal: controller.signal },
+        );
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { reverted: true } });
     });
 });
 
@@ -394,6 +421,12 @@ describe('formatFix', () => {
     it('shows a fix as a command line', () => {
         expect(formatFix({ path: ['console', 'link'], input: { projectDir: 'a b', force: true } })).toBe(
             'vendure console link --project-dir "a b" --force',
+        );
+    });
+
+    it('leaves out a false boolean, which a switch cannot take', () => {
+        expect(formatFix({ path: ['doctor'], input: { strict: false, check: ['config'] } })).toBe(
+            'vendure doctor --check ["config"]',
         );
     });
 });

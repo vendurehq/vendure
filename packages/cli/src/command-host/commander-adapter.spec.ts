@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
     CancellationSource,
     createCancellation,
+    findMismatch,
     jsonRequested,
     registerManifestCommands,
 } from './commander-adapter.js';
@@ -112,6 +113,29 @@ describe('registerManifestCommands', () => {
     });
 });
 
+describe('positional fields', () => {
+    const positional = defineCommand({
+        path: ['show'],
+        description: 'Shows a thing',
+        behavior: 'readonly',
+        schemas: async () => ({ input: z.object({ id: z.string().describe('The id') }) }),
+        cli: { positional: ['id'] },
+        run: async () => ({ run: async () => ({}) }),
+    });
+
+    // A fix or a need names every field as a flag, so a positional field takes one too.
+    it('registers a positional field as an argument and as a flag', async () => {
+        const built = await buildCommandManifest('@test/pkg', '1.0.0', [positional]);
+        const root = new Command('vendure').exitOverride();
+        registerManifestCommands(root, mergeManifests([built]), {
+            loadDefinitions: async () => [positional],
+        });
+        const show = root.commands.find(c => c.name() === 'show') as Command;
+        expect(show.registeredArguments.map(a => a.name())).toEqual(['id']);
+        expect(show.options.map(o => o.flags)).toContain('--id <id>');
+    });
+});
+
 describe('jsonRequested', () => {
     it('is true for --json, --format json and --format=json', () => {
         expect(jsonRequested(['doctor', '--json'])).toBe(true);
@@ -172,5 +196,22 @@ describe('createCancellation', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+});
+
+describe('findMismatch', () => {
+    it('accepts the declaration a manifest was built from', async () => {
+        const [built] = mergeManifests([await buildCommandManifest('@test/pkg', '1.0.0', [demo])]);
+        expect(await findMismatch(demo, built)).toBeUndefined();
+    });
+
+    // `watch` leaves an old manifest in place while the declarations change.
+    it('reports an input field that the manifest does not list', async () => {
+        const [built] = mergeManifests([await buildCommandManifest('@test/pkg', '1.0.0', [demo])]);
+        const changed = defineCommand({
+            ...demo,
+            schemas: async () => ({ input: z.object({ name: z.string(), colour: z.string().optional() }) }),
+        });
+        expect(await findMismatch(changed, built)).toBe('its input fields differ');
     });
 });

@@ -7,7 +7,7 @@ export const MANIFEST_FILE_NAME = 'vendure-commands.json';
 
 /**
  * Field names a command may not use. The host adds `--json`, `--input` and `--format` to every
- * command, and keeps `--yes` and `--project` for host flags that come later.
+ * command. `--yes` and `--project` are reserved for host flags.
  */
 export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes', 'project'];
 
@@ -19,7 +19,7 @@ export interface ManifestCommand {
     description: string;
     keywords: string[];
     behavior: CommandBehavior;
-    requires: { project?: boolean; auth?: string };
+    requires: { project?: boolean };
     consents: Record<string, string>;
     /** JSON Schema of the input, with one string property for each consent. */
     input: JsonSchema;
@@ -81,6 +81,14 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
                     `${manifest.package} declares the command ${label}, but "${command.path[0]}" is reserved`,
                 );
             }
+            // `vendure mcp` names a tool by joining its path with `_`, so a segment with `_` in it
+            // could give two commands the same tool name.
+            const badSegment = command.path.find(segment => !/^[a-z0-9][a-z0-9-]*$/.test(segment));
+            if (badSegment !== undefined) {
+                throw new Error(
+                    `${manifest.package} declares the command ${label}, but "${badSegment}" is not a lowercase word or words joined with "-"`,
+                );
+            }
             const previous = seen.get(key);
             if (previous) {
                 throw new Error(
@@ -116,8 +124,7 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
 }
 
 /**
- * Loads the manifests that apply to the current project. Only the CLI's own manifest exists
- * today.
+ * Loads the manifests that apply to the current project. It reads the CLI's own manifest.
  *
  * `build` writes the CLI's manifest, but `watch` does not. Without the file, the manifest is built
  * from the declarations instead, which loads their schemas and is slower.

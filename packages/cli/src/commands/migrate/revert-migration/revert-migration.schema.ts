@@ -5,6 +5,6 @@ export const input = z.object({
 });
 
 export const output = z.object({
-    reverted: z.boolean(),
+    reverted: z.boolean().describe('False when the database had applied no migration'),
     migration: z.string().nullable().optional().describe('The migration that was reverted'),
 });

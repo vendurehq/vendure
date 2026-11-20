@@ -1,18 +1,11 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
-import path from 'node:path';
-import { StructureKind } from 'ts-morph';
 
 import { openProject } from '../../../shared/open-project.js';
 import { PackageJson } from '../../../shared/package-json-ref.js';
-import { getPluginClasses, getRelativeImportPath } from '../../../utilities/ast-utils.js';
+import { getPluginClasses } from '../../../utilities/ast-utils.js';
 
 import { packageJsonNotFound, pluginNotFound } from './add-codegen.errors.js';
-import { CodegenConfigRef } from './codegen-config-ref.js';
-
-const CODEGEN_PACKAGES = [
-    { pkg: '@graphql-codegen/cli', isDevDependency: true },
-    { pkg: '@graphql-codegen/typescript', isDevDependency: true },
-];
+import { CODEGEN_PACKAGES, configureCodegen } from './add-codegen.shared.js';
 
 /**
  * Sets up GraphQL code generation for one plugin: installs the codegen packages, adds the plugin
@@ -47,18 +40,7 @@ export async function run(input: { plugin: string }, ctx: CommandContext) {
     }
 
     ctx.progress('Configuring codegen file');
-    const codegenFile = new CodegenConfigRef(project, packageJson.getPackageRootDir());
-    const rootDir = project.getDirectory('.');
-    if (!rootDir) {
-        throw new Error('Could not find the root directory of the project');
-    }
-    const relativePluginPath = getRelativeImportPath({ from: rootDir, to: pluginClass.getSourceFile() });
-    codegenFile.addEntryToGeneratesObject({
-        name: `'${path.dirname(relativePluginPath)}/gql/generated.ts'`,
-        kind: StructureKind.PropertyAssignment,
-        initializer: `{ plugins: ['typescript'] }`,
-    });
-    packageJson.addScriptToRootPackageJson('codegen', 'graphql-codegen --config codegen.ts');
+    const codegenFile = configureCodegen(project, packageJson, [pluginClass.getSourceFile()]);
     await project.save();
 
     return {

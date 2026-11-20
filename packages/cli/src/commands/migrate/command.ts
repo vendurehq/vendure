@@ -20,7 +20,8 @@ export const migrateCommandDef: CliCommandDefinition = {
         },
         {
             long: '--revert',
-            description: 'Revert the last migration',
+            description:
+                'Revert the last migration at once. `vendure migrate revert` shows what it reverts and asks first',
             required: false,
         },
         {
