@@ -119,4 +119,43 @@ describe('SelfRefreshingCache', () => {
             expect(memoizedFn.mock.calls.length).toBe(4);
         });
     });
+
+    // #5649 — a stale memoized value must not make callers await another caller's refresh
+    describe('concurrent refresh of a stale memoized value', () => {
+        let time = 0;
+        let releaseBlockedRefresh: () => void;
+        let cache: SelfRefreshingCache<string, [string]>;
+
+        beforeAll(async () => {
+            cache = await createSelfRefreshingCache<string, [string]>({
+                name: 'concurrent-test',
+                ttl: 1000,
+                refresh: {
+                    fn: arg =>
+                        arg === 'blocked'
+                            ? new Promise(resolve => (releaseBlockedRefresh = () => resolve(arg)))
+                            : Promise.resolve(arg),
+                    defaultArgs: ['initial'],
+                },
+                getTimeFn: () => time,
+            });
+        });
+
+        it('refreshes with each caller’s own refreshArgs', async () => {
+            const memoized = (refreshArg: string) => cache.memoize([], [refreshArg], value => value);
+            expect(await memoized('initial')).toBe('initial');
+
+            time = 2000;
+            // The first caller's refresh cannot complete, like a query waiting for a
+            // connection from an exhausted pool.
+            const blocked = memoized('blocked');
+            const notBlocked = memoized('own-connection');
+            const timeout = new Promise(resolve => setTimeout(() => resolve('timed out'), 500));
+
+            expect(await Promise.race([notBlocked, timeout])).toBe('own-connection');
+
+            releaseBlockedRefresh();
+            expect(await blocked).toBe('blocked');
+        });
+    });
 });
