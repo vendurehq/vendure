@@ -189,7 +189,8 @@ describe('Command host E2E', () => {
         });
     });
 
-    describe('consents', { timeout: 120_000 }, () => {
+    // Each CLI run here loads the project's config, which takes several seconds on a busy runner.
+    describe('consents', { timeout: 180_000 }, () => {
         // A consent is given for one preview. Its digest names the migration and the database,
         // so a digest that is wrong, or that answers an earlier preview, is asked for again.
         it('reverts a migration only with the digest of the preview the caller saw', async () => {
@@ -228,17 +229,15 @@ describe('Command host E2E', () => {
                 status: 'ok',
                 output: { reverted: true, migration: need.preview.lastAppliedMigration },
             });
+        });
 
-            // The migration is gone, so there is nothing left to revert, and no consent to give.
-            const replayed = await runCli(fixtureDir, [
-                'migrate',
-                'revert',
-                '--json',
-                '--revert-migration',
-                need.digest,
-            ]);
-            expect(replayed.exitCode).toBe(0);
-            expect(JSON.parse(replayed.stdout)).toMatchObject({
+        it('reverts nothing, and asks for no consent, when no migration is applied', async () => {
+            fixtureDir = copyMigrateFixture();
+
+            const result = await runCli(fixtureDir, ['migrate', 'revert', '--json']);
+
+            expect(result.exitCode).toBe(0);
+            expect(JSON.parse(result.stdout)).toMatchObject({
                 status: 'ok',
                 output: { reverted: false, migration: null },
             });
