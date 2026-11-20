@@ -290,7 +290,7 @@ export interface CommandPlan {
     /** What the command will do, naming the resolved target. It must be JSON serializable. */
     preview: unknown;
     /** The consents the caller must give for this preview. They must be declared on the command. */
-    consents: string[];
+    requiredConsents: string[];
 }
 
 /** The schemas module of a command. */
@@ -307,7 +307,11 @@ export type CommandRunFn<Input = any, Output = unknown> = (
     ctx: CommandContext,
 ) => Promise<CommandRunResult<Output>>;
 
-export type CommandPlanFn<Input = any> = (input: Input, ctx: CommandContext) => Promise<CommandPlan>;
+/** `plan` returns the preview, or `fail(...)` when it cannot work out what the command would do. */
+export type CommandPlanFn<Input = any> = (
+    input: Input,
+    ctx: CommandContext,
+) => Promise<CommandPlan | ErrorResult>;
 
 export type CommandRenderFn<Output = any> = (output: Output) => string | void;
 
@@ -319,7 +323,10 @@ export interface CommandCliMetadata {
     fields?: Record<
         string,
         {
-            /** Ask a person for the field when it is missing. */
+            /**
+             * Ask a person for this optional field when it is missing. A required field is always
+             * asked for when a person is present. Without a person, the field keeps its default.
+             */
             prompt?: boolean;
             /** The value must not be sent through the model. */
             secret?: boolean;
@@ -339,7 +346,16 @@ export interface CommandDefinition {
     description: string;
     keywords?: Keywords;
     behavior: CommandBehavior;
-    requires?: { project?: boolean; auth?: string };
+    requires?: {
+        /** The host refuses to run the command outside a Vendure project. */
+        project?: boolean;
+        /**
+         * The login the command needs, for example `cloud`. The host does not check it yet: the
+         * first ported command that needs a login adds the check, as an `input` need for the
+         * secret credential field.
+         */
+        auth?: string;
+    };
     /** Named consents, each with a description. */
     consents?: Record<string, string>;
     schemas: () => Promise<CommandSchemas>;

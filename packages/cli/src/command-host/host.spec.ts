@@ -228,7 +228,7 @@ describe('executeCommand', () => {
 
 describe('executeCommand with plan()', () => {
     const preview = { target: 'db-1', migration: 'M1' };
-    const plan = vi.fn(async (): Promise<CommandPlan> => ({ preview, consents: ['destroyData'] }));
+    const plan = vi.fn(async (): Promise<CommandPlan> => ({ preview, requiredConsents: ['destroyData'] }));
 
     function planned(run: (...args: any[]) => Promise<unknown> = async () => ({ done: true })) {
         return makeCommand(run, {
@@ -282,10 +282,26 @@ describe('executeCommand with plan()', () => {
         expect(plan).not.toHaveBeenCalled();
     });
 
+    it('returns a coded error from plan() without running', async () => {
+        const run = vi.fn(async () => ({}));
+        const command = makeCommand(run, {
+            behavior: 'destructive',
+            consents: { destroyData: 'Destroys the data' },
+            plan: async () => ({ plan: async () => fail(brokenError, { what: 'The database' }) }),
+        });
+        const result = await runCommandInHarness(command, { name: 'a' });
+        expect(result.envelope.error).toMatchObject({
+            code: 'test.broken',
+            message: 'The database is broken',
+        });
+        expect(result.exitCode).toBe(4);
+        expect(run).not.toHaveBeenCalled();
+    });
+
     it('rejects a plan that asks for a consent the command did not declare', async () => {
         const result = await runCommandInHarness(
             makeCommand(async () => ({}), {
-                plan: async () => ({ plan: async () => ({ preview: {}, consents: ['nope'] }) }),
+                plan: async () => ({ plan: async () => ({ preview: {}, requiredConsents: ['nope'] }) }),
             }),
             { name: 'a' },
         );
@@ -323,6 +339,45 @@ describe('executeCommand prompting', () => {
         );
         expect(askInput).toHaveBeenCalledWith({ kind: 'input', field: 'name', description: 'The name' });
         expect(result.envelope.output).toEqual({ got: 'typed' });
+    });
+
+    it('asks a person for an optional field marked prompt, and keeps its default on an empty answer', async () => {
+        const askInput = vi.fn(async (need: { field: string }) => (need.field === 'count' ? '' : 'x'));
+        const command = makeCommand(async i => ({ got: i }), {
+            cli: { fields: { count: { prompt: true } } },
+        });
+        const result = await runCommandInHarness(
+            command,
+            { name: 'a' },
+            {
+                prompter: { askInput, askConsent: async () => true },
+            },
+        );
+        expect(askInput).toHaveBeenCalledTimes(1);
+        expect(askInput).toHaveBeenCalledWith(expect.objectContaining({ field: 'count' }));
+        expect(result.envelope.output).toEqual({ got: { name: 'a' } });
+    });
+
+    it('uses the answer for an optional field marked prompt', async () => {
+        const command = makeCommand(async i => ({ got: i }), {
+            cli: { fields: { count: { prompt: true } } },
+        });
+        const result = await runCommandInHarness(
+            command,
+            { name: 'a' },
+            {
+                prompter: { askInput: async () => '3', askConsent: async () => true },
+            },
+        );
+        expect(result.envelope.output).toEqual({ got: { name: 'a', count: 3 } });
+    });
+
+    it('does not ask for an optional field marked prompt when no person is present', async () => {
+        const command = makeCommand(async i => ({ got: i }), {
+            cli: { fields: { count: { prompt: true } } },
+        });
+        const result = await runCommandInHarness(command, { name: 'a' });
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { got: { name: 'a' } } });
     });
 
     it('stops when the person cancels the prompt', async () => {

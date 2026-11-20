@@ -248,10 +248,62 @@ describe('McpServer', () => {
             'notifications/message',
             'response',
         ]);
-        expect(messages[0].params).toMatchObject({ progressToken: 'tok', message: 'half', total: 2 });
+        expect(messages[0].params).toEqual({ progressToken: 'tok', progress: 1, message: 'half', total: 2 });
         expect(messages[1].params).toMatchObject({ level: 'warning', data: 'backup 7' });
         expect(messages[2].params).toMatchObject({ level: 'info', data: 'linked' });
         expect(messages[3].params).toMatchObject({ level: 'debug', data: 'library noise' });
+        await client.close();
+    });
+
+    it('counts progress per call, and uses the current step of the event when it has one', async () => {
+        const client = start(async (_path, _input, hooks) => {
+            hooks.onEvent({ vendure: 'event', type: 'progress', message: 'one', current: 1, total: 3 });
+            hooks.onEvent({ vendure: 'event', type: 'progress', message: 'three', current: 3, total: 3 });
+            hooks.onEvent({ vendure: 'event', type: 'progress', message: 'tidy' });
+            return ok();
+        });
+        const progressOf = async (id: number, token: string) => {
+            client.send({
+                id,
+                method: 'tools/call',
+                params: {
+                    name: 'execute_readonly',
+                    arguments: { tool: 'doctor' },
+                    _meta: { progressToken: token },
+                },
+            });
+            const values = [];
+            for (let i = 0; i < 3; i++) {
+                values.push((await client.next()).params.progress);
+            }
+            await client.next();
+            return values;
+        };
+        expect(await progressOf(1, 'first')).toEqual([1, 3, 4]);
+        // A second call starts again: progress belongs to one request.
+        expect(await progressOf(2, 'second')).toEqual([1, 3, 4]);
+        await client.close();
+    });
+
+    it('sends only the log notifications at or above the level the client set', async () => {
+        const client = start(async (_path, _input, hooks) => {
+            hooks.onLog('library noise');
+            hooks.onEvent({ vendure: 'event', type: 'notice', level: 'info', message: 'linked' });
+            hooks.onEvent({ vendure: 'event', type: 'notice', level: 'warning', message: 'backup 7' });
+            return ok();
+        });
+        client.send({ id: 1, method: 'logging/setLevel', params: { level: 'warning' } });
+        expect((await client.next()).result).toEqual({});
+        client.send({
+            id: 2,
+            method: 'tools/call',
+            params: { name: 'execute_readonly', arguments: { tool: 'doctor' } },
+        });
+        const log = await client.next();
+        expect(log.params).toMatchObject({ level: 'warning', data: 'backup 7' });
+        expect((await client.next()).id).toBe(2);
+        client.send({ id: 3, method: 'logging/setLevel', params: { level: 'loud' } });
+        expect((await client.next()).error.code).toBe(-32602);
         await client.close();
     });
 

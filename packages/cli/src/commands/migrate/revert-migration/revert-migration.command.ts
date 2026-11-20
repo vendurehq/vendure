@@ -1,8 +1,8 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { revertFailed } from './revert-migration.errors.js';
+import { databaseUnreadable, revertFailed } from './revert-migration.errors.js';
 
-export const revertMigrationCommand = defineCommand({
+export const revertMigrationDefinition = defineCommand({
     path: ['migrate', 'revert'],
     description: 'Revert the last applied database migration',
     keywords: ['undo', 'rollback', 'database'],
@@ -13,7 +13,7 @@ export const revertMigrationCommand = defineCommand({
             'Revert the last applied migration. This can drop columns and tables, and the data in them.',
     },
     schemas: () => import('./revert-migration.schema.js'),
-    errors: [revertFailed],
+    errors: [databaseUnreadable, revertFailed],
     examples: ['vendure migrate revert', 'vendure migrate revert --revert-migration <digest>'],
     plan: () => import('./revert-migration.plan.js'),
     run: () => import('./revert-migration.run.js'),

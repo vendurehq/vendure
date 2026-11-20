@@ -343,14 +343,32 @@ in-memory job queue/cache/session strategies, and missing asset storage.
 
 ### Using in CI
 
-For CI pipelines, combine `--strict` with `--format json`. The `--strict` flag treats warnings as
+For CI pipelines, combine `--strict` with `--json`. The `--strict` flag treats warnings as
 failures, and the command exits with a non-zero code when the overall result is a failure - so a
 warning will fail your build:
 
 ```bash
 # Fail the build on any warning or failure, and emit machine-readable output
-npx vendure doctor --strict --format json
+npx vendure doctor --strict --json
 ```
+
+With `--json`, the command writes one JSON document to stdout. The report is its `output`, and
+`status` is `failed` when the overall result is a failure:
+
+```json
+{
+    "schemaVersion": 1,
+    "status": "ok",
+    "output": {
+        "nodeVersion": "v22.12.0",
+        "checks": [{ "name": "Project", "status": "pass", "message": "Vendure project detected" }],
+        "overallStatus": "passed"
+    },
+    "notices": []
+}
+```
+
+`--format json` is an alias for `--json`.
 
 #### Doctor Command Options
 
@@ -359,8 +377,9 @@ npx vendure doctor --strict --format json
 | `--config <path>`   | Specify the path to a custom Vendure config file                                       | `vendure doctor --config ./src/my-config.ts`  |
 | `--check <names...>` | Run specific checks only (`project`, `dependencies`, `config`, `schema`, `database`)  | `vendure doctor --check config schema`        |
 | `--profile <name>`  | Run profile-specific checks (`production`)                                              | `vendure doctor --profile production`         |
-| `--format <type>`   | Output format: `text` (default) or `json`                                              | `vendure doctor --format json`                |
 | `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
+| `--json`            | Write one JSON document to stdout. `--format json` is an alias                        | `vendure doctor --json`                       |
+| `--input <json\|->` | Pass all options as one JSON document, or `-` to read it from stdin                   | `vendure doctor --input '{"strict":true}'`    |
 
 ## The Auth Command
 

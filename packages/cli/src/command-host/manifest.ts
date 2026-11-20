@@ -5,8 +5,11 @@ import path from 'node:path';
 /** The name of the manifest file a package ships. */
 export const MANIFEST_FILE_NAME = 'vendure-commands.json';
 
-/** Flags the host adds to every command. A command's own fields may not use these names. */
-export const RESERVED_FIELD_NAMES = ['json', 'input', 'yes', 'project', 'format'];
+/**
+ * Field names a command may not use. The host adds `--json`, `--input` and `--format` to every
+ * command, and keeps `--yes` and `--project` for host flags that come later.
+ */
+export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes', 'project'];
 
 /** Command paths that start with these words belong to the store's tools. */
 export const RESERVED_PATH_ROOTS = ['admin', 'shop'];
@@ -115,7 +118,22 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
 /**
  * Loads the manifests that apply to the current project. Only the CLI's own manifest exists
  * today.
+ *
+ * `build` writes the CLI's manifest, but `watch` does not. Without the file, the manifest is built
+ * from the declarations instead, which loads their schemas and is slower.
  */
-export function loadMergedManifest(): MergedManifestCommand[] {
-    return mergeManifests([readManifestFile(coreManifestPath())]);
+export async function loadMergedManifest(
+    coreManifestFile: string = coreManifestPath(),
+): Promise<MergedManifestCommand[]> {
+    if (fs.existsSync(coreManifestFile)) {
+        return mergeManifests([readManifestFile(coreManifestFile)]);
+    }
+    const [{ buildCommandManifest }, { coreCommandDefinitions }] = await Promise.all([
+        import('./manifest-build.js'),
+        import('./core-commands.js'),
+    ]);
+    const { name, version } = JSON.parse(
+        fs.readFileSync(path.join(import.meta.dirname, '..', '..', 'package.json'), 'utf-8'),
+    ) as { name: string; version: string };
+    return mergeManifests([await buildCommandManifest(name, version, coreCommandDefinitions)]);
 }

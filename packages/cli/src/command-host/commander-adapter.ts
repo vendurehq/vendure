@@ -1,9 +1,4 @@
-import {
-    COMMAND_ENVELOPE_SCHEMA_VERSION,
-    CommandDefinition,
-    CommandEnvelope,
-    CommandEvent,
-} from '@vendure/common/lib/command';
+import { CommandDefinition, CommandEvent } from '@vendure/common/lib/command';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
@@ -11,8 +6,9 @@ import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
-import { executeCommand, HostEnvironment, HostResult } from './host.js';
+import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
 import { MergedManifestCommand } from './manifest.js';
+import { kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
 import { createSpawn } from './spawn.js';
@@ -27,10 +23,6 @@ export interface AdapterOptions {
      * command line, which is built from the manifest alone.
      */
     loadDefinitions(): Promise<CommandDefinition[]>;
-}
-
-function kebab(name: string): string {
-    return name.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
 }
 
 /**
@@ -77,13 +69,19 @@ export function registerManifestCommands(
 function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, options: AdapterOptions) {
     const name = manifestCommand.path[manifestCommand.path.length - 1];
     const existing = findChild(parent, name);
+    let replacedBy: string | undefined;
     if (existing) {
-        // A CLI plugin already replaced this command. The plugin's command wins.
-        const via = /^Commands from (.+):$/.exec(existing.helpGroup())?.[1];
-        if (via) {
-            process.stderr.write(`Replaced command "${manifestCommand.path.join(' ')}" via ${via}\n`);
+        // A CLI plugin already replaced this command. The plugin's command wins for people and
+        // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
+        // coded error instead of the plugin's output.
+        replacedBy = /^Commands from (.+):$/.exec(existing.helpGroup())?.[1] ?? 'a CLI plugin';
+        if (!isMcpCall()) {
+            process.stderr.write(`Replaced command "${manifestCommand.path.join(' ')}" via ${replacedBy}\n`);
+            return;
         }
-        return;
+        // Commander exposes its subcommands as a read-only array, and has no way to remove one.
+        const siblings = parent.commands as Command[];
+        siblings.splice(siblings.indexOf(existing), 1);
     }
     const command = parent.command(name).description(manifestCommand.description);
     const positional = manifestCommand.cli.positional ?? [];
@@ -126,7 +124,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const passThrough =
             error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
         if (jsonRequested(process.argv) && !passThrough) {
-            const result = hostResultFor(hostErrors.usage, {
+            const result = errorResult(hostErrors.usage, {
                 message: error.message.replace(/^error: /, ''),
             });
             fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
@@ -140,22 +138,14 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
         );
-        const code = await runLeaf(manifestCommand, command, positionalValues, opts, options);
+        const code = await runLeaf(manifestCommand, command, positionalValues, opts, options, replacedBy);
         process.exit(code);
     });
 }
 
-function hostResultFor(
-    error: { code: string; exit: number; message: (d: any) => string },
-    details: unknown,
-): HostResult {
-    const envelope: CommandEnvelope = {
-        schemaVersion: COMMAND_ENVELOPE_SCHEMA_VERSION,
-        status: 'error',
-        error: { code: error.code, exit: error.exit, message: error.message(details) },
-        notices: [],
-    };
-    return { envelope, exitCode: error.exit };
+/** Whether this process runs a tool call for `vendure mcp`, which marks its child processes. */
+function isMcpCall(): boolean {
+    return process.env.VENDURE_CLI_MCP === '1';
 }
 
 async function readStdin(): Promise<string> {
@@ -175,32 +165,47 @@ async function readInputDocument(source: string): Promise<Record<string, unknown
     return parsed as Record<string, unknown>;
 }
 
-/** Wires cancellation: SIGINT, SIGTERM, and a `cancel` message over IPC from `vendure mcp`. */
-function createCancellation(): AbortController {
+/** What {@link createCancellation} listens to. The process, except in tests. */
+export interface CancellationSource {
+    on(event: 'SIGINT' | 'SIGTERM' | 'message', listener: (message?: unknown) => void): unknown;
+    send?: unknown;
+    channel?: { unref?(): void } | null;
+    exit(code: number): never;
+}
+
+/**
+ * Wires cancellation: SIGINT, SIGTERM, and a `cancel` message over IPC from `vendure mcp`.
+ *
+ * The first request aborts `ctx.signal`, and the command has {@link CANCEL_GRACE_MS} to stop. A
+ * second signal from a person, after a moment, ends the process at once. `vendure mcp` sends the
+ * message first, then SIGINT to the whole process group to stop the processes the command
+ * started. That signal belongs to the same request, so it never ends the process early.
+ */
+export function createCancellation(source: CancellationSource = process): AbortController {
     const controller = new AbortController();
     let cancelledAt = 0;
-    const cancel = () => {
+    let cancelledOverIpc = false;
+    const cancel = (via: 'signal' | 'ipc') => {
         if (controller.signal.aborted) {
-            // A second request, after the first has had a moment, means the command did not stop.
-            // `vendure mcp` sends a message and then a signal, which are one request.
-            if (Date.now() - cancelledAt > 500) {
-                process.exit(130);
+            if (via === 'signal' && !cancelledOverIpc && Date.now() - cancelledAt > 500) {
+                source.exit(130);
             }
             return;
         }
         cancelledAt = Date.now();
+        cancelledOverIpc = via === 'ipc';
         controller.abort();
     };
-    process.on('SIGINT', cancel);
-    process.on('SIGTERM', cancel);
-    if (process.send) {
-        process.on('message', message => {
+    source.on('SIGINT', () => cancel('signal'));
+    source.on('SIGTERM', () => cancel('signal'));
+    if (source.send) {
+        source.on('message', message => {
             if ((message as { type?: string } | null)?.type === 'cancel') {
-                cancel();
+                cancel('ipc');
             }
         });
         // The channel alone must not keep the process alive.
-        process.channel?.unref?.();
+        source.channel?.unref?.();
     }
     return controller;
 }
@@ -211,6 +216,7 @@ async function runLeaf(
     positionalValues: Record<string, unknown>,
     opts: Record<string, any>,
     options: AdapterOptions,
+    replacedBy: string | undefined,
 ): Promise<number> {
     const json = opts.json === true || opts.format === 'json';
     const out: JsonOutput | undefined = json ? redirectStdoutToStderr() : undefined;
@@ -228,13 +234,21 @@ async function runLeaf(
         return hostResult.exitCode;
     };
 
+    if (replacedBy) {
+        return finish(
+            errorResult(hostErrors.commandReplaced, {
+                command: manifestCommand.path.join(' '),
+                plugin: replacedBy,
+            }),
+        );
+    }
     let input: Record<string, unknown> = {};
     try {
         if (typeof opts.input === 'string') {
             input = await readInputDocument(opts.input);
         }
     } catch (e) {
-        return finish(hostResultFor(hostErrors.inputUnreadable, { reason: (e as Error).message }));
+        return finish(errorResult(hostErrors.inputUnreadable, { reason: (e as Error).message }));
     }
     // Flags the caller set win over the same field in the document.
     for (const field of properties) {
@@ -261,7 +275,7 @@ async function runLeaf(
     const def = definitions.find(candidate => candidate.path.join(' ') === key);
     const mismatch = def ? findMismatch(def, manifestCommand) : 'the command is not installed';
     if (!def || mismatch) {
-        return finish(hostResultFor(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
+        return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
 
     const emit = (event: CommandEvent) => {
@@ -276,7 +290,7 @@ async function runLeaf(
     const env: HostEnvironment = {
         cwd: process.cwd(),
         signal: controller.signal,
-        mcp: process.env.VENDURE_CLI_MCP === '1',
+        mcp: isMcpCall(),
         prompter: !json && !isNonInteractiveEnvironment() ? createClackPrompter() : undefined,
         emit,
         spawn: createSpawn(process.cwd(), controller.signal, chunk => process.stdout.write(chunk)),
@@ -287,7 +301,7 @@ async function runLeaf(
         executeCommand(def, input, env),
         new Promise<HostResult>(resolve => {
             controller.signal.addEventListener('abort', () => {
-                setTimeout(() => resolve(hostResultFor(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
+                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
             });
         }),
     ]);

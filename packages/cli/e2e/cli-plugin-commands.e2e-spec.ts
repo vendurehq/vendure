@@ -347,6 +347,29 @@ describe('CLI plugin collisions', () => {
         }
     });
 
+    // A tool call from `vendure mcp` expects the declared command and its envelope. The plugin's
+    // replacement knows neither, so the call gets a coded error instead of the plugin's output.
+    it('refuses a replaced command in a tool call from vendure mcp', async () => {
+        const project = createTestProject('cli-plugin-replaces-mcp');
+        try {
+            installCliPluginFixture(project, 'replacing-cli-plugin');
+
+            const result = await project.runCliCommand(['doctor', '--json', '--input', '{}'], {
+                expectError: true,
+                env: { VENDURE_CLI_MCP: '1' },
+            });
+
+            expect(result.exitCode).toBe(1);
+            expect(result.stdout).not.toContain('REPLACED_DOCTOR');
+            expect(JSON.parse(result.stdout)).toMatchObject({
+                status: 'error',
+                error: { code: 'command.replaced' },
+            });
+        } finally {
+            project.cleanup();
+        }
+    });
+
     it('skips a plugin whose shared option is already registered', async () => {
         const project = createTestProject('cli-plugin-option-collision');
         try {

@@ -2,7 +2,7 @@ import { defineCommand } from '@vendure/common/lib/command';
 
 import { packageJsonNotFound, pluginNotFound } from './add-codegen.errors.js';
 
-export const addCodegenCommand = defineCommand({
+export const addCodegenDefinition = defineCommand({
     path: ['add', 'codegen'],
     description: 'Set up GraphQL code generation for a plugin',
     keywords: ['graphql', 'types', 'typescript'],

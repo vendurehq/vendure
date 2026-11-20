@@ -1,10 +1,7 @@
 import type { CommandDefinition, CommandNeed } from '@vendure/common/lib/command';
 
 import { formatFix, HostResult } from './host.js';
-
-function kebab(name: string): string {
-    return name.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
-}
+import { kebab } from './naming.js';
 
 function describeNeed(need: CommandNeed): string[] {
     switch (need.kind) {

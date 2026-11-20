@@ -2,7 +2,7 @@ import { defineCommand } from '@vendure/common/lib/command';
 
 // No `requires.project`: reporting that a directory is not a Vendure project is one of doctor's
 // own checks, so refusing to run would remove that answer.
-export const doctorCommand = defineCommand({
+export const doctorDefinition = defineCommand({
     path: ['doctor'],
     description: 'Run diagnostic checks on your Vendure project',
     keywords: ['diagnose', 'health', 'check', 'troubleshoot'],

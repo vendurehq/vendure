@@ -33,6 +33,17 @@ export const hostErrors = {
         message: ({ command, reason }) =>
             `The manifest entry for "${command}" does not match the command that is installed: ${reason}. Rebuild the package that declares it.`,
     }),
+    commandReplaced: defineError<{ command: string; plugin: string }>({
+        code: 'command.replaced',
+        exit: 1,
+        message: ({ command, plugin }) =>
+            `"${command}" is replaced in this project by the CLI plugin ${plugin}, which does not support --json.`,
+    }),
+    childFailed: defineError<{ message: string }>({
+        code: 'mcp.child-failed',
+        exit: 1,
+        message: ({ message }) => message,
+    }),
     inputUnreadable: defineError<{ reason: string }>({
         code: 'input.unreadable',
         exit: 1,

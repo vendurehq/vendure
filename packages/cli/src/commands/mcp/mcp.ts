@@ -22,7 +22,7 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     }
     const version = createRequire(import.meta.url)('../../../package.json').version as string;
     const server = new McpServer({
-        commands: loadMergedManifest(),
+        commands: await loadMergedManifest(),
         mode,
         input: process.stdin,
         output: process.stdout,

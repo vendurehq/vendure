@@ -2,14 +2,21 @@ import { COMMAND_ENVELOPE_SCHEMA_VERSION, CommandEnvelope, CommandEvent } from '
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 
+import { hostErrors } from '../host-errors.js';
+import { errorResult } from '../host.js';
+
 /**
  * How long a child has to stop after the IPC message, before SIGINT goes to its process group.
  * The message lets the command clean up. The signal reaches the processes it started.
  */
 const DEFAULT_SIGINT_AFTER_MS = 2_000;
 
-/** How long a child has to stop after SIGINT, before the whole process group is killed. */
-const KILL_AFTER_MS = 5_000;
+/**
+ * How long a child has to stop after SIGINT, before the whole process group is killed. It is
+ * longer than the grace the CLI gives a cancelled command, so the child can still write its
+ * `cancelled` envelope.
+ */
+const KILL_AFTER_MS = 10_000;
 
 export interface RunToolOptions {
     /** The CLI entry point to run, normally `dist/cli.js`. */
@@ -24,13 +31,8 @@ export interface RunToolOptions {
     sigintAfterMs?: number;
 }
 
-function errorEnvelope(code: string, message: string): CommandEnvelope {
-    return {
-        schemaVersion: COMMAND_ENVELOPE_SCHEMA_VERSION,
-        status: 'error',
-        error: { code, exit: 1, message },
-        notices: [],
-    };
+function childFailedEnvelope(message: string): CommandEnvelope {
+    return errorResult(hostErrors.childFailed, { message }).envelope;
 }
 
 /**
@@ -113,7 +115,7 @@ export function runToolInChild(
 
         child.on('error', error => {
             exited = true;
-            resolve(errorEnvelope('mcp.child-failed', `Could not start the CLI: ${error.message}`));
+            resolve(childFailedEnvelope(`Could not start the CLI: ${error.message}`));
         });
         child.on('close', code => {
             exited = true;
@@ -149,8 +151,7 @@ function parseEnvelope(stdout: string): CommandEnvelope | undefined {
 
 function childFailed(code: number | null, stderrTail: string[]): CommandEnvelope {
     const detail = stderrTail.length ? ` ${stderrTail.join(' ').slice(0, 500)}` : '';
-    return errorEnvelope(
-        'mcp.child-failed',
+    return childFailedEnvelope(
         `The CLI ended with exit code ${code ?? 'unknown'} without writing a result.${detail}`,
     );
 }

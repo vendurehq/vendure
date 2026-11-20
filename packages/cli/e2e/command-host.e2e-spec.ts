@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { cpSync, rmSync } from 'node:fs';
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -101,9 +101,15 @@ function startMcp(cwd: string) {
 
 describe('Command host E2E', () => {
     let testProject: CliTestProject;
+    /** A copy of the migrate fixture, made by a test that needs a project with a database. */
+    let fixtureDir: string | undefined;
 
     afterEach(() => {
         testProject?.cleanup();
+        if (fixtureDir) {
+            rmSync(fixtureDir, { recursive: true, force: true });
+            fixtureDir = undefined;
+        }
     });
 
     describe('vendure commands --json', () => {
@@ -165,28 +171,25 @@ describe('Command host E2E', () => {
             expect(result.stderr).toContain('AlphaPlugin');
         });
 
-        it('keeps stdout to the envelope when a library writes to it', async () => {
-            testProject = createTestProject('stdout-purity');
+        it('keeps stdout to the envelope when project code writes to it', { timeout: 60_000 }, async () => {
+            fixtureDir = copyMigrateFixture();
+            const configFile = join(fixtureDir, 'src', 'vendure-config.ts');
+            writeFileSync(
+                configFile,
+                `${readFileSync(configFile, 'utf-8')}\nconsole.log('noise from the config');\nprocess.stdout.write('more noise\\n');\n`,
+            );
 
-            const result = await testProject.runCliCommand(['doctor', '--check', 'config', '--json'], {
-                expectError: true,
-            });
+            const result = await runCli(fixtureDir, ['doctor', '--check', 'config', '--json']);
 
-            // Every line of stdout is part of the one document.
-            expect(() => JSON.parse(result.stdout)).not.toThrow();
+            // The config ran and wrote to stdout, and that went to stderr.
+            expect(result.stderr).toContain('noise from the config');
+            expect(result.stderr).toContain('more noise');
+            const envelope = JSON.parse(result.stdout);
+            expect(envelope.output.checks[0]).toMatchObject({ name: 'Config', status: 'pass' });
         });
     });
 
     describe('consents', { timeout: 120_000 }, () => {
-        let fixtureDir: string | undefined;
-
-        afterEach(() => {
-            if (fixtureDir) {
-                rmSync(fixtureDir, { recursive: true, force: true });
-                fixtureDir = undefined;
-            }
-        });
-
         // A consent is given for one preview. Its digest names the migration and the database,
         // so a digest that is wrong, or that answers an earlier preview, is asked for again.
         it('reverts a migration only with the digest of the preview the caller saw', async () => {

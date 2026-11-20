@@ -107,7 +107,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // Commands declared with `defineCommand` are built from the manifest alone. Their
     // declarations load only when one of them runs.
     try {
-        registerManifestCommands(program, loadMergedManifest(), {
+        registerManifestCommands(program, await loadMergedManifest(), {
             loadDefinitions: async () =>
                 (await import('./command-host/core-commands.js')).coreCommandDefinitions,
         });

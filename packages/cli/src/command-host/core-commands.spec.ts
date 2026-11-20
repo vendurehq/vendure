@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { coreCommandDefinitions } from './core-commands.js';
 import { buildCommandManifest } from './manifest-build.js';
 import { mergeManifests } from './manifest.js';
+import { kebab } from './naming.js';
 
 describe('core command definitions', () => {
     it('build into a manifest the host accepts', async () => {
@@ -35,9 +36,7 @@ describe('core command definitions', () => {
         async (_name, def) => {
             const manifest = (await buildCommandManifest('@vendure/cli', '0.0.0', [def])).commands[0];
             const known = new Set([
-                ...Object.keys((manifest.input.properties as object) ?? {}).map(name =>
-                    name.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`),
-                ),
+                ...Object.keys((manifest.input.properties as object) ?? {}).map(kebab),
                 'json',
                 'input',
             ]);

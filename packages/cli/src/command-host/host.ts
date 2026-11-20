@@ -10,6 +10,7 @@ import {
     CommandNeed,
     CommandNotice,
     ConsentNeed,
+    ErrorResult,
     InputNeed,
     isErrorResult,
     isFailedResult,
@@ -21,6 +22,7 @@ import {
 
 import { consentDigest } from './digest.js';
 import { hostErrors } from './host-errors.js';
+import { kebab } from './naming.js';
 
 /** Asks a person. Only given to the host when a person is present. */
 export interface Prompter {
@@ -64,7 +66,12 @@ function errorBody(error: CommandErrorDefinition, details: unknown): CommandErro
     };
 }
 
-function errorResult(error: CommandErrorDefinition, details: unknown, notices: CommandNotice[]): HostResult {
+/** The result of a run that ended with a coded error. */
+export function errorResult(
+    error: CommandErrorDefinition,
+    details: unknown,
+    notices: CommandNotice[] = [],
+): HostResult {
     const body = errorBody(error, details);
     return { envelope: envelope('error', notices, { error: body }), exitCode: body.exit };
 }
@@ -149,6 +156,43 @@ function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandC
     };
 }
 
+/** The needs for missing input fields, with the computed choices of fields that declare them. */
+async function inputNeeds(
+    def: CommandDefinition,
+    inputSchema: StandardSchema,
+    fields: string[],
+    ctx: CommandContext,
+    input: Record<string, unknown>,
+): Promise<InputNeed[]> {
+    const needs: InputNeed[] = [];
+    for (const field of fields) {
+        const meta = def.cli?.fields?.[field];
+        const property = propertySchema(inputSchema, field);
+        const choices = meta?.choices ? await meta.choices(ctx, input) : undefined;
+        needs.push({
+            kind: 'input',
+            field,
+            description: (property.description as string | undefined) ?? field,
+            ...(meta?.secret ? { secret: true } : {}),
+            ...(choices ? { choices } : {}),
+        });
+    }
+    return needs;
+}
+
+/** A coded error from `plan()` or `run()`, which the command must have declared. */
+function declaredError(def: CommandDefinition, result: ErrorResult, notices: CommandNotice[]): HostResult {
+    const error = def.errors?.find(e => e.code === result.code);
+    if (!error) {
+        return errorResult(
+            hostErrors.internal,
+            { message: `The command returned the undeclared error "${result.code}"` },
+            notices,
+        );
+    }
+    return errorResult(error, result.details, notices);
+}
+
 /**
  * Runs a command to its envelope, in a fixed order that stops at the first stage with needs:
  * the inputs, then the consents that `plan()` asks for, then `run()`.
@@ -175,40 +219,45 @@ export async function executeCommand(
             delete input[name];
         }
 
-        // Stage 1: inputs.
+        // Stage 1: inputs. A missing required field is a need. A person is also asked for the
+        // optional fields that declare `prompt: true`; without a person they keep their default.
         let parsed: Record<string, unknown>;
+        const asked = new Set<string>();
         for (;;) {
             const validation = await schemas.input['~standard'].validate(input);
-            if (!validation.issues) {
-                parsed = validation.value as Record<string, unknown>;
-                break;
+            let missing: string[];
+            if (validation.issues) {
+                const classified = classifyIssues(validation.issues, input);
+                if (classified.invalid.length > 0) {
+                    return errorResult(hostErrors.inputInvalid, { messages: classified.invalid }, notices);
+                }
+                missing = classified.missing;
+            } else {
+                missing = env.prompter
+                    ? Object.entries(def.cli?.fields ?? {})
+                          .filter(([field, meta]) => meta.prompt && input[field] === undefined)
+                          .map(([field]) => field)
+                          .filter(field => !asked.has(field))
+                    : [];
+                if (missing.length === 0) {
+                    parsed = validation.value as Record<string, unknown>;
+                    break;
+                }
             }
-            const { missing, invalid } = classifyIssues(validation.issues, input);
-            if (invalid.length > 0) {
-                return errorResult(hostErrors.inputInvalid, { messages: invalid }, notices);
-            }
-            const needs: InputNeed[] = [];
-            for (const field of missing) {
-                const meta = def.cli?.fields?.[field];
-                const property = propertySchema(schemas.input, field);
-                const choices = meta?.choices ? await meta.choices(ctx, input) : undefined;
-                needs.push({
-                    kind: 'input',
-                    field,
-                    description: (property.description as string | undefined) ?? field,
-                    ...(meta?.secret ? { secret: true } : {}),
-                    ...(choices ? { choices } : {}),
-                });
-            }
+            const needs = await inputNeeds(def, schemas.input, missing, ctx, input);
             if (!env.prompter) {
                 return incompleteResult(needs, notices);
             }
             for (const need of needs) {
+                asked.add(need.field);
                 const answer = await env.prompter.askInput(need);
                 if (answer === undefined) {
                     return errorResult(hostErrors.cancelled, {}, notices);
                 }
-                input[need.field] = coercePrompted(answer, propertySchema(schemas.input, need.field));
+                // An empty answer to an optional field keeps its default.
+                if (answer !== '' || validation.issues) {
+                    input[need.field] = coercePrompted(answer, propertySchema(schemas.input, need.field));
+                }
             }
         }
 
@@ -216,8 +265,11 @@ export async function executeCommand(
         if (def.plan) {
             const { plan } = await def.plan();
             const planned = await plan(parsed, ctx);
+            if (isErrorResult(planned)) {
+                return declaredError(def, planned, notices);
+            }
             const needs: ConsentNeed[] = [];
-            for (const consent of planned.consents) {
+            for (const consent of planned.requiredConsents) {
                 if (!def.consents || !(consent in def.consents)) {
                     return errorResult(
                         hostErrors.internal,
@@ -258,15 +310,7 @@ export async function executeCommand(
             return incompleteResult(result.needs, notices, result.output);
         }
         if (isErrorResult(result)) {
-            const error = def.errors?.find(e => e.code === result.code);
-            if (!error) {
-                return errorResult(
-                    hostErrors.internal,
-                    { message: `The command returned the undeclared error "${result.code}"` },
-                    notices,
-                );
-            }
-            return errorResult(error, result.details, notices);
+            return declaredError(def, result, notices);
         }
         if (isFailedResult(result)) {
             return {
@@ -290,7 +334,7 @@ export async function executeCommand(
 /** A fix as a command line, for a person at a terminal. */
 export function formatFix(fix: { path: string[]; input: Record<string, unknown> }): string {
     const flags = Object.entries(fix.input).map(([key, value]) => {
-        const flag = `--${key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}`;
+        const flag = `--${kebab(key)}`;
         return value === true ? flag : `${flag} ${JSON.stringify(value)}`;
     });
     return ['vendure', ...fix.path, ...flags].join(' ');

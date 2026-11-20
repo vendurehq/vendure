@@ -1,4 +1,4 @@
-import { confirm, isCancel, select, text } from '@clack/prompts';
+import { confirm, isCancel, password, select, text } from '@clack/prompts';
 import type { ConsentNeed, InputNeed } from '@vendure/common/lib/command';
 
 import type { Prompter } from './host.js';
@@ -12,7 +12,9 @@ export function createClackPrompter(): Prompter {
                       message: need.description,
                       options: need.choices.map(choice => ({ value: choice, label: choice })),
                   })
-                : await text({ message: need.description });
+                : need.secret
+                  ? await password({ message: need.description })
+                  : await text({ message: need.description });
             return isCancel(answer) ? undefined : String(answer);
         },
         async askConsent(need: ConsentNeed) {

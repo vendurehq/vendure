@@ -1,9 +1,15 @@
 import { defineCommand } from '@vendure/common/lib/command';
 import { Command } from 'commander';
-import { describe, expect, it } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { jsonRequested, registerManifestCommands } from './commander-adapter.js';
+import {
+    CancellationSource,
+    createCancellation,
+    jsonRequested,
+    registerManifestCommands,
+} from './commander-adapter.js';
 import { buildCommandManifest } from './manifest-build.js';
 import { mergeManifests } from './manifest.js';
 
@@ -22,7 +28,7 @@ const demo = defineCommand({
     }),
     cli: { flags: { name: { short: '-n' } } },
     consents: { overwrite: 'Overwrites it' },
-    plan: async () => ({ plan: async () => ({ preview: {}, consents: [] }) }),
+    plan: async () => ({ plan: async () => ({ preview: {}, requiredConsents: [] }) }),
     run: async () => ({ run: async () => ({}) }),
 });
 
@@ -79,25 +85,23 @@ describe('registerManifestCommands', () => {
         const root = await program();
         const thing = (root.commands.find(c => c.name() === 'add') as Command).commands[0];
         thing.action(() => undefined);
-        await root
-            .parseAsync(
-                [
-                    'add',
-                    'thing',
-                    '-n',
-                    'x',
-                    '--size',
-                    '3',
-                    '--tags',
-                    'a',
-                    'b',
-                    '--dry-run',
-                    '--overwrite',
-                    'digest',
-                ],
-                { from: 'user' },
-            )
-            .catch(() => undefined);
+        await root.parseAsync(
+            [
+                'add',
+                'thing',
+                '-n',
+                'x',
+                '--size',
+                '3',
+                '--tags',
+                'a',
+                'b',
+                '--dry-run',
+                '--overwrite',
+                'digest',
+            ],
+            { from: 'user' },
+        );
         expect(thing.opts()).toMatchObject({
             name: 'x',
             size: 3,
@@ -119,5 +123,54 @@ describe('jsonRequested', () => {
         expect(jsonRequested(['doctor'])).toBe(false);
         expect(jsonRequested(['doctor', '--format', 'text'])).toBe(false);
         expect(jsonRequested(['doctor', '--', '--json'])).toBe(false);
+    });
+});
+
+describe('createCancellation', () => {
+    function fakeProcess(withIpc: boolean) {
+        const events = new EventEmitter();
+        const exit = vi.fn();
+        const source = {
+            on: (event: string, listener: (message?: unknown) => void) => events.on(event, listener),
+            send: withIpc ? () => true : undefined,
+            channel: null,
+            exit,
+        } as unknown as CancellationSource;
+        return { events, exit, source };
+    }
+
+    it('aborts on the first SIGINT, and ends the process on a later second one', () => {
+        vi.useFakeTimers();
+        try {
+            const { events, exit, source } = fakeProcess(false);
+            const controller = createCancellation(source);
+            events.emit('SIGINT');
+            expect(controller.signal.aborted).toBe(true);
+            events.emit('SIGINT');
+            expect(exit).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(600);
+            events.emit('SIGINT');
+            expect(exit).toHaveBeenCalledWith(130);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    // `vendure mcp` sends the message, then SIGINT to the process group a little later, so that
+    // the processes the command started stop too. The signal must not cut the command short.
+    it('does not end the process on the SIGINT that follows a cancel over IPC', () => {
+        vi.useFakeTimers();
+        try {
+            const { events, exit, source } = fakeProcess(true);
+            const controller = createCancellation(source);
+            events.emit('message', { type: 'cancel' });
+            expect(controller.signal.aborted).toBe(true);
+            vi.advanceTimersByTime(2_000);
+            events.emit('SIGINT');
+            events.emit('SIGINT');
+            expect(exit).not.toHaveBeenCalled();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

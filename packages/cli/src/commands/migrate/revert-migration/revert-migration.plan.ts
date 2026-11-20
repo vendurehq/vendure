@@ -1,5 +1,6 @@
-import { CommandContext, CommandPlan } from '@vendure/common/lib/command';
+import { CommandContext, CommandPlan, ErrorResult, fail } from '@vendure/common/lib/command';
 
+import { databaseUnreadable } from './revert-migration.errors.js';
 import { describeDatabase, lastAppliedMigration, loadProjectConfig } from './revert-migration.project.js';
 
 /**
@@ -7,15 +8,25 @@ import { describeDatabase, lastAppliedMigration, loadProjectConfig } from './rev
  * database has applied. The consent's digest covers all three, so a consent given for one
  * database or one migration never applies to another.
  */
-export async function plan(input: { config?: string }, _ctx: CommandContext): Promise<CommandPlan> {
+export async function plan(
+    input: { config?: string },
+    _ctx: CommandContext,
+): Promise<CommandPlan | ErrorResult> {
     const { config, configPath } = await loadProjectConfig(input.config);
+    let migration: string | null;
+    try {
+        migration = await lastAppliedMigration(config);
+    } catch (e) {
+        // A preview that cannot name the migration would let one consent cover any migration.
+        return fail(databaseUnreadable, { message: e instanceof Error ? e.message : String(e) });
+    }
     return {
         preview: {
             action: 'Revert the last applied database migration',
             config: configPath,
             database: describeDatabase(config),
-            lastAppliedMigration: await lastAppliedMigration(config),
+            lastAppliedMigration: migration,
         },
-        consents: ['revertMigration'],
+        requiredConsents: ['revertMigration'],
     };
 }

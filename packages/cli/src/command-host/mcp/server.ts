@@ -8,6 +8,10 @@ import { runToolInChild } from './run-tool-in-child.js';
 
 const SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 
+/** The log levels of MCP, from the least to the most severe. */
+const LOG_LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
+type LogLevel = 'debug' | 'info' | 'warning';
+
 export type McpToolMode = 'discovery' | 'direct';
 
 export type RunTool = (
@@ -74,7 +78,8 @@ export class McpServer {
     private readonly inFlight = new Map<string | number, AbortController>();
     private readonly writes = new SerialQueue();
     private readonly runTool: RunTool;
-    private progressCounter = 0;
+    /** The least severe level the client wants, set with `logging/setLevel`. */
+    private minLogLevel = 0;
 
     constructor(private readonly options: McpServerOptions) {
         this.commands = options.commands.filter(isExposed);
@@ -160,9 +165,16 @@ export class McpServer {
             case 'ping':
                 this.reply(id, {});
                 return;
-            case 'logging/setLevel':
+            case 'logging/setLevel': {
+                const level = LOG_LEVELS.indexOf(String(params?.level));
+                if (level === -1) {
+                    this.replyError(id, -32602, `Unknown log level "${String(params?.level)}"`);
+                    return;
+                }
+                this.minLogLevel = level;
                 this.reply(id, {});
                 return;
+            }
             case 'tools/list':
                 this.reply(id, { tools: this.listTools() });
                 return;
@@ -257,7 +269,7 @@ export class McpServer {
         if (this.options.mode === 'discovery') {
             if (name === 'search_tools') {
                 const limit = typeof args.limit === 'number' ? args.limit : 10;
-                const matches = this.search(String(args.query ?? ''), limit);
+                const matches = this.search(typeof args.query === 'string' ? args.query : '', limit);
                 this.reply(id, {
                     content: [{ type: 'text', text: JSON.stringify(matches) }],
                     structuredContent: { tools: matches },
@@ -297,13 +309,23 @@ export class McpServer {
             this.inFlight.set(id, controller);
         }
         const target = command;
+        // Progress must increase with each notification for one request.
+        let progress = 0;
         const execute = async (): Promise<CommandEnvelope | undefined> => {
             if (controller.signal.aborted) {
                 return undefined;
             }
             return this.runTool(target.path, input, {
                 signal: controller.signal,
-                onEvent: event => this.forwardEvent(toolName(target), event, progressToken),
+                onEvent: event => {
+                    if (event.type === 'progress' && progressToken !== undefined) {
+                        const current = typeof event.current === 'number' ? event.current : undefined;
+                        progress = current !== undefined && current > progress ? current : progress + 1;
+                        this.sendProgress(progressToken, progress, event);
+                        return;
+                    }
+                    this.forwardEvent(toolName(target), event);
+                },
                 onLog: line => this.log('debug', toolName(target), line),
             });
         };
@@ -329,20 +351,20 @@ export class McpServer {
         }
     }
 
-    private forwardEvent(tool: string, event: CommandEvent, progressToken?: string | number): void {
-        if (event.type === 'progress' && progressToken !== undefined) {
-            this.send({
-                jsonrpc: '2.0',
-                method: 'notifications/progress',
-                params: {
-                    progressToken,
-                    progress: ++this.progressCounter,
-                    ...(typeof event.total === 'number' ? { total: event.total } : {}),
-                    message: String(event.message ?? ''),
-                },
-            });
-            return;
-        }
+    private sendProgress(token: string | number, progress: number, event: CommandEvent): void {
+        this.send({
+            jsonrpc: '2.0',
+            method: 'notifications/progress',
+            params: {
+                progressToken: token,
+                progress,
+                ...(typeof event.total === 'number' ? { total: event.total } : {}),
+                message: typeof event.message === 'string' ? event.message : '',
+            },
+        });
+    }
+
+    private forwardEvent(tool: string, event: CommandEvent): void {
         if (event.type === 'notice') {
             this.log(event.level === 'warning' ? 'warning' : 'info', tool, String(event.message));
             return;
@@ -350,7 +372,10 @@ export class McpServer {
         this.log('info', tool, event);
     }
 
-    private log(level: 'debug' | 'info' | 'warning', logger: string, data: unknown): void {
+    private log(level: LogLevel, logger: string, data: unknown): void {
+        if (LOG_LEVELS.indexOf(level) < this.minLogLevel) {
+            return;
+        }
         this.send({ jsonrpc: '2.0', method: 'notifications/message', params: { level, logger, data } });
     }
 }

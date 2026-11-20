@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { consentDigest } from './digest.js';
 import { buildCommandManifest } from './manifest-build.js';
-import { CommandManifest, ManifestCommand, mergeManifests } from './manifest.js';
+import { CommandManifest, loadMergedManifest, ManifestCommand, mergeManifests } from './manifest.js';
 
 function entry(path: string[], overrides: Partial<ManifestCommand> = {}): ManifestCommand {
     return {
@@ -81,7 +81,7 @@ describe('buildCommandManifest', () => {
             output: z.object({ wiped: z.boolean() }),
         }),
         cli: { fields: { name: { choices: async () => ['a'] } } },
-        plan: async () => ({ plan: async () => ({ preview: {}, consents: ['wipeData'] }) }),
+        plan: async () => ({ plan: async () => ({ preview: {}, requiredConsents: ['wipeData'] }) }),
         run: async () => ({ run: async () => ({ wiped: true }) }),
     });
 
@@ -112,5 +112,19 @@ describe('consentDigest', () => {
     it('differs when the preview or the consent differs', () => {
         expect(consentDigest('c', { a: 1 })).not.toBe(consentDigest('c', { a: 2 }));
         expect(consentDigest('c', { a: 1 })).not.toBe(consentDigest('d', { a: 1 }));
+    });
+});
+
+describe('loadMergedManifest', () => {
+    // `watch` compiles without writing the manifest, so a fresh `dist` from `watch` has none.
+    it('builds the manifest from the declarations when the file is missing', async () => {
+        const merged = await loadMergedManifest('/nonexistent/vendure-commands.json');
+        expect(merged.map(command => command.path.join(' ')).sort()).toEqual([
+            'add codegen',
+            'commands',
+            'doctor',
+            'migrate revert',
+        ]);
+        expect(merged[0].source).toBe('@vendure/cli');
     });
 });

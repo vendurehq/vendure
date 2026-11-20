@@ -36,10 +36,10 @@ export function describeDatabase(config: VendureConfig): {
 }
 
 /**
- * The name of the last migration the database has applied: a string, `null` when none has been
- * applied, or `undefined` when the database could not be read.
+ * The name of the last migration the database has applied, or `null` when none has been applied.
+ * It throws when the database cannot be read.
  */
-export async function lastAppliedMigration(config: VendureConfig): Promise<string | null | undefined> {
+export async function lastAppliedMigration(config: VendureConfig): Promise<string | null> {
     const { DataSource } = requireFromProjectCore<typeof import('typeorm')>('typeorm');
     const dataSource = new DataSource({
         ...(config.dbConnectionOptions as object),
@@ -64,8 +64,6 @@ export async function lastAppliedMigration(config: VendureConfig): Promise<strin
             .limit(1)
             .getRawOne<{ name: string }>();
         return row?.name ?? null;
-    } catch {
-        return undefined;
     } finally {
         if (dataSource.isInitialized) {
             await dataSource.destroy();
