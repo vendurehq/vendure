@@ -116,6 +116,14 @@ describe('consentDigest', () => {
         );
     });
 
+    // A caller passes a digest from one process to another, so it must not depend on the locale.
+    // Keys are ordered by code unit: "Z" before "a", and "é" last.
+    it('gives the same digest in every process', () => {
+        expect(consentDigest('revertMigration', { b: 1, a: 'é', Z: [2, { y: null, x: true }] })).toBe(
+            '6a11e240efbb7810',
+        );
+    });
+
     it('differs when the preview or the consent differs', () => {
         expect(consentDigest('c', { a: 1 })).not.toBe(consentDigest('c', { a: 2 }));
         expect(consentDigest('c', { a: 1 })).not.toBe(consentDigest('d', { a: 1 }));

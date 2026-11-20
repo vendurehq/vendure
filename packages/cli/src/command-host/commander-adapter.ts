@@ -8,7 +8,7 @@ import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
 import { MergedManifestCommand } from './manifest.js';
-import { kebab } from './naming.js';
+import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
 import { createSpawn } from './spawn.js';
@@ -327,9 +327,9 @@ export async function findMismatch(
         return `its behavior is "${def.behavior}" but the manifest says "${manifestCommand.behavior}"`;
     }
     const consents = Object.keys(def.consents ?? {})
-        .sort()
+        .sort(compareCodeUnits)
         .join(',');
-    if (consents !== Object.keys(manifestCommand.consents).sort().join(',')) {
+    if (consents !== Object.keys(manifestCommand.consents).sort(compareCodeUnits).join(',')) {
         return 'its consents differ';
     }
     if ((def.plan !== undefined) !== manifestCommand.hasPlan) {
@@ -345,7 +345,7 @@ export async function findMismatch(
     const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
         field => !(field in manifestCommand.consents),
     );
-    if (declared.sort().join(',') !== listed.sort().join(',')) {
+    if (declared.sort(compareCodeUnits).join(',') !== listed.sort(compareCodeUnits).join(',')) {
         return 'its input fields differ';
     }
     return undefined;
