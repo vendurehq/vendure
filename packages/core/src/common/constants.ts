@@ -10,6 +10,11 @@ import { CrudPermissionDefinition, PermissionDefinition, PermissionMetadata } fr
 export const DEFAULT_LANGUAGE_CODE = LanguageCode.en;
 export const TRANSACTION_MANAGER_KEY = Symbol('TRANSACTION_MANAGER');
 /**
+ * Set on a QueryRunner's `data` when the current attempt of a transaction must not be retried.
+ * See `TransactionalConnection.preventTransactionRetry()`.
+ */
+export const TRANSACTION_NO_RETRY_KEY = 'vendureTransactionNoRetry';
+/**
  * Injection token for the {@link ConfigurableOperationTranslator}. A token is used rather than the
  * `I18nService` class itself so that the low-level ConfigurableOperationDef base class does not
  * need to import from the i18n module.

@@ -31,6 +31,7 @@ import {
     warnOnDroppedListEntries,
 } from './config/strategy-layer/strategy-chain-checks';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
+import { checkBinaryLogFormat } from './connection/check-binary-log-format';
 import { checkDatabaseTimezone } from './connection/check-database-timezone';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
@@ -277,6 +278,7 @@ async function startServer(
         app.use(mid.route, handler);
     });
     await checkDatabaseTimezone(app.get<DataSource>(getConnectionToken()), config);
+    await checkBinaryLogFormat(app.get<DataSource>(getConnectionToken()), config);
     await options?.onBeforeAppListen?.(app);
     await app.listen(port, hostname || '');
     app.enableShutdownHooks();
@@ -350,6 +352,7 @@ async function startWorker(
     workerApp.enableShutdownHooks();
     await validateDbTablesForWorker(workerApp);
     await checkDatabaseTimezone(workerApp.get<DataSource>(getConnectionToken()), config);
+    await checkBinaryLogFormat(workerApp.get<DataSource>(getConnectionToken()), config);
     Logger.info('Vendure Worker is ready');
     logStartupBanner('worker');
     await workerApp.get(EventBus).publish(new BootstrappedEvent());

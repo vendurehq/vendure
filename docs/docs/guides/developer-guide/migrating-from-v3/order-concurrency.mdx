@@ -1,0 +1,112 @@
+---
+title: 'Order concurrency and transaction isolation'
+metaTitle: 'Vendure v4 Order Concurrency and Transaction Isolation - Migration Guide'
+metaDescription: 'Vendure v4 serializes concurrent writes to the same Order and runs MySQL and MariaDB transactions at READ COMMITTED. What to check in your database settings and plugins.'
+order: 10
+---
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+In v3, two requests which changed the same Order at the same time could overwrite each other. A customer's address or shipping method went missing, items disappeared from a cart, one session ended up with several active Orders, and an Order which the storefront and a payment webhook paid at the same moment could enter `PaymentSettled` twice. Vendure v4 serializes those requests:
+
+- Writes to the same Order take a row lock and run one after the other. Creating an active Order locks the Session, and the User when one is logged in, so concurrent first requests share one Order.
+- On MySQL and MariaDB, transactions run at `READ COMMITTED` instead of InnoDB's default `REPEATABLE READ`. Postgres already uses `READ COMMITTED`.
+- A transaction which the database rejects with a deadlock or a serialization failure is retried, unless it has already called a payment provider.
+
+SQLite is not affected: it runs one write at a time anyway. Aurora Postgres is covered like Postgres. Aurora MySQL keeps the v3 behaviour: TypeORM's Aurora MySQL driver never applies an isolation level, so Vendure takes no row locks there.
+
+## Why the isolation level changes
+
+Under `REPEATABLE READ`, a transaction keeps reading the snapshot taken at its first read. A request which waited for the lock on an Order would then still read the Order as it was before the request it waited for, and overwrite those changes, so the lock would not help. On MariaDB 11.6.2 and later, `innodb_snapshot_isolation` makes the same reads fail with `ER_CHECKREAD` ("Record has changed since last read") instead. Under `READ COMMITTED`, each statement reads the latest committed data.
+
+## What to check
+
+### 1. Binary log format (MySQL and MariaDB)
+
+MySQL and MariaDB reject writes at `READ COMMITTED` when the binary log uses the statement format. Check the format on your database server:
+
+```sql
+SELECT @@GLOBAL.binlog_format;
+```
+
+`ROW` (the MySQL 8 default) and `MIXED` (the MariaDB default) both work. If it is `STATEMENT`, change it to `ROW` or `MIXED`. Vendure also checks this at startup and logs an error if binary logging is on with the statement format.
+
+**Done when:** the query returns `ROW` or `MIXED`, or binary logging is off.
+
+### 2. Code which relies on `REPEATABLE READ` (MySQL and MariaDB)
+
+If a plugin reads the same rows several times in one transaction and relies on getting the same result each time, it now sees changes committed in between. Ask for the level explicitly where you need it:
+
+```ts
+@Transaction('auto', 'REPEATABLE READ')
+@Mutation()
+async myMutation(@Ctx() ctx: RequestContext) {
+    // ...
+}
+```
+
+You can also change the default for every transaction with `entityOptions.transactionIsolationLevel`. Setting `'REPEATABLE READ'` there on MySQL or MariaDB brings the lost updates on Orders back.
+
+**Done when:** you have checked the plugins which read the same data several times in one transaction.
+
+### 3. Work outside the database in a transaction
+
+A retried transaction runs again from the start. Database writes are rolled back first, but anything else is done twice. Vendure does not retry a transaction once it has called a `PaymentMethodHandler`, or a `FulfillmentHandler`'s `createFulfillment()` or `onFulfillmentTransition()`. If your code calls another external service inside a transaction and must not do so twice, call `preventTransactionRetry()` before that call:
+
+```ts
+import { Order, RequestContext, TransactionalConnection } from '@vendure/core';
+
+export class MyErpService {
+    constructor(private connection: TransactionalConnection) {}
+
+    async exportOrder(ctx: RequestContext, order: Order) {
+        // A deadlock after this point is thrown instead of retried.
+        this.connection.preventTransactionRetry(ctx);
+        await this.erpClient.createSalesOrder(order);
+    }
+}
+```
+
+**Done when:** each call to an external service inside a transaction either is safe to repeat or comes after `preventTransactionRetry()`.
+
+### 4. Plugins which write to Orders
+
+The lock is taken when `OrderService` reads an Order to change it, and when the active Order is determined in the Shop API. If a plugin updates an Order through its own queries, lock the row before you read it, inside the same transaction:
+
+```ts
+await this.connection.lockRow(ctx, Order, orderId);
+const order = await this.connection.getRepository(ctx, Order).findOne({ where: { id: orderId } });
+```
+
+`lockRow()` does nothing outside a transaction and on SQLite. When a request locks several rows, take them in the order Session, User, Order, which is the order Vendure uses, or two requests can deadlock.
+
+**Done when:** each plugin which saves an Order either goes through `OrderService` or locks the Order first.
+
+### 5. Lock timeouts and pool size
+
+Requests for the same Order now wait for each other. A request which waits holds a database connection, and holds it as long as the request in front of it runs, including any slow shipping, tax or payment provider call made during it. Postgres has no lock timeout by default, so a request can wait forever. MySQL and MariaDB give up after `innodb_lock_wait_timeout`, 50 seconds by default.
+
+Set a lock timeout on Postgres so that a stuck request fails rather than holding connections:
+
+```ts
+export const config: VendureConfig = {
+    dbConnectionOptions: {
+        type: 'postgres',
+        // ...
+        extra: {
+            // milliseconds
+            lock_timeout: 10_000,
+        },
+    },
+};
+```
+
+Check that the connection pool is large enough for your peak traffic: TypeORM's default is 10 connections per Vendure instance, set with `dbConnectionOptions.poolSize`.
+
+<Callout type="info">
+    Requests for different Orders do not wait for each other. In our load tests, checkouts by 30 concurrent
+    customers ran at the same rate as without the lock. Only requests on the same cart queue: 30 simultaneous
+    changes to one cart took about twice as long at the 95th percentile, and none of them was lost.
+</Callout>
+
+**Done when:** Postgres has a `lock_timeout`, and your pool size fits your peak number of concurrent requests.
