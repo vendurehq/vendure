@@ -454,10 +454,10 @@
       "name": "@vendure/mcp-sdk",
       "version": "3.8.1",
       "dependencies": {
+        "@vendure/common": "3.8.1",
         "zod": "^4.2.0",
       },
       "devDependencies": {
-        "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1",
       },
       "peerDependencies": {
