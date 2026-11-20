@@ -112,10 +112,10 @@ async function createGraphQLOptions(
         // "production". Use @vendure/graphiql-plugin for an in-browser IDE.
         playground: false,
         csrfPrevention: configService.apiOptions.csrfPrevention ?? true,
-        // Adds `vendureCode` to the extensions of every error, and in development the stack frames
-        // which point at the project's own files.
+        // Adds `vendureCode` to the extensions of every error and, when `includeStackInErrors` is set,
+        // the stack frames which point at the project's own files.
         formatError: createFormatGraphQLError({
-            includeStack: process.env.NODE_ENV !== 'production',
+            includeStack: configService.apiOptions.includeStackInErrors === true,
             cwd: process.cwd(),
         }),
         // Apollo Server includes stack traces in error responses unless NODE_ENV is "production"

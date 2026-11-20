@@ -66,26 +66,19 @@ describe('GraphQL error extensions', () => {
         expect(error.extensions?.vendureCode).toBe('core.unexpected');
     });
 
-    it('adds the stack frames of the project in development', async () => {
+    it('adds no stack by default', async () => {
         await adminClient.asAnonymousUser();
         const [error] = await getErrors(adminClient.query(GET_ADMINISTRATORS));
-        const stack: string[] = error.extensions?.stack;
 
         expect(process.env.NODE_ENV).not.toBe('production');
-        expect(Array.isArray(stack)).toBe(true);
-        expect(stack.length).toBeGreaterThan(0);
-        for (const frame of stack) {
-            expect(frame).toMatch(/^at /);
-            expect(frame).not.toContain('node_modules');
-            expect(frame).not.toContain(process.cwd());
-        }
+        expect(error.extensions).not.toHaveProperty('stack');
     });
 
     it('does not send the Apollo stacktrace or the translation variables', async () => {
         await adminClient.asSuperAdmin();
         const [error] = await getErrors(adminClient.query(UPDATE_PRODUCT, { id: 'T_999' }));
 
-        expect(Object.keys(error.extensions ?? {}).sort()).toEqual(['code', 'stack', 'vendureCode']);
+        expect(Object.keys(error.extensions ?? {}).sort()).toEqual(['code', 'vendureCode']);
     });
 });
 

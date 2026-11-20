@@ -6,8 +6,8 @@ import { UNEXPECTED_VENDURE_CODE } from '../../i18n/vendure-code';
 
 export interface FormatGraphQLErrorOptions {
     /**
-     * Adds `extensions.stack`, the frames of the error's stack under `cwd`. Only set in development,
-     * since the frames name the project's files.
+     * Adds `extensions.stack`, the frames of the error's stack under `cwd`. Set by the
+     * `apiOptions.includeStackInErrors` option, since the frames name the project's files.
      */
     includeStack: boolean;
     cwd: string;
@@ -18,7 +18,7 @@ export interface FormatGraphQLErrorOptions {
  * thrown with, so `extensions.code` keeps its existing meaning, and gains:
  *
  * * `vendureCode`: the namespaced code of an {@link I18nError}, or `core.unexpected` for any other error;
- * * `stack`: in development only, the frames of the stack which point at the project's own files.
+ * * `stack`: only when `includeStack` is set, the frames of the stack which point at the project's own files.
  *
  * When the thrown error has no `code`, the code from Apollo Server's formatted error is used, which is
  * `INTERNAL_SERVER_ERROR` unless Apollo or Nest set a more specific one. The internal `http` extension
