@@ -2,6 +2,7 @@ import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { ProductVariantListOptions } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
@@ -22,6 +23,7 @@ import { ProductOptionGroupService } from '../../../service/services/product-opt
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
 import { ApiType } from '../../common/get-api-type';
+import { IdArgumentDecoder } from '../../common/id-argument-decoder';
 import { RequestContext } from '../../common/request-context';
 import { Api } from '../../decorators/api.decorator';
 import { RelationPaths, Relations } from '../../decorators/relations.decorator';
@@ -36,6 +38,7 @@ export class ProductEntityResolver {
         private assetService: AssetService,
         private facetValueService: FacetValueService,
         private localeStringHydrator: LocaleStringHydrator,
+        private idArgumentDecoder: IdArgumentDecoder,
     ) {}
 
     @ResolveField()
@@ -78,9 +81,11 @@ export class ProductEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() product: Product,
         @Args() args: { options: ProductVariantListOptions },
+        @Info() info: GraphQLResolveInfo,
         @Relations({ entity: ProductVariant, omit: ['assets'] }) relations: RelationPaths<ProductVariant>,
     ): Promise<PaginatedList<ProductVariant>> {
-        return this.productVariantService.getVariantsByProductId(ctx, product.id, args.options, relations);
+        const { options } = this.idArgumentDecoder.decode(info, args);
+        return this.productVariantService.getVariantsByProductId(ctx, product.id, options, relations);
     }
 
     @ResolveField()
