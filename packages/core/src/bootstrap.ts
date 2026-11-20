@@ -15,7 +15,10 @@ import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeor
 import cookieSession = require('cookie-session');
 
 import { tokenMethodIncludes } from './api/common/token-method-includes';
+import { CORE_STARTUP_ERROR_CODES } from './common/error/core-startup-error-codes';
 import { InternalServerError } from './common/error/errors';
+import { writeStartupErrorEvent } from './common/error/startup-error-event';
+import { VendureStartupError } from './common/error/vendure-startup-error';
 import { getConfig, setConfig } from './config/config-helpers';
 import { DefaultLogger } from './config/logger/default-logger';
 import { Logger } from './config/logger/vendure-logger';
@@ -215,11 +218,26 @@ export interface BootstrapWorkerOptions {
  * });
  * ```
  *
+ * If the server fails to start, `bootstrap` writes one line of JSON to stderr which names the error's code
+ * and fixes, then rethrows the error. See {@link VendureStartupError}.
+ *
  * @docsCategory common
  * @docsPage bootstrap
  * @docsWeight 0
  * */
 export async function bootstrap(
+    userConfig: Partial<VendureConfig>,
+    options?: BootstrapOptions,
+): Promise<INestApplication> {
+    try {
+        return await startServer(userConfig, options);
+    } catch (e) {
+        writeStartupErrorEvent(e);
+        throw e;
+    }
+}
+
+async function startServer(
     userConfig: Partial<VendureConfig>,
     options?: BootstrapOptions,
 ): Promise<INestApplication> {
@@ -288,11 +306,27 @@ export async function bootstrap(
  *     process.exit(1);
  *   });
  * ```
+ *
+ * If the worker fails to start, `bootstrapWorker` writes one line of JSON to stderr which names the error's
+ * code and fixes, then rethrows the error. See {@link VendureStartupError}.
+ *
  * @docsCategory worker
  * @docsPage bootstrapWorker
  * @docsWeight 0
  * */
 export async function bootstrapWorker(
+    userConfig: Partial<VendureConfig>,
+    options?: BootstrapWorkerOptions,
+): Promise<VendureWorker> {
+    try {
+        return await startWorker(userConfig, options);
+    } catch (e) {
+        writeStartupErrorEvent(e);
+        throw e;
+    }
+}
+
+async function startWorker(
     userConfig: Partial<VendureConfig>,
     options?: BootstrapWorkerOptions,
 ): Promise<VendureWorker> {
@@ -365,7 +399,16 @@ export async function preBootstrapConfig(
     );
     if (!customFieldValidationResult.valid) {
         process.exitCode = 1;
-        throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
+        throw new VendureStartupError({
+            code: CORE_STARTUP_ERROR_CODES.invalidCustomFields,
+            message: 'CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '),
+            fix: [
+                {
+                    description:
+                        'Correct each custom field definition listed in the message, in customFields',
+                },
+            ],
+        });
     }
     registerCustomEntityFields(config);
     setTimestampColumnTypes(config, entities);
@@ -403,9 +446,20 @@ function checkPluginCompatibility(
                     continue;
                 } else {
                     Logger.error(compatibilityErrorMessage);
-                    throw new InternalServerError(
-                        `Plugin "${pluginName}" is not compatible with this version of Vendure.`,
-                    );
+                    throw new VendureStartupError({
+                        code: CORE_STARTUP_ERROR_CODES.incompatiblePlugin,
+                        message: compatibilityErrorMessage,
+                        fix: [
+                            {
+                                description: `Upgrade "${pluginName}" to a version that supports Vendure ${VENDURE_VERSION}`,
+                            },
+                            {
+                                description:
+                                    `If "${pluginName}" works with this version anyway, add it to the ` +
+                                    'ignoreCompatibilityErrorsForPlugins bootstrap option',
+                            },
+                        ],
+                    });
                 }
             }
         }

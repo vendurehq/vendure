@@ -16,6 +16,7 @@ import { AssetInterceptorPlugin } from '../middleware/asset-interceptor-plugin';
 import { IdCodecPlugin } from '../middleware/id-codec-plugin';
 import { TranslateErrorsPlugin } from '../middleware/translate-errors-plugin';
 
+import { createFormatGraphQLError } from './format-graphql-error';
 import { generateResolvers } from './generate-resolvers';
 import { getFinalVendureSchema, isUsingDefaultEntityIdStrategy } from './get-final-vendure-schema';
 
@@ -111,6 +112,12 @@ async function createGraphQLOptions(
         // "production". Use @vendure/graphiql-plugin for an in-browser IDE.
         playground: false,
         csrfPrevention: configService.apiOptions.csrfPrevention ?? true,
+        // Adds `vendureCode` to the extensions of every error and, when `includeStackInErrors` is set,
+        // the stack frames which point at the project's own files.
+        formatError: createFormatGraphQLError({
+            includeStack: configService.apiOptions.includeStackInErrors === true,
+            cwd: process.cwd(),
+        }),
         // Apollo Server includes stack traces in error responses unless NODE_ENV is "production"
         // or "test". They expose server file paths, so they are always turned off explicitly.
         includeStacktraceInErrorResponses: false,
