@@ -187,6 +187,31 @@ describe('Multiple shipping orders', () => {
         expect(order?.shippingLines.length).toBe(2);
     });
 
+    // The unused ShippingLines used to be removed from index `shippingMethodIds.length - 1`, which also
+    // removed the last ShippingLine just assigned a method
+    it('keeps the remaining shipping line when fewer shipping methods are set', async () => {
+        const { setOrderShippingMethod } = await shopClient.query(setShippingMethodDocument, {
+            id: [lessThan100MethodId],
+        });
+        orderResultGuard.assertSuccess(setOrderShippingMethod);
+
+        const order = await getInternalOrder(setOrderShippingMethod.id);
+        expect(order?.shippingLines.map(line => line.shippingMethod.code)).toEqual(['less-than-100']);
+        expect(order?.lines[1].shippingLine?.shippingMethod.code).toBe('less-than-100');
+        // The OrderLine of the removed ShippingMethod is left without a ShippingLine
+        expect(order?.lines[0].shippingLine ?? null).toBeNull();
+        expect(order?.lines[0].shippingLineId ?? null).toBeNull();
+        const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+        expect(activeOrder?.shippingWithTax).toBe(1000);
+
+        // Restore both shipping methods for the following tests
+        const { setOrderShippingMethod: restored } = await shopClient.query(setShippingMethodDocument, {
+            id: [lessThan100MethodId, greaterThan100MethodId],
+        });
+        orderResultGuard.assertSuccess(restored);
+        expect((await getInternalOrder(restored.id))?.shippingLines.length).toBe(2);
+    });
+
     it('removes shipping methods that are no longer applicable', async () => {
         const { activeOrder } = await shopClient.query(getActiveOrderDocument);
 
