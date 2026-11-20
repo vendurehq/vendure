@@ -119,6 +119,7 @@ export class ProductPriceApplicator {
             productVariant: variant,
             activeTaxZone,
             ctx,
+            taxRate: applicableTaxRate,
         });
 
         variant.listPrice = price;

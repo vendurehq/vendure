@@ -167,10 +167,10 @@ describe('Country tax rates', () => {
         expect(await taxRateFor('DE')).toBe(19);
     });
 
-    // With prices that include tax, an entered price is gross in the Channel's default tax Zone and
-    // net prices elsewhere are derived from the default Zone's rate. These cases record what an Order
-    // line costs when country rates are combined with that, next to the same rates modelled the v3
-    // way, as one Zone per country. The entered price is 120.00.
+    // With prices that include tax, an entered price includes the default tax Zone's rate. It is kept
+    // as gross where that rate applies, and elsewhere the net is taken out at it. A country rate counts
+    // as another rate, so country rates give the same prices as one Zone per country (the v3 way).
+    // The entered price is 120.00.
     describe('Channel.pricesIncludeTax = true', () => {
         let atId: string;
         let europeZoneId: string;
@@ -239,20 +239,40 @@ describe('Country tax rates', () => {
         });
 
         it('eu zone rate 20%, country rates AT 20% and DE 19%', async () => {
-            // The active Zone for AT and DE is the default, so 120.00 is kept as gross and the country
-            // rate is taken out of it. US (Americas Zone) gets its net from the eu rate.
+            // A country rate is treated like the rate of another Zone: the net is taken out at the eu
+            // zone rate (20%) and the country rate added, so DE pays 119.00 as in the v3-style setup.
             expect(await pricesForAtDeUs()).toEqual({
                 AT: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
-                DE: { unitPrice: 10084, unitPriceWithTax: 12000, taxRate: 19 },
+                DE: { unitPrice: 10000, unitPriceWithTax: 11900, taxRate: 19 },
                 US: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
             });
+        });
+
+        it('a country rate with the eu zone rate value keeps the entered price', async () => {
+            // 119.91 would become 119.92 if the net were taken out at 20% and 20% added again.
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: variantId, price: 11991 }],
+            });
+            try {
+                await shopClient.asAnonymousUser();
+                await shopClient.query(addItemToOrderDocument, { productVariantId: variantId, quantity: 1 });
+                expect(await linePricesFor('AT')).toEqual({
+                    unitPrice: 9993,
+                    unitPriceWithTax: 11991,
+                    taxRate: 20,
+                });
+            } finally {
+                await adminClient.query(updateProductVariantsDocument, {
+                    input: [{ id: variantId, price: 12000 }],
+                });
+            }
         });
 
         it('eu without a zone rate, country rates AT 20% and DE 19%', async () => {
             const euRate = await rateByName('EU fallback');
             await adminClient.query(updateTaxRateDocument, { input: { id: euRate.id, enabled: false } });
-            // AT and DE are as above. US gets its net from the default Zone, which has no zone rate:
-            // 0% is taken out, so 20% is added to the whole 120.00.
+            // The default Zone has no zone rate, so prices work as without country rates: 120.00 is
+            // kept as gross for AT and DE, and US gets 0% taken out, so 20% is added to the whole 120.00.
             expect(await pricesForAtDeUs()).toEqual({
                 AT: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
                 DE: { unitPrice: 10084, unitPriceWithTax: 12000, taxRate: 19 },
@@ -291,8 +311,8 @@ describe('Country tax rates', () => {
             await adminClient.query(updateChannelDocument, {
                 input: { id: 'T_1', defaultTaxZoneId: zoneIds.AT },
             });
-            // DE is not the default Zone, so its net is taken out at AT's 20% and DE's 19% added:
-            // 119.00, where the country-rate setups above charge 120.00.
+            // DE is not the default Zone, so its net is taken out at AT's 20% and DE's 19% added: 119.00,
+            // the same as with country rates and an eu zone rate.
             expect(await pricesForAtDeUs()).toEqual({
                 AT: { unitPrice: 10000, unitPriceWithTax: 12000, taxRate: 20 },
                 DE: { unitPrice: 10000, unitPriceWithTax: 11900, taxRate: 19 },
