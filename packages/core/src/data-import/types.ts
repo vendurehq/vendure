@@ -49,7 +49,24 @@ export interface InitialData {
     defaultZone: string;
     roles?: RoleDefinition[];
     countries: CountryDefinition[];
-    taxRates: Array<{ name: string; percentage: number }>;
+    /**
+     * @description
+     * For each item, a {@link TaxCategory} named `name` is created, and then a {@link TaxRate}
+     * for that category is created in every zone: the zones defined in `countries`, plus any
+     * zones that already exist.
+     *
+     * Each TaxRate gets `percentage`, unless `zones` sets a different value for its zone.
+     * The keys of `zones` are zone names, as used in `countries[].zone`. Populating fails
+     * if a key does not match a zone.
+     *
+     * @example
+     * ```ts
+     * taxRates: [
+     *     { name: 'Standard Tax', percentage: 19, zones: { France: 20, Hungary: 27 } },
+     * ],
+     * ```
+     */
+    taxRates: Array<{ name: string; percentage: number; zones?: Record<string, number> }>;
     shippingMethods: Array<{ name: string; price: number; taxRate?: number }>;
     paymentMethods: Array<{ name: string; handler: ConfigurableOperationInput }>;
     collections: CollectionDefinition[];

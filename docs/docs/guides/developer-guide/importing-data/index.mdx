@@ -180,6 +180,9 @@ export const initialData: InitialData = {
   * `zone`: A [Zone](/reference/typescript-api/entities/zone) to which this country belongs.
 * `defaultZone`: Sets the default shipping & tax zone for the default Channel. The zone must correspond to a value of `zone` set in the `countries` array. 
 * `taxRates`: For each item, a new [TaxCategory](/reference/typescript-api/entities/tax-category/) is created, and then a [TaxRate](/reference/typescript-api/entities/tax-rate) is created for each unique zone defined in the `countries` array. 
+  * `name`: The name of the TaxCategory.
+  * `percentage`: The rate used in every zone that `zones` does not list.
+  * `zones` (optional): A rate per zone, keyed by zone name as set in `countries[].zone`. Populating fails if a key does not match a zone. For example, `{ name: 'Standard Tax', percentage: 20, zones: { Asia: 6 } }` gives the Asia zone a 6% rate and every other zone 20%.
 * `shippingMethods`: Allows simple flat-rate [ShippingMethods](/reference/typescript-api/entities/shipping-method) to be defined.
 * `collections`: Allows Collections to be created. Currently, only collections based on facet values can be created (`code: 'facet-value-filter'`). The `assetPaths` and `facetValueNames` values must correspond to a value specified in the products csv file. The name should match the value specified in the product csv file (or can be a normalized - lower-case & hyphenated - version thereof). If there are FacetValues in multiple Facets with the same name, the facet may be specified with a colon delimiter, e.g. `brand:apple`, `flavour: apple`.
 
