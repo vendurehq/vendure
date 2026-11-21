@@ -179,7 +179,7 @@ export type EmailTransportOptions =
 
 /**
  * @description
- * The SMTP transport options of [Nodemailer](https://nodemailer.com/smtp/)
+ * The SMTP transport options of [Nodemailer](https://nodemailer.com/smtp)
  *
  * @docsCategory core plugins/EmailPlugin
  * @docsPage Transport Options
@@ -235,9 +235,9 @@ export interface SMTPTransportOptions extends SMTPTransport.Options {
 
 /**
  * @description
- * The SES transport options of [Nodemailer](https://nodemailer.com/transports/ses//)
+ * The SES transport options of [Nodemailer](https://nodemailer.com/transports/ses)
  *
- * See [Nodemailers's SES docs](https://nodemailer.com/transports/ses/) for more details
+ * See [Nodemailers's SES docs](https://nodemailer.com/transports/ses) for more details
  *
  * @example
  * ```ts
@@ -370,7 +370,7 @@ export type OptionalToNullable<O> = {
 /**
  * @description
  * An object defining a file attachment for an email. Based on the object described
- * [here in the Nodemailer docs](https://nodemailer.com/message/attachments/), but
+ * [here in the Nodemailer docs](https://nodemailer.com/message/attachments), but
  * only uses the `path` property to define a filesystem path or a URL pointing to
  * the attachment file.
  *
@@ -497,7 +497,7 @@ export type SetPlainTextBodyFn<Event> = (
 /**
  * @description
  * A function used to define attachments to be sent with the email.
- * See https://nodemailer.com/message/attachments/ for more information about
+ * See https://nodemailer.com/message/attachments for more information about
  * how attachments work in Nodemailer.
  *
  * @docsCategory core plugins/EmailPlugin
