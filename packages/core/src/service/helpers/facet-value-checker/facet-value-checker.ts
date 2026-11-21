@@ -7,6 +7,7 @@ import { filter } from 'rxjs/operators';
 
 import { RequestContext } from '../../../api/index';
 import { CacheService } from '../../../cache/cache.service';
+import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { idsAreEqual } from '../../../common/utils';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
@@ -65,6 +66,7 @@ export class FacetValueChecker implements OnModuleInit {
         private connection: TransactionalConnection,
         private cacheService: CacheService,
         private eventBus?: EventBus,
+        private requestContextCache?: RequestContextCacheService,
     ) {}
 
     private facetValueCache = this.cacheService.createCache({
@@ -118,7 +120,24 @@ export class FacetValueChecker implements OnModuleInit {
      */
     async hasFacetValues(orderLine: OrderLine, facetValueIds: ID[], ctx?: RequestContext): Promise<boolean> {
         const variantId = orderLine.productVariant.id;
-        const variantFacetValueIds = await this.facetValueCache.get(variantId, async () => {
+        // Promotion checks call this for the same variant many times while one order is
+        // recalculated, so the cache lookup is shared for the rest of the request.
+        // The key is the same as in the shared cache. They are separate stores, so it does not collide.
+        const variantFacetValueIds =
+            ctx && this.requestContextCache
+                ? await this.requestContextCache.get(ctx, `FacetValueChecker.${variantId}`, () =>
+                      this.getVariantFacetValueIds(orderLine, ctx),
+                  )
+                : await this.getVariantFacetValueIds(orderLine, ctx);
+        return facetValueIds.reduce(
+            (result, id) => result && !!(variantFacetValueIds ?? []).find(_id => idsAreEqual(_id, id)),
+            true as boolean,
+        );
+    }
+
+    private getVariantFacetValueIds(orderLine: OrderLine, ctx?: RequestContext): Promise<ID[]> {
+        const variantId = orderLine.productVariant.id;
+        return this.facetValueCache.get(variantId, async () => {
             const variant = await this.connection
                 .getRepository(ctx, ProductVariant)
                 .findOne({
@@ -133,9 +152,5 @@ export class FacetValueChecker implements OnModuleInit {
                 return unique([...variant.facetValues, ...variant.product.facetValues].map(fv => fv.id));
             }
         });
-        return facetValueIds.reduce(
-            (result, id) => result && !!(variantFacetValueIds ?? []).find(_id => idsAreEqual(_id, id)),
-            true as boolean,
-        );
     }
 }
