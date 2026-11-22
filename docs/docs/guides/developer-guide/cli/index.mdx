@@ -34,7 +34,8 @@ For guidance on using the CLI together with project instructions for AI coding a
 
 ## JSON Output for Scripts and Agents
 
-`doctor`, `add codegen`, `migrate revert` and `commands` accept `--json`. With `--json`, the command
+`doctor`, the `add` commands, `migrate generate`, `migrate run`, `migrate revert`, the `devserver`
+commands and `commands` accept `--json`. With `--json`, the command
 writes exactly one JSON document to stdout, and sends everything else, including output from libraries
 and the processes it starts, to stderr:
 
@@ -120,6 +121,49 @@ to the project directory.
 | `--inspect [host:port]` | Enable the Node.js inspector for the server and worker. |
 | `--inspect-brk [host:port]` | Enable the inspector and pause before user code starts. |
 | `--no-reload` | Disable automatic server and worker restarts. |
+
+When a backend file changes, `vendure dev` restarts the server and the worker once. A compile error or a
+failed start does not end the run: it reports the error and restarts the process on the next save.
+Changes under `.vendure/` and under the `gqlOutputPath` of the Dashboard Vite config do not cause a restart.
+
+A run that starts the server keeps its state in `.vendure/devserver.json`, which the `devserver` commands
+read. The file is readable only by your user and is deleted when the run stops. The server and the worker
+log as JSON, and every line of output goes to `.vendure/logs/dev.jsonl`. The terminal still shows readable
+text. The log rotates at 10 MB and keeps three files.
+
+## The Devserver Commands
+
+The `devserver` commands run `vendure dev` in the background and report on it, for scripts and coding agents.
+`vendure mcp` offers them as tools too. Run them in the project directory.
+
+```bash
+# Start the server, worker and Dashboard in the background, and wait until they are ready
+npx vendure devserver start
+
+# Status, URLs, restart count and the last error, with file, line and message for a compile error
+npx vendure devserver status --json
+
+# Wait until the run is ready. Returns at once if it failed
+npx vendure devserver wait --timeout 60 --json
+
+# Read the log: recent lines, one request, or warnings and errors
+npx vendure devserver logs --since 15m --min-severity warn
+npx vendure devserver logs --request <request-id> --json
+
+npx vendure devserver stop
+```
+
+| Command | Description |
+| --- | --- |
+| `devserver start [target]` | Start `vendure dev` in the background, for the target `all` (the default) or `server`. It waits until the run is ready or failed, except under `vendure mcp`. `--no-wait` returns once the run has started. It refuses to start while another run serves the project. |
+| `devserver status` | Report `starting`, `ready`, `restarting`, `failed` or `stopped`, with the URLs, the start time, the restart count and the last error. |
+| `devserver wait` | Wait until the run is ready, and return at once when it failed or stopped. `--after-restarts <n>` waits for the restart an edit causes: pass the `restarts` that `status` reported before the edit, plus 1. |
+| `devserver logs` | Read `.vendure/logs/dev.jsonl`, filtered with `--since` (a duration such as `15m`, or an ISO 8601 time), `--request <id>` and `--min-severity`. It returns the newest 1000 lines that match. |
+| `devserver stop` | Stop the run and wait until it has exited. |
+
+Each request has an ID, which the server returns in the `x-request-id` header and in the extensions of a
+GraphQL error. A job that a request adds carries the same ID, so `--request` finds the log lines of the
+request and of the jobs it started.
 
 ## The Add Command
 
