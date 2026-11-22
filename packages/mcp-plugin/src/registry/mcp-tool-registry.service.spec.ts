@@ -124,7 +124,8 @@ function build(
     const connection = {
         withTransaction: vi.fn((ctx: any, work: (txCtx: any) => Promise<unknown>) => work(ctx)),
     };
-    const consentService = new McpConsentService();
+    const resolvedOptions = resolveMcpPluginOptions(options);
+    const consentService = new McpConsentService(resolvedOptions);
     const service = new McpToolRegistryService(
         discoveryService as any,
         settingsStoreService as any,
@@ -135,7 +136,7 @@ function build(
         configService as any,
         connection as any,
         consentService,
-        resolveMcpPluginOptions(options),
+        resolvedOptions,
     );
     return {
         service,
@@ -803,7 +804,11 @@ describe('McpToolRegistryService', () => {
                 toolset: 'admin',
                 permissions: [Permission.ReadCatalog],
             });
-            const hidden = shopTool({ name: 'secret_things', toolset: 'admin', permissions: [Permission.SuperAdmin] });
+            const hidden = shopTool({
+                name: 'secret_things',
+                toolset: 'admin',
+                permissions: [Permission.SuperAdmin],
+            });
             const { service } = build([wrapper(listThings), wrapper(hidden)], { toolExposure: 'discovery' });
             service.onApplicationBootstrap();
             const ctx = makeCtx({ activeUserId: 1, granted: [Permission.ReadCatalog] });
@@ -1123,6 +1128,7 @@ describe('McpToolRegistryService', () => {
                         consent: 'confirm',
                         description: 'Approve this destructive action: Gets a thing Input: {"id":"x"}',
                         digest,
+                        preview: 'Gets a thing Input: {"id":"x"}',
                     },
                 ],
             });
@@ -1143,7 +1149,10 @@ describe('McpToolRegistryService', () => {
             const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x',
             });
-            expect(result.structuredContent).toMatchObject({ status: 'incomplete', preview: 'Delete thing x' });
+            expect(result.structuredContent).toMatchObject({
+                status: 'incomplete',
+                preview: 'Delete thing x',
+            });
             expect(describeCall.mock.calls[0][1]).toEqual({ id: 'x' });
             expect(execute).not.toHaveBeenCalled();
         });
@@ -1171,7 +1180,9 @@ describe('McpToolRegistryService', () => {
             const { service } = build([wrapper(destructive(), execute)]);
             service.onApplicationBootstrap();
             const caller = { ctx: makeCtx({ activeUserId: 1 }) };
-            const digest = digestOf(await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }));
+            const digest = digestOf(
+                await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }),
+            );
 
             // Another caller cannot use it.
             const otherCaller = await service.callToolDirect(
@@ -1203,6 +1214,32 @@ describe('McpToolRegistryService', () => {
             expect(execute).toHaveBeenCalledOnce();
         });
 
+        it('accepts the digest for the same arguments sent in another key order', async () => {
+            const execute = vi.fn(() => ({ deleted: true }));
+            const twoFields = shopTool({
+                name: 'delete_thing',
+                behavior: 'destructive',
+                inputSchema: {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, reason: { type: 'string' } },
+                    additionalProperties: false,
+                },
+            });
+            const { service } = build([wrapper(twoFields, execute)]);
+            service.onApplicationBootstrap();
+            const caller = { ctx: makeCtx() };
+            const digest = digestOf(
+                await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x', reason: 'r' }),
+            );
+            const result = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                reason: 'r',
+                id: 'x',
+                confirm: digest,
+            });
+            expect(result.structuredContent).toEqual({ deleted: true });
+            expect(execute).toHaveBeenCalledOnce();
+        });
+
         it('asks again when the preview changed since the digest was issued', async () => {
             const execute = vi.fn(() => ({ deleted: true }));
             let state = 'Draft';
@@ -1212,7 +1249,9 @@ describe('McpToolRegistryService', () => {
             ]);
             service.onApplicationBootstrap();
             const caller = { ctx: makeCtx() };
-            const digest = digestOf(await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }));
+            const digest = digestOf(
+                await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }),
+            );
             state = 'Placed';
 
             const result = await service.callToolDirect(caller, 'shop', 'delete_thing', {

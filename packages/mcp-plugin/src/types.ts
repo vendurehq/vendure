@@ -480,7 +480,7 @@ export type McpActorType = McpGrantUserType | 'anonymous' | 'local';
  */
 export interface McpConsentRequiredResult {
     status: 'incomplete';
-    /** What the tool would do, naming the resolved target. */
+    /** What the tool would do, naming the resolved target. The `consent` need carries it too. */
     preview: string;
     needs: ConsentNeed[];
     /** The shop session token, for a tool that works on the shopper's cart. */

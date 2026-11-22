@@ -215,10 +215,12 @@ describe('MCP built-in admin tools (direct mode)', () => {
     // Every test that needs a grant spends three requests of the 60-per-minute OAuth-IP budget
     // (register, authorize, token). This file runs enough of them that the budget would be spent
     // mid-run and later tests would fail on a 429 raised during their setup, not on anything they
-    // test. Neither describe in this file tests OAuth rate limiting, so the budget is off.
+    // test. Neither describe in this file tests OAuth rate limiting, so the budget is off. The
+    // per-user budget is off too: each destructive call is a preview and a confirming call, so on a
+    // fast database the superadmin spends its 120 requests per minute before the suite ends.
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        rateLimits: { oauthIp: false },
+        rateLimits: { oauthIp: false, perUser: { rpm: 0 } },
     };
     const config = mergeConfig(testConfig(), {
         // Two Product custom fields no tool may write: one internal, one read-only.
@@ -2538,6 +2540,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
                         consent: 'confirm',
                         description: expect.stringMatching(/^Approve this destructive action: Move order /),
                         digest,
+                        preview: preview.body.result.structuredContent.preview,
                     },
                 ],
             });
@@ -2550,7 +2553,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 callTool('update_order_state', { id: order.id, state: 'Cancelled', confirm: true }, 2),
                 { token },
             );
-            expect(legacy.body.result?.isError ?? legacy.body.error !== undefined).toBe(true);
+            expect(legacy.body.result.isError).toBe(true);
+            expect(legacy.body.result.content[0].text).toMatch(/"confirm" must be the consent digest/);
             // So is the digest for another target.
             const otherTarget = await postMcp(
                 baseUrl(),
@@ -2729,8 +2733,7 @@ describe('MCP built-in admin tools (discovery mode)', () => {
     const options: McpPluginOptions = {
         toolExposure: 'discovery',
         oauth: { tokenSecret: TOKEN_SECRET },
-        // The superadmin's user bucket outlives each test server in this file, and the suites above
-        // spend most of it, since each destructive call is a preview and a confirming call.
+        // The per-user budget is off for the reason given in the direct-mode suite above.
         rateLimits: { oauthIp: false, perUser: { rpm: 0 } },
     };
     const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(options)] });
@@ -2925,8 +2928,7 @@ describe('MCP built-in admin tools (entity access control strategy)', () => {
     const strategy = new HideOneCustomerStrategy();
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        // The superadmin's user bucket outlives each test server in this file, and the suites above
-        // spend most of it, since each destructive call is a preview and a confirming call.
+        // The per-user budget is off for the reason given in the direct-mode suite above.
         rateLimits: { oauthIp: false, perUser: { rpm: 0 } },
     };
     const config = mergeConfig(testConfig(), {

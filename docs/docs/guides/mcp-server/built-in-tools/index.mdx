@@ -60,9 +60,9 @@ Seven built-in tools are destructive. They are marked **destructive** in the tab
 `place_order`, is a shop tool: placing an order is a real-money action, so it is gated like the destructive
 admin tools.
 
-The digest proves that the caller saw the preview, not that a person approved it: a host should ask its user before
-running a tool annotated `destructiveHint: true`, and use rate limits and the tool call log as further controls. A
-preview counts against the tool's rate limit like any other call.
+The digest proves that the caller received the preview. It does not prove that a person approved it, so a host
+should ask its user before running a tool annotated `destructiveHint: true`, and use rate limits and the tool call
+log as further controls. A preview counts against the tool's rate limit like any other call.
 
 ### Tool toggles
 

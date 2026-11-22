@@ -212,9 +212,10 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
     }
 
     /**
-     * Reads the CLI's local-trust secret before anything else can see it, and decides whether
-     * local trust is on. The Admin API only reads a bearer token when the token method includes
-     * `'bearer'`, so it is added when local trust is on.
+     * Reads the CLI's local-trust secret, deletes it from `process.env`, and decides whether local
+     * trust is on. The configuration hooks of later plugins, the app itself and any process
+     * spawned after this point do not inherit the secret. The Admin API only reads a bearer token
+     * when the token method includes `'bearer'`, so it is added when local trust is on.
      *
      * @internal
      */

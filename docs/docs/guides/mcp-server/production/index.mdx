@@ -176,6 +176,11 @@ propagated across all instances.
 
 See [Horizontal scaling](/deployment/horizontal-scaling/) for configuration details.
 
+The consent digests of destructive tools are signed with a key derived from `oauth.tokenSecret`, so a digest that
+one instance issues is accepted by every instance with the same secret. Without OAuth, each instance makes a
+random key at startup and refuses the digests of the others. A caller whose confirming call reaches another
+instance then gets a new preview instead of running the tool.
+
 ### When the boot guard runs
 
 `NODE_ENV` is the only trigger, so a deployment that never sets it never gets the guard. The check also runs in

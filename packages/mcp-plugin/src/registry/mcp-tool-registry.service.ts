@@ -33,7 +33,7 @@ import { McpShopSessionService } from '../shop-session/mcp-shop-session.service'
 import { McpConsentRequiredResult, McpToolSummary } from '../types';
 
 import { Bm25Index } from './bm25';
-import { consentCallerKey, ConsentSubject, McpConsentService } from './mcp-consent.service';
+import { canonicalJson, consentCallerKey, ConsentSubject, McpConsentService } from './mcp-consent.service';
 import { McpToolSchemaService } from './mcp-tool-schema.service';
 import { McpExposedTool, McpRegisteredTool } from './registry-types';
 
@@ -450,7 +450,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         input: Record<string, unknown>,
     ): Promise<string> {
         if (!tool.handler.describe) {
-            return `${tool.description} Input: ${JSON.stringify(input)}`;
+            // Canonical, so the same arguments sent in another key order give the same preview and digest.
+            return `${tool.description} Input: ${canonicalJson(input)}`;
         }
         const { ctx } = await this.inCartCurrency(tool, callContext);
         await this.configService.authOptions.entityAccessControlStrategy.prepareAccessControl?.(ctx);
@@ -1044,6 +1045,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     consent: 'confirm',
                     description: `Approve this destructive action: ${consent.preview}`,
                     digest: consent.digest,
+                    // On the need too, where a client written against the shared ConsentNeed type reads it.
+                    preview: consent.preview,
                 },
             ],
             ...(sessionToken !== undefined ? { sessionToken } : {}),

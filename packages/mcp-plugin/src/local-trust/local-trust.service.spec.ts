@@ -25,16 +25,62 @@ function service(
         stateFile: '/project/.vendure/devserver.json',
     };
     const rateLimiter = { recordBearerAuthFailure: vi.fn(() => Promise.resolve()) };
+    // An in-memory session store, standing in for the session table and its cache.
+    const liveSessions = new Set<string>();
+    let created = 0;
+    const sessionService = {
+        createNewAuthenticatedSession: vi.fn(() => {
+            const token = `session-${++created}`;
+            liveSessions.add(token);
+            return Promise.resolve({ token });
+        }),
+        getSessionFromToken: vi.fn((token: string) =>
+            Promise.resolve(liveSessions.has(token) ? { token } : undefined),
+        ),
+    };
+    const sessionCacheStrategy = { delete: vi.fn(() => Promise.resolve()) };
+    const deletedSessions: string[] = [];
+    const connection = {
+        getRepository: () => ({
+            findOne: () => Promise.resolve({ id: 1, identifier: 'superadmin', deletedAt: null }),
+            delete: ({ token }: { token: string }) => {
+                deletedSessions.push(token);
+                liveSessions.delete(token);
+                return Promise.resolve();
+            },
+        }),
+    };
     const localTrust = new LocalTrustService(
         activation,
         { isServer: options.isServer ?? true } as any,
-        { apiOptions: options.apiOptions ?? { hostname: '', port: 3000 } } as any,
-        {} as any,
-        {} as any,
-        {} as any,
+        {
+            apiOptions: options.apiOptions ?? { hostname: '', port: 3000 },
+            authOptions: { superadminCredentials: { identifier: 'superadmin' }, sessionCacheStrategy },
+        } as any,
+        connection as any,
+        { create: () => Promise.resolve({}) } as any,
+        sessionService as any,
         rateLimiter as any,
     );
-    return { localTrust, rateLimiter };
+    return { localTrust, rateLimiter, sessionService, liveSessions, deletedSessions, sessionCacheStrategy };
+}
+
+/** Runs the Admin API middleware on a request, and returns the Authorization header it leaves. */
+async function throughAdminApiMiddleware(
+    localTrust: LocalTrustService,
+    authorization: string,
+    headers: Record<string, string> = {},
+): Promise<string | undefined> {
+    const req = {
+        headers: { host: 'localhost:3000', authorization, ...headers },
+        socket: { remoteAddress: '127.0.0.1' },
+    } as any;
+    await new Promise<void>((resolve, reject) =>
+        localTrust.adminApiMiddleware()(req, {} as any, (e?: unknown) =>
+            e ? reject(e instanceof Error ? e : new Error('middleware failed')) : resolve(),
+        ),
+    );
+    return req.headers.authorization;
 }
 
 function request(over: Partial<LocalTrustRequest> & { headers?: LocalTrustRequest['headers'] } = {}) {
@@ -223,5 +269,103 @@ describe('LocalTrustService startup log', () => {
         } finally {
             info.mockRestore();
         }
+    });
+});
+
+describe('LocalTrustService Admin API session', () => {
+    it('swaps the secret for one session token, and reuses that session', async () => {
+        const { localTrust, sessionService } = service();
+        expect(await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`)).toBe('Bearer session-1');
+        expect(await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`)).toBe('Bearer session-1');
+        expect(sessionService.createNewAuthenticatedSession).toHaveBeenCalledOnce();
+        expect(sessionService.createNewAuthenticatedSession.mock.calls[0]).toEqual([
+            {},
+            expect.objectContaining({ identifier: 'superadmin' }),
+            'local-trust',
+            undefined,
+            'admin',
+        ]);
+    });
+
+    // For example after a logout mutation, or after the session expired.
+    it('creates a new session when the old one has gone', async () => {
+        const { localTrust, liveSessions } = service();
+        await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`);
+        liveSessions.clear();
+        expect(await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`)).toBe('Bearer session-2');
+    });
+
+    it('creates one session for concurrent first requests', async () => {
+        const { localTrust, sessionService } = service();
+        const tokens = await Promise.all(
+            [1, 2, 3].map(() => throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`)),
+        );
+        expect(new Set(tokens)).toEqual(new Set(['Bearer session-1']));
+        expect(sessionService.createNewAuthenticatedSession).toHaveBeenCalledOnce();
+    });
+
+    it('creates one replacement for concurrent requests after the session has gone', async () => {
+        const { localTrust, sessionService, liveSessions } = service();
+        await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`);
+        liveSessions.clear();
+        const tokens = await Promise.all(
+            [1, 2, 3].map(() => throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`)),
+        );
+        expect(new Set(tokens)).toEqual(new Set(['Bearer session-2']));
+        expect(sessionService.createNewAuthenticatedSession).toHaveBeenCalledTimes(2);
+    });
+
+    it('deletes the session, and its cache entry, on shutdown', async () => {
+        const { localTrust, deletedSessions, sessionCacheStrategy } = service();
+        await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`);
+        await localTrust.onApplicationShutdown();
+        expect(deletedSessions).toEqual(['session-1']);
+        expect(sessionCacheStrategy.delete).toHaveBeenCalledWith('session-1');
+    });
+
+    it('deletes nothing on shutdown when no session was created', async () => {
+        const { localTrust, deletedSessions } = service();
+        await localTrust.onApplicationShutdown();
+        expect(deletedSessions).toEqual([]);
+    });
+
+    it('leaves a wrong secret as it is, and charges it when it has the shape of a secret', async () => {
+        const { localTrust, rateLimiter } = service();
+        const wrong = 'x'.repeat(43);
+        expect(await throughAdminApiMiddleware(localTrust, `Bearer ${wrong}`)).toBe(`Bearer ${wrong}`);
+        expect(rateLimiter.recordBearerAuthFailure).toHaveBeenCalledOnce();
+    });
+
+    // The Dashboard sends its own session token as a bearer token from the same machine.
+    it('leaves an ordinary session token alone, without charging it', async () => {
+        const { localTrust, rateLimiter } = service();
+        const sessionToken = 'a'.repeat(64);
+        expect(await throughAdminApiMiddleware(localTrust, `Bearer ${sessionToken}`)).toBe(
+            `Bearer ${sessionToken}`,
+        );
+        expect(rateLimiter.recordBearerAuthFailure).not.toHaveBeenCalled();
+    });
+
+    it('leaves the secret as it is on a request from a browser page', async () => {
+        const { localTrust } = service();
+        expect(
+            await throughAdminApiMiddleware(localTrust, `Bearer ${SECRET}`, {
+                origin: 'http://localhost:3000',
+            }),
+        ).toBe(`Bearer ${SECRET}`);
+    });
+});
+
+describe('LocalTrustService.adminEndpointUrl', () => {
+    it.each([
+        ['', 'http://localhost:3000/mcp/admin'],
+        ['0.0.0.0', 'http://localhost:3000/mcp/admin'],
+        ['::', 'http://localhost:3000/mcp/admin'],
+        ['shop.lan', 'http://localhost:3000/mcp/admin'],
+        ['localhost', 'http://localhost:3000/mcp/admin'],
+        ['127.0.0.1', 'http://127.0.0.1:3000/mcp/admin'],
+        ['::1', 'http://[::1]:3000/mcp/admin'],
+    ])('names a loopback host for hostname "%s"', (hostname, url) => {
+        expect(service({ apiOptions: { hostname, port: 3000 } }).localTrust.adminEndpointUrl()).toBe(url);
     });
 });

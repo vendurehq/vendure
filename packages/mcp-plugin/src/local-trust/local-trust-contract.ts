@@ -1,9 +1,11 @@
 /**
- * The local-trust contract shared with the Vendure CLI, which writes the state file and starts the
- * dev server with the secret in its environment. This is the one place the plugin reads it from.
+ * The local-trust contract shared with the Vendure CLI, which writes the state file, starts the dev
+ * server with the secret in its environment, and reads the endpoint URL from the server's log. This
+ * file holds every part of that contract the plugin uses.
  *
- * TODO: import these from `@vendure/common/lib/local-trust` once that module is on this branch's
- * base, and delete the local copies.
+ * TODO: import the state file path, the variable name and `LocalTrustState` from
+ * `@vendure/common/lib/local-trust` once `@vendure/common` exports that module, and delete the
+ * copies here.
  */
 
 /** The dev server's state file, relative to the project directory the server runs in. */
@@ -16,3 +18,9 @@ export const LOCAL_TRUST_SECRET_ENV_VAR = 'VENDURE_LOCAL_TRUST_SECRET';
 export interface LocalTrustState {
     secret: string;
 }
+
+/**
+ * The startup log line that names the admin MCP endpoint, followed by its URL. The Vendure CLI
+ * parses it, so it must not change.
+ */
+export const ADMIN_ENDPOINT_LOG_PREFIX = 'Store MCP admin endpoint: ';

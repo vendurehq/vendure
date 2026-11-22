@@ -129,9 +129,9 @@ to `/mcp/shop`. The plugin accepts the secret only when all of these hold:
   no `Origin` header and no forwarded header, such as `X-Forwarded-For` or `Via`.
 
 So a browser page, a request through a proxy, and a server the CLI did not start never get local trust. When it is
-on, the server logs a warning at startup. To accept the secret on the Admin API, the plugin adds `'bearer'` to
-`authOptions.tokenMethod` if it is missing, which lets every Admin and Shop API request use a bearer token. It
-logs that change too.
+on, the server logs a warning at startup. The Admin API reads the secret as a bearer token, so the plugin adds
+`'bearer'` to `authOptions.tokenMethod` when it is missing, and logs that it did. Every Admin and Shop API request
+on the server can then authenticate with a bearer token.
 
 Set `localTrust: false` on any server that runs outside a developer's machine:
 

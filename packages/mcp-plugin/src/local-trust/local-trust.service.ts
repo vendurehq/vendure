@@ -28,16 +28,11 @@ import { McpRateLimiterService } from '../rate-limit/mcp-rate-limiter.service';
 import { isLoopbackHostname } from '../shared/loopback';
 
 import { hashLocalTrustSecret, LocalTrustActivation } from './local-trust-activation';
+import { ADMIN_ENDPOINT_LOG_PREFIX } from './local-trust-contract';
 import { isLoopbackSocketAddress } from './loopback-socket-address';
 
 /** The authentication strategy name recorded on the Admin API session that local trust creates. */
 export const LOCAL_TRUST_SESSION_STRATEGY = 'local-trust';
-
-/**
- * The startup log line that names the admin MCP endpoint, followed by its URL. The Vendure CLI
- * parses it, so it must not change.
- */
-export const ADMIN_ENDPOINT_LOG_PREFIX = 'Store MCP admin endpoint: ';
 
 /** What `AuthInfo.token` carries for a local-trust caller, in place of the secret. */
 export const LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER = 'local-trust';
@@ -122,10 +117,17 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
         }
     }
 
-    /** The admin MCP endpoint's URL on this server, built as core builds the URLs it logs at startup. */
+    /**
+     * The admin MCP endpoint's URL for a client on this machine. It always names a loopback host,
+     * since local trust refuses any other `Host`. A server listening on every address, or on a
+     * LAN name, is reached through `localhost`.
+     */
     adminEndpointUrl(): string {
         const { hostname, port } = this.configService.apiOptions;
-        return `http://${hostname || 'localhost'}:${port}/mcp/admin`;
+        const host = !hostname || !isLoopbackHostname(hostname) ? 'localhost' : hostname;
+        // An IPv6 address needs brackets in a URL.
+        const urlHost = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+        return `http://${urlHost}:${port}/mcp/admin`;
     }
 
     /** True when local trust is on in this process, which only the main server process can be. */

@@ -17,12 +17,12 @@ const subject: ConsentSubject = {
 
 describe('McpConsentService', () => {
     it('verifies a digest it issued for the same subject', () => {
-        const consent = new McpConsentService();
+        const consent = new McpConsentService({});
         expect(consent.verify(consent.issue(subject), subject)).toBe(true);
     });
 
     it('does not depend on the order of the input keys', () => {
-        const consent = new McpConsentService();
+        const consent = new McpConsentService({});
         const digest = consent.issue(subject);
         expect(consent.verify(digest, { ...subject, input: { reason: 'Duplicate', id: '42' } })).toBe(true);
     });
@@ -33,41 +33,51 @@ describe('McpConsentService', () => {
         ['another input', { input: { id: '43', reason: 'Duplicate' } }],
         ['another preview', { preview: 'Cancel order AB12 (id 42), now Shipped' }],
     ])('refuses the digest for %s', (_label, change) => {
-        const consent = new McpConsentService();
+        const consent = new McpConsentService({});
         expect(consent.verify(consent.issue(subject), { ...subject, ...change })).toBe(false);
     });
 
     it('refuses a digest once it has expired', () => {
-        const consent = new McpConsentService();
+        const consent = new McpConsentService({});
         const digest = consent.issue(subject, 1_000);
         expect(consent.verify(digest, subject, 1_000 + CONSENT_DIGEST_TTL_MS - 1)).toBe(true);
         expect(consent.verify(digest, subject, 1_000 + CONSENT_DIGEST_TTL_MS)).toBe(false);
     });
 
     it('refuses a digest with its expiry moved later', () => {
-        const consent = new McpConsentService();
+        const consent = new McpConsentService({});
         const [version, , mac] = consent.issue(subject, 1_000).split('.');
         const extended = `${version}.${1_000 + 10 * CONSENT_DIGEST_TTL_MS}.${mac}`;
         expect(consent.verify(extended, subject, 1_000 + CONSENT_DIGEST_TTL_MS)).toBe(false);
     });
 
-    // The key is made at startup and never leaves the process, so the digest cannot be worked out
-    // from the preview and the input alone.
-    it('refuses a digest issued by another process', () => {
-        const other = new McpConsentService();
-        expect(new McpConsentService().verify(other.issue(subject), subject)).toBe(false);
+    // Without a shared secret the key is random per process, so the digest cannot be worked out
+    // from the preview and the input alone, and another process refuses it.
+    it('refuses a digest issued by another process without a shared secret', () => {
+        const other = new McpConsentService({});
+        expect(new McpConsentService({}).verify(other.issue(subject), subject)).toBe(false);
+    });
+
+    // Behind a load balancer the preview and the confirming call can reach different instances.
+    it('accepts a digest issued by another instance with the same oauth.tokenSecret', () => {
+        const oauth = { tokenSecret: 'shared-secret' } as any;
+        const issuer = new McpConsentService({ oauth });
+        expect(new McpConsentService({ oauth }).verify(issuer.issue(subject), subject)).toBe(true);
+        const otherSecret = new McpConsentService({ oauth: { tokenSecret: 'other-secret' } as any });
+        expect(otherSecret.verify(issuer.issue(subject), subject)).toBe(false);
     });
 
     it.each([true, undefined, 42, '', 'v1', 'v1.abc.def', 'v2.9999999999999.AAAA', 'v1.1.AAAA.extra'])(
         'refuses %s',
         digest => {
-            expect(new McpConsentService().verify(digest, subject)).toBe(false);
+            expect(new McpConsentService({}).verify(digest, subject)).toBe(false);
         },
     );
 });
 
 describe('consentCallerKey', () => {
-    const ctx = (over: Record<string, unknown> = {}) => ({ activeUserId: 1, session: undefined, ...over }) as any;
+    const ctx = (over: Record<string, unknown> = {}) =>
+        ({ activeUserId: 1, session: undefined, ...over }) as any;
 
     it('tells the local agent, an OAuth grant, a session and an anonymous client apart', () => {
         const keys = [

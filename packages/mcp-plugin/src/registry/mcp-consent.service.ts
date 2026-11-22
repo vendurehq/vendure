@@ -1,12 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 
-import { McpExecutionContext } from '../internal-types';
+import { MCP_PLUGIN_OPTIONS } from '../constants';
+import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 
 /** How long a consent digest stays valid: long enough for a person to read the preview and approve it. */
 export const CONSENT_DIGEST_TTL_MS = 10 * 60_000;
 
 const DIGEST_VERSION = 'v1';
+
+/** Separates the consent key from every other key derived from `oauth.tokenSecret`. */
+const CONSENT_KEY_INFO = 'vendure-mcp-consent-digest';
 
 /** What a consent digest is bound to. The preview is part of it, so a digest proves the caller saw it. */
 export interface ConsentSubject {
@@ -22,15 +26,25 @@ export interface ConsentSubject {
 /**
  * Issues and checks the digests that destructive tools ask the caller to send back as `confirm`.
  *
- * A digest is `<version>.<expiry>.<mac>`, where the MAC is an HMAC-SHA256 under a key made at
- * startup and never stored, over the subject and the expiry. So a digest cannot be computed
- * without this process, it only applies to the caller, the input and the preview it was issued
- * for, and it expires. A restart makes every outstanding digest invalid, which only means the
- * caller is shown the preview again.
+ * A digest is `<version>.<expiry>.<mac>`, where the MAC is an HMAC-SHA256 over the subject and the
+ * expiry. So a digest cannot be computed without the server's key, it only applies to the caller,
+ * the input and the preview it was issued for, and it expires.
+ *
+ * With OAuth configured, the key is derived from `oauth.tokenSecret`, so every instance behind a
+ * load balancer accepts the digests of the others. Without it, the key is random per process. That
+ * covers local trust, which is one dev server, but a digest issued by one instance is refused by
+ * another, and a restart makes outstanding digests invalid, which shows the caller the preview again.
  */
 @Injectable()
 export class McpConsentService {
-    private readonly key = randomBytes(32);
+    private readonly key: Buffer;
+
+    constructor(@Inject(MCP_PLUGIN_OPTIONS) options: Pick<ResolvedMcpPluginOptions, 'oauth'>) {
+        const sharedSecret = options.oauth?.tokenSecret;
+        this.key = sharedSecret
+            ? Buffer.from(hkdfSync('sha256', sharedSecret, Buffer.alloc(0), CONSENT_KEY_INFO, 32))
+            : randomBytes(32);
+    }
 
     issue(subject: ConsentSubject, now = Date.now()): string {
         const expiresAt = now + CONSENT_DIGEST_TTL_MS;

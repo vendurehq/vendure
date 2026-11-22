@@ -257,7 +257,8 @@ describe('Local trust on a dev server the CLI started', () => {
             });
 
             const legacy = await call({ confirm: true }, 2);
-            expect(legacy.body.result?.isError ?? legacy.body.error !== undefined).toBe(true);
+            expect(legacy.body.result.isError).toBe(true);
+            expect(legacy.body.result.content[0].text).toMatch(/"confirm" must be the consent digest/);
 
             const stale = await call({ confirm: `${consentDigestOf(preview)}x` }, 3);
             expect(stale.body.result.structuredContent.status).toBe('incomplete');
