@@ -47,7 +47,10 @@ describe('runCoreCommand()', () => {
     });
 
     it('runs the command with the given path and presents its result', async () => {
-        await expect(runCoreCommand(['demo', 'echo'], { name: 'x' })).resolves.toBe(0);
+        await expect(runCoreCommand(['demo', 'echo'], { name: 'x' })).resolves.toMatchObject({
+            exitCode: 0,
+            envelope: { status: 'ok' },
+        });
 
         expect(seen.inputs).toEqual([{ name: 'x' }]);
         expect(vi.mocked(presentForPeople).mock.calls[0][1].envelope).toMatchObject({
@@ -64,7 +67,9 @@ describe('runCoreCommand()', () => {
     });
 
     it("returns the exit code of the command's error", async () => {
-        await expect(runCoreCommand(['demo', 'echo'], { fail: true })).resolves.toBe(1);
+        await expect(runCoreCommand(['demo', 'echo'], { fail: true })).resolves.toMatchObject({
+            exitCode: 1,
+        });
     });
 
     it('throws for a path the CLI does not declare', async () => {

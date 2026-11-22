@@ -9,7 +9,13 @@ describe('core command definitions', () => {
         const manifest = await buildCommandManifest('@vendure/cli', '0.0.0', coreCommandDefinitions);
         const merged = mergeManifests([manifest]);
         expect(merged.map(c => c.path.join(' ')).sort()).toEqual([
+            'add api-extension',
             'add codegen',
+            'add dashboard',
+            'add entity',
+            'add job-queue',
+            'add plugin',
+            'add service',
             'commands',
             'doctor',
             'migrate generate',

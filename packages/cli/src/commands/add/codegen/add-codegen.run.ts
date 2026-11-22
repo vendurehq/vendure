@@ -1,10 +1,10 @@
-import { CommandContext, fail } from '@vendure/common/lib/command';
+import { CommandContext, fail, isErrorResult } from '@vendure/common/lib/command';
 
 import { openProject } from '../../../shared/open-project.js';
 import { PackageJson } from '../../../shared/package-json-ref.js';
-import { getPluginClasses } from '../../../utilities/ast-utils.js';
+import { packageJsonNotFound } from '../add.errors.js';
+import { findPlugin } from '../add.project.js';
 
-import { packageJsonNotFound, pluginNotFound } from './add-codegen.errors.js';
 import { CODEGEN_PACKAGES, configureCodegen } from './add-codegen.shared.js';
 
 /**
@@ -13,12 +13,9 @@ import { CODEGEN_PACKAGES, configureCodegen } from './add-codegen.shared.js';
  */
 export async function run(input: { plugin: string }, ctx: CommandContext) {
     const { project } = await openProject();
-    const pluginClass = getPluginClasses(project).find(c => c.getName() === input.plugin);
-    if (!pluginClass) {
-        const available = getPluginClasses(project)
-            .map(c => c.getName())
-            .filter((name): name is string => !!name);
-        return fail(pluginNotFound, { plugin: input.plugin, available });
+    const plugin = findPlugin(project, input.plugin);
+    if (isErrorResult(plugin)) {
+        return plugin;
     }
 
     const packageJson = new PackageJson(project);
@@ -40,7 +37,7 @@ export async function run(input: { plugin: string }, ctx: CommandContext) {
     }
 
     ctx.progress('Configuring codegen file');
-    const codegenFile = configureCodegen(project, packageJson, [pluginClass.getSourceFile()]);
+    const codegenFile = configureCodegen(project, packageJson, [plugin.classDeclaration.getSourceFile()]);
     await project.save();
 
     return {

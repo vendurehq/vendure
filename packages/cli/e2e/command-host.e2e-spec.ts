@@ -368,7 +368,13 @@ describe('Command host E2E', () => {
             child.stdin.end();
             const tools = JSON.parse(output.split('\n').filter(Boolean)[1]).result.tools;
             expect(tools.map((t: any) => t.name)).toEqual([
+                'add_api-extension',
                 'add_codegen',
+                'add_dashboard',
+                'add_entity',
+                'add_job-queue',
+                'add_plugin',
+                'add_service',
                 'doctor',
                 'migrate_generate',
                 'migrate_revert',

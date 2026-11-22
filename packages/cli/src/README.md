@@ -101,18 +101,10 @@ interface CliCommandOption {
 
 ## Interactive vs Non-Interactive Mode Detection
 
-Commands automatically detect which mode to use based on provided options:
-
-```typescript
-// Non-interactive mode is triggered when any option has a truthy value (not false)
-const nonInteractive = options && Object.values(options).some(v => v !== undefined && v !== false);
-
-if (nonInteractive) {
-    await handleNonInteractiveMode(options);
-} else {
-    await handleInteractiveMode();
-}
-```
+`vendure add` and `vendure migrate` run a subcommand through the command host when a feature flag
+is given, such as `vendure add -e MyEntity --selected-plugin MyPlugin` for
+`vendure add entity MyEntity --plugin MyPlugin`. Without one, they show a menu. The host asks a
+person for what is missing only when stdin and stdout are TTYs, and returns `incomplete` otherwise.
 
 ## Available Commands
 
@@ -237,8 +229,8 @@ npx vendure add -e MyEntity --selected-plugin MyPlugin --custom-fields --transla
 # Add a service to a plugin
 npx vendure add -s MyService --selected-plugin MyPlugin
 
-# Add a service with specific type
-npx vendure add -s MyService --selected-plugin MyPlugin --type entity
+# Add a CRUD service for an entity
+npx vendure add -s MyEntityService --selected-plugin MyPlugin --selected-entity MyEntity
 
 # Add job queue support to a plugin
 npx vendure add -j MyPlugin --name my-job --selected-service MyService
@@ -369,8 +361,8 @@ import { runCliCommand } from '../../shared/cli-command-exit';
             required: false,
         },
         {
-            long: '--type <type>',
-            description: 'Type of service: basic or entity (default: basic)',
+            long: '--selected-entity <name>',
+            description: 'An entity of the plugin. The service then has CRUD methods for it',
             required: false,
         },
     ],
@@ -386,7 +378,7 @@ Commands implement validation for non-interactive mode to ensure all required pa
 Entity and service commands now support non-interactive mode with the `--selected-plugin` parameter to specify the target plugin. Both commands support additional options for customization:
 
 - Entity commands support `--custom-fields` and `--translatable` flags
-- Service commands support `--type` parameter to specify service type (basic or entity)
+- Service commands support `--selected-entity` to make a CRUD service for an entity
 
 **Example Error Handling:**
 

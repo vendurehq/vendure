@@ -25,12 +25,21 @@ import { hostErrors } from './host-errors.js';
 import { kebab } from './naming.js';
 
 /** Asks a person. Only given to the host when a person is present. */
-export interface Prompter {
+export interface AskInputOptions {
     /**
-     * Asks for an input field. `validate` returns the problem with an answer, or `undefined` when
-     * the answer is valid, so a person can correct a bad answer before the command runs.
+     * The problem with an answer, or `undefined` when it is valid, so a person can correct a bad
+     * answer before the command runs.
      */
-    askInput(need: InputNeed, validate: (answer: string) => string | undefined): Promise<string | undefined>;
+    validate: (answer: string) => string | undefined;
+    /** An empty answer keeps the field's default, so a choice of values offers "none". */
+    optional: boolean;
+    /** The field is a boolean, so the answer is "true" or "false". */
+    boolean: boolean;
+}
+
+export interface Prompter {
+    /** Asks for an input field. Resolves to `undefined` when the person cancels. */
+    askInput(need: InputNeed, options: AskInputOptions): Promise<string | undefined>;
     /** Shows the preview and asks whether to go ahead. */
     askConsent(need: ConsentNeed): Promise<boolean>;
 }
@@ -119,6 +128,11 @@ function propertySchema(schema: StandardSchema, field: string): Record<string, a
     return ((json.properties as Record<string, Record<string, any>> | undefined) ?? {})[field] ?? {};
 }
 
+function isRequired(schema: StandardSchema, field: string): boolean {
+    const json = schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
+    return Array.isArray(json.required) && (json.required as unknown[]).includes(field);
+}
+
 function coercePrompted(value: string, property: Record<string, any>): unknown {
     if (property.type === 'number' || property.type === 'integer') {
         return Number(value);
@@ -199,17 +213,25 @@ async function inputNeeds(
     for (const field of fields) {
         const meta = def.cli?.fields?.[field];
         const property = propertySchema(inputSchema, field);
+        // No choices can mean that a field they depend on is missing, such as a plugin's services
+        // before the plugin is known, so an empty list is left out rather than read as "none".
         const choices = meta?.choices ? await meta.choices(ctx, input) : undefined;
         needs.push({
             kind: 'input',
             field,
             description: (property.description as string | undefined) ?? field,
             ...(meta?.secret ? { secret: true } : {}),
-            ...(choices ? { choices } : {}),
+            ...(choices?.length ? { choices } : {}),
         });
     }
     return needs;
 }
+
+/**
+ * How many times the host runs a command whose `run()` returns input needs, asking a person for
+ * them between runs, before it returns the needs instead.
+ */
+const MAX_RUNS = 3;
 
 /** A coded error from `plan()` or `run()`, which the command must have declared. */
 function declaredError(def: CommandDefinition, result: ErrorResult, notices: CommandNotice[]): HostResult {
@@ -228,12 +250,15 @@ function declaredError(def: CommandDefinition, result: ErrorResult, notices: Com
  * Runs a command to its envelope, in a fixed order that stops at the first stage with needs:
  * the inputs, then the consents that `plan()` asks for, then `run()`.
  *
- * It never prints. A person is only asked when the environment hands over a prompter.
+ * It never prints. A person is only asked when the environment hands over a prompter. When
+ * `run()` returns `incomplete` with only input needs, a person is asked for them and the command
+ * runs again; `attempt` counts those runs.
  */
 export async function executeCommand(
     def: CommandDefinition,
     rawInput: Record<string, unknown>,
     env: HostEnvironment,
+    attempt = 1,
 ): Promise<HostResult> {
     const notices: CommandNotice[] = [];
     try {
@@ -275,16 +300,20 @@ export async function executeCommand(
                     break;
                 }
             }
-            const needs = await inputNeeds(def, schemas.input, missing, ctx, input);
             if (!env.prompter) {
-                return incompleteResult(needs, notices);
+                return incompleteResult(await inputNeeds(def, schemas.input, missing, ctx, input), notices);
             }
-            for (const need of needs) {
+            // One field at a time, so the choices of a field see the answers before it, such as
+            // the services of the plugin the person just picked.
+            for (const field of missing) {
+                const [need] = await inputNeeds(def, schemas.input, [field], ctx, input);
                 asked.add(need.field);
                 const optional = !validation.issues;
-                const answer = await env.prompter.askInput(need, value =>
-                    answerProblem(schemas.input, input, need.field, value, optional),
-                );
+                const answer = await env.prompter.askInput(need, {
+                    validate: value => answerProblem(schemas.input, input, need.field, value, optional),
+                    optional,
+                    boolean: propertySchema(schemas.input, need.field).type === 'boolean',
+                });
                 if (answer === undefined) {
                     return errorResult(hostErrors.cancelled, {}, notices);
                 }
@@ -342,6 +371,46 @@ export async function executeCommand(
         const { run } = await def.run();
         const result = await run(parsed, ctx);
         if (isIncompleteResult(result)) {
+            const inputNeedsOnly = result.needs.every((need): need is InputNeed => need.kind === 'input');
+            // `run()` found that it needs more input, which only it could tell. A person is asked
+            // for it, and the command runs again: running again after `incomplete` is safe.
+            if (env.prompter && inputNeedsOnly && attempt < MAX_RUNS) {
+                const answers: Record<string, unknown> = {};
+                for (const need of result.needs as InputNeed[]) {
+                    // A need for an optional field may be left empty, for example when `run()`
+                    // needs one of two names and the person gives the other.
+                    const optional = !isRequired(schemas.input, need.field);
+                    const answer = await env.prompter.askInput(need, {
+                        validate: value =>
+                            answerProblem(
+                                schemas.input,
+                                { ...input, ...answers },
+                                need.field,
+                                value,
+                                optional,
+                            ),
+                        optional,
+                        boolean: propertySchema(schemas.input, need.field).type === 'boolean',
+                    });
+                    if (answer === undefined) {
+                        return errorResult(hostErrors.cancelled, {}, notices);
+                    }
+                    if (answer !== '' || !optional) {
+                        answers[need.field] = coercePrompted(
+                            answer,
+                            propertySchema(schemas.input, need.field),
+                        );
+                    }
+                }
+                const retried = await executeCommand(
+                    def,
+                    { ...rawInput, ...input, ...answers },
+                    env,
+                    attempt + 1,
+                );
+                retried.envelope.notices = [...notices, ...retried.envelope.notices];
+                return retried;
+            }
             return incompleteResult(result.needs, notices, result.output);
         }
         if (isErrorResult(result)) {

@@ -1,6 +1,7 @@
 import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
 
+import { hostErrors } from '../../command-host/host-errors.js';
 import { runCoreCommand } from '../../command-host/run-core-command.js';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
@@ -38,15 +39,17 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
         return 1;
     }
     if (options.generate) {
-        return runCoreCommand(['migrate', 'generate'], {
-            name: options.generate,
-            outputDir: options.outputDir,
-            fromEmpty: options.fromEmpty,
-            config: options.config,
-        });
+        return (
+            await runCoreCommand(['migrate', 'generate'], {
+                name: options.generate,
+                outputDir: options.outputDir,
+                fromEmpty: options.fromEmpty,
+                config: options.config,
+            })
+        ).exitCode;
     }
     if (options.run) {
-        return runCoreCommand(['migrate', 'run'], { config: options.config });
+        return (await runCoreCommand(['migrate', 'run'], { config: options.config })).exitCode;
     }
 
     if (abortIfNonInteractive('vendure migrate', migrateExamples)) {
@@ -71,7 +74,13 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
         cancel('Migrate cancelled.');
         return 0;
     }
-    const exitCode = await runCoreCommand(['migrate', String(action)], { config: options.config });
+    const { exitCode, envelope } = await runCoreCommand(['migrate', String(action)], {
+        config: options.config,
+    });
+    // The host has already said that the command was cancelled.
+    if (envelope.error?.code === hostErrors.cancelled.code) {
+        return 0;
+    }
     outro(exitCode === 0 ? '✅ Done!' : '❌ Error');
     return exitCode;
 }
