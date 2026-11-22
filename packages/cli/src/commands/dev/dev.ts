@@ -104,6 +104,7 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
             projectDir,
             targets: processes.map(processDefinition => processDefinition.target),
             writeState: runsServer,
+            requireStateFile: detached,
             warn: message => log.warn(message),
             print: (processTarget, stream, text) => {
                 if (!detached) {

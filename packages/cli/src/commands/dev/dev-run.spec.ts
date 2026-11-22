@@ -43,7 +43,9 @@ function createRun(options: { targets?: string[]; writeState?: boolean; projectD
     return { run, projectDir, print, warn };
 }
 
+// As `logWelcomeMessage()` in core writes it: a line of `=` both opens and closes it.
 const welcome = [
+    '===============================================',
     'Vendure server (v4.0.0) now running on port 3000',
     '-----------------------------------------------',
     'Shop API:     http://localhost:3000/shop-api',
@@ -236,9 +238,11 @@ describe('DevRun readiness and URLs', () => {
         const monitor = run.monitor('server');
         monitor.onSpawn(false);
 
+        // The line of `=` that opens the message does not count, nor does the title before the URLs.
         monitor.onOutput('stdout', json({ msg: welcome[0] }));
+        monitor.onOutput('stdout', json({ msg: welcome[1] }));
         expect(readDevServerState(projectDir)?.status).toBe('starting');
-        for (const msg of welcome.slice(1)) {
+        for (const msg of welcome.slice(2)) {
             monitor.onOutput('stdout', json({ msg }));
         }
 
@@ -254,11 +258,42 @@ describe('DevRun readiness and URLs', () => {
         const monitor = run.monitor('server');
         monitor.onSpawn(false);
         monitor.onOutput('stdout', json({ msg: welcome[0] }));
+        monitor.onOutput('stdout', json({ msg: welcome[1] }));
 
         vi.advanceTimersByTime(999);
         expect(readDevServerState(projectDir)?.status).toBe('starting');
         vi.advanceTimersByTime(1);
         expect(readDevServerState(projectDir)?.status).toBe('ready');
+    });
+
+    it('takes the Dashboard URL from the server, not from Vite, when the run includes the server', () => {
+        const { run, projectDir } = createRun({ targets: ['server', 'dashboard'] });
+        run.monitor('dashboard').onOutput('stdout', '  ➜  Local:   http://localhost:5173/dashboard/');
+        run.monitor('server').onOutput(
+            'stdout',
+            json({ msg: 'Dashboard UI: http://localhost:3000/dashboard' }),
+        );
+        run.monitor('dashboard').onOutput('stdout', '  ➜  Local:   http://localhost:5173/dashboard/');
+
+        expect(readDevServerState(projectDir)?.urls).toEqual({
+            dashboard: 'http://localhost:3000/dashboard',
+        });
+    });
+
+    it('fails instead of running without the state file when it is required', () => {
+        const projectDir = createProjectDir();
+        writeFileSync(path.join(projectDir, '.vendure'), '');
+
+        expect(
+            () =>
+                new DevRun({
+                    projectDir,
+                    targets: ['server'],
+                    writeState: true,
+                    requireStateFile: true,
+                    print: vi.fn(),
+                }),
+        ).toThrow();
     });
 
     it('reads the MCP URL from the line the McpPlugin logs', () => {

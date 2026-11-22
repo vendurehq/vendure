@@ -1,22 +1,15 @@
-import { MCP_ADMIN_ENDPOINT_LOG_PREFIX } from '@vendure/common/lib/local-trust';
-import { LOG_LEVEL_NAMES, LogLevelName, LogLine } from '@vendure/common/lib/log';
+import {
+    LOG_LEVEL_NAMES,
+    LogLevelName,
+    LogLine,
+    MCP_ADMIN_ENDPOINT_LOG_PREFIX,
+    StartupErrorEvent,
+} from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
 import { stripAnsi } from '../../shared/strip-ansi.js';
 
 import { DevServerError, DevServerUrls } from './state-file.js';
-
-/**
- * The startup-error event line which `bootstrap()` and `bootstrapWorker()` of `@vendure/core`
- * write to stderr when the server or worker fails to start.
- */
-export interface StartupErrorEvent {
-    vendure: 'event';
-    event: 'startup-error';
-    code: string;
-    message: string;
-    fix: Array<{ description: string }>;
-}
 
 /** What one line of a child's output is. */
 export type ChildOutputLine =
@@ -125,9 +118,23 @@ const LEVEL_COLORS: Record<LogLevelName, (text: string) => string> = {
     debug: pc.magenta,
 };
 
+// The same as in the `DefaultLogger` of `@vendure/core`.
+const DEFAULT_CONTEXT = 'Vendure Server';
+const LOCALE_STRING_OPTIONS = {
+    year: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    day: 'numeric',
+    month: 'numeric',
+} as const;
+
 /**
- * Formats a log line as readable text for the terminal, like the `text` format of the
- * `DefaultLogger`: level, time, context and message, with the stack below an error.
+ * Formats a log line as readable text for the terminal. It keeps in step with `formatTextLine()`
+ * in `@vendure/core`, which the CLI cannot import: level, date and time, context and message, with
+ * the stack below an error. It also shows the line's error code, which the JSON line carries.
+ *
+ * The time always shows, because a JSON line always has one, even when the project's
+ * `DefaultLogger` was set up with `timestamp: false`.
  */
 export function formatLogLineAsText(line: LogLine): string {
     const color = LEVEL_COLORS[line.level] ?? ((text: string) => text);
@@ -136,8 +143,10 @@ export function formatLogLineAsText(line: LogLine): string {
     const message = line.stack ? `${line.msg}\n${line.stack}` : line.msg;
     return [
         color(line.level),
-        Number.isNaN(time.getTime()) ? undefined : pc.gray(`${time.toLocaleTimeString()} -`),
-        line.ctx ? pc.cyan(`[${line.ctx}]`) : undefined,
+        Number.isNaN(time.getTime())
+            ? undefined
+            : pc.gray(`${time.toLocaleString(undefined, LOCALE_STRING_OPTIONS)} -`),
+        pc.cyan(`[${line.ctx ?? DEFAULT_CONTEXT}]`),
         line.code ? pc.gray(`(${line.code})`) : undefined,
         isHighlighted ? color(message) : message,
     ]

@@ -1,3 +1,4 @@
+import type { StartupErrorEvent } from '@vendure/common/lib/log';
 import { writeSync } from 'node:fs';
 
 import { I18nError } from '../../i18n/i18n-error';
@@ -5,16 +6,9 @@ import { UNEXPECTED_VENDURE_CODE } from '../../i18n/vendure-code';
 
 import { VendureErrorFix, VendureStartupError } from './vendure-startup-error';
 
-/**
- * The event line which {@link writeStartupErrorEvent} writes to stderr.
- */
-export interface StartupErrorEvent {
-    vendure: 'event';
-    event: 'startup-error';
-    code: string;
-    message: string;
-    fix: VendureErrorFix[];
-}
+// The event line which {@link writeStartupErrorEvent} writes to stderr. Its type is shared with the
+// CLI, which reads it.
+export type { StartupErrorEvent } from '@vendure/common/lib/log';
 
 /**
  * Returns the startup-error event for any error thrown while the server or worker starts. An error which

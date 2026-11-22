@@ -13,6 +13,8 @@ import {
 
 /** How often the state file is read while waiting. */
 export const POLL_INTERVAL_MS = 250;
+/** How long `waitForDevServer` waits for a state file to appear when no run is known. */
+export const NO_RUN_GRACE_MS = 5000;
 const DEFAULT_TIMEOUT_SECONDS = 120;
 const DEFAULT_MCP_TIMEOUT_SECONDS = 30;
 
@@ -83,11 +85,13 @@ export interface WaitOptions {
  * Reads the state file until the run is ready, until it failed, or until the timeout passes.
  *
  * It returns `stopped` once the run has ended: when the state file names a run that is gone, when
- * a state file it saw earlier has been deleted, or when the process in `pid` has exited. Before
- * any of that it keeps reading, because a run that was just started has not written its file yet.
+ * a state file it saw earlier has been deleted, or when the process in `pid` has exited. Without a
+ * `pid`, it also returns `stopped` when no state file has appeared within {@link NO_RUN_GRACE_MS},
+ * which is time enough for a run started in another terminal to write it.
  */
 export async function waitForDevServer(projectDir: string, options: WaitOptions): Promise<WaitResult> {
-    const deadline = Date.now() + options.timeoutMs;
+    const startedWaiting = Date.now();
+    const deadline = startedWaiting + options.timeoutMs;
     let lastSeen: DevServerState | undefined;
     for (;;) {
         const state = readDevServerState(projectDir);
@@ -101,7 +105,10 @@ export async function waitForDevServer(projectDir: string, options: WaitOptions)
         }
         const ended = state
             ? false
-            : lastSeen !== undefined || (options.pid !== undefined && !isProcessAlive(options.pid));
+            : lastSeen !== undefined ||
+              (options.pid !== undefined
+                  ? !isProcessAlive(options.pid)
+                  : Date.now() - startedWaiting >= NO_RUN_GRACE_MS);
         if (ended) {
             return { ...toStatusReport(lastSeen), status: 'stopped', timedOut: false };
         }

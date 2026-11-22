@@ -270,6 +270,15 @@ describe('devserver wait', () => {
         expect(result.envelope.output).toMatchObject({ status: 'failed', restarts: 4 });
     });
 
+    it('returns stopped after a short grace when no run has written a state file', async () => {
+        const started = Date.now();
+
+        const result = await runInProject(createProject(), devServerWaitDefinition, { timeout: 60 });
+
+        expect(Date.now() - started).toBeLessThan(10000);
+        expect(result.envelope.output).toMatchObject({ status: 'stopped', timedOut: false });
+    }, 20000);
+
     it('returns stopped at once for a run that is gone', async () => {
         const projectDir = createProject();
         writeState(projectDir, { status: 'starting', pid: DEAD_PID });
@@ -417,8 +426,12 @@ process.on('SIGTERM', () => { fs.rmSync(file, { force: true }); process.exit(0);
 setInterval(() => {}, 1000);
 `;
 
+    // What the launcher forwards to the caller's stdout. It must stay empty.
+    let forwardedStdout = '';
+
     function createContext(projectDir: string, mcp = false): CommandContext {
         const controller = new AbortController();
+        forwardedStdout = '';
         return {
             cwd: projectDir,
             signal: controller.signal,
@@ -426,7 +439,7 @@ setInterval(() => {}, 1000);
             notice: vi.fn(),
             progress: vi.fn(),
             event: vi.fn(),
-            spawn: createSpawn(projectDir, controller.signal, () => undefined),
+            spawn: createSpawn(projectDir, controller.signal, text => (forwardedStdout += text)),
         };
     }
 
@@ -453,6 +466,9 @@ setInterval(() => {}, 1000);
                 createContext(projectDir),
                 cliPath,
             );
+
+            // Nothing reaches the person's terminal, or the event lines under --json.
+            expect(forwardedStdout).toBe('');
 
             expect(result).toMatchObject({ status: 'ready' });
             const state = readDevServerState(projectDir) as DevServerState & Record<string, unknown>;

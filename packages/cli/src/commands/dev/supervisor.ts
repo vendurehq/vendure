@@ -3,6 +3,12 @@ import { DevServerError, DevServerStatus, DevServerUrls } from './state-file.js'
 /** The state of one process of a `vendure dev` run. */
 type ChildPhase = 'starting' | 'restarting' | 'ready' | 'failed';
 
+/**
+ * Restarts of different processes that begin within this time of each other come from one change,
+ * such as one save that restarts both the server and the worker.
+ */
+export const RESTART_BATCH_MS = 1000;
+
 /** What the supervisor reports on each change. */
 export interface DevSupervisorSnapshot {
     status: DevServerStatus;
@@ -34,17 +40,18 @@ export class DevSupervisor {
     private restarts = 0;
     private lastError: DevServerError | null = null;
     private stopped = false;
+    private lastRestartCountedAt = Number.NEGATIVE_INFINITY;
     private lastStatus: DevServerStatus;
 
     constructor(
         targets: string[],
         private readonly onChange: (snapshot: DevSupervisorSnapshot) => void = () => undefined,
-        now: () => Date = () => new Date(),
+        private readonly now: () => Date = () => new Date(),
     ) {
         for (const target of targets) {
             this.phases.set(target, 'starting');
         }
-        this.startedAt = now().toISOString();
+        this.startedAt = this.now().toISOString();
         this.lastStatus = this.computeStatus();
     }
 
@@ -63,16 +70,19 @@ export class DevSupervisor {
     }
 
     /**
-     * A file change restarts a process, or starts one that had exited. Restarts that begin while
-     * another is still under way count as one, so one edit that restarts the server and the
-     * worker counts once.
+     * A file change restarts a process, or starts one that had exited. `restarts` counts the
+     * changes: the processes that one save restarts within {@link RESTART_BATCH_MS} count once,
+     * and a later save counts again even while a process is still restarting from an earlier one.
      */
     childRestarting(target: string): void {
         if (this.stopped || !this.phases.has(target)) {
             return;
         }
-        if (![...this.phases.values()].includes('restarting')) {
+        const now = this.now().getTime();
+        const alreadyRestarting = this.phases.get(target) === 'restarting';
+        if (!alreadyRestarting && now - this.lastRestartCountedAt > RESTART_BATCH_MS) {
             this.restarts++;
+            this.lastRestartCountedAt = now;
         }
         this.phases.set(target, 'restarting');
         this.changed(true);

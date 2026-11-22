@@ -1,5 +1,5 @@
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
-import { LogLine } from '@vendure/common/lib/log';
+import { LogLine, StartupErrorEvent } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
 import { withoutLocalTrustSecret } from '../../shared/local-trust-env.js';
@@ -10,7 +10,6 @@ import {
     isWelcomeEndLine,
     readChildOutputLine,
     readUrls,
-    StartupErrorEvent,
     startupErrorToDevServerError,
 } from './child-output.js';
 import { parseDiagnostics } from './diagnostics.js';
@@ -75,6 +74,11 @@ export interface DevRunOptions {
     print: (target: string, stream: 'stdout' | 'stderr', text: string) => void;
     /** Reports a problem of the run itself, such as a state file that cannot be written. */
     warn?: (message: string) => void;
+    /**
+     * Fails when the state file cannot be created, instead of running without it. A run started
+     * by `vendure devserver start` sets this, because without the file nothing can find or stop it.
+     */
+    requireStateFile?: boolean;
     now?: () => Date;
     secret?: string;
 }
@@ -111,7 +115,7 @@ export class DevRun {
         try {
             this.stateFile?.claim({ ...this.supervisor.snapshot(), pid: process.pid });
         } catch (e) {
-            if (e instanceof DevRunAlreadyRunningError) {
+            if (e instanceof DevRunAlreadyRunningError || options.requireStateFile) {
                 throw e;
             }
             // The run works without its state file, as `vendure dev` always has. Without the file
@@ -237,7 +241,7 @@ class ChildMonitor implements DevChildMonitor {
         // written, so the colours of tools such as Vite stay.
         this.options.print(this.target, stream, read.json ? formatLogLineAsText(read.line) : raw);
         this.bufferOutput(read.line);
-        this.supervisor.addUrls(readUrls(this.target, read.line));
+        this.supervisor.addUrls(this.readUrls(read.line));
         if (this.welcomeTimer && isWelcomeEndLine(read.line)) {
             this.markReady();
         } else if (isReadyLine(this.target, read.line)) {
@@ -258,6 +262,17 @@ class ChildMonitor implements DevChildMonitor {
         const error = this.describeFailure(code);
         this.supervisor.childFailed(this.target, error);
         return error.message;
+    }
+
+    /**
+     * The URLs a line names. When the run includes the server, the Dashboard URL comes from the
+     * server's welcome message only, so it does not depend on which process printed last.
+     */
+    private readUrls(line: LogLine) {
+        if (this.target === 'dashboard' && this.options.targets.includes('server')) {
+            return {};
+        }
+        return readUrls(this.target, line);
     }
 
     hasStartupError(): boolean {

@@ -40,3 +40,25 @@ export interface LogLine {
     code?: string;
     stack?: string;
 }
+
+/**
+ * The line which `bootstrap()` and `bootstrapWorker()` of `@vendure/core` write to stderr, as one
+ * line of JSON, when the server or worker fails to start. A supervising process such as
+ * `vendure dev` reads the code and the fixes from it.
+ */
+export interface StartupErrorEvent {
+    vendure: 'event';
+    event: 'startup-error';
+    /** The namespaced code of the error, for example `core.config.invalid-custom-fields`. */
+    code: string;
+    message: string;
+    /** Ways to fix the error. */
+    fix: Array<{ description: string }>;
+}
+
+/**
+ * The start of the line which the McpPlugin logs when the server starts, followed by the URL of
+ * its admin endpoint, for example `Store MCP admin endpoint: http://localhost:3000/mcp/admin`.
+ * `vendure dev` reads the URL from this line.
+ */
+export const MCP_ADMIN_ENDPOINT_LOG_PREFIX = 'Store MCP admin endpoint: ';

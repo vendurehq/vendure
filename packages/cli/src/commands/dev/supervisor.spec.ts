@@ -51,8 +51,9 @@ describe('DevSupervisor', () => {
         expect(supervisor.status).toBe('failed');
     });
 
-    it('counts restarts that overlap as one', () => {
-        const supervisor = new DevSupervisor(['server', 'worker'], undefined, now);
+    it('counts the restarts of one change as one', () => {
+        let time = Date.parse('2026-11-22T10:00:00.000Z');
+        const supervisor = new DevSupervisor(['server', 'worker'], undefined, () => new Date(time));
         supervisor.childReady('server');
         supervisor.childReady('worker');
 
@@ -62,8 +63,26 @@ describe('DevSupervisor', () => {
         supervisor.childReady('worker');
         expect(supervisor.snapshot().restarts).toBe(1);
 
+        time += 5000;
         supervisor.childRestarting('server');
         supervisor.childReady('server');
+        expect(supervisor.snapshot().restarts).toBe(2);
+    });
+
+    it('counts a later change while a process still restarts from an earlier one', () => {
+        let time = Date.parse('2026-11-22T10:00:00.000Z');
+        const supervisor = new DevSupervisor(['server', 'worker'], undefined, () => new Date(time));
+        supervisor.childReady('server');
+        supervisor.childReady('worker');
+
+        supervisor.childRestarting('worker');
+        supervisor.childRestarting('server');
+        supervisor.childFailed('server', compileError);
+        expect(supervisor.snapshot().restarts).toBe(1);
+
+        // The fix for the compile error is saved while the worker is still restarting.
+        time += 2000;
+        supervisor.childRestarting('server');
         expect(supervisor.snapshot().restarts).toBe(2);
     });
 
