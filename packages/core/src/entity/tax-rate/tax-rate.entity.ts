@@ -9,6 +9,7 @@ import { VendureEntity } from '../base/base.entity';
 import { CustomTaxRateFields } from '../custom-entity-fields';
 import { CustomerGroup } from '../customer-group/customer-group.entity';
 import { EntityId } from '../entity-id.decorator';
+import { Region } from '../region/region.entity';
 import { TaxCategory } from '../tax-category/tax-category.entity';
 import { DecimalTransformer } from '../value-transformers';
 import { Zone } from '../zone/zone.entity';
@@ -18,7 +19,9 @@ import { Zone } from '../zone/zone.entity';
  * A TaxRate defines the rate of tax to apply to a {@link ProductVariant} based on three factors:
  *
  * 1. the ProductVariant's {@link TaxCategory}
- * 2. the applicable {@link Zone} ("applicable" being defined by the configured {@link TaxZoneStrategy})
+ * 2. the target of the rate: either a country {@link Region}, or a {@link Zone} ("applicable" being defined
+ *    by the configured {@link TaxZoneStrategy}). Exactly one of the two is set. A country rate
+ *    takes precedence over a zone rate for the country of the order's shipping address.
  * 3. the {@link CustomerGroup} of the current Customer
  *
  * @docsCategory entities
@@ -43,11 +46,22 @@ export class TaxRate extends VendureEntity implements HasCustomFields {
     categoryId: ID;
 
     @Index()
-    @ManyToOne(type => Zone, zone => zone.taxRates)
-    zone: Zone;
+    @ManyToOne(type => Zone, zone => zone.taxRates, { nullable: true })
+    zone?: Zone | null;
 
     @EntityId({ nullable: true })
-    zoneId: ID;
+    zoneId?: ID | null;
+
+    /**
+     * @description
+     * The country Region this rate applies to. Mutually exclusive with `zone`.
+     */
+    @Index()
+    @ManyToOne(type => Region, { nullable: true })
+    region?: Region | null;
+
+    @EntityId({ nullable: true })
+    regionId?: ID | null;
 
     @Index()
     @ManyToOne(type => CustomerGroup, customerGroup => customerGroup.taxRates, { nullable: true })
@@ -94,7 +108,24 @@ export class TaxRate extends VendureEntity implements HasCustomFields {
     test(zone: Zone | ID, taxCategory: TaxCategory | ID): boolean {
         const taxCategoryId = this.isId(taxCategory) ? taxCategory : taxCategory.id;
         const zoneId = this.isId(zone) ? zone : zone.id;
-        return idsAreEqual(taxCategoryId, this.categoryId) && idsAreEqual(zoneId, this.zoneId);
+        return (
+            this.zoneId != null &&
+            idsAreEqual(taxCategoryId, this.categoryId) &&
+            idsAreEqual(zoneId, this.zoneId)
+        );
+    }
+
+    /**
+     * Returns true if this rate targets the country with the given code, and the tax category matches.
+     */
+    testRegion(countryCode: string, taxCategory: TaxCategory | ID): boolean {
+        const taxCategoryId = this.isId(taxCategory) ? taxCategory : taxCategory.id;
+        return (
+            this.region != null &&
+            this.region.type === 'country' &&
+            this.region.code === countryCode &&
+            idsAreEqual(taxCategoryId, this.categoryId)
+        );
     }
 
     private isId<T>(entityOrId: T | ID): entityOrId is ID {

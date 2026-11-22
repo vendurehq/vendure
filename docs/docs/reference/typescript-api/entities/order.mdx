@@ -65,6 +65,8 @@ class Order extends VendureEntity implements ChannelAware, HasCustomFields {
     taxZone?: Zone | null;
     @EntityId({ nullable: true })
     taxZoneId?: ID;
+    @Column({ type: 'varchar', nullable: true })
+    taxCountryCode?: string | null;
     @ManyToMany(type => Channel)
     // The junction table is owned by the channel assignment entity, which manages its schema.
     @JoinTable({ synchronize: false })
@@ -238,6 +240,14 @@ set to `null` if that Zone is deleted, so the next calculation applies the activ
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
 
 
+### taxCountryCode
+
+<MemberInfo kind="property" type={`string | null`}  since="4.0.0"  />
+
+The country code used to look up country TaxRates the last time the Order was calculated:
+the country of the shipping address, or an empty string if there was none. When it changes,
+the taxes of every OrderLine are applied again, as when the tax Zone changes. It is `null`
+until the first calculation, so an Order placed before it existed keeps its taxes.
 ### channels
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />

@@ -71,6 +71,9 @@ export type {
     RenewalFailureDetails,
     StoredOrganization,
 } from './auth/index.js';
+export { buildCommandManifest, writeCommandManifest } from './command-host/manifest-build.js';
+export { MANIFEST_FILE_NAME, mergeManifests } from './command-host/manifest.js';
+export type { CommandManifest, ManifestCommand, MergedManifestCommand } from './command-host/manifest.js';
 export { builtinCommands } from './commands/builtins.js';
 export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication.js';
 export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication.js';

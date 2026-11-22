@@ -1,3 +1,5 @@
+import type { ToolBehavior } from '@vendure/common/lib/command';
+
 /**
  * @description
  * Which API a tool uses: `shop` tools work over the Shop API, `admin` tools over
@@ -17,4 +19,4 @@ export type McpToolset = 'shop' | 'admin';
  * @docsCategory mcp-sdk
  * @since 3.8.0
  */
-export type McpToolBehavior = 'readonly' | 'mutating' | 'destructive';
+export type McpToolBehavior = ToolBehavior;

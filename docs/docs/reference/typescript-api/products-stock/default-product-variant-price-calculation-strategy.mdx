@@ -2,9 +2,19 @@
 title: "DefaultProductVariantPriceCalculationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/catalog/default-product-variant-price-calculation-strategy.ts" sourceLine="18" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/default-product-variant-price-calculation-strategy.ts" sourceLine="29" packageName="@vendure/core" />
 
 A default ProductVariant price calculation function.
+
+When the Channel's prices include tax, an entered price includes the tax rate of the Channel's
+default tax Zone. It is kept as the gross price where that rate applies. Elsewhere the net price is
+taken out at the default Zone's rate, and the applicable rate is then added to it. With
+[ProductVariantPriceCalculationArgs](/reference/typescript-api/products-stock/product-variant-price-calculation-strategy#productvariantpricecalculationargs) `taxRate`, a country rate is treated like the rate of
+another Zone, as if the country had its own Zone. A country rate with the same value as the
+default Zone's rate keeps the entered price as gross.
+
+If the default tax Zone has no zone rate for the TaxCategory, the price is kept as gross in the
+default Zone, and no tax is taken out elsewhere.
 
 ```ts title="Signature"
 class DefaultProductVariantPriceCalculationStrategy implements ProductVariantPriceCalculationStrategy {

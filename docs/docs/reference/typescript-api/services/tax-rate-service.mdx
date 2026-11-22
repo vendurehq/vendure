@@ -2,7 +2,74 @@
 title: "TaxRateService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/tax-rate.service.ts" sourceLine="37" packageName="@vendure/core" />
+## TaxRateTarget
+
+<GenerationInfo sourceFile="packages/core/src/service/services/tax-rate.service.ts" sourceLine="42" packageName="@vendure/core" since="4.0.0" />
+
+What [TaxRateService](/reference/typescript-api/services/tax-rate-service#taxrateservice) `getApplicableTaxRate()` looks up a rate for: the country of the Order's
+shipping address, if there is one, and the tax Zone returned by the configured
+[TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy).
+
+```ts title="Signature"
+interface TaxRateTarget {
+    countryCode?: string;
+    zone: Zone | ID;
+}
+```
+
+<div className="members-wrapper">
+
+### countryCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### zone
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+
+
+</div>
+## ZoneTaxRateOverlap
+
+<GenerationInfo sourceFile="packages/core/src/service/services/tax-rate.service.ts" sourceLine="56" packageName="@vendure/core" since="4.0.0" />
+
+A country which two or more zone rates of one TaxCategory match, and which has no country rate
+for it. Returned by [TaxRateService](/reference/typescript-api/services/tax-rate-service#taxrateservice) `findOverlappingZoneRates()`.
+
+```ts title="Signature"
+interface ZoneTaxRateOverlap {
+    countryCode: string;
+    taxCategoryId: ID;
+    taxRates: TaxRate[];
+}
+```
+
+<div className="members-wrapper">
+
+### countryCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### taxCategoryId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### taxRates
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>[]`}   />
+
+
+
+
+</div>
+## TaxRateService
+
+<GenerationInfo sourceFile="packages/core/src/service/services/tax-rate.service.ts" sourceLine="99" packageName="@vendure/core" />
 
 Contains methods relating to [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate) entities.
 
@@ -14,7 +81,8 @@ class TaxRateService {
     create(ctx: RequestContext, input: CreateTaxRateInput) => Promise<TaxRate>;
     update(ctx: RequestContext, input: UpdateTaxRateInput) => Promise<TaxRate>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
-    getApplicableTaxRate(ctx: RequestContext, zone: Zone | ID, taxCategory: TaxCategory | ID) => Promise<TaxRate>;
+    getApplicableTaxRate(ctx: RequestContext, targetOrZone: TaxRateTarget | Zone | ID, taxCategory: TaxCategory | ID) => Promise<TaxRate>;
+    findOverlappingZoneRates(ctx: RequestContext) => Promise<ZoneTaxRateOverlap[]>;
 }
 ```
 
@@ -47,10 +115,21 @@ class TaxRateService {
 
 ### getApplicableTaxRate
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, zone: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, targetOrZone: <a href='/reference/typescript-api/services/tax-rate-service#taxratetarget'>TaxRateTarget</a> | <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>`}   />
 
-Returns the applicable TaxRate based on the specified Zone and TaxCategory. Used when calculating Order
-prices.
+Returns the applicable TaxRate based on the specified target and TaxCategory. Used when calculating Order
+prices. The most specific rate wins: a country rate for `target.countryCode`, then a rate for
+`target.zone`, then a default rate with a value of 0.
+
+Passing a Zone or zone ID instead of a target finds zone rates only.
+### findOverlappingZoneRates
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/services/tax-rate-service#zonetaxrateoverlap'>ZoneTaxRateOverlap</a>[]>`}   />
+
+Returns the countries which two or more zone rates of the same TaxCategory match, and which
+have no country rate for that TaxCategory. For such a country, the rate depends on which Zone
+the [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy) returns; [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy#addressbasedtaxzonestrategy) returns the first.
+Nothing is changed.
 
 
 </div>

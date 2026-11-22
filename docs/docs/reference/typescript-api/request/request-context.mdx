@@ -2,7 +2,7 @@
 title: "RequestContext"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="189" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="191" packageName="@vendure/core" />
 
 The RequestContext holds information relevant to the current request, which may be
 required at various points of the stack.
@@ -47,6 +47,7 @@ class RequestContext {
     serialize() => SerializedRequestContext;
     toJSON() => SerializedRequestContext;
     copy(channel?: Channel) => RequestContext;
+    requestId: string | undefined
     req: Request | undefined
     apiType: ApiType
     channel: Channel
@@ -152,6 +153,14 @@ mutations to the copy itself will not affect the original, but deep mutations
 
 Passing a `channel` re-scopes the copy to it, switching language and currency
 to the channel's defaults so downstream logic runs in the target channel.
+### requestId
+
+<MemberInfo kind="property" type={`string | undefined`}  since="4.0.0"  />
+
+The ID of the API request which this context belongs to. See [getRequestId](/reference/typescript-api/logger/get-request-id#getrequestid).
+
+A context which was rebuilt from a serialized object, e.g. in a job queue worker, keeps the ID
+of the request which serialized it. A context built outside any request has no ID.
 ### req
 
 <MemberInfo kind="property" type={`Request | undefined`}   />

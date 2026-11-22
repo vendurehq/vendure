@@ -39,6 +39,18 @@ export class Job<T extends JobData<T> = any> {
     readonly queueName: string;
     readonly retries: number;
     readonly createdAt: Date;
+    /**
+     * @description
+     * The ID of the API request which added the job, if it was added during a request. While the
+     * job is processed, {@link getRequestId} returns this ID, so log lines written for the job
+     * carry it.
+     *
+     * Whether the ID survives storage depends on the {@link JobQueueStrategy}. The
+     * {@link SqlJobQueueStrategy} stores it only when the job data is an object.
+     *
+     * @since 4.0.0
+     */
+    readonly requestId?: string;
     private readonly _data: T;
     private _state: JobState;
     private _progress: number;
@@ -117,6 +129,7 @@ export class Job<T extends JobData<T> = any> {
         this._error = config.error;
         this._startedAt = config.startedAt;
         this._settledAt = config.settledAt;
+        this.requestId = config.requestId;
     }
 
     /**

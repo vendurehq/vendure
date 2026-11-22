@@ -97,6 +97,7 @@
         "ts-node": "^10.9.2",
         "tsconfig-paths": "^4.2.0",
         "typescript": "5.8.2",
+        "zod": "^4.2.0",
       },
       "devDependencies": {
         "@vendure/core": "3.8.1",
@@ -454,10 +455,10 @@
       "name": "@vendure/mcp-sdk",
       "version": "3.8.1",
       "dependencies": {
+        "@vendure/common": "3.8.1",
         "zod": "^4.2.0",
       },
       "devDependencies": {
-        "@vendure/common": "3.8.1",
         "@vendure/core": "3.8.1",
       },
       "peerDependencies": {

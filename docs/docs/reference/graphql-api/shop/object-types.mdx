@@ -3884,6 +3884,7 @@ type Success {
     Float: '/reference/graphql-api/shop/object-types#float',
     TaxCategory: '/reference/graphql-api/shop/object-types#taxcategory',
     Zone: '/reference/graphql-api/shop/object-types#zone',
+    Region: '/reference/graphql-api/shop/object-types#region',
     CustomerGroup: '/reference/graphql-api/shop/object-types#customergroup',
     JSON: '/reference/graphql-api/shop/object-types#json',
   }}
@@ -3896,7 +3897,8 @@ type Success {
   enabled: Boolean!
   value: Float!
   category: TaxCategory!
-  zone: Zone!
+  zone: Zone
+  region: Region
   customerGroup: CustomerGroup
   customFields: JSON
 }`}

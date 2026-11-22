@@ -119,6 +119,15 @@ A ShippingMethod can now offer several priced [shipping options](/core-concepts/
 - **`OrderModifier.setShippingMethods()`** returns a `SetShippingMethodsResult` with the `order` and a `selectionKept()` function rather than the Order itself. As before, it does not price the ShippingLines: recalculate the Order afterwards, then pass its ShippingLines to `selectionKept()` to find out whether a selected option was refused. `OrderService.setShippingMethod()` does both.
 - **`ShippingLine`** has two new nullable columns, `shippingOptionCode` and `shippingOptionName`. The generated migration adds them.
 
+## Tax rates
+
+A TaxRate can now target a country as well as a Zone, and a country rate wins over a zone rate. See [Tax rate resolution](/core-concepts/taxes/#tax-rate-resolution). Existing zone rates keep their Zone and resolve as before. What can break:
+
+- **`TaxRate.zone` is nullable** in the GraphQL APIs and on the entity (`zone?: Zone | null`, `zoneId?: ID | null`), because a country rate has no Zone. Code which reads `taxRate.zone.id` or `taxRate.zone.name` must handle `null`. The new `region` field holds the country of a country rate.
+- **`CreateTaxRateInput.zoneId` is optional.** Exactly one of `zoneId` and the new `regionId` must be set. Generated TypeScript types for the input change accordingly.
+- **`TaxRateService.getApplicableTaxRate()`** takes `{ countryCode, zone }` as its second argument, so that a country rate can be found. Passing a Zone or zone ID still works, but then only zone rates are found. To apply country rates in your own code, pass the country of the Order's shipping address as `countryCode`.
+- **`tax_rate`** has a new nullable column, `regionId`, and **`order`** a new nullable column, `taxCountryCode`. The generated migration adds them. `Order.taxCountryCode` records the shipping country of the last tax calculation. An Order placed before v4 has none. Its next calculation records the country and keeps the taxes the Order was placed with.
+
 ## Changed defaults
 
 Some defaults which were kept for compatibility during v3 have changed. Set the old value to keep the v3 behaviour.

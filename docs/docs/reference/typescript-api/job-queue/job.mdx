@@ -17,6 +17,7 @@ class Job<T extends JobData<T> = any> {
     readonly queueName: string;
     readonly retries: number;
     readonly createdAt: Date;
+    readonly requestId?: string;
     name: string
     data: T
     state: JobState
@@ -62,6 +63,16 @@ class Job<T extends JobData<T> = any> {
 <MemberInfo kind="property" type={`Date`}   />
 
 
+### requestId
+
+<MemberInfo kind="property" type={`string`}  since="4.0.0"  />
+
+The ID of the API request which added the job, if it was added during a request. While the
+job is processed, [getRequestId](/reference/typescript-api/logger/get-request-id#getrequestid) returns this ID, so log lines written for the job
+carry it.
+
+Whether the ID survives storage depends on the [JobQueueStrategy](/reference/typescript-api/job-queue/job-queue-strategy#jobqueuestrategy). The
+[SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy) stores it only when the job data is an object.
 ### name
 
 <MemberInfo kind="property" type={`string`}   />

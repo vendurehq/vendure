@@ -24,6 +24,7 @@ interface ApiOptions {
     trustProxy?: TrustProxyOptions;
     apolloServerPlugins?: ApolloServerPlugin[];
     introspection?: boolean;
+    includeStackInErrors?: boolean;
 }
 ```
 
@@ -199,6 +200,27 @@ will not work.
 ```ts
 {
   introspection: process.env.NODE_ENV !== 'production'
+}
+```
+### includeStackInErrors
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}  since="4.0.0"  />
+
+Adds `extensions.stack` to each error which the Admin and Shop APIs return. It lists the frames
+of the error's stack which point at the project's own files: those under the working directory and
+not under `node_modules`, with paths relative to the working directory.
+
+This is meant for local development only, so that a developer or a coding agent can see where an
+error was thrown. The frames name the project's files and functions, so this must stay off on any
+server which untrusted callers can reach, including staging servers. When it is off, no error
+response carries a stack, whatever `NODE_ENV` is set to.
+
+*Example*
+
+```ts
+{
+  // In a config file which is only used for local development
+  includeStackInErrors: true,
 }
 ```
 

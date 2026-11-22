@@ -8,6 +8,7 @@ import { RequestContextCacheService } from '../../../cache/request-context-cache
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
+import { getTaxCountryCode } from '../../../common/tax-utils';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
@@ -122,25 +123,35 @@ export class OrderCalculator {
             () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
         );
 
-        let taxZoneChanged = false;
+        let taxTargetChanged = false;
         if (!activeTaxZone) {
             throw new InternalServerError('error.no-active-tax-zone');
         }
         if (!order.taxZoneId || !idsAreEqual(order.taxZoneId, activeTaxZone.id)) {
             order.taxZoneId = activeTaxZone.id;
-            taxZoneChanged = true;
+            taxTargetChanged = true;
+        }
+        const countryCode = getTaxCountryCode(order);
+        if (order.taxCountryCode == null && !taxTargetChanged) {
+            // The Order has not been calculated since taxCountryCode was added: record the country
+            // and keep the taxes it was placed with.
+            order.taxCountryCode = countryCode ?? '';
+        } else if (order.taxCountryCode !== (countryCode ?? '')) {
+            // A country rate can apply when the shipping country changes, even within the same Zone.
+            order.taxCountryCode = countryCode ?? '';
+            taxTargetChanged = true;
         }
         for (const updatedOrderLine of updatedOrderLines) {
             await this.applyTaxesToOrderLine(
                 ctx,
                 order,
                 updatedOrderLine,
-                this.createTaxRateGetter(ctx, activeTaxZone),
+                this.createTaxRateGetter(ctx, activeTaxZone, countryCode),
             );
         }
         this.calculateOrderTotals(order);
         if (order.lines.length) {
-            if (taxZoneChanged) {
+            if (taxTargetChanged) {
                 // First apply taxes to the non-discounted prices
                 await this.applyTaxes(ctx, order, activeTaxZone);
             }
@@ -181,7 +192,7 @@ export class OrderCalculator {
      * Applies the correct TaxRate to each OrderLine in the order.
      */
     private async applyTaxes(ctx: RequestContext, order: Order, activeZone: Zone) {
-        const getTaxRate = this.createTaxRateGetter(ctx, activeZone);
+        const getTaxRate = this.createTaxRateGetter(ctx, activeZone, getTaxCountryCode(order));
         for (const line of order.lines) {
             await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate);
         }
@@ -216,6 +227,7 @@ export class OrderCalculator {
     private createTaxRateGetter(
         ctx: RequestContext,
         activeZone: Zone,
+        countryCode?: string,
     ): (taxCategoryId: ID) => Promise<TaxRate> {
         const taxRateCache = new Map<ID, TaxRate>();
 
@@ -224,7 +236,11 @@ export class OrderCalculator {
             if (cached) {
                 return cached;
             }
-            const rate = await this.taxRateService.getApplicableTaxRate(ctx, activeZone, taxCategoryId);
+            const rate = await this.taxRateService.getApplicableTaxRate(
+                ctx,
+                { countryCode, zone: activeZone },
+                taxCategoryId,
+            );
             taxRateCache.set(taxCategoryId, rate);
             return rate;
         };
