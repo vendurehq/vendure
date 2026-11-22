@@ -42,11 +42,11 @@ jobs:
             e2e-mysql: ${{ steps.plan-e2e.outputs.e2e-mysql }}
             e2e-postgres: ${{ steps.plan-e2e.outputs.e2e-postgres }}
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
             # Nx needs the installed workspace to compute the project graph.
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
             - name: Test the workflow scripts
               run: node --test .github/workflows/scripts/*.test.js e2e-common/*.test.js
             - name: Detect changed paths
@@ -56,7 +56,7 @@ jobs:
                   GITHUB_EVENT_BEFORE: ${{ github.event.before }}
               run: |
                   bash .github/workflows/scripts/detect-changes.sh
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: nrwl/nx-set-shas@v5.1.0
               if: steps.check.outputs.packages == 'true'
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
@@ -83,11 +83,11 @@ jobs:
             # nx-set-shas reads the last successful run of this workflow on push.
             actions: read
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
-            - uses: ./.github/actions/setup
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: $/.github/actions/setup
+            - uses: nrwl/nx-set-shas@v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
             # The test jobs restore the cache that this job saves, so the packages are built one time.
@@ -95,7 +95,7 @@ jobs:
             # entries that the database does not list, so the cache keeps both.
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -122,7 +122,7 @@ jobs:
                   bun run nx run @vendure/testing:build
             - name: Save Nx cache
               if: ${{ !cancelled() }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/save@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -136,10 +136,10 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   persist-credentials: false
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
             # Fails when a tsconfig file that the package schema generates is out of date.
             - name: Check generated tsconfig files
               run: bun run nx sync:check
@@ -167,20 +167,20 @@ jobs:
                     - { id: dashboard, exclude: '*,!@vendure/dashboard', workers: 3 }
                     - { id: other, exclude: '@vendure/core,@vendure/dashboard', workers: 1 }
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: nrwl/nx-set-shas@v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt does not wait
             # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -207,7 +207,7 @@ jobs:
               run: bun run nx "$NX_COMMAND" -t test --exclude="$EXCLUDE" --output-style=stream
             - name: Save Nx cache
               if: ${{ !cancelled() }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/save@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -221,8 +221,8 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v7.0.1
+            - uses: $/.github/actions/setup
             - name: Check i18n catalogs are in sync
               working-directory: packages/dashboard
               run: bash scripts/check-i18n-sync.sh
@@ -234,8 +234,8 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v5.0.1
+            - uses: $/.github/actions/setup
             - name: Lint dashboard
               working-directory: packages/dashboard
               run: bun run lint
@@ -254,11 +254,11 @@ jobs:
             matrix:
                 shard: [1, 2, 3, 4]
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v7.0.1
+            - uses: $/.github/actions/setup
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -280,7 +280,7 @@ jobs:
               run: bun run nx run @vendure/testing:build
             - name: Cache Playwright browsers
               id: playwright-cache
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache@v6.1.0
               with:
                   path: ~/.cache/ms-playwright
                   # The key version prefix (v2) lets us evict caches poisoned by an
@@ -326,11 +326,11 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
             - name: SonarQube Scan
-              uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+              uses: SonarSource/sonarqube-scan-action@v8.2.1
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     e2e-sqljs:
@@ -354,20 +354,20 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
                 part: ${{ fromJSON(needs.detect-changes.outputs.e2e-sqljs) }}
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: nrwl/nx-set-shas@v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt does not wait
             # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -400,7 +400,7 @@ jobs:
                   fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/save@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -436,20 +436,20 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
                 part: ${{ fromJSON(needs.detect-changes.outputs.e2e-mariadb) }}
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: nrwl/nx-set-shas@v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt does not wait
             # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -483,7 +483,7 @@ jobs:
                   fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/save@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -529,20 +529,20 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
                 part: ${{ fromJSON(needs.detect-changes.outputs.e2e-mysql) }}
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: nrwl/nx-set-shas@v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt does not wait
             # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -576,7 +576,7 @@ jobs:
                   fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/save@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -611,20 +611,20 @@ jobs:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x"]') }}
                 part: ${{ fromJSON(needs.detect-changes.outputs.e2e-postgres) }}
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
-            - uses: ./.github/actions/setup
+            - uses: $/.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
-            - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+            - uses: nrwl/nx-set-shas@v5.1.0
               with:
                   main-branch-name: ${{ github.base_ref || github.ref_name }}
             # A re-run restores the results of the earlier attempt. The first attempt does not wait
             # for the build job: it restores the latest build cache and builds the changed packages.
             - name: Restore Nx cache
               id: nx-cache
-              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/restore@v6.1.0
               with:
                   path: |
                       .nx/cache
@@ -658,7 +658,7 @@ jobs:
                   fi
             - name: Save Nx cache
               if: ${{ !cancelled() }}
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              uses: actions/cache/save@v6.1.0
               with:
                   path: |
                       .nx/cache

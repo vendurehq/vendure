@@ -12,8 +12,8 @@ jobs:
         name: conventional commit format
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v7.0.1
+            - uses: $/.github/actions/setup
             - name: Lint pull request title
               env:
                   PR_TITLE: ${{ github.event.pull_request.title }}
