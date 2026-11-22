@@ -29,9 +29,11 @@ import {
     CustomFieldConfig,
     CustomFields,
 } from '../../config/custom-field/custom-field-types';
+import { getDatabaseType } from '../../connection/database-type';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { isColumnDefaultSupported } from '../../entity/register-custom-entity-fields';
 import { parseContext } from '../common/parse-context';
 import { internal_getRequestContext, RequestContext } from '../common/request-context';
 import { userHasPermissionsOnCustomField } from '../common/user-has-permissions-on-custom-field';
@@ -160,9 +162,10 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
     /**
      * Processes the OrderLine custom fields of a query which prices an order line that is not saved. They
      * get the processing of the `addItemToOrder` input. Then each field which the input leaves out gets its
-     * default value. When `addItemToOrder` leaves out a field, the database column default gives the saved
-     * line the same value. Readonly and internal fields also get their defaults, and are not validated,
-     * because the client did not send them.
+     * default value, if the database stores a column default for the field. When `addItemToOrder` leaves
+     * out a field, the column default gives the saved line the same value. Readonly, internal and
+     * non-public fields also get their defaults, and are not validated, because the client did not send
+     * them. The defaults are added also when the Shop API has no OrderLine custom fields input.
      */
     private async processOrderLinePriceQuery(
         context: ExecutionContext,
@@ -174,36 +177,29 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             return;
         }
         const args = GqlExecutionContext.create(context).getArgs();
+        // `buyerPrice` takes the custom fields of one line as arguments. `buyerPrices` takes a list of lines.
+        const lineInputs: Array<Record<string, any>> =
+            fieldName === 'buyerPrice' ? [args] : Array.isArray(args.input) ? args.input : [];
+        // The same limit as in the resolver, checked before the custom fields are validated
+        const limit = this.configService.apiOptions.shopListQueryLimit;
+        if (fieldName === 'buyerPrices' && lineInputs.length > limit) {
+            throw new UserInputError('error.list-query-limit-exceeded', { limit });
+        }
         const ctx = internal_getRequestContext(parseContext(context).req);
         const injector = new Injector(this.moduleRef);
 
         this.stripSecretPlaceholders(fieldDef, schema, args);
         await this.processOrderLineCustomFields(fieldDef, args, ctx, injector);
 
+        const dbEngine = getDatabaseType(this.configService.dbConnectionOptions);
         const defaults: Record<string, any> = {};
         for (const config of this.configService.customFields.OrderLine ?? []) {
-            if (config.defaultValue !== undefined) {
+            if (config.defaultValue !== undefined && isColumnDefaultSupported(config, dbEngine)) {
                 defaults[getGraphQlInputName(config)] = config.defaultValue;
             }
         }
         if (Object.keys(defaults).length === 0) {
             return;
-        }
-        // The objects which have a `customFields` field of type OrderLineCustomFieldsInput, also when the
-        // client leaves the field out. The arguments object is one of them for `buyerPrice`.
-        const lineInputs: Array<Record<string, any>> = [];
-        const isOrderLineCustomFields = (field?: { type: GraphQLInputType }) =>
-            field != null && getNamedType(field.type).name === ORDER_LINE_CUSTOM_FIELDS_INPUT;
-        if (isOrderLineCustomFields(fieldDef.args.find(arg => arg.name === 'customFields'))) {
-            lineInputs.push(args);
-        }
-        for (const arg of fieldDef.args) {
-            const parent = { name: fieldDef.name, value: args };
-            this.walkInputObjects(args[arg.name], arg.type, parent, (value, type) => {
-                if (isOrderLineCustomFields(type.getFields().customFields)) {
-                    lineInputs.push(value);
-                }
-            });
         }
         for (const lineInput of lineInputs) {
             lineInput.customFields = { ...defaults, ...lineInput.customFields };

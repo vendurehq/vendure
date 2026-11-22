@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
-import { buildSchema, OperationTypeNode } from 'graphql';
+import { buildSchema, GraphQLSchema, OperationTypeNode } from 'graphql';
 import { describe, expect, it } from 'vitest';
 
 import { ConfigService } from '../../config/config.service';
@@ -89,14 +89,24 @@ describe('CustomFieldProcessingInterceptor with the buyerPrice queries', () => {
         { name: 'stamp', type: 'string', readonly: true, defaultValue: 'STAMP' },
         { name: 'internalCode', type: 'string', internal: true, defaultValue: 'INTERNAL' },
     ] as CustomFieldConfig[];
-    const interceptor = new CustomFieldProcessingInterceptor(
-        { customFields: { OrderLine: orderLineConfig } } as unknown as ConfigService,
-        {} as ModuleRef,
-    );
+    const createInterceptor = (config: CustomFieldConfig[], dbType = 'sqljs') =>
+        new CustomFieldProcessingInterceptor(
+            {
+                customFields: { OrderLine: config },
+                apiOptions: { shopListQueryLimit: 3 },
+                dbConnectionOptions: { type: dbType },
+            } as unknown as ConfigService,
+            {} as ModuleRef,
+        );
+    const interceptor = createInterceptor(orderLineConfig);
     const next: CallHandler = { handle: () => undefined as any };
     const resolver = () => undefined;
 
-    async function runQuery(fieldName: string, args: Record<string, any>) {
+    async function runQuery(
+        fieldName: string,
+        args: Record<string, any>,
+        options: { interceptor?: CustomFieldProcessingInterceptor; schema?: GraphQLSchema } = {},
+    ) {
         const req = {} as any;
         internal_setRequestContext(
             req,
@@ -108,7 +118,11 @@ describe('CustomFieldProcessingInterceptor with the buyerPrice queries', () => {
                 isAuthorized: true,
             }),
         );
-        const info = { operation: { operation: OperationTypeNode.QUERY }, schema, fieldName };
+        const info = {
+            operation: { operation: OperationTypeNode.QUERY },
+            schema: options.schema ?? schema,
+            fieldName,
+        };
         const resolverArgs = [{}, args, { req }, info];
         const context = {
             getType: () => 'graphql',
@@ -117,7 +131,7 @@ describe('CustomFieldProcessingInterceptor with the buyerPrice queries', () => {
             getClass: () => Object,
             getHandler: () => resolver,
         } as unknown as ExecutionContext;
-        await interceptor.intercept(context, next);
+        await (options.interceptor ?? interceptor).intercept(context, next);
         return args;
     }
 
@@ -163,5 +177,50 @@ describe('CustomFieldProcessingInterceptor with the buyerPrice queries', () => {
         expect(await runQuery('otherQuery', { customFields: { unitCode: null } })).toEqual({
             customFields: { unitCode: null },
         });
+    });
+
+    it('checks the buyerPrices limit before it validates the custom fields', async () => {
+        const input = [1, 2, 3, 4].map(id => ({ productVariantId: id, customFields: { unitCode: 'box' } }));
+
+        await expect(runQuery('buyerPrices', { input })).rejects.toThrow('error.list-query-limit-exceeded');
+    });
+
+    it('does not add a list default for which MySQL stores no column default', async () => {
+        const config = [
+            { name: 'unitCode', type: 'string', defaultValue: 'BOX' },
+            { name: 'codes', type: 'string', list: true, defaultValue: ['A'] },
+        ] as CustomFieldConfig[];
+        const run = (dbType: string) =>
+            runQuery(
+                'buyerPrice',
+                { productVariantId: '1' },
+                { interceptor: createInterceptor(config, dbType) },
+            );
+
+        expect((await run('mysql')).customFields).toEqual({ unitCode: 'BOX' });
+        expect((await run('mariadb')).customFields).toEqual({ unitCode: 'BOX', codes: ['A'] });
+    });
+
+    it('adds the defaults when the Shop API has no OrderLine custom fields input', async () => {
+        const schemaWithoutInput = buildSchema(`
+            input BuyerPriceInput {
+                productVariantId: ID!
+            }
+            type Query {
+                buyerPrice(productVariantId: ID!): Int
+                buyerPrices(input: [BuyerPriceInput!]!): [Int]!
+            }
+        `);
+        const config = [
+            { name: 'unitCode', type: 'string', public: false, defaultValue: 'BOX' },
+        ] as CustomFieldConfig[];
+        const options = { interceptor: createInterceptor(config), schema: schemaWithoutInput };
+
+        expect(await runQuery('buyerPrice', { productVariantId: '1' }, options)).toEqual({
+            productVariantId: '1',
+            customFields: { unitCode: 'BOX' },
+        });
+        const args = await runQuery('buyerPrices', { input: [{ productVariantId: '1' }] }, options);
+        expect(args.input).toEqual([{ productVariantId: '1', customFields: { unitCode: 'BOX' } }]);
     });
 });
