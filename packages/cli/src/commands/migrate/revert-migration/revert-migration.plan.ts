@@ -1,7 +1,8 @@
 import { CommandContext, CommandPlan, ErrorResult, fail } from '@vendure/common/lib/command';
 
+import { describeDatabase, lastAppliedMigration, loadProjectConfig } from '../migration-project.js';
+
 import { databaseUnreadable } from './revert-migration.errors.js';
-import { describeDatabase, lastAppliedMigration, loadProjectConfig } from './revert-migration.project.js';
 
 /**
  * Names what a revert would undo: the config file, the database, and the last migration the

@@ -1,34 +1,50 @@
 /**
- * E2E tests for the migrate command
+ * E2E tests for `vendure migrate generate`, `run` and `revert`. Each runs through the command
+ * host against a project with a SQLite database, the way the CLI runs it.
  *
  * To run these tests:
  * npm run vitest -- --config e2e/vitest.e2e.config.mts
  */
+import type { CommandDefinition } from '@vendure/common/lib/command';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-    generateMigrationOperation,
-    revertMigrationOperation,
-    runMigrationsOperation,
-} from '../src/commands/migrate/migration-operations.js';
+import { runCommandInHarness } from '../src/command-host/__tests__/command-harness.js';
+import { generateMigrationDefinition } from '../src/commands/migrate/generate-migration/generate-migration.command.js';
+import { revertMigrationDefinition } from '../src/commands/migrate/revert-migration/revert-migration.command.js';
+import { runMigrationDefinition } from '../src/commands/migrate/run-migration/run-migration.command.js';
 
 const TEST_PROJECT_DIR = path.join(import.meta.dirname, 'fixtures', 'test-project');
 const MIGRATIONS_DIR = path.join(TEST_PROJECT_DIR, 'migrations');
+
+/** Runs a command through the host. `inProject: false` runs it where no project is found. */
+function runIn(def: CommandDefinition, input: Record<string, unknown>, { inProject = true } = {}) {
+    return runCommandInHarness(def, input, { projectRoot: inProject ? TEST_PROJECT_DIR : undefined });
+}
+
+const generate = (input: Record<string, unknown>) => runIn(generateMigrationDefinition, input);
+const runPending = () => runIn(runMigrationDefinition, {});
+
+/** Runs `migrate revert` with the consent its preview asks for, as a caller that agreed would. */
+async function revertWithConsent() {
+    const first = await runIn(revertMigrationDefinition, {});
+    const need = first.envelope.needs?.find(n => n.kind === 'consent');
+    if (!need || need.kind !== 'consent') {
+        return first;
+    }
+    return runIn(revertMigrationDefinition, { [need.consent]: need.digest });
+}
 
 describe('Migrate Command E2E', { timeout: 60_000 }, () => {
     let originalCwd: string;
 
     beforeAll(() => {
-        // Save the original working directory
         originalCwd = process.cwd();
     });
 
     beforeEach(async () => {
-        // Clean up migrations directory before each test
         await fs.emptyDir(MIGRATIONS_DIR);
-        // Clean up test database
         const dbPath = path.join(TEST_PROJECT_DIR, 'test.db');
         if (await fs.pathExists(dbPath)) {
             await fs.remove(dbPath);
@@ -36,9 +52,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
     });
 
     afterAll(async () => {
-        // Restore original working directory
         process.chdir(originalCwd);
-        // Clean up after tests
         await fs.emptyDir(MIGRATIONS_DIR);
         const dbPath = path.join(TEST_PROJECT_DIR, 'test.db');
         if (await fs.pathExists(dbPath)) {
@@ -46,228 +60,180 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
         }
     });
 
-    describe('generateMigrationOperation', () => {
-        it('should fail when not in a Vendure project directory', async () => {
-            // Run from a non-Vendure directory
+    describe('migrate generate', () => {
+        it('needs a Vendure project', async () => {
             process.chdir(import.meta.dirname);
 
-            const result = await generateMigrationOperation({ name: 'test-migration' });
+            const result = await runIn(
+                generateMigrationDefinition,
+                { name: 'test-migration' },
+                { inProject: false },
+            );
 
-            expect(result.success).toBe(false);
-            expect(result.message).toContain('Not in a Vendure project directory');
-            expect(result.migrationName).toBeUndefined();
+            expect(result.envelope.status).toBe('error');
+            expect(result.envelope.error?.code).toBe('project.required');
         });
 
-        it('should generate a migration when in a valid Vendure project', async () => {
-            // Change to test project directory
+        it('generates a migration in a Vendure project', async () => {
             process.chdir(TEST_PROJECT_DIR);
 
-            const result = await generateMigrationOperation({
-                name: 'AddTestEntity',
+            const result = await generate({ name: 'AddTestEntity', outputDir: MIGRATIONS_DIR });
+
+            expect(result.envelope.status).toBe('ok');
+            expect(result.envelope.output).toMatchObject({
+                file: expect.stringContaining('AddTestEntity'),
                 outputDir: MIGRATIONS_DIR,
             });
-
-            expect(result.success).toBe(true);
-            expect(result.migrationName).toBeDefined();
-            expect(result.message).toContain('New migration generated');
-
-            // Verify migration file was created
             const files = await fs.readdir(MIGRATIONS_DIR);
-            const migrationFile = files.find(f => f.includes('AddTestEntity'));
-            expect(migrationFile).toBeDefined();
+            expect(files.find(f => f.includes('AddTestEntity'))).toBeDefined();
         });
 
-        it('should handle invalid migration names correctly', async () => {
+        it.each(['123-invalid', 'test migration', 'test@migration', 'a'])(
+            'refuses the migration name %j',
+            async name => {
+                process.chdir(TEST_PROJECT_DIR);
+
+                const result = await generate({ name });
+
+                expect(result.envelope.status).toBe('error');
+                expect(result.envelope.error?.code).toBe('input.invalid');
+                expect(result.envelope.error?.message).toContain('start with a letter');
+            },
+        );
+
+        it.each(['TestMigration', 'test-migration', 'test_migration', 'Migration123', 'ab'])(
+            'accepts the migration name %j',
+            async name => {
+                process.chdir(TEST_PROJECT_DIR);
+
+                const result = await generate({ name, outputDir: MIGRATIONS_DIR });
+
+                expect(result.envelope.status).toBe('ok');
+            },
+        );
+
+        it('asks for the name when it is missing', async () => {
             process.chdir(TEST_PROJECT_DIR);
 
-            const invalidNames = [
-                '123-invalid', // starts with number
-                'test migration', // contains space
-                'test@migration', // special character
-            ];
+            const result = await generate({});
 
-            for (const name of invalidNames) {
-                const result = await generateMigrationOperation({ name });
-
-                expect(result.success).toBe(false);
-                expect(result.message).toContain(
-                    'must contain only letters, numbers, underscores and dashes',
-                );
-                expect(result.migrationName).toBeUndefined();
-            }
+            expect(result.envelope.status).toBe('incomplete');
+            expect(result.envelope.needs).toEqual([
+                expect.objectContaining({ kind: 'input', field: 'name' }),
+            ]);
         });
 
-        it('should accept valid migration names', async () => {
-            process.chdir(TEST_PROJECT_DIR);
-
-            const validNames = [
-                'TestMigration',
-                'test-migration',
-                'test_migration',
-                'Migration123',
-                'ab', // minimum 2 characters
-            ];
-
-            for (const name of validNames) {
-                const result = await generateMigrationOperation({
-                    name,
-                    outputDir: MIGRATIONS_DIR,
-                });
-
-                // Since synchronize is false, generateMigration will create the initial migration
-                // The first time it runs, it will generate all tables
-                // Subsequent runs may report no changes
-                // Both are valid outcomes
-                expect(result.success).toBe(true);
-                expect(result.message).toBeDefined();
-
-                // Clean up the generated migration file for next iteration
-                const files = await fs.readdir(MIGRATIONS_DIR);
-                for (const file of files) {
-                    if (file.includes(name)) {
-                        await fs.remove(path.join(MIGRATIONS_DIR, file));
-                    }
-                }
-            }
-        });
-
-        it('should handle missing name parameter', async () => {
-            process.chdir(TEST_PROJECT_DIR);
-
-            const result = await generateMigrationOperation({});
-
-            expect(result.success).toBe(false);
-            expect(result.message).toContain('Migration name is required');
-            expect(result.migrationName).toBeUndefined();
-        });
-
-        it('should use custom output directory when specified', async () => {
+        it('writes to the output directory it is given', async () => {
             process.chdir(TEST_PROJECT_DIR);
             const customDir = path.join(TEST_PROJECT_DIR, 'custom-migrations');
             await fs.ensureDir(customDir);
-
             try {
-                const result = await generateMigrationOperation({
-                    name: 'CustomDirTest',
-                    outputDir: customDir,
-                });
+                const result = await generate({ name: 'CustomDirTest', outputDir: customDir });
 
-                expect(result.success).toBe(true);
-
-                // Verify migration was created in custom directory
+                expect(result.envelope.status).toBe('ok');
                 const files = await fs.readdir(customDir);
-                const migrationFile = files.find(f => f.includes('CustomDirTest'));
-                expect(migrationFile).toBeDefined();
+                expect(files.find(f => f.includes('CustomDirTest'))).toBeDefined();
             } finally {
                 await fs.remove(customDir);
             }
         });
 
-        it('should handle TypeORM config errors gracefully', async () => {
+        it('fails without a config file', async () => {
             process.chdir(TEST_PROJECT_DIR);
-
-            // Temporarily rename the vendure config to simulate a missing config
+            // Moved out of the project, since the config is found by what a file declares, not by
+            // its name.
             const configPath = path.join(TEST_PROJECT_DIR, 'src', 'vendure-config.ts');
-            const backupPath = path.join(TEST_PROJECT_DIR, 'src', 'vendure-config.backup.ts');
+            const backupPath = path.join(import.meta.dirname, 'fixtures', '.vendure-config.backup.ts');
             await fs.move(configPath, backupPath);
-
             try {
-                const result = await generateMigrationOperation({ name: 'FailTest' });
+                const result = await generate({ name: 'FailTest' });
 
-                expect(result.success).toBe(false);
-                expect(result.message).toBeDefined();
-                expect(result.migrationName).toBeUndefined();
+                expect(result.envelope.status).toBe('error');
             } finally {
                 await fs.move(backupPath, configPath);
             }
         });
+
+        it('generates a migration next to a partly written one', async () => {
+            process.chdir(TEST_PROJECT_DIR);
+            await fs.writeFile(
+                path.join(MIGRATIONS_DIR, '1234567890-Partial.ts'),
+                'export class Partial1234567890 {}',
+            );
+
+            const result = await generate({ name: 'RecoveryTest', outputDir: MIGRATIONS_DIR });
+
+            expect(result.envelope.status).toBe('ok');
+        });
     });
 
-    describe('runMigrationsOperation', () => {
-        it('should fail when not in a Vendure project directory', async () => {
+    describe('migrate run', () => {
+        it('needs a Vendure project', async () => {
             process.chdir(import.meta.dirname);
 
-            const result = await runMigrationsOperation();
+            const result = await runIn(runMigrationDefinition, {}, { inProject: false });
 
-            expect(result.success).toBe(false);
-            expect(result.message).toContain('Not in a Vendure project directory');
-            expect(result.migrationsRan).toBeUndefined();
+            expect(result.envelope.error?.code).toBe('project.required');
         });
 
-        it('should report no pending migrations when none exist', async () => {
+        it('reports no pending migrations when none exist', async () => {
             process.chdir(TEST_PROJECT_DIR);
 
-            const result = await runMigrationsOperation();
+            const result = await runPending();
 
-            expect(result.success).toBe(true);
-            expect(result.message).toContain('No pending migrations found');
-            // A database with no tables is not "out of sync": every table is pending because
-            // the project has not been set up yet.
-            expect(result.hasWarnings).toBe(false);
-            expect(result.migrationsRan).toBeDefined();
-            expect(result.migrationsRan).toHaveLength(0);
-        });
-
-        it('should run pending migrations successfully', async () => {
-            process.chdir(TEST_PROJECT_DIR);
-
-            // First generate a migration
-            const generateResult = await generateMigrationOperation({
-                name: 'TestMigration',
-                outputDir: MIGRATIONS_DIR,
+            // A database with no tables is not "out of sync": every table is pending because the
+            // project has not been set up yet.
+            expect(result.envelope).toMatchObject({
+                status: 'ok',
+                output: { migrationsRan: [], diagnostics: [] },
             });
-            expect(generateResult.success).toBe(true);
+        });
 
-            // Then run migrations
-            const runResult = await runMigrationsOperation();
+        it('runs pending migrations', async () => {
+            process.chdir(TEST_PROJECT_DIR);
+            expect(
+                (await generate({ name: 'TestMigration', outputDir: MIGRATIONS_DIR })).envelope.status,
+            ).toBe('ok');
 
-            expect(runResult.success).toBe(true);
-            expect(runResult.message).toContain('Successfully ran');
-            expect(runResult.migrationsRan).toBeDefined();
-            expect(runResult.migrationsRan?.length).toBeGreaterThan(0);
+            const result = await runPending();
+
+            expect(result.envelope.status).toBe('ok');
+            expect((result.envelope.output as any).migrationsRan.length).toBeGreaterThan(0);
         });
 
         // #5001 — a `migrations` glob that stopped matching must not be reported as "up to date"
-        it('should report unmatched migration patterns when migrations have already been applied', async () => {
+        it('reports unmatched migration patterns when migrations have already been applied', async () => {
             process.chdir(TEST_PROJECT_DIR);
-
-            // Apply a migration so the `migrations` table is non-empty
-            const generateResult = await generateMigrationOperation({
-                name: 'TestMigration',
-                outputDir: MIGRATIONS_DIR,
+            await generate({ name: 'TestMigration', outputDir: MIGRATIONS_DIR });
+            expect((await runPending()).envelope.output).toMatchObject({
+                migrationsRan: [expect.any(String)],
             });
-            expect(generateResult.success).toBe(true);
-            expect((await runMigrationsOperation()).migrationsRan?.length).toBeGreaterThan(0);
 
             // Simulate the glob resolving to nothing (wrong cwd, or unbuilt `dist/migrations/*.js`)
             await fs.emptyDir(MIGRATIONS_DIR);
 
-            const result = await runMigrationsOperation();
+            const output = (await runPending()).envelope.output as any;
 
-            expect(result.migrationsRan).toHaveLength(0);
-            expect(result.hasWarnings).toBe(true);
-            expect(result.message).toContain('No migration files matched');
-            expect(result.message).not.toContain('No pending migrations found');
-            // The fixture config uses `path.join(__dirname, ...)`, and an absolute pattern
-            // ignores the working directory, so pointing at it would misdirect the user
-            expect(result.message).not.toContain('resolved against the current directory');
+            expect(output.migrationsRan).toHaveLength(0);
+            const text = output.diagnostics.flatMap((d: { lines: string[] }) => d.lines).join('\n');
+            expect(output.diagnostics.map((d: { code: string }) => d.code)).toContain(
+                'no-migrations-matched',
+            );
+            expect(text).toContain('No migration files matched');
+            // The fixture config uses `path.join(__dirname, ...)`, and an absolute pattern ignores
+            // the working directory, so pointing at it would misdirect the user
+            expect(text).not.toContain('resolved against the current directory');
         });
 
-        // #5001 — a schema built with `synchronize: true` has no migration history, so an
-        // empty `migrations` table must not be taken to mean an empty database
-        it('should report schema drift on a database with tables but no migration history', async () => {
+        // #5001 — a schema built with `synchronize: true` has no migration history, so an empty
+        // `migrations` table must not be taken to mean an empty database
+        it('reports schema drift on a database with tables but no migration history', async () => {
             process.chdir(TEST_PROJECT_DIR);
+            await generate({ name: 'TestMigration', outputDir: MIGRATIONS_DIR });
+            await runPending();
 
-            const generateResult = await generateMigrationOperation({
-                name: 'TestMigration',
-                outputDir: MIGRATIONS_DIR,
-            });
-            expect(generateResult.success).toBe(true);
-            expect((await runMigrationsOperation()).migrationsRan?.length).toBeGreaterThan(0);
-
-            // Leave the tables in place but clear the history, which is what a
-            // `synchronize: true` database looks like, and drop one table so the schema no
-            // longer matches the entity configuration.
+            // Leave the tables in place but clear the history, which is what a `synchronize: true`
+            // database looks like, and drop one table so the schema no longer matches the entities.
             const Database = (await import('better-sqlite3')).default;
             const db = new Database(path.join(TEST_PROJECT_DIR, 'test.db'));
             db.exec('DELETE FROM "migrations"');
@@ -275,24 +241,19 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
             db.close();
             await fs.emptyDir(MIGRATIONS_DIR);
 
-            const result = await runMigrationsOperation();
+            const output = (await runPending()).envelope.output as any;
 
-            expect(result.hasWarnings).toBe(true);
-            expect(result.message).toContain('does not match your current configuration');
+            const text = output.diagnostics.flatMap((d: { lines: string[] }) => d.lines).join('\n');
+            expect(text).toContain('does not match your current configuration');
         });
 
-        it('should handle database connection errors gracefully', async () => {
+        it('reports a database it cannot open as a coded error', async () => {
             process.chdir(TEST_PROJECT_DIR);
-
-            // Ensure a clean module state before mocking
             vi.resetModules();
-
-            // Mock the loadVendureConfigFile helper to return a config with an invalid database path
             vi.doMock('../src/shared/load-vendure-config-file.js', async () => {
                 const { config: realConfig }: { config: any } = await vi.importActual(
                     path.join(TEST_PROJECT_DIR, 'src', 'vendure-config.ts'),
                 );
-
                 return {
                     __esModule: true,
                     loadVendureConfigFile: () =>
@@ -305,163 +266,81 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
                         }),
                 };
             });
+            try {
+                // Imported after the mock, so the command loads the mocked helper.
+                const { runMigrationDefinition: withInvalidDb } =
+                    await import('../src/commands/migrate/run-migration/run-migration.command.js');
 
-            // Re-import the operation after the mock so that it picks up the mocked helper
-            const { runMigrationsOperation: runMigrationsWithInvalidDb } =
-                await import('../src/commands/migrate/migration-operations.js');
+                const result = await runIn(withInvalidDb, {});
 
-            const result = await runMigrationsWithInvalidDb();
-
-            expect(result.success).toBe(false);
-            expect(result.message).toBeDefined();
-            expect(result.migrationsRan).toBeUndefined();
-
-            // Clean up mock for subsequent tests
-            vi.unmock('../src/commands/migrate/load-vendure-config-file');
+                expect(result.envelope.status).toBe('error');
+                expect(result.envelope.error?.code).toBe('migrate.run-failed');
+            } finally {
+                vi.doUnmock('../src/shared/load-vendure-config-file.js');
+                vi.resetModules();
+            }
         });
     });
 
-    describe('revertMigrationOperation', () => {
-        it('should fail when not in a Vendure project directory', async () => {
+    describe('migrate revert', () => {
+        it('needs a Vendure project', async () => {
             process.chdir(import.meta.dirname);
 
-            const result = await revertMigrationOperation();
+            const result = await runIn(revertMigrationDefinition, {}, { inProject: false });
 
-            expect(result.success).toBe(false);
-            expect(result.message).toContain('Not in a Vendure project directory');
+            expect(result.envelope.error?.code).toBe('project.required');
         });
 
-        it('should revert the last migration successfully', async () => {
+        it('reverts the last migration', async () => {
             process.chdir(TEST_PROJECT_DIR);
+            await generate({ name: 'RevertTest', outputDir: MIGRATIONS_DIR });
+            await runPending();
 
-            // Generate and run a migration first
-            const generateResult = await generateMigrationOperation({
-                name: 'RevertTest',
-                outputDir: MIGRATIONS_DIR,
+            const result = await revertWithConsent();
+
+            expect(result.envelope).toMatchObject({
+                status: 'ok',
+                output: { reverted: true, migration: expect.stringContaining('RevertTest') },
             });
-            expect(generateResult.success).toBe(true);
-
-            const runResult = await runMigrationsOperation();
-            expect(runResult.success).toBe(true);
-
-            // Now revert
-            const revertResult = await revertMigrationOperation();
-
-            expect(revertResult.success).toBe(true);
-            expect(revertResult.message).toBe('Successfully reverted last migration');
         });
 
-        it('should handle no migrations to revert gracefully', async () => {
+        it('reverts nothing when no migration has run', async () => {
             process.chdir(TEST_PROJECT_DIR);
 
-            // Try to revert when no migrations have been run
-            const result = await revertMigrationOperation();
+            const result = await revertWithConsent();
 
-            // This might fail or succeed depending on TypeORM behavior
-            // The important thing is it doesn't throw and returns a structured result
-            expect(result).toHaveProperty('success');
-            expect(result).toHaveProperty('message');
+            expect(result.envelope).toMatchObject({ status: 'ok', output: { reverted: false } });
         });
     });
 
-    describe('Integration scenarios', () => {
-        it('should handle a complete migration workflow', async () => {
+    describe('a workflow', () => {
+        it('generates, runs, and generates again', async () => {
             process.chdir(TEST_PROJECT_DIR);
 
-            // 1. Generate first migration
-            const generate1 = await generateMigrationOperation({
-                name: 'InitialSchema',
-                outputDir: MIGRATIONS_DIR,
+            expect(
+                (await generate({ name: 'InitialSchema', outputDir: MIGRATIONS_DIR })).envelope.status,
+            ).toBe('ok');
+            expect((await runPending()).envelope.status).toBe('ok');
+            // The schema now matches the entities, so there is nothing new to generate.
+            expect(
+                (await generate({ name: 'AddColumns', outputDir: MIGRATIONS_DIR })).envelope,
+            ).toMatchObject({
+                status: 'ok',
+                output: { file: null },
             });
-            expect(generate1.success).toBe(true);
-
-            // 2. Run migrations
-            const run1 = await runMigrationsOperation();
-            expect(run1.success).toBe(true);
-
-            // Since there are no actual schema changes, migrations might be empty
-            // This is expected behavior
-
-            // 3. Generate second migration
-            const generate2 = await generateMigrationOperation({
-                name: 'AddColumns',
-                outputDir: MIGRATIONS_DIR,
-            });
-            expect(generate2.success).toBe(true);
-
-            // 4. Try to run migrations again
-            const run2 = await runMigrationsOperation();
-            expect(run2.success).toBe(true);
-
-            // Since no actual schema changes, this might have 0 migrations
-            // which is acceptable
+            expect((await runPending()).envelope.status).toBe('ok');
         });
 
-        it('should handle concurrent operations gracefully', async () => {
+        it('completes concurrent generations', async () => {
             process.chdir(TEST_PROJECT_DIR);
 
-            // Try to run multiple operations concurrently
-            const operations = [
-                generateMigrationOperation({ name: 'Concurrent1', outputDir: MIGRATIONS_DIR }),
-                generateMigrationOperation({ name: 'Concurrent2', outputDir: MIGRATIONS_DIR }),
-                generateMigrationOperation({ name: 'Concurrent3', outputDir: MIGRATIONS_DIR }),
-            ];
+            const results = await Promise.all(
+                ['Concurrent1', 'Concurrent2', 'Concurrent3'].map(name =>
+                    generate({ name, outputDir: MIGRATIONS_DIR }),
+                ),
+            );
 
-            const results = await Promise.all(operations);
-
-            // All should complete without throwing
-            results.forEach(result => {
-                expect(result).toHaveProperty('success');
-                expect(result).toHaveProperty('message');
-            });
-
-            // At least some should succeed
-            const successCount = results.filter(r => r.success).length;
-            expect(successCount).toBeGreaterThan(0);
-        });
-    });
-
-    describe('Error recovery', () => {
-        it('should recover from interrupted migration generation', async () => {
-            process.chdir(TEST_PROJECT_DIR);
-
-            // Create a partial migration file to simulate interruption
-            const partialFile = path.join(MIGRATIONS_DIR, '1234567890-Partial.ts');
-            await fs.writeFile(partialFile, 'export class Partial1234567890 {}');
-
-            // Should still be able to generate new migrations
-            const result = await generateMigrationOperation({
-                name: 'RecoveryTest',
-                outputDir: MIGRATIONS_DIR,
-            });
-
-            // The operation should complete successfully
-            expect(result.success).toBe(true);
-            expect(result.message).toBeDefined();
-        });
-
-        it('should provide helpful error messages for common issues', async () => {
-            process.chdir(TEST_PROJECT_DIR);
-
-            // Test various error scenarios
-            const scenarios = [
-                {
-                    name: 'generate without name',
-                    operation: () => generateMigrationOperation({}),
-                    expectedMessage: 'Migration name is required',
-                },
-                {
-                    name: 'invalid migration name',
-                    operation: () => generateMigrationOperation({ name: '123invalid' }),
-                    expectedMessage: 'must contain only letters, numbers, underscores and dashes',
-                },
-            ];
-
-            for (const scenario of scenarios) {
-                const result = await scenario.operation();
-                expect(result.success).toBe(false);
-                expect(result.message).toContain(scenario.expectedMessage);
-            }
+            expect(results.filter(r => r.envelope.status === 'ok').length).toBeGreaterThan(0);
         });
     });
 });

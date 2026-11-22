@@ -1,14 +1,17 @@
+import { unique } from '@vendure/common/lib/unique';
 import type { VendureConfig } from '@vendure/core';
+import path from 'node:path';
 
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
-import { openProject } from '../../../shared/open-project.js';
-import { requireFromProjectCore } from '../../../shared/project-core.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { loadVendureConfigFile } from '../../shared/load-vendure-config-file.js';
+import { openProject } from '../../shared/open-project.js';
+import { requireFromProjectCore } from '../../shared/project-core.js';
+import { VendureConfigRef } from '../../shared/vendure-config-ref.js';
 
 export interface LoadedProjectConfig {
     config: VendureConfig;
     /** The absolute path of the config file. */
     configPath: string;
+    ref: VendureConfigRef;
 }
 
 /** Loads the project's Vendure config. It prints nothing. */
@@ -16,7 +19,31 @@ export async function loadProjectConfig(configFile?: string): Promise<LoadedProj
     const { project, tsConfigPath } = await openProject();
     const ref = new VendureConfigRef(project, configFile);
     const config = await loadVendureConfigFile(ref, tsConfigPath);
-    return { config, configPath: ref.sourceFile.getFilePath() };
+    return { config, configPath: ref.sourceFile.getFilePath(), ref };
+}
+
+/**
+ * The directories a new migration can go into, the most likely first: the directory of the
+ * config's first `migrations` pattern, the directory of an existing migration class, and
+ * `migrations` next to the config file's directory.
+ */
+export function migrationDirs({ config, ref }: LoadedProjectConfig): string[] {
+    const dirs: string[] = [];
+    const migrations = config.dbConnectionOptions.migrations;
+    if (Array.isArray(migrations) && typeof migrations[0] === 'string') {
+        dirs.push(path.dirname(migrations[0]));
+    }
+    const migrationFile = ref.sourceFile
+        .getProject()
+        .getSourceFiles()
+        .find(sf =>
+            sf.getClasses().some(c => c.getImplements().some(i => i.getText() === 'MigrationInterface')),
+        );
+    if (migrationFile) {
+        dirs.push(migrationFile.getDirectory().getPath());
+    }
+    dirs.push(path.join(ref.sourceFile.getDirectory().getPath(), '../migrations'));
+    return unique(dirs.map(dir => path.normalize(dir)));
 }
 
 /** Which database the config points at, without credentials. */

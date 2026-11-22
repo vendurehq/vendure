@@ -1,9 +1,9 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
 
 import { requireProjectCore } from '../../../shared/project-core.js';
+import { lastAppliedMigration, loadProjectConfig } from '../migration-project.js';
 
 import { databaseUnreadable, revertFailed } from './revert-migration.errors.js';
-import { lastAppliedMigration, loadProjectConfig } from './revert-migration.project.js';
 
 /** Reverts the last applied migration. The host has already checked the consent. */
 export async function run(input: { config?: string }, ctx: CommandContext) {

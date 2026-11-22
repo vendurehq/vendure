@@ -276,6 +276,21 @@ async function runLeaf(
         return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
 
+    const result = await executeWithCancellation(
+        def,
+        input,
+        createHostEnvironment(controller, out),
+        controller,
+    );
+    return finish(result, def);
+}
+
+/**
+ * The host environment of a run. With `out`, the run is under `--json`: events go to stderr as
+ * tagged lines and no one is asked. Without it, events are printed for a person, who is asked
+ * for what is missing when the terminal allows it.
+ */
+export function createHostEnvironment(controller: AbortController, out?: JsonOutput): HostEnvironment {
     const emit = (event: CommandEvent) => {
         if (out) {
             out.writeEvent(event);
@@ -285,19 +300,27 @@ async function runLeaf(
             process.stderr.write(`${String(event.message)}\n`);
         }
     };
-    const env: HostEnvironment = {
+    return {
         cwd: process.cwd(),
         signal: controller.signal,
         mcp: isMcpCall(),
-        prompter: !json && !isNonInteractiveEnvironment() ? createClackPrompter() : undefined,
+        prompter: !out && !isNonInteractiveEnvironment() ? createClackPrompter() : undefined,
         emit,
         spawn: createSpawn(process.cwd(), controller.signal, text => process.stdout.write(text), {
-            wholeLines: json,
+            wholeLines: !!out,
         }),
         findProjectRoot: () => findVendureProjectRoot(),
     };
+}
 
-    const result = await Promise.race([
+/** Runs a command, and gives up on it when it does not stop in time after it is cancelled. */
+export function executeWithCancellation(
+    def: CommandDefinition,
+    input: Record<string, unknown>,
+    env: HostEnvironment,
+    controller: AbortController,
+): Promise<HostResult> {
+    return Promise.race([
         executeCommand(def, input, env),
         new Promise<HostResult>(resolve => {
             controller.signal.addEventListener('abort', () => {
@@ -305,7 +328,6 @@ async function runLeaf(
             });
         }),
     ]);
-    return finish(result, def);
 }
 
 function ancestorOptionValue(command: Command, field: string): unknown {
