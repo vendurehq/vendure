@@ -8,6 +8,7 @@ import { addJobQueueDefinition } from '../commands/add/job-queue/add-job-queue.c
 import { addPluginDefinition } from '../commands/add/plugin/create-new-plugin.command.js';
 import { addServiceDefinition } from '../commands/add/service/add-service.command.js';
 import { commandsDefinition } from '../commands/commands/commands.command.js';
+import { devServerDefinitions } from '../commands/devserver/devserver.command.js';
 import { doctorDefinition } from '../commands/doctor/doctor.command.js';
 import { generateMigrationDefinition } from '../commands/migrate/generate-migration/generate-migration.command.js';
 import { revertMigrationDefinition } from '../commands/migrate/revert-migration/revert-migration.command.js';
@@ -26,6 +27,7 @@ export const coreCommandDefinitions: CommandDefinition[] = [
     addPluginDefinition,
     addServiceDefinition,
     commandsDefinition,
+    ...devServerDefinitions,
     doctorDefinition,
     generateMigrationDefinition,
     revertMigrationDefinition,

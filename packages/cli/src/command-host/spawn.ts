@@ -1,6 +1,8 @@
 import type { SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
 import crossSpawn from 'cross-spawn';
 
+import { withoutLocalTrustSecret } from '../shared/local-trust-env.js';
+
 /**
  * Passes on only whole lines, and ends the last one with a newline when the stream closes. Under
  * `--json` a spawned process shares stderr with the host's event lines, and a chunk without a
@@ -45,7 +47,9 @@ export function createSpawn(
         new Promise<SpawnResult>((resolve, reject) => {
             const child = crossSpawn(command, args, {
                 cwd: options.cwd ?? cwd,
-                env: { ...process.env, ...options.env },
+                // The local-trust secret is only for the server of a `vendure dev` run, which that
+                // run passes itself. Nothing started through `ctx.spawn` inherits it from the shell.
+                env: { ...withoutLocalTrustSecret(process.env), ...options.env },
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
             const writeStderr = (text: string) => process.stderr.write(text);
