@@ -109,6 +109,17 @@ export function canonicalJson(value: unknown): string {
     return JSON.stringify(sortKeys(value));
 }
 
+/**
+ * Code-unit order, not `localeCompare`: every instance must produce the same canonical form, and
+ * `localeCompare` depends on the locale.
+ */
+function compareCodeUnits(a: string, b: string): number {
+    if (a < b) {
+        return -1;
+    }
+    return a > b ? 1 : 0;
+}
+
 function sortKeys(value: unknown): unknown {
     if (Array.isArray(value)) {
         return value.map(sortKeys);
@@ -116,7 +127,7 @@ function sortKeys(value: unknown): unknown {
     if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
         return Object.fromEntries(
             Object.keys(value as Record<string, unknown>)
-                .sort()
+                .sort(compareCodeUnits)
                 .filter(key => (value as Record<string, unknown>)[key] !== undefined)
                 .map(key => [key, sortKeys((value as Record<string, unknown>)[key])]),
         );

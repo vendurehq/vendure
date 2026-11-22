@@ -6,6 +6,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import {
+    AuthenticatedSession,
     ConfigService,
     I18nRequest,
     Logger,
@@ -21,6 +22,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { timingSafeEqual } from 'node:crypto';
 
 import { loggerCtx, MCP_LOCAL_TRUST_ACTIVATION } from '../constants';
+import { getBearerToken } from '../get-bearer-token';
 import { getClientIp } from '../get-client-ip';
 import { getLanguageCodeFromQuery } from '../get-language-code';
 import { deleteCachedVendureSession } from '../oauth/oauth-utils';
@@ -28,7 +30,7 @@ import { McpRateLimiterService } from '../rate-limit/mcp-rate-limiter.service';
 import { isLoopbackHostname } from '../shared/loopback';
 
 import { hashLocalTrustSecret, LocalTrustActivation } from './local-trust-activation';
-import { ADMIN_ENDPOINT_LOG_PREFIX } from './local-trust-contract';
+import { MCP_ADMIN_ENDPOINT_LOG_PREFIX } from './local-trust-contract';
 import { isLoopbackSocketAddress } from './loopback-socket-address';
 
 /** The authentication strategy name recorded on the Admin API session that local trust creates. */
@@ -76,12 +78,12 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
     ) {}
 
     /** @internal */
-    onApplicationBootstrap(): void {
+    async onApplicationBootstrap(): Promise<void> {
         if (!this.processContext.isServer) {
             return;
         }
         // The Vendure CLI reads this line to find the endpoint, so keep its format stable.
-        Logger.info(`${ADMIN_ENDPOINT_LOG_PREFIX}${this.adminEndpointUrl()}`, loggerCtx);
+        Logger.info(`${MCP_ADMIN_ENDPOINT_LOG_PREFIX}${this.adminEndpointUrl()}`, loggerCtx);
         if (this.activation.enabled) {
             Logger.warn(
                 'Local trust is on: a caller presenting the secret in ' +
@@ -91,6 +93,7 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
                     "developer's machine.",
                 loggerCtx,
             );
+            await this.deleteLeftoverSessions();
         } else if (this.activation.refusedReason) {
             Logger.warn(
                 `A local-trust secret was passed to this server, but local trust is off: ` +
@@ -261,6 +264,27 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
         return session.token;
     }
 
+    /**
+     * A run that crashed never reached its shutdown hook, so its session row is still there, valid
+     * for the full session duration. Each run makes its own, so any older one can go.
+     */
+    private async deleteLeftoverSessions(): Promise<void> {
+        try {
+            const ctx = await this.requestContextService.create({ apiType: 'admin' });
+            const leftovers = await this.connection
+                .getRepository(ctx, AuthenticatedSession)
+                .find({ where: { authenticationStrategy: LOCAL_TRUST_SESSION_STRATEGY } });
+            for (const leftover of leftovers) {
+                await this.deleteSession(leftover.token);
+            }
+        } catch (e) {
+            Logger.warn(
+                `Could not delete the local-trust sessions of earlier runs: ${e instanceof Error ? e.message : String(e)}`,
+                loggerCtx,
+            );
+        }
+    }
+
     private async deleteSession(token: string): Promise<void> {
         const ctx = await this.requestContextService.create({ apiType: 'admin' });
         await this.connection.getRepository(ctx, Session).delete({ token });
@@ -326,11 +350,4 @@ export function hostnameOfHostHeader(host: string): string | undefined {
         return undefined;
     }
     return hostname || undefined;
-}
-
-/** The token of an `Authorization: Bearer <token>` header, as core's auth guard reads it. */
-export function getBearerToken(header: string | string[] | undefined): string | undefined {
-    const value = Array.isArray(header) ? header[0] : header;
-    const match = value?.trim().match(/^bearer\s+(\S+)$/i);
-    return match?.[1];
 }

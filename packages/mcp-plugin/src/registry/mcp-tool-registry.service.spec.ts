@@ -1323,6 +1323,33 @@ describe('McpToolRegistryService', () => {
             expect(execute).not.toHaveBeenCalled();
         });
 
+        // An anonymous shopper with no cart yet: the preview starts no session, so the confirming
+        // call must be matched to the digest before it starts one.
+        it('runs a session-less call with the digest of its preview, starting the session only then', async () => {
+            const execute = vi.fn(() => ({ deleted: true }));
+            const { service, sessionService } = build([wrapper(destructive(), execute)]);
+            service.onApplicationBootstrap();
+            const caller = { ctx: makeCtx(), clientIp: '203.0.113.7' };
+
+            const preview = await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' });
+            expect(sessionService.createAnonymousSession).not.toHaveBeenCalled();
+
+            const madeUp = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: 'v1.9999999999999.AAAA',
+            });
+            expect(madeUp.structuredContent).toMatchObject({ status: 'incomplete' });
+            expect(sessionService.createAnonymousSession).not.toHaveBeenCalled();
+
+            const result = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: digestOf(preview),
+            });
+            expect(result.structuredContent).toMatchObject({ deleted: true });
+            expect(execute).toHaveBeenCalledOnce();
+            expect(sessionService.createAnonymousSession).toHaveBeenCalledOnce();
+        });
+
         it('refuses an invalid sessionToken before asking for confirmation', async () => {
             const execute = vi.fn();
             const { service } = build([wrapper(destructive(), execute)]);

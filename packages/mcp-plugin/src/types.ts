@@ -391,6 +391,10 @@ export interface McpPluginOptions {
      * the whole server: every Admin and Shop API request may then authenticate with a bearer
      * token.
      *
+     * On the Admin API, the secret maps to one session per run, which the plugin deletes when the
+     * server stops, and at the next start after a crash. A `logout` mutation sent with the secret
+     * fails, because that session belongs to no authentication strategy.
+     *
      * Set it to `false` on any server that runs outside a developer's machine.
      *
      * @default true

@@ -366,25 +366,31 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         // Only a destructive tool has the registry's `confirm` field; any other tool may declare its own.
         const { confirm, ...withoutConfirm } = admission.input;
         const ownInput = isDestructive ? withoutConfirm : admission.input;
-        // Without a digest the call can only be a preview, and a preview must not start a cart.
-        const mayRun = !isDestructive || typeof confirm === 'string';
 
-        const session = await this.resolveShopSession(executionContext, tool, ownInput, !mayRun);
+        // A destructive call is checked for consent before it may start a cart. Otherwise the
+        // confirming call would start a session the preview did not have, and its caller would no
+        // longer match the digest. A made-up digest starts no session either.
+        let session = await this.resolveShopSession(executionContext, tool, ownInput, isDestructive);
         if (session.kind === 'refused') {
             return session.result;
         }
-        const { callContext, sessionToken } = session;
-        const toolInput = session.input;
-
         if (isDestructive) {
-            const consent = await this.checkConsent(callContext, tool, toolInput, confirm);
+            const consent = await this.checkConsent(session.callContext, tool, session.input, confirm);
             if (consent.kind !== 'given') {
                 // The result carries the token too, so the confirming call can act on the same cart.
                 return consent.kind === 'needed'
-                    ? this.consentRequiredResult(callContext, tool, consent, sessionToken)
-                    : this.errorResult(consent.message, sessionToken);
+                    ? this.consentRequiredResult(session.callContext, tool, consent, session.sessionToken)
+                    : this.errorResult(consent.message, session.sessionToken);
+            }
+            if (tool.acceptsSessionToken && !session.callContext.ctx.session) {
+                session = await this.resolveShopSession(executionContext, tool, ownInput, false);
+                if (session.kind === 'refused') {
+                    return session.result;
+                }
             }
         }
+        const { callContext, sessionToken } = session;
+        const toolInput = session.input;
 
         const startedAt = Date.now();
         try {

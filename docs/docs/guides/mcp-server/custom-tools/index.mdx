@@ -244,8 +244,9 @@ difficult-to-reverse change. The registry then asks the caller for consent for y
 - When the caller sends the same arguments with `confirm` set to that digest, it strips `confirm` and runs your
   `execute`.
 
-The digest is an HMAC under a key that never leaves the server process. It is bound to the caller, the arguments
-and the preview, and it expires after ten minutes. So a caller cannot run the tool without seeing the preview, and
+The digest is an HMAC under a key the caller never sees: it is derived from `oauth.tokenSecret`, or made at random
+when the server starts without OAuth. It is bound to the caller, the arguments and the preview, and it expires after
+ten minutes. So a caller cannot run the tool without seeing the preview, and
 a consent never applies to a target that changed after the preview was shown.
 
 Add a `describe` method to write the preview. It receives the same context and input as `execute`, must not change

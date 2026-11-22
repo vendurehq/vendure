@@ -33,6 +33,7 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
 import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
+import { getBearerToken } from '../get-bearer-token';
 import { getClientIp } from '../get-client-ip';
 import { getLanguageCodeFromQuery } from '../get-language-code';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
@@ -175,7 +176,7 @@ export class McpTransportController {
             return;
         }
 
-        const token = this.getBearerToken(this.getHeader(req.headers, 'authorization'));
+        const token = getBearerToken(this.getHeader(req.headers, 'authorization'));
         const clientIp = getClientIp(req);
 
         const executionContext = await this.resolveCaller(toolset, req, res, body, token, clientIp);
@@ -435,7 +436,9 @@ export class McpTransportController {
         token?: string,
     ): AuthInfo {
         const grant = executionContext.grant;
-        const fallbackClientId = executionContext.localTrust ? LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER : 'anonymous';
+        const fallbackClientId = executionContext.localTrust
+            ? LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER
+            : 'anonymous';
         return {
             // Pass-through only; the SDK does not verify this token.
             token: token ?? 'anonymous',
@@ -499,25 +502,6 @@ export class McpTransportController {
     private methodNotAllowed(res: Response): void {
         res.setHeader('Allow', 'POST');
         res.status(405).send('Method Not Allowed');
-    }
-
-    private getBearerToken(header?: string): string | undefined {
-        if (header === undefined) {
-            return undefined;
-        }
-        if (header.slice(0, 6).toLowerCase() !== 'bearer') {
-            return undefined;
-        }
-        const afterScheme = header.slice(6);
-        // "Bearerabc" is not a bearer header: the scheme has to be separated from the token.
-        if (!/^\s/.test(afterScheme)) {
-            return undefined;
-        }
-        const tokenStart = afterScheme.search(/\S/);
-        if (tokenStart === -1) {
-            return undefined;
-        }
-        return afterScheme.slice(tokenStart);
     }
 
     private async createAnonymousShopContext(

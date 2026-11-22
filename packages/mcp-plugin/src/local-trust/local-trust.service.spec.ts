@@ -1,13 +1,10 @@
 import { Logger } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { getBearerToken } from '../get-bearer-token';
+
 import { hashLocalTrustSecret, LOCAL_TRUST_OFF, LocalTrustActivation } from './local-trust-activation';
-import {
-    getBearerToken,
-    hostnameOfHostHeader,
-    LocalTrustRequest,
-    LocalTrustService,
-} from './local-trust.service';
+import { hostnameOfHostHeader, LocalTrustRequest, LocalTrustService } from './local-trust.service';
 import { isLoopbackSocketAddress } from './loopback-socket-address';
 
 const SECRET = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LW9mLTMyLWJ5dGVz';
@@ -17,6 +14,7 @@ function service(
         activation?: LocalTrustActivation;
         isServer?: boolean;
         apiOptions?: { hostname?: string; port: number };
+        leftoverSessions?: string[];
     } = {},
 ) {
     const activation = options.activation ?? {
@@ -43,6 +41,7 @@ function service(
     const connection = {
         getRepository: () => ({
             findOne: () => Promise.resolve({ id: 1, identifier: 'superadmin', deletedAt: null }),
+            find: () => Promise.resolve((options.leftoverSessions ?? []).map(token => ({ token }))),
             delete: ({ token }: { token: string }) => {
                 deletedSessions.push(token);
                 liveSessions.delete(token);
@@ -226,6 +225,10 @@ describe('getBearerToken', () => {
         expect(getBearerToken(`bearer   ${SECRET}  `)).toBe(SECRET);
     });
 
+    it('reads everything after the scheme, as the MCP transport always has', () => {
+        expect(getBearerToken('Bearer two words')).toBe('two words');
+    });
+
     it('reads nothing from another scheme or a malformed header', () => {
         expect(getBearerToken(`Basic ${SECRET}`)).toBeUndefined();
         expect(getBearerToken(`Bearer${SECRET}`)).toBeUndefined();
@@ -236,11 +239,11 @@ describe('getBearerToken', () => {
 
 describe('LocalTrustService startup log', () => {
     // The Vendure CLI parses this exact line to fill in the endpoint, so the format is pinned here.
-    it('logs the admin endpoint URL on the main server process, and never the secret', () => {
+    it('logs the admin endpoint URL on the main server process, and never the secret', async () => {
         const info = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
         const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
         try {
-            service().localTrust.onApplicationBootstrap();
+            await service().localTrust.onApplicationBootstrap();
             expect(info).toHaveBeenCalledWith(
                 'Store MCP admin endpoint: http://localhost:3000/mcp/admin',
                 'McpPlugin',
@@ -253,10 +256,10 @@ describe('LocalTrustService startup log', () => {
         }
     });
 
-    it('uses the configured hostname, and logs nothing in a worker', () => {
+    it('uses the configured hostname, and logs nothing in a worker', async () => {
         const info = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
         try {
-            service({
+            await service({
                 apiOptions: { hostname: '127.0.0.1', port: 4000 },
             }).localTrust.onApplicationBootstrap();
             expect(info).toHaveBeenCalledWith(
@@ -264,7 +267,7 @@ describe('LocalTrustService startup log', () => {
                 'McpPlugin',
             );
             info.mockClear();
-            service({ isServer: false }).localTrust.onApplicationBootstrap();
+            await service({ isServer: false }).localTrust.onApplicationBootstrap();
             expect(info).not.toHaveBeenCalled();
         } finally {
             info.mockRestore();
@@ -367,5 +370,37 @@ describe('LocalTrustService.adminEndpointUrl', () => {
         ['::1', 'http://[::1]:3000/mcp/admin'],
     ])('names a loopback host for hostname "%s"', (hostname, url) => {
         expect(service({ apiOptions: { hostname, port: 3000 } }).localTrust.adminEndpointUrl()).toBe(url);
+    });
+});
+
+describe('LocalTrustService sessions of earlier runs', () => {
+    it('deletes them at startup, with their cache entries', async () => {
+        const { localTrust, deletedSessions, sessionCacheStrategy } = service({
+            leftoverSessions: ['crashed-run-1', 'crashed-run-2'],
+        });
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        const info = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
+        try {
+            await localTrust.onApplicationBootstrap();
+        } finally {
+            warn.mockRestore();
+            info.mockRestore();
+        }
+        expect(deletedSessions).toEqual(['crashed-run-1', 'crashed-run-2']);
+        expect(sessionCacheStrategy.delete).toHaveBeenCalledWith('crashed-run-2');
+    });
+
+    it('leaves them alone while local trust is off', async () => {
+        const { localTrust, deletedSessions } = service({
+            activation: LOCAL_TRUST_OFF,
+            leftoverSessions: ['crashed-run-1'],
+        });
+        const info = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
+        try {
+            await localTrust.onApplicationBootstrap();
+        } finally {
+            info.mockRestore();
+        }
+        expect(deletedSessions).toEqual([]);
     });
 });
