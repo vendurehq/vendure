@@ -20,6 +20,7 @@ import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
 import { McpPluginOptions } from '../types';
 
+import { CONSENT_DIGEST_TTL_MS, McpConsentService } from './mcp-consent.service';
 import { McpToolRegistryService } from './mcp-tool-registry.service';
 import { McpToolSchemaService } from './mcp-tool-schema.service';
 
@@ -41,6 +42,13 @@ function wrapper(metadata: McpToolMetadata, execute: (...args: any[]) => any = (
         name: metadata.name,
         host: { metatype: { name: 'TestModule' } },
     };
+}
+
+/** The digest a destructive tool's `incomplete` result asks the caller to send back as `confirm`. */
+function digestOf(result: { structuredContent?: unknown }): string {
+    const digest = (result.structuredContent as any)?.needs?.[0]?.digest;
+    expect(digest).toEqual(expect.any(String));
+    return digest;
 }
 
 /** Mock RequestContext with OR permission semantics. */
@@ -116,6 +124,7 @@ function build(
     const connection = {
         withTransaction: vi.fn((ctx: any, work: (txCtx: any) => Promise<unknown>) => work(ctx)),
     };
+    const consentService = new McpConsentService();
     const service = new McpToolRegistryService(
         discoveryService as any,
         settingsStoreService as any,
@@ -125,6 +134,7 @@ function build(
         new McpShopSessionService(sessionService as any),
         configService as any,
         connection as any,
+        consentService,
         resolveMcpPluginOptions(options),
     );
     return {
@@ -137,6 +147,7 @@ function build(
         store,
         connection,
         configService,
+        consentService,
     };
 }
 
@@ -395,21 +406,18 @@ describe('McpToolRegistryService', () => {
             const preview = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x',
             });
-            expect(preview.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
-            });
+            expect(preview.structuredContent).toMatchObject({ status: 'incomplete' });
             expect(execute).not.toHaveBeenCalled();
 
             await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x',
-                confirm: true,
+                confirm: digestOf(preview),
             });
             expect(execute).toHaveBeenCalledOnce();
             expect(execute.mock.calls[0][1]).toEqual({ id: 'x' });
         });
 
-        it('rejects non-boolean confirm on a destructive Standard Schema tool', async () => {
+        it('rejects a non-string confirm, including the old confirm: true, on a destructive Standard Schema tool', async () => {
             const schema = specStandardSchema(DELETE_JSON, value => ({ value }));
             const execute = vi.fn();
             const { service } = build([
@@ -421,10 +429,10 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x',
-                confirm: 'yes',
+                confirm: true,
             });
             expect(result.isError).toBe(true);
-            expect((result.content as any)[0].text).toMatch(/"confirm" must be a boolean/);
+            expect((result.content as any)[0].text).toMatch(/"confirm" must be the consent digest/);
             expect(execute).not.toHaveBeenCalled();
         });
 
@@ -485,7 +493,7 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x1',
-                confirm: true,
+                confirm: 'v1.0.x',
             });
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/must parse to a plain object/);
@@ -787,6 +795,29 @@ describe('McpToolRegistryService', () => {
             const tools = await service.getExposedTools({ ctx: makeCtx() }, 'shop');
             expect(tools.map(t => t.name).sort()).toEqual(['execute_tool', 'search_tools']);
         });
+
+        // The Developer MCP proxies each tool by name, which the meta-tools would not allow.
+        it('discovery mode exposes every visible tool to a local-trust caller, and lets it call one directly', async () => {
+            const listThings = shopTool({
+                name: 'list_things',
+                toolset: 'admin',
+                permissions: [Permission.ReadCatalog],
+            });
+            const hidden = shopTool({ name: 'secret_things', toolset: 'admin', permissions: [Permission.SuperAdmin] });
+            const { service } = build([wrapper(listThings), wrapper(hidden)], { toolExposure: 'discovery' });
+            service.onApplicationBootstrap();
+            const ctx = makeCtx({ activeUserId: 1, granted: [Permission.ReadCatalog] });
+
+            const local = await service.getExposedTools({ ctx, localTrust: true }, 'admin');
+            // The permission filters still apply.
+            expect(local.map(t => t.name)).toEqual(['list_things']);
+            const notLocal = await service.getExposedTools({ ctx }, 'admin');
+            expect(notLocal.map(t => t.name).sort()).toEqual(['execute_tool', 'search_tools']);
+
+            const result = await service.callTool({ ctx, localTrust: true }, 'admin', 'list_things', {});
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toEqual({ ok: true });
+        });
     });
 
     describe('call-time re-checks', () => {
@@ -1076,19 +1107,147 @@ describe('McpToolRegistryService', () => {
                 },
             });
 
-        it('returns confirmation_required without confirm and does not call the handler', async () => {
+        it('returns an incomplete result with a consent need without confirm, and does not call the handler', async () => {
             const execute = vi.fn();
             const { service } = build([wrapper(destructive(), execute)]);
             service.onApplicationBootstrap();
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'delete_thing', { id: 'x' });
             expect(result.isError).toBeUndefined();
-            expect(result.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
+            const digest = digestOf(result);
+            expect(result.structuredContent).toEqual({
+                status: 'incomplete',
+                preview: 'Gets a thing Input: {"id":"x"}',
+                needs: [
+                    {
+                        kind: 'consent',
+                        consent: 'confirm',
+                        description: 'Approve this destructive action: Gets a thing Input: {"id":"x"}',
+                        digest,
+                    },
+                ],
             });
-            // Direct mode exposes the tool itself, so the caller re-calls it by name.
-            expect((result.content as any)[0].text).toContain('re-call "delete_thing" with "confirm": true');
+            // Direct mode exposes the tool itself, so the caller calls it again by name.
+            expect((result.content as any)[0].text).toContain(
+                `call "delete_thing" again with the same arguments plus "confirm": "${digest}"`,
+            );
             expect(execute).not.toHaveBeenCalled();
+        });
+
+        it("uses the tool's describe() as the preview, with the input the handler would get", async () => {
+            const execute = vi.fn();
+            const describeCall = vi.fn((_ctx: unknown, input: { id: string }) => `Delete thing ${input.id}`);
+            const { service } = build([
+                { ...wrapper(destructive(), execute), instance: { execute, describe: describeCall } },
+            ]);
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+            });
+            expect(result.structuredContent).toMatchObject({ status: 'incomplete', preview: 'Delete thing x' });
+            expect(describeCall.mock.calls[0][1]).toEqual({ id: 'x' });
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('refuses the call without running the tool, and logs nothing, when describe() throws', async () => {
+            const execute = vi.fn();
+            const describeCall = vi.fn(() => {
+                throw new UserInputError('No thing x');
+            });
+            const { service, toolCallLog } = build([
+                { ...wrapper(destructive(), execute), instance: { execute, describe: describeCall } },
+            ]);
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe('No thing x');
+            expect(execute).not.toHaveBeenCalled();
+            expect(toolCallLog.logToolCall).not.toHaveBeenCalled();
+        });
+
+        it('runs the tool with the digest it was given, and asks again for a stale or foreign digest', async () => {
+            const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ deleted: true }));
+            const { service } = build([wrapper(destructive(), execute)]);
+            service.onApplicationBootstrap();
+            const caller = { ctx: makeCtx({ activeUserId: 1 }) };
+            const digest = digestOf(await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }));
+
+            // Another caller cannot use it.
+            const otherCaller = await service.callToolDirect(
+                { ctx: makeCtx({ activeUserId: 2 }) },
+                'shop',
+                'delete_thing',
+                { id: 'x', confirm: digest },
+            );
+            expect(otherCaller.structuredContent).toMatchObject({ status: 'incomplete' });
+            // Nor can a different input.
+            const otherInput = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                id: 'y',
+                confirm: digest,
+            });
+            expect(otherInput.structuredContent).toMatchObject({ status: 'incomplete' });
+            // Nor a made-up digest.
+            const madeUp = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: `v1.${Date.now() + 60_000}.AAAA`,
+            });
+            expect(madeUp.structuredContent).toMatchObject({ status: 'incomplete' });
+            expect(execute).not.toHaveBeenCalled();
+
+            const result = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: digest,
+            });
+            expect(result.structuredContent).toMatchObject({ deleted: true });
+            expect(execute).toHaveBeenCalledOnce();
+        });
+
+        it('asks again when the preview changed since the digest was issued', async () => {
+            const execute = vi.fn(() => ({ deleted: true }));
+            let state = 'Draft';
+            const describeCall = () => `Delete thing x, now ${state}`;
+            const { service } = build([
+                { ...wrapper(destructive(), execute), instance: { execute, describe: describeCall } },
+            ]);
+            service.onApplicationBootstrap();
+            const caller = { ctx: makeCtx() };
+            const digest = digestOf(await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }));
+            state = 'Placed';
+
+            const result = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: digest,
+            });
+            expect(result.structuredContent).toMatchObject({
+                status: 'incomplete',
+                preview: 'Delete thing x, now Placed',
+            });
+            expect(digestOf(result)).not.toBe(digest);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('asks again once the digest has expired', async () => {
+            const execute = vi.fn(() => ({ deleted: true }));
+            const { service } = build([wrapper(destructive(), execute)]);
+            service.onApplicationBootstrap();
+            const caller = { ctx: makeCtx() };
+            const now = vi.spyOn(Date, 'now');
+            try {
+                now.mockReturnValue(1_000_000);
+                const digest = digestOf(
+                    await service.callToolDirect(caller, 'shop', 'delete_thing', { id: 'x' }),
+                );
+                now.mockReturnValue(1_000_000 + CONSENT_DIGEST_TTL_MS);
+                const result = await service.callToolDirect(caller, 'shop', 'delete_thing', {
+                    id: 'x',
+                    confirm: digest,
+                });
+                expect(result.structuredContent).toMatchObject({ status: 'incomplete' });
+                expect(execute).not.toHaveBeenCalled();
+            } finally {
+                now.mockRestore();
+            }
         });
 
         it('returns the resolved sessionToken with the confirmation so the confirming call keeps the cart', async () => {
@@ -1103,9 +1262,8 @@ describe('McpToolRegistryService', () => {
                 sessionToken: 'cart-token',
             });
 
-            expect(result.structuredContent).toEqual({
-                status: 'confirmation_required',
-                confirmed: false,
+            expect(result.structuredContent).toMatchObject({
+                status: 'incomplete',
                 sessionToken: 'cart-token',
             });
             expect(execute).not.toHaveBeenCalled();
@@ -1121,10 +1279,8 @@ describe('McpToolRegistryService', () => {
             });
 
             expect(sessionService.createAnonymousSession).not.toHaveBeenCalled();
-            expect(result.structuredContent).toEqual({
-                status: 'confirmation_required',
-                confirmed: false,
-            });
+            expect(result.structuredContent).toMatchObject({ status: 'incomplete' });
+            expect(result.structuredContent).not.toHaveProperty('sessionToken');
             expect(execute).not.toHaveBeenCalled();
         });
 
@@ -1143,11 +1299,13 @@ describe('McpToolRegistryService', () => {
             expect(execute).not.toHaveBeenCalled();
         });
 
-        it('calls the handler with confirm stripped when confirm:true', async () => {
+        it('calls the handler with confirm stripped when confirmed', async () => {
             const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ deleted: true }));
             const { service } = build([wrapper(destructive(), execute)]);
             service.onApplicationBootstrap();
-            await service.callTool({ ctx: makeCtx() }, 'shop', 'delete_thing', { id: 'x', confirm: true });
+            const caller = { ctx: makeCtx() };
+            const digest = digestOf(await service.callTool(caller, 'shop', 'delete_thing', { id: 'x' }));
+            await service.callTool(caller, 'shop', 'delete_thing', { id: 'x', confirm: digest });
             expect(execute).toHaveBeenCalledOnce();
             expect(execute.mock.calls[0][1]).toEqual({ id: 'x' });
         });
@@ -1394,7 +1552,7 @@ describe('McpToolRegistryService', () => {
             expect(result.structuredContent).toEqual({ echoed: 'hi' });
         });
 
-        it('accepts confirm:true for a destructive target via discovery and strips it before the handler', async () => {
+        it('accepts the digest for a destructive target via discovery and strips it before the handler', async () => {
             // The trap: the funnel must validate `confirm` against the WIRE schema (which has it),
             // not the canonical schema (additionalProperties:false, which would reject it).
             const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ deleted: true }));
@@ -1410,16 +1568,21 @@ describe('McpToolRegistryService', () => {
             });
             const { service } = build([wrapper(destructiveTarget, execute)], { toolExposure: 'discovery' });
             service.onApplicationBootstrap();
-            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'execute_tool', {
+            const caller = { ctx: makeCtx() };
+            const preview = await service.callTool(caller, 'shop', 'execute_tool', {
                 name: 'del',
-                arguments: { id: 'x', confirm: true },
+                arguments: { id: 'x' },
+            });
+            const result = await service.callTool(caller, 'shop', 'execute_tool', {
+                name: 'del',
+                arguments: { id: 'x', confirm: digestOf(preview) },
             });
             expect(execute).toHaveBeenCalledOnce();
             expect(execute.mock.calls[0][1]).toEqual({ id: 'x' });
             expect(result.structuredContent).toEqual({ deleted: true });
         });
 
-        it('returns confirmation_required for a destructive target via discovery without confirm', async () => {
+        it('returns an incomplete result for a destructive target via discovery without confirm', async () => {
             const execute = vi.fn();
             const destructiveTarget = shopTool({
                 name: 'del',
@@ -1437,15 +1600,12 @@ describe('McpToolRegistryService', () => {
                 name: 'del',
                 arguments: { id: 'x' },
             });
-            expect(result.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
-            });
+            expect(result.structuredContent).toMatchObject({ status: 'incomplete' });
             // In discovery mode the tool is not exposed by name, so the retry goes through
-            // execute_tool rather than a direct re-call.
+            // execute_tool rather than a direct call.
             const text = (result.content as any)[0].text;
             expect(text).toContain('call "execute_tool" again for "del"');
-            expect(text).not.toContain('re-call "del"');
+            expect(text).not.toContain('call "del" again');
             expect(execute).not.toHaveBeenCalled();
         });
     });

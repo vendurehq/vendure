@@ -36,6 +36,7 @@ import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constan
 import { getClientIp } from '../get-client-ip';
 import { getLanguageCodeFromQuery } from '../get-language-code';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
+import { LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER, LocalTrustService } from '../local-trust/local-trust.service';
 import { McpAccessTokenExpiredError } from '../oauth/oauth-error';
 import { McpOauthMetadataService } from '../oauth/oauth-metadata.service';
 import { McpOauthService } from '../oauth/oauth.service';
@@ -106,6 +107,7 @@ export class McpTransportController {
         private readonly shopSession: McpShopSessionService,
         private readonly channelService: ChannelService,
         private readonly oauthMetadata: McpOauthMetadataService,
+        private readonly localTrust: LocalTrustService,
     ) {
         const handler = createMcpHandler(
             async mcpCtx => {
@@ -186,7 +188,11 @@ export class McpTransportController {
             return;
         }
 
-        (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
+        (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(
+            executionContext,
+            toolset,
+            executionContext.localTrust ? LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER : token,
+        );
         await this.nodeHandler(req, res, isJson ? body : undefined);
     }
 
@@ -231,6 +237,13 @@ export class McpTransportController {
         token: string | undefined,
         clientIp: string | undefined,
     ): Promise<McpExecutionContext | undefined> {
+        // Before the rate limits, so a valid secret is never blocked by failed or busy traffic from
+        // the same address. Only the admin endpoint ever accepts it.
+        if (toolset === 'admin' && this.localTrust.verify(this.localTrust.requestOf(req), token)) {
+            const ctx = await this.localTrust.createRequestContext(req, this.getChannelToken(req));
+            return { ctx, clientIp, localTrust: true };
+        }
+
         if (toolset === 'shop' && this.options.shopAccess === 'authenticated' && !token) {
             this.setAuthChallenge(res, 'shop');
             throw new UnauthorizedException('Shop MCP endpoint requires a Bearer token');
@@ -243,6 +256,14 @@ export class McpTransportController {
         if (toolset === 'admin' && !token) {
             this.setAuthChallenge(res, 'admin');
             throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
+        }
+
+        // With OAuth off, a bearer token on the admin endpoint can only be a local-trust secret, and
+        // it failed verification, so there is nothing to fall back to.
+        if (toolset === 'admin' && token && !this.isOauthConfigured()) {
+            await this.localTrust.recordFailedAttempt(clientIp);
+            this.setAuthChallenge(res, 'admin', { invalidToken: true });
+            throw new UnauthorizedException('Admin MCP endpoint requires a valid Bearer token');
         }
 
         if (token) {
@@ -414,10 +435,11 @@ export class McpTransportController {
         token?: string,
     ): AuthInfo {
         const grant = executionContext.grant;
+        const fallbackClientId = executionContext.localTrust ? LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER : 'anonymous';
         return {
             // Pass-through only; the SDK does not verify this token.
             token: token ?? 'anonymous',
-            clientId: grant?.oauthClientId != null ? String(grant.oauthClientId) : 'anonymous',
+            clientId: grant?.oauthClientId != null ? String(grant.oauthClientId) : fallbackClientId,
             scopes: [],
             expiresAt: grant?.accessTokenExpiresAt
                 ? Math.floor(new Date(grant.accessTokenExpiresAt).getTime() / 1000)
@@ -455,7 +477,10 @@ export class McpTransportController {
         toolset: McpToolset,
         options?: { invalidToken?: boolean; description?: string },
     ): void {
-        const params = [`resource_metadata="${this.oauthMetadata.protectedResourceMetadataUrl(toolset)}"`];
+        // Without OAuth there is no authorization server to point the client at.
+        const params = this.isOauthConfigured()
+            ? [`resource_metadata="${this.oauthMetadata.protectedResourceMetadataUrl(toolset)}"`]
+            : [];
         if (options?.invalidToken) {
             params.push('error="invalid_token"');
             if (options.description) {
@@ -464,7 +489,11 @@ export class McpTransportController {
                 params.push(`error_description="${description}"`);
             }
         }
-        res.setHeader('WWW-Authenticate', `Bearer ${params.join(', ')}`);
+        res.setHeader('WWW-Authenticate', params.length ? `Bearer ${params.join(', ')}` : 'Bearer');
+    }
+
+    private isOauthConfigured(): boolean {
+        return !!this.options.oauth?.tokenSecret;
     }
 
     private methodNotAllowed(res: Response): void {

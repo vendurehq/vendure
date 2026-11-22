@@ -40,6 +40,7 @@ function createController(authenticationError: Error) {
         oauthMetadata: {
             protectedResourceMetadataUrl: () => RESOURCE_METADATA_URL,
         },
+        options: { oauth: { tokenSecret: 'test-secret' } },
     });
     const res = {
         setHeader: (name: string, value: string) => {

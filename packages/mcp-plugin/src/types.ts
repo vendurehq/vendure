@@ -1,4 +1,5 @@
 import type { ToolAnnotations } from '@modelcontextprotocol/server';
+import type { ConsentNeed } from '@vendure/common/lib/command';
 import { type ScheduledTaskConfig } from '@vendure/core';
 import { McpJsonSchema, McpToolBehavior, McpToolset } from '@vendure/mcp-sdk';
 
@@ -363,6 +364,39 @@ export interface McpPluginOptions {
     rateLimits?: McpRateLimitOptions;
     dnsRebinding?: McpDnsRebindingOptions;
     logging?: McpLoggingOptions;
+    /**
+     * @description
+     * Lets the Vendure CLI's own tools, `vendure mcp` and `vendure api admin`, call this server
+     * without OAuth while it runs as a local dev server. Local trust is full superadmin access on
+     * the developer's machine, on `POST /mcp/admin` and on the Admin API path. It never applies
+     * to `/mcp/shop`, which keeps its `shopAccess`.
+     *
+     * It only turns on when all of these hold at startup:
+     *
+     * - this option is not `false`;
+     * - the server process received a per-run secret from the CLI in the
+     *   `VENDURE_LOCAL_TRUST_SECRET` environment variable. The plugin deletes it from the
+     *   environment once it has read it;
+     * - the CLI's state file `.vendure/devserver.json` exists in the project directory, has mode
+     *   0600, is owned by the user the server runs as, and holds the same secret.
+     *
+     * The server then logs a warning that local trust is on. A request presenting the secret as
+     * `Authorization: Bearer <secret>` is accepted only from a loopback socket address, with a
+     * `Host` header of `localhost`, `127.0.0.1` or `[::1]`, no `Origin` header, and none of the
+     * forwarded headers `X-Forwarded-For`, `X-Forwarded-Host`, `Forwarded`, `X-Real-IP` or `Via`.
+     * So a request through a proxy, or from a browser, is refused.
+     *
+     * To accept the secret on the Admin API, the plugin adds `'bearer'` to
+     * `authOptions.tokenMethod` when it is missing, and logs that it did so. That change affects
+     * the whole server: every Admin and Shop API request may then authenticate with a bearer
+     * token.
+     *
+     * Set it to `false` on any server that runs outside a developer's machine.
+     *
+     * @default true
+     * @since 4.0.0
+     */
+    localTrust?: boolean;
 }
 
 /**
@@ -398,7 +432,8 @@ export interface McpToolSummary {
     /**
      * @description
      * What the tool does to data: `readonly` only reads it, `mutating` changes it, and
-     * `destructive` changes it and needs a confirmation round-trip before running.
+     * `destructive` changes it and needs a consent round-trip before running (see
+     * {@link McpConsentRequiredResult}).
      */
     behavior: McpToolBehavior;
     /**
@@ -410,7 +445,7 @@ export interface McpToolSummary {
     /**
      * @description
      * The input schema a call must satisfy: the tool's declared schema plus, for a destructive
-     * tool, the optional `confirm` field the registry injects.
+     * tool, the optional string `confirm` field the registry injects.
      */
     inputSchema: McpJsonSchema;
 }
@@ -424,9 +459,33 @@ export type McpGrantUserType = 'customer' | 'admin';
 
 /**
  * Who a logged MCP tool call ran as. `'anonymous'` covers calls to the shop endpoint with
- * nobody signed in.
+ * nobody signed in. `'local'` covers calls made with the local-trust secret of a dev server the
+ * Vendure CLI started (see {@link McpPluginOptions.localTrust}), which run as the superadmin.
  */
-export type McpActorType = McpGrantUserType | 'anonymous';
+export type McpActorType = McpGrantUserType | 'anonymous' | 'local';
+
+/**
+ * @description
+ * The `structuredContent` of a destructive tool's result when the tool did not run because the
+ * caller has not consented yet. It is a normal tool result, not an error. The same shape is used
+ * for every caller, over OAuth, local trust or in-process.
+ *
+ * To run the tool, show `preview` to the user, then call the same tool again with the same
+ * arguments plus `confirm` set to the `digest` of the `consent` need. The digest is bound to the
+ * caller, the input and the preview, and expires after a few minutes. When it no longer matches,
+ * for example because the target changed, the call returns this result again with a new preview.
+ *
+ * @docsCategory core plugins/McpPlugin
+ * @since 4.0.0
+ */
+export interface McpConsentRequiredResult {
+    status: 'incomplete';
+    /** What the tool would do, naming the resolved target. */
+    preview: string;
+    needs: ConsentNeed[];
+    /** The shop session token, for a tool that works on the shopper's cart. */
+    sessionToken?: string;
+}
 
 /**
  * Terminal outcome of a single MCP tool call recorded in {@link McpToolCallLog}.

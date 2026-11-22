@@ -29,6 +29,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MCP_PLUGIN_OPTIONS } from '../../constants';
 import { McpToolCallLogService } from '../../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService } from '../../rate-limit/mcp-rate-limiter.service';
+import { McpConsentService } from '../../registry/mcp-consent.service';
 import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service';
 import { McpToolSchemaService } from '../../registry/mcp-tool-schema.service';
 import { resolveMcpPluginOptions } from '../../resolve-options';
@@ -55,6 +56,7 @@ describe('built-in registry discovery', () => {
                 ...mcpBuiltInToolProviders,
                 McpToolRegistryService,
                 McpToolSchemaService,
+                McpConsentService,
                 McpActiveOrderService,
                 McpToolSerializerService,
                 McpCatalogQueryService,

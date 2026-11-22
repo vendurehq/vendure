@@ -9,6 +9,8 @@ export interface McpExecutionContext {
     ctx: RequestContext;
     grant?: McpOauthGrant;
     clientIp?: string;
+    /** True for a call made with the local-trust secret. It then has no grant and acts as the superadmin. */
+    localTrust?: boolean;
 }
 
 export type McpAuthenticatedContext = Required<Pick<McpExecutionContext, 'ctx' | 'grant'>>;
@@ -23,6 +25,7 @@ export type McpOauthOptionsWithDefaults = McpOauthOptions &
 export interface ResolvedMcpPluginOptions extends McpPluginOptions {
     toolExposure: NonNullable<McpPluginOptions['toolExposure']>;
     shopAccess: NonNullable<McpPluginOptions['shopAccess']>;
+    localTrust: boolean;
     oauth?: McpOauthOptionsWithDefaults;
     rateLimits: Required<McpRateLimitOptions>;
     logging: McpLoggingOptions & {
