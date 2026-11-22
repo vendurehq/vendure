@@ -17,6 +17,7 @@ import { RoleResolver } from '../../../../../core/src/api/resolvers/admin/role.r
 import { SettingsStoreAdminResolver } from '../../../../../core/src/api/resolvers/admin/settings-store.resolver';
 import { ShippingMethodResolver } from '../../../../../core/src/api/resolvers/admin/shipping-method.resolver';
 import { StockLocationResolver } from '../../../../../core/src/api/resolvers/admin/stock-location.resolver';
+import { StoreReadinessResolver } from '../../../../../core/src/api/resolvers/admin/store-readiness.resolver';
 import { TaxCategoryResolver } from '../../../../../core/src/api/resolvers/admin/tax-category.resolver';
 import { TaxRateResolver } from '../../../../../core/src/api/resolvers/admin/tax-rate.resolver';
 import { ZoneResolver } from '../../../../../core/src/api/resolvers/admin/zone.resolver';
@@ -92,6 +93,7 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     // The settings store checks each field's own read and write permissions inside the call.
     get_setting: { resolver: SettingsStoreAdminResolver, method: 'getSettingsStoreValue' },
     set_setting: { resolver: SettingsStoreAdminResolver, method: 'setSettingsStoreValue' },
+    check_store: { resolver: StoreReadinessResolver, method: 'storeReadiness' },
 };
 
 // Tools with no matching core resolver operation, deliberately guarded by [Authenticated] alone.

@@ -5826,6 +5826,11 @@ export type Query = {
   slugForEntity: Scalars['String']['output'];
   stockLocation?: Maybe<StockLocation>;
   stockLocations: StockLocationList;
+  /**
+   * Reports the setup gaps that stop a Channel from taking an order. Checks every Channel on which the
+   * active user holds ReadSettings, or only the given ones. It writes nothing.
+   */
+  storeReadiness: StoreReadinessReport;
   tag: Tag;
   tags: TagList;
   taxCategories: TaxCategoryList;
@@ -6121,6 +6126,11 @@ export type QueryStockLocationArgs = {
 
 export type QueryStockLocationsArgs = {
   options?: InputMaybe<StockLocationListOptions>;
+};
+
+
+export type QueryStoreReadinessArgs = {
+  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 
@@ -7088,6 +7098,46 @@ export enum StockMovementType {
   RELEASE = 'RELEASE',
   RETURN = 'RETURN',
   SALE = 'SALE'
+}
+
+export type StoreReadinessFinding = {
+  __typename?: 'StoreReadinessFinding';
+  channelId?: Maybe<Scalars['ID']['output']>;
+  /** A namespaced code, such as store.channel.no-default-tax-zone. */
+  code: Scalars['String']['output'];
+  countryCode?: Maybe<Scalars['String']['output']>;
+  /** A Dashboard path where a person can fix the finding, such as /shipping-methods. */
+  dashboardUrl?: Maybe<Scalars['String']['output']>;
+  fixes: Array<StoreReadinessFix>;
+  message: Scalars['String']['output'];
+  severity: StoreReadinessSeverity;
+  taxCategoryId?: Maybe<Scalars['ID']['output']>;
+  zoneId?: Maybe<Scalars['ID']['output']>;
+};
+
+/**
+ * A way to fix a finding: an MCP admin tool, as the vendure mcp server names it, and the input to call
+ * it with. Some inputs are templates, and the description says which values to fill in. IDs in the
+ * input are the database IDs the MCP tools take, which differ from the Admin API's IDs only when an
+ * EntityIdStrategy encodes them.
+ */
+export type StoreReadinessFix = {
+  __typename?: 'StoreReadinessFix';
+  description: Scalars['String']['output'];
+  input: Scalars['JSON']['output'];
+  path: Array<Scalars['String']['output']>;
+};
+
+export type StoreReadinessReport = {
+  __typename?: 'StoreReadinessReport';
+  findings: Array<StoreReadinessFinding>;
+  /** True when no finding has the severity ERROR. */
+  ready: Scalars['Boolean']['output'];
+};
+
+export enum StoreReadinessSeverity {
+  ERROR = 'ERROR',
+  WARNING = 'WARNING'
 }
 
 export type StringCustomFieldConfig = CustomField & {
