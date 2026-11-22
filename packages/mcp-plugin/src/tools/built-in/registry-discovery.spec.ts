@@ -28,6 +28,7 @@ import {
     StockLocationService,
     TaxCategoryService,
     TaxRateService,
+    StoreReadinessService,
     TransactionalConnection,
     TranslatorService,
     ZoneService,
@@ -101,6 +102,7 @@ describe('built-in registry discovery', () => {
                 { provide: TaxCategoryService, useValue: {} },
                 { provide: TaxRateService, useValue: {} },
                 { provide: ZoneService, useValue: {} },
+                { provide: StoreReadinessService, useValue: {} },
             ],
         }).compile();
         await moduleRef.init();

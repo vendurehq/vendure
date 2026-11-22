@@ -2,6 +2,7 @@ import { AddCustomerToGroupTool } from './add-customer-to-group.tool';
 import { AddNoteToOrderTool } from './add-note-to-order.tool';
 import { AdjustStockTool } from './adjust-stock.tool';
 import { CancelOrderTool } from './cancel-order.tool';
+import { CheckStoreTool } from './check-store.tool';
 import { CreateChannelTool } from './create-channel.tool';
 import { CreateCustomerTool } from './create-customer.tool';
 import { CreateFulfillmentTool } from './create-fulfillment.tool';
@@ -109,4 +110,5 @@ export const adminToolProviders = [
     UpdateRoleTool,
     GetSettingTool,
     SetSettingTool,
+    CheckStoreTool,
 ];
