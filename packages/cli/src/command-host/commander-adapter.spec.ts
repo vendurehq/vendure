@@ -5,8 +5,10 @@ import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+import { runCommandInHarness } from './__tests__/command-harness.js';
 import {
     CancellationSource,
+    collectFlagInput,
     createCancellation,
     findMismatch,
     jsonRequested,
@@ -71,6 +73,7 @@ describe('registerManifestCommands', () => {
             '--tags <tags...>',
             '--size <size>',
             '--dry-run',
+            '--no-dry-run',
             '--kind <kind>',
             '--overwrite <digest>',
             '--json',
@@ -109,6 +112,72 @@ describe('registerManifestCommands', () => {
             dryRun: true,
             overwrite: 'digest',
         });
+    });
+});
+
+describe('boolean fields', () => {
+    // A long-running command waits for people and `--json` callers, and returns at once under
+    // `vendure mcp`. The field has no schema default, so the command decides when it is not given.
+    const deploy = defineCommand({
+        path: ['deploy'],
+        description: 'Deploys',
+        behavior: 'mutating',
+        schemas: () =>
+            Promise.resolve({
+                input: z.object({
+                    wait: z.boolean().optional().describe('Wait until it ends. False under vendure mcp'),
+                }),
+            }),
+        run: () =>
+            Promise.resolve({
+                run: (input: { wait?: boolean }, ctx) => Promise.resolve({ waited: input.wait ?? !ctx.mcp }),
+            }),
+    });
+
+    async function parse(args: string[]) {
+        const built = await buildCommandManifest('@test/pkg', '1.0.0', [deploy]);
+        const root = new Command('vendure').exitOverride();
+        registerManifestCommands(root, mergeManifests([built]), {
+            loadDefinitions: () => Promise.resolve([deploy]),
+        });
+        const command = root.commands.find(c => c.name() === 'deploy') as Command;
+        command.action(() => undefined);
+        await root.parseAsync(['deploy', ...args], { from: 'user' });
+        return collectFlagInput(command, ['wait']);
+    }
+
+    async function waited(args: string[], mcp: boolean) {
+        const result = await runCommandInHarness(deploy, await parse(args), { mcp });
+        return (result.envelope.output as { waited: boolean }).waited;
+    }
+
+    it('registers --no-<flag> next to --<flag>', async () => {
+        const built = await buildCommandManifest('@test/pkg', '1.0.0', [deploy]);
+        const root = new Command('vendure');
+        registerManifestCommands(root, mergeManifests([built]), {
+            loadDefinitions: () => Promise.resolve([]),
+        });
+        const flags = root.commands[0].options.map(o => o.flags);
+        expect(flags.slice(0, 2)).toEqual(['--wait', '--no-wait']);
+    });
+
+    it('sets the field to true with --wait and to false with --no-wait', async () => {
+        expect(await parse(['--wait'])).toEqual({ wait: true });
+        expect(await parse(['--no-wait'])).toEqual({ wait: false });
+    });
+
+    it('leaves the field out without either flag', async () => {
+        expect(await parse([])).toEqual({});
+    });
+
+    it('waits by default for people and --json, and not under vendure mcp', async () => {
+        expect(await waited([], false)).toBe(true);
+        expect(await waited([], true)).toBe(false);
+    });
+
+    it('lets either flag override the default, under vendure mcp too', async () => {
+        expect(await waited(['--no-wait'], false)).toBe(false);
+        expect(await waited(['--wait'], true)).toBe(true);
     });
 });
 

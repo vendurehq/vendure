@@ -1,7 +1,8 @@
-import { CommandContext, CommandPlan, ErrorResult, fail } from '@vendure/common/lib/command';
+import { CommandContext, CommandPlan, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
+
+import { describeDatabase, lastAppliedMigration, openMigrationProject } from '../migration-project.js';
 
 import { databaseUnreadable } from './revert-migration.errors.js';
-import { describeDatabase, lastAppliedMigration, loadProjectConfig } from './revert-migration.project.js';
 
 /**
  * Names what a revert would undo: the config file, the database, and the last migration the
@@ -12,7 +13,11 @@ export async function plan(
     input: { config?: string },
     _ctx: CommandContext,
 ): Promise<CommandPlan | ErrorResult> {
-    const { config, configPath } = await loadProjectConfig(input.config);
+    const project = await openMigrationProject(input.config);
+    if (isErrorResult(project)) {
+        return project;
+    }
+    const { config, configPath } = project;
     let migration: string | null;
     try {
         migration = await lastAppliedMigration(config);

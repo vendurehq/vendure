@@ -3,44 +3,38 @@ import { cancel, log, note, spinner } from '@clack/prompts';
 import { exitCliCommand } from '../../../shared/cli-command-exit.js';
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
 import { PackageJson } from '../../../shared/package-json-ref.js';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
-import { analyzeProject, selectMultiplePluginClasses } from '../../../shared/shared-prompts.js';
+import { analyzeProject } from '../../../shared/shared-prompts.js';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
 import { pauseForPromptDisplay } from '../../../utilities/utils.js';
 
 import { CODEGEN_PACKAGES, configureCodegen } from './add-codegen.shared.js';
 
-export interface AddCodegenOptions {
-    plugin?: VendurePluginRef;
-    pluginName?: string;
-    config?: string;
-    isNonInteractive?: boolean;
-}
-
-export const addCodegenCommand = new CliCommand({
+/**
+ * Sets up codegen for a plugin that was just created, from the follow-up menu of
+ * `vendure add` > plugin. On its own, codegen is `vendure add codegen`, which runs through the
+ * command host.
+ *
+ * The two differ until the follow-up menu runs `vendure add codegen` too: this one installs with
+ * `PackageJson.installPackages`, logs a failed install as an error and prints its own next steps.
+ * `vendure add codegen` spawns each install command, reports a failed install as a warning, and
+ * returns its next steps in its output.
+ */
+export const addCodegenCommand = new CliCommand<{ plugin: VendurePluginRef }>({
     id: 'add-codegen',
     category: 'Project: Codegen',
     description: 'Set up GraphQL code generation',
     run: addCodegen,
 });
 
-export async function addCodegen(options?: AddCodegenOptions): Promise<CliCommandReturnVal> {
-    const providedVendurePlugin = options?.plugin;
+async function addCodegen(options?: Partial<{ plugin: VendurePluginRef }>): Promise<CliCommandReturnVal> {
+    if (!options?.plugin) {
+        throw new Error('Codegen needs the plugin to set up. Run "vendure add codegen" instead.');
+    }
+    const plugin = options.plugin;
     const { project } = await analyzeProject({
-        providedVendurePlugin,
+        providedVendurePlugin: plugin,
         cancelledMessage: 'Add codegen cancelled',
-        config: options?.config,
     });
-
-    const { plugin: resolvedPlugin } = resolvePluginFromOptions(project, {
-        providedPlugin: providedVendurePlugin,
-        pluginName: options?.pluginName,
-        isNonInteractive: options?.isNonInteractive === true,
-    });
-
-    const plugins = resolvedPlugin
-        ? [resolvedPlugin]
-        : await selectMultiplePluginClasses(project, 'Add codegen cancelled');
 
     const packageJson = new PackageJson(project);
     const installSpinner = spinner();
@@ -64,11 +58,7 @@ export async function addCodegen(options?: AddCodegenOptions): Promise<CliComman
     configSpinner.start('Configuring codegen file...');
     await pauseForPromptDisplay();
 
-    const codegenFile = configureCodegen(
-        project,
-        packageJson,
-        plugins.map(pluginRef => pluginRef.classDeclaration.getSourceFile()),
-    );
+    const codegenFile = configureCodegen(project, packageJson, [plugin.classDeclaration.getSourceFile()]);
 
     configSpinner.stop('Configured codegen file');
 

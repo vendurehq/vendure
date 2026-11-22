@@ -106,6 +106,12 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
             option.choices(schema.enum as string[]);
         }
         command.addOption(option);
+        if (type === 'boolean') {
+            // `--no-<flag>` sets the field to false. Defined after `--<flag>`, it leaves the value
+            // undefined when neither is given, so the command's own default applies, for example
+            // a `wait` field that is true for people and false under `vendure mcp`.
+            command.addOption(new Option(`--no-${kebab(field)}`, `Sets ${flag} to false`));
+        }
     }
     command.addOption(new Option('--json', 'Write one JSON document to stdout, and events to stderr'));
     command.addOption(new Option('--input <json|->', 'Pass the whole input as a JSON document'));
@@ -248,7 +254,81 @@ async function runLeaf(
     } catch (e) {
         return finish(errorResult(hostErrors.inputUnreadable, { reason: (e as Error).message }));
     }
-    // Flags the caller set win over the same field in the document.
+    Object.assign(input, collectFlagInput(command, properties, positionalValues));
+
+    const definitions = await options.loadDefinitions();
+    const key = manifestCommand.path.join(' ');
+    const def = definitions.find(candidate => candidate.path.join(' ') === key);
+    const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
+    if (!def || mismatch) {
+        return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
+    }
+
+    const result = await executeWithCancellation(
+        def,
+        input,
+        createHostEnvironment(controller, out),
+        controller,
+    );
+    return finish(result, def);
+}
+
+/**
+ * The host environment of a run. With `out`, the run is under `--json`: events go to stderr as
+ * tagged lines and no one is asked. Without it, events are printed for a person, who is asked
+ * for what is missing when the terminal allows it.
+ */
+export function createHostEnvironment(controller: AbortController, out?: JsonOutput): HostEnvironment {
+    const emit = (event: CommandEvent) => {
+        if (out) {
+            out.writeEvent(event);
+        } else if (event.type === 'notice') {
+            process.stderr.write(`${event.level === 'warning' ? 'Warning: ' : ''}${String(event.message)}\n`);
+        } else if (event.type === 'progress') {
+            process.stderr.write(`${String(event.message)}\n`);
+        }
+    };
+    return {
+        cwd: process.cwd(),
+        signal: controller.signal,
+        mcp: isMcpCall(),
+        prompter: !out && !isNonInteractiveEnvironment() ? createClackPrompter() : undefined,
+        emit,
+        spawn: createSpawn(process.cwd(), controller.signal, text => process.stdout.write(text), {
+            wholeLines: !!out,
+        }),
+        findProjectRoot: () => findVendureProjectRoot(),
+    };
+}
+
+/** Runs a command, and gives up on it when it does not stop in time after it is cancelled. */
+export function executeWithCancellation(
+    def: CommandDefinition,
+    input: Record<string, unknown>,
+    env: HostEnvironment,
+    controller: AbortController,
+): Promise<HostResult> {
+    return Promise.race([
+        executeCommand(def, input, env),
+        new Promise<HostResult>(resolve => {
+            controller.signal.addEventListener('abort', () => {
+                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
+            });
+        }),
+    ]);
+}
+
+/**
+ * The input fields a caller set on the command line, as flags or positional arguments. They win
+ * over the same fields in an `--input` document. A boolean field set with `--no-<flag>` is false.
+ */
+export function collectFlagInput(
+    command: Command,
+    properties: string[],
+    positionalValues: Record<string, unknown> = {},
+): Record<string, unknown> {
+    const opts = command.opts();
+    const input: Record<string, unknown> = {};
     for (const field of properties) {
         const source = command.getOptionValueSource(field);
         if (opts[field] !== undefined && source !== 'default') {
@@ -267,45 +347,7 @@ async function runLeaf(
             input[field] = value;
         }
     }
-
-    const definitions = await options.loadDefinitions();
-    const key = manifestCommand.path.join(' ');
-    const def = definitions.find(candidate => candidate.path.join(' ') === key);
-    const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
-    if (!def || mismatch) {
-        return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
-    }
-
-    const emit = (event: CommandEvent) => {
-        if (out) {
-            out.writeEvent(event);
-        } else if (event.type === 'notice') {
-            process.stderr.write(`${event.level === 'warning' ? 'Warning: ' : ''}${String(event.message)}\n`);
-        } else if (event.type === 'progress') {
-            process.stderr.write(`${String(event.message)}\n`);
-        }
-    };
-    const env: HostEnvironment = {
-        cwd: process.cwd(),
-        signal: controller.signal,
-        mcp: isMcpCall(),
-        prompter: !json && !isNonInteractiveEnvironment() ? createClackPrompter() : undefined,
-        emit,
-        spawn: createSpawn(process.cwd(), controller.signal, text => process.stdout.write(text), {
-            wholeLines: json,
-        }),
-        findProjectRoot: () => findVendureProjectRoot(),
-    };
-
-    const result = await Promise.race([
-        executeCommand(def, input, env),
-        new Promise<HostResult>(resolve => {
-            controller.signal.addEventListener('abort', () => {
-                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
-            });
-        }),
-    ]);
-    return finish(result, def);
+    return input;
 }
 
 function ancestorOptionValue(command: Command, field: string): unknown {

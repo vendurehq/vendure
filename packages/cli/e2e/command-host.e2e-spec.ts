@@ -367,7 +367,13 @@ describe('Command host E2E', () => {
             });
             child.stdin.end();
             const tools = JSON.parse(output.split('\n').filter(Boolean)[1]).result.tools;
-            expect(tools.map((t: any) => t.name)).toEqual(['add_codegen', 'doctor', 'migrate_revert']);
+            expect(tools.map((t: any) => t.name)).toEqual([
+                'add_codegen',
+                'doctor',
+                'migrate_generate',
+                'migrate_revert',
+                'migrate_run',
+            ]);
         });
     });
 });

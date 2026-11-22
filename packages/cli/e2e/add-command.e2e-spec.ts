@@ -8,7 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { addCommand } from '../src/commands/add/add.js';
 import * as apiExtensionModule from '../src/commands/add/api-extension/add-api-extension.js';
-import * as codegenModule from '../src/commands/add/codegen/add-codegen.js';
 import * as entityModule from '../src/commands/add/entity/add-entity.js';
 import * as jobQueueModule from '../src/commands/add/job-queue/add-job-queue.js';
 import * as pluginModule from '../src/commands/add/plugin/create-new-plugin.js';
@@ -69,7 +68,6 @@ let pluginRunSpy: Spy;
 let entityRunSpy: Spy;
 let serviceRunSpy: Spy;
 let jobQueueRunSpy: Spy;
-let codegenRunSpy: Spy;
 let apiExtRunSpy: Spy;
 
 beforeEach(() => {
@@ -85,7 +83,6 @@ beforeEach(() => {
     entityRunSpy = vi.spyOn(entityModule, 'addEntity').mockResolvedValue(defaultReturnValue as any);
     serviceRunSpy = vi.spyOn(serviceModule, 'addService').mockResolvedValue(defaultReturnValue as any);
     jobQueueRunSpy = vi.spyOn(jobQueueModule, 'addJobQueue').mockResolvedValue(defaultReturnValue as any);
-    codegenRunSpy = vi.spyOn(codegenModule, 'addCodegen').mockResolvedValue(defaultReturnValue as any);
     apiExtRunSpy = vi
         .spyOn(apiExtensionModule, 'addApiExtension')
         .mockResolvedValue(defaultReturnValue as any);
@@ -170,20 +167,6 @@ describe('Add Command E2E', () => {
             ).resolves.toBe(1);
 
             expect(jobQueueRunSpy).not.toHaveBeenCalled();
-        });
-
-        it('adds codegen configuration with boolean flag (interactive plugin selection)', async () => {
-            await addCommand({ codegen: true });
-
-            expect(codegenRunSpy).toHaveBeenCalledOnce();
-            expect(codegenRunSpy.mock.calls[0][0]).toMatchObject({ pluginName: undefined });
-        });
-
-        it('adds codegen configuration to a specific plugin when plugin name is supplied', async () => {
-            await addCommand({ codegen: 'MyPlugin' });
-
-            expect(codegenRunSpy).toHaveBeenCalledOnce();
-            expect(codegenRunSpy.mock.calls[0][0]).toMatchObject({ pluginName: 'MyPlugin' });
         });
 
         it('adds an API extension scaffold when queryName is provided', async () => {

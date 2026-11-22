@@ -1,5 +1,7 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
+import { configUnreadable } from '../migrate.errors.js';
+
 import { databaseUnreadable, revertFailed } from './revert-migration.errors.js';
 
 export const revertMigrationDefinition = defineCommand({
@@ -13,7 +15,7 @@ export const revertMigrationDefinition = defineCommand({
             'Revert the last applied migration. This can drop columns and tables, and the data in them.',
     },
     schemas: () => import('./revert-migration.schema.js'),
-    errors: [databaseUnreadable, revertFailed],
+    errors: [configUnreadable, databaseUnreadable, revertFailed],
     examples: ['vendure migrate revert', 'vendure migrate revert --revert-migration <digest>'],
     plan: () => import('./revert-migration.plan.js'),
     run: () => import('./revert-migration.run.js'),

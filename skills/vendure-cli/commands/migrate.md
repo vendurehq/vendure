@@ -5,23 +5,31 @@ Generates, runs or reverts TypeORM database migrations for a Vendure project.
 ## Usage
 
 ```bash
-vendure migrate [--generate <name> | --run | --revert] [options]
+vendure migrate generate <name> [options]
+vendure migrate run [options]
+vendure migrate revert [options]
 ```
 
-Exactly one operation flag:
+| Command    | Description                                                     |
+| ---------- | --------------------------------------------------------------- |
+| `generate` | Generate a new migration from pending schema changes            |
+| `run`      | Run all pending migrations                                      |
+| `revert`   | Revert the most recent migration, after a preview and a consent |
 
-| Operation flag          | Description                                          |
-| ----------------------- | ---------------------------------------------------- |
-| `-g, --generate <name>` | Generate a new migration from pending schema changes |
-| `-r, --run`             | Run all pending migrations                           |
-| `--revert`              | Revert the most recent migration                     |
+Add `--json` to get one JSON document on stdout. Without a name, `generate`
+returns `incomplete` with an `input` need for `name`. `revert --json` returns
+an `incomplete` result with a `revertMigration` consent need; pass its digest
+back with `--revert-migration <digest>`.
+
+`-g, --generate <name>` and `-r, --run` still work and run `generate` and `run`.
 
 ## Options
 
-| Option                    | Description                                |
-| ------------------------- | ------------------------------------------ |
-| `-o, --output-dir <path>` | Output directory for a generated migration |
-| `--config <path>`         | Path to a custom Vendure config file       |
+| Option                | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| `--output-dir <path>` | Output directory for a generated migration       |
+| `--from-empty`        | Generate a complete baseline against an empty DB |
+| `--config <path>`     | Path to a custom Vendure config file             |
 
 ## Notes
 
@@ -33,8 +41,8 @@ Exactly one operation flag:
 ## Examples
 
 ```bash
-vendure migrate -g AddProductReviewTable
-vendure migrate -g AddProductReviewTable -o ./src/migrations
-vendure migrate -r
-vendure migrate --revert
+vendure migrate generate AddProductReviewTable
+vendure migrate generate AddProductReviewTable --output-dir ./src/migrations
+vendure migrate run --json
+vendure migrate revert
 ```

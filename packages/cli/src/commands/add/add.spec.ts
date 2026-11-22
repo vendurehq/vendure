@@ -4,9 +4,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { runCoreCommand } from '../../command-host/run-core-command.js';
+
 import { addCommand } from './add.js';
 import * as apiExtensionModule from './api-extension/add-api-extension.js';
-import * as codegenModule from './codegen/add-codegen.js';
 import { addCommandDef } from './command.js';
 import * as dashboardModule from './dashboard/add-dashboard.js';
 import * as entityModule from './entity/add-entity.js';
@@ -58,8 +59,8 @@ vi.mock('./service/add-service.js', () => ({
 vi.mock('./job-queue/add-job-queue.js', () => ({
     addJobQueue: vi.fn(),
 }));
-vi.mock('./codegen/add-codegen.js', () => ({
-    addCodegen: vi.fn(),
+vi.mock('../../command-host/run-core-command.js', () => ({
+    runCoreCommand: vi.fn(() => Promise.resolve(0)),
 }));
 vi.mock('./api-extension/add-api-extension.js', () => ({
     addApiExtension: vi.fn(),
@@ -94,7 +95,6 @@ describe('add command', () => {
     const mockAddEntity = vi.mocked(entityModule.addEntity);
     const mockAddService = vi.mocked(serviceModule.addService);
     const mockAddJobQueue = vi.mocked(jobQueueModule.addJobQueue);
-    const mockAddCodegen = vi.mocked(codegenModule.addCodegen);
     const mockAddApiExtension = vi.mocked(apiExtensionModule.addApiExtension);
     const mockAddDashboard = vi.mocked(dashboardModule.addDashboard);
 
@@ -113,7 +113,6 @@ describe('add command', () => {
         mockAddEntity.mockResolvedValue(defaultReturnValue as any);
         mockAddService.mockResolvedValue(defaultReturnValue as any);
         mockAddJobQueue.mockResolvedValue(defaultReturnValue as any);
-        mockAddCodegen.mockResolvedValue(defaultReturnValue as any);
         mockAddApiExtension.mockResolvedValue(defaultReturnValue as any);
         mockAddDashboard.mockResolvedValue(defaultReturnValue as any);
     });
@@ -173,14 +172,10 @@ describe('add command', () => {
             });
         });
 
-        it('detects non-interactive mode when codegen option is provided', async () => {
-            await addCommand({ codegen: true });
-
-            expect(mockAddCodegen).toHaveBeenCalledWith({
-                isNonInteractive: true,
-                config: undefined,
-                pluginName: undefined,
-            });
+        it('has no --codegen flag, which `vendure add codegen` replaces', () => {
+            expect(addCommandDef.options?.map(option => option.long)).not.toContainEqual(
+                expect.stringMatching(/^--codegen\b/),
+            );
         });
 
         it('detects non-interactive mode when apiExtension option is provided', async () => {
@@ -226,11 +221,11 @@ describe('add command', () => {
         });
 
         it('treats false values as not triggering non-interactive mode', async () => {
-            await expect(addCommandDef.action({ codegen: false, dashboard: false } as any)).resolves.toBe(1);
+            await expect(addCommandDef.action({ entity: false, dashboard: false } as any)).resolves.toBe(1);
 
             // Should NOT call any add functions (goes to interactive mode instead)
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
-            expect(mockAddCodegen).not.toHaveBeenCalled();
+            expect(runCoreCommand).not.toHaveBeenCalled();
             expect(mockAddDashboard).not.toHaveBeenCalled();
         });
     });
@@ -347,10 +342,20 @@ describe('add command', () => {
                 'add-entity',
                 'add-service',
                 'add-job-queue',
-                'add-codegen',
                 'add-api-extension',
                 'add-dashboard',
+                'add-codegen',
             ]);
+        });
+
+        it('runs `vendure add codegen` through the host when the codegen entry is selected', async () => {
+            const { select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('add-codegen');
+            vi.mocked(runCoreCommand).mockResolvedValueOnce(1);
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
+
+            expect(runCoreCommand).toHaveBeenCalledWith(['add', 'codegen']);
         });
 
         it('runs the Platform flow when the Platform entry is selected', async () => {

@@ -12,7 +12,9 @@ describe('core command definitions', () => {
             'add codegen',
             'commands',
             'doctor',
+            'migrate generate',
             'migrate revert',
+            'migrate run',
         ]);
     });
 

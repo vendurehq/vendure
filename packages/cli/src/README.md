@@ -244,7 +244,7 @@ npx vendure add -s MyService --selected-plugin MyPlugin --type entity
 npx vendure add -j MyPlugin --name my-job --selected-service MyService
 
 # Add GraphQL codegen to a plugin
-npx vendure add -c MyPlugin
+npx vendure add codegen --plugin MyPlugin
 
 # Add API extension to a plugin
 npx vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
@@ -267,16 +267,16 @@ npx vendure migrate
 
 ```bash
 # Generate a new migration
-npx vendure migrate -g my-migration-name
+npx vendure migrate generate my-migration-name
 
 # Run pending migrations
-npx vendure migrate -r
+npx vendure migrate run
 
-# Revert the last migration
-npx vendure migrate --revert
+# Revert the last migration, after showing what it reverts and asking first
+npx vendure migrate revert
 
 # Generate migration with custom output directory
-npx vendure migrate -g my-migration -o ./custom/migrations
+npx vendure migrate generate my-migration --output-dir ./custom/migrations
 ```
 
 ## Command Implementation Patterns

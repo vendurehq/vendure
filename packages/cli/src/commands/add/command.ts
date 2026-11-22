@@ -2,7 +2,6 @@ import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
 import { runCliCommand } from '../../shared/cli-command-exit.js';
 
 import { addApiExtension } from './api-extension/add-api-extension.js';
-import { addCodegen } from './codegen/add-codegen.js';
 import { addDashboard } from './dashboard/add-dashboard.js';
 import { addEntity } from './entity/add-entity.js';
 import { addJobQueue } from './job-queue/add-job-queue.js';
@@ -106,15 +105,6 @@ export const addCommandDef: CliCommandDefinition = {
                     required: false,
                 },
             ],
-        },
-        {
-            short: '-c',
-            long: '--codegen [plugin]',
-            description: 'Set up GraphQL code generation',
-            required: false,
-            interactiveId: 'add-codegen',
-            interactiveCategory: 'Project: Codegen',
-            interactiveFn: addCodegen,
         },
         {
             short: '-a',

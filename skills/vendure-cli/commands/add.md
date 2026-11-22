@@ -22,7 +22,6 @@ vendure add <feature-flag> [value] [sub-options]
 | `-e, --entity <name>`          | An entity in an existing plugin | Entity class name, `--selected-plugin <name>`                                      |
 | `-s, --service <name>`         | A service in an existing plugin | Service class name, `--selected-plugin <name>`                                     |
 | `-j, --job-queue [plugin]`     | A job queue handler             | Plugin value, `--name <name>`, `--selected-service <name>`                         |
-| `-c, --codegen [plugin]`       | GraphQL codegen configuration   | Plugin value                                                                       |
 | `-a, --api-extension [plugin]` | An API extension scaffold       | Plugin value, `--selected-service <name>`, and `--query-name` or `--mutation-name` |
 | `-d, --dashboard [plugin]`     | Dashboard UI extensions         | Plugin value                                                                       |
 
@@ -47,7 +46,9 @@ vendure add <feature-flag> [value] [sub-options]
   mode, or the command errors out.
 - For entity-backed services, pass `--selected-entity <name>`. Using
   `--type entity` without `--selected-entity` can still prompt for an entity.
-- `--job-queue`, `--codegen`, `--api-extension` and `--dashboard` use
+- GraphQL codegen is its own command: `vendure add codegen --plugin <name>`.
+  It supports `--json`.
+- `--job-queue`, `--api-extension` and `--dashboard` use
   optional-value plugin flags, but agents should pass the plugin name. In non-interactive mode, omitting it errors before selection can
   happen.
 - `--api-extension` also requires an existing service plus at least one
@@ -74,6 +75,6 @@ vendure add -j ReviewsPlugin --name review-indexing --selected-service ReviewSer
 vendure add -a ReviewsPlugin --selected-service ReviewService --query-name reviews --mutation-name createReview
 
 # GraphQL codegen + dashboard extensions
-vendure add -c ReviewsPlugin
+vendure add codegen --plugin ReviewsPlugin
 vendure add -d ReviewsPlugin
 ```

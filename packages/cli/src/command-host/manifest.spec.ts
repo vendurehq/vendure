@@ -32,7 +32,9 @@ describe('loadMergedManifest', () => {
             'add codegen',
             'commands',
             'doctor',
+            'migrate generate',
             'migrate revert',
+            'migrate run',
         ]);
         expect(merged[0].source).toBe('@vendure/cli');
     });
