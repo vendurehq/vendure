@@ -6,6 +6,9 @@ import { presentForPeople } from './present.js';
  * returns its exit code. The older entry points use it: the menus of `vendure add` and
  * `vendure migrate`, and their flags such as `vendure migrate --run`. They pass what they already
  * know, and the host asks for the rest.
+ *
+ * It always runs the CLI's own declaration. A CLI plugin that replaces the command replaces
+ * `vendure <path>` only; the older flags and menus keep running the built-in command.
  */
 export async function runCoreCommand(path: string[], input: Record<string, unknown> = {}): Promise<number> {
     const { coreCommandDefinitions } = await import('./core-commands.js');

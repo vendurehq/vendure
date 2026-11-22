@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCoreCommand } from '../../command-host/run-core-command.js';
+
 import { addCommand } from './add.js';
 import * as apiExtensionModule from './api-extension/add-api-extension.js';
 import { addCommandDef } from './command.js';

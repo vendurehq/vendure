@@ -1,5 +1,4 @@
 import { ErrorResult, fail } from '@vendure/common/lib/command';
-import { unique } from '@vendure/common/lib/unique';
 import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
@@ -38,15 +37,14 @@ export async function openMigrationProject(configFile?: string): Promise<LoadedP
 }
 
 /**
- * The directories a new migration can go into, the most likely first: the directory of the
- * config's first `migrations` pattern, the directory of an existing migration class, and
- * `migrations` next to the config file's directory.
+ * Where a new migration goes when no directory is given: the directory of the config's first
+ * `migrations` pattern, else the directory of an existing migration class, else `migrations`
+ * next to the config file's directory.
  */
-export function migrationDirs({ config, ref }: LoadedProjectConfig): string[] {
-    const dirs: string[] = [];
+export function defaultMigrationDir({ config, ref }: LoadedProjectConfig): string {
     const migrations = config.dbConnectionOptions.migrations;
     if (Array.isArray(migrations) && typeof migrations[0] === 'string') {
-        dirs.push(path.dirname(migrations[0]));
+        return path.normalize(path.dirname(migrations[0]));
     }
     const migrationFile = ref.sourceFile
         .getProject()
@@ -55,10 +53,9 @@ export function migrationDirs({ config, ref }: LoadedProjectConfig): string[] {
             sf.getClasses().some(c => c.getImplements().some(i => i.getText() === 'MigrationInterface')),
         );
     if (migrationFile) {
-        dirs.push(migrationFile.getDirectory().getPath());
+        return path.normalize(migrationFile.getDirectory().getPath());
     }
-    dirs.push(path.join(ref.sourceFile.getDirectory().getPath(), '../migrations'));
-    return unique(dirs.map(dir => path.normalize(dir)));
+    return path.normalize(path.join(ref.sourceFile.getDirectory().getPath(), '../migrations'));
 }
 
 /** Which database the config points at, without credentials. */

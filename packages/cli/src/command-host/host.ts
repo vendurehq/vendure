@@ -26,7 +26,11 @@ import { kebab } from './naming.js';
 
 /** Asks a person. Only given to the host when a person is present. */
 export interface Prompter {
-    askInput(need: InputNeed): Promise<string | undefined>;
+    /**
+     * Asks for an input field. `validate` returns the problem with an answer, or `undefined` when
+     * the answer is valid, so a person can correct a bad answer before the command runs.
+     */
+    askInput(need: InputNeed, validate: (answer: string) => string | undefined): Promise<string | undefined>;
     /** Shows the preview and asks whether to go ahead. */
     askConsent(need: ConsentNeed): Promise<boolean>;
 }
@@ -129,6 +133,33 @@ function coercePrompted(value: string, property: Record<string, any>): unknown {
             .filter(Boolean);
     }
     return value;
+}
+
+/**
+ * The problem the input schema finds with one answer to a prompt, or `undefined`. An empty answer
+ * to an optional field keeps its default, so it is always valid. A schema that only validates
+ * asynchronously is not checked here; the host validates the whole input after the prompts.
+ */
+function answerProblem(
+    schema: StandardSchema,
+    input: Record<string, unknown>,
+    field: string,
+    answer: string,
+    optional: boolean,
+): string | undefined {
+    if (optional && answer === '') {
+        return undefined;
+    }
+    const candidate = { ...input, [field]: coercePrompted(answer, propertySchema(schema, field)) };
+    const result = schema['~standard'].validate(candidate);
+    if (result instanceof Promise || !result.issues) {
+        return undefined;
+    }
+    const issue = result.issues.find(({ path }) => {
+        const first = path?.[0];
+        return (typeof first === 'object' ? first.key : first) === field;
+    });
+    return issue?.message;
 }
 
 function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandContext {
@@ -250,7 +281,10 @@ export async function executeCommand(
             }
             for (const need of needs) {
                 asked.add(need.field);
-                const answer = await env.prompter.askInput(need);
+                const optional = !validation.issues;
+                const answer = await env.prompter.askInput(need, value =>
+                    answerProblem(schemas.input, input, need.field, value, optional),
+                );
                 if (answer === undefined) {
                     return errorResult(hostErrors.cancelled, {}, notices);
                 }
@@ -334,12 +368,15 @@ export async function executeCommand(
 
 /** A fix as a command line, for a person at a terminal. */
 export function formatFix(fix: { path: string[]; input: Record<string, unknown> }): string {
-    // A boolean flag is a switch, so `false` is the same as leaving it out.
+    // A boolean flag is a switch: `--<flag>` for true, `--no-<flag>` for false. Leaving it out
+    // lets the command choose, which is not the same as false.
     const flags = Object.entries(fix.input)
-        .filter(([, value]) => value !== false && value !== undefined && value !== null)
+        .filter(([, value]) => value !== undefined && value !== null)
         .map(([key, value]) => {
-            const flag = `--${kebab(key)}`;
-            return value === true ? flag : `${flag} ${JSON.stringify(value)}`;
+            if (typeof value === 'boolean') {
+                return value ? `--${kebab(key)}` : `--no-${kebab(key)}`;
+            }
+            return `--${kebab(key)} ${JSON.stringify(value)}`;
         });
     return ['vendure', ...fix.path, ...flags].join(' ');
 }

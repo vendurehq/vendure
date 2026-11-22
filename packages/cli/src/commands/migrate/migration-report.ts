@@ -1,7 +1,7 @@
 import { MigrationDiagnostic } from '@vendure/core';
 
 export interface MigrationReport {
-    /** A one-line summary, suitable for a spinner. */
+    /** A one-line summary. */
     summary: string;
     /** The diagnostics, rendered. Empty when there are none. */
     details: string;

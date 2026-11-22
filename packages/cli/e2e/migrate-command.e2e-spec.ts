@@ -342,7 +342,12 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
                 ),
             );
 
-            expect(results.filter(r => r.envelope.status === 'ok').length).toBeGreaterThan(0);
+            // The database is empty, so each one writes a complete migration of its own.
+            expect(results.map(r => r.envelope.status)).toEqual(['ok', 'ok', 'ok']);
+            const files = await fs.readdir(MIGRATIONS_DIR);
+            for (const name of ['Concurrent1', 'Concurrent2', 'Concurrent3']) {
+                expect(files.filter(f => f.includes(name))).toHaveLength(1);
+            }
         });
     });
 });

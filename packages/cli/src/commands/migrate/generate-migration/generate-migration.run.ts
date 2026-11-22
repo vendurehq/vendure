@@ -1,7 +1,7 @@
 import { CommandContext, fail, isErrorResult } from '@vendure/common/lib/command';
 
-import { requireProjectCore } from '../../../shared/project-core.js';
-import { migrationDirs, openMigrationProject } from '../migration-project.js';
+import { requireProjectCore, withCoreRunningInCli } from '../../../shared/project-core.js';
+import { defaultMigrationDir, openMigrationProject } from '../migration-project.js';
 
 import { generateFailed } from './generate-migration.errors.js';
 
@@ -14,25 +14,23 @@ export async function run(
     if (isErrorResult(project)) {
         return project;
     }
-    const outputDir = input.outputDir ?? migrationDirs(project)[0];
+    const outputDir = input.outputDir ?? defaultMigrationDir(project);
     ctx.progress(
         input.fromEmpty
             ? 'Generating a baseline migration from an empty shadow database'
             : 'Generating the migration',
     );
-    // With this set, the core function prints nothing.
-    process.env.VENDURE_RUNNING_IN_CLI = 'true';
     let file: string | undefined;
     try {
-        file = await requireProjectCore().generateMigration(project.config, {
-            name: input.name,
-            outputDir,
-            fromEmpty: input.fromEmpty,
-        });
+        file = await withCoreRunningInCli(() =>
+            requireProjectCore().generateMigration(project.config, {
+                name: input.name,
+                outputDir,
+                fromEmpty: input.fromEmpty,
+            }),
+        );
     } catch (e) {
         return fail(generateFailed, { message: e instanceof Error ? e.message : String(e) });
-    } finally {
-        delete process.env.VENDURE_RUNNING_IN_CLI;
     }
     return { file: file ?? null, outputDir };
 }

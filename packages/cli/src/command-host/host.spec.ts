@@ -364,7 +364,10 @@ describe('executeCommand prompting', () => {
             {},
             { prompter: { askInput, askConsent: async () => true } },
         );
-        expect(askInput).toHaveBeenCalledWith({ kind: 'input', field: 'name', description: 'The name' });
+        expect(askInput).toHaveBeenCalledWith(
+            { kind: 'input', field: 'name', description: 'The name' },
+            expect.any(Function),
+        );
         expect(result.envelope.output).toEqual({ got: 'typed' });
     });
 
@@ -381,8 +384,48 @@ describe('executeCommand prompting', () => {
             },
         );
         expect(askInput).toHaveBeenCalledTimes(1);
-        expect(askInput).toHaveBeenCalledWith(expect.objectContaining({ field: 'count' }));
+        expect(askInput).toHaveBeenCalledWith(
+            expect.objectContaining({ field: 'count' }),
+            expect.any(Function),
+        );
         expect(result.envelope.output).toEqual({ got: { name: 'a' } });
+    });
+
+    // A person corrects a bad answer at the prompt, instead of the run ending with input.invalid.
+    it('gives the prompt a check that uses the input schema', async () => {
+        const checked = defineCommand({
+            path: ['demo'],
+            description: 'Demo',
+            behavior: 'readonly',
+            schemas: () =>
+                Promise.resolve({
+                    input: z.object({
+                        name: z.string().regex(/^[a-z]+$/, 'Use lowercase letters'),
+                        count: z.number().int('Use a whole number').optional(),
+                    }),
+                }),
+            cli: { fields: { count: { prompt: true } } },
+            run: () => Promise.resolve({ run: (i: unknown) => Promise.resolve(i) }),
+        });
+        const checks: Record<string, (answer: string) => string | undefined> = {};
+        const askInput = vi.fn(
+            (need: { field: string }, validate: (answer: string) => string | undefined) => {
+                checks[need.field] = validate;
+                return Promise.resolve(need.field === 'name' ? 'abc' : '');
+            },
+        );
+
+        await runCommandInHarness(
+            checked,
+            {},
+            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+        );
+
+        expect(checks.name('Not Valid')).toBe('Use lowercase letters');
+        expect(checks.name('valid')).toBeUndefined();
+        expect(checks.count('1.5')).toBe('Use a whole number');
+        // An empty answer keeps the default of an optional field.
+        expect(checks.count('')).toBeUndefined();
     });
 
     it('uses the answer for an optional field marked prompt', async () => {
@@ -424,9 +467,10 @@ describe('formatFix', () => {
         );
     });
 
-    it('leaves out a false boolean, which a switch cannot take', () => {
-        expect(formatFix({ path: ['doctor'], input: { strict: false, check: ['config'] } })).toBe(
-            'vendure doctor --check ["config"]',
+    // Leaving a boolean out lets the command choose its default, so false needs its own flag.
+    it('writes a false boolean as --no-<flag>', () => {
+        expect(formatFix({ path: ['deploy'], input: { wait: false, check: ['config'] } })).toBe(
+            'vendure deploy --no-wait --check ["config"]',
         );
     });
 });

@@ -13,6 +13,11 @@ import { CODEGEN_PACKAGES, configureCodegen } from './add-codegen.shared.js';
  * Sets up codegen for a plugin that was just created, from the follow-up menu of
  * `vendure add` > plugin. On its own, codegen is `vendure add codegen`, which runs through the
  * command host.
+ *
+ * The two differ until the follow-up menu runs `vendure add codegen` too: this one installs with
+ * `PackageJson.installPackages`, logs a failed install as an error and prints its own next steps.
+ * `vendure add codegen` spawns each install command, reports a failed install as a warning, and
+ * returns its next steps in its output.
  */
 export const addCodegenCommand = new CliCommand<{ plugin: VendurePluginRef }>({
     id: 'add-codegen',

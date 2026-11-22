@@ -12,7 +12,9 @@ export const input = z.object({
         .string()
         .optional()
         .describe(
-            'The directory to write the migration to. Defaults to the directory of the migrations the config names',
+            'The directory to write the migration to. Defaults to the directory of the migrations ' +
+                'the config names, then of an existing migration, then `migrations` next to the ' +
+                'config directory',
         ),
     fromEmpty: z
         .boolean()
