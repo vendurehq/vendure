@@ -21,7 +21,7 @@ vi.mock('../../utilities/utils.js', () => ({
 }));
 
 vi.mock('../../command-host/run-core-command.js', () => ({
-    runCoreCommand: vi.fn(() => Promise.resolve(0)),
+    runCoreCommand: vi.fn(() => Promise.resolve({ exitCode: 0, envelope: { status: 'ok' } })),
 }));
 
 describe('migrateCommand()', () => {
@@ -64,7 +64,10 @@ describe('migrateCommand()', () => {
     );
 
     it('returns the exit code of the host command', async () => {
-        vi.mocked(runCoreCommand).mockResolvedValueOnce(1);
+        vi.mocked(runCoreCommand).mockResolvedValueOnce({
+            exitCode: 1,
+            envelope: { status: 'error' },
+        } as any);
 
         await expect(migrateCommandDef.action({ run: true })).resolves.toBe(1);
     });

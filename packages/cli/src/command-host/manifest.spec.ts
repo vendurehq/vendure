@@ -29,7 +29,13 @@ describe('loadMergedManifest', () => {
     it('builds the manifest from the declarations when the file is missing', async () => {
         const merged = await loadMergedManifest('/nonexistent/vendure-commands.json');
         expect(merged.map(command => command.path.join(' ')).sort()).toEqual([
+            'add api-extension',
             'add codegen',
+            'add dashboard',
+            'add entity',
+            'add job-queue',
+            'add plugin',
+            'add service',
             'commands',
             'doctor',
             'migrate generate',

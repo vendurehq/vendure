@@ -38,15 +38,17 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
         return 1;
     }
     if (options.generate) {
-        return runCoreCommand(['migrate', 'generate'], {
-            name: options.generate,
-            outputDir: options.outputDir,
-            fromEmpty: options.fromEmpty,
-            config: options.config,
-        });
+        return (
+            await runCoreCommand(['migrate', 'generate'], {
+                name: options.generate,
+                outputDir: options.outputDir,
+                fromEmpty: options.fromEmpty,
+                config: options.config,
+            })
+        ).exitCode;
     }
     if (options.run) {
-        return runCoreCommand(['migrate', 'run'], { config: options.config });
+        return (await runCoreCommand(['migrate', 'run'], { config: options.config })).exitCode;
     }
 
     if (abortIfNonInteractive('vendure migrate', migrateExamples)) {
@@ -71,7 +73,7 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
         cancel('Migrate cancelled.');
         return 0;
     }
-    const exitCode = await runCoreCommand(['migrate', String(action)], { config: options.config });
+    const { exitCode } = await runCoreCommand(['migrate', String(action)], { config: options.config });
     outro(exitCode === 0 ? '✅ Done!' : '❌ Error');
     return exitCode;
 }

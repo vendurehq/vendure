@@ -19,6 +19,7 @@ describe('createClackPrompter', () => {
         const answer = await createClackPrompter().askInput(
             { kind: 'input', field: 'token', description: 'The token', secret: true },
             validate,
+            false,
         );
         expect(answer).toBe('hidden');
         expect(password).toHaveBeenCalledWith({ message: 'The token', validate });
@@ -28,7 +29,11 @@ describe('createClackPrompter', () => {
     it('asks for other fields as text, or as a choice when they have choices', async () => {
         const prompter = createClackPrompter();
         expect(
-            await prompter.askInput({ kind: 'input', field: 'name', description: 'The name' }, validate),
+            await prompter.askInput(
+                { kind: 'input', field: 'name', description: 'The name' },
+                validate,
+                false,
+            ),
         ).toBe('typed');
         // The text prompt checks each answer, so a person can correct it.
         expect(text).toHaveBeenCalledWith({ message: 'The name', validate });
@@ -36,8 +41,27 @@ describe('createClackPrompter', () => {
             await prompter.askInput(
                 { kind: 'input', field: 'plugin', description: 'Plugin', choices: ['A'] },
                 validate,
+                false,
             ),
         ).toBe('picked');
-        expect(select).toHaveBeenCalled();
+        expect(select).toHaveBeenLastCalledWith({
+            message: 'Plugin',
+            options: [{ value: 'A', label: 'A' }],
+        });
+    });
+
+    it('offers "None" in the choices of an optional field', async () => {
+        await createClackPrompter().askInput(
+            { kind: 'input', field: 'entity', description: 'Entity', choices: ['Review'] },
+            validate,
+            true,
+        );
+        expect(select).toHaveBeenLastCalledWith({
+            message: 'Entity',
+            options: [
+                { value: 'Review', label: 'Review' },
+                { value: '', label: 'None' },
+            ],
+        });
     });
 });

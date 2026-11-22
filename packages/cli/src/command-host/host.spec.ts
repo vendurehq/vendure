@@ -367,6 +367,7 @@ describe('executeCommand prompting', () => {
         expect(askInput).toHaveBeenCalledWith(
             { kind: 'input', field: 'name', description: 'The name' },
             expect.any(Function),
+            false,
         );
         expect(result.envelope.output).toEqual({ got: 'typed' });
     });
@@ -387,6 +388,7 @@ describe('executeCommand prompting', () => {
         expect(askInput).toHaveBeenCalledWith(
             expect.objectContaining({ field: 'count' }),
             expect.any(Function),
+            true,
         );
         expect(result.envelope.output).toEqual({ got: { name: 'a' } });
     });

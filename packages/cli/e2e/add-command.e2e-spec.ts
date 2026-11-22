@@ -1,201 +1,219 @@
 /*
- * E2E tests for the add command
- *
- * To run these tests:
- * npm run vitest -- --config e2e/vitest.e2e.config.mts
+ * E2E tests for the `vendure add` subcommands. They run the built CLI with `--json` in a copy of
+ * the test project and build up one plugin, one command at a time.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { addCommand } from '../src/commands/add/add.js';
-import * as apiExtensionModule from '../src/commands/add/api-extension/add-api-extension.js';
-import * as entityModule from '../src/commands/add/entity/add-entity.js';
-import * as jobQueueModule from '../src/commands/add/job-queue/add-job-queue.js';
-import * as pluginModule from '../src/commands/add/plugin/create-new-plugin.js';
-import * as serviceModule from '../src/commands/add/service/add-service.js';
-import { runCliCommand } from '../src/shared/cli-command-exit.js';
+const cliPath = join(import.meta.dirname, '..', 'dist', 'cli.js');
 
-const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
-const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+interface Run {
+    envelope: any;
+    exitCode: number;
+    stderr: string;
+}
 
-function setStdinIsTTY(isTTY: boolean) {
-    Object.defineProperty(process.stdin, 'isTTY', {
-        configurable: true,
-        value: isTTY,
+function runCli(cwd: string, args: string[]): Promise<Run> {
+    return new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, [cliPath, ...args], {
+            cwd,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: { ...process.env, VENDURE_CLI_NON_INTERACTIVE: '1' },
+        });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
+        child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+        child.on('error', reject);
+        child.on('close', code => {
+            const exitCode = code ?? -1;
+            if (!args.includes('--json')) {
+                resolve({ envelope: undefined, exitCode, stderr });
+                return;
+            }
+            try {
+                resolve({ envelope: JSON.parse(stdout), exitCode, stderr });
+            } catch {
+                reject(new Error(`vendure ${args.join(' ')} wrote no JSON document: ${stdout}${stderr}`));
+            }
+        });
     });
 }
 
-function setStdoutIsTTY(isTTY: boolean) {
-    Object.defineProperty(process.stdout, 'isTTY', {
-        configurable: true,
-        value: isTTY,
+describe('vendure add subcommands', { timeout: 120_000 }, () => {
+    let dir: string;
+    const add = (...args: string[]) => runCli(dir, ['add', ...args, '--json']);
+    const read = (path: string) => readFileSync(join(dir, path), 'utf-8');
+    const pluginDir = 'src/plugins/reviews';
+
+    beforeAll(() => {
+        // Inside the repository, so the project resolves `@vendure/core` from its `node_modules`.
+        dir = join(import.meta.dirname, 'fixtures', `.tmp-add-${randomBytes(6).toString('hex')}`);
+        const source = join(import.meta.dirname, 'fixtures', 'test-project');
+        // The migrate spec writes its database and migrations into the fixture while it runs.
+        const shared = [join(source, 'test.db'), join(source, 'migrations')];
+        cpSync(source, dir, { recursive: true, filter: path => !shared.some(s => path.startsWith(s)) });
     });
-}
 
-function restoreTTYDescriptors() {
-    if (stdinIsTTYDescriptor) {
-        Object.defineProperty(process.stdin, 'isTTY', stdinIsTTYDescriptor);
-    } else {
-        delete (process.stdin as { isTTY?: boolean }).isTTY;
-    }
-    if (stdoutIsTTYDescriptor) {
-        Object.defineProperty(process.stdout, 'isTTY', stdoutIsTTYDescriptor);
-    } else {
-        delete (process.stdout as { isTTY?: boolean }).isTTY;
-    }
-}
+    afterAll(() => {
+        rmSync(dir, { recursive: true, force: true });
+    });
 
-// Mock clack prompts to prevent interactive prompts during tests
-vi.mock('@clack/prompts', () => ({
-    intro: vi.fn(),
-    outro: vi.fn(),
-    cancel: vi.fn(),
-    isCancel: vi.fn(() => false),
-    select: vi.fn(() => Promise.resolve('no-selection')),
-    spinner: vi.fn(() => ({
-        start: vi.fn(),
-        stop: vi.fn(),
-    })),
-    log: {
-        success: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-    },
-}));
+    it('creates a plugin and adds it to the Vendure config', async () => {
+        const { envelope, exitCode } = await add('plugin', 'reviews');
 
-type Spy = any;
+        expect(exitCode).toBe(0);
+        expect(envelope).toMatchObject({ status: 'ok', output: { plugin: 'ReviewsPlugin' } });
+        expect(existsSync(join(dir, pluginDir, 'reviews.plugin.ts'))).toBe(true);
+        expect(read('src/vendure-config.ts')).toContain('ReviewsPlugin.init({})');
+    });
 
-let pluginRunSpy: Spy;
-let entityRunSpy: Spy;
-let serviceRunSpy: Spy;
-let jobQueueRunSpy: Spy;
-let apiExtRunSpy: Spy;
+    it('adds an entity to the plugin', async () => {
+        const { envelope } = await add(
+            'entity',
+            'ProductReview',
+            '--plugin',
+            'ReviewsPlugin',
+            '--custom-fields',
+        );
 
-beforeEach(() => {
-    vi.stubEnv('CI', 'false');
-    vi.stubEnv('VENDURE_CLI_NON_INTERACTIVE', 'false');
-    setStdinIsTTY(true);
-    setStdoutIsTTY(true);
-
-    // Stub all core functions before every test
-    const defaultReturnValue = { project: undefined as any, modifiedSourceFiles: [] };
-
-    pluginRunSpy = vi.spyOn(pluginModule, 'createNewPlugin').mockResolvedValue(defaultReturnValue as any);
-    entityRunSpy = vi.spyOn(entityModule, 'addEntity').mockResolvedValue(defaultReturnValue as any);
-    serviceRunSpy = vi.spyOn(serviceModule, 'addService').mockResolvedValue(defaultReturnValue as any);
-    jobQueueRunSpy = vi.spyOn(jobQueueModule, 'addJobQueue').mockResolvedValue(defaultReturnValue as any);
-    apiExtRunSpy = vi
-        .spyOn(apiExtensionModule, 'addApiExtension')
-        .mockResolvedValue(defaultReturnValue as any);
-});
-
-afterEach(() => {
-    vi.unstubAllEnvs();
-    restoreTTYDescriptors();
-    vi.restoreAllMocks();
-});
-
-describe('Add Command E2E', () => {
-    describe('addCommand non-interactive mode', () => {
-        it('creates a plugin when the "plugin" option is provided', async () => {
-            await addCommand({ plugin: 'test-plugin' });
-
-            expect(pluginRunSpy).toHaveBeenCalledOnce();
-            expect(pluginRunSpy).toHaveBeenCalledWith({ name: 'test-plugin', config: undefined });
+        expect(envelope).toMatchObject({
+            status: 'ok',
+            output: { entity: 'ProductReview', plugin: 'ReviewsPlugin' },
         });
+        expect(read(`${pluginDir}/entities/product-review.entity.ts`)).toContain('class ProductReview');
+        expect(read(`${pluginDir}/reviews.plugin.ts`)).toMatch(/entities: \[ProductReview\]/);
+    });
 
-        it('throws when the plugin name is empty', async () => {
-            await expect(runCliCommand(() => addCommand({ plugin: '   ' }))).resolves.toBe(1);
+    it('adds a CRUD service for the entity, and a basic service', async () => {
+        const crud = await add(
+            'service',
+            'ProductReviewService',
+            '--plugin',
+            'ReviewsPlugin',
+            '--entity',
+            'ProductReview',
+        );
+        const basic = await add('service', 'ReviewService', '--plugin', 'ReviewsPlugin');
 
-            expect(pluginRunSpy).not.toHaveBeenCalled();
+        expect(crud.envelope).toMatchObject({ status: 'ok', output: { entity: 'ProductReview' } });
+        expect(basic.envelope).toMatchObject({ status: 'ok', output: { entity: null } });
+        expect(read(`${pluginDir}/services/product-review.service.ts`)).toContain(
+            'getRepository(ctx, ProductReview)',
+        );
+        expect(read(`${pluginDir}/reviews.plugin.ts`)).toMatch(/providers: \[[^\]]*ProductReviewService/);
+    });
+
+    it('adds a job queue to a service', async () => {
+        const { envelope } = await add(
+            'job-queue',
+            '--plugin',
+            'ReviewsPlugin',
+            '--service',
+            'ReviewService',
+            '--name',
+            'review-indexing',
+        );
+
+        expect(envelope).toMatchObject({ status: 'ok', output: { triggerMethod: 'triggerReviewIndexing' } });
+        expect(read(`${pluginDir}/services/review.service.ts`)).toContain("name: 'review-indexing'");
+    });
+
+    it('adds the CRUD API of an entity service', async () => {
+        const { envelope } = await add(
+            'api-extension',
+            '--plugin',
+            'ReviewsPlugin',
+            '--service',
+            'ProductReviewService',
+        );
+
+        expect(envelope).toMatchObject({ status: 'ok', output: { crud: true } });
+        expect(read(`${pluginDir}/reviews.plugin.ts`)).toContain('adminApiExtensions');
+    });
+
+    it('asks for an operation name for a service without an entity', async () => {
+        const { envelope, exitCode } = await add(
+            'api-extension',
+            '--plugin',
+            'ReviewsPlugin',
+            '--service',
+            'ReviewService',
+        );
+
+        expect(envelope).toMatchObject({
+            status: 'incomplete',
+            needs: [{ kind: 'input', field: 'queryName' }],
         });
+        expect(exitCode).not.toBe(0);
+    });
 
-        it('adds an entity to the specified plugin', async () => {
-            await addCommand({
-                entity: 'MyEntity',
-                selectedPlugin: 'MyPlugin',
-            });
+    it('adds a named query for a service without an entity', async () => {
+        const { envelope } = await add(
+            'api-extension',
+            '--plugin',
+            'ReviewsPlugin',
+            '--service',
+            'ReviewService',
+            '--query-name',
+            'reviewCount',
+        );
 
-            expect(entityRunSpy).toHaveBeenCalledOnce();
-            expect(entityRunSpy).toHaveBeenCalledWith({
-                className: 'MyEntity',
-                isNonInteractive: true,
-                config: undefined,
-                pluginName: 'MyPlugin',
-                customFields: undefined,
-                translatable: undefined,
-            });
-        });
+        expect(envelope).toMatchObject({ status: 'ok', output: { crud: false } });
+        expect(read(`${pluginDir}/services/review.service.ts`)).toContain('async reviewCount(');
+    });
 
-        it('fails when adding an entity without specifying a plugin in non-interactive mode', async () => {
-            await expect(runCliCommand(() => addCommand({ entity: 'MyEntity' }))).resolves.toBe(1);
+    it('adds Dashboard extensions to the plugin', async () => {
+        const { envelope } = await add('dashboard', '--plugin', 'ReviewsPlugin');
 
-            expect(entityRunSpy).not.toHaveBeenCalled();
-        });
+        expect(envelope).toMatchObject({ status: 'ok' });
+        expect(existsSync(join(dir, pluginDir, 'dashboard', 'index.tsx'))).toBe(true);
+        expect(read(`${pluginDir}/reviews.plugin.ts`)).toContain("dashboard: './dashboard/index.tsx'");
+    });
 
-        it('adds a service to the specified plugin', async () => {
-            await addCommand({
-                service: 'MyService',
-                selectedPlugin: 'MyPlugin',
-            });
+    it('lists the missing inputs, with the plugins to choose from', async () => {
+        const { envelope } = await add('entity');
 
-            expect(serviceRunSpy).toHaveBeenCalledOnce();
-            expect(serviceRunSpy.mock.calls[0][0]).toMatchObject({
-                serviceName: 'MyService',
-                pluginName: 'MyPlugin',
-            });
-        });
+        expect(envelope.status).toBe('incomplete');
+        expect(envelope.needs).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ field: 'name' }),
+                expect.objectContaining({ field: 'plugin', choices: ['ReviewsPlugin'] }),
+            ]),
+        );
+    });
 
-        it('adds a job-queue when required parameters are provided', async () => {
-            const options = {
-                jobQueue: 'MyPlugin',
-                name: 'ReindexJob',
-                selectedService: 'SearchService',
-            } as const;
-            await addCommand(options);
+    it('reports a plugin, a service or a file that does not fit as coded errors', async () => {
+        const missingPlugin = await add('entity', 'Other', '--plugin', 'MissingPlugin');
+        const missingService = await add(
+            'job-queue',
+            '--plugin',
+            'ReviewsPlugin',
+            '--service',
+            'Nope',
+            '--name',
+            'x1',
+        );
+        const existingFile = await add('entity', 'ProductReview', '--plugin', 'ReviewsPlugin');
 
-            expect(jobQueueRunSpy).toHaveBeenCalledOnce();
-            expect(jobQueueRunSpy.mock.calls[0][0]).toMatchObject({
-                pluginName: 'MyPlugin',
-                name: 'ReindexJob',
-                selectedService: 'SearchService',
-            });
-        });
+        expect(missingPlugin.envelope.error).toMatchObject({ code: 'add.plugin-not-found' });
+        expect(missingService.envelope.error).toMatchObject({ code: 'add.service-not-found' });
+        expect(existingFile.envelope.error).toMatchObject({ code: 'add.file-exists' });
+    });
 
-        it('fails when job-queue parameters are incomplete', async () => {
-            await expect(
-                runCliCommand(() => addCommand({ jobQueue: true, name: 'JobWithoutService' } as any)),
-            ).resolves.toBe(1);
+    it('still runs the subcommands for the older flags', async () => {
+        const { exitCode, stderr } = await runCli(dir, [
+            'add',
+            '-e',
+            'ReviewVote',
+            '--selected-plugin',
+            'ReviewsPlugin',
+        ]);
 
-            expect(jobQueueRunSpy).not.toHaveBeenCalled();
-        });
-
-        it('adds an API extension scaffold when queryName is provided', async () => {
-            await addCommand({
-                apiExtension: 'MyPlugin',
-                queryName: 'myQuery',
-            });
-
-            expect(apiExtRunSpy).toHaveBeenCalledOnce();
-            expect(apiExtRunSpy.mock.calls[0][0]).toMatchObject({
-                pluginName: 'MyPlugin',
-                queryName: 'myQuery',
-                mutationName: undefined,
-            });
-        });
-
-        it('fails when neither queryName nor mutationName is provided for API extension', async () => {
-            await expect(runCliCommand(() => addCommand({ apiExtension: true } as any))).resolves.toBe(1);
-
-            expect(apiExtRunSpy).not.toHaveBeenCalled();
-        });
-
-        it('exits with error when no valid operation is specified', async () => {
-            // Empty options triggers interactive mode; mocked select returns an unknown id → exit 1
-            await expect(runCliCommand(() => addCommand({}))).resolves.toBe(1);
-
-            expect(pluginRunSpy).not.toHaveBeenCalled();
-            expect(entityRunSpy).not.toHaveBeenCalled();
-            expect(serviceRunSpy).not.toHaveBeenCalled();
-        });
+        expect(exitCode, stderr).toBe(0);
+        expect(existsSync(join(dir, pluginDir, 'entities', 'review-vote.entity.ts'))).toBe(true);
     });
 });

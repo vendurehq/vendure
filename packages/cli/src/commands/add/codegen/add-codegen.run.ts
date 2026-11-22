@@ -3,8 +3,8 @@ import { CommandContext, fail } from '@vendure/common/lib/command';
 import { openProject } from '../../../shared/open-project.js';
 import { PackageJson } from '../../../shared/package-json-ref.js';
 import { getPluginClasses } from '../../../utilities/ast-utils.js';
+import { packageJsonNotFound, pluginNotFound } from '../add.errors.js';
 
-import { packageJsonNotFound, pluginNotFound } from './add-codegen.errors.js';
 import { CODEGEN_PACKAGES, configureCodegen } from './add-codegen.shared.js';
 
 /**

@@ -144,41 +144,48 @@ The first entry, "Vendure Platform features (B2B, advanced search, ...), free tr
 
 ### Non-Interactive Mode
 
-For automation or when you know exactly what you need to add, you can use the non-interactive mode with specific arguments and options:
+Each feature is its own subcommand, so you can run it from a script or an agent:
 
 ```bash
-# Create a new plugin
-npx vendure add -p MyPlugin
+# Create a new plugin, and add it to the Vendure config
+npx vendure add plugin my-feature
 
 # Add an entity to a plugin
-npx vendure add -e MyEntity --selected-plugin MyPlugin
+npx vendure add entity MyEntity --plugin MyFeaturePlugin
 
 # Add an entity with features
-npx vendure add -e MyEntity --selected-plugin MyPlugin --custom-fields --translatable
+npx vendure add entity MyEntity --plugin MyFeaturePlugin --custom-fields --translatable
 
-# Add a service to a plugin
-npx vendure add -s MyService --selected-plugin MyPlugin
+# Add a basic service to a plugin
+npx vendure add service MyService --plugin MyFeaturePlugin
 
-# Add a service with specific type
-npx vendure add -s MyService --selected-plugin MyPlugin --type entity
+# Add a CRUD service for an entity
+npx vendure add service MyEntityService --plugin MyFeaturePlugin --entity MyEntity
 
-# Add job queue support to a plugin
-npx vendure add -j MyPlugin --name my-job --selected-service MyService
+# Add a job queue to a service
+npx vendure add job-queue --plugin MyFeaturePlugin --service MyService --name my-job
 
-# Add GraphQL codegen to a plugin
-npx vendure add codegen --plugin MyPlugin
+# Add an Admin API extension. A CRUD service gets the entity's queries and mutations
+npx vendure add api-extension --plugin MyFeaturePlugin --service MyEntityService
 
-# Add API extension to a plugin
-npx vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
+# For any other service, name the query, the mutation, or both
+npx vendure add api-extension --plugin MyFeaturePlugin --service MyService --query-name getCustomData
 
 # Add Dashboard extensions to a plugin
-npx vendure add -d MyPlugin
+npx vendure add dashboard --plugin MyFeaturePlugin
 
-# Use custom config file
-npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
+# Add GraphQL codegen to a plugin
+npx vendure add codegen --plugin MyFeaturePlugin
 ```
 
-#### Add Command Options
+Every subcommand supports `--json`. Without a required input, it returns `incomplete` and names the
+missing fields, with the valid values, such as the plugins of your project, as `choices`. On a
+terminal, it asks for them instead.
+
+The flags in the table below are the older form of the same commands. They still work, and run the
+subcommands above.
+
+#### Older Add Command Flags
 
 | Flag | Long Form                  | Description                        | Example                                                                  |
 | ---- | -------------------------- | ---------------------------------- | ------------------------------------------------------------------------ |

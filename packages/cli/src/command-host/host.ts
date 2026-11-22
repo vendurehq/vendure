@@ -28,9 +28,14 @@ import { kebab } from './naming.js';
 export interface Prompter {
     /**
      * Asks for an input field. `validate` returns the problem with an answer, or `undefined` when
-     * the answer is valid, so a person can correct a bad answer before the command runs.
+     * the answer is valid, so a person can correct a bad answer before the command runs. For an
+     * `optional` field, an empty answer keeps its default, so a choice of values offers "none".
      */
-    askInput(need: InputNeed, validate: (answer: string) => string | undefined): Promise<string | undefined>;
+    askInput(
+        need: InputNeed,
+        validate: (answer: string) => string | undefined,
+        optional: boolean,
+    ): Promise<string | undefined>;
     /** Shows the preview and asks whether to go ahead. */
     askConsent(need: ConsentNeed): Promise<boolean>;
 }
@@ -282,8 +287,10 @@ export async function executeCommand(
             for (const need of needs) {
                 asked.add(need.field);
                 const optional = !validation.issues;
-                const answer = await env.prompter.askInput(need, value =>
-                    answerProblem(schemas.input, input, need.field, value, optional),
+                const answer = await env.prompter.askInput(
+                    need,
+                    value => answerProblem(schemas.input, input, need.field, value, optional),
+                    optional,
                 );
                 if (answer === undefined) {
                     return errorResult(hostErrors.cancelled, {}, notices);

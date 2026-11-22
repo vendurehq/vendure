@@ -1,14 +1,6 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition.js';
 import { runCliCommand } from '../../shared/cli-command-exit.js';
 
-import { addApiExtension } from './api-extension/add-api-extension.js';
-import { addDashboard } from './dashboard/add-dashboard.js';
-import { addEntity } from './entity/add-entity.js';
-import { addJobQueue } from './job-queue/add-job-queue.js';
-import { addPlatform } from './platform/add-platform.js';
-import { createNewPlugin } from './plugin/create-new-plugin.js';
-import { addService } from './service/add-service.js';
-
 export const addCommandDef: CliCommandDefinition = {
     name: 'add',
     description: 'Add a feature to your Vendure project',
@@ -20,30 +12,21 @@ export const addCommandDef: CliCommandDefinition = {
             required: false,
         },
         {
-            // First, so it is the default entry of the interactive menu.
             long: '--platform',
             description: 'Vendure Platform features (B2B, advanced search, ...), free trial',
             required: false,
-            interactiveId: 'add-platform',
-            interactiveFn: addPlatform,
         },
         {
             short: '-p',
             long: '--plugin <name>',
-            description: 'Create a new plugin with the specified name',
+            description: 'Create a new plugin with the specified name. Same as `vendure add plugin`',
             required: false,
-            interactiveId: 'create-new-plugin',
-            interactiveCategory: 'Plugin',
-            interactiveFn: createNewPlugin,
         },
         {
             short: '-e',
             long: '--entity <name>',
-            description: 'Add a new entity to a plugin',
+            description: 'Add a new entity to a plugin. Same as `vendure add entity`',
             required: false,
-            interactiveId: 'add-entity',
-            interactiveCategory: 'Plugin: Entity',
-            interactiveFn: addEntity,
             subOptions: [
                 {
                     long: '--selected-plugin <name>',
@@ -66,11 +49,8 @@ export const addCommandDef: CliCommandDefinition = {
         {
             short: '-s',
             long: '--service <name>',
-            description: 'Add a new service to a plugin',
+            description: 'Add a new service to a plugin. Same as `vendure add service`',
             required: false,
-            interactiveId: 'add-service',
-            interactiveCategory: 'Plugin: Service',
-            interactiveFn: addService,
             subOptions: [
                 {
                     long: '--type <type>',
@@ -87,11 +67,8 @@ export const addCommandDef: CliCommandDefinition = {
         {
             short: '-j',
             long: '--job-queue [plugin]',
-            description: 'Add job queue support to a plugin',
+            description: 'Add job queue support to a plugin. Same as `vendure add job-queue`',
             required: false,
-            interactiveId: 'add-job-queue',
-            interactiveCategory: 'Plugin: Job Queue',
-            interactiveFn: addJobQueue,
             subOptions: [
                 {
                     long: '--name <name>',
@@ -109,11 +86,8 @@ export const addCommandDef: CliCommandDefinition = {
         {
             short: '-a',
             long: '--api-extension [plugin]',
-            description: 'Add an API extension to a plugin',
+            description: 'Add an API extension to a plugin. Same as `vendure add api-extension`',
             required: false,
-            interactiveId: 'add-api-extension',
-            interactiveCategory: 'Plugin: API',
-            interactiveFn: addApiExtension,
             subOptions: [
                 {
                     long: '--query-name <name>',
@@ -130,17 +104,14 @@ export const addCommandDef: CliCommandDefinition = {
         {
             short: '-d',
             long: '--dashboard [plugin]',
-            description: 'Add Dashboard extensions to a plugin',
+            description: 'Add Dashboard extensions to a plugin. Same as `vendure add dashboard`',
             required: false,
-            interactiveId: 'add-dashboard',
-            interactiveCategory: 'Plugin: Dashboard',
-            interactiveFn: addDashboard,
         },
     ],
     action: async options => {
         return runCliCommand(async () => {
             const { addCommand } = await import('./add.js');
-            await addCommand(options);
+            return addCommand(options);
         });
     },
 };
