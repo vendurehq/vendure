@@ -176,7 +176,7 @@ export class StoredMediaService {
                 try {
                     await assetStorageStrategy.deleteFile(identifier);
                 } catch (error: any) {
-                    Logger.error('error.could-not-delete-asset-file', undefined, error?.stack);
+                    Logger.error(`Could not delete the asset file "${identifier}"`, undefined, error?.stack);
                 }
             }),
         );

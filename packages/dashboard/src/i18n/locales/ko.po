@@ -897,6 +897,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "테스트를 실행하려면 상품을 추가하고 배송지 주소를 완성하세요."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "헤더 행 토글"
@@ -6439,6 +6443,10 @@ msgstr ""
 msgid "Failed to update customer"
 msgstr "고객 업데이트 실패"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
 msgstr ""
@@ -7645,6 +7653,10 @@ msgstr "과세 기준"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"
 msgstr "더 보기"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."

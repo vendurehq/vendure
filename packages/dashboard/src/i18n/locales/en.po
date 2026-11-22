@@ -909,6 +909,10 @@ msgstr "{totalCount} channels"
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Please add products and complete the shipping address to run the test."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr "Copy for agent"
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Toggle header row"
@@ -6492,6 +6496,10 @@ msgstr "Discounts would change"
 msgid "Failed to update customer"
 msgstr "Failed to update customer"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr "Copied the error for your agent"
+
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
 msgstr "Draw from"
@@ -7721,6 +7729,10 @@ msgstr "Tax base"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"
 msgstr "Load more"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr "Could not copy. The error is in the browser console."
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
