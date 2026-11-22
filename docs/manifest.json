@@ -865,7 +865,7 @@
           "title": "Quick Start",
           "slug": "quick-start",
           "file": "docs/guides/mcp-server/quick-start/index.mdx",
-          "lastModified": "2026-10-01T19:26:07+02:00"
+          "lastModified": "2026-11-22T20:20:28+01:00"
         },
         {
           "title": "OAuth & Consent",
@@ -877,7 +877,7 @@
           "title": "Assistant inside Vendure",
           "slug": "assistant-inside-vendure",
           "file": "docs/guides/mcp-server/assistant-inside-vendure/index.mdx",
-          "lastModified": "2026-10-01T12:32:35+02:00"
+          "lastModified": "2026-11-22T20:20:28+01:00"
         },
         {
           "title": "Assistant outside Vendure",
@@ -889,13 +889,13 @@
           "title": "Registering Custom Tools",
           "slug": "custom-tools",
           "file": "docs/guides/mcp-server/custom-tools/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-11-22T20:20:28+01:00"
         },
         {
           "title": "Production Hardening",
           "slug": "production",
           "file": "docs/guides/mcp-server/production/index.mdx",
-          "lastModified": "2026-10-01T12:32:35+02:00"
+          "lastModified": "2026-11-22T20:20:28+01:00"
         },
         {
           "title": "Logging & Observability",
@@ -913,7 +913,7 @@
           "title": "Built-in Tool Reference",
           "slug": "built-in-tools",
           "file": "docs/guides/mcp-server/built-in-tools/index.mdx",
-          "lastModified": "2026-11-22T20:18:30+01:00"
+          "lastModified": "2026-11-22T20:20:28+01:00"
         },
         {
           "title": "OAuth Protocol Reference",
