@@ -4,6 +4,7 @@ import { Permission } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
+import { EntityNotFoundError, ForbiddenError } from '../../common/error/errors';
 import { idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
@@ -79,8 +80,8 @@ export class StoreReadinessService {
 
     /**
      * @description
-     * Checks every Channel on which the active user holds `ReadSettings`, or only the given Channels
-     * among those. A check that throws is reported as a `store.check.failed` finding, so one broken
+     * Checks every Channel on which the active user holds `ReadSettings`, or only the given Channels.
+     * A given Channel that does not exist, or that the user may not read, is refused. A check that throws is reported as a `store.check.failed` finding, so one broken
      * check does not hide the others.
      */
     async check(ctx: RequestContext, options: { channelIds?: ID[] } = {}): Promise<StoreReadinessReport> {
@@ -100,13 +101,15 @@ export class StoreReadinessService {
             }
         };
 
+        const { taxZoneStrategy } = this.configService.taxOptions;
+        const allZones = await this.zoneService.getAllWithMembers(ctx);
         let shippingZones: ChannelReadinessInput['shippingZones'] = [];
         await run('shipping-zones', async () => {
             const result = await findShippingZones(ctx, this.zoneService);
             shippingZones = result.shippingZones;
             return result.findings;
         });
-        await run('tax-rate-overlaps', () => checkTaxRateOverlaps(ctx, this.taxRateService));
+        await run('tax-rate-overlaps', () => checkTaxRateOverlaps(ctx, this.taxRateService, taxZoneStrategy));
         await run('superadmin-credentials', () =>
             checkSuperadminCredentials(ctx, {
                 connection: this.connection,
@@ -118,12 +121,23 @@ export class StoreReadinessService {
         for (const channel of await this.findChannelsToCheck(ctx, options.channelIds)) {
             const input: ChannelReadinessInput = {
                 ctx: await this.createChannelContext(ctx, channel),
+                newContext: () => this.createChannelContext(ctx, channel),
                 channel,
+                allZones,
                 shippingZones,
             };
             await run('default-zones', () => Promise.resolve(checkDefaultZones(input)), channel);
             await run('prices', () => checkPrices(input, this.connection), channel);
-            await run('tax-rates', () => checkTaxRates(input, this.connection, this.taxRateService), channel);
+            await run(
+                'tax-rates',
+                () =>
+                    checkTaxRates(input, {
+                        connection: this.connection,
+                        taxRateService: this.taxRateService,
+                        taxZoneStrategy,
+                    }),
+                channel,
+            );
             await run(
                 'shipping',
                 () =>
@@ -150,25 +164,33 @@ export class StoreReadinessService {
         return { ready: !findings.some(finding => finding.severity === 'error'), findings };
     }
 
+    /**
+     * Every Channel on which the active user holds `ReadSettings`. A Channel asked for by ID that does
+     * not exist, or that the user may not read, is refused, so a report never looks ready for a
+     * Channel it did not check.
+     */
     private async findChannelsToCheck(ctx: RequestContext, channelIds?: ID[]): Promise<Channel[]> {
+        // findAll() loads the default Zones, which the default-zones check reads.
         const { items } = await this.channelService.findAll(ctx);
-        const channels: Channel[] = [];
+        const readable: Channel[] = [];
         for (const channel of items) {
-            if (channelIds && !channelIds.some(id => idsAreEqual(id, channel.id))) {
-                continue;
-            }
-            if (
-                !(await this.roleService.userHasPermissionOnChannel(ctx, channel.id, Permission.ReadSettings))
-            ) {
-                continue;
-            }
-            // findAll() does not load the default Zones, which the default-zones check reads.
-            const withZones = await this.channelService.findOne(ctx, channel.id);
-            if (withZones) {
-                channels.push(withZones);
+            if (await this.roleService.userHasPermissionOnChannel(ctx, channel.id, Permission.ReadSettings)) {
+                readable.push(channel);
             }
         }
-        return channels;
+        if (!channelIds) {
+            return readable;
+        }
+        return channelIds.map(id => {
+            const channel = readable.find(candidate => idsAreEqual(candidate.id, id));
+            if (channel) {
+                return channel;
+            }
+            if (items.some(candidate => idsAreEqual(candidate.id, id))) {
+                throw new ForbiddenError();
+            }
+            throw new EntityNotFoundError('Channel', id);
+        });
     }
 
     /**

@@ -19,6 +19,7 @@ type CheckStoreInput = z.infer<typeof checkStoreInput>;
     description:
         'Check whether each channel can take an order, and list the setup gaps that stop it: missing tax rates, ' +
         'prices, shipping, payment or stock locations. Each finding has a code, and fixes given as admin tool calls. ' +
+        'Fix paths name the tools as vendure mcp does, with an "admin_" prefix: on this server, call them without it. ' +
         'It changes nothing.',
     keywords: [
         'is the store ready to sell',

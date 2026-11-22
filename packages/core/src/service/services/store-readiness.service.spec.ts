@@ -1,6 +1,7 @@
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { describe, expect, it, vi } from 'vitest';
 
+import { EntityNotFoundError, ForbiddenError } from '../../common/error/errors';
 import { Logger } from '../../config/logger/vendure-logger';
 
 import { StoreReadinessService } from './store-readiness.service';
@@ -39,10 +40,10 @@ function build(overrides: Record<string, unknown> = {}) {
         configService: {
             authOptions: { superadminCredentials: { identifier: 'superadmin' } },
             paymentOptions: { paymentMethodHandlers: [] },
+            taxOptions: { taxZoneStrategy: { determineTaxZone: () => undefined } },
         },
         channelService: {
             findAll: () => Promise.resolve({ items: [channel], totalItems: 1 }),
-            findOne: () => Promise.resolve(channel),
         },
         zoneService: { getAllWithMembers: () => Promise.resolve([]) },
         taxRateService: { findOverlappingZoneRates: () => Promise.resolve([]) },
@@ -101,14 +102,21 @@ describe('StoreReadinessService', () => {
         }
     });
 
-    it('skips channels on which the caller lacks ReadSettings, and channels not asked for', async () => {
+    it('skips channels the caller may not read, and refuses them when asked for by ID', async () => {
         const denied = build({ roleService: { userHasPermissionOnChannel: () => Promise.resolve(false) } });
         expect(await denied.service.check({} as any)).toEqual({ ready: true, findings: [] });
         expect(denied.deps.requestContextService.create).not.toHaveBeenCalled();
 
-        const other = build();
-        await other.service.check({} as any, { channelIds: [2] });
-        expect(other.deps.requestContextService.create).not.toHaveBeenCalled();
+        // A channel asked for by ID is refused rather than skipped, so the report never looks ready
+        // for a channel it did not check.
+        await expect(denied.service.check({} as any, { channelIds: [1] })).rejects.toThrow(ForbiddenError);
+        await expect(build().service.check({} as any, { channelIds: [2] })).rejects.toThrow(
+            EntityNotFoundError,
+        );
+
+        const asked = build();
+        await asked.service.check({} as any, { channelIds: [1] });
+        expect(asked.deps.requestContextService.create).toHaveBeenCalled();
     });
 
     it('is ready with warnings only', async () => {

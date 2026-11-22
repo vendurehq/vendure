@@ -2,10 +2,13 @@ import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types'
 import { SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { describe, expect, it, vi } from 'vitest';
 
+import { AddressBasedTaxZoneStrategy } from '../../../config/tax/address-based-tax-zone-strategy';
+import { DefaultTaxZoneStrategy } from '../../../config/tax/default-tax-zone-strategy';
+
 import { checkDefaultZones, noDefaultShippingZone, noDefaultTaxZone } from './default-zones.check';
 import { checkPaymentMethods, noEnabledPaymentMethod } from './payment-methods.check';
-import { missingPrices } from './prices.check';
-import { searchIndexIncomplete } from './search-index.check';
+import { checkPrices, missingPrices } from './prices.check';
+import { checkSearchIndex, searchIndexIncomplete } from './search-index.check';
 import { findShippingZones, sampleCountryCode, zoneWithoutEnabledCountry } from './shipping-zones';
 import {
     checkShipping,
@@ -20,9 +23,11 @@ import { ambiguousZoneRates, checkTaxRateOverlaps } from './tax-rate-overlaps.ch
 import { checkTaxRates, noApplicableTaxRate } from './tax-rates.check';
 
 const ctx = {} as any;
+/** The context each sample order gets, so a cached tax zone does not carry over. */
+const freshCtx = { fresh: true } as any;
 
 function country(code: string, enabled = true) {
-    return { id: `country-${code}`, code, enabled } as any;
+    return { id: `country-${code}`, code, enabled, type: 'country' } as any;
 }
 
 function zone(id: string, members: any[]) {
@@ -43,7 +48,15 @@ function channel(overrides: Record<string, unknown> = {}) {
 }
 
 function input(overrides: Partial<ChannelReadinessInput> = {}): ChannelReadinessInput {
-    return { ctx, channel: channel(), shippingZones: [zone('z1', [country('DE')])], ...overrides };
+    const zones = [zone('z1', [country('DE')])];
+    return {
+        ctx,
+        newContext: () => Promise.resolve(freshCtx),
+        channel: channel(),
+        allZones: zones,
+        shippingZones: zones,
+        ...overrides,
+    };
 }
 
 /** A TypeORM query builder stand-in: every chained call returns it, and the terminal calls resolve. */
@@ -95,7 +108,7 @@ describe('checkDefaultZones', () => {
             'store.channel.no-default-tax-zone',
             'store.channel.no-default-shipping-zone',
         ]);
-        expect(findings[0]).toMatchObject({ severity: 'error', channelId: 1, dashboardUrl: '/channels/1' });
+        expect(findings[0]).toMatchObject({ severity: 'error', channelId: 1, dashboardUrl: '/channels' });
         expect(findings[0].fixes).toEqual([
             expect.objectContaining({
                 path: ['admin_update_channel'],
@@ -142,56 +155,117 @@ describe('findShippingZones', () => {
 });
 
 describe('checkTaxRates', () => {
-    it('reports the enabled countries of a zone that no rate applies to', async () => {
-        const connection = {
+    const fr = country('FR');
+    const de = country('DE');
+    const be = country('BE');
+    const europe = zone('eu', [fr, de, be, country('NL', false), { ...country('BY'), type: 'province' }]);
+    const shippingOnly = zone('pacific', [country('NZ')]);
+
+    function connection(categoryIds: string[]) {
+        return {
             getRepository: () => ({
-                createQueryBuilder: () => queryBuilder({ getRawMany: [{ taxCategoryId: 'tc1' }] }),
-                find: () => Promise.resolve([{ id: 'tc1', name: 'Standard' }]),
+                createQueryBuilder: () =>
+                    queryBuilder({ getRawMany: categoryIds.map(taxCategoryId => ({ taxCategoryId })) }),
+                find: () => Promise.resolve(categoryIds.map(id => ({ id, name: 'Standard' }))),
             }),
         } as any;
-        const taxRateService = {
-            getApplicableTaxRate: vi.fn((_ctx: unknown, target: { countryCode: string }) =>
-                Promise.resolve({ id: target.countryCode === 'DE' ? '7' : '0' }),
+    }
+
+    /** A rate exists only where `rates` says, keyed by "<zone id>" or "<country code>". */
+    function taxRateService(rates: string[]) {
+        return {
+            findApplicableTaxRate: vi.fn(
+                (_ctx: unknown, target: { countryCode?: string; zone: { id: string } }) =>
+                    Promise.resolve(
+                        (target.countryCode && rates.includes(target.countryCode)) ||
+                            rates.includes(target.zone.id)
+                            ? { id: 'rate' }
+                            : undefined,
+                    ),
             ),
         } as any;
-        const findings = await checkTaxRates(
-            input({
-                shippingZones: [
-                    zone('z1', [country('FR'), country('DE'), country('BE'), country('NL', false)]),
-                ],
-            }),
-            connection,
-            taxRateService,
-        );
+    }
+
+    /** Picks the zone that contains the country, like the address-based strategy. */
+    const byAddress = {
+        determineTaxZone: (_ctx: unknown, zones: any[], ch: any, order?: any) =>
+            zones.find(z => z.members.some((m: any) => m.code === order?.shippingAddress?.countryCode)) ??
+            ch.defaultTaxZone,
+    } as any;
+
+    const defaultStrategy = {
+        determineTaxZone: (_ctx: unknown, _zones: unknown, ch: any) => ch.defaultTaxZone,
+    } as any;
+
+    function taxInput(defaultTaxZone: unknown, shippingZones: any[]) {
+        return input({
+            channel: channel({ defaultTaxZone }),
+            allZones: [europe, shippingOnly],
+            shippingZones,
+        });
+    }
+
+    it('checks the tax zone that the strategy picks for each country, and an order with no address', async () => {
+        const service = taxRateService(['DE']);
+        const findings = await checkTaxRates(taxInput(europe, [europe]), {
+            connection: connection(['tc1']),
+            taxRateService: service,
+            taxZoneStrategy: byAddress,
+        });
         expect(findings).toHaveLength(1);
         expect(findings[0]).toMatchObject({
             code: 'store.tax.no-rate',
-            zoneId: 'z1',
+            zoneId: 'eu',
             taxCategoryId: 'tc1',
             channelId: 1,
         });
-        expect(findings[0].message).toContain('BE, FR');
-        expect(findings[0].message).not.toContain('NL');
-        expect(taxRateService.getApplicableTaxRate).toHaveBeenCalledTimes(3);
+        // A disabled country and a province are not places an order ships to.
+        expect(findings[0].message).toContain('orders to BE, FR and orders with no address yet');
+        expect(findings[0].message).not.toMatch(/NL|BY/);
+        expect(service.findApplicableTaxRate).toHaveBeenCalledTimes(4);
+    });
+
+    it('reports no gap for a shipping-only zone when the strategy always uses the default tax zone', async () => {
+        const findings = await checkTaxRates(taxInput(europe, [europe, shippingOnly]), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService(['eu']),
+            taxZoneStrategy: defaultStrategy,
+        });
+        expect(findings).toEqual([]);
+    });
+
+    it('reports a shipping-only zone when the strategy picks it by address', async () => {
+        const findings = await checkTaxRates(taxInput(europe, [europe, shippingOnly]), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService(['eu']),
+            taxZoneStrategy: byAddress,
+        });
+        expect(findings.map(f => [f.zoneId, f.message.includes('orders to NZ')])).toEqual([
+            ['pacific', true],
+        ]);
     });
 
     it('reports nothing when the channel has no variants', async () => {
-        const connection = {
-            getRepository: () => ({ createQueryBuilder: () => queryBuilder({ getRawMany: [] }) }),
-        } as any;
-        expect(await checkTaxRates(input(), connection, {} as any)).toEqual([]);
+        expect(
+            await checkTaxRates(input(), {
+                connection: connection([]),
+                taxRateService: {} as any,
+                taxZoneStrategy: defaultStrategy,
+            }),
+        ).toEqual([]);
     });
 });
 
 describe('checkTaxRateOverlaps', () => {
+    const taxRateService = {
+        findOverlappingZoneRates: () =>
+            Promise.resolve([
+                { countryCode: 'AT', taxCategoryId: 'tc1', taxRates: [{ name: 'A' }, { name: 'B' }] },
+            ]),
+    } as any;
+
     it('reports each overlap as a warning with a country-rate fix', async () => {
-        const taxRateService = {
-            findOverlappingZoneRates: () =>
-                Promise.resolve([
-                    { countryCode: 'AT', taxCategoryId: 'tc1', taxRates: [{ name: 'A' }, { name: 'B' }] },
-                ]),
-        } as any;
-        const [finding] = await checkTaxRateOverlaps(ctx, taxRateService);
+        const [finding] = await checkTaxRateOverlaps(ctx, taxRateService, new AddressBasedTaxZoneStrategy());
         expect(finding).toMatchObject({
             code: 'store.tax.ambiguous-zone-rates',
             severity: 'warning',
@@ -199,6 +273,69 @@ describe('checkTaxRateOverlaps', () => {
             taxCategoryId: 'tc1',
         });
         expect(finding.fixes[0].input).toMatchObject({ input: { target: { countryCode: 'AT' } } });
+    });
+
+    it('reports nothing with the default strategy, which never picks a zone by address', async () => {
+        expect(await checkTaxRateOverlaps(ctx, taxRateService, new DefaultTaxZoneStrategy())).toEqual([]);
+    });
+});
+
+describe('checkPrices', () => {
+    it('reports each channel currency in which some variants have no price', async () => {
+        const counts: Record<string, number> = { USD: 3, EUR: 1 };
+        let currency = '';
+        const builder: any = new Proxy(
+            {},
+            {
+                get: (_target, prop) => {
+                    if (prop === 'getCount') return () => Promise.resolve(3);
+                    if (prop === 'getRawOne')
+                        return () => Promise.resolve({ count: String(counts[currency]) });
+                    if (prop === 'andWhere')
+                        return (_sql: string, params?: { currencyCode?: string }) => {
+                            currency = params?.currencyCode ?? currency;
+                            return builder;
+                        };
+                    return () => builder;
+                },
+            },
+        );
+        const connection = { getRepository: () => ({ createQueryBuilder: () => builder }) } as any;
+        const findings = await checkPrices(
+            input({ channel: channel({ availableCurrencyCodes: [CurrencyCode.USD, CurrencyCode.EUR] }) }),
+            connection,
+        );
+        expect(findings).toEqual([
+            expect.objectContaining({
+                code: 'store.channel.missing-prices',
+                severity: 'error',
+                channelId: 1,
+            }),
+        ]);
+        expect(findings[0].message).toMatch(/^2 product variant\(s\) .* in EUR/);
+    });
+});
+
+describe('checkSearchIndex', () => {
+    function connection(hasIndex: boolean, variants: number, indexed: number) {
+        let call = 0;
+        return {
+            rawConnection: { hasMetadata: () => hasIndex },
+            getRepository: () => ({
+                createQueryBuilder: () => queryBuilder({ getCount: call++ === 0 ? variants : indexed }),
+            }),
+        } as any;
+    }
+
+    it('warns when the index holds fewer items than the channel has variants', async () => {
+        const [finding] = await checkSearchIndex(input(), connection(true, 5, 2));
+        expect(finding).toMatchObject({ code: 'store.search.index-incomplete', severity: 'warning' });
+        expect(finding.message).toContain('holds 2 of its 5');
+    });
+
+    it('reports nothing for a full index, or without the default search plugin', async () => {
+        expect(await checkSearchIndex(input(), connection(true, 5, 5))).toEqual([]);
+        expect(await checkSearchIndex(input(), connection(false, 5, 0))).toEqual([]);
     });
 });
 
@@ -233,7 +370,7 @@ describe('checkShipping', () => {
             input({ shippingZones: [zone('z1', [country('FR'), country('DE')])] }),
             deps,
         );
-        expect(deps.orderTestingService.testEligibleShippingMethods).toHaveBeenCalledWith(ctx, {
+        expect(deps.orderTestingService.testEligibleShippingMethods).toHaveBeenCalledWith(freshCtx, {
             shippingAddress: expect.objectContaining({ countryCode: 'DE' }),
             lines: [{ productVariantId: 'v1', quantity: 1 }],
         });

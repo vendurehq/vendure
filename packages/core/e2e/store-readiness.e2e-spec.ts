@@ -1,5 +1,12 @@
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
-import { EventBus, Order, OrderLine, ShippingLine, TransactionalConnection } from '@vendure/core';
+import {
+    AddressBasedTaxZoneStrategy,
+    EventBus,
+    Order,
+    OrderLine,
+    ShippingLine,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -53,6 +60,8 @@ const STORE_READINESS = gql`
 describe('storeReadiness', () => {
     const config = testConfig();
     config.paymentOptions.paymentMethodHandlers = [testSuccessfulPaymentMethod];
+    // The tax zone follows the address, so a zone's own rates decide the tax of orders to its countries.
+    config.taxOptions.taxZoneStrategy = new AddressBasedTaxZoneStrategy();
     const { server, adminClient } = createTestEnvironment(config);
 
     beforeAll(async () => {
@@ -181,8 +190,9 @@ describe('storeReadiness', () => {
         const missing = report.findings.filter(
             f => f.code === 'store.tax.no-rate' && f.zoneId === createZone.id,
         );
-        expect(missing.length).toBeGreaterThan(0);
-        expect(missing[0].message).toContain('NZ');
+        // The fixture's variants all use one tax category.
+        expect(missing).toHaveLength(1);
+        expect(missing[0].message).toContain('orders to NZ');
         // A fix is an MCP tool call, so its IDs are the database IDs the tools take, not the encoded
         // IDs the e2e ID strategy gives the Admin API.
         const fixInput = missing[0].fixes[0].input.input;
@@ -219,9 +229,6 @@ describe('storeReadiness', () => {
                     f.taxCategoryId === missing[0].taxCategoryId,
             ),
         ).toBe(false);
-        expect(after.findings.some(f => f.code === 'store.tax.no-rate' && f.zoneId === createZone.id)).toBe(
-            missing.length > 1,
-        );
     });
 
     it('reports a country that matches two zone rates as ambiguous', async () => {
@@ -370,11 +377,28 @@ describe('storeReadiness', () => {
                     ),
                 ),
             );
+        const { zones } = await adminClient.query(gql`
+            query {
+                zones {
+                    items {
+                        id
+                        members {
+                            enabled
+                        }
+                    }
+                }
+            }
+        `);
+        const shippingZoneIds = zones.items
+            .filter((z: { members: Array<{ enabled: boolean }> }) => z.members.some(m => m.enabled))
+            .map((z: { id: string }) => z.id)
+            .sort();
         await setOrderMinimum(1_000_000_000);
         try {
             const report = await check();
             const ineligible = report.findings.filter(f => f.code === 'store.shipping.no-eligible-method');
-            expect(ineligible.length).toBeGreaterThan(0);
+            // One finding per zone the channel ships to.
+            expect(ineligible.map(f => f.zoneId).sort()).toEqual(shippingZoneIds);
             expect(ineligible[0]).toMatchObject({ severity: 'error', dashboardUrl: '/shipping-methods' });
             expect(ineligible[0].zoneId).toBeTruthy();
             expect(ineligible[0].countryCode).toMatch(/^[A-Z]{2}$/);
@@ -385,9 +409,45 @@ describe('storeReadiness', () => {
         expect(codes(restored)).not.toContain('store.shipping.no-eligible-method');
     });
 
-    it('checks only the channels asked for', async () => {
-        const report = await check(['99999']);
-        expect(report.findings.filter(f => f.channelId != null)).toEqual([]);
+    it('checks only the channels asked for, and refuses an unknown one', async () => {
+        const { zones } = await adminClient.query(gql`
+            query {
+                zones(options: { take: 1 }) {
+                    items {
+                        id
+                    }
+                }
+            }
+        `);
+        const { createChannel } = await adminClient.query(
+            gql`
+                mutation ($input: CreateChannelInput!) {
+                    createChannel(input: $input) {
+                        ... on Channel {
+                            id
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: 'second',
+                    token: 'second-token',
+                    defaultLanguageCode: LanguageCode.en,
+                    defaultCurrencyCode: CurrencyCode.USD,
+                    pricesIncludeTax: false,
+                    defaultTaxZoneId: zones.items[0].id,
+                    defaultShippingZoneId: zones.items[0].id,
+                },
+            },
+        );
+        const report = await check([createChannel.id]);
+        const channelIds = new Set(report.findings.filter(f => f.channelId != null).map(f => f.channelId));
+        // The new channel has no payment method, so it has findings, and only it is checked.
+        expect([...channelIds]).toEqual([createChannel.id]);
+        expect(codes(report)).toContain('store.channel.no-payment-method');
+
+        await expect(check(['T_99999'])).rejects.toThrow(/No Channel with the id "99999"/);
     });
 
     it('refuses an administrator without ReadSettings', async () => {

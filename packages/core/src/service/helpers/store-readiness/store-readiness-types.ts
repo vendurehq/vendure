@@ -71,10 +71,51 @@ export interface StoreReadinessReport {
 export interface ChannelReadinessInput {
     /** A context for the Channel being checked. */
     ctx: RequestContext;
+    /**
+     * A new context for the Channel. Core caches the active tax zone per context, so each sample order
+     * is priced with a context of its own.
+     */
+    newContext: () => Promise<RequestContext>;
     /** The Channel, with its default Zones loaded. */
     channel: Channel;
+    /** Every Zone, with its members, which the tax zone strategy chooses from. */
+    allZones: Zone[];
     /** The Zones the Channel ships to: every Zone with at least one enabled country, with its members. */
     shippingZones: Zone[];
+}
+
+/**
+ * @description
+ * The MCP admin tools that store readiness fixes name, without the `admin_` prefix that `vendure mcp`
+ * adds. They are defined by the MCP plugin, so this list is the one place core names them.
+ *
+ * @docsCategory services
+ * @docsPage StoreReadinessService
+ * @since 4.0.0
+ */
+export const STORE_READINESS_FIX_TOOLS = [
+    'update_channel',
+    'list_zones',
+    'update_zone',
+    'enable_countries',
+    'create_tax_rate',
+    'list_shipping_methods',
+    'list_shipping_options',
+    'create_shipping_method',
+    'update_shipping_method',
+    'list_payment_options',
+    'create_payment_method',
+    'create_stock_location',
+] as const;
+
+/** The path of a fix that calls an MCP admin tool, as `vendure mcp` names it. */
+export function adminToolPath(tool: (typeof STORE_READINESS_FIX_TOOLS)[number]): string[] {
+    return [`admin_${tool}`];
+}
+
+/** Zone members are Regions. Only countries count as places an order can ship to. */
+export function countryMembers(zone: Zone) {
+    return zone.members.filter(member => member.type === 'country');
 }
 
 /** Where a finding points and how to follow it up, besides its code and message. */
