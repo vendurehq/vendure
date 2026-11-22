@@ -3,7 +3,7 @@ import { EntityNotFoundError, Permission, RequestContext, ShippingMethodService 
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { deletionResult } from './deletion-result';
+import { channelList, deletionResult } from './deletion-result';
 
 const deleteShippingMethodInput = z.strictObject({
     id: idSchema.describe('Shipping method ID.'),
@@ -15,13 +15,14 @@ type DeleteShippingMethodToolInput = z.infer<typeof deleteShippingMethodInput>;
     name: 'delete_shipping_method',
     toolset: 'admin',
     description:
-        'Delete a shipping method of the active channel. Orders that used it keep their shipping lines.',
+        'Delete a shipping method of the active channel. It is removed from every channel it is assigned to. ' +
+        'Orders that used it keep their shipping lines.',
     keywords: [
-        'remove a delivery option',
-        'stop offering express shipping',
+        'delete a delivery option',
+        'remove a shipping method for good',
         'delete a shipping rate',
-        'drop a courier',
-        'remove postage option',
+        'drop a courier option',
+        'delete postage option',
         'delete a shipping method',
     ],
     permissions: [Permission.DeleteSettings, Permission.DeleteShippingMethod],
@@ -33,11 +34,14 @@ export class DeleteShippingMethodTool implements McpToolHandler<DeleteShippingMe
     constructor(private readonly shippingMethodService: ShippingMethodService) {}
 
     async describe(ctx: RequestContext, input: DeleteShippingMethodToolInput) {
-        const shippingMethod = await this.shippingMethodService.findOne(ctx, input.id);
-        if (!shippingMethod) {
+        const method = await this.shippingMethodService.findOne(ctx, input.id, false, ['channels']);
+        if (!method) {
             throw new EntityNotFoundError('ShippingMethod', input.id);
         }
-        return `Delete shipping method "${shippingMethod.name}" (code ${shippingMethod.code}, id ${shippingMethod.id}).`;
+        return (
+            `Delete shipping method "${method.name}" (code ${method.code}, id ${method.id}). ` +
+            `It is removed from ${channelList(method.channels)}.`
+        );
     }
 
     async execute(ctx: RequestContext, input: DeleteShippingMethodToolInput) {

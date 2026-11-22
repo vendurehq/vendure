@@ -17,7 +17,7 @@ type DeleteTaxRateToolInput = z.infer<typeof deleteTaxRateInput>;
     description: 'Delete a tax rate. Orders in its target then use the next rate that applies, or no tax.',
     keywords: [
         'remove a VAT rate',
-        'stop charging tax in a country',
+        'delete a tax rate for a country',
         'delete a sales tax rate',
         'drop a tax rate',
         'remove a zone tax rate',

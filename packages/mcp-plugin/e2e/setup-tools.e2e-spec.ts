@@ -21,7 +21,7 @@ import { McpPluginOptions } from '../src/types';
 
 import { callTool, consentDigestOf, postMcp, withConsent } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { testServerInit } from './utils/test-server';
+import { getIdStrategy, testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'setup-tools-secret-00000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -385,7 +385,7 @@ describe('MCP setup-entity admin tools', () => {
             const message = callTool(name, args);
             const preview = await postMcp(baseUrl(), 'admin', message, { token });
             const content = preview.body.result.structuredContent;
-            expect(content.status).toBe('incomplete');
+            expect(content?.status, JSON.stringify(preview.body.result)).toBe('incomplete');
             expect(content.preview).toEqual(expect.stringContaining(previewText));
             const digest = consentDigestOf(preview);
             expect(digest).toEqual(expect.any(String));
@@ -395,18 +395,25 @@ describe('MCP setup-entity admin tools', () => {
             return confirmed.body.result;
         }
 
+        async function ids(listTool: string): Promise<string[]> {
+            const listed = await call(listTool, { limit: 100 });
+            return listed.items.map((item: { id: string | number }) => String(item.id));
+        }
+
+        const encode = (id: string | number) => getIdStrategy(server.app.get(ConfigService)).encodeId(id);
+
         it('refuses confirm: true, and deletes only with the digest of the preview', async () => {
             const { zone } = await call('create_zone', {
                 input: { name: 'Doomed', memberCountryCodes: ['CN'] },
             });
             const withTrue = await callRaw('delete_zone', { id: zone.id, confirm: true });
-            expect(withTrue.isError ?? withTrue.structuredContent?.status === 'incomplete').toBeTruthy();
+            expect(withTrue.isError).toBe(true);
+            expect(withTrue.content[0].text).toMatch(/"confirm" must be the consent digest/);
 
             const result = await deleteWithConsent('delete_zone', { id: zone.id }, 'Delete zone "Doomed"');
             expect(result.isError).toBeUndefined();
             expect(result.structuredContent).toEqual({ result: 'DELETED', message: null });
-            const listed = await call('list_zones', { limit: 100 });
-            expect(listed.items.map((z: { id: string }) => z.id)).not.toContain(zone.id);
+            expect(await ids('list_zones')).not.toContain(String(zone.id));
         });
 
         it('reports a zone that is still in use as a failed call', async () => {
@@ -417,9 +424,10 @@ describe('MCP setup-entity admin tools', () => {
             );
             expect(result.isError).toBe(true);
             expect(result.content[0].text).toContain('used');
+            expect(await ids('list_zones')).toContain(String(europeZoneId));
         });
 
-        it('deletes a tax rate, a tax category, a shipping method and a payment method', async () => {
+        it('deletes a tax rate and a tax category, and refuses a category that variants use', async () => {
             const { taxCategory } = await call('create_tax_category', { input: { name: 'Temporary' } });
             const { taxRate } = await call('create_tax_rate', {
                 input: {
@@ -432,11 +440,34 @@ describe('MCP setup-entity admin tools', () => {
             expect(
                 (await deleteWithConsent('delete_tax_rate', { id: taxRate.id }, '"Temporary rate"')).isError,
             ).toBeUndefined();
+            expect(await ids('list_tax_rates')).not.toContain(String(taxRate.id));
             expect(
                 (await deleteWithConsent('delete_tax_category', { id: taxCategory.id }, '"Temporary"'))
                     .isError,
             ).toBeUndefined();
+            expect(await ids('list_tax_categories')).not.toContain(String(taxCategory.id));
 
+            // A category that seeded variants use is refused before core runs into the database constraint.
+            const { productVariants } = await adminClient.query(gql`
+                query {
+                    productVariants(options: { take: 1 }) {
+                        items {
+                            taxCategory {
+                                id
+                            }
+                        }
+                    }
+                }
+            `);
+            const usedCategoryId = getIdStrategy(server.app.get(ConfigService)).decodeId(
+                productVariants.items[0].taxCategory.id,
+            );
+            const used = await callRaw('delete_tax_category', { id: usedCategoryId });
+            expect(used.isError).toBe(true);
+            expect(used.content[0].text).toMatch(/is used by \d+ product variant\(s\)/);
+        });
+
+        it('deletes a shipping method, naming the channels it leaves', async () => {
             const { shippingMethod } = await call('create_shipping_method', {
                 input: {
                     code: 'mcp-temporary',
@@ -449,58 +480,153 @@ describe('MCP setup-entity admin tools', () => {
                     translations: [{ languageCode: 'en', name: 'Temporary shipping' }],
                 },
             });
-            expect(
-                (
-                    await deleteWithConsent(
-                        'delete_shipping_method',
-                        { id: shippingMethod.id },
-                        'mcp-temporary',
-                    )
-                ).isError,
-            ).toBeUndefined();
-            const shipping = await call('list_shipping_methods', { limit: 100 });
-            expect(shipping.items.map((m: { code: string }) => m.code)).not.toContain('mcp-temporary');
-
-            const { paymentMethod } = await call('create_payment_method', {
-                input: {
-                    code: 'mcp-temporary-payment',
-                    handler: { code: 'e2e-secret-handler', args: { mode: 'test' } },
-                    translations: [{ languageCode: 'en', name: 'Temporary payment' }],
-                },
-            });
-            expect(
-                (
-                    await deleteWithConsent(
-                        'delete_payment_method',
-                        { id: paymentMethod.id },
-                        'mcp-temporary-payment',
-                    )
-                ).isError,
-            ).toBeUndefined();
+            const result = await deleteWithConsent(
+                'delete_shipping_method',
+                { id: shippingMethod.id },
+                'It is removed from channel "__default_channel__"',
+            );
+            expect(result.isError).toBeUndefined();
+            expect(await ids('list_shipping_methods')).not.toContain(String(shippingMethod.id));
         });
 
-        it('deletes a stock location, moving its stock, and a role', async () => {
+        it('deletes a payment method that another channel uses only with force', async () => {
+            const { channel } = await call('create_channel', {
+                input: {
+                    code: 'mcp-payment-channel',
+                    token: 'mcp-payment-channel-token',
+                    defaultLanguageCode: 'en',
+                    defaultCurrencyCode: 'USD',
+                    pricesIncludeTax: false,
+                    defaultTaxZoneId: europeZoneId,
+                    defaultShippingZoneId: europeZoneId,
+                },
+            });
+            const { paymentMethod } = await call('create_payment_method', {
+                input: {
+                    code: 'mcp-shared-payment',
+                    handler: { code: 'e2e-secret-handler', args: { mode: 'test' } },
+                    translations: [{ languageCode: 'en', name: 'Shared payment' }],
+                },
+            });
+            await adminClient.query(
+                gql`
+                    mutation ($input: AssignPaymentMethodsToChannelInput!) {
+                        assignPaymentMethodsToChannel(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { paymentMethodIds: [encode(paymentMethod.id)], channelId: encode(channel.id) } },
+            );
+
+            const refused = await deleteWithConsent(
+                'delete_payment_method',
+                { id: paymentMethod.id },
+                'Channels mcp-payment-channel also use it, so it is only deleted with force',
+            );
+            expect(refused.isError).toBe(true);
+            expect(await ids('list_payment_methods')).toContain(String(paymentMethod.id));
+
+            const forced = await deleteWithConsent(
+                'delete_payment_method',
+                { id: paymentMethod.id, force: true },
+                'remove it from the channels that also use it: mcp-payment-channel',
+            );
+            expect(forced.isError).toBeUndefined();
+            expect(await ids('list_payment_methods')).not.toContain(String(paymentMethod.id));
+        });
+
+        it('deletes a stock location after moving its stock to another location', async () => {
             const { stockLocation } = await call('create_stock_location', {
                 input: { name: 'Temporary depot' },
             });
-            const locations = await call('list_stock_locations', { limit: 100 });
-            const other = locations.items.find((l: { id: string }) => l.id !== stockLocation.id);
+            const target = (await call('list_stock_locations', { limit: 100 })).items.find(
+                (l: { id: string }) => String(l.id) !== String(stockLocation.id),
+            );
+            const { productVariants } = await adminClient.query(gql`
+                query {
+                    productVariants(options: { take: 1 }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            const variantId = productVariants.items[0].id;
+            const stockAt = async (locationId: string | number) => {
+                const { productVariant } = await adminClient.query(
+                    gql`
+                        query ($id: ID!) {
+                            productVariant(id: $id) {
+                                stockLevels {
+                                    stockLocationId
+                                    stockOnHand
+                                }
+                            }
+                        }
+                    `,
+                    { id: variantId },
+                );
+                return (
+                    productVariant.stockLevels.find(
+                        (level: { stockLocationId: string }) => level.stockLocationId === encode(locationId),
+                    )?.stockOnHand ?? 0
+                );
+            };
+            await adminClient.query(
+                gql`
+                    mutation ($input: [UpdateProductVariantInput!]!) {
+                        updateProductVariants(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: [
+                        {
+                            id: variantId,
+                            stockLevels: [{ stockLocationId: encode(stockLocation.id), stockOnHand: 7 }],
+                        },
+                    ],
+                },
+            );
+            const before = await stockAt(target.id);
+            expect(await stockAt(stockLocation.id)).toBe(7);
+
+            const sameTarget = await callRaw('delete_stock_location', {
+                id: stockLocation.id,
+                transferToLocationId: stockLocation.id,
+            });
+            expect(sameTarget.isError).toBe(true);
+            expect(sameTarget.content[0].text).toContain('cannot move to the location that is being deleted');
+
             const result = await deleteWithConsent(
                 'delete_stock_location',
-                { id: stockLocation.id, transferToLocationId: other.id },
-                `moves to location ${String(other.id)}`,
+                { id: stockLocation.id, transferToLocationId: target.id },
+                `Its stock moves to location "${target.name}" (id ${String(target.id)})`,
             );
             expect(result.isError).toBeUndefined();
+            expect(await stockAt(target.id)).toBe(before + 7);
+            expect(await ids('list_stock_locations')).not.toContain(String(stockLocation.id));
+        });
 
+        it('deletes a role, and refuses a system role', async () => {
             const { role } = await call('create_role', {
                 input: { code: 'mcp-temporary', description: 'Temporary', permissions: ['ReadCatalog'] },
             });
             expect(
                 (await deleteWithConsent('delete_role', { id: role.id }, '"mcp-temporary"')).isError,
             ).toBeUndefined();
+            expect(await ids('list_roles')).not.toContain(String(role.id));
+
+            const roles = await call('list_roles', { limit: 100 });
+            const superAdmin = roles.items.find((r: { code: string }) => r.code === '__super_admin_role__');
+            const refused = await callRaw('delete_role', { id: superAdmin.id });
+            expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is a system role and cannot be deleted');
         });
 
-        it('deletes a channel', async () => {
+        it('deletes a channel, and refuses the active channel', async () => {
             const { channel } = await call('create_channel', {
                 input: {
                     code: 'mcp-temporary-channel',
@@ -519,6 +645,12 @@ describe('MCP setup-entity admin tools', () => {
             );
             expect(result.isError).toBeUndefined();
             expect((await call('get_channel', { id: channel.id })).channel).toBeNull();
+
+            const channels = await call('list_channels', {});
+            const active = channels.items.find((c: { code: string }) => c.code === '__default_channel__');
+            const refused = await callRaw('delete_channel', { id: active.id });
+            expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is the active channel');
         });
     });
 
