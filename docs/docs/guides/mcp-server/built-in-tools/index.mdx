@@ -440,7 +440,7 @@ Refunds the selected payment.
 - Runs the same check as the Admin API `storeReadiness` query and returns the same report: `ready`, and a list of
   findings. Each finding has a code such as `store.tax.no-rate`, a severity, the channel, zone, country or tax
   category it is about, and fixes given as admin tool calls with their input.
-- `ready` is false when any finding has the severity `error`. Warnings, such as the default superadmin password,
+- `ready` is false when any finding has the severity `ERROR`. Warnings, such as the default superadmin password,
   do not stop an order.
 - It writes nothing. For each zone, it checks shipping with one sample order to one country, built in memory.
 
