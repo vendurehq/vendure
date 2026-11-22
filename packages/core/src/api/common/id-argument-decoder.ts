@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { IdOperators } from '@vendure/common/lib/generated-types';
-import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
+import {
+    getNullableType,
+    GraphQLInputType,
+    GraphQLResolveInfo,
+    isInputObjectType,
+    isListType,
+} from 'graphql';
 
 import { getApiType } from './get-api-type';
-import { GraphqlValueTransformer } from './graphql-value-transformer';
 import { IdCodecService } from './id-codec.service';
 
 /**
@@ -14,6 +19,8 @@ const JOB_ID_FIELDS: Record<string, string[]> = {
     Query: ['job', 'jobsById'],
     Mutation: ['cancelJob'],
 };
+
+const ID_OPERATOR_KEYS: Array<keyof IdOperators> = ['eq', 'notEq', 'in', 'notIn'];
 
 /**
  * @description
@@ -56,26 +63,24 @@ const JOB_ID_FIELDS: Record<string, string[]> = {
  */
 @Injectable()
 export class IdArgumentDecoder {
-    private graphQlValueTransformers = new WeakMap<GraphQLSchema, GraphqlValueTransformer>();
-
     constructor(private idCodecService: IdCodecService) {}
 
     /**
      * @description
-     * Returns a copy of `args` with the ID values decoded. Use it in field resolvers. graphql-js gives
-     * the same variable values to the field resolver of each parent object, so a decode in place
-     * would decode those values more than one time.
+     * Returns a copy of `args` with the ID values decoded. Use it in field resolvers.
      */
     decode<T extends Record<string, any>>(info: GraphQLResolveInfo, args: T): T {
-        const copy = copyInputValue(args);
+        const copy = { ...args };
         this.decodeInPlace(info, copy);
         return copy;
     }
 
     /**
      * @description
-     * Decodes the ID values in `args` in place. The `IdInterceptor` uses it for the arguments of
-     * queries and mutations.
+     * Decodes the ID values in `args` and assigns the decoded arguments to the keys of `args`. It does
+     * not change the objects in the argument values. graphql-js gives the same variable values to
+     * each field that uses the variable, so a change to them would decode them again in the next
+     * field. The `IdInterceptor` uses this method for the arguments of queries and mutations.
      */
     decodeInPlace(info: GraphQLResolveInfo, args: Record<string, any> = {}): void {
         if (this.isUntransformedJobIdField(info)) {
@@ -85,18 +90,42 @@ export class IdArgumentDecoder {
         // does not include named fragment definitions, and two fields in one operation can each have
         // an argument of the same name with a different input type.
         const field = info.parentType.getFields()[info.fieldName];
-        const transformer = this.getTransformerForSchema(info.schema);
-        const typeTree = transformer.getArgumentTypeTree(field);
-        transformer.transformValues(typeTree, args, (value, type) => {
-            if (type?.name === 'ID') {
-                return this.idCodecService.decode(value);
+        for (const arg of field.args) {
+            if (arg.name in args) {
+                args[arg.name] = this.decodeValue(args[arg.name], arg.type);
             }
-            if (type?.name === 'IDOperators') {
-                const keys: Array<keyof IdOperators> = ['eq', 'notEq', 'in', 'notIn'];
-                return this.idCodecService.decode(value, keys);
-            }
+        }
+    }
+
+    /**
+     * Returns the decoded value. It walks the value together with its input type, so there is no
+     * depth limit for input types that reference themselves, such as the `_and` of a filter.
+     */
+    private decodeValue(value: unknown, type: GraphQLInputType): unknown {
+        if (value == null) {
             return value;
-        });
+        }
+        const nullableType = getNullableType(type);
+        if (isListType(nullableType)) {
+            return Array.isArray(value)
+                ? value.map(item => this.decodeValue(item, nullableType.ofType))
+                : this.decodeValue(value, nullableType.ofType);
+        }
+        if (nullableType.name === 'ID') {
+            return this.idCodecService.decode(value as string);
+        }
+        if (nullableType.name === 'IDOperators') {
+            return this.idCodecService.decode(value, ID_OPERATOR_KEYS);
+        }
+        if (isInputObjectType(nullableType) && typeof value === 'object') {
+            const fields = nullableType.getFields();
+            const result: Record<string, unknown> = {};
+            for (const [key, item] of Object.entries(value)) {
+                result[key] = fields[key] ? this.decodeValue(item, fields[key].type) : item;
+            }
+            return result;
+        }
+        return value;
     }
 
     private isUntransformedJobIdField(info: GraphQLResolveInfo): boolean {
@@ -106,35 +135,4 @@ export class IdArgumentDecoder {
             getApiType(info) === 'admin'
         );
     }
-
-    private getTransformerForSchema(schema: GraphQLSchema): GraphqlValueTransformer {
-        const existing = this.graphQlValueTransformers.get(schema);
-        if (existing) {
-            return existing;
-        }
-        const transformer = new GraphqlValueTransformer(schema);
-        this.graphQlValueTransformers.set(schema, transformer);
-        return transformer;
-    }
-}
-
-/**
- * Copies the plain objects and arrays of a GraphQL input value. Other values (for example the `Date`
- * of a `DateTime` scalar) are kept as they are.
- */
-function copyInputValue<T>(value: T): T {
-    if (Array.isArray(value)) {
-        return value.map(copyInputValue) as T;
-    }
-    if (value !== null && typeof value === 'object') {
-        const prototype = Object.getPrototypeOf(value);
-        if (prototype === Object.prototype || prototype === null) {
-            const copy: Record<string, unknown> = {};
-            for (const [key, item] of Object.entries(value)) {
-                copy[key] = copyInputValue(item);
-            }
-            return copy as T;
-        }
-    }
-    return value;
 }

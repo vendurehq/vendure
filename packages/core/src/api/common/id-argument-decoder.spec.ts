@@ -33,6 +33,7 @@ const schema = buildSchema(`
         id: IDOperators
         createdAt: DateTime
         name: String
+        _and: [ItemFilter!]
     }
     input ItemListOptions {
         filter: ItemFilter
@@ -104,6 +105,16 @@ describe('IdArgumentDecoder', () => {
             expect(second.options.filter.id.eq).toBe('decoded:a');
         });
 
+        it('decodes the ID operators of a filter in four nested _and', () => {
+            const nest = (filter: object, depth: number): any =>
+                depth === 0 ? filter : { _and: [nest(filter, depth - 1)] };
+            const args = { options: { filter: nest({ id: { eq: 'a' } }, 4) } };
+
+            const result = createDecoder().decode(infoFor('Item', 'children'), args);
+
+            expect(result).toEqual({ options: { filter: nest({ id: { eq: 'decoded:a' } }, 4) } });
+        });
+
         it('copies args that have no prototype', () => {
             const args = Object.assign(Object.create(null), { id: 'a' });
 
@@ -121,6 +132,17 @@ describe('IdArgumentDecoder', () => {
             createDecoder().decodeInPlace(infoFor('Query', 'item'), args);
 
             expect(args).toEqual({ id: 'decoded:a' });
+        });
+
+        // graphql-js gives the same variable value to each field that uses the variable
+        it('does not change the objects in the argument values', () => {
+            const filter = { id: { eq: 'a' } };
+            const args = { options: { filter } };
+
+            createDecoder().decodeInPlace(infoFor('Item', 'children'), args);
+
+            expect(args).toEqual({ options: { filter: { id: { eq: 'decoded:a' } } } });
+            expect(filter).toEqual({ id: { eq: 'a' } });
         });
 
         it('does not decode job ids when transformJobIds is false', () => {

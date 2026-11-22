@@ -118,6 +118,19 @@ describe('ID arguments of field resolvers', () => {
         ]);
     });
 
+    // The decode of the root field must not change the variable value that the field resolver reads.
+    // The test ID strategy throws for an ID that is already decoded.
+    it('a filter variable used by a root field and by a field resolver', async () => {
+        const all = await adminClient.query(productVariantListDocument, { productId: 'T_1' });
+        const targetId = all.product!.variantList.items[1].id;
+
+        const filtered = await adminClient.query(sharedFilterDocument, {
+            filter: { id: { eq: targetId } },
+        });
+        expect(filtered.productVariants.items).toEqual([{ id: targetId }]);
+        expect(filtered.product!.variantList.items).toEqual([{ id: targetId }]);
+    });
+
     it('a plugin field resolver decodes its ID argument with IdArgumentDecoder', async () => {
         const { product } = await adminClient.query(gql`
             query {
@@ -226,6 +239,23 @@ const productsVariantListDocument = graphql(`
                     items {
                         id
                     }
+                }
+            }
+        }
+    }
+`);
+
+const sharedFilterDocument = graphql(`
+    query FieldResolverIdSharedFilter($filter: ProductVariantFilterParameter) {
+        productVariants(options: { filter: $filter }) {
+            items {
+                id
+            }
+        }
+        product(id: "T_1") {
+            variantList(options: { filter: $filter }) {
+                items {
+                    id
                 }
             }
         }

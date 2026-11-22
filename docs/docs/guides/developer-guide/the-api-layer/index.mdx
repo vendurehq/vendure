@@ -500,7 +500,9 @@ field in the GraphQL schema, or if the method name is different, a name can be p
 
 The `IdInterceptor` that decodes ID arguments does not run for field resolvers. If your field resolver has arguments
 that contain IDs, such as list options with a filter on `id`, inject the `IdArgumentDecoder` and call
-`this.idArgumentDecoder.decode(info, args)` to decode them as per the configured `EntityIdStrategy`.
+`this.idArgumentDecoder.decode(info, args)` to decode them as per the configured `EntityIdStrategy`. The
+`PluginCommonModule` provides the `IdArgumentDecoder`, so your plugin must have `imports: [PluginCommonModule]`, as most
+plugins already do.
 
 ## REST endpoints
 
