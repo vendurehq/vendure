@@ -1,11 +1,11 @@
 ---
 title: 'Built-in Tool Reference'
 metaTitle: 'MCP Built-in Tool Reference | Vendure'
-metaDescription: 'The 72 tools the Vendure MCP plugin ships — 18 shop and 54 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
+metaDescription: 'The 73 tools the Vendure MCP plugin ships — 18 shop and 55 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
 order: 9
 ---
 
-The plugin ships 72 built-in tools: 18 on the shop toolset and 54 on the admin toolset. The tables below list
+The plugin ships 73 built-in tools: 18 on the shop toolset and 55 on the admin toolset. The tables below list
 every tool. A tool name that is a link has extra notes in [Tool details](#tool-details).
 
 This page does not cover every input field. The live `tools/list` response for your configuration is the
@@ -199,6 +199,12 @@ matching Admin API operation.
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | [`upload_asset`](#upload_asset) | mutating | CreateAsset | Upload an asset from a public HTTP(S) URL |
+
+### Store readiness
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| [`check_store`](#check_store) | readonly | ReadSettings | Report the setup gaps that stop each channel from taking an order |
 
 ## Shared conventions
 
@@ -450,6 +456,14 @@ Refunds the selected payment.
   changing its own limits by mistake. It is not a security boundary: an administrator with the same access can
   still change these settings through the Admin API.
 - Checks the field's own read-only flag, write permission and validation.
+### `check_store`
+
+- Runs the same check as the Admin API `storeReadiness` query and returns the same report: `ready`, and a list of
+  findings. Each finding has a code such as `store.tax.no-rate`, a severity, the channel, zone, country or tax
+  category it is about, and fixes given as admin tool calls with their input.
+- `ready` is false when any finding has the severity `error`. Warnings, such as the default superadmin password,
+  do not stop an order.
+- It writes nothing. For each zone, it checks shipping with one sample order to one country, built in memory.
 
 ## Tool exposure: direct vs discovery
 
@@ -474,7 +488,7 @@ tool's schema exactly as a direct call would.
 
 Reach for discovery only when the full list is a problem:
 
-- A host with a low tool cap: 72 tools exceeds some clients' limits.
+- A host with a low tool cap: 73 tools exceeds some clients' limits.
 - A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
   models.
 
