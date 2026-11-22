@@ -25,17 +25,21 @@ import { hostErrors } from './host-errors.js';
 import { kebab } from './naming.js';
 
 /** Asks a person. Only given to the host when a person is present. */
-export interface Prompter {
+export interface AskInputOptions {
     /**
-     * Asks for an input field. `validate` returns the problem with an answer, or `undefined` when
-     * the answer is valid, so a person can correct a bad answer before the command runs. For an
-     * `optional` field, an empty answer keeps its default, so a choice of values offers "none".
+     * The problem with an answer, or `undefined` when it is valid, so a person can correct a bad
+     * answer before the command runs.
      */
-    askInput(
-        need: InputNeed,
-        validate: (answer: string) => string | undefined,
-        optional: boolean,
-    ): Promise<string | undefined>;
+    validate: (answer: string) => string | undefined;
+    /** An empty answer keeps the field's default, so a choice of values offers "none". */
+    optional: boolean;
+    /** The field is a boolean, so the answer is "true" or "false". */
+    boolean: boolean;
+}
+
+export interface Prompter {
+    /** Asks for an input field. Resolves to `undefined` when the person cancels. */
+    askInput(need: InputNeed, options: AskInputOptions): Promise<string | undefined>;
     /** Shows the preview and asks whether to go ahead. */
     askConsent(need: ConsentNeed): Promise<boolean>;
 }
@@ -122,6 +126,11 @@ function classifyIssues(
 function propertySchema(schema: StandardSchema, field: string): Record<string, any> {
     const json = schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
     return ((json.properties as Record<string, Record<string, any>> | undefined) ?? {})[field] ?? {};
+}
+
+function isRequired(schema: StandardSchema, field: string): boolean {
+    const json = schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
+    return Array.isArray(json.required) && (json.required as unknown[]).includes(field);
 }
 
 function coercePrompted(value: string, property: Record<string, any>): unknown {
@@ -218,8 +227,11 @@ async function inputNeeds(
     return needs;
 }
 
-/** How often a person is asked for the inputs `run()` returns as needs before the host stops. */
-const MAX_ATTEMPTS = 3;
+/**
+ * How many times the host runs a command whose `run()` returns input needs, asking a person for
+ * them between runs, before it returns the needs instead.
+ */
+const MAX_RUNS = 3;
 
 /** A coded error from `plan()` or `run()`, which the command must have declared. */
 function declaredError(def: CommandDefinition, result: ErrorResult, notices: CommandNotice[]): HostResult {
@@ -297,11 +309,11 @@ export async function executeCommand(
                 const [need] = await inputNeeds(def, schemas.input, [field], ctx, input);
                 asked.add(need.field);
                 const optional = !validation.issues;
-                const answer = await env.prompter.askInput(
-                    need,
-                    value => answerProblem(schemas.input, input, need.field, value, optional),
+                const answer = await env.prompter.askInput(need, {
+                    validate: value => answerProblem(schemas.input, input, need.field, value, optional),
                     optional,
-                );
+                    boolean: propertySchema(schemas.input, need.field).type === 'boolean',
+                });
                 if (answer === undefined) {
                     return errorResult(hostErrors.cancelled, {}, notices);
                 }
@@ -362,19 +374,33 @@ export async function executeCommand(
             const inputNeedsOnly = result.needs.every((need): need is InputNeed => need.kind === 'input');
             // `run()` found that it needs more input, which only it could tell. A person is asked
             // for it, and the command runs again: running again after `incomplete` is safe.
-            if (env.prompter && inputNeedsOnly && attempt < MAX_ATTEMPTS) {
+            if (env.prompter && inputNeedsOnly && attempt < MAX_RUNS) {
                 const answers: Record<string, unknown> = {};
                 for (const need of result.needs as InputNeed[]) {
-                    const answer = await env.prompter.askInput(
-                        need,
-                        value =>
-                            answerProblem(schemas.input, { ...input, ...answers }, need.field, value, false),
-                        false,
-                    );
+                    // A need for an optional field may be left empty, for example when `run()`
+                    // needs one of two names and the person gives the other.
+                    const optional = !isRequired(schemas.input, need.field);
+                    const answer = await env.prompter.askInput(need, {
+                        validate: value =>
+                            answerProblem(
+                                schemas.input,
+                                { ...input, ...answers },
+                                need.field,
+                                value,
+                                optional,
+                            ),
+                        optional,
+                        boolean: propertySchema(schemas.input, need.field).type === 'boolean',
+                    });
                     if (answer === undefined) {
                         return errorResult(hostErrors.cancelled, {}, notices);
                     }
-                    answers[need.field] = coercePrompted(answer, propertySchema(schemas.input, need.field));
+                    if (answer !== '' || !optional) {
+                        answers[need.field] = coercePrompted(
+                            answer,
+                            propertySchema(schemas.input, need.field),
+                        );
+                    }
                 }
                 const retried = await executeCommand(
                     def,

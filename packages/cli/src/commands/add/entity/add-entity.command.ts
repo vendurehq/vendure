@@ -13,6 +13,8 @@ export const addEntityDefinition = defineCommand({
         positional: ['name'],
         fields: {
             plugin: { choices: async () => (await import('../add.project.js')).listPluginNames() },
+            customFields: { prompt: true },
+            translatable: { prompt: true },
         },
     },
     errors: [pluginNotFound, pluginAmbiguous, fileExists],

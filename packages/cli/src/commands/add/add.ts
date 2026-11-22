@@ -2,8 +2,9 @@ import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import type { CommandDefinition } from '@vendure/common/lib/command';
 import pc from 'picocolors';
 
+import { hostErrors } from '../../command-host/host-errors.js';
 import { runCoreCommand } from '../../command-host/run-core-command.js';
-import { pascalCaseRegex } from '../../constants.js';
+import { pascalCaseRegex, pluginNameRegex } from '../../constants.js';
 import { rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
 import { kebabCase, pascalCase } from '../../utilities/case-utils.js';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
@@ -90,7 +91,7 @@ export interface AddOptions {
  * makes `MyPlugin`, and PascalCase for an entity or a service. A name that fits is kept as typed.
  */
 function pluginName(value: string): string {
-    return /^[a-z][a-z-0-9]+$/.test(value) ? value : kebabCase(value);
+    return pluginNameRegex.test(value) ? value : kebabCase(value);
 }
 
 function className(value: string): string {
@@ -222,8 +223,8 @@ async function handleInteractiveMode(options: AddOptions): Promise<number> {
         }
         const input = chosen === pluginFeature ? { config: options.config } : {};
         const result = await runCoreCommand(chosen.definition.path, input);
-        if (result.envelope.error?.code === 'cancelled') {
-            cancel(cancelledMessage);
+        // The host has already said that the command was cancelled.
+        if (result.envelope.error?.code === hostErrors.cancelled.code) {
             return 0;
         }
         if (result.exitCode === 0 && chosen === pluginFeature) {

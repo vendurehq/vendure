@@ -366,8 +366,7 @@ describe('executeCommand prompting', () => {
         );
         expect(askInput).toHaveBeenCalledWith(
             { kind: 'input', field: 'name', description: 'The name' },
-            expect.any(Function),
-            false,
+            { validate: expect.any(Function), optional: false, boolean: false },
         );
         expect(result.envelope.output).toEqual({ got: 'typed' });
     });
@@ -385,11 +384,11 @@ describe('executeCommand prompting', () => {
             },
         );
         expect(askInput).toHaveBeenCalledTimes(1);
-        expect(askInput).toHaveBeenCalledWith(
-            expect.objectContaining({ field: 'count' }),
-            expect.any(Function),
-            true,
-        );
+        expect(askInput).toHaveBeenCalledWith(expect.objectContaining({ field: 'count' }), {
+            validate: expect.any(Function),
+            optional: true,
+            boolean: false,
+        });
         expect(result.envelope.output).toEqual({ got: { name: 'a' } });
     });
 
@@ -411,7 +410,7 @@ describe('executeCommand prompting', () => {
         });
         const checks: Record<string, (answer: string) => string | undefined> = {};
         const askInput = vi.fn(
-            (need: { field: string }, validate: (answer: string) => string | undefined) => {
+            (need: { field: string }, { validate }: { validate: (answer: string) => string | undefined }) => {
                 checks[need.field] = validate;
                 return Promise.resolve(need.field === 'name' ? 'abc' : '');
             },
@@ -555,10 +554,12 @@ describe('executeCommand needs found by run()', () => {
 
     it('asks a person for them and runs the command again', async () => {
         const checks: Array<(answer: string) => string | undefined> = [];
-        const askInput = vi.fn((_need: unknown, validate: (answer: string) => string | undefined) => {
-            checks.push(validate);
-            return Promise.resolve('abc');
-        });
+        const askInput = vi.fn(
+            (_need: unknown, { validate }: { validate: (answer: string) => string | undefined }) => {
+                checks.push(validate);
+                return Promise.resolve('abc');
+            },
+        );
 
         const result = await runCommandInHarness(
             named,
@@ -568,9 +569,10 @@ describe('executeCommand needs found by run()', () => {
 
         expect(askInput).toHaveBeenCalledTimes(1);
         expect(result.envelope).toMatchObject({ status: 'ok', output: { kind: 'simple', name: 'abc' } });
-        // The answer is checked against the input schema, and an empty one is not accepted.
+        // The answer is checked against the input schema. The field is optional, so an empty
+        // answer is accepted, and run() says again if it still needs the field.
         expect(checks[0]('ABC')).toBe('Use lowercase');
-        expect(checks[0]('')).toBe('Use lowercase');
+        expect(checks[0]('')).toBeUndefined();
     });
 
     it('asks nothing when run() does not need it', async () => {
@@ -590,5 +592,42 @@ describe('executeCommand needs found by run()', () => {
         const result = await runCommandInHarness(named, { kind: 'simple' });
 
         expect(result.envelope).toMatchObject({ status: 'incomplete', needs: [{ field: 'name' }] });
+    });
+
+    // Like `add api-extension` on a service without an entity: a query, a mutation, or both.
+    it('lets a person leave a need for an optional field empty and fill another', async () => {
+        const either = defineCommand({
+            path: ['either'],
+            description: 'Needs one name or the other',
+            behavior: 'mutating',
+            schemas: () =>
+                Promise.resolve({
+                    input: z.object({ query: z.string().optional(), mutation: z.string().optional() }),
+                }),
+            run: () =>
+                Promise.resolve({
+                    run: (i: { query?: string; mutation?: string }) =>
+                        Promise.resolve(
+                            !i.query && !i.mutation
+                                ? incomplete([
+                                      { kind: 'input', field: 'query', description: 'A query' },
+                                      { kind: 'input', field: 'mutation', description: 'A mutation' },
+                                  ])
+                                : { query: i.query ?? null, mutation: i.mutation ?? null },
+                        ),
+                }),
+        });
+        const askInput = vi.fn((need: { field: string }, { optional }: { optional: boolean }) => {
+            expect(optional).toBe(true);
+            return Promise.resolve(need.field === 'query' ? '' : 'reset');
+        });
+
+        const result = await runCommandInHarness(
+            either,
+            {},
+            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+        );
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { query: null, mutation: 'reset' } });
     });
 });

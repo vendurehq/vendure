@@ -101,18 +101,10 @@ interface CliCommandOption {
 
 ## Interactive vs Non-Interactive Mode Detection
 
-Commands automatically detect which mode to use based on provided options:
-
-```typescript
-// Non-interactive mode is triggered when any option has a truthy value (not false)
-const nonInteractive = options && Object.values(options).some(v => v !== undefined && v !== false);
-
-if (nonInteractive) {
-    await handleNonInteractiveMode(options);
-} else {
-    await handleInteractiveMode();
-}
-```
+`vendure add` and `vendure migrate` run a subcommand through the command host when a feature flag
+is given, such as `vendure add -e MyEntity --selected-plugin MyPlugin` for
+`vendure add entity MyEntity --plugin MyPlugin`. Without one, they show a menu. The host asks a
+person for what is missing only when stdin and stdout are TTYs, and returns `incomplete` otherwise.
 
 ## Available Commands
 
@@ -369,8 +361,8 @@ import { runCliCommand } from '../../shared/cli-command-exit';
             required: false,
         },
         {
-            long: '--type <type>',
-            description: 'Type of service: basic or entity (default: basic)',
+            long: '--selected-entity <name>',
+            description: 'An entity of the plugin. The service then has CRUD methods for it',
             required: false,
         },
     ],

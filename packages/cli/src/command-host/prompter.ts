@@ -6,7 +6,11 @@ import type { Prompter } from './host.js';
 /** Asks a person at a terminal with @clack/prompts. */
 export function createClackPrompter(): Prompter {
     return {
-        async askInput(need: InputNeed, validate, optional) {
+        async askInput(need: InputNeed, { validate, optional, boolean }) {
+            if (boolean && !need.choices?.length) {
+                const confirmed = await confirm({ message: need.description, initialValue: false });
+                return isCancel(confirmed) ? undefined : String(confirmed);
+            }
             const answer = need.choices?.length
                 ? await select({
                       message: need.description,

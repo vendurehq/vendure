@@ -194,9 +194,9 @@ subcommands above.
 | `-e` | `--entity <n>`             | Add a new entity to a plugin       | `vendure add -e MyEntity --selected-plugin MyPlugin`                     |
 | `-s` | `--service <n>`            | Add a new service to a plugin      | `vendure add -s MyService --selected-plugin MyPlugin`                    |
 | `-j` | `--job-queue [plugin]`     | Add job queue support              | `vendure add -j MyPlugin --name job-name --selected-service ServiceName` |
-| `-a` | `--api-extension [plugin]` | Add API extension scaffold         | `vendure add -a MyPlugin --queryName getName --mutationName setName`     |
+| `-a` | `--api-extension [plugin]` | Add API extension scaffold         | `vendure add -a MyPlugin --selected-service MyService --query-name getName` |
 | `-d` | `--dashboard [plugin]`     | Add Dashboard extensions setup     | `vendure add -d MyPlugin`                                                |
-|      | `--config <path>`          | Specify custom Vendure config file | `--config ./custom-config.ts`                                            |
+|      | `--config <path>`          | Custom Vendure config file, used with `-p` | `vendure add -p my-plugin --config ./custom-config.ts`          |
 
 #### Sub-options for specific commands
 
@@ -218,8 +218,9 @@ subcommands above.
 
 **API Extension (`-a`) additional options: (requires either)**
 
-- `--queryName <n>`: Name for the GraphQL query
-- `--mutationName <n>`: Name for the GraphQL mutation
+- `--selected-service <n>`: The service the resolver calls (required)
+- `--query-name <n>`: Name for the GraphQL query
+- `--mutation-name <n>`: Name for the GraphQL mutation
 
 :::info
 **Validation**: Entity and service commands validate that the specified plugin exists in your project. If the plugin is not found, the command will list all available plugins in the error message. Both commands require the `--selected-plugin` parameter when running in non-interactive mode.

@@ -10,31 +10,32 @@ stdout. Without a required input, the command returns `incomplete` with an
 `input` need for each missing field, and lists the valid values, such as the
 plugins of the project, as `choices`.
 
-| Subcommand                                                     | Creates                                                   |
-| -------------------------------------------------------------- | --------------------------------------------------------- |
-| `vendure add plugin <name>`                                    | A new plugin, added to the Vendure config                 |
-| `vendure add entity <Name> --plugin <Plugin>`                  | An entity in a plugin                                     |
-| `vendure add service <Name> --plugin <Plugin> [--entity <E>]`  | A service; with `--entity`, a CRUD service for the entity |
-| `vendure add job-queue --plugin <P> --service <S> --name <n>`  | A job queue on a service                                  |
-| `vendure add api-extension --plugin <P> --service <S>`         | An Admin API extension with a resolver that calls a service |
-| `vendure add dashboard --plugin <Plugin>`                      | Dashboard extensions for a plugin                         |
-| `vendure add codegen --plugin <Plugin>`                        | GraphQL codegen configuration for a plugin                |
+| Subcommand                                                    | Creates                                                     |
+| ------------------------------------------------------------- | ----------------------------------------------------------- |
+| `vendure add plugin <name>`                                   | A new plugin, added to the Vendure config                   |
+| `vendure add entity <Name> --plugin <Plugin>`                 | An entity in a plugin                                       |
+| `vendure add service <Name> --plugin <Plugin> [--entity <E>]` | A service; with `--entity`, a CRUD service for the entity   |
+| `vendure add job-queue --plugin <P> --service <S> --name <n>` | A job queue on a service                                    |
+| `vendure add api-extension --plugin <P> --service <S>`        | An Admin API extension with a resolver that calls a service |
+| `vendure add dashboard --plugin <Plugin>`                     | Dashboard extensions for a plugin                           |
+| `vendure add codegen --plugin <Plugin>`                       | GraphQL codegen configuration for a plugin                  |
 
 ### Options
 
-| Option                       | Used with       | Description                                                  |
-| ---------------------------- | --------------- | ------------------------------------------------------------ |
-| `--custom-fields`            | `entity`        | Let the entity have custom fields                            |
-| `--translatable`             | `entity`        | Give the entity localized properties                         |
-| `--query-name <name>`        | `api-extension` | A query to add, for a service without an entity              |
-| `--mutation-name <name>`     | `api-extension` | A mutation to add, for a service without an entity           |
-| `--dir <path>`               | `plugin`        | The plugin directory. Defaults to next to the other plugins  |
-| `--config <path>`            | `plugin`        | Path to a custom Vendure config file                         |
+| Option                   | Used with       | Description                                                 |
+| ------------------------ | --------------- | ----------------------------------------------------------- |
+| `--custom-fields`        | `entity`        | Let the entity have custom fields                           |
+| `--translatable`         | `entity`        | Give the entity localized properties                        |
+| `--query-name <name>`    | `api-extension` | A query to add, for a service without an entity             |
+| `--mutation-name <name>` | `api-extension` | A mutation to add, for a service without an entity          |
+| `--dir <path>`           | `plugin`        | The plugin directory. Defaults to next to the other plugins |
+| `--config <path>`        | `plugin`        | Path to a custom Vendure config file                        |
 
 ## Notes
 
 - Names: plugins are lowercase with dashes (`reviews` makes `ReviewsPlugin`).
-  Entities and services are PascalCase. Job queues are lowercase with dashes.
+  Entities and services are PascalCase. Job queue names start with a letter
+  and use letters, numbers, dashes and underscores, for example `review-indexing`.
 - `api-extension` on a CRUD service of an entity adds the entity's type,
   queries and mutations. On any other service it needs `--query-name`,
   `--mutation-name` or both, and returns `incomplete` without them.

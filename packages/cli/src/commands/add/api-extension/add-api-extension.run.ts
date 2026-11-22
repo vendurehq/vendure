@@ -25,12 +25,10 @@ export async function run(input: {
     const crud = !!serviceRef.crudEntityRef;
     // Without an entity, the extension consists of the named operations, so it needs at least one.
     if (!crud && !input.queryName && !input.mutationName) {
+        const why = `${serviceRef.name} is not a CRUD service, so the extension needs a query name, a mutation name, or both`;
         return incomplete([
-            {
-                kind: 'input',
-                field: 'queryName',
-                description: `A name for the query. ${serviceRef.name} is not a CRUD service, so the extension needs a query name, a mutation name, or both`,
-            },
+            { kind: 'input', field: 'queryName', description: `A name for the query. ${why}` },
+            { kind: 'input', field: 'mutationName', description: `A name for the mutation. ${why}` },
         ]);
     }
     let scaffolded: ReturnType<typeof scaffoldApiExtension>;

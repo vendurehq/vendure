@@ -16,15 +16,21 @@ export async function listPluginNames(): Promise<string[]> {
 
 /** The services of a plugin, for the `choices` of a field. Empty when the plugin is not found. */
 export async function listServiceNames(input: Record<string, unknown>): Promise<string[]> {
+    if (typeof input.plugin !== 'string') {
+        return [];
+    }
     const { project } = await openProject();
-    const plugin = typeof input.plugin === 'string' ? findPlugin(project, input.plugin) : undefined;
+    const plugin = findPlugin(project, input.plugin);
     return plugin instanceof VendurePluginRef ? pluginServices(project, plugin).map(s => s.name) : [];
 }
 
 /** The entities of a plugin, without translation entities, for the `choices` of a field. */
 export async function listEntityNames(input: Record<string, unknown>): Promise<string[]> {
+    if (typeof input.plugin !== 'string') {
+        return [];
+    }
     const { project } = await openProject();
-    const plugin = typeof input.plugin === 'string' ? findPlugin(project, input.plugin) : undefined;
+    const plugin = findPlugin(project, input.plugin);
     return plugin instanceof VendurePluginRef
         ? plugin
               .getEntities()
@@ -60,9 +66,11 @@ export function findPlugin(project: Project, name: string): VendurePluginRef | E
 /** The services that live in the directory of a plugin. */
 export function pluginServices(project: Project, plugin: VendurePluginRef): ServiceRef[] {
     const pluginDir = plugin.getSourceFile().getDirectoryPath();
-    return getServices(project).filter(s =>
-        s.classDeclaration.getSourceFile().getDirectoryPath().includes(pluginDir),
-    );
+    return getServices(project).filter(s => {
+        const dir = s.classDeclaration.getSourceFile().getDirectoryPath();
+        // `startsWith(pluginDir)` alone would also match a sibling such as `reviews` for `review`.
+        return dir === pluginDir || dir.startsWith(`${pluginDir}/`);
+    });
 }
 
 /** The service of a plugin with this name, or the coded error that lists its services. */

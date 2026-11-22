@@ -8,7 +8,7 @@ vi.mock('@clack/prompts', () => ({
     text: vi.fn(async () => 'typed'),
 }));
 
-import { password, select, text } from '@clack/prompts';
+import { confirm, password, select, text } from '@clack/prompts';
 
 import { createClackPrompter } from './prompter.js';
 
@@ -18,8 +18,7 @@ describe('createClackPrompter', () => {
     it('asks for a secret field without echoing it', async () => {
         const answer = await createClackPrompter().askInput(
             { kind: 'input', field: 'token', description: 'The token', secret: true },
-            validate,
-            false,
+            { validate, optional: false, boolean: false },
         );
         expect(answer).toBe('hidden');
         expect(password).toHaveBeenCalledWith({ message: 'The token', validate });
@@ -31,8 +30,7 @@ describe('createClackPrompter', () => {
         expect(
             await prompter.askInput(
                 { kind: 'input', field: 'name', description: 'The name' },
-                validate,
-                false,
+                { validate, optional: false, boolean: false },
             ),
         ).toBe('typed');
         // The text prompt checks each answer, so a person can correct it.
@@ -40,8 +38,7 @@ describe('createClackPrompter', () => {
         expect(
             await prompter.askInput(
                 { kind: 'input', field: 'plugin', description: 'Plugin', choices: ['A'] },
-                validate,
-                false,
+                { validate, optional: false, boolean: false },
             ),
         ).toBe('picked');
         expect(select).toHaveBeenLastCalledWith({
@@ -53,8 +50,7 @@ describe('createClackPrompter', () => {
     it('offers "None" in the choices of an optional field', async () => {
         await createClackPrompter().askInput(
             { kind: 'input', field: 'entity', description: 'Entity', choices: ['Review'] },
-            validate,
-            true,
+            { validate, optional: true, boolean: false },
         );
         expect(select).toHaveBeenLastCalledWith({
             message: 'Entity',
@@ -63,5 +59,17 @@ describe('createClackPrompter', () => {
                 { value: '', label: 'None' },
             ],
         });
+    });
+
+    it('asks for a boolean field as yes or no', async () => {
+        vi.mocked(confirm).mockResolvedValueOnce(true);
+
+        const answer = await createClackPrompter().askInput(
+            { kind: 'input', field: 'translatable', description: 'Translatable' },
+            { validate, optional: true, boolean: true },
+        );
+
+        expect(answer).toBe('true');
+        expect(confirm).toHaveBeenCalledWith({ message: 'Translatable', initialValue: false });
     });
 });

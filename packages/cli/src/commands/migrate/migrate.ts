@@ -1,6 +1,7 @@
 import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
 
+import { hostErrors } from '../../command-host/host-errors.js';
 import { runCoreCommand } from '../../command-host/run-core-command.js';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
@@ -76,8 +77,8 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
     const { exitCode, envelope } = await runCoreCommand(['migrate', String(action)], {
         config: options.config,
     });
-    if (envelope.error?.code === 'cancelled') {
-        cancel('Migrate cancelled.');
+    // The host has already said that the command was cancelled.
+    if (envelope.error?.code === hostErrors.cancelled.code) {
         return 0;
     }
     outro(exitCode === 0 ? '✅ Done!' : '❌ Error');

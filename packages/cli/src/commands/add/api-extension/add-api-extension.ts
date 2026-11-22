@@ -81,8 +81,8 @@ export function scaffoldApiExtension(
     }
     return {
         resolver: resolver.getName() as string,
-        organize: [serviceRef.classDeclaration.getSourceFile(), ...created],
-        edited: [plugin.getSourceFile()],
+        organize: created,
+        edited: [serviceRef.classDeclaration.getSourceFile(), plugin.getSourceFile()],
     };
 }
 

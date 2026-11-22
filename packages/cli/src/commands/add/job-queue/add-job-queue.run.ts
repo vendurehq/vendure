@@ -22,8 +22,10 @@ export async function run(input: { plugin: string; service: string; name: string
         service: serviceRef.name,
         jobQueue: input.name,
         triggerMethod,
+        // The service is the person's own file, so its imports are left as they are.
         modifiedFiles: await saveChanges(project, {
-            organize: [serviceRef.classDeclaration.getSourceFile()],
+            organize: [],
+            edited: [serviceRef.classDeclaration.getSourceFile()],
         }),
     };
 }

@@ -2,6 +2,7 @@
  * E2E tests for the `vendure add` subcommands. They run the built CLI with `--json` in a copy of
  * the test project and build up one plugin, one command at a time.
  */
+import { COMMAND_EXIT_CODES } from '@vendure/common/lib/command';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs';
@@ -146,9 +147,12 @@ describe('vendure add subcommands', { timeout: 120_000 }, () => {
 
         expect(envelope).toMatchObject({
             status: 'incomplete',
-            needs: [{ kind: 'input', field: 'queryName' }],
+            needs: [
+                { kind: 'input', field: 'queryName' },
+                { kind: 'input', field: 'mutationName' },
+            ],
         });
-        expect(exitCode).not.toBe(0);
+        expect(exitCode).toBe(COMMAND_EXIT_CODES.incomplete);
     });
 
     it('adds a named query for a service without an entity', async () => {
@@ -230,7 +234,7 @@ describe('vendure add subcommands', { timeout: 120_000 }, () => {
     it('names the subcommand to run when an older flag lacks an input', async () => {
         const { exitCode, stderr } = await runCli(dir, ['add', '-e', 'Review']);
 
-        expect(exitCode).not.toBe(0);
+        expect(exitCode).toBe(COMMAND_EXIT_CODES.incomplete);
         expect(stderr).toContain('vendure add entity --name "Review"');
         expect(stderr).toContain('--plugin');
     });

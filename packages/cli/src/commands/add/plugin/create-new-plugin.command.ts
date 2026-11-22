@@ -11,7 +11,7 @@ export const addPluginDefinition = defineCommand({
     behavior: 'mutating',
     requires: { project: true },
     schemas: () => import('./create-new-plugin.schema.js'),
-    cli: { positional: ['name'] },
+    cli: { positional: ['name'], fields: { dir: { prompt: true } } },
     errors: [fileExists, vendureConfigNotFound],
     examples: ['vendure add plugin reviews', 'vendure add plugin reviews --dir ./src/plugins/reviews'],
     run: () => import('./create-new-plugin.run.js'),

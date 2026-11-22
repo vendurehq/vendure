@@ -84,6 +84,8 @@ describe('commandForFlags()', () => {
 describe('addCommand()', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // clearAllMocks keeps implementations, so a test that changes this one cannot leak it.
+        vi.mocked(isCancel).mockImplementation(() => false);
         vi.spyOn(console, 'log').mockImplementation(() => undefined);
     });
 
@@ -176,11 +178,11 @@ describe('addCommand()', () => {
         await expect(addCommand({})).resolves.toBe(0);
 
         expect(runCoreCommand).toHaveBeenCalledTimes(1);
-        vi.mocked(isCancel).mockImplementation(() => false);
     });
 
-    it('ends with "cancelled" and exit code 0 when the person cancels a prompt of the command', async () => {
-        const { cancel } = await import('@clack/prompts');
+    // The host has already said that the command was cancelled.
+    it('ends with exit code 0, and no second message, when the person cancels a prompt', async () => {
+        const { cancel, outro } = await import('@clack/prompts');
         vi.mocked(select).mockResolvedValueOnce('add-entity');
         vi.mocked(runCoreCommand).mockResolvedValueOnce({
             exitCode: 130,
@@ -189,7 +191,8 @@ describe('addCommand()', () => {
 
         await expect(addCommand({})).resolves.toBe(0);
 
-        expect(cancel).toHaveBeenCalledWith('Add feature cancelled.');
+        expect(cancel).not.toHaveBeenCalled();
+        expect(outro).not.toHaveBeenCalled();
     });
 
     it('offers no features when the plugin could not be created', async () => {
