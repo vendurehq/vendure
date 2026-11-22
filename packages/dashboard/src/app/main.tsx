@@ -28,7 +28,6 @@ import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
 import './styles.css';
 
-// In development, error toasts that follow a failed request offer "Copy for agent".
 installCopyForAgentToasts();
 
 const processedBaseUrl = deriveBaseUrl(

@@ -34,7 +34,7 @@ Follow these steps in this order. Do not skip a step because you think you know 
    request ID of each failed request.
 3. **`vendure explain <requestId>`.** Collect the error for one request: its code, message, stack
    and the log lines of that request. If the user copied an error with "Copy for agent" in the
-   Dashboard, the command is at the end of what they copied.
+   Dashboard, the request ID is the `requestId` in what they copied.
 4. **`vendure doctor --json`.** Check the project itself: versions, config and migrations.
 5. **Fix the cause.** Use the fixes that the error or the check names. Ask the user before a fix
    changes files, dependencies or the database. If no fix fits, say so. Do not invent one.

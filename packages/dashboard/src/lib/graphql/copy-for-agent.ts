@@ -53,7 +53,6 @@ export function toAgentErrorReport(error: unknown, document: string): AgentError
     };
 }
 
-/** The clipboard text: the report as JSON. */
 export function formatAgentErrorReport(report: AgentErrorReport): string {
     return JSON.stringify(report, null, 2);
 }
@@ -129,8 +128,10 @@ let installed = false;
 /**
  * @description
  * In development, adds a "Copy for agent" action to an error toast that shows the message of a
- * GraphQL request that just failed. Error toasts are raised in many places, all through sonner's shared `toast` object, so the
- * action is added there rather than at each call site. It does nothing outside development.
+ * GraphQL request that just failed. It does nothing outside development.
+ *
+ * Error toasts are raised in many places, and all of them go through sonner's shared `toast` object.
+ * So the action is added there, not at each call site.
  */
 export function installCopyForAgentToasts(): void {
     if (!import.meta.env.DEV || installed) {
