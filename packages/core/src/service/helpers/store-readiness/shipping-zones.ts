@@ -1,10 +1,14 @@
 import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 
-import { RequestContext } from '../../../api/common/request-context';
 import { Zone } from '../../../entity/zone/zone.entity';
-import { ZoneService } from '../../services/zone.service';
 
-import { adminToolPath, countryMembers, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    countryMembers,
+    StoreReadinessFinding,
+    StoreReadinessSeverity,
+    toFinding,
+} from './store-readiness-types';
 
 export const zoneWithoutEnabledCountry = defineError<{ zone: Zone }>({
     code: 'store.zone.no-enabled-country',
@@ -24,8 +28,10 @@ export const zoneWithoutEnabledCountry = defineError<{ zone: Zone }>({
             : [
                   {
                       path: adminToolPath('update_zone'),
-                      input: { id: zone.id, input: { memberCountryCodes: [] } },
-                      description: `Add the codes of the countries zone "${zone.name}" covers.`,
+                      input: { id: zone.id },
+                      description:
+                          `Add the countries zone "${zone.name}" covers, as "memberCountryCodes" in "input". ` +
+                          'The list replaces the current members, so include any you keep.',
                   },
               ];
     },
@@ -35,11 +41,10 @@ export const zoneWithoutEnabledCountry = defineError<{ zone: Zone }>({
  * A Channel has no list of the Zones it ships to, so every Zone with at least one enabled country
  * counts. A Zone with none is reported as a warning, because it covers no address.
  */
-export async function findShippingZones(
-    ctx: RequestContext,
-    zoneService: ZoneService,
-): Promise<{ shippingZones: Zone[]; findings: StoreReadinessFinding[] }> {
-    const zones = await zoneService.getAllWithMembers(ctx);
+export function findShippingZones(zones: Zone[]): {
+    shippingZones: Zone[];
+    findings: StoreReadinessFinding[];
+} {
     const shippingZones: Zone[] = [];
     const findings: StoreReadinessFinding[] = [];
     for (const zone of zones) {
@@ -49,7 +54,7 @@ export async function findShippingZones(
             findings.push(
                 toFinding(
                     zoneWithoutEnabledCountry,
-                    'warning',
+                    StoreReadinessSeverity.WARNING,
                     { zone },
                     { zoneId: zone.id, dashboardUrl: '/zones' },
                 ),

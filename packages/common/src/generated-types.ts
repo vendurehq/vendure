@@ -7117,7 +7117,9 @@ export type StoreReadinessFinding = {
 
 /**
  * A way to fix a finding: an MCP admin tool, as the vendure mcp server names it, and the input to call
- * it with. Some inputs are templates, and the description says which values to fill in.
+ * it with. Some inputs are templates, and the description says which values to fill in. IDs in the
+ * input are the database IDs the MCP tools take, which differ from the Admin API's IDs only when an
+ * EntityIdStrategy encodes them.
  */
 export type StoreReadinessFix = {
   __typename?: 'StoreReadinessFix';
@@ -7129,13 +7131,13 @@ export type StoreReadinessFix = {
 export type StoreReadinessReport = {
   __typename?: 'StoreReadinessReport';
   findings: Array<StoreReadinessFinding>;
-  /** True when no finding has the severity error. */
+  /** True when no finding has the severity ERROR. */
   ready: Scalars['Boolean']['output'];
 };
 
 export enum StoreReadinessSeverity {
-  error = 'error',
-  warning = 'warning'
+  ERROR = 'ERROR',
+  WARNING = 'WARNING'
 }
 
 export type StringCustomFieldConfig = CustomField & {

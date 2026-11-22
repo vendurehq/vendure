@@ -7,7 +7,7 @@ import { TransactionalConnection } from '../../../connection/transactional-conne
 import { NativeAuthenticationMethod } from '../../../entity/authentication-method/native-authentication-method.entity';
 import { PasswordCipher } from '../password-cipher/password-cipher';
 
-import { StoreReadinessFinding, toFinding } from './store-readiness-types';
+import { StoreReadinessFinding, StoreReadinessSeverity, toFinding } from './store-readiness-types';
 
 export const defaultSuperadminPassword = defineError<{ identifier: string }>({
     code: 'store.auth.default-superadmin-password',
@@ -45,6 +45,11 @@ export async function checkSuperadminCredentials(
         return [];
     }
     return [
-        toFinding(defaultSuperadminPassword, 'warning', { identifier }, { dashboardUrl: '/administrators' }),
+        toFinding(
+            defaultSuperadminPassword,
+            StoreReadinessSeverity.WARNING,
+            { identifier },
+            { dashboardUrl: '/administrators' },
+        ),
     ];
 }

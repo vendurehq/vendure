@@ -1,76 +1,33 @@
-import { CommandErrorDefinition, CommandFix } from '@vendure/common/lib/command';
+import { CommandErrorDefinition } from '@vendure/common/lib/command';
+import {
+    StoreReadinessFinding,
+    StoreReadinessFix,
+    StoreReadinessSeverity,
+} from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { idsAreEqual } from '../../../common/utils';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 
 /**
- * @description
- * How serious a {@link StoreReadinessFinding} is. Any `error` finding makes the store not ready. A
- * `warning` is worth fixing, but does not stop an order.
- *
- * @docsCategory services
- * @docsPage StoreReadinessService
- * @since 4.0.0
+ * The report, its findings and their fixes are the generated Admin API types, so the service, the
+ * resolver and the MCP tool share one definition.
  */
-export type StoreReadinessSeverity = 'error' | 'warning';
-
-/**
- * @description
- * One way to fix a {@link StoreReadinessFinding}: an MCP admin tool, as the `vendure mcp` server names
- * it, and the input to call it with. Some inputs are templates, and the description says which
- * values to fill in. IDs in the input are database IDs, which are what the MCP tools take.
- *
- * @docsCategory services
- * @docsPage StoreReadinessService
- * @since 4.0.0
- */
-export type StoreReadinessFix = CommandFix;
-
-/**
- * @description
- * A setup gap that {@link StoreReadinessService} found. `code` is a namespaced code such as
- * `store.channel.no-default-tax-zone`. The ID fields name what the finding is about.
- *
- * @docsCategory services
- * @docsPage StoreReadinessService
- * @since 4.0.0
- */
-export interface StoreReadinessFinding {
-    code: string;
-    severity: StoreReadinessSeverity;
-    message: string;
-    channelId?: ID;
-    zoneId?: ID;
-    countryCode?: string;
-    taxCategoryId?: ID;
-    fixes: StoreReadinessFix[];
-    /**
-     * @description
-     * A Dashboard path, such as `/shipping-methods`, where a person can fix the finding.
-     */
-    dashboardUrl?: string;
-}
-
-/**
- * @description
- * The result of {@link StoreReadinessService} `check()`. `ready` is true when no finding has the
- * severity `error`.
- *
- * @docsCategory services
- * @docsPage StoreReadinessService
- * @since 4.0.0
- */
-export interface StoreReadinessReport {
-    ready: boolean;
-    findings: StoreReadinessFinding[];
-}
+export { StoreReadinessSeverity } from '@vendure/common/lib/generated-types';
+export type {
+    StoreReadinessFinding,
+    StoreReadinessFix,
+    StoreReadinessReport,
+} from '@vendure/common/lib/generated-types';
 
 /** What a check that runs once per Channel receives. */
 export interface ChannelReadinessInput {
     /** A context for the Channel being checked. */
     ctx: RequestContext;
+    /** The active Channel of the caller, whose tool calls a fix makes. */
+    callerChannelId: ID;
     /**
      * A new context for the Channel. Core caches the active tax zone per context, so each sample order
      * is priced with a context of its own.
@@ -94,6 +51,7 @@ export interface ChannelReadinessInput {
  * @since 4.0.0
  */
 export const STORE_READINESS_FIX_TOOLS = [
+    'set_active_channel',
     'update_channel',
     'list_zones',
     'update_zone',
@@ -111,6 +69,24 @@ export const STORE_READINESS_FIX_TOOLS = [
 /** The path of a fix that calls an MCP admin tool, as `vendure mcp` names it. */
 export function adminToolPath(tool: (typeof STORE_READINESS_FIX_TOOLS)[number]): string[] {
     return [`admin_${tool}`];
+}
+
+/**
+ * Fixes that create or list entities of a Channel act on the caller's active Channel. When the
+ * finding is about another Channel, the fixes start by switching to it.
+ */
+export function inChannel(input: ChannelReadinessInput, fixes: StoreReadinessFix[]): StoreReadinessFix[] {
+    if (fixes.length === 0 || idsAreEqual(input.callerChannelId, input.channel.id)) {
+        return fixes;
+    }
+    return [
+        {
+            path: adminToolPath('set_active_channel'),
+            input: { channelToken: input.channel.token },
+            description: `Switch to channel "${input.channel.code}", which this finding is about.`,
+        },
+        ...fixes,
+    ];
 }
 
 /** Zone members are Regions. Only countries count as places an order can ship to. */

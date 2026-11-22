@@ -5,7 +5,12 @@ import { DefaultTaxZoneStrategy } from '../../../config/tax/default-tax-zone-str
 import { TaxZoneStrategy } from '../../../config/tax/tax-zone-strategy';
 import { TaxRateService, ZoneTaxRateOverlap } from '../../services/tax-rate.service';
 
-import { adminToolPath, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    StoreReadinessFinding,
+    StoreReadinessSeverity,
+    toFinding,
+} from './store-readiness-types';
 
 export const ambiguousZoneRates = defineError<ZoneTaxRateOverlap>({
     code: 'store.tax.ambiguous-zone-rates',
@@ -39,7 +44,7 @@ export async function checkTaxRateOverlaps(
     }
     const overlaps = await taxRateService.findOverlappingZoneRates(ctx);
     return overlaps.map(overlap =>
-        toFinding(ambiguousZoneRates, 'warning', overlap, {
+        toFinding(ambiguousZoneRates, StoreReadinessSeverity.WARNING, overlap, {
             countryCode: overlap.countryCode,
             taxCategoryId: overlap.taxCategoryId,
             dashboardUrl: '/tax-rates',

@@ -10,7 +10,9 @@ import { sampleCountryCode } from './shipping-zones';
 import {
     adminToolPath,
     ChannelReadinessInput,
+    inChannel,
     StoreReadinessFinding,
+    StoreReadinessSeverity,
     toFinding,
 } from './store-readiness-types';
 import { findSampleVariant } from './variant-queries';
@@ -60,33 +62,45 @@ export const noEligibleShippingMethod = defineError<{ channel: Channel; zone: Zo
  * {@link OrderTestingService} and never saved.
  */
 export async function checkShipping(
-    { ctx, newContext, channel, shippingZones }: ChannelReadinessInput,
+    input: ChannelReadinessInput,
     services: {
         connection: TransactionalConnection;
         shippingMethodService: ShippingMethodService;
         orderTestingService: OrderTestingService;
     },
 ): Promise<StoreReadinessFinding[]> {
+    const { ctx, newContext, channel, shippingZones } = input;
     const target = { channelId: channel.id, dashboardUrl: '/shipping-methods' };
+    const inThisChannel = (finding: StoreReadinessFinding) => ({
+        ...finding,
+        fixes: inChannel(input, finding.fixes),
+    });
     const { totalItems } = await services.shippingMethodService.findAll(ctx, { take: 1 });
-    if (totalItems === 0) {
-        return [toFinding(noShippingMethod, 'error', { channel }, target)];
-    }
     const variant = await findSampleVariant(
         ctx,
         services.connection,
         channel.id,
         channel.defaultCurrencyCode,
     );
+    // Both gaps are reported together, so fixing one does not reveal the other.
+    const gaps: StoreReadinessFinding[] = [];
+    if (totalItems === 0) {
+        gaps.push(
+            inThisChannel(toFinding(noShippingMethod, StoreReadinessSeverity.ERROR, { channel }, target)),
+        );
+    }
     if (!variant) {
-        return [
+        gaps.push(
             toFinding(
                 noSellableVariant,
-                'error',
+                StoreReadinessSeverity.ERROR,
                 { channel },
                 { channelId: channel.id, dashboardUrl: '/products' },
             ),
-        ];
+        );
+    }
+    if (gaps.length || !variant) {
+        return gaps;
     }
     const findings: StoreReadinessFinding[] = [];
     for (const zone of shippingZones) {
@@ -100,11 +114,13 @@ export async function checkShipping(
         });
         if (quotes.length === 0) {
             findings.push(
-                toFinding(
-                    noEligibleShippingMethod,
-                    'error',
-                    { channel, zone, countryCode },
-                    { ...target, zoneId: zone.id, countryCode },
+                inThisChannel(
+                    toFinding(
+                        noEligibleShippingMethod,
+                        StoreReadinessSeverity.ERROR,
+                        { channel, zone, countryCode },
+                        { ...target, zoneId: zone.id, countryCode },
+                    ),
                 ),
             );
         }

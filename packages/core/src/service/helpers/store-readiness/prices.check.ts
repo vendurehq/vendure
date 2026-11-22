@@ -5,7 +5,12 @@ import { TransactionalConnection } from '../../../connection/transactional-conne
 import { Channel } from '../../../entity/channel/channel.entity';
 import { ProductVariantPrice } from '../../../entity/product-variant/product-variant-price.entity';
 
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    ChannelReadinessInput,
+    StoreReadinessFinding,
+    StoreReadinessSeverity,
+    toFinding,
+} from './store-readiness-types';
 import { countChannelVariants } from './variant-queries';
 
 export const missingPrices = defineError<{ channel: Channel; currencyCode: CurrencyCode; missing: number }>({
@@ -44,7 +49,7 @@ export async function checkPrices(
             findings.push(
                 toFinding(
                     missingPrices,
-                    'error',
+                    StoreReadinessSeverity.ERROR,
                     { channel, currencyCode, missing },
                     { channelId: channel.id, dashboardUrl: '/products' },
                 ),

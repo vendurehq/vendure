@@ -7,7 +7,7 @@ import {
     ShippingLine,
     TransactionalConnection,
 } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
+import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -19,7 +19,7 @@ import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
 
 interface Finding {
     code: string;
-    severity: 'error' | 'warning';
+    severity: 'ERROR' | 'WARNING';
     message: string;
     channelId: string | null;
     zoneId: string | null;
@@ -90,8 +90,18 @@ describe('storeReadiness', () => {
         const report = await check();
         expect(report.ready).toBe(false);
         const finding = report.findings.find(f => f.code === 'store.channel.no-payment-method');
-        expect(finding).toMatchObject({ severity: 'error', dashboardUrl: '/payment-methods' });
-        expect(finding?.channelId).toBeTruthy();
+        const { activeChannel } = await adminClient.query(gql`
+            query {
+                activeChannel {
+                    id
+                }
+            }
+        `);
+        expect(finding).toMatchObject({
+            severity: 'ERROR',
+            dashboardUrl: '/payment-methods',
+            channelId: activeChannel.id,
+        });
         expect(finding?.fixes.map(fix => fix.path[0])).toEqual([
             'admin_list_payment_options',
             'admin_create_payment_method',
@@ -102,7 +112,7 @@ describe('storeReadiness', () => {
     it('warns about the default superadmin password without making the store not ready', async () => {
         const report = await check();
         expect(report.findings).toContainEqual(
-            expect.objectContaining({ code: 'store.auth.default-superadmin-password', severity: 'warning' }),
+            expect.objectContaining({ code: 'store.auth.default-superadmin-password', severity: 'WARNING' }),
         );
     });
 
@@ -125,7 +135,7 @@ describe('storeReadiness', () => {
             },
         );
         const report = await check();
-        expect(report.findings.filter(f => f.severity === 'error')).toEqual([]);
+        expect(report.findings.filter(f => f.severity === 'ERROR')).toEqual([]);
         expect(report.ready).toBe(true);
     });
 
@@ -290,7 +300,7 @@ describe('storeReadiness', () => {
         expect(report.findings).toContainEqual(
             expect.objectContaining({
                 code: 'store.tax.ambiguous-zone-rates',
-                severity: 'warning',
+                severity: 'WARNING',
                 countryCode: 'AT',
                 taxCategoryId: taxCategories.items[0].id,
             }),
@@ -325,7 +335,7 @@ describe('storeReadiness', () => {
         try {
             const report = await check();
             const finding = report.findings.find(f => f.code === 'store.channel.missing-prices');
-            expect(finding).toMatchObject({ severity: 'error', channelId: activeChannel.id });
+            expect(finding).toMatchObject({ severity: 'ERROR', channelId: activeChannel.id });
             expect(finding?.message).toContain('EUR');
         } finally {
             await adminClient.query(
@@ -384,13 +394,17 @@ describe('storeReadiness', () => {
                         id
                         members {
                             enabled
+                            type
                         }
                     }
                 }
             }
         `);
+        // A zone counts when it has an enabled country, as in the check.
         const shippingZoneIds = zones.items
-            .filter((z: { members: Array<{ enabled: boolean }> }) => z.members.some(m => m.enabled))
+            .filter((z: { members: Array<{ enabled: boolean; type: string }> }) =>
+                z.members.some(m => m.enabled && m.type === 'country'),
+            )
             .map((z: { id: string }) => z.id)
             .sort();
         await setOrderMinimum(1_000_000_000);
@@ -399,8 +413,7 @@ describe('storeReadiness', () => {
             const ineligible = report.findings.filter(f => f.code === 'store.shipping.no-eligible-method');
             // One finding per zone the channel ships to.
             expect(ineligible.map(f => f.zoneId).sort()).toEqual(shippingZoneIds);
-            expect(ineligible[0]).toMatchObject({ severity: 'error', dashboardUrl: '/shipping-methods' });
-            expect(ineligible[0].zoneId).toBeTruthy();
+            expect(ineligible[0]).toMatchObject({ severity: 'ERROR', dashboardUrl: '/shipping-methods' });
             expect(ineligible[0].countryCode).toMatch(/^[A-Z]{2}$/);
         } finally {
             await setOrderMinimum(0);
@@ -448,6 +461,87 @@ describe('storeReadiness', () => {
         expect(codes(report)).toContain('store.channel.no-payment-method');
 
         await expect(check(['T_99999'])).rejects.toThrow(/No Channel with the id "99999"/);
+    });
+
+    it('shows a channel administrator only their channel, and not the superadmin password', async () => {
+        const { channels } = await adminClient.query(gql`
+            query {
+                channels {
+                    items {
+                        id
+                        code
+                        token
+                    }
+                }
+            }
+        `);
+        const second = channels.items.find((c: { code: string }) => c.code === 'second');
+        const defaultChannel = channels.items.find((c: { code: string }) => c.code !== 'second');
+        const { createRole } = await adminClient.query(
+            gql`
+                mutation ($input: CreateRoleInput!) {
+                    createRole(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: 'second-settings',
+                    description: 'Second settings',
+                    permissions: ['ReadSettings'],
+                },
+            },
+        );
+        await adminClient.query(
+            gql`
+                mutation ($input: CreateAdministratorInput!) {
+                    createAdministrator(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    firstName: 'Second',
+                    lastName: 'Admin',
+                    emailAddress: 'second@example.test',
+                    password: 'test',
+                    roleAssignments: [{ roleId: createRole.id, channelId: second.id }],
+                },
+            },
+        );
+        await adminClient.asUserWithCredentials('second@example.test', 'test');
+        adminClient.setChannelToken(second.token);
+        try {
+            const report = await check();
+            const channelIds = new Set(
+                report.findings.filter(f => f.channelId != null).map(f => f.channelId),
+            );
+            expect([...channelIds]).toEqual([second.id]);
+            expect(codes(report)).not.toContain('store.auth.default-superadmin-password');
+            // The fixes of a finding about the active channel need no switch.
+            const payment = report.findings.find(f => f.code === 'store.channel.no-payment-method');
+            expect(payment?.fixes[0].path).toEqual(['admin_list_payment_options']);
+
+            await expect(check([defaultChannel.id])).rejects.toThrow(/not currently authorized/);
+        } finally {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+        }
+    });
+
+    it("starts the fixes for another channel's finding by switching to it", async () => {
+        const report = await check();
+        const payment = report.findings.find(
+            f => f.code === 'store.channel.no-payment-method' && f.channelId !== null,
+        );
+        expect(payment?.fixes.map(fix => fix.path[0])).toEqual([
+            'admin_set_active_channel',
+            'admin_list_payment_options',
+            'admin_create_payment_method',
+        ]);
+        expect(payment?.fixes[0].input).toEqual({ channelToken: 'second-token' });
     });
 
     it('refuses an administrator without ReadSettings', async () => {
