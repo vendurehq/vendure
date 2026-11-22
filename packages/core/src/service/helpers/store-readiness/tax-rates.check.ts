@@ -15,6 +15,7 @@ import {
     ChannelReadinessInput,
     countryMembers,
     StoreReadinessFinding,
+    StoreReadinessSeverity,
     toFinding,
 } from './store-readiness-types';
 import { findChannelTaxCategoryIds } from './variant-queries';
@@ -132,7 +133,7 @@ export async function checkTaxRates(
         }
         for (const details of missing.values()) {
             findings.push(
-                toFinding(noApplicableTaxRate, 'error', details, {
+                toFinding(noApplicableTaxRate, StoreReadinessSeverity.ERROR, details, {
                     channelId: channel.id,
                     zoneId: details.zone.id,
                     taxCategoryId: taxCategory.id,

@@ -4,7 +4,12 @@ import { TransactionalConnection } from '../../../connection/transactional-conne
 import { Channel } from '../../../entity/channel/channel.entity';
 import { SearchIndexItem } from '../../../plugin/default-search-plugin/entities/search-index-item.entity';
 
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    ChannelReadinessInput,
+    StoreReadinessFinding,
+    StoreReadinessSeverity,
+    toFinding,
+} from './store-readiness-types';
 import { countChannelVariants } from './variant-queries';
 
 export const searchIndexIncomplete = defineError<{ channel: Channel; indexed: number; variants: number }>({
@@ -40,7 +45,7 @@ export async function checkSearchIndex(
     return [
         toFinding(
             searchIndexIncomplete,
-            'warning',
+            StoreReadinessSeverity.WARNING,
             { channel, indexed, variants },
             { channelId: channel.id, dashboardUrl: '/products' },
         ),

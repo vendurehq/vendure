@@ -2,25 +2,32 @@ import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types'
 import { SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { describe, expect, it, vi } from 'vitest';
 
+
 import { AddressBasedTaxZoneStrategy } from '../../../config/tax/address-based-tax-zone-strategy';
 import { DefaultTaxZoneStrategy } from '../../../config/tax/default-tax-zone-strategy';
+import { checkFailed } from '../../services/store-readiness.service';
 
-import { checkDefaultZones, noDefaultShippingZone, noDefaultTaxZone } from './default-zones.check';
-import { checkPaymentMethods, noEnabledPaymentMethod } from './payment-methods.check';
-import { checkPrices, missingPrices } from './prices.check';
-import { checkSearchIndex, searchIndexIncomplete } from './search-index.check';
-import { findShippingZones, sampleCountryCode, zoneWithoutEnabledCountry } from './shipping-zones';
-import {
-    checkShipping,
-    noEligibleShippingMethod,
-    noSellableVariant,
-    noShippingMethod,
-} from './shipping.check';
-import { checkStockLocations, noStockLocation } from './stock-locations.check';
+import * as defaultZonesModule from './default-zones.check';
+import { checkDefaultZones } from './default-zones.check';
+import * as paymentMethodsModule from './payment-methods.check';
+import { checkPaymentMethods } from './payment-methods.check';
+import * as pricesModule from './prices.check';
+import { checkPrices } from './prices.check';
+import * as searchIndexModule from './search-index.check';
+import { checkSearchIndex } from './search-index.check';
+import * as shippingZonesModule from './shipping-zones';
+import { findShippingZones, sampleCountryCode } from './shipping-zones';
+import * as shippingModule from './shipping.check';
+import { checkShipping } from './shipping.check';
+import * as stockLocationsModule from './stock-locations.check';
+import { checkStockLocations } from './stock-locations.check';
 import { ChannelReadinessInput } from './store-readiness-types';
-import { checkSuperadminCredentials, defaultSuperadminPassword } from './superadmin-credentials.check';
-import { ambiguousZoneRates, checkTaxRateOverlaps } from './tax-rate-overlaps.check';
-import { checkTaxRates, noApplicableTaxRate } from './tax-rates.check';
+import * as superadminModule from './superadmin-credentials.check';
+import { checkSuperadminCredentials } from './superadmin-credentials.check';
+import * as taxRateOverlapsModule from './tax-rate-overlaps.check';
+import { checkTaxRateOverlaps } from './tax-rate-overlaps.check';
+import * as taxRatesModule from './tax-rates.check';
+import { checkTaxRates } from './tax-rates.check';
 
 const ctx = {} as any;
 /** The context each sample order gets, so a cached tax zone does not carry over. */
@@ -38,6 +45,7 @@ function channel(overrides: Record<string, unknown> = {}) {
     return {
         id: 1,
         code: 'default',
+        token: 'default-token',
         defaultLanguageCode: LanguageCode.en,
         defaultCurrencyCode: CurrencyCode.USD,
         availableCurrencyCodes: [CurrencyCode.USD],
@@ -51,6 +59,7 @@ function input(overrides: Partial<ChannelReadinessInput> = {}): ChannelReadiness
     const zones = [zone('z1', [country('DE')])];
     return {
         ctx,
+        callerChannelId: 1,
         newContext: () => Promise.resolve(freshCtx),
         channel: channel(),
         allZones: zones,
@@ -76,26 +85,34 @@ function queryBuilder(results: { getOne?: unknown; getCount?: number; getRawMany
 }
 
 describe('store readiness codes', () => {
-    it('are namespaced, lower-case codes under "store."', () => {
-        const definitions = [
-            noDefaultTaxZone,
-            noDefaultShippingZone,
-            missingPrices,
-            noApplicableTaxRate,
-            ambiguousZoneRates,
-            noShippingMethod,
-            noSellableVariant,
-            noEligibleShippingMethod,
-            noEnabledPaymentMethod,
-            noStockLocation,
-            searchIndexIncomplete,
-            defaultSuperadminPassword,
-            zoneWithoutEnabledCountry,
+    it('are namespaced, lower-case and unique, in every module that defines them', () => {
+        // Every coded error exported by a check module, and the service's own, so a new one is covered.
+        const modules = [
+            defaultZonesModule,
+            paymentMethodsModule,
+            pricesModule,
+            searchIndexModule,
+            shippingModule,
+            shippingZonesModule,
+            stockLocationsModule,
+            superadminModule,
+            taxRateOverlapsModule,
+            taxRatesModule,
+            { checkFailed },
         ];
-        for (const definition of definitions) {
-            expect(definition.code).toMatch(/^store(\.[a-z0-9-]+)+$/);
+        const codes = modules.flatMap(module =>
+            Object.values(module)
+                .filter(
+                    value =>
+                        typeof value === 'object' && value !== null && 'code' in value && 'exit' in value,
+                )
+                .map(value => (value as { code: string }).code),
+        );
+        expect(codes.length).toBeGreaterThanOrEqual(14);
+        for (const code of codes) {
+            expect(code).toMatch(/^store(\.[a-z0-9-]+)+$/);
         }
-        expect(new Set(definitions.map(d => d.code)).size).toBe(definitions.length);
+        expect(new Set(codes).size).toBe(codes.length);
     });
 });
 
@@ -108,7 +125,7 @@ describe('checkDefaultZones', () => {
             'store.channel.no-default-tax-zone',
             'store.channel.no-default-shipping-zone',
         ]);
-        expect(findings[0]).toMatchObject({ severity: 'error', channelId: 1, dashboardUrl: '/channels' });
+        expect(findings[0]).toMatchObject({ severity: 'ERROR', channelId: 1, dashboardUrl: '/channels' });
         expect(findings[0].fixes).toEqual([
             expect.objectContaining({
                 path: ['admin_update_channel'],
@@ -127,20 +144,16 @@ describe('checkDefaultZones', () => {
 });
 
 describe('findShippingZones', () => {
-    it('keeps zones with an enabled country and warns about the others', async () => {
-        const zoneService = {
-            getAllWithMembers: () =>
-                Promise.resolve([
-                    zone('z1', [country('DE'), country('AT', false)]),
-                    zone('z2', [country('FR', false)]),
-                    zone('z3', []),
-                ]),
-        } as any;
-        const { shippingZones, findings } = await findShippingZones(ctx, zoneService);
+    it('keeps zones with an enabled country and warns about the others', () => {
+        const { shippingZones, findings } = findShippingZones([
+            zone('z1', [country('DE'), country('AT', false)]),
+            zone('z2', [country('FR', false)]),
+            zone('z3', []),
+        ]);
         expect(shippingZones.map(z => z.id)).toEqual(['z1']);
         expect(findings.map(f => [f.code, f.severity, f.zoneId])).toEqual([
-            ['store.zone.no-enabled-country', 'warning', 'z2'],
-            ['store.zone.no-enabled-country', 'warning', 'z3'],
+            ['store.zone.no-enabled-country', 'WARNING', 'z2'],
+            ['store.zone.no-enabled-country', 'WARNING', 'z3'],
         ]);
         expect(findings[0].fixes[0]).toMatchObject({
             path: ['admin_enable_countries'],
@@ -268,7 +281,7 @@ describe('checkTaxRateOverlaps', () => {
         const [finding] = await checkTaxRateOverlaps(ctx, taxRateService, new AddressBasedTaxZoneStrategy());
         expect(finding).toMatchObject({
             code: 'store.tax.ambiguous-zone-rates',
-            severity: 'warning',
+            severity: 'WARNING',
             countryCode: 'AT',
             taxCategoryId: 'tc1',
         });
@@ -308,7 +321,7 @@ describe('checkPrices', () => {
         expect(findings).toEqual([
             expect.objectContaining({
                 code: 'store.channel.missing-prices',
-                severity: 'error',
+                severity: 'ERROR',
                 channelId: 1,
             }),
         ]);
@@ -329,7 +342,7 @@ describe('checkSearchIndex', () => {
 
     it('warns when the index holds fewer items than the channel has variants', async () => {
         const [finding] = await checkSearchIndex(input(), connection(true, 5, 2));
-        expect(finding).toMatchObject({ code: 'store.search.index-incomplete', severity: 'warning' });
+        expect(finding).toMatchObject({ code: 'store.search.index-incomplete', severity: 'WARNING' });
         expect(finding.message).toContain('holds 2 of its 5');
     });
 
@@ -353,7 +366,7 @@ describe('checkShipping', () => {
     });
 
     it('reports a channel with no shipping method', async () => {
-        const findings = await checkShipping(input(), services({ methods: 0 }));
+        const findings = await checkShipping(input(), services({ methods: 0, variant: { id: 'v1' } }));
         expect(findings.map(f => f.code)).toEqual(['store.channel.no-shipping-method']);
     });
 
@@ -362,6 +375,28 @@ describe('checkShipping', () => {
         const findings = await checkShipping(input(), deps);
         expect(findings.map(f => f.code)).toEqual(['store.channel.no-sellable-variant']);
         expect(deps.orderTestingService.testEligibleShippingMethods).not.toHaveBeenCalled();
+    });
+
+    it('reports a missing shipping method and nothing to sell together', async () => {
+        const findings = await checkShipping(input(), services({ methods: 0, variant: undefined }));
+        expect(findings.map(f => f.code)).toEqual([
+            'store.channel.no-shipping-method',
+            'store.channel.no-sellable-variant',
+        ]);
+    });
+
+    it("starts the fixes by switching channel when the finding is not about the caller's channel", async () => {
+        const [other] = await checkShipping(
+            input({ callerChannelId: 2 }),
+            services({ methods: 0, variant: { id: 'v1' } }),
+        );
+        expect(other.fixes.map(fix => fix.path[0])).toEqual([
+            'admin_set_active_channel',
+            'admin_list_shipping_options',
+        ]);
+        expect(other.fixes[0].input).toEqual({ channelToken: 'default-token' });
+        const [same] = await checkShipping(input(), services({ methods: 0, variant: { id: 'v1' } }));
+        expect(same.fixes.map(fix => fix.path[0])).toEqual(['admin_list_shipping_options']);
     });
 
     it('prices one sample order per zone and reports the zones with no eligible method', async () => {
@@ -410,7 +445,7 @@ describe('checkPaymentMethods and checkStockLocations', () => {
     it('report a channel with no stock location', async () => {
         const stockLocationService = { findAll: () => Promise.resolve({ items: [], totalItems: 0 }) } as any;
         const [finding] = await checkStockLocations(input(), stockLocationService);
-        expect(finding).toMatchObject({ code: 'store.channel.no-stock-location', severity: 'error' });
+        expect(finding).toMatchObject({ code: 'store.channel.no-stock-location', severity: 'ERROR' });
         const present = { findAll: () => Promise.resolve({ items: [{}], totalItems: 1 }) } as any;
         expect(await checkStockLocations(input(), present)).toEqual([]);
     });
@@ -441,7 +476,7 @@ describe('checkSuperadminCredentials', () => {
         const findings = await checkSuperadminCredentials(ctx, services);
         expect(check).toHaveBeenCalledWith(SUPER_ADMIN_USER_PASSWORD, 'hash');
         expect(findings).toEqual([
-            expect.objectContaining({ code: 'store.auth.default-superadmin-password', severity: 'warning' }),
+            expect.objectContaining({ code: 'store.auth.default-superadmin-password', severity: 'WARNING' }),
         ]);
     });
 

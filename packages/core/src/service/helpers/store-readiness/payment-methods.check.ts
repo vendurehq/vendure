@@ -7,7 +7,9 @@ import { PaymentMethodService } from '../../services/payment-method.service';
 import {
     adminToolPath,
     ChannelReadinessInput,
+    inChannel,
     StoreReadinessFinding,
+    StoreReadinessSeverity,
     toFinding,
 } from './store-readiness-types';
 
@@ -42,10 +44,11 @@ export const noEnabledPaymentMethod = defineError<{ channel: Channel; handlerCod
 
 /** The Channel has an enabled payment method. */
 export async function checkPaymentMethods(
-    { ctx, channel }: ChannelReadinessInput,
+    input: ChannelReadinessInput,
     paymentMethodService: PaymentMethodService,
     configService: ConfigService,
 ): Promise<StoreReadinessFinding[]> {
+    const { ctx, channel } = input;
     const { totalItems } = await paymentMethodService.findAll(ctx, {
         filter: { enabled: { eq: true } },
         take: 1,
@@ -54,12 +57,11 @@ export async function checkPaymentMethods(
         return [];
     }
     const handlerCode = configService.paymentOptions.paymentMethodHandlers[0]?.code;
-    return [
-        toFinding(
-            noEnabledPaymentMethod,
-            'error',
-            { channel, handlerCode },
-            { channelId: channel.id, dashboardUrl: '/payment-methods' },
-        ),
-    ];
+    const finding = toFinding(
+        noEnabledPaymentMethod,
+        StoreReadinessSeverity.ERROR,
+        { channel, handlerCode },
+        { channelId: channel.id, dashboardUrl: '/payment-methods' },
+    );
+    return [{ ...finding, fixes: inChannel(input, finding.fixes) }];
 }

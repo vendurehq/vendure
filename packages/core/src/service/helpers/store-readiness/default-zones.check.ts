@@ -7,6 +7,7 @@ import {
     adminToolPath,
     ChannelReadinessInput,
     StoreReadinessFinding,
+    StoreReadinessSeverity,
     toFinding,
 } from './store-readiness-types';
 
@@ -54,10 +55,10 @@ export function checkDefaultZones({
     const target = { channelId: channel.id, dashboardUrl: '/channels' };
     const details = { channel, candidate: shippingZones[0] };
     if (!channel.defaultTaxZone) {
-        findings.push(toFinding(noDefaultTaxZone, 'error', details, target));
+        findings.push(toFinding(noDefaultTaxZone, StoreReadinessSeverity.ERROR, details, target));
     }
     if (!channel.defaultShippingZone) {
-        findings.push(toFinding(noDefaultShippingZone, 'error', details, target));
+        findings.push(toFinding(noDefaultShippingZone, StoreReadinessSeverity.ERROR, details, target));
     }
     return findings;
 }

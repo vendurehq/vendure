@@ -5,7 +5,6 @@ import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
 import { EntityNotFoundError, ForbiddenError } from '../../common/error/errors';
-import { idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { TransactionalConnection } from '../../connection/transactional-connection';
@@ -23,6 +22,7 @@ import {
     ChannelReadinessInput,
     StoreReadinessFinding,
     StoreReadinessReport,
+    StoreReadinessSeverity,
     toFinding,
 } from '../helpers/store-readiness/store-readiness-types';
 import { checkSuperadminCredentials } from '../helpers/store-readiness/superadmin-credentials.check';
@@ -38,7 +38,10 @@ import { StockLocationService } from './stock-location.service';
 import { TaxRateService } from './tax-rate.service';
 import { ZoneService } from './zone.service';
 
-const checkFailed = defineError<{ check: string; channel?: Channel; error: unknown }>({
+/** How many Channels to load per query. */
+const CHANNEL_PAGE_SIZE = 100;
+
+export const checkFailed = defineError<{ check: string; channel?: Channel; error: unknown }>({
     code: 'store.check.failed',
     exit: COMMAND_EXIT_CODES.failed,
     message: ({ check, channel, error }) =>
@@ -96,31 +99,42 @@ export class StoreReadinessService {
                     error instanceof Error ? error.stack : undefined,
                 );
                 findings.push(
-                    toFinding(checkFailed, 'error', { check, channel, error }, { channelId: channel?.id }),
+                    toFinding(
+                        checkFailed,
+                        StoreReadinessSeverity.ERROR,
+                        { check, channel, error },
+                        { channelId: channel?.id },
+                    ),
                 );
             }
         };
 
         const { taxZoneStrategy } = this.configService.taxOptions;
-        const allZones = await this.zoneService.getAllWithMembers(ctx);
+        let allZones: ChannelReadinessInput['allZones'] = [];
         let shippingZones: ChannelReadinessInput['shippingZones'] = [];
         await run('shipping-zones', async () => {
-            const result = await findShippingZones(ctx, this.zoneService);
+            allZones = await this.zoneService.getAllWithMembers(ctx);
+            const result = findShippingZones(allZones);
             shippingZones = result.shippingZones;
             return result.findings;
         });
         await run('tax-rate-overlaps', () => checkTaxRateOverlaps(ctx, this.taxRateService, taxZoneStrategy));
-        await run('superadmin-credentials', () =>
-            checkSuperadminCredentials(ctx, {
-                connection: this.connection,
-                configService: this.configService,
-                passwordCipher: this.passwordCipher,
-            }),
-        );
+        // Whether the superadmin can be signed in to with the default password is only for a
+        // superadmin to know, not for an administrator of one channel.
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            await run('superadmin-credentials', () =>
+                checkSuperadminCredentials(ctx, {
+                    connection: this.connection,
+                    configService: this.configService,
+                    passwordCipher: this.passwordCipher,
+                }),
+            );
+        }
 
         for (const channel of await this.findChannelsToCheck(ctx, options.channelIds)) {
             const input: ChannelReadinessInput = {
                 ctx: await this.createChannelContext(ctx, channel),
+                callerChannelId: ctx.channelId,
                 newContext: () => this.createChannelContext(ctx, channel),
                 channel,
                 allZones,
@@ -161,7 +175,10 @@ export class StoreReadinessService {
             await run('search-index', () => checkSearchIndex(input, this.connection), channel);
         }
 
-        return { ready: !findings.some(finding => finding.severity === 'error'), findings };
+        return {
+            ready: !findings.some(finding => finding.severity === StoreReadinessSeverity.ERROR),
+            findings,
+        };
     }
 
     /**
@@ -170,27 +187,39 @@ export class StoreReadinessService {
      * Channel it did not check.
      */
     private async findChannelsToCheck(ctx: RequestContext, channelIds?: ID[]): Promise<Channel[]> {
+        const canRead = (channel: Channel) =>
+            this.roleService.userHasPermissionOnChannel(ctx, channel.id, Permission.ReadSettings);
+        if (channelIds) {
+            const channels: Channel[] = [];
+            for (const id of channelIds) {
+                const channel = await this.channelService.findOne(ctx, id);
+                if (!channel) {
+                    throw new EntityNotFoundError('Channel', id);
+                }
+                if (!(await canRead(channel))) {
+                    throw new ForbiddenError();
+                }
+                channels.push(channel);
+            }
+            return channels;
+        }
+        // Paged, so a store with more Channels than one list query returns is checked in full.
         // findAll() loads the default Zones, which the default-zones check reads.
-        const { items } = await this.channelService.findAll(ctx);
         const readable: Channel[] = [];
-        for (const channel of items) {
-            if (await this.roleService.userHasPermissionOnChannel(ctx, channel.id, Permission.ReadSettings)) {
-                readable.push(channel);
+        for (let skip = 0; ; skip += CHANNEL_PAGE_SIZE) {
+            const { items, totalItems } = await this.channelService.findAll(ctx, {
+                skip,
+                take: CHANNEL_PAGE_SIZE,
+            });
+            for (const channel of items) {
+                if (await canRead(channel)) {
+                    readable.push(channel);
+                }
+            }
+            if (items.length === 0 || skip + items.length >= totalItems) {
+                return readable;
             }
         }
-        if (!channelIds) {
-            return readable;
-        }
-        return channelIds.map(id => {
-            const channel = readable.find(candidate => idsAreEqual(candidate.id, id));
-            if (channel) {
-                return channel;
-            }
-            if (items.some(candidate => idsAreEqual(candidate.id, id))) {
-                throw new ForbiddenError();
-            }
-            throw new EntityNotFoundError('Channel', id);
-        });
     }
 
     /**

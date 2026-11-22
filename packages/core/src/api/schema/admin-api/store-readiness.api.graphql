@@ -7,12 +7,12 @@ type Query {
 }
 
 enum StoreReadinessSeverity {
-    error
-    warning
+    ERROR
+    WARNING
 }
 
 type StoreReadinessReport {
-    "True when no finding has the severity error."
+    "True when no finding has the severity ERROR."
     ready: Boolean!
     findings: [StoreReadinessFinding!]!
 }
