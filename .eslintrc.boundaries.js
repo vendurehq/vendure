@@ -49,13 +49,16 @@ const testFiles = ['**/*.spec.ts', '**/*.spec.tsx', '**/*.spec-d.ts'];
 const publicEntryPointOnlyFiles = ['packages/*-plugin/**/*.ts', 'packages/*-plugin/**/*.tsx'];
 
 /**
- * Browser code: the Dashboard app, and the Dashboard extensions of the plugin packages. The
- * Dashboard's `vite` and `plugin` folders run in Node and are not included.
+ * Browser code: the Dashboard app, and the browser code of the plugin packages, which is their
+ * Dashboard extensions and the GraphiQL UI. The Dashboard's `vite` and `plugin` folders run in
+ * Node and are not included.
  */
 const dashboardAppFiles = ['packages/dashboard/src/**/*.ts', 'packages/dashboard/src/**/*.tsx'];
-const pluginDashboardFiles = [
+const pluginBrowserFiles = [
     'packages/*-plugin/src/dashboard/**/*.ts',
     'packages/*-plugin/src/dashboard/**/*.tsx',
+    'packages/graphiql-plugin/src/ui/**/*.ts',
+    'packages/graphiql-plugin/src/ui/**/*.tsx',
 ];
 
 /** Existing deep imports into `@vendure/core/dist`. Remove an entry when its import is fixed. */
@@ -79,7 +82,7 @@ const distImportBan = {
     message: 'Import from the public entry point of the package, not from its dist folder.',
 };
 
-/** The manifest build step and merge read and write files, so only Node code imports them. */
+/** `readManifestFile` and `writeCommandManifest` use `node:fs`, so only Node code imports this entry point. */
 const nodeOnlyMessage =
     '`@vendure/common/lib/command/manifest` uses `node:fs` and runs only in Node. Import the command contract from `@vendure/common/lib/command`.';
 const nodeOnlyImportBan = { name: '@vendure/common/lib/command/manifest', message: nodeOnlyMessage };
@@ -120,8 +123,8 @@ const overrides = [
     },
     {
         // ESLint applies the options of the last override that matches a file, so this one repeats
-        // the dist ban of `publicEntryPointOnlyFiles` for the plugins' Dashboard extensions.
-        files: pluginDashboardFiles,
+        // the dist ban of `publicEntryPointOnlyFiles` for the browser code of the plugins.
+        files: pluginBrowserFiles,
         rules: {
             'no-restricted-imports': [
                 'error',
