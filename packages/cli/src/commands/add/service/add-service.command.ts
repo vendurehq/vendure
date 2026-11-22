@@ -1,6 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { entityNotFound, fileExists, pluginNotFound } from '../add.errors.js';
+import { entityNotFound, fileExists, pluginAmbiguous, pluginNotFound } from '../add.errors.js';
 
 export const addServiceDefinition = defineCommand({
     path: ['add', 'service'],
@@ -19,7 +19,7 @@ export const addServiceDefinition = defineCommand({
             },
         },
     },
-    errors: [pluginNotFound, entityNotFound, fileExists],
+    errors: [pluginNotFound, pluginAmbiguous, entityNotFound, fileExists],
     examples: [
         'vendure add service ReviewService --plugin ReviewsPlugin',
         'vendure add service ProductReviewService --plugin ReviewsPlugin --entity ProductReview',

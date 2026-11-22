@@ -216,4 +216,22 @@ describe('vendure add subcommands', { timeout: 120_000 }, () => {
         expect(exitCode, stderr).toBe(0);
         expect(existsSync(join(dir, pluginDir, 'entities', 'review-vote.entity.ts'))).toBe(true);
     });
+
+    // The CLI guide shows `vendure add -p MyPlugin`, a name `add plugin` would not take as typed.
+    it('takes the plugin names the older flag took', async () => {
+        const { exitCode, stderr } = await runCli(dir, ['add', '-p', 'ExtraPlugin']);
+
+        expect(exitCode, stderr).toBe(0);
+        expect(existsSync(join(dir, 'src/plugins/extra/extra.plugin.ts'))).toBe(true);
+        expect(read('src/plugins/extra/extra.plugin.ts')).toContain('class ExtraPlugin');
+    });
+
+    // On `vendure add`, `--plugin` creates a plugin, so the text names the subcommand to run.
+    it('names the subcommand to run when an older flag lacks an input', async () => {
+        const { exitCode, stderr } = await runCli(dir, ['add', '-e', 'Review']);
+
+        expect(exitCode).not.toBe(0);
+        expect(stderr).toContain('vendure add entity --name "Review"');
+        expect(stderr).toContain('--plugin');
+    });
 });

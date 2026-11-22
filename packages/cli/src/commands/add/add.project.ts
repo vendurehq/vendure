@@ -6,7 +6,7 @@ import { ServiceRef } from '../../shared/service-ref.js';
 import { VendurePluginRef } from '../../shared/vendure-plugin-ref.js';
 import { getPluginClasses } from '../../utilities/ast-utils.js';
 
-import { entityNotFound, pluginNotFound, serviceNotFound } from './add.errors.js';
+import { entityNotFound, pluginAmbiguous, pluginNotFound, serviceNotFound } from './add.errors.js';
 
 /** The names of the plugin classes in the project. */
 export async function listPluginNames(): Promise<string[]> {
@@ -34,16 +34,26 @@ export async function listEntityNames(input: Record<string, unknown>): Promise<s
 }
 
 function pluginNames(project: Project): string[] {
-    return getPluginClasses(project)
+    const names = getPluginClasses(project)
         .map(plugin => plugin.getName())
         .filter((name): name is string => !!name);
+    return [...new Set(names)];
 }
 
-/** The plugin class with this name, or the coded error that lists the plugins there are. */
+/**
+ * The plugin class with this name, or a coded error: one that lists the plugins there are, or one
+ * that lists the files when more than one class has the name.
+ */
 export function findPlugin(project: Project, name: string): VendurePluginRef | ErrorResult {
-    const pluginClass = getPluginClasses(project).find(c => c.getName() === name);
-    return pluginClass
-        ? new VendurePluginRef(pluginClass)
+    const matches = getPluginClasses(project).filter(c => c.getName() === name);
+    if (matches.length > 1) {
+        return fail(pluginAmbiguous, {
+            plugin: name,
+            files: matches.map(c => c.getSourceFile().getFilePath()),
+        });
+    }
+    return matches.length
+        ? new VendurePluginRef(matches[0])
         : fail(pluginNotFound, { plugin: name, available: pluginNames(project) });
 }
 

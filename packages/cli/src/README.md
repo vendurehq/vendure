@@ -237,8 +237,8 @@ npx vendure add -e MyEntity --selected-plugin MyPlugin --custom-fields --transla
 # Add a service to a plugin
 npx vendure add -s MyService --selected-plugin MyPlugin
 
-# Add a service with specific type
-npx vendure add -s MyService --selected-plugin MyPlugin --type entity
+# Add a CRUD service for an entity
+npx vendure add -s MyEntityService --selected-plugin MyPlugin --selected-entity MyEntity
 
 # Add job queue support to a plugin
 npx vendure add -j MyPlugin --name my-job --selected-service MyService
@@ -386,7 +386,7 @@ Commands implement validation for non-interactive mode to ensure all required pa
 Entity and service commands now support non-interactive mode with the `--selected-plugin` parameter to specify the target plugin. Both commands support additional options for customization:
 
 - Entity commands support `--custom-fields` and `--translatable` flags
-- Service commands support `--type` parameter to specify service type (basic or entity)
+- Service commands support `--selected-entity` to make a CRUD service for an entity
 
 **Example Error Handling:**
 

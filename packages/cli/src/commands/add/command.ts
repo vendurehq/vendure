@@ -53,13 +53,8 @@ export const addCommandDef: CliCommandDefinition = {
             required: false,
             subOptions: [
                 {
-                    long: '--type <type>',
-                    description: 'Type of service: basic or entity (default: basic)',
-                    required: false,
-                },
-                {
                     long: '--selected-entity <n>',
-                    description: 'Name of the entity for entity service (automatically sets type to entity)',
+                    description: 'An entity of the plugin. The service then has CRUD methods for it',
                     required: false,
                 },
             ],

@@ -7,6 +7,13 @@ export const pluginNotFound = defineError<{ plugin: string; available: string[] 
         `Plugin "${plugin}" not found. Available plugins: ${available.join(', ') || 'none'}.`,
 });
 
+export const pluginAmbiguous = defineError<{ plugin: string; files: string[] }>({
+    code: 'add.plugin-ambiguous',
+    exit: 1,
+    message: ({ plugin, files }) =>
+        `More than one plugin class is named "${plugin}": ${files.join(', ')}. Rename one of them.`,
+});
+
 export const packageJsonNotFound = defineError<Record<string, never>>({
     code: 'add.package-json-not-found',
     exit: 1,

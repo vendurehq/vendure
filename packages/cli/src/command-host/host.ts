@@ -204,17 +204,22 @@ async function inputNeeds(
     for (const field of fields) {
         const meta = def.cli?.fields?.[field];
         const property = propertySchema(inputSchema, field);
+        // No choices can mean that a field they depend on is missing, such as a plugin's services
+        // before the plugin is known, so an empty list is left out rather than read as "none".
         const choices = meta?.choices ? await meta.choices(ctx, input) : undefined;
         needs.push({
             kind: 'input',
             field,
             description: (property.description as string | undefined) ?? field,
             ...(meta?.secret ? { secret: true } : {}),
-            ...(choices ? { choices } : {}),
+            ...(choices?.length ? { choices } : {}),
         });
     }
     return needs;
 }
+
+/** How often a person is asked for the inputs `run()` returns as needs before the host stops. */
+const MAX_ATTEMPTS = 3;
 
 /** A coded error from `plan()` or `run()`, which the command must have declared. */
 function declaredError(def: CommandDefinition, result: ErrorResult, notices: CommandNotice[]): HostResult {
@@ -233,12 +238,15 @@ function declaredError(def: CommandDefinition, result: ErrorResult, notices: Com
  * Runs a command to its envelope, in a fixed order that stops at the first stage with needs:
  * the inputs, then the consents that `plan()` asks for, then `run()`.
  *
- * It never prints. A person is only asked when the environment hands over a prompter.
+ * It never prints. A person is only asked when the environment hands over a prompter. When
+ * `run()` returns `incomplete` with only input needs, a person is asked for them and the command
+ * runs again; `attempt` counts those runs.
  */
 export async function executeCommand(
     def: CommandDefinition,
     rawInput: Record<string, unknown>,
     env: HostEnvironment,
+    attempt = 1,
 ): Promise<HostResult> {
     const notices: CommandNotice[] = [];
     try {
@@ -280,11 +288,13 @@ export async function executeCommand(
                     break;
                 }
             }
-            const needs = await inputNeeds(def, schemas.input, missing, ctx, input);
             if (!env.prompter) {
-                return incompleteResult(needs, notices);
+                return incompleteResult(await inputNeeds(def, schemas.input, missing, ctx, input), notices);
             }
-            for (const need of needs) {
+            // One field at a time, so the choices of a field see the answers before it, such as
+            // the services of the plugin the person just picked.
+            for (const field of missing) {
+                const [need] = await inputNeeds(def, schemas.input, [field], ctx, input);
                 asked.add(need.field);
                 const optional = !validation.issues;
                 const answer = await env.prompter.askInput(
@@ -349,6 +359,32 @@ export async function executeCommand(
         const { run } = await def.run();
         const result = await run(parsed, ctx);
         if (isIncompleteResult(result)) {
+            const inputNeedsOnly = result.needs.every((need): need is InputNeed => need.kind === 'input');
+            // `run()` found that it needs more input, which only it could tell. A person is asked
+            // for it, and the command runs again: running again after `incomplete` is safe.
+            if (env.prompter && inputNeedsOnly && attempt < MAX_ATTEMPTS) {
+                const answers: Record<string, unknown> = {};
+                for (const need of result.needs as InputNeed[]) {
+                    const answer = await env.prompter.askInput(
+                        need,
+                        value =>
+                            answerProblem(schemas.input, { ...input, ...answers }, need.field, value, false),
+                        false,
+                    );
+                    if (answer === undefined) {
+                        return errorResult(hostErrors.cancelled, {}, notices);
+                    }
+                    answers[need.field] = coercePrompted(answer, propertySchema(schemas.input, need.field));
+                }
+                const retried = await executeCommand(
+                    def,
+                    { ...rawInput, ...input, ...answers },
+                    env,
+                    attempt + 1,
+                );
+                retried.envelope.notices = [...notices, ...retried.envelope.notices];
+                return retried;
+            }
             return incompleteResult(result.needs, notices, result.output);
         }
         if (isErrorResult(result)) {

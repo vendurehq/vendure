@@ -8,6 +8,10 @@ import { presentForPeople } from './present.js';
  * `vendure migrate`, and their flags such as `vendure migrate --run`. They pass what they already
  * know, and the host asks for the rest.
  *
+ * When the person typed something other than `vendure <path>`, such as an older flag, a result
+ * that is `incomplete` names `vendure <path>` with the input given so far, so the missing flags
+ * apply to that command line.
+ *
  * It always runs the CLI's own declaration. A CLI plugin that replaces the command replaces
  * `vendure <path>` only; the older flags and menus keep running the built-in command.
  */
@@ -24,6 +28,6 @@ export async function runCoreCommand(
     const defined = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
     const controller = createCancellation();
     const result = await executeWithCancellation(def, defined, createHostEnvironment(controller), controller);
-    await presentForPeople(def, result);
+    await presentForPeople(def, result, { path, input: defined });
     return result;
 }

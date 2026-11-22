@@ -3,7 +3,9 @@ import type { CommandDefinition } from '@vendure/common/lib/command';
 import pc from 'picocolors';
 
 import { runCoreCommand } from '../../command-host/run-core-command.js';
+import { pascalCaseRegex } from '../../constants.js';
 import { rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
+import { kebabCase, pascalCase } from '../../utilities/case-utils.js';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils.js';
 
 import { addApiExtensionDefinition } from './api-extension/add-api-extension.command.js';
@@ -78,10 +80,21 @@ export interface AddOptions {
     customFields?: boolean;
     /** Make entity translatable */
     translatable?: boolean;
-    /** Service type: basic or entity. Kept for older scripts; an entity makes it an entity service */
-    type?: string;
     /** Selected entity name for entity service commands */
     selectedEntity?: string;
+}
+
+/**
+ * The older flags never checked names, so `vendure add -p MyPlugin` worked. A name that does not
+ * fit the subcommand is converted to the form it takes: kebab case for a plugin, which still
+ * makes `MyPlugin`, and PascalCase for an entity or a service. A name that fits is kept as typed.
+ */
+function pluginName(value: string): string {
+    return /^[a-z][a-z-0-9]+$/.test(value) ? value : kebabCase(value);
+}
+
+function className(value: string): string {
+    return pascalCaseRegex.test(value) ? value : pascalCase(value);
 }
 
 /** The plugin named by an optional-value flag such as `--dashboard [plugin]`. */
@@ -97,13 +110,16 @@ export function commandForFlags(
     options: AddOptions,
 ): { path: string[]; input: Record<string, unknown> } | undefined {
     if (options.plugin) {
-        return { path: ['add', 'plugin'], input: { name: options.plugin, config: options.config } };
+        return {
+            path: ['add', 'plugin'],
+            input: { name: pluginName(options.plugin), config: options.config },
+        };
     }
     if (options.entity) {
         return {
             path: ['add', 'entity'],
             input: {
-                name: options.entity,
+                name: className(options.entity),
                 plugin: options.selectedPlugin,
                 customFields: options.customFields,
                 translatable: options.translatable,
@@ -113,7 +129,11 @@ export function commandForFlags(
     if (options.service) {
         return {
             path: ['add', 'service'],
-            input: { name: options.service, plugin: options.selectedPlugin, entity: options.selectedEntity },
+            input: {
+                name: className(options.service),
+                plugin: options.selectedPlugin,
+                entity: options.selectedEntity,
+            },
         };
     }
     if (options.jobQueue) {
@@ -202,6 +222,10 @@ async function handleInteractiveMode(options: AddOptions): Promise<number> {
         }
         const input = chosen === pluginFeature ? { config: options.config } : {};
         const result = await runCoreCommand(chosen.definition.path, input);
+        if (result.envelope.error?.code === 'cancelled') {
+            cancel(cancelledMessage);
+            return 0;
+        }
         if (result.exitCode === 0 && chosen === pluginFeature) {
             await addFeaturesToNewPlugin((result.envelope.output as { plugin: string }).plugin);
         }

@@ -28,8 +28,16 @@ function describeNeed(need: CommandNeed): string[] {
 /**
  * Writes the result of a run for a person: the output on stdout, everything else on stderr. A
  * command's `render()` decides how its output looks. Without one, the output is printed as JSON.
+ *
+ * `runAgainAs` is the command line to run again after `incomplete`, when the person did not type
+ * the command's own path, such as `vendure add -e Review` for `vendure add entity`. The missing
+ * flags belong to that command line, not to the one the person typed.
  */
-export async function presentForPeople(def: CommandDefinition, result: HostResult): Promise<void> {
+export async function presentForPeople(
+    def: CommandDefinition,
+    result: HostResult,
+    runAgainAs?: { path: string[]; input: Record<string, unknown> },
+): Promise<void> {
     const { envelope } = result;
     if (envelope.status === 'ok' || envelope.status === 'failed') {
         if (def.render) {
@@ -42,13 +50,19 @@ export async function presentForPeople(def: CommandDefinition, result: HostResul
             process.stdout.write(`${JSON.stringify(envelope.output, null, 2)}\n`);
         }
     } else if (envelope.status === 'incomplete') {
-        process.stderr.write('This command needs more before it can run. Supply:\n');
+        process.stderr.write(
+            runAgainAs
+                ? `This command needs more before it can run. Run it as\n  ${formatFix(runAgainAs)}\nwith:\n`
+                : 'This command needs more before it can run. Supply:\n',
+        );
         for (const need of envelope.needs ?? []) {
             for (const line of describeNeed(need)) {
                 process.stderr.write(`${line}\n`);
             }
         }
-        process.stderr.write('Then run the same command again.\n');
+        if (!runAgainAs) {
+            process.stderr.write('Then run the same command again.\n');
+        }
     } else if (envelope.error) {
         process.stderr.write(`${envelope.error.message}\n`);
         for (const fix of envelope.error.fixes ?? []) {

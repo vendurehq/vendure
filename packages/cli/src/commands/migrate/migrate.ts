@@ -73,7 +73,13 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
         cancel('Migrate cancelled.');
         return 0;
     }
-    const { exitCode } = await runCoreCommand(['migrate', String(action)], { config: options.config });
+    const { exitCode, envelope } = await runCoreCommand(['migrate', String(action)], {
+        config: options.config,
+    });
+    if (envelope.error?.code === 'cancelled') {
+        cancel('Migrate cancelled.');
+        return 0;
+    }
     outro(exitCode === 0 ? '✅ Done!' : '❌ Error');
     return exitCode;
 }

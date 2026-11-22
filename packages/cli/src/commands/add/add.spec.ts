@@ -57,6 +57,24 @@ describe('commandForFlags()', () => {
         expect(commandForFlags(options)).toEqual({ path, input });
     });
 
+    // The older flags never checked names, and the CLI guide shows `vendure add -p MyPlugin`.
+    it.each([
+        [{ plugin: 'MyPlugin' }, 'my-plugin'],
+        [{ plugin: 'reviews' }, 'reviews'],
+    ])('converts the plugin name of %j to the form `add plugin` takes', (options, name) => {
+        expect(commandForFlags(options)?.input.name).toBe(name);
+    });
+
+    it.each([
+        ['myEntity', 'MyEntity'],
+        ['product-review', 'ProductReview'],
+        // A name that fits is kept as typed, acronyms included.
+        ['GraphQLService', 'GraphQLService'],
+    ])('converts the class name %j to PascalCase only when it does not fit', (typed, name) => {
+        expect(commandForFlags({ entity: typed, selectedPlugin: 'P' })?.input.name).toBe(name);
+        expect(commandForFlags({ service: typed, selectedPlugin: 'P' })?.input.name).toBe(name);
+    });
+
     // `vendure add --config x` used to fail with "No valid add operation specified".
     it('maps no subcommand for --config alone', () => {
         expect(commandForFlags({ config: './c.ts' })).toBeUndefined();
@@ -159,6 +177,19 @@ describe('addCommand()', () => {
 
         expect(runCoreCommand).toHaveBeenCalledTimes(1);
         vi.mocked(isCancel).mockImplementation(() => false);
+    });
+
+    it('ends with "cancelled" and exit code 0 when the person cancels a prompt of the command', async () => {
+        const { cancel } = await import('@clack/prompts');
+        vi.mocked(select).mockResolvedValueOnce('add-entity');
+        vi.mocked(runCoreCommand).mockResolvedValueOnce({
+            exitCode: 130,
+            envelope: { status: 'error', error: { code: 'cancelled' } },
+        } as any);
+
+        await expect(addCommand({})).resolves.toBe(0);
+
+        expect(cancel).toHaveBeenCalledWith('Add feature cancelled.');
     });
 
     it('offers no features when the plugin could not be created', async () => {

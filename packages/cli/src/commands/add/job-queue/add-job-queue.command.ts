@@ -1,6 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { pluginNotFound, serviceNotFound } from '../add.errors.js';
+import { pluginAmbiguous, pluginNotFound, serviceNotFound } from '../add.errors.js';
 
 export const addJobQueueDefinition = defineCommand({
     path: ['add', 'job-queue'],
@@ -17,7 +17,7 @@ export const addJobQueueDefinition = defineCommand({
             },
         },
     },
-    errors: [pluginNotFound, serviceNotFound],
+    errors: [pluginNotFound, pluginAmbiguous, serviceNotFound],
     examples: ['vendure add job-queue --plugin ReviewsPlugin --service ReviewService --name review-indexing'],
     run: () => import('./add-job-queue.run.js'),
     render: () => import('./add-job-queue.render.js'),

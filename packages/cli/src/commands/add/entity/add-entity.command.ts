@@ -1,6 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { fileExists, pluginNotFound } from '../add.errors.js';
+import { fileExists, pluginAmbiguous, pluginNotFound } from '../add.errors.js';
 
 export const addEntityDefinition = defineCommand({
     path: ['add', 'entity'],
@@ -15,7 +15,7 @@ export const addEntityDefinition = defineCommand({
             plugin: { choices: async () => (await import('../add.project.js')).listPluginNames() },
         },
     },
-    errors: [pluginNotFound, fileExists],
+    errors: [pluginNotFound, pluginAmbiguous, fileExists],
     examples: [
         'vendure add entity ProductReview --plugin ReviewsPlugin',
         'vendure add entity ProductReview --plugin ReviewsPlugin --custom-fields --translatable',

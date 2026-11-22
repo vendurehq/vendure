@@ -1,6 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { pluginNotFound } from '../add.errors.js';
+import { pluginAmbiguous, pluginNotFound } from '../add.errors.js';
 
 import { dashboardConflict } from './add-dashboard.errors.js';
 
@@ -16,7 +16,7 @@ export const addDashboardDefinition = defineCommand({
             plugin: { choices: async () => (await import('../add.project.js')).listPluginNames() },
         },
     },
-    errors: [pluginNotFound, dashboardConflict],
+    errors: [pluginNotFound, pluginAmbiguous, dashboardConflict],
     examples: ['vendure add dashboard --plugin ReviewsPlugin'],
     run: () => import('./add-dashboard.run.js'),
     render: () => import('./add-dashboard.render.js'),

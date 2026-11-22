@@ -5,8 +5,3 @@ export const defaultManipulationSettings: Partial<ManipulationSettings> = {
     useTrailingCommas: true,
 };
 export const pascalCaseRegex = /^[A-Z][a-zA-Z0-9]*$/;
-export const Messages = {
-    NoPluginsFound: `No plugins were found in this project. Create a plugin first by selecting "[Plugin] Create a new Vendure plugin"`,
-    NoEntitiesFound: `No entities were found in this plugin.`,
-    NoServicesFound: `No services were found in this plugin. Create a service first by selecting "[Plugin: Service] Add a new service to a plugin"`,
-};

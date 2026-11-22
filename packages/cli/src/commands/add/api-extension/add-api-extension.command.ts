@@ -1,6 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { pluginNotFound, serviceNotFound } from '../add.errors.js';
+import { pluginAmbiguous, pluginNotFound, serviceNotFound } from '../add.errors.js';
 
 import { apiExtensionFailed } from './add-api-extension.errors.js';
 
@@ -17,11 +17,9 @@ export const addApiExtensionDefinition = defineCommand({
             service: {
                 choices: async (_ctx, input) => (await import('../add.project.js')).listServiceNames(input),
             },
-            queryName: { prompt: true },
-            mutationName: { prompt: true },
         },
     },
-    errors: [pluginNotFound, serviceNotFound, apiExtensionFailed],
+    errors: [pluginNotFound, pluginAmbiguous, serviceNotFound, apiExtensionFailed],
     examples: [
         'vendure add api-extension --plugin ReviewsPlugin --service ReviewService --query-name reviews',
         'vendure add api-extension --plugin ReviewsPlugin --service ProductReviewService',

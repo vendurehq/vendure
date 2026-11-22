@@ -1,6 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { packageJsonNotFound, pluginNotFound } from '../add.errors.js';
+import { packageJsonNotFound, pluginAmbiguous, pluginNotFound } from '../add.errors.js';
 
 export const addCodegenDefinition = defineCommand({
     path: ['add', 'codegen'],
@@ -17,7 +17,7 @@ export const addCodegenDefinition = defineCommand({
             },
         },
     },
-    errors: [pluginNotFound, packageJsonNotFound],
+    errors: [pluginNotFound, pluginAmbiguous, packageJsonNotFound],
     examples: ['vendure add codegen --plugin MyPlugin'],
     run: () => import('./add-codegen.run.js'),
     render: () => import('./add-codegen.render.js'),
