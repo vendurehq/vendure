@@ -274,9 +274,8 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
             const leftovers = await this.connection
                 .getRepository(ctx, AuthenticatedSession)
                 .find({ where: { authenticationStrategy: LOCAL_TRUST_SESSION_STRATEGY } });
-            for (const leftover of leftovers) {
-                await this.deleteSession(leftover.token);
-            }
+            // The rows are independent, so they are deleted at once.
+            await Promise.all(leftovers.map(leftover => this.deleteSession(leftover.token)));
         } catch (e) {
             Logger.warn(
                 `Could not delete the local-trust sessions of earlier runs: ${e instanceof Error ? e.message : String(e)}`,

@@ -459,8 +459,8 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
 
     beforeEach(() => {
         savedOptions = McpPlugin.options;
-        McpPlugin.processLocalTrust = LOCAL_TRUST_OFF;
-        McpPlugin.localTrustActivation = LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.processRead = LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.activation = LOCAL_TRUST_OFF;
         projectDir = mkdtempSync(path.join(tmpdir(), 'mcp-plugin-spec-'));
         const file = path.join(projectDir, LOCAL_TRUST_STATE_FILE);
         mkdirSync(path.dirname(file));
@@ -471,8 +471,8 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
 
     afterEach(() => {
         McpPlugin.options = savedOptions;
-        McpPlugin.processLocalTrust = LOCAL_TRUST_OFF;
-        McpPlugin.localTrustActivation = LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.processRead = LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.activation = LOCAL_TRUST_OFF;
         delete process.env[LOCAL_TRUST_SECRET_ENV_VAR];
         vi.restoreAllMocks();
         rmSync(projectDir, { recursive: true, force: true });
@@ -493,7 +493,7 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
     it("adds 'bearer' to the token method when local trust turns on", async () => {
         process.env[LOCAL_TRUST_SECRET_ENV_VAR] = secret;
         const config = await configure({}, 'cookie');
-        expect(McpPlugin.localTrustActivation.enabled).toBe(true);
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(true);
         expect(config.authOptions.tokenMethod).toEqual(['cookie', 'bearer']);
     });
 
@@ -505,7 +505,7 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
 
     it('changes nothing when local trust stays off', async () => {
         const config = await configure({}, 'cookie');
-        expect(McpPlugin.localTrustActivation.enabled).toBe(false);
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(false);
         expect(config.authOptions.tokenMethod).toBe('cookie');
     });
 
@@ -516,7 +516,7 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
         await configure({});
         expect(process.env[LOCAL_TRUST_SECRET_ENV_VAR]).toBeUndefined();
         const config = await configure({}, 'cookie');
-        expect(McpPlugin.localTrustActivation.enabled).toBe(true);
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(true);
         expect(config.authOptions.tokenMethod).toEqual(['cookie', 'bearer']);
     });
 
@@ -524,6 +524,6 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
         process.env[LOCAL_TRUST_SECRET_ENV_VAR] = secret;
         await configure({});
         await configure({ localTrust: false });
-        expect(McpPlugin.localTrustActivation.enabled).toBe(false);
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(false);
     });
 });

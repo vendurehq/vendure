@@ -96,7 +96,7 @@ import { McpPluginOptions } from './types';
     controllers: [McpOauthController, McpTransportController],
     providers: [
         { provide: MCP_PLUGIN_OPTIONS, useFactory: () => McpPlugin.options },
-        { provide: MCP_LOCAL_TRUST_ACTIVATION, useFactory: () => McpPlugin.localTrustActivation },
+        { provide: MCP_LOCAL_TRUST_ACTIVATION, useFactory: () => McpPlugin.localTrustState.activation },
         LocalTrustService,
         McpOauthService,
         McpGrantSessionService,
@@ -172,20 +172,21 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
     static options: ResolvedMcpPluginOptions;
 
     /**
-     * Whether local trust is on for the app being bootstrapped, decided by its `configuration` hook.
+     * Local trust as the `configuration` hook decided it. The hook updates the fields in place.
+     *
+     * - `activation`: whether local trust is on for the app being bootstrapped.
+     * - `processRead`: what this process read from the CLI's secret. The secret is deleted from
+     *   the environment on the first read, and one process often runs the configuration hooks
+     *   more than once, for example `runMigrations()` and then `bootstrap()`, so later runs
+     *   reuse this.
      *
      * @internal
      */
-    static localTrustActivation: LocalTrustActivation = LOCAL_TRUST_OFF;
-
-    /**
-     * What this process read from the CLI's secret. The secret is deleted from the environment on
-     * the first read, and one process often runs the configuration hooks more than once, for
-     * example `runMigrations()` and then `bootstrap()`, so later runs reuse this.
-     *
-     * @internal
-     */
-    static processLocalTrust: LocalTrustActivation = LOCAL_TRUST_OFF;
+    static readonly localTrustState: { activation: LocalTrustActivation; processRead: LocalTrustActivation } =
+        {
+            activation: LOCAL_TRUST_OFF,
+            processRead: LOCAL_TRUST_OFF,
+        };
 
     /** Set when the `configuration` hook added `'bearer'` to the token method, so bootstrap can log it. */
     private static addedBearerTokenMethod = false;
@@ -204,7 +205,7 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
      */
     configure(consumer: MiddlewareConsumer): void {
         consumer.apply(this.i18nService.handle()).forRoutes('mcp/shop', 'mcp/admin');
-        if (McpPlugin.localTrustActivation.enabled) {
+        if (McpPlugin.localTrustState.activation.enabled) {
             consumer
                 .apply(this.localTrust.adminApiMiddleware())
                 .forRoutes(this.configService.apiOptions.adminApiPath);
@@ -221,7 +222,7 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
      */
     static activateLocalTrust(config: RuntimeVendureConfig): void {
         if (process.env[LOCAL_TRUST_SECRET_ENV_VAR] !== undefined) {
-            McpPlugin.processLocalTrust = readLocalTrustActivation({
+            McpPlugin.localTrustState.processRead = readLocalTrustActivation({
                 localTrust: McpPlugin.options.localTrust,
                 env: process.env,
                 projectDir: process.cwd(),
@@ -229,8 +230,10 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
             });
         }
         // An app configured with localTrust: false never uses what an earlier run read.
-        const activation = McpPlugin.options.localTrust ? McpPlugin.processLocalTrust : LOCAL_TRUST_OFF;
-        McpPlugin.localTrustActivation = activation;
+        const activation = McpPlugin.options.localTrust
+            ? McpPlugin.localTrustState.processRead
+            : LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.activation = activation;
         McpPlugin.addedBearerTokenMethod = false;
         if (!activation.enabled) {
             return;
