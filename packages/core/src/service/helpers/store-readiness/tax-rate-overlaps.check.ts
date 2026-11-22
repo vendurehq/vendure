@@ -15,9 +15,13 @@ import {
 export const ambiguousZoneRates = defineError<ZoneTaxRateOverlap>({
     code: 'store.tax.ambiguous-zone-rates',
     exit: COMMAND_EXIT_CODES.failed,
-    message: ({ countryCode, taxRates }) =>
-        `${countryCode} has no country rate and matches ${taxRates.length} zone rates of one tax category ` +
-        `(${taxRates.map(rate => `"${rate.name}"`).join(', ')}). Which one applies depends on the tax zone strategy.`,
+    message: ({ countryCode, taxRates }) => {
+        const names = taxRates.map(rate => JSON.stringify(rate.name)).join(', ');
+        return (
+            `${countryCode} has no country rate and matches ${taxRates.length} zone rates of one tax category ` +
+            `(${names}). Which one applies depends on the tax zone strategy.`
+        );
+    },
     fix: ({ countryCode, taxCategoryId }) => [
         {
             path: adminToolPath('create_tax_rate'),

@@ -44,9 +44,11 @@ const CHANNEL_PAGE_SIZE = 100;
 export const checkFailed = defineError<{ check: string; channel?: Channel; error: unknown }>({
     code: 'store.check.failed',
     exit: COMMAND_EXIT_CODES.failed,
-    message: ({ check, channel, error }) =>
-        `The "${check}" check failed${channel ? ` for channel "${channel.code}"` : ''}: ` +
-        (error instanceof Error ? error.message : String(error)),
+    message: ({ check, channel, error }) => {
+        const where = channel ? ` for channel "${channel.code}"` : '';
+        const reason = error instanceof Error ? error.message : String(error);
+        return `The "${check}" check failed${where}: ${reason}`;
+    },
 });
 
 /**
@@ -67,18 +69,18 @@ export const checkFailed = defineError<{ check: string; channel?: Channel; error
 @Injectable()
 export class StoreReadinessService {
     constructor(
-        private connection: TransactionalConnection,
-        private configService: ConfigService,
-        private channelService: ChannelService,
-        private zoneService: ZoneService,
-        private taxRateService: TaxRateService,
-        private shippingMethodService: ShippingMethodService,
-        private paymentMethodService: PaymentMethodService,
-        private stockLocationService: StockLocationService,
-        private orderTestingService: OrderTestingService,
-        private requestContextService: RequestContextService,
-        private roleService: RoleService,
-        private passwordCipher: PasswordCipher,
+        private readonly connection: TransactionalConnection,
+        private readonly configService: ConfigService,
+        private readonly channelService: ChannelService,
+        private readonly zoneService: ZoneService,
+        private readonly taxRateService: TaxRateService,
+        private readonly shippingMethodService: ShippingMethodService,
+        private readonly paymentMethodService: PaymentMethodService,
+        private readonly stockLocationService: StockLocationService,
+        private readonly orderTestingService: OrderTestingService,
+        private readonly requestContextService: RequestContextService,
+        private readonly roleService: RoleService,
+        private readonly passwordCipher: PasswordCipher,
     ) {}
 
     /**
@@ -186,40 +188,51 @@ export class StoreReadinessService {
      * not exist, or that the user may not read, is refused, so a report never looks ready for a
      * Channel it did not check.
      */
-    private async findChannelsToCheck(ctx: RequestContext, channelIds?: ID[]): Promise<Channel[]> {
-        const canRead = (channel: Channel) =>
-            this.roleService.userHasPermissionOnChannel(ctx, channel.id, Permission.ReadSettings);
-        if (channelIds) {
-            const channels: Channel[] = [];
-            for (const id of channelIds) {
-                const channel = await this.channelService.findOne(ctx, id);
-                if (!channel) {
-                    throw new EntityNotFoundError('Channel', id);
-                }
-                if (!(await canRead(channel))) {
-                    throw new ForbiddenError();
-                }
-                channels.push(channel);
+    private findChannelsToCheck(ctx: RequestContext, channelIds?: ID[]): Promise<Channel[]> {
+        return channelIds ? this.findRequestedChannels(ctx, channelIds) : this.findReadableChannels(ctx);
+    }
+
+    private canRead(ctx: RequestContext, channel: Channel): Promise<boolean> {
+        return this.roleService.userHasPermissionOnChannel(ctx, channel.id, Permission.ReadSettings);
+    }
+
+    private async findRequestedChannels(ctx: RequestContext, channelIds: ID[]): Promise<Channel[]> {
+        const channels: Channel[] = [];
+        for (const id of channelIds) {
+            const channel = await this.channelService.findOne(ctx, id);
+            if (!channel) {
+                throw new EntityNotFoundError('Channel', id);
             }
-            return channels;
+            if (!(await this.canRead(ctx, channel))) {
+                throw new ForbiddenError();
+            }
+            channels.push(channel);
         }
-        // Paged, so a store with more Channels than one list query returns is checked in full.
-        // findAll() loads the default Zones, which the default-zones check reads.
+        return channels;
+    }
+
+    /**
+     * Paged, so a store with more Channels than one list query returns is checked in full.
+     * findAll() loads the default Zones, which the default-zones check reads.
+     */
+    private async findReadableChannels(ctx: RequestContext): Promise<Channel[]> {
         const readable: Channel[] = [];
-        for (let skip = 0; ; skip += CHANNEL_PAGE_SIZE) {
-            const { items, totalItems } = await this.channelService.findAll(ctx, {
-                skip,
-                take: CHANNEL_PAGE_SIZE,
-            });
-            for (const channel of items) {
-                if (await canRead(channel)) {
+        let skip = 0;
+        let totalItems = Infinity;
+        while (skip < totalItems) {
+            const page = await this.channelService.findAll(ctx, { skip, take: CHANNEL_PAGE_SIZE });
+            for (const channel of page.items) {
+                if (await this.canRead(ctx, channel)) {
                     readable.push(channel);
                 }
             }
-            if (items.length === 0 || skip + items.length >= totalItems) {
-                return readable;
+            if (page.items.length === 0) {
+                break;
             }
+            skip += page.items.length;
+            totalItems = page.totalItems;
         }
+        return readable;
     }
 
     /**

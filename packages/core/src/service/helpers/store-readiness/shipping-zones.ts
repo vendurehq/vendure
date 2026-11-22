@@ -69,5 +69,5 @@ export function sampleCountryCode(zone: Zone): string | undefined {
     return countryMembers(zone)
         .filter(member => member.enabled)
         .map(member => member.code)
-        .sort()[0];
+        .sort((a, b) => a.localeCompare(b))[0];
 }
