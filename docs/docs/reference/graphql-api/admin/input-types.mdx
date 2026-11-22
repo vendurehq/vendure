@@ -1763,7 +1763,10 @@ input CreateApiKeyInput {
   enabled: Boolean!
   value: Float!
   categoryId: ID!
-  zoneId: ID!
+  """The Zone the rate applies to. Exactly one of zoneId and regionId must be set."""
+  zoneId: ID
+  """The Country the rate applies to. Exactly one of zoneId and regionId must be set."""
+  regionId: ID
   customerGroupId: ID
   customFields: JSON
 }`}
@@ -4730,6 +4733,7 @@ input StringOperators {
 >
 {`input TaxRateFilterParameter {
   zoneId: IDOperators
+  regionId: IDOperators
   categoryId: IDOperators
   id: IDOperators
   createdAt: DateOperators
@@ -5706,7 +5710,10 @@ input UpdateProductVariantPriceInput {
   value: Float
   enabled: Boolean
   categoryId: ID
+  """The Zone the rate applies to. Setting it removes the Country."""
   zoneId: ID
+  """The Country the rate applies to. Setting it removes the Zone."""
+  regionId: ID
   customerGroupId: ID
   customFields: JSON
 }`}

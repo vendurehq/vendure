@@ -12,6 +12,7 @@ import { PollingJobQueueStrategy } from '../../job-queue/polling-job-queue-strat
 import { ListQueryBuilder } from '../../service/helpers/list-query-builder/list-query-builder';
 
 import { JobRecord } from './job-record.entity';
+import { readStoredRequestId, withStoredRequestId } from './stored-request-id';
 
 /**
  * @description
@@ -64,7 +65,9 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         const type = this.rawConnection && getDatabaseType(this.rawConnection);
         if (type === 'mysql' || type === 'mariadb') {
             const stringified = JSON.stringify(job.data);
-            if (64 * 1024 <= stringified.length) {
+            // Measured with the stored request ID, which toRecord() adds to the data.
+            const storedLength = JSON.stringify(withStoredRequestId(job.data, job.requestId)).length;
+            if (64 * 1024 <= storedLength) {
                 const truncatedKeys: Array<{ key: string; size: number }> = [];
                 const reduced = JSON.parse(stringified, (key, value) => {
                     if (typeof value === 'string' && 2048 < value.length) {
@@ -349,7 +352,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         return new JobRecord({
             id: job.id || undefined,
             queueName: job.queueName,
-            data: data ?? job.data,
+            data: withStoredRequestId(data ?? job.data, job.requestId),
             state: job.state,
             progress: job.progress,
             result: job.result,
@@ -363,7 +366,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
     }
 
     private fromRecord(this: void, jobRecord: JobRecord): Job<any> {
-        return new Job<any>(jobRecord);
+        return new Job<any>({ ...jobRecord, ...readStoredRequestId(jobRecord.data) });
     }
 }
 

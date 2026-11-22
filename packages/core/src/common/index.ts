@@ -3,6 +3,7 @@ export * from './calculated-decorator';
 export * from './error/error-result';
 export * from './error/errors';
 export * from './error/generated-graphql-admin-errors';
+export * from './error/vendure-startup-error';
 export * from './finite-state-machine/finite-state-machine';
 export * from './finite-state-machine/merge-transition-definitions';
 export * from './finite-state-machine/types';

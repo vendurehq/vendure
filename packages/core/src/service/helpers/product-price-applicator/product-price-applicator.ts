@@ -7,6 +7,7 @@ import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
+import { getTaxCountryCode } from '../../../common/tax-utils';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
@@ -98,10 +99,17 @@ export class ProductPriceApplicator {
         if (!activeTaxZone) {
             throw new InternalServerError('error.no-active-tax-zone');
         }
+        // With no order there is no shipping address, so only the zone path applies.
+        const countryCode = getTaxCountryCode(order);
         const applicableTaxRate = await this.requestCache.get(
             ctx,
-            `applicableTaxRate-${activeTaxZone.id}-${variant.taxCategory.id}`,
-            () => this.taxRateService.getApplicableTaxRate(ctx, activeTaxZone, variant.taxCategory),
+            `applicableTaxRate-${activeTaxZone.id}-${countryCode ?? ''}-${variant.taxCategory.id}`,
+            () =>
+                this.taxRateService.getApplicableTaxRate(
+                    ctx,
+                    { countryCode, zone: activeTaxZone },
+                    variant.taxCategory,
+                ),
         );
 
         const { price, priceIncludesTax } = await productVariantPriceCalculationStrategy.calculate({
@@ -111,6 +119,7 @@ export class ProductPriceApplicator {
             productVariant: variant,
             activeTaxZone,
             ctx,
+            taxRate: applicableTaxRate,
         });
 
         variant.listPrice = price;

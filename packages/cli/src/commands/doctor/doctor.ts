@@ -19,8 +19,20 @@ const VALID_PROFILES = ['production'] as const;
  * Runs diagnostic checks on a Vendure project and reports results.
  */
 export async function doctorCommand(options?: DoctorOptions) {
-    const checksToRun = resolveChecks(options?.check);
-    validateProfile(options?.profile);
+    const report = await collectDoctorReport(options, message => log.warn(message));
+    return outputReport(report, options);
+}
+
+/**
+ * Runs the checks and returns the report without printing it. Warnings about the options go to
+ * `warn`, so the caller decides where they are shown.
+ */
+export async function collectDoctorReport(
+    options: DoctorOptions | undefined,
+    warn: (message: string) => void,
+): Promise<DoctorReport> {
+    const checksToRun = resolveChecks(options?.check, warn);
+    validateProfile(options?.profile, warn);
 
     const results: CheckResult[] = [];
     let loadedConfig: RuntimeVendureConfig | undefined;
@@ -49,7 +61,7 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to project check failure',
                 });
             }
-            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
+            return buildReport(results, options, { vendureVersion, packageManager });
         }
     }
 
@@ -84,7 +96,7 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to config check failure',
                 });
             }
-            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
+            return buildReport(results, options, { vendureVersion, packageManager });
         }
     }
 
@@ -127,24 +139,24 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
+    return buildReport(results, options, { vendureVersion, packageManager });
 }
 
-function resolveChecks(checkFlags?: string[]): string[] {
+function resolveChecks(checkFlags: string[] | undefined, warn: (message: string) => void): string[] {
     if (!checkFlags || checkFlags.length === 0) {
         return [...ALL_CHECKS];
     }
     const valid = checkFlags.filter(c => (ALL_CHECKS as readonly string[]).includes(c));
     const invalid = checkFlags.filter(c => !(ALL_CHECKS as readonly string[]).includes(c));
     if (invalid.length > 0) {
-        log.warn(`Unknown check(s): ${invalid.join(', ')}. Valid checks: ${ALL_CHECKS.join(', ')}`);
+        warn(`Unknown check(s): ${invalid.join(', ')}. Valid checks: ${ALL_CHECKS.join(', ')}`);
     }
     return valid;
 }
 
-function validateProfile(profile?: string): void {
+function validateProfile(profile: string | undefined, warn: (message: string) => void): void {
     if (profile && !(VALID_PROFILES as readonly string[]).includes(profile)) {
-        log.warn(`Unknown profile: ${profile}. Valid profiles: ${VALID_PROFILES.join(', ')}`);
+        warn(`Unknown profile: ${profile}. Valid profiles: ${VALID_PROFILES.join(', ')}`);
     }
 }
 

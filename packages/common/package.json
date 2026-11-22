@@ -25,6 +25,7 @@
     ],
     "exports": {
         ".": "./lib/index.js",
+        "./lib/command": "./lib/command/index.js",
         "./lib/*": "./lib/*.js"
     },
     "devDependencies": {

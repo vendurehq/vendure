@@ -7,6 +7,7 @@ import { Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getRequestId, runWithRequestId } from '../api/common/request-id';
 import { assertFound, Injector } from '../common';
 import { ConfigService } from '../config/config.service';
 import { ProcessContext, setProcessContext } from '../process-context/process-context';
@@ -96,6 +97,63 @@ describe('JobQueueService', () => {
         await testQueue.add('hello');
         const data = await subNext;
         expect(data).toBe('hello');
+    });
+
+    it('a job added during a request carries its ID, and is processed with it as the current ID', async () => {
+        const subject = new Subject<string | undefined>();
+        const seenId = subject.pipe(take(1)).toPromise();
+        const testQueue = await jobQueueService.createQueue<string>({
+            name: 'test',
+            process: async () => {
+                await tick(1);
+                subject.next(getRequestId());
+            },
+        });
+
+        const testJob = await runWithRequestId('req-1', () => testQueue.add('hello'));
+
+        expect(testJob.requestId).toBe('req-1');
+        expect((await getJob(testJob)).requestId).toBe('req-1');
+        expect(await seenId).toBe('req-1');
+    });
+
+    it('the process function runs with the job request ID when a strategy calls it directly', async () => {
+        const testQueue = await jobQueueService.createQueue<string>({
+            name: 'test',
+            process: async () => {
+                await tick(1);
+                return getRequestId();
+            },
+        });
+        // A strategy which does not poll, such as BullMQ, calls the process function it was given
+        // from its own context, outside any request ID.
+        const wrappedProcess = (testQueue as any).options.process as (job: Job<string>) => Promise<any>;
+
+        const seenId = await wrappedProcess(
+            new Job({ queueName: 'test', data: 'hello', requestId: 'req-1' }),
+        );
+
+        expect(seenId).toBe('req-1');
+    });
+
+    it('a job added outside a request is processed with no current request ID', async () => {
+        const subject = new Subject<string | undefined>();
+        const seenId = subject.pipe(take(1)).toPromise();
+        // The queue starts polling inside another request, so its loop inherits that request's ID.
+        const testQueue = await runWithRequestId('outer', () =>
+            jobQueueService.createQueue<string>({
+                name: 'test',
+                process: async () => {
+                    await tick(1);
+                    subject.next(getRequestId());
+                },
+            }),
+        );
+
+        const testJob = await testQueue.add('hello');
+
+        expect(testJob.requestId).toBeUndefined();
+        expect(await seenId).toBeUndefined();
     });
 
     it('job marked as complete', async () => {
