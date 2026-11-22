@@ -44,6 +44,17 @@
  * ```
  */
 export {
+    MANIFEST_FILE_NAME,
+    buildCommandManifest,
+    mergeManifests,
+    writeCommandManifest,
+} from '@vendure/common/lib/command/manifest';
+export type {
+    CommandManifest,
+    ManifestCommand,
+    MergedManifestCommand,
+} from '@vendure/common/lib/command/manifest';
+export {
     NotLoggedInError,
     ReauthenticationRequiredError,
     SessionLockUnavailableError,
@@ -71,11 +82,12 @@ export type {
     RenewalFailureDetails,
     StoredOrganization,
 } from './auth/index.js';
-export { buildCommandManifest, writeCommandManifest } from './command-host/manifest-build.js';
-export { MANIFEST_FILE_NAME, mergeManifests } from './command-host/manifest.js';
-export type { CommandManifest, ManifestCommand, MergedManifestCommand } from './command-host/manifest.js';
 export { builtinCommands } from './commands/builtins.js';
-export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication.js';
+export {
+    ConsoleTokenGrantError,
+    loginWithBrowser,
+    refreshSession,
+} from './commands/console/authentication.js';
 export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication.js';
 export type { ConsoleSession } from './commands/console/cli-auth.js';
 export type {
@@ -110,6 +122,9 @@ export type {
     CliCommandOption,
     ProjectCliPluginConfig,
 } from './shared/cli-command-definition.js';
+export type {
+    CliPluginExtensionAccessor,
+    RegisteredCliPluginExtension,
+} from './shared/cli-plugin-extension.js';
 export { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from './shared/cli-plugin.js';
 export type { CliPlugin } from './shared/cli-plugin.js';
-export type { CliPluginExtensionAccessor, RegisteredCliPluginExtension } from './shared/cli-plugin-extension.js';

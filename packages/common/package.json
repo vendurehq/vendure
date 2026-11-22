@@ -26,6 +26,7 @@
     "exports": {
         ".": "./lib/index.js",
         "./lib/command": "./lib/command/index.js",
+        "./lib/command/manifest": "./lib/command/manifest/index.js",
         "./lib/*": "./lib/*.js"
     },
     "devDependencies": {

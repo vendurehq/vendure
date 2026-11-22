@@ -23,7 +23,7 @@ if (fs.existsSync(cliBinPath)) {
 // The compiled modules are ES modules, so a separate Node process loads them.
 const writeManifest = `
 const { coreCommandDefinitions } = await import('./dist/command-host/core-commands.js');
-const { writeCommandManifest } = await import('./dist/command-host/manifest-build.js');
+const { writeCommandManifest } = await import('@vendure/common/lib/command/manifest');
 const { name, version } = JSON.parse(await (await import('node:fs/promises')).readFile('./package.json', 'utf-8'));
 await writeCommandManifest('./dist', name, version, coreCommandDefinitions);
 `;
