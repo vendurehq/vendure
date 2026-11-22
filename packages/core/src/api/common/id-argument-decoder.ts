@@ -16,13 +16,43 @@ const JOB_ID_FIELDS: Record<string, string[]> = {
 };
 
 /**
- * Decodes the ID values in the arguments of a GraphQL field as per the configured EntityIdStrategy.
- * It finds the ID values by the argument types of the field: values of type `ID` and the
- * operators of `IDOperators` inputs.
+ * @description
+ * Decodes the ID values in the arguments of a GraphQL field as per the configured
+ * {@link EntityIdStrategy}. It finds the ID values by the argument types of the field: values of
+ * type `ID` and the operators of `IDOperators` inputs.
  *
- * The {@link IdInterceptor} uses it for root fields. Field resolvers that have arguments with ID
- * values must call {@link IdArgumentDecoder.decode} themselves, because the interceptor does not run
- * for field resolvers.
+ * The `IdInterceptor` decodes the arguments of queries and mutations, but it does not run for field
+ * resolvers. A field resolver, for example in a plugin, that has arguments with ID values must
+ * inject the IdArgumentDecoder and call `decode(info, args)` itself.
+ *
+ * @example
+ * ```ts
+ * import { Args, Info, Parent, ResolveField, Resolver } from '\@nestjs/graphql';
+ * import { Ctx, IdArgumentDecoder, Product, RequestContext } from '\@vendure/core';
+ * import { GraphQLResolveInfo } from 'graphql';
+ *
+ * \@Resolver('Product')
+ * export class ProductReviewsResolver {
+ *     constructor(
+ *         private idArgumentDecoder: IdArgumentDecoder,
+ *         private reviewService: ReviewService,
+ *     ) {}
+ *
+ *     \@ResolveField()
+ *     reviews(
+ *         \@Ctx() ctx: RequestContext,
+ *         \@Parent() product: Product,
+ *         \@Args() args: { options: ReviewListOptions },
+ *         \@Info() info: GraphQLResolveInfo,
+ *     ) {
+ *         const { options } = this.idArgumentDecoder.decode(info, args);
+ *         return this.reviewService.findByProductId(ctx, product.id, options);
+ *     }
+ * }
+ * ```
+ *
+ * @docsCategory request
+ * @since 4.0.0
  */
 @Injectable()
 export class IdArgumentDecoder {
@@ -31,6 +61,7 @@ export class IdArgumentDecoder {
     constructor(private idCodecService: IdCodecService) {}
 
     /**
+     * @description
      * Returns a copy of `args` with the ID values decoded. Use it in field resolvers. graphql-js gives
      * the same variable values to the field resolver of each parent object, so a decode in place
      * would decode those values more than one time.
@@ -42,7 +73,9 @@ export class IdArgumentDecoder {
     }
 
     /**
-     * Decodes the ID values in `args` in place.
+     * @description
+     * Decodes the ID values in `args` in place. The `IdInterceptor` uses it for the arguments of
+     * queries and mutations.
      */
     decodeInPlace(info: GraphQLResolveInfo, args: Record<string, any> = {}): void {
         if (this.isUntransformedJobIdField(info)) {

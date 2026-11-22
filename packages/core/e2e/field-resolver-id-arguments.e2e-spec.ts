@@ -1,5 +1,20 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+    Ctx,
+    ID,
+    IdArgumentDecoder,
+    mergeConfig,
+    PluginCommonModule,
+    Product,
+    ProductVariant,
+    RequestContext,
+    TransactionalConnection,
+    VendurePlugin,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
+import { GraphQLResolveInfo } from 'graphql';
+import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -10,13 +25,50 @@ import { graphql } from './graphql/graphql-admin';
 import { addItemToOrderDocument } from './graphql/shop-definitions';
 import { awaitRunningJobs } from './utils/await-running-jobs';
 
+@Resolver('Product')
+class ProductHasVariantResolver {
+    constructor(
+        private idArgumentDecoder: IdArgumentDecoder,
+        private connection: TransactionalConnection,
+    ) {}
+
+    @ResolveField()
+    async hasVariant(
+        @Ctx() ctx: RequestContext,
+        @Parent() product: Product,
+        @Args() args: { variantId: ID },
+        @Info() info: GraphQLResolveInfo,
+    ): Promise<boolean> {
+        const { variantId } = this.idArgumentDecoder.decode(info, args);
+        const count = await this.connection
+            .getRepository(ctx, ProductVariant)
+            .count({ where: { id: variantId, productId: product.id } });
+        return 0 < count;
+    }
+}
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    adminApiExtensions: {
+        schema: gql`
+            extend type Product {
+                hasVariant(variantId: ID!): Boolean!
+            }
+        `,
+        resolvers: [ProductHasVariantResolver],
+    },
+})
+class FieldResolverIdTestPlugin {}
+
 /**
  * The test config uses an EntityIdStrategy that encodes IDs ("T_1"). The ID values in the
  * arguments of entity field resolvers must be decoded in the same way as the ID values in the
  * arguments of root fields.
  */
 describe('ID arguments of field resolvers', () => {
-    const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
+    const { server, adminClient, shopClient } = createTestEnvironment(
+        mergeConfig(testConfig(), { plugins: [FieldResolverIdTestPlugin] }),
+    );
 
     beforeAll(async () => {
         await server.init({
@@ -64,6 +116,18 @@ describe('ID arguments of field resolvers', () => {
             { id: first.id, variantList: { items: [{ id: targetIds[0] }] } },
             { id: second.id, variantList: { items: [{ id: targetIds[1] }] } },
         ]);
+    });
+
+    it('a plugin field resolver decodes its ID argument with IdArgumentDecoder', async () => {
+        const { product } = await adminClient.query(gql`
+            query {
+                product(id: "T_1") {
+                    variantInProduct: hasVariant(variantId: "T_2")
+                    variantNotInProduct: hasVariant(variantId: "T_5")
+                }
+            }
+        `);
+        expect(product).toEqual({ variantInProduct: true, variantNotInProduct: false });
     });
 
     it('Collection.productVariants', async () => {
