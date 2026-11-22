@@ -3651,6 +3651,12 @@
                   "lastModified": "2026-11-16T13:02:19Z"
                 },
                 {
+                  "title": "StoreReadinessService",
+                  "slug": "store-readiness-service",
+                  "file": "docs/reference/typescript-api/services/store-readiness-service.mdx",
+                  "lastModified": "2026-11-22T21:54:44Z"
+                },
+                {
                   "title": "TagService",
                   "slug": "tag-service",
                   "file": "docs/reference/typescript-api/services/tag-service.mdx",
@@ -3666,7 +3672,7 @@
                   "title": "TaxRateService",
                   "slug": "tax-rate-service",
                   "file": "docs/reference/typescript-api/services/tax-rate-service.mdx",
-                  "lastModified": "2026-11-20T17:56:50+01:00"
+                  "lastModified": "2026-11-22T21:54:44Z"
                 },
                 {
                   "title": "UserService",
@@ -4614,7 +4620,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-11-16T14:25:32Z"
+                  "lastModified": "2026-11-22T21:54:44Z"
                 },
                 {
                   "title": "Input Objects",
@@ -4632,13 +4638,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-11-06T10:30:35Z"
+                  "lastModified": "2026-11-22T21:54:44Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-11-20T17:56:50+01:00"
+                  "lastModified": "2026-11-22T21:54:44Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
