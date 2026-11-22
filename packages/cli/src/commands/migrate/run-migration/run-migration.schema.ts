@@ -9,7 +9,9 @@ export const output = z.object({
     diagnostics: z
         .array(
             z.object({
-                code: z.enum(['no-migrations-matched', 'schema-out-of-sync']),
+                // A string, not an enum: the CLI runs the project's own @vendure/core, whose
+                // version can report a code this schema does not list.
+                code: z.string().describe('For example no-migrations-matched or schema-out-of-sync'),
                 lines: z.array(z.string()),
             }),
         )

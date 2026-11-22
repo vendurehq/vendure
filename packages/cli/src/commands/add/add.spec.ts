@@ -171,8 +171,10 @@ describe('add command', () => {
             });
         });
 
-        it('no longer has a --codegen flag', () => {
-            expect(addCommandDef.options?.map(option => option.long)).not.toContain('--codegen [plugin]');
+        it('has no --codegen flag, which `vendure add codegen` replaces', () => {
+            expect(addCommandDef.options?.map(option => option.long)).not.toContainEqual(
+                expect.stringMatching(/^--codegen\b/),
+            );
         });
 
         it('detects non-interactive mode when apiExtension option is provided', async () => {

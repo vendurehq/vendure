@@ -1,5 +1,7 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
+import { configUnreadable } from '../migrate.errors.js';
+
 import { generateFailed } from './generate-migration.errors.js';
 
 export const generateMigrationDefinition = defineCommand({
@@ -9,19 +11,8 @@ export const generateMigrationDefinition = defineCommand({
     behavior: 'mutating',
     requires: { project: true },
     schemas: () => import('./generate-migration.schema.js'),
-    cli: {
-        positional: ['name'],
-        fields: {
-            outputDir: {
-                prompt: true,
-                choices: async (_ctx, input) => {
-                    const { loadProjectConfig, migrationDirs } = await import('../migration-project.js');
-                    return migrationDirs(await loadProjectConfig(input.config as string | undefined));
-                },
-            },
-        },
-    },
-    errors: [generateFailed],
+    cli: { positional: ['name'] },
+    errors: [configUnreadable, generateFailed],
     examples: [
         'vendure migrate generate add-reviews',
         'vendure migrate generate baseline --from-empty --output-dir ./src/migrations',

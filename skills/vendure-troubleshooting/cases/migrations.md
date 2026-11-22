@@ -49,7 +49,7 @@ that the config points to. Confirm that this is the intended database.
 | --------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | Schema does not match the config  | `vendure migrate -g <name>`, review the file, then `vendure migrate -r`    | `developer-guide/migrations#migration-workflow`                                      |
 | Pending migrations not applied    | `vendure migrate -r`, or keep `runMigrations(config)` before `bootstrap()` | `developer-guide/migrations#3-run-the-migration`                                     |
-| Last migration is wrong           | `vendure migrate revert`, fix or delete the file, generate again           | `developer-guide/migrations#reverting-a-migration`                                   |
+| Last migration is wrong           | `vendure migrate --revert` (v4: `vendure migrate revert`), fix or delete the file, generate again | `developer-guide/migrations#reverting-a-migration`                                   |
 | No initial migration              | `vendure migrate -g initial --from-empty`                                  | `developer-guide/migrations#generating-a-baseline-migration-for-an-existing-project` |
 | Pattern matches no files          | Fix `dbConnectionOptions.migrations`, or build the project first           | `reference/typescript-api/migration/migration-diagnostic`                            |
 | `synchronize: true` in production | Set `synchronize: false` and use migrations                                | `developer-guide/migrations#synchronize-vs-migrate`                                  |

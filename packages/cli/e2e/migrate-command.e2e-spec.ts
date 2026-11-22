@@ -148,7 +148,7 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
             try {
                 const result = await generate({ name: 'FailTest' });
 
-                expect(result.envelope.status).toBe('error');
+                expect(result.envelope.error?.code).toBe('migrate.config-unreadable');
             } finally {
                 await fs.move(backupPath, configPath);
             }
@@ -198,7 +198,9 @@ describe('Migrate Command E2E', { timeout: 60_000 }, () => {
             const result = await runPending();
 
             expect(result.envelope.status).toBe('ok');
-            expect((result.envelope.output as any).migrationsRan.length).toBeGreaterThan(0);
+            expect((result.envelope.output as any).migrationsRan).toEqual([
+                expect.stringContaining('TestMigration'),
+            ]);
         });
 
         // #5001 — a `migrations` glob that stopped matching must not be reported as "up to date"

@@ -1,4 +1,4 @@
-import { cancel, intro, isCancel, log, select } from '@clack/prompts';
+import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
 
 import { runCoreCommand } from '../../command-host/run-core-command.js';
@@ -71,5 +71,7 @@ export async function migrateCommand(options: MigrateOptions = {}): Promise<numb
         cancel('Migrate cancelled.');
         return 0;
     }
-    return runCoreCommand(['migrate', String(action)], { config: options.config });
+    const exitCode = await runCoreCommand(['migrate', String(action)], { config: options.config });
+    outro(exitCode === 0 ? '✅ Done!' : '❌ Error');
+    return exitCode;
 }

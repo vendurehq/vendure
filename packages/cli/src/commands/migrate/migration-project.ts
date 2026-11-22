@@ -1,3 +1,4 @@
+import { ErrorResult, fail } from '@vendure/common/lib/command';
 import { unique } from '@vendure/common/lib/unique';
 import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
@@ -6,6 +7,8 @@ import { loadVendureConfigFile } from '../../shared/load-vendure-config-file.js'
 import { openProject } from '../../shared/open-project.js';
 import { requireFromProjectCore } from '../../shared/project-core.js';
 import { VendureConfigRef } from '../../shared/vendure-config-ref.js';
+
+import { configUnreadable } from './migrate.errors.js';
 
 export interface LoadedProjectConfig {
     config: VendureConfig;
@@ -20,6 +23,18 @@ export async function loadProjectConfig(configFile?: string): Promise<LoadedProj
     const ref = new VendureConfigRef(project, configFile);
     const config = await loadVendureConfigFile(ref, tsConfigPath);
     return { config, configPath: ref.sourceFile.getFilePath(), ref };
+}
+
+/**
+ * Loads the project's Vendure config for a migrate command, or returns the coded error the
+ * command reports when the config cannot be found or loaded.
+ */
+export async function openMigrationProject(configFile?: string): Promise<LoadedProjectConfig | ErrorResult> {
+    try {
+        return await loadProjectConfig(configFile);
+    } catch (e) {
+        return fail(configUnreadable, { message: e instanceof Error ? e.message : String(e) });
+    }
 }
 
 /**

@@ -1,14 +1,18 @@
-import { CommandContext, fail } from '@vendure/common/lib/command';
+import { CommandContext, fail, isErrorResult } from '@vendure/common/lib/command';
 import type { MigrationDiagnostic } from '@vendure/core';
 
 import { requireProjectCore } from '../../../shared/project-core.js';
-import { loadProjectConfig } from '../migration-project.js';
+import { openMigrationProject } from '../migration-project.js';
 
 import { runFailed } from './run-migration.errors.js';
 
 /** Runs the pending migrations, and reports what the database still lacks afterwards. */
 export async function run(input: { config?: string }, ctx: CommandContext) {
-    const { config } = await loadProjectConfig(input.config);
+    const project = await openMigrationProject(input.config);
+    if (isErrorResult(project)) {
+        return project;
+    }
+    const { config } = project;
     ctx.progress('Running migrations');
     const diagnostics: MigrationDiagnostic[] = [];
     // With this set, the core function prints nothing, and throws instead of setting an exit code.

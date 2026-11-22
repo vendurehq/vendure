@@ -1,13 +1,17 @@
-import { CommandContext, fail } from '@vendure/common/lib/command';
+import { CommandContext, fail, isErrorResult } from '@vendure/common/lib/command';
 
 import { requireProjectCore } from '../../../shared/project-core.js';
-import { lastAppliedMigration, loadProjectConfig } from '../migration-project.js';
+import { lastAppliedMigration, openMigrationProject } from '../migration-project.js';
 
 import { databaseUnreadable, revertFailed } from './revert-migration.errors.js';
 
 /** Reverts the last applied migration. The host has already checked the consent. */
 export async function run(input: { config?: string }, ctx: CommandContext) {
-    const { config } = await loadProjectConfig(input.config);
+    const project = await openMigrationProject(input.config);
+    if (isErrorResult(project)) {
+        return project;
+    }
+    const { config } = project;
     let migration: string | null;
     try {
         migration = await lastAppliedMigration(config);

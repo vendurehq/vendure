@@ -1,4 +1,4 @@
-import { log, select } from '@clack/prompts';
+import { log, outro, select } from '@clack/prompts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCoreCommand } from '../../command-host/run-core-command.js';
@@ -11,6 +11,7 @@ vi.mock('@clack/prompts', () => ({
     intro: vi.fn(),
     isCancel: vi.fn(() => false),
     log: { error: vi.fn(), info: vi.fn() },
+    outro: vi.fn(),
     select: vi.fn(),
 }));
 
@@ -58,6 +59,7 @@ describe('migrateCommand()', () => {
             expect(runCoreCommand).toHaveBeenCalledWith(['migrate', action], {
                 config: './custom-vendure-config.ts',
             });
+            expect(outro).toHaveBeenCalledWith('✅ Done!');
         },
     );
 
@@ -82,7 +84,9 @@ describe('migrateCommand()', () => {
         expect(runCoreCommand).not.toHaveBeenCalled();
     });
 
-    it('no longer has a --revert flag', () => {
-        expect(migrateCommandDef.options?.map(option => option.long)).not.toContain('--revert');
+    it('has no --revert flag, which `vendure migrate revert` replaces', () => {
+        expect(migrateCommandDef.options?.map(option => option.long)).not.toContainEqual(
+            expect.stringMatching(/^--revert\b/),
+        );
     });
 });

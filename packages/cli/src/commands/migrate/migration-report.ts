@@ -5,15 +5,13 @@ export interface MigrationReport {
     summary: string;
     /** The diagnostics, rendered. Empty when there are none. */
     details: string;
-    /** Summary and details together, suitable for a single log line. */
-    message: string;
     /** True when a diagnostic was reported, so the caller can pick a warning channel. */
     hasWarnings: boolean;
 }
 
 /**
- * Builds the report both `vendure migrate --run` and the interactive run-migration command
- * print, so the two stay in step.
+ * Builds what `vendure migrate run` prints for a person: a one-line summary that does not claim
+ * the database is up to date when it is not, and the diagnostics.
  */
 export function buildMigrationReport(
     migrationsRan: string[],
@@ -32,7 +30,6 @@ export function buildMigrationReport(
     return {
         summary,
         details,
-        message: details ? `${summary}\n\n${details}` : summary,
         hasWarnings: diagnostics.length > 0,
     };
 }

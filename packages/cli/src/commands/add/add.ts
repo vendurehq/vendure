@@ -10,6 +10,7 @@ import {
     withInteractiveTimeout,
 } from '../../utilities/utils.js';
 import { addApiExtension } from './api-extension/add-api-extension.js';
+import { addCodegenDefinition } from './codegen/add-codegen.command.js';
 import { addCommandDef } from './command.js';
 import { addDashboard } from './dashboard/add-dashboard.js';
 import { addEntity } from './entity/add-entity.js';
@@ -20,15 +21,18 @@ import { addService } from './service/add-service.js';
 
 const cancelledMessage = 'Add feature cancelled.';
 
-/** Features of the menu that are `vendure add` subcommands, which run through the command host. */
-const hostFeatures = [
-    {
-        value: 'add-codegen',
-        category: 'Project: Codegen',
-        description: 'Set up GraphQL code generation',
-        path: ['add', 'codegen'],
-    },
-];
+/**
+ * Entries of the menu that are `vendure add` subcommands, which run through the command host.
+ * Each takes its path and description from the command's declaration.
+ */
+const hostFeatures = [{ category: 'Project: Codegen', definition: addCodegenDefinition }].map(
+    ({ category, definition }) => ({
+        value: definition.path.join('-'),
+        category,
+        description: definition.description,
+        path: definition.path,
+    }),
+);
 
 export interface AddOptions {
     /** Link to Vendure Console, start the Platform trial and install Platform */
