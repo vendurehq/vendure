@@ -1,5 +1,6 @@
 import { CommandContext, fail, failed } from '@vendure/common/lib/command';
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 
 import { DevServerStateFile, isProcessAlive } from '../dev/state-file.js';
 
@@ -57,7 +58,13 @@ export async function run(_input: Record<string, never>, ctx: CommandContext) {
 function signalRun(pid: number) {
     if (process.platform === 'win32') {
         try {
-            execFileSync('taskkill', ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' });
+            // By absolute path, so that no directory on the PATH can stand in for it.
+            const taskkill = path.win32.join(
+                process.env.SystemRoot ?? 'C:\\Windows',
+                'System32',
+                'taskkill.exe',
+            );
+            execFileSync(taskkill, ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' });
         } catch {
             // The process has already exited.
         }

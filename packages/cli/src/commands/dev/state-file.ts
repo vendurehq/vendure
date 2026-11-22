@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
     closeSync,
+    existsSync,
     linkSync,
     mkdirSync,
     openSync,
@@ -184,12 +185,20 @@ export function isDevRunAlive(state: Pick<DevServerState, 'pid' | 'startedAt'>, 
     return now - elapsedSeconds * 1000 <= runStartedAt + START_TIME_TOLERANCE_MS;
 }
 
+/** Where `ps` is on macOS and Linux. */
+const PS_PATHS = ['/bin/ps', '/usr/bin/ps'];
+
 function readProcessElapsedSeconds(pid: number): number | undefined {
     if (process.platform === 'win32') {
         return undefined;
     }
+    // By absolute path, so that no directory on the PATH can stand in for it.
+    const psPath = PS_PATHS.find(candidate => existsSync(candidate));
+    if (!psPath) {
+        return undefined;
+    }
     try {
-        const output = execFileSync('ps', ['-o', 'etime=', '-p', String(pid)], {
+        const output = execFileSync(psPath, ['-o', 'etime=', '-p', String(pid)], {
             encoding: 'utf-8',
             stdio: ['ignore', 'pipe', 'ignore'],
         });
