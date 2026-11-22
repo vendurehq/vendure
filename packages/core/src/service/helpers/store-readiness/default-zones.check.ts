@@ -4,6 +4,7 @@ import { Channel } from '../../../entity/channel/channel.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 
 import {
+    adminToolName,
     adminToolPath,
     ChannelReadinessInput,
     StoreReadinessFinding,
@@ -25,7 +26,7 @@ function setZoneFix(field: 'defaultTaxZoneId' | 'defaultShippingZoneId', details
         {
             path: adminToolPath('update_channel'),
             input: { id: details.channel.id, input: { [field]: details.candidate.id } },
-            description: `Use the zone "${details.candidate.name}", or another zone from admin_list_zones.`,
+            description: `Use the zone "${details.candidate.name}", or another zone from ${adminToolName('list_zones')}.`,
         },
     ];
 }

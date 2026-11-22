@@ -8,6 +8,7 @@ import { ShippingMethodService } from '../../services/shipping-method.service';
 
 import { sampleCountryCode } from './shipping-zones';
 import {
+    adminToolName,
     adminToolPath,
     ChannelReadinessInput,
     inChannel,
@@ -26,7 +27,8 @@ export const noShippingMethod = defineError<{ channel: Channel }>({
             path: adminToolPath('list_shipping_options'),
             input: {},
             description:
-                'See the checkers, calculators and fulfillment handlers, then create a method with admin_create_shipping_method.',
+                'See the checkers, calculators and fulfillment handlers, then create a method with ' +
+                `${adminToolName('create_shipping_method')}.`,
         },
     ],
 });
@@ -50,8 +52,8 @@ export const noEligibleShippingMethod = defineError<{ channel: Channel; zone: Zo
             path: adminToolPath('list_shipping_methods'),
             input: {},
             description:
-                "See the methods' eligibility checkers, then change one with admin_update_shipping_method " +
-                'or create a method with admin_create_shipping_method.',
+                `See the methods' eligibility checkers, then change one with ${adminToolName('update_shipping_method')} ` +
+                `or create a method with ${adminToolName('create_shipping_method')}.`,
         },
     ],
 });

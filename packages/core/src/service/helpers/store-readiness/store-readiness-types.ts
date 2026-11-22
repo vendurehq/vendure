@@ -66,9 +66,14 @@ export const STORE_READINESS_FIX_TOOLS = [
     'create_stock_location',
 ] as const;
 
+/** An MCP admin tool, as `vendure mcp` names it. Fix descriptions name tools with it too. */
+export function adminToolName(tool: (typeof STORE_READINESS_FIX_TOOLS)[number]): string {
+    return `admin_${tool}`;
+}
+
 /** The path of a fix that calls an MCP admin tool, as `vendure mcp` names it. */
 export function adminToolPath(tool: (typeof STORE_READINESS_FIX_TOOLS)[number]): string[] {
-    return [`admin_${tool}`];
+    return [adminToolName(tool)];
 }
 
 /**

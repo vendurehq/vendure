@@ -193,18 +193,13 @@ matching Admin API operation.
 | [`update_role`](#create_role-and-update_role) | mutating | UpdateRole | Change a role's code, description or permissions |
 | `get_setting` | readonly | Authenticated | Read one settings-store value by its full key |
 | [`set_setting`](#set_setting) | mutating | Authenticated | Write one settings-store value by its full key |
+| [`check_store`](#check_store) | readonly | ReadSettings | Report the setup gaps that stop each channel from taking an order |
 
 ### Assets & media
 
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | [`upload_asset`](#upload_asset) | mutating | CreateAsset | Upload an asset from a public HTTP(S) URL |
-
-### Store readiness
-
-| Tool | Safety | Permission | Description |
-|---|---|---|---|
-| [`check_store`](#check_store) | readonly | ReadSettings | Report the setup gaps that stop each channel from taking an order |
 
 ## Shared conventions
 
@@ -456,6 +451,7 @@ Refunds the selected payment.
   changing its own limits by mistake. It is not a security boundary: an administrator with the same access can
   still change these settings through the Admin API.
 - Checks the field's own read-only flag, write permission and validation.
+
 ### `check_store`
 
 - Runs the same check as the Admin API `storeReadiness` query and returns the same report: `ready`, and a list of
