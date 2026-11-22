@@ -24,6 +24,13 @@ describe('redactSecretConfigArgs', () => {
         });
     });
 
+    it('keeps a Date and other non-plain objects as they are', () => {
+        const createdAt = new Date(0);
+        const redacted = redactSecretConfigArgs({ createdAt, nested: [{ at: createdAt }] }, isSecret) as any;
+        expect(redacted.createdAt).toBe(createdAt);
+        expect(redacted.nested[0].at).toBe(createdAt);
+    });
+
     it('leaves an empty secret and the args of other operations alone', () => {
         const value = {
             a: { code: 'card-handler', args: { apiKey: '' } },

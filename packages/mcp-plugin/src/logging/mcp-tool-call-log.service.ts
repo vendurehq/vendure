@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigArgService, EventBus, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 
-import { redactSecretConfigArgs } from '../config-arg-secrets';
+import { redactSecretConfigArgs, secretConfigArgsOf } from '../config-arg-secrets';
 import { loggerCtx, MCP_PLUGIN_OPTIONS } from '../constants';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
@@ -92,9 +92,9 @@ export class McpToolCallLogService {
         if (logging.capture !== 'full') {
             return { input: null, output: null };
         }
-        // Secret config args, such as a payment provider's API key, are encrypted at rest by core, so
-        // they never reach the log in plain text, whatever the operator's own redact function does.
-        const isSecret = (code: string, argName: string) => this.configArgService.hasSecretArg(code, argName);
+        // Core encrypts secret config args, such as a payment provider's API key, at rest. Redact them
+        // here, before the operator's redact function runs, so the log never holds them in plain text.
+        const isSecret = secretConfigArgsOf(this.configArgService);
         const input = redactSecretConfigArgs(call.input, isSecret);
         const output = redactSecretConfigArgs(call.output, isSecret);
         let bodies: { input: unknown; output: unknown } | undefined;

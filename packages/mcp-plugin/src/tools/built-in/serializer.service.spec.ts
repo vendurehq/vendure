@@ -746,7 +746,7 @@ describe('money scaling', () => {
         expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
     });
 
-    it('returns configurable operation args by name, parsed from JSON where they parse', () => {
+    it('returns configurable operation args by name, typed by their declared type', () => {
         const service = new McpToolSerializerService(configWithPrecision(2), {
             hasSecretArg: () => false,
             getDefinitions: (type: string) => shippingDefinitions[type] ?? [],

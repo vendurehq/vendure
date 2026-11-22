@@ -4,13 +4,41 @@ import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constant
 /** Whether the registered operation with this code declares a `secret` arg of this name. */
 export type IsSecretConfigArg = (code: string, argName: string) => boolean;
 
+/** Reads which config args are secret from core's registry of configurable operations. */
+export function secretConfigArgsOf(configArgService: {
+    hasSecretArg(code: string, argName: string): boolean;
+}): IsSecretConfigArg {
+    return (code, argName) => configArgService.hasSecretArg(code, argName);
+}
+
 /** A stored or entered secret is redacted. An empty one is left as is, so an unset secret shows as unset. */
 function hasValue(value: unknown): boolean {
     return value != null && value !== '';
 }
 
+/**
+ * The value to show for one config arg: the redaction placeholder for a set secret arg, and the value
+ * itself otherwise. Tool results and log rows both use it, so they agree on which secrets are hidden.
+ */
+export function redactArgValue<T>(
+    code: string,
+    argName: string,
+    value: T,
+    isSecret: IsSecretConfigArg,
+): T | typeof REDACTED_SECRET_PLACEHOLDER {
+    return hasValue(value) && isSecret(code, argName) ? REDACTED_SECRET_PLACEHOLDER : value;
+}
+
+/**
+ * Only plain objects are walked. Anything else, such as a `Date`, is kept as it is, so the log column
+ * still serializes it the way it did.
+ */
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
 }
 
 /**
@@ -38,17 +66,14 @@ export function redactSecretConfigArgs(value: unknown, isSecret: IsSecretConfigA
         copy.args = Object.fromEntries(
             Object.entries(copy.args).map(([name, argValue]) => [
                 name,
-                isSecret(code, name) && hasValue(argValue) ? REDACTED_SECRET_PLACEHOLDER : argValue,
+                redactArgValue(code, name, argValue, isSecret),
             ]),
         );
     }
     if (Array.isArray(copy.arguments)) {
         copy.arguments = copy.arguments.map(arg =>
-            isPlainObject(arg) &&
-            typeof arg.name === 'string' &&
-            isSecret(code, arg.name) &&
-            hasValue(arg.value)
-                ? { ...arg, value: REDACTED_SECRET_PLACEHOLDER }
+            isPlainObject(arg) && typeof arg.name === 'string'
+                ? { ...arg, value: redactArgValue(code, arg.name, arg.value, isSecret) }
                 : arg,
         );
     }

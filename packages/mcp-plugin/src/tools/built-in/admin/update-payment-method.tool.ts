@@ -9,7 +9,7 @@ import {
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { keepOmittedSecretArgs } from '../../../config-arg-secrets';
+import { keepOmittedSecretArgs, secretConfigArgsOf } from '../../../config-arg-secrets';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { paymentMethodFieldsSchema } from './payment-method-fields-schema';
@@ -55,7 +55,7 @@ export class UpdatePaymentMethodTool implements McpToolHandler<UpdatePaymentMeth
         if (!stored) {
             throw new EntityNotFoundError('PaymentMethod', input.id);
         }
-        const isSecret = (code: string, name: string) => this.configArgService.hasSecretArg(code, name);
+        const isSecret = secretConfigArgsOf(this.configArgService);
         const handler = fields.handler && keepOmittedSecretArgs(fields.handler, stored.handler, isSecret);
         const checker = fields.checker && keepOmittedSecretArgs(fields.checker, stored.checker, isSecret);
         const paymentMethod = await this.paymentMethodService.update(ctx, {

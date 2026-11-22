@@ -42,6 +42,8 @@ import {
 } from '@vendure/core';
 import { toDecimalString } from '@vendure/mcp-sdk';
 
+import { redactArgValue, secretConfigArgsOf } from '../../config-arg-secrets';
+
 /** How much of a product's description a list item keeps; `get_product` has the whole text. */
 const LIST_ITEM_DESCRIPTION_LENGTH = 200;
 
@@ -577,12 +579,13 @@ export class McpToolSerializerService {
             args: Record<string, { type: string; list?: boolean }>;
         }>;
         const definition = definitions.find(candidate => candidate.code === operation.code);
+        const isSecret = secretConfigArgsOf(this.configArgService);
         const args: Record<string, unknown> = {};
         for (const arg of operation.args) {
-            const isSet = arg.value != null && arg.value !== '';
+            const value = redactArgValue(operation.code, arg.name, arg.value, isSecret);
             args[arg.name] =
-                isSet && this.configArgService.hasSecretArg(operation.code, arg.name)
-                    ? REDACTED_SECRET_PLACEHOLDER
+                value === REDACTED_SECRET_PLACEHOLDER
+                    ? value
                     : this.configArgValue(arg.value, definition?.args[arg.name]);
         }
         return { code: operation.code, args };

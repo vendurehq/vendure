@@ -20,6 +20,12 @@ describe('toConfigurableOperationInput', () => {
         });
     });
 
+    it('sends null as the empty string, which core treats as unset', () => {
+        expect(toConfigurableOperationInput({ code: 'card', args: { accountId: null } }).arguments).toEqual([
+            { name: 'accountId', value: '' },
+        ]);
+    });
+
     it('sends no arguments when args is left out', () => {
         expect(toConfigurableOperationInput({ code: 'manual-fulfillment' })).toEqual({
             code: 'manual-fulfillment',

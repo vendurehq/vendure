@@ -35,8 +35,8 @@ export type ConfigurableOperationToolInput = z.infer<typeof configurableOperatio
 
 /**
  * Core stores every argument as a string and parses it by the argument's declared type. A string is
- * passed as it is; any other value is sent as JSON, which is how core reads numbers, booleans and
- * lists.
+ * passed as it is, and null as the empty string, which core treats as unset. Any other value is sent
+ * as JSON, which is how core reads numbers, booleans and lists.
  */
 export function toConfigurableOperationInput(
     operation: ConfigurableOperationToolInput,
@@ -45,7 +45,7 @@ export function toConfigurableOperationInput(
         code: operation.code,
         arguments: Object.entries(operation.args ?? {}).map(([name, value]) => ({
             name,
-            value: typeof value === 'string' ? value : JSON.stringify(value),
+            value: typeof value === 'string' ? value : value === null ? '' : JSON.stringify(value),
         })),
     };
 }

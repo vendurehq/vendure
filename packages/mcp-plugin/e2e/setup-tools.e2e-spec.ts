@@ -149,11 +149,8 @@ describe('MCP setup-entity admin tools', () => {
             const created = await call('create_zone', {
                 input: { name: 'Pacific', memberCountryCodes: ['AU', 'NZ'] },
             });
-            expect(created.zone).toEqual({
-                id: expect.anything(),
-                name: 'Pacific',
-                memberCountryCodes: expect.arrayContaining(['AU', 'NZ']),
-            });
+            expect(created.zone).toMatchObject({ id: expect.anything(), name: 'Pacific' });
+            expect([...created.zone.memberCountryCodes].sort()).toEqual(['AU', 'NZ']);
 
             const updated = await call('update_zone', {
                 id: created.zone.id,
@@ -365,7 +362,8 @@ describe('MCP setup-entity admin tools', () => {
                 .rawConnection.getRepository(McpToolCallLog)
                 .find();
             const paymentLogs = logs.filter(log => log.toolName.endsWith('_payment_method'));
-            expect(paymentLogs.length).toBeGreaterThanOrEqual(3);
+            // One create and two updates.
+            expect(paymentLogs.length).toBe(3);
             expect(JSON.stringify(paymentLogs)).not.toContain(SECRET_API_KEY);
             const created = paymentLogs.find(log => log.toolName === 'create_payment_method');
             expect(created?.input).toMatchObject({
@@ -415,7 +413,7 @@ describe('MCP setup-entity admin tools', () => {
                 input: { code: 'mcp-catalog', description: 'Catalog editing', permissions: ['ReadCatalog'] },
             });
             expect(created.role).toMatchObject({ code: 'mcp-catalog' });
-            expect(created.role.permissions).toEqual(expect.arrayContaining(['ReadCatalog']));
+            expect([...created.role.permissions].sort()).toEqual(['Authenticated', 'ReadCatalog']);
 
             const updated = await call('update_role', {
                 id: created.role.id,
