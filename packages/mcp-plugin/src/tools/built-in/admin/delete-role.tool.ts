@@ -17,7 +17,7 @@ import { z } from 'zod';
 
 import { deletionResult } from './deletion-result';
 
-const SYSTEM_ROLE_CODES = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE, ROLE_EDITOR_ROLE_CODE];
+const SYSTEM_ROLE_CODES = new Set([SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE, ROLE_EDITOR_ROLE_CODE]);
 
 const deleteRoleInput = z.strictObject({
     id: idSchema.describe('Role ID.'),
@@ -59,7 +59,7 @@ export class DeleteRoleTool implements McpToolHandler<DeleteRoleToolInput> {
         if (!role) {
             throw new EntityNotFoundError('Role', id);
         }
-        if (SYSTEM_ROLE_CODES.includes(role.code)) {
+        if (SYSTEM_ROLE_CODES.has(role.code)) {
             throw new UserInputError(`Role "${role.code}" is a system role and cannot be deleted.`);
         }
         return role;
