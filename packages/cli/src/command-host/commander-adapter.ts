@@ -106,6 +106,12 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
             option.choices(schema.enum as string[]);
         }
         command.addOption(option);
+        if (type === 'boolean') {
+            // `--no-<flag>` sets the field to false. Defined after `--<flag>`, it leaves the value
+            // undefined when neither is given, so the command's own default applies, for example
+            // a `wait` field that is true for people and false under `vendure mcp`.
+            command.addOption(new Option(`--no-${kebab(field)}`, `Sets ${flag} to false`));
+        }
     }
     command.addOption(new Option('--json', 'Write one JSON document to stdout, and events to stderr'));
     command.addOption(new Option('--input <json|->', 'Pass the whole input as a JSON document'));
@@ -248,25 +254,7 @@ async function runLeaf(
     } catch (e) {
         return finish(errorResult(hostErrors.inputUnreadable, { reason: (e as Error).message }));
     }
-    // Flags the caller set win over the same field in the document.
-    for (const field of properties) {
-        const source = command.getOptionValueSource(field);
-        if (opts[field] !== undefined && source !== 'default') {
-            input[field] = opts[field];
-            continue;
-        }
-        // A group that is also a command, such as `add`, reads its own options before it passes
-        // the rest on. A field with the same name as one of them arrives there.
-        const inherited = ancestorOptionValue(command, field);
-        if (inherited !== undefined) {
-            input[field] = inherited;
-        }
-    }
-    for (const [field, value] of Object.entries(positionalValues)) {
-        if (value !== undefined) {
-            input[field] = value;
-        }
-    }
+    Object.assign(input, collectFlagInput(command, properties, positionalValues));
 
     const definitions = await options.loadDefinitions();
     const key = manifestCommand.path.join(' ');
@@ -328,6 +316,38 @@ export function executeWithCancellation(
             });
         }),
     ]);
+}
+
+/**
+ * The input fields a caller set on the command line, as flags or positional arguments. They win
+ * over the same fields in an `--input` document. A boolean field set with `--no-<flag>` is false.
+ */
+export function collectFlagInput(
+    command: Command,
+    properties: string[],
+    positionalValues: Record<string, unknown> = {},
+): Record<string, unknown> {
+    const opts = command.opts();
+    const input: Record<string, unknown> = {};
+    for (const field of properties) {
+        const source = command.getOptionValueSource(field);
+        if (opts[field] !== undefined && source !== 'default') {
+            input[field] = opts[field];
+            continue;
+        }
+        // A group that is also a command, such as `add`, reads its own options before it passes
+        // the rest on. A field with the same name as one of them arrives there.
+        const inherited = ancestorOptionValue(command, field);
+        if (inherited !== undefined) {
+            input[field] = inherited;
+        }
+    }
+    for (const [field, value] of Object.entries(positionalValues)) {
+        if (value !== undefined) {
+            input[field] = value;
+        }
+    }
+    return input;
 }
 
 function ancestorOptionValue(command: Command, field: string): unknown {
