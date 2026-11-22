@@ -2,16 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
     EntityNotFoundError,
-    PaymentMethod,
     PaymentMethodService,
     Permission,
     RequestContext,
-    TransactionalConnection,
+    UserInputError,
 } from '@vendure/core';
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { deletionResult } from './deletion-result';
+import { quotedCodes } from './preview-text';
 
 const deletePaymentMethodInput = z.strictObject({
     id: idSchema.describe('Payment method ID.'),
@@ -46,44 +46,44 @@ type DeletePaymentMethodToolInput = z.infer<typeof deletePaymentMethodInput>;
 })
 @Injectable()
 export class DeletePaymentMethodTool implements McpToolHandler<DeletePaymentMethodToolInput> {
-    constructor(
-        private readonly paymentMethodService: PaymentMethodService,
-        private readonly connection: TransactionalConnection,
-    ) {}
+    constructor(private readonly paymentMethodService: PaymentMethodService) {}
 
     async describe(ctx: RequestContext, input: DeletePaymentMethodToolInput) {
-        const method = await this.paymentMethodService.findOne(ctx, input.id);
-        if (!method) {
-            throw new EntityNotFoundError('PaymentMethod', input.id);
-        }
+        const { method, others } = await this.findDeletableMethod(ctx, input);
         const name = `payment method "${method.name}" (code ${method.code}, id ${method.id})`;
         // Core only deletes from the default channel. Elsewhere it removes the method from that channel.
         if (ctx.channel.code !== DEFAULT_CHANNEL_CODE) {
             return `Remove ${name} from channel "${ctx.channel.code}". Other channels keep it.`;
         }
-        const others = await this.otherChannelCodes(ctx, method);
-        if (others.length === 0) {
-            return `Delete ${name}.`;
-        }
-        return input.force
-            ? `Delete ${name}, and remove it from the channels that also use it: ${others.join(', ')}.`
-            : `Delete ${name}. Channels ${others.join(', ')} also use it, so it is only deleted with force.`;
+        return others.length
+            ? `Delete ${name}, and remove it from the channels that also use it: ${quotedCodes(others)}.`
+            : `Delete ${name}.`;
     }
 
     async execute(ctx: RequestContext, input: DeletePaymentMethodToolInput) {
+        await this.findDeletableMethod(ctx, input);
         return deletionResult(
             await this.paymentMethodService.delete(ctx, input.id, input.force ?? false),
             `Payment method ${input.id}`,
         );
     }
 
-    private async otherChannelCodes(ctx: RequestContext, method: PaymentMethod): Promise<string[]> {
-        const withChannels = await this.connection
-            .getRepository(ctx, PaymentMethod)
-            .findOne({ where: { id: method.id }, relations: { channels: true } });
-        return (withChannels?.channels ?? [])
-            .map(channel => channel.code)
-            .filter(code => code !== DEFAULT_CHANNEL_CODE)
-            .sort((a, b) => a.localeCompare(b));
+    /**
+     * In the default channel, core refuses a method that other channels use unless `force` is set, so that
+     * case is refused before the caller is asked to consent to it.
+     */
+    private async findDeletableMethod(ctx: RequestContext, input: DeletePaymentMethodToolInput) {
+        const method = await this.paymentMethodService.findOne(ctx, input.id, ['channels']);
+        if (!method) {
+            throw new EntityNotFoundError('PaymentMethod', input.id);
+        }
+        const others = (method.channels ?? []).filter(channel => channel.code !== DEFAULT_CHANNEL_CODE);
+        if (ctx.channel.code === DEFAULT_CHANNEL_CODE && others.length && !input.force) {
+            throw new UserInputError(
+                `Payment method "${method.code}" is also used by channels ${quotedCodes(others)}. ` +
+                    'Pass "force": true to delete it from every channel.',
+            );
+        }
+        return { method, others };
     }
 }

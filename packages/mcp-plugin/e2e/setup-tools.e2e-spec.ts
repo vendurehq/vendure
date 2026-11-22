@@ -416,14 +416,11 @@ describe('MCP setup-entity admin tools', () => {
             expect(await ids('list_zones')).not.toContain(String(zone.id));
         });
 
-        it('reports a zone that is still in use as a failed call', async () => {
-            const result = await deleteWithConsent(
-                'delete_zone',
-                { id: europeZoneId },
-                'Delete zone "Europe"',
-            );
-            expect(result.isError).toBe(true);
-            expect(result.content[0].text).toContain('used');
+        it('refuses a zone that a channel uses, before asking for consent', async () => {
+            const refused = await callRaw('delete_zone', { id: europeZoneId });
+            expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is a default zone of channels');
+            expect(refused.content[0].text).toContain('"__default_channel__"');
             expect(await ids('list_zones')).toContain(String(europeZoneId));
         });
 
@@ -519,18 +516,17 @@ describe('MCP setup-entity admin tools', () => {
                 { input: { paymentMethodIds: [encode(paymentMethod.id)], channelId: encode(channel.id) } },
             );
 
-            const refused = await deleteWithConsent(
-                'delete_payment_method',
-                { id: paymentMethod.id },
-                'Channels mcp-payment-channel also use it, so it is only deleted with force',
-            );
+            // Without force, core would refuse it, so the tool refuses before asking for consent.
+            const refused = await callRaw('delete_payment_method', { id: paymentMethod.id });
             expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is also used by channels "mcp-payment-channel"');
+            expect(refused.content[0].text).toContain('Pass "force": true');
             expect(await ids('list_payment_methods')).toContain(String(paymentMethod.id));
 
             const forced = await deleteWithConsent(
                 'delete_payment_method',
                 { id: paymentMethod.id, force: true },
-                'remove it from the channels that also use it: mcp-payment-channel',
+                'remove it from the channels that also use it: "mcp-payment-channel"',
             );
             expect(forced.isError).toBeUndefined();
             expect(await ids('list_payment_methods')).not.toContain(String(paymentMethod.id));
@@ -626,7 +622,7 @@ describe('MCP setup-entity admin tools', () => {
             expect(refused.content[0].text).toContain('is a system role and cannot be deleted');
         });
 
-        it('deletes a channel, and refuses the active channel', async () => {
+        it('refuses the active channel and the default channel, and deletes another channel', async () => {
             const { channel } = await call('create_channel', {
                 input: {
                     code: 'mcp-temporary-channel',
@@ -638,6 +634,35 @@ describe('MCP setup-entity admin tools', () => {
                     defaultShippingZoneId: europeZoneId,
                 },
             });
+            const channels = await call('list_channels', {});
+            const defaultChannel = channels.items.find(
+                (c: { code: string }) => c.code === '__default_channel__',
+            );
+            const switchTo = async (channelToken: string) => {
+                const message = callTool('set_active_channel', { channelToken });
+                const preview = await postMcp(baseUrl(), 'admin', message, { token });
+                const switched = await postMcp(
+                    baseUrl(),
+                    'admin',
+                    withConsent(message, consentDigestOf(preview) as string),
+                    { token },
+                );
+                expect(switched.body.result.isError).toBeUndefined();
+            };
+
+            // While the new channel is active, deleting it is refused, and so is the default channel.
+            await switchTo('mcp-temporary-channel-token');
+            try {
+                const active = await callRaw('delete_channel', { id: channel.id });
+                expect(active.isError).toBe(true);
+                expect(active.content[0].text).toContain('"mcp-temporary-channel" is the active channel');
+                const defaultRefused = await callRaw('delete_channel', { id: defaultChannel.id });
+                expect(defaultRefused.isError).toBe(true);
+                expect(defaultRefused.content[0].text).toContain('The default channel cannot be deleted');
+            } finally {
+                await switchTo(defaultChannel.token);
+            }
+
             const result = await deleteWithConsent(
                 'delete_channel',
                 { id: channel.id },
@@ -645,12 +670,6 @@ describe('MCP setup-entity admin tools', () => {
             );
             expect(result.isError).toBeUndefined();
             expect((await call('get_channel', { id: channel.id })).channel).toBeNull();
-
-            const channels = await call('list_channels', {});
-            const active = channels.items.find((c: { code: string }) => c.code === '__default_channel__');
-            const refused = await callRaw('delete_channel', { id: active.id });
-            expect(refused.isError).toBe(true);
-            expect(refused.content[0].text).toContain('is the active channel');
         });
     });
 

@@ -1,5 +1,7 @@
 import { DeletionResponse, DeletionResult } from '@vendure/common/lib/generated-types';
-import { Channel, UserInputError } from '@vendure/core';
+import { Logger, UserInputError } from '@vendure/core';
+
+import { loggerCtx } from '../../../constants';
 
 /**
  * Core reports some refusals, such as a zone that a channel still uses, as a `NOT_DELETED` result
@@ -11,7 +13,12 @@ import { Channel, UserInputError } from '@vendure/core';
  */
 export function deletionResult(response: DeletionResponse, target: string) {
     if (response.result !== DeletionResult.DELETED) {
-        const message = response.message && !isRawError(response.message) ? response.message : undefined;
+        const raw = response.message && isRawError(response.message);
+        if (raw) {
+            // Kept for the operator, since the caller only gets the plain message.
+            Logger.warn(`${target} was not deleted: ${response.message}`, loggerCtx);
+        }
+        const message = response.message && !raw ? response.message : undefined;
         throw new UserInputError(
             message ?? `${target} was not deleted. Other data, such as products or orders, may still use it.`,
         );
@@ -21,12 +28,4 @@ export function deletionResult(response: DeletionResponse, target: string) {
 
 function isRawError(message: string): boolean {
     return /^\w*Error\b/.test(message) || /constraint|SQLITE_|ER_ROW_IS_REFERENCED/i.test(message);
-}
-
-/** The channels an entity is removed from, by code, for a preview. */
-export function channelList(channels: Channel[]): string {
-    const codes = channels.map(channel => `"${channel.code}"`).sort((a, b) => a.localeCompare(b));
-    return codes.length === 1
-        ? `channel ${codes[0]}`
-        : `every channel it is assigned to: ${codes.join(', ')}`;
 }

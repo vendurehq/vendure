@@ -12,7 +12,8 @@ import {
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { channelList, deletionResult } from './deletion-result';
+import { deletionResult } from './deletion-result';
+import { channelList } from './preview-text';
 
 const deleteStockLocationInput = z.strictObject({
     id: idSchema.describe('Stock location ID.'),

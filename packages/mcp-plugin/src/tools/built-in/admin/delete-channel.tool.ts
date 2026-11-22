@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
     Channel,
     ChannelService,
@@ -25,7 +26,7 @@ type DeleteChannelToolInput = z.infer<typeof deleteChannelInput>;
     toolset: 'admin',
     description:
         'Delete a channel, with the roles it owns. The default channel and the active channel cannot be deleted. ' +
-        'MCP connections whose active channel it is stop working.',
+        'MCP grants whose active channel it is are revoked on their next call, and admin sessions in it are signed out.',
     keywords: [
         'delete a channel',
         'remove a storefront for good',
@@ -46,7 +47,7 @@ export class DeleteChannelTool implements McpToolHandler<DeleteChannelToolInput>
         const channel = await this.findDeletableChannel(ctx, input.id);
         return (
             `Delete channel "${channel.code}" (id ${channel.id}), and the roles it owns. ` +
-            'MCP connections whose active channel it is stop working.'
+            'MCP grants whose active channel it is are revoked on their next call, and admin sessions in it are signed out.'
         );
     }
 
@@ -68,6 +69,9 @@ export class DeleteChannelTool implements McpToolHandler<DeleteChannelToolInput>
             : undefined;
         if (!channel) {
             throw new EntityNotFoundError('Channel', id);
+        }
+        if (channel.code === DEFAULT_CHANNEL_CODE) {
+            throw new UserInputError('The default channel cannot be deleted.');
         }
         if (idsAreEqual(channel.id, ctx.channelId)) {
             throw new UserInputError(

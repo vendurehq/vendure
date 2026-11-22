@@ -3,7 +3,8 @@ import { EntityNotFoundError, Permission, RequestContext, ShippingMethodService 
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { channelList, deletionResult } from './deletion-result';
+import { deletionResult } from './deletion-result';
+import { channelList } from './preview-text';
 
 const deleteShippingMethodInput = z.strictObject({
     id: idSchema.describe('Shipping method ID.'),

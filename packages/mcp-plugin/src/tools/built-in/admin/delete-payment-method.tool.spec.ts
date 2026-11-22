@@ -1,42 +1,42 @@
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
-import { describe, expect, it } from 'vitest';
+import { UserInputError } from '@vendure/core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DeletePaymentMethodTool } from './delete-payment-method.tool';
 
-const method = { id: 4, code: 'card', name: 'Card' };
-
 function tool(channelCodes: string[]) {
-    const paymentMethodService = { findOne: () => Promise.resolve(method) } as any;
-    const connection = {
-        getRepository: () => ({
-            findOne: () => Promise.resolve({ ...method, channels: channelCodes.map(code => ({ code })) }),
-        }),
-    } as any;
-    return new DeletePaymentMethodTool(paymentMethodService, connection);
+    const method = { id: 4, code: 'card', name: 'Card', channels: channelCodes.map(code => ({ code })) };
+    const paymentMethodService = {
+        findOne: vi.fn(() => Promise.resolve(method)),
+        delete: vi.fn(() => Promise.resolve({ result: 'DELETED' })),
+    };
+    return { tool: new DeletePaymentMethodTool(paymentMethodService as any), paymentMethodService };
 }
 
 const ctxIn = (code: string) => ({ channel: { code } }) as any;
 
-describe('delete_payment_method preview', () => {
+describe('delete_payment_method', () => {
     it('in another channel, says it is only removed from that channel', async () => {
-        const preview = await tool([DEFAULT_CHANNEL_CODE, 'eu']).describe(ctxIn('eu'), {
-            id: 4,
-            force: true,
-        });
-        expect(preview).toBe(
+        const { tool: t } = tool([DEFAULT_CHANNEL_CODE, 'eu']);
+        expect(await t.describe(ctxIn('eu'), { id: 4 })).toBe(
             'Remove payment method "Card" (code card, id 4) from channel "eu". Other channels keep it.',
         );
     });
 
-    it('in the default channel, names the channels that also use it, with and without force', async () => {
-        const shared = tool([DEFAULT_CHANNEL_CODE, 'us', 'eu']);
-        expect(await shared.describe(ctxIn(DEFAULT_CHANNEL_CODE), { id: 4 })).toContain(
-            'Channels eu, us also use it, so it is only deleted with force.',
+    it('in the default channel, refuses a method other channels use unless force is set', async () => {
+        const { tool: t, paymentMethodService } = tool([DEFAULT_CHANNEL_CODE, 'us', 'eu']);
+        const ctx = ctxIn(DEFAULT_CHANNEL_CODE);
+        await expect(t.describe(ctx, { id: 4 })).rejects.toThrow(UserInputError);
+        await expect(t.execute(ctx, { id: 4 })).rejects.toThrow('"eu", "us"');
+        expect(paymentMethodService.delete).not.toHaveBeenCalled();
+        expect(await t.describe(ctx, { id: 4, force: true })).toBe(
+            'Delete payment method "Card" (code card, id 4), and remove it from the channels that also use it: "eu", "us".',
         );
-        expect(await shared.describe(ctxIn(DEFAULT_CHANNEL_CODE), { id: 4, force: true })).toContain(
-            'remove it from the channels that also use it: eu, us.',
-        );
-        expect(await tool([DEFAULT_CHANNEL_CODE]).describe(ctxIn(DEFAULT_CHANNEL_CODE), { id: 4 })).toBe(
+    });
+
+    it('in the default channel, deletes a method no other channel uses', async () => {
+        const { tool: t } = tool([DEFAULT_CHANNEL_CODE]);
+        expect(await t.describe(ctxIn(DEFAULT_CHANNEL_CODE), { id: 4 })).toBe(
             'Delete payment method "Card" (code card, id 4).',
         );
     });
