@@ -14,9 +14,6 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { runCommandInHarness } from '../../command-host/__tests__/command-harness.js';
-import { buildCommandManifest } from '../../command-host/manifest-build.js';
-import { mergeManifests } from '../../command-host/manifest.js';
-import { kebab } from '../../command-host/naming.js';
 import { createSpawn } from '../../command-host/spawn.js';
 import { DEVSERVER_DETACHED_ENV_VAR } from '../dev/dev-run.js';
 import {
@@ -28,7 +25,6 @@ import {
 } from '../dev/state-file.js';
 
 import {
-    devServerDefinitions,
     devServerLogsDefinition,
     devServerStartDefinition,
     devServerStatusDefinition,
@@ -98,46 +94,11 @@ function writeLog(projectDir: string, lines: Array<Partial<LogLine>>) {
     writeFileSync(path.join(directory, 'dev.jsonl'), toText(lines.slice(1)) + '{"cut off');
 }
 
-// The same checks as core-commands.spec.ts makes for the commands it registers.
-describe('devserver command definitions', () => {
-    it('build into a manifest the host accepts', async () => {
-        const manifest = await buildCommandManifest('@vendure/cli', '0.0.0', devServerDefinitions);
-
-        expect(mergeManifests([manifest]).map(command => command.path.join(' '))).toEqual([
-            'devserver start',
-            'devserver status',
-            'devserver wait',
-            'devserver logs',
-            'devserver stop',
-        ]);
-    });
-
+describe('devserver command schemas', () => {
     it('declares output schemas that match the TypeScript types', () => {
         expectTypeOf<z.infer<typeof schemas.status.output>>().toEqualTypeOf<DevServerStatusReport>();
         expectTypeOf<z.infer<typeof schemas.logs.output>['lines'][number]>().toEqualTypeOf<LogLine>();
     });
-
-    it.each(devServerDefinitions.map(def => [def.path.join(' '), def] as const))(
-        '%s loads its modules, and its examples use flags it has',
-        async (_name, def) => {
-            expect((await def.schemas()).input['~standard']).toBeDefined();
-            expect(typeof (await def.run()).run).toBe('function');
-            expect(typeof (await def.render?.())?.render).toBe('function');
-            const manifest = (await buildCommandManifest('@vendure/cli', '0.0.0', [def])).commands[0];
-            const known = new Set([
-                ...Object.keys((manifest.input.properties as object) ?? {}).map(kebab),
-                'json',
-                'input',
-            ]);
-            for (const example of def.examples ?? []) {
-                const words = example.split(/\s+/);
-                expect(words.slice(0, 1 + def.path.length)).toEqual(['vendure', ...def.path]);
-                for (const word of words.filter(w => w.startsWith('--'))) {
-                    expect(known.has(word.slice(2))).toBe(true);
-                }
-            }
-        },
-    );
 });
 
 describe('devserver status', () => {
