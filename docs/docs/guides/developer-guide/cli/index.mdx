@@ -166,9 +166,6 @@ npx vendure add -s MyService --selected-plugin MyPlugin --type entity
 npx vendure add -j MyPlugin --name my-job --selected-service MyService
 
 # Add GraphQL codegen to a plugin
-npx vendure add -c MyPlugin
-
-# The same, as a command that also supports --json
 npx vendure add codegen --plugin MyPlugin
 
 # Add API extension to a plugin
@@ -190,7 +187,6 @@ npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
 | `-e` | `--entity <n>`             | Add a new entity to a plugin       | `vendure add -e MyEntity --selected-plugin MyPlugin`                     |
 | `-s` | `--service <n>`            | Add a new service to a plugin      | `vendure add -s MyService --selected-plugin MyPlugin`                    |
 | `-j` | `--job-queue [plugin]`     | Add job queue support              | `vendure add -j MyPlugin --name job-name --selected-service ServiceName` |
-| `-c` | `--codegen [plugin]`       | Add GraphQL codegen configuration  | `vendure add -c MyPlugin`                                                |
 | `-a` | `--api-extension [plugin]` | Add API extension scaffold         | `vendure add -a MyPlugin --queryName getName --mutationName setName`     |
 | `-d` | `--dashboard [plugin]`     | Add Dashboard extensions setup     | `vendure add -d MyPlugin`                                                |
 |      | `--config <path>`          | Specify custom Vendure config file | `--config ./custom-config.ts`                                            |
@@ -242,20 +238,23 @@ For migration operations, use specific arguments and options:
 
 ```bash
 # Generate a new migration
-npx vendure migrate -g my-migration-name
+npx vendure migrate generate my-migration-name
 
 # Run pending migrations
-npx vendure migrate -r
+npx vendure migrate run
 
 # Revert the last migration, after showing what it reverts and asking first
 npx vendure migrate revert
 
 # Generate migration with custom output directory
-npx vendure migrate -g my-migration -o ./custom/migrations
+npx vendure migrate generate my-migration --output-dir ./custom/migrations
 
 # Generate a complete baseline migration against an empty shadow database
-npx vendure migrate -g initial --from-empty
+npx vendure migrate generate initial --from-empty
 ```
+
+`generate`, `run` and `revert` support `--json`, which writes one JSON document to stdout. The older
+flags `-g <name>` and `-r` run the same commands as `generate` and `run`.
 
 #### Migrate Command Options
 
@@ -263,7 +262,6 @@ npx vendure migrate -g initial --from-empty
 | ---- | --------------------- | -------------------------------------- | ------------------------------------------------- |
 | `-g` | `--generate <name>`   | Generate a new migration               | `vendure migrate -g add-user-table`               |
 | `-r` | `--run`               | Run all pending migrations             | `vendure migrate -r`                              |
-|      | `--revert`            | Revert the last migration at once, without a preview. Use `vendure migrate revert` instead | `vendure migrate --revert` |
 | `-o` | `--output-dir <path>` | Custom output directory for migrations | `vendure migrate -g my-migration -o ./migrations` |
 |      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty` |
 

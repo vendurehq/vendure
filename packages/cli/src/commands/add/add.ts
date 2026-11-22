@@ -1,11 +1,15 @@
 import { cancel, intro, isCancel, log, outro, select, spinner } from '@clack/prompts';
 import pc from 'picocolors';
 
+import { runCoreCommand } from '../../command-host/run-core-command.js';
 import { Messages } from '../../constants.js';
 import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit.js';
-import { abortIfNonInteractive, pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils.js';
+import {
+    abortIfNonInteractive,
+    pauseForPromptDisplay,
+    withInteractiveTimeout,
+} from '../../utilities/utils.js';
 import { addApiExtension } from './api-extension/add-api-extension.js';
-import { addCodegen } from './codegen/add-codegen.js';
 import { addCommandDef } from './command.js';
 import { addDashboard } from './dashboard/add-dashboard.js';
 import { addEntity } from './entity/add-entity.js';
@@ -15,6 +19,16 @@ import { createNewPlugin } from './plugin/create-new-plugin.js';
 import { addService } from './service/add-service.js';
 
 const cancelledMessage = 'Add feature cancelled.';
+
+/** Features of the menu that are `vendure add` subcommands, which run through the command host. */
+const hostFeatures = [
+    {
+        value: 'add-codegen',
+        category: 'Project: Codegen',
+        description: 'Set up GraphQL code generation',
+        path: ['add', 'codegen'],
+    },
+];
 
 export interface AddOptions {
     /** Link to Vendure Console, start the Platform trial and install Platform */
@@ -27,8 +41,6 @@ export interface AddOptions {
     service?: string;
     /** Add a job-queue handler to the specified plugin */
     jobQueue?: string | boolean;
-    /** Add GraphQL codegen configuration to the specified plugin */
-    codegen?: string | boolean;
     /** Add an API extension scaffold to the specified plugin */
     apiExtension?: string | boolean;
     /** Add Dashboard UI extensions to the specified plugin */
@@ -159,21 +171,6 @@ async function handleNonInteractiveMode(options: AddOptions) {
                 selectedService: options.selectedService,
             });
             log.success('Job-queue feature added successfully');
-        } else if (options.codegen) {
-            const pluginName = typeof options.codegen === 'string' ? options.codegen : undefined;
-            // For codegen, if a boolean true is passed, plugin selection will be handled interactively
-            // If a string is passed, it should be a valid plugin name
-            if (typeof options.codegen === 'string' && !options.codegen.trim()) {
-                throw new Error(
-                    'Plugin name cannot be empty when specified. Usage: vendure add --codegen [plugin-name]',
-                );
-            }
-            await addCodegen({
-                isNonInteractive: true,
-                config: options.config,
-                pluginName,
-            });
-            log.success('Codegen configuration added successfully');
         } else if (options.apiExtension) {
             const pluginName = typeof options.apiExtension === 'string' ? options.apiExtension : undefined;
             // Validate that at least one of queryName or mutationName is provided and not empty
@@ -280,16 +277,26 @@ async function handleInteractiveMode() {
     const featureType = await withInteractiveTimeout(async () => {
         return await select({
             message: 'Which feature would you like to add?',
-            options: addOptions.map(opt => ({
-                value: opt.value,
-                label: opt.label,
-            })),
+            options: [
+                ...addOptions.map(opt => ({ value: opt.value, label: opt.label })),
+                ...hostFeatures.map(feature => ({
+                    value: feature.value,
+                    label: `${pc.blue(feature.category)} ${feature.description}`,
+                })),
+            ],
         });
     });
 
     if (isCancel(featureType)) {
         cancel(cancelledMessage);
         exitCliCommand(0);
+    }
+    const hostFeature = hostFeatures.find(feature => feature.value === featureType);
+    if (hostFeature) {
+        // The host asks for what the command needs, and prints its result.
+        const exitCode = await runCoreCommand(hostFeature.path);
+        outro(exitCode === 0 ? '✅ Done!' : '❌ Error');
+        exitCliCommand(exitCode);
     }
     try {
         const selectedOption = addOptions.find(opt => opt.value === featureType);
