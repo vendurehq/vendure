@@ -123,8 +123,16 @@ describe('core Vendure codes', () => {
         }
     });
 
-    it('finds the keys which are thrown but have no translation', () => {
+    it('finds the error keys which are thrown in source', () => {
         expect(errorKeys).toContain('error.no-active-session');
+    });
+
+    it('every error key thrown in source has an en.json translation', () => {
+        const translated = new Set(Object.keys(en.error).map(key => `error.${key}`));
+        const untranslated = [...getErrorKeysInSource(path.join(__dirname, '..'))].filter(
+            key => !translated.has(key),
+        );
+        expect(untranslated, 'Add these keys to the "error" section of messages/en.json').toEqual([]);
     });
 
     it('every startup error code is in the core.config namespace', () => {

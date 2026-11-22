@@ -909,6 +909,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Pro spuštění testu přidejte produkty a vyplňte doručovací adresu."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Přepnout řádek hlavičky"
@@ -6491,6 +6495,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Nepodařilo se aktualizovat zákazníka"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"

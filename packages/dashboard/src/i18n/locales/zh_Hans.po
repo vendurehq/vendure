@@ -909,6 +909,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "请添加商品并填写配送地址以运行测试。"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "切换标题行"
@@ -6491,6 +6495,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "更新客户失败"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"

@@ -909,6 +909,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Kérjük, adjon hozzá termékeket és töltse ki a szállítási címet a teszt futtatásához."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Fejlécsor be-/kikapcsolása"
@@ -6478,6 +6482,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Vásárló frissítése sikertelen"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"

@@ -915,6 +915,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Моля, добавете продукти и попълнете адреса за доставка, за да стартирате теста."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Превключване на заглавния ред"
@@ -6520,6 +6524,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Неуспешно актуализиране на клиента"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
