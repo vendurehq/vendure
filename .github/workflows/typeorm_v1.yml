@@ -66,8 +66,8 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v5.0.1
+            - uses: $/.github/actions/setup
               with:
                   typeorm: '1'
             - name: Build
@@ -80,8 +80,8 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v5.0.1
+            - uses: $/.github/actions/setup
               with:
                   typeorm: '1'
             - name: Build (continues past type errors)
@@ -101,8 +101,8 @@ jobs:
                 ports:
                     - 6379
         steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v5.0.1
+            - uses: $/.github/actions/setup
               with:
                   typeorm: '1'
             - name: Build (continues past type errors)
@@ -132,8 +132,8 @@ jobs:
                 ports:
                     - 6379
         steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v5.0.1
+            - uses: $/.github/actions/setup
               with:
                   typeorm: '1'
             - name: Build (continues past type errors)
@@ -165,8 +165,8 @@ jobs:
                 ports:
                     - 6379
         steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
+            - uses: actions/checkout@v5.0.1
+            - uses: $/.github/actions/setup
               with:
                   typeorm: '1'
             - name: Build (continues past type errors)
