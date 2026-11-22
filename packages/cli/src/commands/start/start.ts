@@ -6,6 +6,7 @@ import pc from 'picocolors';
 
 import { pipePrefixedOutput, waitForChildProcesses } from '../../shared/cli-process-utils.js';
 import { resolveVendureProjectDirectory } from '../dev/dev.js';
+import { withoutLocalTrustSecret } from '../dev/state-file.js';
 
 export type StartTarget = 'all' | 'server' | 'worker';
 
@@ -93,7 +94,9 @@ function startProcess(
     const child = spawn(process.execPath, processDefinition.args, {
         cwd: projectDir,
         env: {
-            ...process.env,
+            // Local trust is for `vendure dev` only, so a secret set in the shell never reaches a
+            // server started by `vendure start`.
+            ...withoutLocalTrustSecret(process.env),
             FORCE_COLOR: process.env.FORCE_COLOR ?? '1',
         },
         stdio: options.prefixOutput ? ['inherit', 'pipe', 'pipe'] : 'inherit',

@@ -5,11 +5,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { DevChildMonitor } from './dev-run.js';
 import {
     discoverDashboardExtensionDirectories,
     getDevProcessDefinitions,
     ManagedDevProcess,
     normalizeDevTarget,
+    resolveReloadIgnoredPaths,
     resolveVendureProjectDirectory,
     shouldRestartOnFileChange,
     startSupervisedDevProcess,
@@ -341,6 +343,54 @@ describe('dev command', () => {
             ).toBe(true);
         });
 
+        it('does not restart server or worker processes for the state file and logs of the run', () => {
+            const projectDir = '/workspace/project';
+
+            expect(shouldRestartOnFileChange(`${projectDir}/.vendure/devserver.json`, projectDir)).toBe(
+                false,
+            );
+            expect(shouldRestartOnFileChange(`${projectDir}/.vendure/logs/dev.jsonl`, projectDir)).toBe(
+                false,
+            );
+            expect(shouldRestartOnFileChange(`${projectDir}/.vendure/plugin.ts`, projectDir)).toBe(false);
+        });
+
+        it('treats the gqlOutputPath of the Dashboard Vite config as generated', () => {
+            const projectDir = createTempDir();
+            try {
+                writeFileSync(
+                    path.join(projectDir, 'vite.config.mts'),
+                    `import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
+export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' })] };`,
+                );
+
+                expect(resolveReloadIgnoredPaths(projectDir)).toEqual([path.join(projectDir, 'src', 'gql')]);
+                expect(
+                    resolveReloadIgnoredPaths(projectDir, { reloadIgnoredPaths: ['src/generated'] }),
+                ).toEqual([path.join(projectDir, 'src', 'generated'), path.join(projectDir, 'src', 'gql')]);
+            } finally {
+                rmSync(projectDir, { recursive: true, force: true });
+            }
+        });
+
+        it('reads gqlOutputPath from the Vite config passed with --vite-config', () => {
+            const projectDir = createTempDir();
+            try {
+                mkdirSync(path.join(projectDir, 'config'));
+                writeFileSync(
+                    path.join(projectDir, 'config', 'dashboard.mts'),
+                    `export default { plugins: [dashboard({ gqlOutputPath: 'src/dashboard-gql' })] };`,
+                );
+
+                expect(
+                    resolveReloadIgnoredPaths(projectDir, { viteConfig: './config/dashboard.mts' }),
+                ).toEqual([path.join(projectDir, 'src', 'dashboard-gql')]);
+                expect(resolveReloadIgnoredPaths(projectDir)).toEqual([]);
+            } finally {
+                rmSync(projectDir, { recursive: true, force: true });
+            }
+        });
+
         it('restarts server or worker processes for TypeScript source files and env changes only', () => {
             const projectDir = path.resolve('/project');
 
@@ -416,13 +466,20 @@ describe('dev command', () => {
             temporaryDirectories.length = 0;
         });
 
-        function startSupervisor() {
+        function startSupervisor(
+            options: {
+                childClass?: typeof FakeChildProcess;
+                monitor?: DevChildMonitor;
+                reloadIgnoredPaths?: (projectDir: string) => string[];
+            } = {},
+        ) {
             const projectDir = createTempDir();
             temporaryDirectories.push(projectDir);
-            mkdirSync(path.join(projectDir, 'src'), { recursive: true });
+            mkdirSync(path.join(projectDir, 'src', 'gql'), { recursive: true });
             const children: FakeChildProcess[] = [];
+            const ChildClass = options.childClass ?? FakeChildProcess;
             const spawnChild = vi.fn(() => {
-                const child = new FakeChildProcess();
+                const child = new ChildClass();
                 children.push(child);
                 return child as unknown as ChildProcess;
             });
@@ -430,11 +487,105 @@ describe('dev command', () => {
                 projectDir,
                 getDevProcessDefinitions().server,
                 path.join(projectDir, 'node_modules', '.bin', 'ts-node'),
-                { prefixOutput: false, reloadIgnoredPaths: [], spawnChild },
+                {
+                    prefixOutput: false,
+                    reloadIgnoredPaths: options.reloadIgnoredPaths?.(projectDir) ?? [],
+                    spawnChild,
+                    monitor: options.monitor,
+                },
             );
             startedProcesses.push(supervised);
             return { children, projectDir, spawnChild, supervised };
         }
+
+        // Saves a file until the supervisor reacts. See the comment in the respawn test below.
+        async function saveUntil(filePath: string, reacted: () => void) {
+            await vi.waitFor(
+                () => {
+                    writeFileSync(filePath, `export const revision = ${Date.now()};`);
+                    reacted();
+                },
+                { timeout: 15000, interval: 300 },
+            );
+        }
+
+        it('restarts once for an edit, and not again for the generated file codegen writes after it', async () => {
+            const { children, projectDir, spawnChild, supervised } = startSupervisor({
+                reloadIgnoredPaths: dir => [path.join(dir, 'src', 'gql')],
+            });
+            const promise = waitForDevProcesses([supervised]);
+
+            await saveUntil(path.join(projectDir, 'src', 'plugin.ts'), () =>
+                expect(spawnChild.mock.calls.length).toBeGreaterThanOrEqual(2),
+            );
+            // The last save of the loop above may still restart the server once more, so let the
+            // restarts settle before counting.
+            await new Promise(resolve => setTimeout(resolve, 400));
+            const spawnsAfterEdit = spawnChild.mock.calls.length;
+            writeFileSync(
+                path.join(projectDir, 'src', 'gql', 'graphql.ts'),
+                'export const generated = true;',
+            );
+            await new Promise(resolve => setTimeout(resolve, 600));
+
+            expect(spawnChild).toHaveBeenCalledTimes(spawnsAfterEdit);
+            expect(children[children.length - 1].exitCode).toBeNull();
+            process.emit('SIGINT');
+            await expect(promise).resolves.toBe(130);
+        }, 20000);
+
+        it('folds a change that arrives while the child shuts down into the restart under way', async () => {
+            // A child that takes its time to exit after SIGTERM, as a server closing connections does.
+            class SlowChildProcess extends FakeChildProcess {
+                kills: NodeJS.Signals[] = [];
+                kill(signal: NodeJS.Signals): boolean {
+                    this.kills.push(signal);
+                    if (signal === 'SIGINT' || signal === 'SIGKILL') {
+                        this.close(null, signal);
+                    }
+                    return true;
+                }
+            }
+            const { children, projectDir, spawnChild, supervised } = startSupervisor({
+                childClass: SlowChildProcess,
+            });
+            const promise = waitForDevProcesses([supervised]);
+            const first = children[0] as SlowChildProcess;
+            const configPath = path.join(projectDir, 'src', 'vendure-config.ts');
+
+            await saveUntil(configPath, () => expect(first.kills).toEqual(['SIGTERM']));
+            writeFileSync(configPath, 'export const second = true;');
+            await new Promise(resolve => setTimeout(resolve, 400));
+
+            expect(first.kills).toEqual(['SIGTERM']);
+            first.close(null, 'SIGTERM');
+            expect(spawnChild).toHaveBeenCalledTimes(2);
+
+            process.emit('SIGINT');
+            await expect(promise).resolves.toBe(130);
+        }, 20000);
+
+        it('tells the monitor about each spawn and each crash it can recover from', async () => {
+            const monitor = {
+                onSpawn: vi.fn(),
+                onOutput: vi.fn(),
+                onRecoverableExit: vi.fn(() => 'The server failed to compile: 1 compile error'),
+            };
+            const { children, projectDir, supervised } = startSupervisor({ monitor });
+            const promise = waitForDevProcesses([supervised]);
+
+            expect(monitor.onSpawn).toHaveBeenCalledWith(false);
+            children[0].close(1, null);
+            expect(monitor.onRecoverableExit).toHaveBeenCalledWith(1);
+
+            await saveUntil(path.join(projectDir, 'src', 'index.ts'), () =>
+                expect(monitor.onSpawn).toHaveBeenLastCalledWith(true),
+            );
+
+            process.emit('SIGINT');
+            await expect(promise).resolves.toBe(130);
+            expect(monitor.onRecoverableExit).toHaveBeenCalledTimes(1);
+        }, 20000);
 
         it('leaves the other dev processes running when a supervised child crashes', async () => {
             const { children, supervised } = startSupervisor();
