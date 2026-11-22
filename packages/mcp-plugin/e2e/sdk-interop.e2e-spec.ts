@@ -210,7 +210,7 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
             const del = tools.find(t => t.name === 'admin_zod_delete');
             expect(del).toBeDefined();
             const delSchema = del!.inputSchema as any;
-            expect(delSchema.properties.confirm.type).toBe('boolean'); // registry-injected
+            expect(delSchema.properties.confirm.type).toBe('string'); // registry-injected
             expect(delSchema.required ?? []).not.toContain('confirm');
             expect(delSchema.properties.id).toBeDefined();
 
@@ -225,15 +225,13 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
 
             const preview = await client.callTool({ name: 'admin_zod_delete', arguments: { id: 'x1' } });
             expect(preview.isError).toBeFalsy();
-            expect(preview.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
-            });
+            expect(preview.structuredContent).toMatchObject({ status: 'incomplete' });
+            const digest = (preview.structuredContent as any).needs[0].digest;
 
             // Confirmed: confirm is stripped before the strict zod schema sees it.
             const confirmed = await client.callTool({
                 name: 'admin_zod_delete',
-                arguments: { id: 'x1', confirm: true },
+                arguments: { id: 'x1', confirm: digest },
             });
             expect(confirmed.isError).toBeFalsy();
             expect(confirmed.structuredContent).toEqual({ deleted: 'x1' });

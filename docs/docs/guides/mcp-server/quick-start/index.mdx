@@ -112,10 +112,42 @@ endpoints. [OAuth & Consent](/mcp-server/oauth-consent/) covers how admin sign-i
 dashboard.
 :::
 
+## Local trust in development
+
+When the Vendure CLI starts your dev server, it gives the server a new secret for that run and writes it to
+`.vendure/devserver.json`, readable only by you. The CLI's own tools present that secret instead of an OAuth
+token, so they can call the store without signing in. This is called local trust.
+
+Local trust is full superadmin access on your machine, on `POST /mcp/admin` and on the Admin API. It never applies
+to `/mcp/shop`. The plugin accepts the secret only when all of these hold:
+
+- the `localTrust` option is not `false`;
+- the server received the secret from the CLI in its environment;
+- `.vendure/devserver.json` exists in the project directory, has mode 0600, is owned by the user the server runs
+  as, and holds the same secret;
+- the request comes from a loopback address, names `localhost`, `127.0.0.1` or `[::1]` as its host, and carries
+  no `Origin` header and no forwarded header, such as `X-Forwarded-For` or `Via`.
+
+So a browser page, a request through a proxy, and a server the CLI did not start never get local trust. When it is
+on, the server logs a warning at startup. The Admin API reads the secret as a bearer token, so the plugin adds
+`'bearer'` to `authOptions.tokenMethod` when it is missing, and logs that it did. Every Admin and Shop API request
+on the server can then authenticate with a bearer token.
+
+Set `localTrust: false` on any server that runs outside a developer's machine:
+
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    localTrust: false,
+}),
+```
+
+Calls made with local trust appear in the tool call log as the local agent.
+
 ## Optional: Configure OAuth
 
-Configure OAuth when you need the admin endpoint or authenticated customer access. Without it, every call that
-needs a token fails with `400 MCP OAuth is not configured`.
+Configure OAuth when you need the admin endpoint or authenticated customer access. Without it, the admin endpoint
+answers `401` to every caller except the CLI under local trust, and every other call that needs a token fails with
+`400 MCP OAuth is not configured`.
 
 ```ts title="src/vendure-config.ts"
 // Generate once with: openssl rand -base64 32

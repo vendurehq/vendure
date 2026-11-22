@@ -26,23 +26,44 @@ Each tool declares a single `behavior`, one of:
 
 - **readonly** — changes nothing.
 - **mutating** — writes data and runs immediately. This is the default when `behavior` is omitted.
-- **destructive** — writes data and requires the confirmation round-trip below before running.
+- **destructive** — writes data and requires the consent round-trip below before running.
 
 The declared behavior drives the MCP annotations an agent sees: `readOnlyHint` and `idempotentHint` are true for
 `readonly` tools, and `destructiveHint` is true for `destructive` tools.
 
-### Destructive confirmation
+### Destructive consent
 
-A destructive tool gets an optional `confirm` parameter. Without `confirm: true`, it runs nothing and returns a
-non-error `confirmation_required` response that names the tool and its action but none of its arguments. With
-confirmation it runs.
+A destructive tool gets an optional string `confirm` parameter. Its first call runs nothing. It returns a
+non-error result like this one, with a preview that names the resolved target:
+
+```json
+{
+    "status": "incomplete",
+    "preview": "Cancel order AB12CD (id 42, state PaymentSettled, total 129.90 EUR), 2 line(s), and restock the cancelled lines. Shipping is cancelled too.",
+    "needs": [
+        {
+            "kind": "consent",
+            "consent": "confirm",
+            "description": "Approve this destructive action: Cancel order AB12CD ...",
+            "digest": "v1.1790000000000.Qm9...",
+            "preview": "Cancel order AB12CD (id 42, state PaymentSettled, total 129.90 EUR), ..."
+        }
+    ]
+}
+```
+
+To run the tool, the agent shows the preview to its user and calls the tool again with the same arguments plus
+`confirm` set to the digest. The digest is bound to the caller, the arguments and the preview, and expires after
+ten minutes. If the target changed in the meantime, the call returns a new preview instead of running.
+`confirm: true` is not accepted.
 
 Seven built-in tools are destructive. They are marked **destructive** in the tables below. One of them,
 `place_order`, is a shop tool: placing an order is a real-money action, so it is gated like the destructive
 admin tools.
 
-`confirm` is a request to the agent, not a lock: a host should ask its user before running a tool annotated
-`destructiveHint: true`, and use rate limits and the tool call log as further controls.
+The digest proves that the caller received the preview. It does not prove that a person approved it, so a host
+should ask its user before running a tool annotated `destructiveHint: true`, and use rate limits and the tool call
+log as further controls. A preview counts against the tool's rate limit like any other call.
 
 ### Tool toggles
 

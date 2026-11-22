@@ -125,6 +125,50 @@ export async function postMcp(
     };
 }
 
+/** The digest of a destructive tool's `incomplete` result, or undefined for any other result. */
+export function consentDigestOf(result: McpHttpResult): string | undefined {
+    const content = result.body?.result?.structuredContent;
+    const digest = content?.status === 'incomplete' ? content.needs?.[0]?.digest : undefined;
+    return typeof digest === 'string' ? digest : undefined;
+}
+
+/** The same `tools/call` message with `confirm` set on the tool's arguments, inside `execute_tool` too. */
+export function withConsent(message: any, digest: string): any {
+    const params = message.params;
+    if (params.name === 'execute_tool') {
+        return {
+            ...message,
+            params: {
+                ...params,
+                arguments: {
+                    ...params.arguments,
+                    arguments: { ...params.arguments?.arguments, confirm: digest },
+                },
+            },
+        };
+    }
+    return { ...message, params: { ...params, arguments: { ...params.arguments, confirm: digest } } };
+}
+
+/**
+ * POSTs a `tools/call`, giving consent when the tool asks for it. A destructive tool's first call
+ * returns an `incomplete` result, so this calls it again with that result's digest as `confirm`,
+ * as a client does once the user approves the preview. Any other result is returned as it is.
+ */
+export async function postMcpConfirmed(
+    baseUrl: string,
+    toolset: 'shop' | 'admin',
+    message: unknown,
+    options: PostMcpOptions = {},
+): Promise<McpHttpResult> {
+    const preview = await postMcp(baseUrl, toolset, message, options);
+    const digest = consentDigestOf(preview);
+    if (!digest) {
+        return preview;
+    }
+    return postMcp(baseUrl, toolset, withConsent(message, digest), options);
+}
+
 /**
  * POSTs a request in the modern (`2026-07-28`) protocol era, adding everything that era requires:
  * the `_meta` envelope inside `params`, and the standard headers the revision mandates — `Mcp-Method`

@@ -29,13 +29,13 @@ export class McpToolCallLogService {
     ) {}
 
     async logToolCall(call: LogToolCallInput): Promise<void> {
-        const { ctx, grant, clientIp } = call.executionContext;
+        const { ctx, grant, clientIp, localTrust } = call.executionContext;
         let saved = false;
         try {
             const log = new McpToolCallLog({
                 grantId: grant?.id ?? null,
                 actor: this.resolveActor(grant, ctx),
-                actorType: this.resolveActorType(grant, ctx),
+                actorType: localTrust ? 'local' : this.resolveActorType(grant, ctx),
                 channelId: grant ? (grant.channelId ?? null) : (ctx.channelId ?? null),
                 clientIp: this.options.logging.captureClientIp ? (clientIp ?? null) : null,
                 toolName: call.tool.name,

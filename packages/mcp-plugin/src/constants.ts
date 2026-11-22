@@ -4,7 +4,13 @@ import { McpLogCapture, McpRateLimitOptions } from './types';
 
 export const MCP_PLUGIN_OPTIONS = Symbol('MCP_PLUGIN_OPTIONS');
 
+/** Injects the {@link LocalTrustActivation} the plugin's `configuration` hook decided at startup. */
+export const MCP_LOCAL_TRUST_ACTIVATION = Symbol('MCP_LOCAL_TRUST_ACTIVATION');
+
 export const loggerCtx = 'McpPlugin';
+
+/** The `_meta` key that carries a tool's search keywords in `tools/list`. */
+export const MCP_TOOL_KEYWORDS_META_KEY = 'vendure.io/keywords';
 
 export const DEFAULT_TOOL_EXPOSURE = 'direct' as const;
 

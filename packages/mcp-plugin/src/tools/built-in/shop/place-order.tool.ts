@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PaymentInput } from '@vendure/common/lib/generated-shop-types';
+import { summate } from '@vendure/common/lib/shared-utils';
 import {
     CustomerService,
     EntityNotFoundError,
@@ -66,6 +67,19 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
         private readonly customerService: CustomerService,
         private readonly sessionService: SessionService,
     ) {}
+
+    async describe(ctx: RequestContext, input: PlaceOrderInput) {
+        const order = await this.activeOrder.findOrderWithLines(ctx);
+        if (!order) {
+            throw new UserInputError('There is no active cart. Add an item with add_to_cart first.');
+        }
+        const items = summate(order.lines, 'quantity');
+        return (
+            `Place order ${order.code} for ${items} item(s), total ` +
+            `${this.serializer.decimal(order.totalWithTax)} ${order.currencyCode}, and pay with ` +
+            `${input.paymentMethodCode}.`
+        );
+    }
 
     async execute(ctx: RequestContext, input: PlaceOrderInput) {
         const order = await this.activeOrder.findOrThrow(ctx);

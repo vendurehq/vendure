@@ -45,7 +45,7 @@ import { McpPlugin } from '../src/plugin';
 import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
 import { shopToolProviders } from '../src/tools/built-in/shop';
 
-import { callTool, postMcp, rpc } from './utils/mcp-http-client';
+import { callTool, postMcp, postMcpConfirmed, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { getIdStrategy, testServerInit } from './utils/test-server';
 
@@ -1866,10 +1866,10 @@ describe('MCP built-in shop tools', () => {
 
     it('place_order reports the missing customer on an anonymous cart', async () => {
         const { sessionToken } = await anonymousCart();
-        const refused = await postMcp(
+        const refused = await postMcpConfirmed(
             baseUrl(),
             'shop',
-            callTool('place_order', { paymentMethodCode: 'not-configured', confirm: true, sessionToken }, 1),
+            callTool('place_order', { paymentMethodCode: 'not-configured', sessionToken }, 1),
         );
 
         expect(refused.body.result.isError).toBe(true);
@@ -2014,7 +2014,7 @@ describe('MCP built-in shop tools', () => {
         it('walks a cart through checkout and places the order', async () => {
             const accessToken = await shopAccessTokenFor(customerEmail, 'test');
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
@@ -2040,11 +2040,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId }, 4);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                5,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 5);
 
             expect(placed.body.result.isError).toBeUndefined();
             expect(placed.body.result.structuredContent.status).toBe('placed');
@@ -2086,11 +2082,7 @@ describe('MCP built-in shop tools', () => {
             expect(orphanAddress.body.result.isError).toBe(true);
             expect(orphanAddress.body.result.content[0].text).toMatch(/There is no active cart/);
 
-            const orphanPlace = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                8,
-            );
+            const orphanPlace = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 8);
             expect(orphanPlace.body.result.isError).toBe(true);
             expect(orphanPlace.body.result.content[0].text).toMatch(/There is no active cart/);
 
@@ -2103,7 +2095,7 @@ describe('MCP built-in shop tools', () => {
         it('places an order for a guest who names themselves in set_checkout_details', async () => {
             const { sessionToken } = await anonymousCart();
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, { ...args, sessionToken }, id));
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, { ...args, sessionToken }, id));
 
             const emptyCart = await call('get_cart', {}, 2);
             expect(emptyCart.body.result.structuredContent.order.customer).toBeNull();
@@ -2141,11 +2133,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId }, 6);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                7,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 7);
 
             expect(placed.body.result.isError).toBeUndefined();
             expect(placed.body.result.structuredContent.status).toBe('placed');
@@ -2194,7 +2182,7 @@ describe('MCP built-in shop tools', () => {
                 PENDING_PAYMENT_CUSTOMER_PASSWORD,
             );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
@@ -2220,11 +2208,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId }, 4);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PENDING_PAYMENT_METHOD_CODE, confirm: true },
-                5,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PENDING_PAYMENT_METHOD_CODE }, 5);
 
             expect(placed.body.result.isError).toBeUndefined();
             const answer = placed.body.result.structuredContent;
@@ -2308,7 +2292,7 @@ describe('MCP built-in shop tools', () => {
                 NO_SHIPPING_CUSTOMER_PASSWORD,
             );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
@@ -2316,11 +2300,7 @@ describe('MCP built-in shop tools', () => {
             const address = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 2);
             expect(address.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                3,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 3);
 
             expect(placed.body.result.isError).toBe(true);
             const failure = placed.body.result.structuredContent;
