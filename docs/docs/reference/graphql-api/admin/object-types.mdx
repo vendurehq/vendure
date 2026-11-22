@@ -5369,6 +5369,79 @@ type SinglePrice {
 }`}
 </GraphQLDoc>
 
+<a name="storereadinessfinding"></a>
+
+## StoreReadinessFinding
+
+<GraphQLDoc
+  type="type"
+  typeName="StoreReadinessFinding"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+    StoreReadinessSeverity: '/reference/graphql-api/admin/enums#storereadinessseverity',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    StoreReadinessFix: '/reference/graphql-api/admin/object-types#storereadinessfix',
+  }}
+>
+{`type StoreReadinessFinding {
+  """A namespaced code, such as store.channel.no-default-tax-zone."""
+  code: String!
+  severity: StoreReadinessSeverity!
+  message: String!
+  channelId: ID
+  zoneId: ID
+  countryCode: String
+  taxCategoryId: ID
+  fixes: [StoreReadinessFix!]!
+  """A Dashboard path where a person can fix the finding, such as /shipping-methods."""
+  dashboardUrl: String
+}`}
+</GraphQLDoc>
+
+<a name="storereadinessfix"></a>
+
+## StoreReadinessFix
+
+<GraphQLDoc
+  type="type"
+  typeName="StoreReadinessFix"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`"""
+A way to fix a finding: an MCP admin tool, as the vendure mcp server names it, and the input to call
+it with. Some inputs are templates, and the description says which values to fill in. IDs in the
+input are the database IDs the MCP tools take, which differ from the Admin API's IDs only when an
+EntityIdStrategy encodes them.
+"""
+type StoreReadinessFix {
+  path: [String!]!
+  input: JSON!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="storereadinessreport"></a>
+
+## StoreReadinessReport
+
+<GraphQLDoc
+  type="type"
+  typeName="StoreReadinessReport"
+  typeLinks={{
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+    StoreReadinessFinding: '/reference/graphql-api/admin/object-types#storereadinessfinding',
+  }}
+>
+{`type StoreReadinessReport {
+  """True when no finding has the severity ERROR."""
+  ready: Boolean!
+  findings: [StoreReadinessFinding!]!
+}`}
+</GraphQLDoc>
+
 <a name="string"></a>
 
 ## String

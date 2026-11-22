@@ -1,0 +1,44 @@
+---
+title: "StoreReadinessService"
+generated: true
+---
+## STORE_READINESS_FIX_TOOLS
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/store-readiness/store-readiness-types.ts" sourceLine="53" packageName="@vendure/core" since="4.0.0" />
+
+The MCP admin tools that store readiness fixes name, without the `admin_` prefix that `vendure mcp`
+adds. They are defined by the MCP plugin, so this list is the one place core names them.
+
+## StoreReadinessService
+
+<GenerationInfo sourceFile="packages/core/src/service/services/store-readiness.service.ts" sourceLine="69" packageName="@vendure/core" since="4.0.0" />
+
+Reports the setup gaps that stop a Channel from taking an order, such as a missing tax rate, no
+shipping method that is eligible for a Zone, or no payment method. Each gap is a coded
+`StoreReadinessFinding` with the MCP admin tool calls that fix it.
+
+The check writes nothing and publishes no events, so it is safe to run on a live store. It checks
+shipping for one sample country per Zone, with an order built in memory by
+[OrderTestingService](/reference/typescript-api/services/order-testing-service#ordertestingservice).
+
+The same report backs the Admin API `storeReadiness` query and the `check_store` MCP tool.
+
+```ts title="Signature"
+class StoreReadinessService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, channelService: ChannelService, zoneService: ZoneService, taxRateService: TaxRateService, shippingMethodService: ShippingMethodService, paymentMethodService: PaymentMethodService, stockLocationService: StockLocationService, orderTestingService: OrderTestingService, requestContextService: RequestContextService, roleService: RoleService, passwordCipher: PasswordCipher)
+    check(ctx: RequestContext, options: { channelIds?: ID[] } = {}) => Promise<StoreReadinessReport>;
+}
+```
+
+<div className="members-wrapper">
+
+### check
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options: { channelIds?: <a href='/reference/typescript-api/common/id#id'>ID</a>[] } = {}) => Promise<StoreReadinessReport>`}   />
+
+Checks every Channel on which the active user holds `ReadSettings`, or only the given Channels.
+A given Channel that does not exist, or that the user may not read, is refused. A check that throws is reported as a `store.check.failed` finding, so one broken
+check does not hide the others.
+
+
+</div>

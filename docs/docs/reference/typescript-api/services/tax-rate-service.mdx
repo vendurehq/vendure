@@ -82,6 +82,7 @@ class TaxRateService {
     update(ctx: RequestContext, input: UpdateTaxRateInput) => Promise<TaxRate>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
     getApplicableTaxRate(ctx: RequestContext, targetOrZone: TaxRateTarget | Zone | ID, taxCategory: TaxCategory | ID) => Promise<TaxRate>;
+    findApplicableTaxRate(ctx: RequestContext, targetOrZone: TaxRateTarget | Zone | ID, taxCategory: TaxCategory | ID) => Promise<TaxRate | undefined>;
     findOverlappingZoneRates(ctx: RequestContext) => Promise<ZoneTaxRateOverlap[]>;
 }
 ```
@@ -122,6 +123,12 @@ prices. The most specific rate wins: a country rate for `target.countryCode`, th
 `target.zone`, then a default rate with a value of 0.
 
 Passing a Zone or zone ID instead of a target finds zone rates only.
+### findApplicableTaxRate
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, targetOrZone: <a href='/reference/typescript-api/services/tax-rate-service#taxratetarget'>TaxRateTarget</a> | <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a> | undefined>`}  since="4.0.0"  />
+
+Like `getApplicableTaxRate()`, but returns `undefined` when no configured rate applies, instead of
+the default rate with a value of 0.
 ### findOverlappingZoneRates
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/services/tax-rate-service#zonetaxrateoverlap'>ZoneTaxRateOverlap</a>[]>`}   />
