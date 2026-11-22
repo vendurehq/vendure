@@ -1,8 +1,7 @@
 import { CommandEnvelope } from '@vendure/common/lib/command';
+import { ManifestCommand, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-
-import { ManifestCommand, MergedManifestCommand } from '../manifest.js';
 
 import { McpServer, McpToolMode, RunTool } from './server.js';
 

@@ -48,6 +48,16 @@ const testFiles = ['**/*.spec.ts', '**/*.spec.tsx', '**/*.spec-d.ts'];
  */
 const publicEntryPointOnlyFiles = ['packages/*-plugin/**/*.ts', 'packages/*-plugin/**/*.tsx'];
 
+/**
+ * Browser code: the Dashboard app, and the Dashboard extensions of the plugin packages. The
+ * Dashboard's `vite` and `plugin` folders run in Node and are not included.
+ */
+const dashboardAppFiles = ['packages/dashboard/src/**/*.ts', 'packages/dashboard/src/**/*.tsx'];
+const pluginDashboardFiles = [
+    'packages/*-plugin/src/dashboard/**/*.ts',
+    'packages/*-plugin/src/dashboard/**/*.tsx',
+];
+
 /** Existing deep imports into `@vendure/core/dist`. Remove an entry when its import is fixed. */
 const distImportExceptions = [
     'packages/email-plugin/src/plugin.spec.ts',
@@ -63,6 +73,17 @@ const cliOnlyPatternBan = {
     group: ['@vendure/mcp-sdk/*'],
     message: 'Import the command contract from `@vendure/common/lib/command`.',
 };
+
+const distImportBan = {
+    group: ['@vendure/*/dist/**'],
+    message: 'Import from the public entry point of the package, not from its dist folder.',
+};
+
+/** The manifest build step and merge read and write files, so only Node code imports them. */
+const nodeOnlyMessage =
+    '`@vendure/common/lib/command/manifest` uses `node:fs` and runs only in Node. Import the command contract from `@vendure/common/lib/command`.';
+const nodeOnlyImportBan = { name: '@vendure/common/lib/command/manifest', message: nodeOnlyMessage };
+const nodeOnlyPatternBan = { group: ['@vendure/common/lib/command/manifest/*'], message: nodeOnlyMessage };
 
 const moduleBoundaries = (allow = []) => ['error', { allow, depConstraints }];
 
@@ -85,17 +106,26 @@ const overrides = [
         files: publicEntryPointOnlyFiles,
         excludedFiles: distImportExceptions,
         rules: {
+            'no-restricted-imports': ['error', { patterns: [distImportBan] }],
+        },
+    },
+    {
+        files: dashboardAppFiles,
+        rules: {
             'no-restricted-imports': [
                 'error',
-                {
-                    patterns: [
-                        {
-                            group: ['@vendure/*/dist/**'],
-                            message:
-                                'Import from the public entry point of the package, not from its dist folder.',
-                        },
-                    ],
-                },
+                { paths: [nodeOnlyImportBan], patterns: [nodeOnlyPatternBan] },
+            ],
+        },
+    },
+    {
+        // ESLint applies the options of the last override that matches a file, so this one repeats
+        // the dist ban of `publicEntryPointOnlyFiles` for the plugins' Dashboard extensions.
+        files: pluginDashboardFiles,
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { paths: [nodeOnlyImportBan], patterns: [nodeOnlyPatternBan, distImportBan] },
             ],
         },
     },

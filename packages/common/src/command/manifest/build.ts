@@ -1,8 +1,9 @@
-import type { CommandDefinition } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest.js';
+import { CommandDefinition } from '../types';
+
+import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest';
 
 const JSON_SCHEMA_TARGET = 'draft-2020-12';
 

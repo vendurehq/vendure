@@ -1,8 +1,7 @@
 import type { CommandEnvelope, CommandEvent, ToolBehavior } from '@vendure/common/lib/command';
+import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import readline from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
-
-import { MergedManifestCommand } from '../manifest.js';
 
 import { runToolInChild } from './run-tool-in-child.js';
 

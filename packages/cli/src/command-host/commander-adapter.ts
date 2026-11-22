@@ -1,4 +1,5 @@
 import { CommandDefinition, CommandEvent } from '@vendure/common/lib/command';
+import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
@@ -7,7 +8,6 @@ import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
-import { MergedManifestCommand } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';

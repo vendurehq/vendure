@@ -1,4 +1,5 @@
 import { defineCommand } from '@vendure/common/lib/command';
+import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { Command } from 'commander';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,8 +12,6 @@ import {
     jsonRequested,
     registerManifestCommands,
 } from './commander-adapter.js';
-import { buildCommandManifest } from './manifest-build.js';
-import { mergeManifests } from './manifest.js';
 
 const demo = defineCommand({
     path: ['add', 'thing'],

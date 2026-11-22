@@ -1,8 +1,7 @@
+import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { describe, expect, it } from 'vitest';
 
 import { coreCommandDefinitions } from './core-commands.js';
-import { buildCommandManifest } from './manifest-build.js';
-import { mergeManifests } from './manifest.js';
 import { kebab } from './naming.js';
 
 describe('core command definitions', () => {
