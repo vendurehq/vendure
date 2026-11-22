@@ -1,3 +1,4 @@
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { InsufficientStockError, Order } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 
@@ -25,8 +26,11 @@ function configWithQuoteCustomFields() {
     } as any;
 }
 
+/** A stand-in for Vendure's ConfigArgService in which no config arg is secret. */
+const noSecretArgs = { hasSecretArg: () => false } as any;
+
 describe('McpToolSerializerService', () => {
-    const service = new McpToolSerializerService(configWithPrecision(2));
+    const service = new McpToolSerializerService(configWithPrecision(2), noSecretArgs);
 
     it('serializes a variant with the same fields the old function returned', () => {
         expect(
@@ -235,10 +239,13 @@ describe('McpToolSerializerService', () => {
     });
 
     it('serializes a shipping quote without dropping calculator data', () => {
-        const quoteService = new McpToolSerializerService({
-            entityOptions: { moneyStrategy: { precision: 2 } },
-            customFields: { ShippingMethod: [{ name: 'warehouse', type: 'string' }] },
-        } as any);
+        const quoteService = new McpToolSerializerService(
+            {
+                entityOptions: { moneyStrategy: { precision: 2 } },
+                customFields: { ShippingMethod: [{ name: 'warehouse', type: 'string' }] },
+            } as any,
+            noSecretArgs,
+        );
         expect(
             quoteService.shippingQuote(
                 {
@@ -669,21 +676,21 @@ describe('McpToolSerializerService', () => {
 
 describe('money scaling', () => {
     it('honours a store configured for three decimal places', () => {
-        const service = new McpToolSerializerService(configWithPrecision(3));
+        const service = new McpToolSerializerService(configWithPrecision(3), noSecretArgs);
         expect(service.variant({ id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
             priceDecimal: '25.199',
         });
     });
 
     it('falls back to two decimal places when the store sets none', () => {
-        const service = new McpToolSerializerService(configWithPrecision(undefined));
+        const service = new McpToolSerializerService(configWithPrecision(undefined), noSecretArgs);
         expect(service.variant({ id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
             priceDecimal: '251.99',
         });
     });
 
     it('shows a shop caller only the custom fields the Shop API would show', () => {
-        const quoteService = new McpToolSerializerService(configWithQuoteCustomFields());
+        const quoteService = new McpToolSerializerService(configWithQuoteCustomFields(), noSecretArgs);
         const customFields = {
             trackingUrl: 'https://track.example.test',
             internalNote: 'secret',
@@ -713,11 +720,62 @@ describe('money scaling', () => {
     });
 
     it('passes a quote with no custom fields through untouched', () => {
-        const quoteService = new McpToolSerializerService(configWithQuoteCustomFields());
+        const quoteService = new McpToolSerializerService(configWithQuoteCustomFields(), noSecretArgs);
         expect(
             quoteService.shippingQuote({ id: 1, price: 0, priceWithTax: 0, options: [] } as any, 'USD' as any)
                 .customFields,
         ).toBeUndefined();
         expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
+    });
+
+    it('returns configurable operation args by name, parsed from JSON where they parse', () => {
+        const service = new McpToolSerializerService(configWithPrecision(2), noSecretArgs);
+        const result = service.shippingMethod({
+            id: 1,
+            code: 'standard',
+            name: 'Standard',
+            description: '',
+            fulfillmentHandlerCode: 'manual-fulfillment',
+            checker: {
+                code: 'default-shipping-eligibility-checker',
+                args: [{ name: 'orderMinimum', value: '0' }],
+            },
+            calculator: {
+                code: 'default-shipping-calculator',
+                args: [
+                    { name: 'rate', value: '500' },
+                    { name: 'includesTax', value: 'auto' },
+                ],
+            },
+        } as any);
+        expect(result.checker).toEqual({
+            code: 'default-shipping-eligibility-checker',
+            args: { orderMinimum: 0 },
+        });
+        expect(result.calculator.args).toEqual({ rate: 500, includesTax: 'auto' });
+    });
+
+    it('never returns the value of a secret config arg', () => {
+        const secretService = new McpToolSerializerService(configWithPrecision(2), {
+            hasSecretArg: (code: string, name: string) => code === 'card-handler' && name === 'apiKey',
+        } as any);
+        const result = secretService.paymentMethod({
+            id: 1,
+            code: 'card',
+            name: 'Card',
+            description: '',
+            enabled: true,
+            checker: null,
+            handler: {
+                code: 'card-handler',
+                args: [
+                    { name: 'apiKey', value: 'sk_live_do_not_leak' },
+                    { name: 'mode', value: 'live' },
+                ],
+            },
+        } as any);
+        expect(result.handler.args).toEqual({ apiKey: REDACTED_SECRET_PLACEHOLDER, mode: 'live' });
+        expect(JSON.stringify(result)).not.toContain('sk_live_do_not_leak');
+        expect(result.checker).toBeNull();
     });
 });
