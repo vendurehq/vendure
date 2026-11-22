@@ -197,10 +197,7 @@ function extractFilesAndReplace(value: unknown, currentPath: string, files: Map<
     }
     if (value && typeof value === 'object') {
         return Object.fromEntries(
-            Object.entries(value).map(([key, val]) => [
-                key,
-                extractFilesAndReplace(val, `${currentPath}.${key}`, files),
-            ]),
+            Object.entries(value).map(([key, val]) => [key, extractFilesAndReplace(val, `${currentPath}.${key}`, files)]),
         );
     }
     return value;
@@ -221,9 +218,7 @@ function buildMultipartUploadBody(documentString: string, variables: Variables):
     return body;
 }
 
-export function parseUploadResponse<T>(
-    xhr: Pick<XMLHttpRequest, 'status' | 'responseText'>,
-): UploadWithProgressResult<T> {
+export function parseUploadResponse<T>(xhr: Pick<XMLHttpRequest, 'status' | 'responseText'>): UploadWithProgressResult<T> {
     if (xhr.status === 413) {
         return { success: false, code: 'FILE_TOO_LARGE' };
     }

@@ -63,8 +63,7 @@ describe('I18nError.vendureCode', () => {
 });
 
 /**
- * Returns the `error.*` keys which core source files pass as literals, outside comments. Some of them
- * have no entry in `en.json`, but they still produce a code.
+ * Returns the `error.*` keys which core source files pass as literals, outside comments.
  */
 function getErrorKeysInSource(dir: string, keys = new Set<string>()): Set<string> {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -98,10 +97,8 @@ function getErrorKeysInSource(dir: string, keys = new Set<string>()): Set<string
  *   code that replaces it. Never remove a code from `codes`.
  */
 describe('core Vendure codes', () => {
-    const errorKeys = new Set([
-        ...Object.keys(en.error).map(key => `error.${key}`),
-        ...getErrorKeysInSource(path.join(__dirname, '..')),
-    ]);
+    const sourceErrorKeys = getErrorKeysInSource(path.join(__dirname, '..'));
+    const errorKeys = new Set([...Object.keys(en.error).map(key => `error.${key}`), ...sourceErrorKeys]);
     const i18nErrorCodes = [...errorKeys].map(key => toVendureCode(key));
     const startupErrorCodes: string[] = Object.values(CORE_STARTUP_ERROR_CODES);
     const errorResultCodes = [...new Set([...Object.values(ErrorCode), ...Object.values(ShopErrorCode)])].map(
@@ -124,14 +121,12 @@ describe('core Vendure codes', () => {
     });
 
     it('finds the error keys which are thrown in source', () => {
-        expect(errorKeys).toContain('error.no-active-session');
+        expect(sourceErrorKeys).toContain('error.no-active-session');
     });
 
     it('every error key thrown in source has an en.json translation', () => {
         const translated = new Set(Object.keys(en.error).map(key => `error.${key}`));
-        const untranslated = [...getErrorKeysInSource(path.join(__dirname, '..'))].filter(
-            key => !translated.has(key),
-        );
+        const untranslated = [...sourceErrorKeys].filter(key => !translated.has(key));
         expect(untranslated, 'Add these keys to the "error" section of messages/en.json').toEqual([]);
     });
 

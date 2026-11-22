@@ -94,7 +94,7 @@
     "could-not-find-matching-orderable-asset": "Could not find the asset join entity for an entity with orderable assets",
     "currency-not-available": "The currency { currencyCode } is not available in this Channel",
     "database-not-supported-by-default-search-plugin": "The DefaultSearchPlugin does not support this database type. Pass a searchStrategy to DefaultSearchPlugin.init()",
-    "entity-has-no-field": "The entity \"{ entityName }\" has no translatable field \"{ fieldName }\"",
+    "entity-has-no-field": "The entity \"{ entityName }\" has no field \"{ fieldName }\"",
     "entity-must-have-an-id": "The entity must be saved, and have an id, before assets can be assigned to it",
     "entity-name-conflict": "A plugin defines an entity named \"{ entityName }\", which another entity already uses",
     "entity-not-found": "No entity named \"{ entityName }\" was found",

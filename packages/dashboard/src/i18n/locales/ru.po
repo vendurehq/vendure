@@ -7730,6 +7730,10 @@ msgstr "Налоговая база"
 msgid "Load more"
 msgstr "Загрузить ещё"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 #~ msgstr ""
