@@ -2,7 +2,7 @@
 title: "McpPluginOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="330" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="331" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Options passed to `McpPlugin.init`.
 
@@ -14,6 +14,7 @@ interface McpPluginOptions {
     rateLimits?: McpRateLimitOptions;
     dnsRebinding?: McpDnsRebindingOptions;
     logging?: McpLoggingOptions;
+    localTrust?: boolean;
 }
 ```
 
@@ -62,6 +63,40 @@ authenticated shop endpoint, and the OAuth endpoints themselves.
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-logging-options#mcploggingoptions'>McpLoggingOptions</a>`}   />
 
 
+### localTrust
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}  since="4.0.0"  />
+
+Lets the Vendure CLI's own tools, `vendure mcp` and `vendure api admin`, call this server
+without OAuth while it runs as a local dev server. Local trust is full superadmin access on
+the developer's machine, on `POST /mcp/admin` and on the Admin API path. It never applies
+to `/mcp/shop`, which keeps its `shopAccess`.
+
+It only turns on when all of these hold at startup:
+
+- this option is not `false`;
+- the server process received a per-run secret from the CLI in the
+  `VENDURE_LOCAL_TRUST_SECRET` environment variable. The plugin deletes it from the
+  environment once it has read it;
+- the CLI's state file `.vendure/devserver.json` exists in the project directory, has mode
+  0600, is owned by the user the server runs as, and holds the same secret.
+
+The server then logs a warning that local trust is on. A request presenting the secret as
+`Authorization: Bearer <secret>` is accepted only from a loopback socket address, with a
+`Host` header of `localhost`, `127.0.0.1` or `[::1]`, no `Origin` header, and none of the
+forwarded headers `X-Forwarded-For`, `X-Forwarded-Host`, `Forwarded`, `X-Real-IP` or `Via`.
+So a request through a proxy, or from a browser, is refused.
+
+To accept the secret on the Admin API, the plugin adds `'bearer'` to
+`authOptions.tokenMethod` when it is missing, and logs that it did so. That change affects
+the whole server: every Admin and Shop API request may then authenticate with a bearer
+token.
+
+On the Admin API, the secret maps to one session per run, which the plugin deletes when the
+server stops, and at the next start after a crash. A `logout` mutation sent with the secret
+fails, because that session belongs to no authentication strategy.
+
+Set it to `false` on any server that runs outside a developer's machine.
 
 
 </div>

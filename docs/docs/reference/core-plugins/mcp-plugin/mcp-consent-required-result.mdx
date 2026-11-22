@@ -1,0 +1,49 @@
+---
+title: "McpConsentRequiredResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="485" packageName="@vendure/mcp-plugin" since="4.0.0" />
+
+The `structuredContent` of a destructive tool's result when the tool did not run because the
+caller has not consented yet. It is a normal tool result, not an error. The same shape is used
+for every caller, over OAuth, local trust or in-process.
+
+To run the tool, show `preview` to the user, then call the same tool again with the same
+arguments plus `confirm` set to the `digest` of the `consent` need. The digest is bound to the
+caller, the input and the preview, and expires after a few minutes. When it no longer matches,
+for example because the target changed, the call returns this result again with a new preview.
+
+```ts title="Signature"
+interface McpConsentRequiredResult {
+    status: 'incomplete';
+    preview: string;
+    needs: ConsentNeed[];
+    sessionToken?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### status
+
+<MemberInfo kind="property" type={`'incomplete'`}   />
+
+
+### preview
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### needs
+
+<MemberInfo kind="property" type={`ConsentNeed[]`}   />
+
+
+### sessionToken
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>
