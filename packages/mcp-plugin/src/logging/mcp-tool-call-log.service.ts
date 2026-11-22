@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EventBus, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
+import { ConfigArgService, EventBus, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 
+import { redactSecretConfigArgs, secretConfigArgsOf } from '../config-arg-secrets';
 import { loggerCtx, MCP_PLUGIN_OPTIONS } from '../constants';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
@@ -24,6 +25,7 @@ export class McpToolCallLogService {
         private readonly connection: TransactionalConnection,
         private readonly eventBus: EventBus,
         @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
+        private readonly configArgService: ConfigArgService,
     ) {}
 
     async logToolCall(call: LogToolCallInput): Promise<void> {
@@ -90,13 +92,18 @@ export class McpToolCallLogService {
         if (logging.capture !== 'full') {
             return { input: null, output: null };
         }
+        // Core encrypts secret config args, such as a payment provider's API key, at rest. Redact them
+        // here, before the operator's redact function runs, so the log never holds them in plain text.
+        const isSecret = secretConfigArgsOf(this.configArgService);
+        const input = redactSecretConfigArgs(call.input, isSecret);
+        const output = redactSecretConfigArgs(call.output, isSecret);
         let bodies: { input: unknown; output: unknown } | undefined;
         if (logging.redact) {
             try {
                 bodies = logging.redact({
                     toolName: call.tool.name,
-                    input: call.input,
-                    output: call.output,
+                    input,
+                    output,
                 });
             } catch (redactError) {
                 const reason = redactError instanceof Error ? redactError.message : String(redactError);
@@ -108,7 +115,7 @@ export class McpToolCallLogService {
                 );
             }
         } else {
-            bodies = { input: call.input, output: call.output };
+            bodies = { input, output };
         }
         return { input: this.capBody(bodies?.input), output: this.capBody(bodies?.output) };
     }
