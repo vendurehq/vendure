@@ -5,8 +5,8 @@ import path from 'node:path';
 import pc from 'picocolors';
 
 import { pipePrefixedOutput, waitForChildProcesses } from '../../shared/cli-process-utils.js';
+import { withoutLocalTrustSecret } from '../../shared/local-trust-env.js';
 import { resolveVendureProjectDirectory } from '../dev/dev.js';
-import { withoutLocalTrustSecret } from '../dev/state-file.js';
 
 export type StartTarget = 'all' | 'server' | 'worker';
 

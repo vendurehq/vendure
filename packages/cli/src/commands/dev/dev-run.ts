@@ -2,6 +2,8 @@ import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import { LogLine } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
+import { withoutLocalTrustSecret } from '../../shared/local-trust-env.js';
+
 import {
     formatLogLineAsText,
     isReadyLine,
@@ -14,10 +16,10 @@ import {
 import { parseDiagnostics } from './diagnostics.js';
 import { RotatingLogWriter } from './log-writer.js';
 import {
+    DevRunAlreadyRunningError,
     DevServerError,
     DevServerStateFile,
     generateLocalTrustSecret,
-    withoutLocalTrustSecret,
 } from './state-file.js';
 import { DevSupervisor, DevSupervisorSnapshot } from './supervisor.js';
 
@@ -48,7 +50,18 @@ export interface DevChildMonitor {
      * process failed, as one sentence.
      */
     onRecoverableExit(code: number): string;
+    /**
+     * Whether the process reported a startup error since it was spawned. Such a process failed to
+     * start even when it then exits with code 0, so the run keeps going and waits for a change.
+     */
+    hasStartupError(): boolean;
 }
+
+/**
+ * Set by `vendure devserver start` for the detached run. Its terminal is a file, so the run does
+ * not print its processes' output there: the dev log already holds every line, and rotates.
+ */
+export const DEVSERVER_DETACHED_ENV_VAR = 'VENDURE_DEVSERVER_DETACHED';
 
 export interface DevRunOptions {
     projectDir: string;
@@ -76,7 +89,7 @@ export interface DevRunOptions {
 export class DevRun {
     readonly supervisor: DevSupervisor;
     private readonly secret: string;
-    private readonly stateFile: DevServerStateFile | undefined;
+    private stateFile: DevServerStateFile | undefined;
     private readonly logWriter: RotatingLogWriter | undefined;
     private readonly warned = new Set<string>();
     private ended = false;
@@ -95,7 +108,21 @@ export class DevRun {
             snapshot => this.writeState(snapshot),
             options.now,
         );
-        this.stateFile?.claim({ ...this.supervisor.snapshot(), pid: process.pid });
+        try {
+            this.stateFile?.claim({ ...this.supervisor.snapshot(), pid: process.pid });
+        } catch (e) {
+            if (e instanceof DevRunAlreadyRunningError) {
+                throw e;
+            }
+            // The run works without its state file, as `vendure dev` always has. Without the file
+            // the server cannot check a secret, so none is passed.
+            this.stateFile = undefined;
+            this.warnOnce(
+                'state',
+                'Could not create .vendure/devserver.json, so vendure devserver and local trust ' +
+                    `are not available for this run: ${(e as Error).message}`,
+            );
+        }
         this.logWriter = options.writeState ? new RotatingLogWriter(options.projectDir) : undefined;
     }
 
@@ -108,6 +135,7 @@ export class DevRun {
             ...withoutLocalTrustSecret(baseEnv),
             VENDURE_PROCESS: target,
         };
+        delete env[DEVSERVER_DETACHED_ENV_VAR];
         if (target === 'server' || target === 'worker') {
             env.VENDURE_LOG_FORMAT = 'json';
         }
@@ -196,7 +224,12 @@ class ChildMonitor implements DevChildMonitor {
         const read = readChildOutputLine(raw, stream, this.target, this.options.now);
         this.writeLog(read.line);
         if (read.kind === 'startup-error') {
+            // The process failed to start, whether or not it exits afterwards: an entry point that
+            // catches the error and logs it keeps the process alive. The next file change restarts
+            // it either way.
             this.startupError = read.event;
+            this.cancelWelcomeTimer();
+            this.supervisor.childFailed(this.target, startupErrorToDevServerError(read.event, this.target));
             this.options.print(this.target, 'stderr', formatStartupError(read.event));
             return;
         }
@@ -225,6 +258,10 @@ class ChildMonitor implements DevChildMonitor {
         const error = this.describeFailure(code);
         this.supervisor.childFailed(this.target, error);
         return error.message;
+    }
+
+    hasStartupError(): boolean {
+        return this.startupError !== undefined;
     }
 
     private markReady() {

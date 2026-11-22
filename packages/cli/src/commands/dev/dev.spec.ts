@@ -504,6 +504,7 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
                 onSpawn: vi.fn(),
                 onOutput: vi.fn(),
                 onRecoverableExit: vi.fn(() => 'The server exited with code 1'),
+                hasStartupError: vi.fn(() => false),
             };
         }
 
@@ -578,6 +579,20 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
             process.emit('SIGINT');
             await expect(promise).resolves.toBe(130);
         }, 20000);
+
+        it('keeps the run going when a child that reported a startup error exits with code 0', async () => {
+            const monitor = createMonitor();
+            monitor.hasStartupError.mockReturnValue(true);
+            const { children, supervised } = startSupervisor({ monitor });
+            const promise = waitForDevProcesses([supervised]);
+
+            children[0].close(0, null);
+
+            expect(supervised.hasClosed).toBe(false);
+            expect(monitor.onRecoverableExit).toHaveBeenCalledWith(1);
+            process.emit('SIGINT');
+            await expect(promise).resolves.toBe(130);
+        });
 
         it('tells the monitor about each spawn and each crash it can recover from', async () => {
             const monitor = createMonitor();

@@ -14,7 +14,10 @@ import {
  * restart that fails is reported without waiting for the timeout. Any result other than `ready`
  * is a failed result.
  */
-export async function run(input: { until?: 'ready'; timeout?: number }, ctx: CommandContext) {
+export async function run(
+    input: { until?: 'ready'; timeout?: number; afterRestarts?: number },
+    ctx: CommandContext,
+) {
     let projectDir: string;
     try {
         projectDir = resolveDevServerProject(ctx);
@@ -24,6 +27,7 @@ export async function run(input: { until?: 'ready'; timeout?: number }, ctx: Com
     const result = await waitForDevServer(projectDir, {
         timeoutMs: defaultTimeoutSeconds(ctx, input.timeout) * 1000,
         signal: ctx.signal,
+        afterRestarts: input.afterRestarts,
     });
     return result.status === 'ready' ? result : failed(result);
 }

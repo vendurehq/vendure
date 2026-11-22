@@ -1,3 +1,4 @@
+import { MCP_ADMIN_ENDPOINT_LOG_PREFIX } from '@vendure/common/lib/local-trust';
 import { LOG_LEVEL_NAMES, LogLevelName, LogLine } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
@@ -156,7 +157,7 @@ const serverUrlPattern = /^([A-Za-z][\w ]*?):\s+(https?:\/\/\S+)$/;
 const viteLocalUrlPattern = /Local:\s+(https?:\/\/\S+)/;
 // `Store MCP admin endpoint: http://localhost:3000/mcp/admin`, which the McpPlugin logs when the
 // server starts. The plugin is optional, so the line may never come.
-const mcpEndpointPattern = /^Store MCP admin endpoint: (https?:\/\/\S+)$/;
+const mcpEndpointPattern = new RegExp(`^${escapeRegExp(MCP_ADMIN_ENDPOINT_LOG_PREFIX)}(https?://\\S+)$`);
 // The line of `=` that closes the server's welcome message, after its URLs.
 const welcomeEndPattern = /^=+$/;
 
@@ -217,4 +218,8 @@ export function readUrls(target: string, line: LogLine): DevServerUrls {
         return { dashboard: url };
     }
     return {};
+}
+
+function escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

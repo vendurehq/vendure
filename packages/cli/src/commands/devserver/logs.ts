@@ -49,11 +49,8 @@ function readLogs(input: LogsInput, ctx: CommandContext) {
 }
 
 export function render(output: { lines: LogLine[]; omitted: number }): string {
-    const lines = output.lines.map(
-        line => `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`,
-    );
-    if (output.omitted > 0) {
-        lines.unshift(`(${output.omitted} older lines left out)`);
-    }
-    return lines.join('\n');
+    // The number of left-out lines is reported once, as a notice.
+    return output.lines
+        .map(line => `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`)
+        .join('\n');
 }

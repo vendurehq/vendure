@@ -1,6 +1,7 @@
 import { CommandContext, fail, failed } from '@vendure/common/lib/command';
+import { execFileSync } from 'node:child_process';
 
-import { isProcessAlive } from '../dev/state-file.js';
+import { DevServerStateFile, isProcessAlive } from '../dev/state-file.js';
 
 import {
     devServerErrors,
@@ -34,13 +35,7 @@ export async function run(_input: Record<string, never>, ctx: CommandContext) {
         return { wasRunning: false, stopped: true };
     }
     ctx.progress(`Stopping vendure dev (process ${state.pid})`);
-    try {
-        process.kill(state.pid, 'SIGTERM');
-    } catch (e: unknown) {
-        if ((e as NodeJS.ErrnoException).code !== 'ESRCH') {
-            throw e;
-        }
-    }
+    signalRun(state.pid);
     const deadline = Date.now() + STOP_TIMEOUT_MS;
     while (isProcessAlive(state.pid)) {
         if (Date.now() >= deadline || ctx.signal.aborted) {
@@ -48,7 +43,33 @@ export async function run(_input: Record<string, never>, ctx: CommandContext) {
         }
         await sleep(POLL_INTERVAL_MS);
     }
+    // The run deletes its state file when it stops. A run killed without that chance, as on
+    // Windows, leaves it, so it is removed here while it still holds that run's secret.
+    new DevServerStateFile(projectDir, state.secret).remove();
     return { wasRunning: true, stopped: true };
+}
+
+/**
+ * Asks the run to stop. On POSIX, SIGTERM lets the run stop its processes and clean up. On
+ * Windows a signal ends the process at once and leaves its children running, so the whole process
+ * tree is ended instead.
+ */
+function signalRun(pid: number) {
+    if (process.platform === 'win32') {
+        try {
+            execFileSync('taskkill', ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' });
+        } catch {
+            // The process has already exited.
+        }
+        return;
+    }
+    try {
+        process.kill(pid, 'SIGTERM');
+    } catch (e: unknown) {
+        if ((e as NodeJS.ErrnoException).code !== 'ESRCH') {
+            throw e;
+        }
+    }
 }
 
 export function render(result: StopResult): string {

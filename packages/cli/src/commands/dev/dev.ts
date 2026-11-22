@@ -18,7 +18,7 @@ import { showConsoleHintIfUnlinked } from '../../shared/console-hint.js';
 import { showStarPromptOnce } from '../../shared/star-prompt.js';
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
 
-import { DevChildMonitor, DevRun } from './dev-run.js';
+import { DevChildMonitor, DevRun, DEVSERVER_DETACHED_ENV_VAR } from './dev-run.js';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 
@@ -94,6 +94,9 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
         // Once per process start. File-watcher restarts happen inside startDevProcess.
         showConsoleHintIfUnlinked(projectDir);
 
+        // A run started by `vendure devserver start` writes to a file, not a terminal, and the dev
+        // log already holds its processes' output.
+        const detached = process.env[DEVSERVER_DETACHED_ENV_VAR] === '1';
         // Only a run that starts the server writes the state file and the dev log, so a second
         // terminal running `vendure dev dashboard` leaves them alone. It refuses to start while
         // another live run holds the state file.
@@ -102,12 +105,18 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
             targets: processes.map(processDefinition => processDefinition.target),
             writeState: runsServer,
             warn: message => log.warn(message),
-            print: (processTarget, stream, text) =>
-                printChildOutput(devProcessDefinitions[processTarget as keyof typeof devProcessDefinitions], {
-                    stream,
-                    text,
-                    prefixOutput,
-                }),
+            print: (processTarget, stream, text) => {
+                if (!detached) {
+                    printChildOutput(
+                        devProcessDefinitions[processTarget as keyof typeof devProcessDefinitions],
+                        {
+                            stream,
+                            text,
+                            prefixOutput,
+                        },
+                    );
+                }
+            },
         });
         try {
             const children = processes.map(processDefinition =>
@@ -387,7 +396,9 @@ export function startSupervisedDevProcess(
                 startChild(true);
                 return;
             }
-            if (!isRecoverableChildExit(code, signal, stopping)) {
+            // A process that reported a startup error failed to start, even with a code 0 exit.
+            const failedToStart = !stopping && signal === null && options.monitor.hasStartupError();
+            if (!failedToStart && !isRecoverableChildExit(code, signal, stopping)) {
                 closeWatcher();
                 runningProcess.emitClose(code, signal);
                 return;
@@ -395,11 +406,13 @@ export function startSupervisedDevProcess(
             // Leave the other supervised processes running, and leave the watcher open so that the
             // next relevant file change respawns this one. Remember the exit code: if the run ends
             // before the watcher respawns this process, the run failed.
+            // A failed start that exited with code 0 still fails the run if nothing restarts it.
+            const exitCode = code || 1;
             child = undefined;
-            crashExitCode = code;
+            crashExitCode = exitCode;
             writeDevStatus(
                 processDefinition,
-                `${options.monitor.onRecoverableExit(code)}. Waiting for a file change to restart it.`,
+                `${options.monitor.onRecoverableExit(exitCode)}. Waiting for a file change to restart it.`,
                 options,
             );
         });

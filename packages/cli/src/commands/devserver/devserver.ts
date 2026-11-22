@@ -6,6 +6,7 @@ import {
     DevServerState,
     DevServerStatusReport,
     isDevRunAlive,
+    isProcessAlive,
     readDevServerState,
     toStatusReport,
 } from '../dev/state-file.js';
@@ -65,26 +66,44 @@ export interface WaitResult extends DevServerStatusReport {
     timedOut: boolean;
 }
 
+export interface WaitOptions {
+    timeoutMs: number;
+    signal?: AbortSignal;
+    pollIntervalMs?: number;
+    /**
+     * Count `ready` and `failed` only once the run has restarted at least this many times, so a
+     * caller that read `restarts` before an edit waits for the restart the edit causes.
+     */
+    afterRestarts?: number;
+    /** The process of a run that was just started, which has not written its state file yet. */
+    pid?: number;
+}
+
 /**
  * Reads the state file until the run is ready, until it failed, or until the timeout passes.
  *
- * It does not return early while there is no state file, because a run that was just started
- * has not written one yet. It does return when the file names a run that is no longer running.
+ * It returns `stopped` once the run has ended: when the state file names a run that is gone, when
+ * a state file it saw earlier has been deleted, or when the process in `pid` has exited. Before
+ * any of that it keeps reading, because a run that was just started has not written its file yet.
  */
-export async function waitForDevServer(
-    projectDir: string,
-    options: { timeoutMs: number; signal?: AbortSignal; pollIntervalMs?: number },
-): Promise<WaitResult> {
+export async function waitForDevServer(projectDir: string, options: WaitOptions): Promise<WaitResult> {
     const deadline = Date.now() + options.timeoutMs;
+    let lastSeen: DevServerState | undefined;
     for (;;) {
         const state = readDevServerState(projectDir);
+        lastSeen = state ?? lastSeen;
         const report = toStatusReport(state);
-        if (
-            report.status === 'ready' ||
-            report.status === 'failed' ||
-            (state && report.status === 'stopped')
-        ) {
+        const settled =
+            (report.status === 'ready' || report.status === 'failed') &&
+            report.restarts >= (options.afterRestarts ?? 0);
+        if (settled || (state && report.status === 'stopped')) {
             return { ...report, timedOut: false };
+        }
+        const ended = state
+            ? false
+            : lastSeen !== undefined || (options.pid !== undefined && !isProcessAlive(options.pid));
+        if (ended) {
+            return { ...toStatusReport(lastSeen), status: 'stopped', timedOut: false };
         }
         if (Date.now() >= deadline || options.signal?.aborted) {
             return { ...report, timedOut: Date.now() >= deadline };

@@ -1,12 +1,12 @@
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
-import { chmodSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { readDevServerLogs } from '../devserver/log-reader.js';
 
-import { DevRun } from './dev-run.js';
+import { DEVSERVER_DETACHED_ENV_VAR, DevRun } from './dev-run.js';
 import { DevRunAlreadyRunningError, DevServerStateFile, readDevServerState } from './state-file.js';
 
 const directories: string[] = [];
@@ -83,6 +83,38 @@ describe('DevRun', () => {
             VENDURE_LOG_FORMAT: 'json',
         });
         expect(run.childEnv('dashboard', shell)).toEqual({ PATH: '/usr/bin', VENDURE_PROCESS: 'dashboard' });
+    });
+
+    it('keeps the detached flag of devserver start away from the processes', () => {
+        const { run } = createRun();
+
+        expect(run.childEnv('server', { [DEVSERVER_DETACHED_ENV_VAR]: '1' })).not.toHaveProperty(
+            DEVSERVER_DETACHED_ENV_VAR,
+        );
+    });
+
+    it('sets failed as soon as a startup error is reported, while the process is still running', () => {
+        const { run, projectDir } = createRun();
+        const monitor = run.monitor('server');
+        monitor.onSpawn(false);
+        monitor.onOutput(
+            'stderr',
+            JSON.stringify({
+                vendure: 'event',
+                event: 'startup-error',
+                code: 'core.unexpected',
+                message: 'listen EADDRINUSE: address already in use :::3000',
+                fix: [],
+            }),
+        );
+
+        expect(monitor.hasStartupError()).toBe(true);
+        expect(readDevServerState(projectDir)).toMatchObject({
+            status: 'failed',
+            lastError: { process: 'server', code: 'core.unexpected' },
+        });
+        monitor.onSpawn(true);
+        expect(monitor.hasStartupError()).toBe(false);
     });
 
     it('gives no secret to a server it writes no state file for', () => {
@@ -277,6 +309,19 @@ describe('DevRun state file ownership', () => {
         run.end();
 
         expect(readdirSync(projectDir)).toEqual([]);
+    });
+
+    it('starts without a state file or a secret, with a warning, when the file cannot be created', () => {
+        const projectDir = createProjectDir();
+        // A file where the .vendure directory should be makes every write fail.
+        writeFileSync(path.join(projectDir, '.vendure'), '');
+        const { run, warn } = createRun({ projectDir });
+
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining('Could not create .vendure/devserver.json'),
+        );
+        expect(run.childEnv('server', {})).not.toHaveProperty(LOCAL_TRUST_SECRET_ENV_VAR);
+        expect(() => run.monitor('server').onRecoverableExit(1)).not.toThrow();
     });
 
     it('keeps running and warns once when the state file cannot be written', () => {

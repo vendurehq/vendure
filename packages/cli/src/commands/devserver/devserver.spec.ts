@@ -1,4 +1,9 @@
-import { CommandContext, CommandDefinition, isErrorResult } from '@vendure/common/lib/command';
+import {
+    CommandContext,
+    CommandDefinition,
+    isErrorResult,
+    isFailedResult,
+} from '@vendure/common/lib/command';
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import { LogLine } from '@vendure/common/lib/log';
 import { ChildProcess, spawn } from 'node:child_process';
@@ -13,6 +18,7 @@ import { buildCommandManifest } from '../../command-host/manifest-build.js';
 import { mergeManifests } from '../../command-host/manifest.js';
 import { kebab } from '../../command-host/naming.js';
 import { createSpawn } from '../../command-host/spawn.js';
+import { DEVSERVER_DETACHED_ENV_VAR } from '../dev/dev-run.js';
 import {
     DevServerState,
     DevServerStateFile,
@@ -32,6 +38,9 @@ import {
 import * as schemas from './devserver.schema.js';
 import { MAX_LOG_LINES } from './log-reader.js';
 import { run as startRun } from './start.js';
+
+// The runs in these tests started now, after this test process did, like a real run.
+const NOW = new Date().toISOString();
 
 const DEAD_PID = 2 ** 22 + 12345;
 const directories: string[] = [];
@@ -71,7 +80,7 @@ function writeState(projectDir: string, state: Partial<DevServerState> = {}) {
     new DevServerStateFile(projectDir, secret).write({
         status: 'ready',
         urls: { admin: 'http://localhost:3000/admin-api' },
-        startedAt: '2026-11-22T10:00:00.000Z',
+        startedAt: NOW,
         restarts: 0,
         lastError: null,
         pid: process.pid,
@@ -150,7 +159,7 @@ describe('devserver status', () => {
         expect(result.envelope.output).toEqual({
             status: 'ready',
             urls: { admin: 'http://localhost:3000/admin-api' },
-            startedAt: '2026-11-22T10:00:00.000Z',
+            startedAt: NOW,
             restarts: 2,
             lastError: null,
         });
@@ -234,6 +243,31 @@ describe('devserver wait', () => {
             status: 'failed',
             output: { status: 'restarting', timedOut: true },
         });
+    });
+
+    it('returns stopped when the state file it saw is deleted, as when the run ends', async () => {
+        const projectDir = createProject();
+        writeState(projectDir, { status: 'starting', restarts: 2 });
+        setTimeout(() => rmSync(path.join(projectDir, '.vendure', 'devserver.json')), 400);
+        const started = Date.now();
+
+        const result = await runInProject(projectDir, devServerWaitDefinition, { timeout: 30 });
+
+        expect(Date.now() - started).toBeLessThan(5000);
+        expect(result.envelope.output).toMatchObject({ status: 'stopped', restarts: 2, timedOut: false });
+    });
+
+    it('waits for the restart an edit causes with afterRestarts', async () => {
+        const projectDir = createProject();
+        writeState(projectDir, { status: 'ready', restarts: 3 });
+        setTimeout(() => writeState(projectDir, { status: 'failed', restarts: 4 }), 400);
+
+        const result = await runInProject(projectDir, devServerWaitDefinition, {
+            timeout: 10,
+            afterRestarts: 4,
+        });
+
+        expect(result.envelope.output).toMatchObject({ status: 'failed', restarts: 4 });
     });
 
     it('returns stopped at once for a run that is gone', async () => {
@@ -352,12 +386,15 @@ describe('devserver stop', () => {
 
         expect(result.envelope.output).toEqual({ wasRunning: true, stopped: true });
         expect(isProcessAlive(child.pid as number)).toBe(false);
+        // The process did not delete its state file, so stop did.
+        expect(readDevServerState(projectDir)).toBeUndefined();
     });
 });
 
 describe('devserver start', () => {
     // Stands in for `vendure dev`: it writes a state file for its own process, records whether it
-    // was given a local-trust secret, and deletes the file when it is stopped.
+    // was given a local-trust secret and the detached flag, and deletes the file when it is
+    // stopped. It ends in the status named in a `final-status` file, or `ready`.
     const fakeDevScript = `
 const fs = require('node:fs');
 const path = require('node:path');
@@ -369,11 +406,13 @@ const write = status => {
         status, urls: {}, startedAt: new Date().toISOString(), restarts: 0, lastError: null,
         pid: process.pid, secret: 'fake', target: process.argv[2] === 'dev' ? process.argv[3] : undefined,
         inheritedSecret: process.env.${LOCAL_TRUST_SECRET_ENV_VAR} ?? null,
+        detached: process.env.${DEVSERVER_DETACHED_ENV_VAR} ?? null,
     }), { mode: 0o600 });
     fs.renameSync(file + '.tmp', file);
 };
 write('starting');
-setTimeout(() => write('ready'), 300);
+const finalStatusFile = path.join(projectDir, 'final-status');
+setTimeout(() => write(fs.existsSync(finalStatusFile) ? fs.readFileSync(finalStatusFile, 'utf-8') : 'ready'), 300);
 process.on('SIGTERM', () => { fs.rmSync(file, { force: true }); process.exit(0); });
 setInterval(() => {}, 1000);
 `;
@@ -419,6 +458,7 @@ setInterval(() => {}, 1000);
             const state = readDevServerState(projectDir) as DevServerState & Record<string, unknown>;
             expect(state.target).toBe('server');
             expect(state.inheritedSecret).toBeNull();
+            expect(state.detached).toBe('1');
             expect(state.pid).not.toBe(process.pid);
             expect(isProcessAlive(state.pid)).toBe(true);
         } finally {
@@ -451,6 +491,31 @@ setInterval(() => {}, 1000);
         },
         20000,
     );
+
+    it('is a failed result when it waited and the run failed', async () => {
+        const projectDir = createProject();
+        const cliPath = createFakeCli(projectDir);
+        writeFileSync(path.join(projectDir, 'final-status'), 'failed');
+        try {
+            const result = await startRun({ timeout: 10 }, createContext(projectDir), cliPath);
+
+            expect(isFailedResult(result) && result.output).toMatchObject({ status: 'failed' });
+        } finally {
+            stopFakeRun(projectDir);
+        }
+    }, 20000);
+
+    it('fails at once, without waiting for the timeout, when the run exits before its state file', async () => {
+        const projectDir = createProject();
+        const cliPath = path.join(projectDir, 'quiet-exit.cjs');
+        writeFileSync(cliPath, 'process.exit(0);');
+        const started = Date.now();
+
+        const result = await startRun({ timeout: 30 }, createContext(projectDir), cliPath);
+
+        expect(Date.now() - started).toBeLessThan(10000);
+        expect(isErrorResult(result) && result.code).toBe('devserver.start-failed');
+    }, 20000);
 
     it('only offers the targets that start the server, so the run can be waited for and stopped', async () => {
         const result = await runInProject(createProject(), devServerStartDefinition, { target: 'worker' });

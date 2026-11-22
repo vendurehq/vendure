@@ -1,8 +1,4 @@
-import {
-    LOCAL_TRUST_SECRET_ENV_VAR,
-    LOCAL_TRUST_STATE_FILE,
-    LocalTrustState,
-} from '@vendure/common/lib/local-trust';
+import { LOCAL_TRUST_STATE_FILE, LocalTrustState } from '@vendure/common/lib/local-trust';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -102,23 +98,16 @@ export function generateLocalTrustSecret(): string {
 }
 
 /**
- * Returns a copy of the environment without the local-trust secret. Every process the CLI starts,
- * apart from the server of a `vendure dev` run, gets its environment from this, so a secret
- * inherited from the shell never reaches it.
- */
-export function withoutLocalTrustSecret(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-    const copy = { ...env };
-    delete copy[LOCAL_TRUST_SECRET_ENV_VAR];
-    return copy;
-}
-
-/**
  * Reads the state file. Returns `undefined` when there is no file or it is not a state file.
  */
 export function readDevServerState(projectDir: string): DevServerState | undefined {
+    return readStateFileAt(getDevServerStateFilePath(projectDir));
+}
+
+function readStateFileAt(filePath: string): DevServerState | undefined {
     let text: string;
     try {
-        text = readFileSync(getDevServerStateFilePath(projectDir), 'utf-8');
+        text = readFileSync(filePath, 'utf-8');
     } catch {
         return undefined;
     }
@@ -178,9 +167,6 @@ const START_TIME_TOLERANCE_MS = 2000;
  * report the start time, as on Windows, the pid is trusted.
  */
 export function isDevRunAlive(state: Pick<DevServerState, 'pid' | 'startedAt'>, now = Date.now()): boolean {
-    if (state.pid === process.pid) {
-        return true;
-    }
     if (!Number.isInteger(state.pid) || state.pid <= 0) {
         return false;
     }
@@ -283,10 +269,12 @@ export class DevServerStateFile {
                 unlinkIfExists(tempPath);
             }
             const existing = readDevServerState(this.projectDir);
-            if (existing && isDevRunAlive(existing)) {
+            // A file that names this process was left by an earlier process that had the same pid,
+            // as happens when a container restarts: this run has not written the file yet.
+            if (existing && existing.pid !== process.pid && isDevRunAlive(existing)) {
                 throw new DevRunAlreadyRunningError(existing.pid);
             }
-            unlinkIfExists(this.filePath);
+            this.removeStaleFile(existing?.secret);
         }
         throw new Error(
             `Could not create ${LOCAL_TRUST_STATE_FILE}, because another process keeps writing it.`,
@@ -303,6 +291,33 @@ export class DevServerStateFile {
         } catch (e) {
             unlinkIfExists(tempPath);
             throw e;
+        }
+    }
+
+    /**
+     * Removes a state file that was read as stale. Another run may have replaced it in the
+     * meantime, so the file is first moved aside, and put back when it is no longer the file that
+     * was read.
+     */
+    private removeStaleFile(staleSecret: string | undefined) {
+        const movedPath = `${this.filePath}.${process.pid}.${++this.writes}.stale`;
+        try {
+            renameSync(this.filePath, movedPath);
+        } catch (e: unknown) {
+            if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+                return;
+            }
+            throw e;
+        }
+        try {
+            if (readStateFileAt(movedPath)?.secret !== staleSecret) {
+                // The link fails when yet another file is in place, which then stays.
+                linkSync(movedPath, this.filePath);
+            }
+        } catch {
+            // Nothing to put back.
+        } finally {
+            unlinkIfExists(movedPath);
         }
     }
 

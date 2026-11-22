@@ -1,8 +1,9 @@
-import { CommandContext, fail } from '@vendure/common/lib/command';
+import { CommandContext, fail, failed } from '@vendure/common/lib/command';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { DEVSERVER_DETACHED_ENV_VAR } from '../dev/dev-run.js';
 import { DEV_LOG_DIRECTORY } from '../dev/log-writer.js';
 import {
     DevServerStatusReport,
@@ -40,7 +41,8 @@ const { spawn } = require('node:child_process');
 const { openSync } = require('node:fs');
 const [outputFile, cwd, ...args] = process.argv.slice(1);
 const output = openSync(outputFile, 'w', 0o600);
-const child = spawn(process.execPath, args, { cwd, detached: true, stdio: ['ignore', output, output], windowsHide: true });
+const env = { ...process.env, ${DEVSERVER_DETACHED_ENV_VAR}: '1' };
+const child = spawn(process.execPath, args, { cwd, env, detached: true, stdio: ['ignore', output, output], windowsHide: true });
 child.unref();
 process.stdout.write(JSON.stringify({ pid: child.pid }));
 `;
@@ -117,11 +119,13 @@ export async function run(input: StartInput, ctx: CommandContext, cliEntryPath =
     const { timedOut, ...report } = await waitForDevServer(projectDir, {
         timeoutMs: defaultTimeoutSeconds(ctx, input.timeout) * 1000,
         signal: ctx.signal,
+        pid,
     });
     if (timedOut) {
         ctx.notice('warning', 'vendure dev started, but was not ready before the timeout.');
     }
-    return report;
+    // As for `vendure devserver wait`, a run that is not ready is a failed result.
+    return report.status === 'ready' ? report : failed(report);
 }
 
 function readLaunchedPid(stdout: string): number | undefined {

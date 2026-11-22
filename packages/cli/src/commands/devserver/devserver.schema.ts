@@ -61,6 +61,15 @@ export const wait = {
     input: z.object({
         until: z.enum(['ready']).optional().describe('The status to wait for (default: ready)'),
         timeout,
+        afterRestarts: z
+            .number()
+            .int()
+            .nonnegative()
+            .optional()
+            .describe(
+                'Count ready or failed only once the run has restarted this many times. Pass the ' +
+                    'restarts that status reported before an edit plus 1 to wait for the restart it causes',
+            ),
     }),
     output: statusReport.extend({
         timedOut: z.boolean().describe('True when the timeout passed before the run was ready or failed'),

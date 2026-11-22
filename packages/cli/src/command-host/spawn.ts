@@ -1,7 +1,7 @@
 import type { SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
 import crossSpawn from 'cross-spawn';
 
-import { withoutLocalTrustSecret } from '../commands/dev/state-file.js';
+import { withoutLocalTrustSecret } from '../shared/local-trust-env.js';
 
 /**
  * Passes on only whole lines, and ends the last one with a newline when the stream closes. Under

@@ -1,4 +1,3 @@
-import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,8 +12,10 @@ import {
     parseElapsedTime,
     readDevServerState,
     toStatusReport,
-    withoutLocalTrustSecret,
 } from './state-file.js';
+
+// The runs in these tests started now, after this test process did, like a real run.
+const NOW = new Date().toISOString();
 
 const directories: string[] = [];
 
@@ -28,7 +29,7 @@ function stateFor(pid = process.pid): Omit<DevServerState, 'secret'> {
     return {
         status: 'ready',
         urls: { admin: 'http://localhost:3000/admin-api' },
-        startedAt: '2026-11-22T10:00:00.000Z',
+        startedAt: NOW,
         restarts: 0,
         lastError: null,
         pid,
@@ -126,7 +127,15 @@ describe('DevServerStateFile.claim()', () => {
         expect(readDevServerState(projectDir)?.secret).toBe('run-secret');
     });
 
-    it('lets only one of two runs claim the file', () => {
+    it('replaces a file that names this process, left by an earlier process with the same pid', () => {
+        const projectDir = createProjectDir();
+        new DevServerStateFile(projectDir, 'old-secret').write({ ...stateFor(), startedAt: NOW });
+        new DevServerStateFile(projectDir, 'run-secret').claim(stateFor());
+
+        expect(readDevServerState(projectDir)?.secret).toBe('run-secret');
+    });
+
+    it('lets only one of two live runs hold the file', () => {
         const projectDir = createProjectDir();
         const first = new DevServerStateFile(projectDir, 'first-secret');
         const second = new DevServerStateFile(projectDir, 'second-secret');
@@ -137,8 +146,14 @@ describe('DevServerStateFile.claim()', () => {
 });
 
 describe('isDevRunAlive()', () => {
-    it('is true for this process', () => {
-        expect(isDevRunAlive({ pid: process.pid, startedAt: '2000-01-01T00:00:00.000Z' })).toBe(true);
+    it('is true for this process as the run that started now', () => {
+        expect(isDevRunAlive({ pid: process.pid, startedAt: new Date().toISOString() })).toBe(true);
+    });
+
+    it('is false for this process as a run that started before it, as after a container restart', () => {
+        expect(isDevRunAlive({ pid: process.pid, startedAt: '2000-01-01T00:00:00.000Z' })).toBe(
+            process.platform === 'win32',
+        );
     });
 
     it('is false for a pid that no process has', () => {
@@ -180,7 +195,7 @@ describe('toStatusReport()', () => {
         expect(report).toEqual({
             status: 'ready',
             urls: { admin: 'http://localhost:3000/admin-api' },
-            startedAt: '2026-11-22T10:00:00.000Z',
+            startedAt: NOW,
             restarts: 0,
             lastError: null,
         });
@@ -200,14 +215,5 @@ describe('toStatusReport()', () => {
             restarts: 0,
             lastError: null,
         });
-    });
-});
-
-describe('withoutLocalTrustSecret()', () => {
-    it('removes the secret and keeps the rest of the environment', () => {
-        const env = { PATH: '/usr/bin', [LOCAL_TRUST_SECRET_ENV_VAR]: 'from-the-shell' };
-
-        expect(withoutLocalTrustSecret(env)).toEqual({ PATH: '/usr/bin' });
-        expect(env[LOCAL_TRUST_SECRET_ENV_VAR]).toBe('from-the-shell');
     });
 });

@@ -30,3 +30,10 @@ export interface LocalTrustState {
      */
     secret: string;
 }
+
+/**
+ * The start of the line which the McpPlugin logs when the server starts, followed by the URL of
+ * its admin endpoint, for example `Store MCP admin endpoint: http://localhost:3000/mcp/admin`.
+ * `vendure dev` reads the URL from this line.
+ */
+export const MCP_ADMIN_ENDPOINT_LOG_PREFIX = 'Store MCP admin endpoint: ';
