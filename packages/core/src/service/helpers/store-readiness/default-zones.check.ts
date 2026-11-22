@@ -3,7 +3,12 @@ import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    ChannelReadinessInput,
+    StoreReadinessFinding,
+    toFinding,
+} from './store-readiness-types';
 
 interface DefaultZoneDetails {
     channel: Channel;
@@ -17,7 +22,7 @@ function setZoneFix(field: 'defaultTaxZoneId' | 'defaultShippingZoneId', details
     }
     return [
         {
-            path: ['admin_update_channel'],
+            path: adminToolPath('update_channel'),
             input: { id: details.channel.id, input: { [field]: details.candidate.id } },
             description: `Use the zone "${details.candidate.name}", or another zone from admin_list_zones.`,
         },
@@ -45,7 +50,8 @@ export function checkDefaultZones({
     shippingZones,
 }: ChannelReadinessInput): StoreReadinessFinding[] {
     const findings: StoreReadinessFinding[] = [];
-    const target = { channelId: channel.id, dashboardUrl: `/channels/${channel.id}` };
+    // The Dashboard routes on API IDs, which an EntityIdStrategy may encode, so the link is to the list.
+    const target = { channelId: channel.id, dashboardUrl: '/channels' };
     const details = { channel, candidate: shippingZones[0] };
     if (!channel.defaultTaxZone) {
         findings.push(toFinding(noDefaultTaxZone, 'error', details, target));

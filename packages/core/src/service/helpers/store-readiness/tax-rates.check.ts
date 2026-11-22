@@ -2,36 +2,49 @@ import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { ID } from '@vendure/common/lib/shared-types';
 import { In } from 'typeorm';
 
+import { TaxZoneStrategy } from '../../../config/tax/tax-zone-strategy';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
+import { Order } from '../../../entity/order/order.entity';
 import { TaxCategory } from '../../../entity/tax-category/tax-category.entity';
-import { TaxRate } from '../../../entity/tax-rate/tax-rate.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 import { TaxRateService } from '../../services/tax-rate.service';
 
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    ChannelReadinessInput,
+    countryMembers,
+    StoreReadinessFinding,
+    toFinding,
+} from './store-readiness-types';
 import { findChannelTaxCategoryIds } from './variant-queries';
 
-/**
- * The ID of the rate that {@link TaxRateService} `getApplicableTaxRate()` falls back to when no
- * configured rate applies.
- */
-const UNCONFIGURED_TAX_RATE_ID = '0';
-
-export const noApplicableTaxRate = defineError<{
+interface NoRateDetails {
     channel: Channel;
     zone: Zone;
     taxCategory: TaxCategory;
+    /** The countries whose orders get this tax zone and no rate. */
     countryCodes: string[];
-}>({
+    /** Whether an order with no address yet gets no rate either. */
+    withoutAddress: boolean;
+}
+
+export const noApplicableTaxRate = defineError<NoRateDetails>({
     code: 'store.tax.no-rate',
     exit: COMMAND_EXIT_CODES.failed,
-    message: ({ channel, zone, taxCategory, countryCodes }) =>
-        `No tax rate for tax category "${taxCategory.name}" applies in zone "${zone.name}" ` +
-        `for ${countryCodes.join(', ')}, so products of channel "${channel.code}" in that category are taxed at 0%.`,
+    message: ({ channel, zone, taxCategory, countryCodes, withoutAddress }) => {
+        const orders = [
+            ...(countryCodes.length ? [`orders to ${countryCodes.join(', ')}`] : []),
+            ...(withoutAddress ? ['orders with no address yet'] : []),
+        ].join(' and ');
+        return (
+            `No tax rate for tax category "${taxCategory.name}" applies to ${orders} in channel ` +
+            `"${channel.code}", whose tax zone is "${zone.name}", so they are taxed at 0%.`
+        );
+    },
     fix: ({ zone, taxCategory }) => [
         {
-            path: ['admin_create_tax_rate'],
+            path: adminToolPath('create_tax_rate'),
             input: {
                 input: {
                     name: `${taxCategory.name} ${zone.name}`,
@@ -39,71 +52,94 @@ export const noApplicableTaxRate = defineError<{
                     target: { zoneId: zone.id },
                 },
             },
-            description: `Add a rate for the whole zone, with its percentage as "value". A rate per country works too.`,
+            description: `Add a rate for the zone, with its percentage as "value". A rate per country works too.`,
         },
     ],
 });
 
+/** An order to one country, or with no address, as the tax zone strategy sees it. */
+interface TaxTarget {
+    countryCode?: string;
+}
+
 /**
- * For each tax category the Channel's variants use, and each Zone the Channel ships to, a rate
- * applies to every enabled country of the Zone: a rate on the Zone, or a rate on the country.
- * The rates are resolved by {@link TaxRateService}, so this check follows the same rules as checkout.
+ * For each tax category the Channel's variants use, an order to each country the Channel ships to,
+ * and an order with no address yet, get a configured tax rate. The tax zone of each order comes from
+ * the configured {@link TaxZoneStrategy}, and the rate from {@link TaxRateService}, as at checkout.
  */
 export async function checkTaxRates(
-    { ctx, channel, shippingZones }: ChannelReadinessInput,
-    connection: TransactionalConnection,
-    taxRateService: TaxRateService,
+    { ctx, channel, allZones, shippingZones }: ChannelReadinessInput,
+    services: {
+        connection: TransactionalConnection;
+        taxRateService: TaxRateService;
+        taxZoneStrategy: TaxZoneStrategy;
+    },
 ): Promise<StoreReadinessFinding[]> {
-    const categoryIds = await findChannelTaxCategoryIds(ctx, connection, channel.id);
+    const categoryIds = await findChannelTaxCategoryIds(ctx, services.connection, channel.id);
     if (categoryIds.length === 0) {
         return [];
     }
-    const categories = await connection
+    const countryCodes = [
+        ...new Set(
+            shippingZones.flatMap(zone =>
+                countryMembers(zone)
+                    .filter(member => member.enabled)
+                    .map(member => member.code),
+            ),
+        ),
+    ].sort();
+    const targets: TaxTarget[] = [{}, ...countryCodes.map(countryCode => ({ countryCode }))];
+    const taxZones = new Map<TaxTarget, Zone>();
+    for (const target of targets) {
+        const order = target.countryCode
+            ? new Order({ shippingAddress: { countryCode: target.countryCode }, lines: [] })
+            : undefined;
+        const zone = await services.taxZoneStrategy.determineTaxZone(ctx, allZones, channel, order);
+        // With no tax zone, no rate applies to anything. The default-zones check reports that.
+        if (zone) {
+            taxZones.set(target, zone);
+        }
+    }
+
+    const categories = await services.connection
         .getRepository(ctx, TaxCategory)
         .find({ where: { id: In(categoryIds) } });
     const findings: StoreReadinessFinding[] = [];
     for (const taxCategory of categories) {
-        for (const zone of shippingZones) {
-            const countryCodes = await countriesWithoutRate(ctx, taxRateService, zone, taxCategory.id);
-            if (countryCodes.length) {
-                findings.push(
-                    toFinding(
-                        noApplicableTaxRate,
-                        'error',
-                        { channel, zone, taxCategory, countryCodes },
-                        {
-                            channelId: channel.id,
-                            zoneId: zone.id,
-                            taxCategoryId: taxCategory.id,
-                            dashboardUrl: '/tax-rates',
-                        },
-                    ),
-                );
+        const missing = new Map<ID, NoRateDetails>();
+        for (const [target, zone] of taxZones) {
+            const rate = await services.taxRateService.findApplicableTaxRate(
+                ctx,
+                { countryCode: target.countryCode, zone },
+                taxCategory.id,
+            );
+            if (rate) {
+                continue;
             }
+            const details = missing.get(zone.id) ?? {
+                channel,
+                zone,
+                taxCategory,
+                countryCodes: [],
+                withoutAddress: false,
+            };
+            if (target.countryCode) {
+                details.countryCodes.push(target.countryCode);
+            } else {
+                details.withoutAddress = true;
+            }
+            missing.set(zone.id, details);
+        }
+        for (const details of missing.values()) {
+            findings.push(
+                toFinding(noApplicableTaxRate, 'error', details, {
+                    channelId: channel.id,
+                    zoneId: details.zone.id,
+                    taxCategoryId: taxCategory.id,
+                    dashboardUrl: '/tax-rates',
+                }),
+            );
         }
     }
     return findings;
-}
-
-async function countriesWithoutRate(
-    ctx: ChannelReadinessInput['ctx'],
-    taxRateService: TaxRateService,
-    zone: Zone,
-    taxCategoryId: ID,
-): Promise<string[]> {
-    const missing: string[] = [];
-    for (const member of zone.members) {
-        if (!member.enabled) {
-            continue;
-        }
-        const rate: TaxRate = await taxRateService.getApplicableTaxRate(
-            ctx,
-            { countryCode: member.code, zone },
-            taxCategoryId,
-        );
-        if (String(rate.id) === UNCONFIGURED_TAX_RATE_ID) {
-            missing.push(member.code);
-        }
-    }
-    return missing.sort();
 }

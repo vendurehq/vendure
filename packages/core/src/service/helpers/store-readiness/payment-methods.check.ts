@@ -4,7 +4,12 @@ import { ConfigService } from '../../../config/config.service';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { PaymentMethodService } from '../../services/payment-method.service';
 
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    ChannelReadinessInput,
+    StoreReadinessFinding,
+    toFinding,
+} from './store-readiness-types';
 
 export const noEnabledPaymentMethod = defineError<{ channel: Channel; handlerCode?: string }>({
     code: 'store.channel.no-payment-method',
@@ -16,12 +21,12 @@ export const noEnabledPaymentMethod = defineError<{ channel: Channel; handlerCod
         handlerCode
             ? [
                   {
-                      path: ['admin_list_payment_options'],
+                      path: adminToolPath('list_payment_options'),
                       input: {},
                       description: 'See the payment handlers and the arguments each one takes.',
                   },
                   {
-                      path: ['admin_create_payment_method'],
+                      path: adminToolPath('create_payment_method'),
                       input: {
                           input: {
                               code: `${channel.code}-payment`,

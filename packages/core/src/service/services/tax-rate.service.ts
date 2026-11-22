@@ -287,17 +287,28 @@ export class TaxRateService {
         targetOrZone: TaxRateTarget | Zone | ID,
         taxCategory: TaxCategory | ID,
     ): Promise<TaxRate> {
+        return (await this.findApplicableTaxRate(ctx, targetOrZone, taxCategory)) ?? this.defaultTaxRate;
+    }
+
+    /**
+     * @description
+     * Like `getApplicableTaxRate()`, but returns `undefined` when no configured rate applies, instead of
+     * the default rate with a value of 0.
+     *
+     * @since 4.0.0
+     */
+    async findApplicableTaxRate(
+        ctx: RequestContext,
+        targetOrZone: TaxRateTarget | Zone | ID,
+        taxCategory: TaxCategory | ID,
+    ): Promise<TaxRate | undefined> {
         const target = this.isTarget(targetOrZone) ? targetOrZone : { zone: targetOrZone };
         const { byCountry, byZone } = await this.getActiveTaxRates(ctx);
         const categoryId = String(this.idOf(taxCategory));
         const countryRate = target.countryCode
             ? byCountry.get(`${target.countryCode}:${categoryId}`)
             : undefined;
-        return (
-            countryRate ??
-            byZone.get(`${String(this.idOf(target.zone))}:${categoryId}`) ??
-            this.defaultTaxRate
-        );
+        return countryRate ?? byZone.get(`${String(this.idOf(target.zone))}:${categoryId}`);
     }
 
     /**

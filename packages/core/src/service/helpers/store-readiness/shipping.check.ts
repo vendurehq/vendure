@@ -7,7 +7,12 @@ import { OrderTestingService } from '../../services/order-testing.service';
 import { ShippingMethodService } from '../../services/shipping-method.service';
 
 import { sampleCountryCode } from './shipping-zones';
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    ChannelReadinessInput,
+    StoreReadinessFinding,
+    toFinding,
+} from './store-readiness-types';
 import { findSampleVariant } from './variant-queries';
 
 export const noShippingMethod = defineError<{ channel: Channel }>({
@@ -16,7 +21,7 @@ export const noShippingMethod = defineError<{ channel: Channel }>({
     message: ({ channel }) => `Channel "${channel.code}" has no shipping method, so no order can ship.`,
     fix: () => [
         {
-            path: ['admin_list_shipping_options'],
+            path: adminToolPath('list_shipping_options'),
             input: {},
             description:
                 'See the checkers, calculators and fulfillment handlers, then create a method with admin_create_shipping_method.',
@@ -40,7 +45,7 @@ export const noEligibleShippingMethod = defineError<{ channel: Channel; zone: Zo
         `(zone "${zone.name}").`,
     fix: () => [
         {
-            path: ['admin_list_shipping_methods'],
+            path: adminToolPath('list_shipping_methods'),
             input: {},
             description:
                 "See the methods' eligibility checkers, then change one with admin_update_shipping_method " +
@@ -55,7 +60,7 @@ export const noEligibleShippingMethod = defineError<{ channel: Channel; zone: Zo
  * {@link OrderTestingService} and never saved.
  */
 export async function checkShipping(
-    { ctx, channel, shippingZones }: ChannelReadinessInput,
+    { ctx, newContext, channel, shippingZones }: ChannelReadinessInput,
     services: {
         connection: TransactionalConnection;
         shippingMethodService: ShippingMethodService;
@@ -89,7 +94,7 @@ export async function checkShipping(
         if (!countryCode) {
             continue;
         }
-        const quotes = await services.orderTestingService.testEligibleShippingMethods(ctx, {
+        const quotes = await services.orderTestingService.testEligibleShippingMethods(await newContext(), {
             shippingAddress: { countryCode, streetLine1: 'Store check', city: 'Store check' },
             lines: [{ productVariantId: variant.id, quantity: 1 }],
         });

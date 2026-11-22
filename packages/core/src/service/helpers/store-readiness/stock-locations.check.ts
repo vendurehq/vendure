@@ -3,7 +3,12 @@ import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { StockLocationService } from '../../services/stock-location.service';
 
-import { ChannelReadinessInput, StoreReadinessFinding, toFinding } from './store-readiness-types';
+import {
+    adminToolPath,
+    ChannelReadinessInput,
+    StoreReadinessFinding,
+    toFinding,
+} from './store-readiness-types';
 
 export const noStockLocation = defineError<{ channel: Channel }>({
     code: 'store.channel.no-stock-location',
@@ -12,7 +17,7 @@ export const noStockLocation = defineError<{ channel: Channel }>({
         `Channel "${channel.code}" has no stock location, so stock cannot be allocated to its orders.`,
     fix: () => [
         {
-            path: ['admin_create_stock_location'],
+            path: adminToolPath('create_stock_location'),
             input: { input: { name: 'Default stock location' } },
             description: 'Create a stock location in this channel.',
         },
