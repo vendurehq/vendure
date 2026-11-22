@@ -24,7 +24,10 @@ export const configurableOperationSchema = z.strictObject({
     code: shortText.describe('The operation code, from list_shipping_options or list_payment_options.'),
     args: z
         .record(shortText, z.unknown())
-        .describe('Argument values by argument name. An argument left out takes its default.')
+        .describe(
+            'Argument values by argument name. An argument left out takes its default. ' +
+                'On update, a secret argument left out keeps its stored value.',
+        )
         .optional(),
 });
 
@@ -54,8 +57,9 @@ export const methodTranslationSchema = z.strictObject({
     description: longText.describe('Description shown to customers.').optional(),
 });
 
-/** At most one translation per language. */
+/** At least one translation, and at most one per language. */
 export const methodTranslationsSchema = z
     .array(methodTranslationSchema)
+    .min(1)
     .max(Object.values(LanguageCode).length)
-    .describe('Name and description per language. At least one entry is needed on create.');
+    .describe('Name and description per language, with at least one entry.');

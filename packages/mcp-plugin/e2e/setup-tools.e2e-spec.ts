@@ -1,10 +1,13 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
+    ConfigService,
     DefaultEncryptionStrategy,
     mergeConfig,
+    PaymentMethod,
     PaymentMethodHandler,
     SettingsStoreScopes,
+    TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
@@ -12,6 +15,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { MCP_TOOL_TOGGLES_STORE_KEY } from '../src/constants';
+import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
@@ -40,6 +44,8 @@ describe('MCP setup-entity admin tools', () => {
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
         rateLimits: { oauthIp: false },
+        // Full capture, so a test can show that no secret config arg reaches the log.
+        logging: { capture: 'full' },
     };
     const config = mergeConfig(testConfig(), {
         paymentOptions: { paymentMethodHandlers: [secretArgPaymentHandler] },
@@ -341,31 +347,44 @@ describe('MCP setup-entity admin tools', () => {
             });
             expect(updated.paymentMethod).toMatchObject({
                 enabled: false,
-                handler: { args: { mode: 'test' } },
+                handler: { args: { apiKey: REDACTED_SECRET_PLACEHOLDER, mode: 'test' } },
             });
+            expect(await storedApiKey('mcp-card')).toBe(SECRET_API_KEY);
 
-            const stored = await adminClient.query(gql`
-                query {
-                    paymentMethods {
-                        items {
-                            code
-                            handler {
-                                args {
-                                    name
-                                    value
-                                }
-                            }
-                        }
-                    }
-                }
-            `);
-            const storedMethod = stored.paymentMethods.items.find(
-                (m: { code: string }) => m.code === 'mcp-card',
-            );
-            // The Admin API redacts it too; what matters is that it was kept, not replaced by the placeholder.
-            expect(storedMethod.handler.args).toContainEqual({ name: 'mode', value: 'test' });
+            // Leaving the secret out keeps it too, rather than clearing it.
+            await call('update_payment_method', {
+                id: method.id,
+                input: { handler: { code: 'e2e-secret-handler', args: { mode: 'live' } } },
+            });
+            expect(await storedApiKey('mcp-card')).toBe(SECRET_API_KEY);
+        });
+
+        it('never writes the secret argument to the tool-call log', async () => {
+            const logs = await server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(McpToolCallLog)
+                .find();
+            const paymentLogs = logs.filter(log => log.toolName.endsWith('_payment_method'));
+            expect(paymentLogs.length).toBeGreaterThanOrEqual(3);
+            expect(JSON.stringify(paymentLogs)).not.toContain(SECRET_API_KEY);
+            const created = paymentLogs.find(log => log.toolName === 'create_payment_method');
+            expect(created?.input).toMatchObject({
+                input: { handler: { args: { apiKey: REDACTED_SECRET_PLACEHOLDER } } },
+            });
         });
     });
+
+    /** The stored value of the payment method's secret `apiKey` arg, decrypted. */
+    async function storedApiKey(code: string): Promise<string | undefined> {
+        const method = await server.app
+            .get(TransactionalConnection)
+            .rawConnection.getRepository(PaymentMethod)
+            .findOne({ where: { code } });
+        const value = method?.handler.args.find(arg => arg.name === 'apiKey')?.value;
+        // mergeConfig copies the strategy, so the initialised one is read from the running server.
+        const strategy = server.app.get(ConfigService).systemOptions.encryptionStrategy;
+        return value && strategy ? strategy.decrypt(value) : undefined;
+    }
 
     describe('stock locations', () => {
         it('creates, updates and lists a stock location', async () => {
@@ -402,9 +421,18 @@ describe('MCP setup-entity admin tools', () => {
                 id: created.role.id,
                 input: { permissions: ['ReadCatalog', 'UpdateCatalog'] },
             });
-            expect(updated.role.permissions).toEqual(
-                expect.arrayContaining(['ReadCatalog', 'UpdateCatalog']),
-            );
+            expect([...updated.role.permissions].sort()).toEqual([
+                'Authenticated',
+                'ReadCatalog',
+                'UpdateCatalog',
+            ]);
+
+            // The list replaces the old one, so a permission left out is removed.
+            const narrowed = await call('update_role', {
+                id: created.role.id,
+                input: { permissions: ['UpdateCatalog'] },
+            });
+            expect([...narrowed.role.permissions].sort()).toEqual(['Authenticated', 'UpdateCatalog']);
 
             const listed = await call('list_roles', { limit: 100 });
             expect(listed.items.map((role: { code: string }) => role.code)).toContain('mcp-catalog');
@@ -478,6 +506,7 @@ describe('MCP setup-entity admin tools', () => {
                 input: { availableCurrencyCodes: ['EUR'] },
             });
             expect(result.isError).toBe(true);
+            expect(result.content[0].text).toContain('defaultCurrencyCode');
         });
 
         it('reports an unknown channel as null', async () => {

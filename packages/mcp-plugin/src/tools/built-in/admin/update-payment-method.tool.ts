@@ -1,8 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentMethodService, Permission, RequestContext } from '@vendure/core';
+import {
+    ConfigArgService,
+    EntityNotFoundError,
+    PaymentMethodService,
+    Permission,
+    RequestContext,
+} from '@vendure/core';
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { keepOmittedSecretArgs } from '../../../config-arg-secrets';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { paymentMethodFieldsSchema } from './payment-method-fields-schema';
@@ -38,13 +45,22 @@ type UpdatePaymentMethodToolInput = z.infer<typeof updatePaymentMethodInput>;
 export class UpdatePaymentMethodTool implements McpToolHandler<UpdatePaymentMethodToolInput> {
     constructor(
         private readonly paymentMethodService: PaymentMethodService,
+        private readonly configArgService: ConfigArgService,
         private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdatePaymentMethodToolInput) {
-        const { checker, handler, translations, ...fields } = input.input;
+        const { translations, ...fields } = input.input;
+        const stored = await this.paymentMethodService.findOne(ctx, input.id);
+        if (!stored) {
+            throw new EntityNotFoundError('PaymentMethod', input.id);
+        }
+        const isSecret = (code: string, name: string) => this.configArgService.hasSecretArg(code, name);
+        const handler = fields.handler && keepOmittedSecretArgs(fields.handler, stored.handler, isSecret);
+        const checker = fields.checker && keepOmittedSecretArgs(fields.checker, stored.checker, isSecret);
         const paymentMethod = await this.paymentMethodService.update(ctx, {
-            ...fields,
+            code: fields.code,
+            enabled: fields.enabled,
             id: input.id,
             translations: translations ?? [],
             ...(handler ? { handler: toConfigurableOperationInput(handler) } : {}),

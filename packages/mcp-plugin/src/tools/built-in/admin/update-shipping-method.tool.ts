@@ -1,8 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, RequestContext, ShippingMethodService } from '@vendure/core';
+import {
+    ConfigArgService,
+    EntityNotFoundError,
+    Permission,
+    RequestContext,
+    ShippingMethodService,
+} from '@vendure/core';
 import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { keepOmittedSecretArgs } from '../../../config-arg-secrets';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { toConfigurableOperationInput } from './setup-schemas';
@@ -38,13 +45,23 @@ type UpdateShippingMethodToolInput = z.infer<typeof updateShippingMethodInput>;
 export class UpdateShippingMethodTool implements McpToolHandler<UpdateShippingMethodToolInput> {
     constructor(
         private readonly shippingMethodService: ShippingMethodService,
+        private readonly configArgService: ConfigArgService,
         private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateShippingMethodToolInput) {
-        const { checker, calculator, translations, ...fields } = input.input;
+        const { translations, ...fields } = input.input;
+        const stored = await this.shippingMethodService.findOne(ctx, input.id);
+        if (!stored) {
+            throw new EntityNotFoundError('ShippingMethod', input.id);
+        }
+        const isSecret = (code: string, name: string) => this.configArgService.hasSecretArg(code, name);
+        const checker = fields.checker && keepOmittedSecretArgs(fields.checker, stored.checker, isSecret);
+        const calculator =
+            fields.calculator && keepOmittedSecretArgs(fields.calculator, stored.calculator, isSecret);
         const shippingMethod = await this.shippingMethodService.update(ctx, {
-            ...fields,
+            code: fields.code,
+            fulfillmentHandler: fields.fulfillmentHandler,
             id: input.id,
             translations: translations ?? [],
             ...(checker ? { checker: toConfigurableOperationInput(checker) } : {}),

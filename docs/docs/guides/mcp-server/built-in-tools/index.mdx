@@ -412,8 +412,11 @@ Refunds the selected payment.
   `{ "code": "default-shipping-calculator", "args": { "rate": 500, "includesTax": "auto", "taxRate": 0 } }`.
 - `list_shipping_options` and `list_payment_options` list the valid codes and the arguments each one takes. Core
   validates the arguments.
-- A `secret` argument, such as a payment provider's API key, is never returned. Its value is replaced with a
-  placeholder. Send the placeholder back in an update to keep the stored value.
+- A `secret` argument, such as a payment provider's API key, is never returned, and never written to the
+  tool-call log. A set value is replaced with a placeholder. To keep the stored value in an update, leave the
+  argument out or send the placeholder back.
+- A number, boolean or list argument comes back as that type. Any other argument comes back as the stored
+  string.
 
 ### `create_role` and `update_role`
 

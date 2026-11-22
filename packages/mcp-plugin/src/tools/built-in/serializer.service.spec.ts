@@ -26,8 +26,26 @@ function configWithQuoteCustomFields() {
     } as any;
 }
 
-/** A stand-in for Vendure's ConfigArgService in which no config arg is secret. */
-const noSecretArgs = { hasSecretArg: () => false } as any;
+/** A stand-in for Vendure's ConfigArgService in which no config arg is secret or registered. */
+const noSecretArgs = { hasSecretArg: () => false, getDefinitions: () => [] } as any;
+
+/** The definitions the config arg tests read, keyed by def type. */
+const shippingDefinitions: Record<string, unknown[]> = {
+    ShippingEligibilityChecker: [
+        { code: 'default-shipping-eligibility-checker', args: { orderMinimum: { type: 'int' } } },
+    ],
+    ShippingCalculator: [
+        {
+            code: 'default-shipping-calculator',
+            args: {
+                rate: { type: 'int' },
+                includesTax: { type: 'string' },
+                accountId: { type: 'string' },
+                zones: { type: 'string', list: true },
+            },
+        },
+    ],
+};
 
 describe('McpToolSerializerService', () => {
     const service = new McpToolSerializerService(configWithPrecision(2), noSecretArgs);
@@ -729,7 +747,10 @@ describe('money scaling', () => {
     });
 
     it('returns configurable operation args by name, parsed from JSON where they parse', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2), noSecretArgs);
+        const service = new McpToolSerializerService(configWithPrecision(2), {
+            hasSecretArg: () => false,
+            getDefinitions: (type: string) => shippingDefinitions[type] ?? [],
+        } as any);
         const result = service.shippingMethod({
             id: 1,
             code: 'standard',
@@ -745,6 +766,8 @@ describe('money scaling', () => {
                 args: [
                     { name: 'rate', value: '500' },
                     { name: 'includesTax', value: 'auto' },
+                    { name: 'accountId', value: '12345678901234567890' },
+                    { name: 'zones', value: '["eu","uk"]' },
                 ],
             },
         } as any);
@@ -752,12 +775,20 @@ describe('money scaling', () => {
             code: 'default-shipping-eligibility-checker',
             args: { orderMinimum: 0 },
         });
-        expect(result.calculator.args).toEqual({ rate: 500, includesTax: 'auto' });
+        // A string arg stays the stored string, even when it would parse as a number.
+        expect(result.calculator.args).toEqual({
+            rate: 500,
+            includesTax: 'auto',
+            accountId: '12345678901234567890',
+            zones: ['eu', 'uk'],
+        });
     });
 
     it('never returns the value of a secret config arg', () => {
         const secretService = new McpToolSerializerService(configWithPrecision(2), {
-            hasSecretArg: (code: string, name: string) => code === 'card-handler' && name === 'apiKey',
+            hasSecretArg: (code: string, name: string) =>
+                code === 'card-handler' && ['apiKey', 'webhookSecret'].includes(name),
+            getDefinitions: () => [],
         } as any);
         const result = secretService.paymentMethod({
             id: 1,
@@ -770,11 +801,17 @@ describe('money scaling', () => {
                 code: 'card-handler',
                 args: [
                     { name: 'apiKey', value: 'sk_live_do_not_leak' },
+                    { name: 'webhookSecret', value: '' },
                     { name: 'mode', value: 'live' },
                 ],
             },
         } as any);
-        expect(result.handler.args).toEqual({ apiKey: REDACTED_SECRET_PLACEHOLDER, mode: 'live' });
+        // An unset secret is shown as unset, so a caller can tell it is missing.
+        expect(result.handler.args).toEqual({
+            apiKey: REDACTED_SECRET_PLACEHOLDER,
+            webhookSecret: '',
+            mode: 'live',
+        });
         expect(JSON.stringify(result)).not.toContain('sk_live_do_not_leak');
         expect(result.checker).toBeNull();
     });

@@ -13,6 +13,7 @@ import {
     Channel,
     Collection,
     ConfigArgService,
+    ConfigDefType,
     ConfigService,
     Country,
     CurrencyCode,
@@ -527,8 +528,8 @@ export class McpToolSerializerService {
             name: method.name,
             description: method.description,
             fulfillmentHandlerCode: method.fulfillmentHandlerCode,
-            checker: this.configurableOperation(method.checker),
-            calculator: this.configurableOperation(method.calculator),
+            checker: this.configurableOperation('ShippingEligibilityChecker', method.checker),
+            calculator: this.configurableOperation('ShippingCalculator', method.calculator),
         };
     }
 
@@ -539,8 +540,10 @@ export class McpToolSerializerService {
             name: method.name,
             description: method.description,
             enabled: method.enabled,
-            checker: method.checker ? this.configurableOperation(method.checker) : null,
-            handler: this.configurableOperation(method.handler),
+            checker: method.checker
+                ? this.configurableOperation('PaymentMethodEligibilityChecker', method.checker)
+                : null,
+            handler: this.configurableOperation('PaymentMethodHandler', method.handler),
         };
     }
 
@@ -560,22 +563,36 @@ export class McpToolSerializerService {
 
     /**
      * Arguments come back by name, in the same shape the create and update tools take. Core stores
-     * every value as a string, so a value that parses as JSON is returned parsed. A `secret`
-     * argument is always replaced with the redaction placeholder: a tool result goes to a language
-     * model, so no tool reveals a secret, whatever the configured secret access strategy allows.
-     * Sending the placeholder back in an update keeps the stored value.
+     * every value as a string. A number, boolean or list argument is returned parsed, and any other
+     * argument as the stored string, so sending a value back unchanged stores the same value.
+     *
+     * A set `secret` argument is always replaced with the redaction placeholder: a tool result goes
+     * to a language model, so no tool reveals a secret, whatever the configured secret access
+     * strategy allows. Sending the placeholder back in an update keeps the stored value. An unset
+     * secret is returned as it is, so a caller can see that it is missing.
      */
-    private configurableOperation(operation: ConfigurableOperation) {
+    private configurableOperation(type: ConfigDefType, operation: ConfigurableOperation) {
+        const definitions = this.configArgService.getDefinitions(type) as Array<{
+            code: string;
+            args: Record<string, { type: string; list?: boolean }>;
+        }>;
+        const definition = definitions.find(candidate => candidate.code === operation.code);
         const args: Record<string, unknown> = {};
         for (const arg of operation.args) {
-            args[arg.name] = this.configArgService.hasSecretArg(operation.code, arg.name)
-                ? REDACTED_SECRET_PLACEHOLDER
-                : this.parseConfigArgValue(arg.value);
+            const isSet = arg.value != null && arg.value !== '';
+            args[arg.name] =
+                isSet && this.configArgService.hasSecretArg(operation.code, arg.name)
+                    ? REDACTED_SECRET_PLACEHOLDER
+                    : this.configArgValue(arg.value, definition?.args[arg.name]);
         }
         return { code: operation.code, args };
     }
 
-    private parseConfigArgValue(value: string): unknown {
+    private configArgValue(value: string, definition: { type: string; list?: boolean } | undefined): unknown {
+        const parsed = definition?.list || ['int', 'float', 'boolean'].includes(definition?.type ?? '');
+        if (!parsed) {
+            return value;
+        }
         try {
             return JSON.parse(value);
         } catch {
