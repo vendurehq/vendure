@@ -42,6 +42,7 @@ import {
     LocalTrustActivation,
     readLocalTrustActivation,
 } from './local-trust/local-trust-activation';
+import { LOCAL_TRUST_SECRET_ENV_VAR } from './local-trust/local-trust-contract';
 import { LocalTrustService } from './local-trust/local-trust.service';
 import { McpToolCallLogRetentionService } from './logging/mcp-tool-call-log-retention.service';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
@@ -171,12 +172,20 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
     static options: ResolvedMcpPluginOptions;
 
     /**
-     * Whether local trust is on, decided by the `configuration` hook each time a Vendure app is
-     * bootstrapped with this plugin.
+     * Whether local trust is on for the app being bootstrapped, decided by its `configuration` hook.
      *
      * @internal
      */
     static localTrustActivation: LocalTrustActivation = LOCAL_TRUST_OFF;
+
+    /**
+     * What this process read from the CLI's secret. The secret is deleted from the environment on
+     * the first read, and one process often runs the configuration hooks more than once, for
+     * example `runMigrations()` and then `bootstrap()`, so later runs reuse this.
+     *
+     * @internal
+     */
+    static processLocalTrust: LocalTrustActivation = LOCAL_TRUST_OFF;
 
     /** Set when the `configuration` hook added `'bearer'` to the token method, so bootstrap can log it. */
     private static addedBearerTokenMethod = false;
@@ -210,12 +219,16 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
      * @internal
      */
     static activateLocalTrust(config: RuntimeVendureConfig): void {
-        const activation = readLocalTrustActivation({
-            localTrust: McpPlugin.options.localTrust,
-            env: process.env,
-            projectDir: process.cwd(),
-            uid: process.getuid?.(),
-        });
+        if (process.env[LOCAL_TRUST_SECRET_ENV_VAR] !== undefined) {
+            McpPlugin.processLocalTrust = readLocalTrustActivation({
+                localTrust: McpPlugin.options.localTrust,
+                env: process.env,
+                projectDir: process.cwd(),
+                uid: process.getuid?.(),
+            });
+        }
+        // An app configured with localTrust: false never uses what an earlier run read.
+        const activation = McpPlugin.options.localTrust ? McpPlugin.processLocalTrust : LOCAL_TRUST_OFF;
         McpPlugin.localTrustActivation = activation;
         McpPlugin.addedBearerTokenMethod = false;
         if (!activation.enabled) {

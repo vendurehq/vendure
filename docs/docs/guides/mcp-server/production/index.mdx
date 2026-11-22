@@ -34,6 +34,20 @@ openssl rand -base64 32
 Store it in an environment variable or secret manager, not in source control. **Rotating the secret invalidates
 every stored MCP OAuth token**, so all agents must re-authorize.
 
+## Turn off local trust
+
+Local trust lets the Vendure CLI act as the superadmin on a dev server it started (see
+[Local trust in development](/mcp-server/quick-start/#local-trust-in-development)). It needs a secret from the
+CLI and the CLI's state file in the project directory, so it does not turn on by accident. Turn it off anyway on
+every server that runs outside a developer's machine:
+
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    // ...
+    localTrust: false,
+}),
+```
+
 ## Set the issuer
 
 In production, `oauth.issuer` must be a public HTTPS origin.

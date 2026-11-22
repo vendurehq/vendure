@@ -137,6 +137,9 @@ describe.skipIf(uid === undefined)('readLocalTrustActivation', () => {
             projectDir,
             uid: undefined,
         });
-        expect(activation).toMatchObject({ enabled: false, refusedReason: expect.stringMatching(/platform/) });
+        expect(activation).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/platform/),
+        });
     });
 });

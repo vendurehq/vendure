@@ -33,6 +33,12 @@ import { isLoopbackSocketAddress } from './loopback-socket-address';
 /** The authentication strategy name recorded on the Admin API session that local trust creates. */
 export const LOCAL_TRUST_SESSION_STRATEGY = 'local-trust';
 
+/**
+ * The startup log line that names the admin MCP endpoint, followed by its URL. The Vendure CLI
+ * parses it, so it must not change.
+ */
+export const ADMIN_ENDPOINT_LOG_PREFIX = 'Store MCP admin endpoint: ';
+
 /** What `AuthInfo.token` carries for a local-trust caller, in place of the secret. */
 export const LOCAL_TRUST_AUTH_TOKEN_PLACEHOLDER = 'local-trust';
 
@@ -79,6 +85,8 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
         if (!this.processContext.isServer) {
             return;
         }
+        // The Vendure CLI reads this line to find the endpoint, so keep its format stable.
+        Logger.info(`${ADMIN_ENDPOINT_LOG_PREFIX}${this.adminEndpointUrl()}`, loggerCtx);
         if (this.activation.enabled) {
             Logger.warn(
                 'Local trust is on: a caller presenting the secret in ' +
@@ -112,6 +120,12 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
                 loggerCtx,
             );
         }
+    }
+
+    /** The admin MCP endpoint's URL on this server, built as core builds the URLs it logs at startup. */
+    adminEndpointUrl(): string {
+        const { hostname, port } = this.configService.apiOptions;
+        return `http://${hostname || 'localhost'}:${port}/mcp/admin`;
     }
 
     /** True when local trust is on in this process, which only the main server process can be. */

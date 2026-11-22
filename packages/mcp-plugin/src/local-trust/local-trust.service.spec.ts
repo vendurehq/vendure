@@ -1,3 +1,4 @@
+import { Logger } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { hashLocalTrustSecret, LOCAL_TRUST_OFF, LocalTrustActivation } from './local-trust-activation';
@@ -11,7 +12,13 @@ import { isLoopbackSocketAddress } from './loopback-socket-address';
 
 const SECRET = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LW9mLTMyLWJ5dGVz';
 
-function service(options: { activation?: LocalTrustActivation; isServer?: boolean } = {}) {
+function service(
+    options: {
+        activation?: LocalTrustActivation;
+        isServer?: boolean;
+        apiOptions?: { hostname?: string; port: number };
+    } = {},
+) {
     const activation = options.activation ?? {
         enabled: true,
         secretHash: hashLocalTrustSecret(SECRET),
@@ -21,7 +28,7 @@ function service(options: { activation?: LocalTrustActivation; isServer?: boolea
     const localTrust = new LocalTrustService(
         activation,
         { isServer: options.isServer ?? true } as any,
-        {} as any,
+        { apiOptions: options.apiOptions ?? { hostname: '', port: 3000 } } as any,
         {} as any,
         {} as any,
         {} as any,
@@ -137,12 +144,18 @@ describe('isLoopbackSocketAddress', () => {
         },
     );
 
-    it.each(['localhost', '128.0.0.1', '::2', '::ffff:10.0.0.1', '::ffff:7f00:1', '', undefined, '127.0.0.1:80'])(
-        'refuses %s',
-        address => {
-            expect(isLoopbackSocketAddress(address)).toBe(false);
-        },
-    );
+    it.each([
+        'localhost',
+        '128.0.0.1',
+        '::2',
+        '::ffff:10.0.0.1',
+        '::ffff:7f00:1',
+        '',
+        undefined,
+        '127.0.0.1:80',
+    ])('refuses %s', address => {
+        expect(isLoopbackSocketAddress(address)).toBe(false);
+    });
 });
 
 describe('hostnameOfHostHeader', () => {
@@ -172,5 +185,43 @@ describe('getBearerToken', () => {
         expect(getBearerToken(`Bearer${SECRET}`)).toBeUndefined();
         expect(getBearerToken('Bearer ')).toBeUndefined();
         expect(getBearerToken(undefined)).toBeUndefined();
+    });
+});
+
+describe('LocalTrustService startup log', () => {
+    // The Vendure CLI parses this exact line to fill in the endpoint, so the format is pinned here.
+    it('logs the admin endpoint URL on the main server process, and never the secret', () => {
+        const info = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        try {
+            service().localTrust.onApplicationBootstrap();
+            expect(info).toHaveBeenCalledWith(
+                'Store MCP admin endpoint: http://localhost:3000/mcp/admin',
+                'McpPlugin',
+            );
+            const logged = JSON.stringify([...info.mock.calls, ...warn.mock.calls]);
+            expect(logged).not.toContain(SECRET);
+        } finally {
+            info.mockRestore();
+            warn.mockRestore();
+        }
+    });
+
+    it('uses the configured hostname, and logs nothing in a worker', () => {
+        const info = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
+        try {
+            service({
+                apiOptions: { hostname: '127.0.0.1', port: 4000 },
+            }).localTrust.onApplicationBootstrap();
+            expect(info).toHaveBeenCalledWith(
+                'Store MCP admin endpoint: http://127.0.0.1:4000/mcp/admin',
+                'McpPlugin',
+            );
+            info.mockClear();
+            service({ isServer: false }).localTrust.onApplicationBootstrap();
+            expect(info).not.toHaveBeenCalled();
+        } finally {
+            info.mockRestore();
+        }
     });
 });
