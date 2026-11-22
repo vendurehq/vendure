@@ -5,6 +5,7 @@ import pc from 'picocolors';
 import {
     formatLogLineAsText,
     isReadyLine,
+    isWelcomeEndLine,
     readChildOutputLine,
     readUrls,
     StartupErrorEvent,
@@ -16,19 +17,27 @@ import {
     DevServerError,
     DevServerStateFile,
     generateLocalTrustSecret,
-    isProcessAlive,
-    readDevServerState,
     withoutLocalTrustSecret,
 } from './state-file.js';
-import { DevSupervisor } from './supervisor.js';
+import { DevSupervisor, DevSupervisorSnapshot } from './supervisor.js';
 
 /** How many lines of a process's output are kept to read compile errors from. */
 const MAX_BUFFERED_OUTPUT_LINES = 500;
+/**
+ * How long after its "now running" line the server counts as ready without the line that closes
+ * its welcome message.
+ */
+const WELCOME_MESSAGE_TIMEOUT_MS = 1000;
 
 /**
  * Receives what happens to one process of a `vendure dev` run.
  */
 export interface DevChildMonitor {
+    /**
+     * A file change will restart the process, or start it again after it exited. Called when the
+     * change is seen, before the old process is stopped, so the state says `restarting` at once.
+     */
+    onChangeDetected(): void;
     /** The process is about to be spawned. `restart` is false for the first spawn of the run. */
     onSpawn(restart: boolean): void;
     /** One line of the process's output, without the line ending. */
@@ -44,10 +53,15 @@ export interface DevChildMonitor {
 export interface DevRunOptions {
     projectDir: string;
     targets: string[];
-    /** Writes the state file. Only a run that starts the server writes it. */
+    /**
+     * Writes the state file and the dev log. Only a run that starts the server does, so a second
+     * run in another terminal, such as `vendure dev dashboard`, leaves both alone.
+     */
     writeState: boolean;
     /** Writes the readable form of a process's output to the terminal. */
     print: (target: string, stream: 'stdout' | 'stderr', text: string) => void;
+    /** Reports a problem of the run itself, such as a state file that cannot be written. */
+    warn?: (message: string) => void;
     now?: () => Date;
     secret?: string;
 }
@@ -63,25 +77,26 @@ export class DevRun {
     readonly supervisor: DevSupervisor;
     private readonly secret: string;
     private readonly stateFile: DevServerStateFile | undefined;
-    private readonly logWriter: RotatingLogWriter;
+    private readonly logWriter: RotatingLogWriter | undefined;
+    private readonly warned = new Set<string>();
     private ended = false;
 
+    /**
+     * Throws {@link DevRunAlreadyRunningError} when the run writes the state file and another live
+     * run holds it.
+     */
     constructor(private readonly options: DevRunOptions) {
         this.secret = options.secret ?? generateLocalTrustSecret();
         this.stateFile = options.writeState
             ? new DevServerStateFile(options.projectDir, this.secret)
             : undefined;
-        this.logWriter = new RotatingLogWriter(options.projectDir);
         this.supervisor = new DevSupervisor(
             options.targets,
-            snapshot => {
-                if (!this.ended && snapshot.status !== 'stopped') {
-                    this.stateFile?.write({ ...snapshot, pid: process.pid });
-                }
-            },
+            snapshot => this.writeState(snapshot),
             options.now,
         );
-        this.stateFile?.write({ ...this.supervisor.snapshot(), pid: process.pid });
+        this.stateFile?.claim({ ...this.supervisor.snapshot(), pid: process.pid });
+        this.logWriter = options.writeState ? new RotatingLogWriter(options.projectDir) : undefined;
     }
 
     /**
@@ -118,36 +133,43 @@ export class DevRun {
         try {
             this.stateFile?.remove();
         } finally {
-            this.logWriter.close();
+            this.logWriter?.close();
+        }
+    }
+
+    private writeState(snapshot: DevSupervisorSnapshot) {
+        if (this.ended || snapshot.status === 'stopped') {
+            return;
+        }
+        try {
+            this.stateFile?.write({ ...snapshot, pid: process.pid });
+        } catch (e) {
+            this.warnOnce('state', `Could not write .vendure/devserver.json: ${(e as Error).message}`);
         }
     }
 
     private writeLog(line: LogLine) {
         try {
-            this.logWriter.write(line);
-        } catch {
+            this.logWriter?.write(line);
+        } catch (e) {
             // A full disk or a deleted log directory must not stop the run. The terminal still
             // shows every line.
+            this.warnOnce('log', `Could not write .vendure/logs/dev.jsonl: ${(e as Error).message}`);
         }
     }
-}
 
-/**
- * Refuses to start a run that would write the state file while another live run holds it.
- */
-export function assertNoOtherDevRun(projectDir: string): void {
-    const state = readDevServerState(projectDir);
-    if (state && state.pid !== process.pid && isProcessAlive(state.pid)) {
-        throw new Error(
-            `vendure dev is already running for this project (process ${state.pid}). ` +
-                'Stop it with "vendure devserver stop" first.',
-        );
+    private warnOnce(key: string, message: string) {
+        if (!this.warned.has(key)) {
+            this.warned.add(key);
+            this.options.warn?.(message);
+        }
     }
 }
 
 class ChildMonitor implements DevChildMonitor {
     private output: string[] = [];
     private startupError: StartupErrorEvent | undefined;
+    private welcomeTimer: NodeJS.Timeout | undefined;
 
     constructor(
         private readonly target: string,
@@ -156,9 +178,15 @@ class ChildMonitor implements DevChildMonitor {
         private readonly writeLog: (line: LogLine) => void,
     ) {}
 
+    onChangeDetected(): void {
+        this.cancelWelcomeTimer();
+        this.supervisor.childRestarting(this.target);
+    }
+
     onSpawn(restart: boolean): void {
         this.output = [];
         this.startupError = undefined;
+        this.cancelWelcomeTimer();
         if (restart) {
             this.supervisor.childRestarting(this.target);
         }
@@ -177,15 +205,38 @@ class ChildMonitor implements DevChildMonitor {
         this.options.print(this.target, stream, read.json ? formatLogLineAsText(read.line) : raw);
         this.bufferOutput(read.line);
         this.supervisor.addUrls(readUrls(this.target, read.line));
-        if (isReadyLine(this.target, read.line)) {
-            this.supervisor.childReady(this.target);
+        if (this.welcomeTimer && isWelcomeEndLine(read.line)) {
+            this.markReady();
+        } else if (isReadyLine(this.target, read.line)) {
+            if (this.target === 'server') {
+                // The server prints its URLs after the "now running" line, so it counts as ready
+                // once the line that closes its welcome message has arrived.
+                this.cancelWelcomeTimer();
+                this.welcomeTimer = setTimeout(() => this.markReady(), WELCOME_MESSAGE_TIMEOUT_MS);
+                this.welcomeTimer.unref?.();
+            } else {
+                this.markReady();
+            }
         }
     }
 
     onRecoverableExit(code: number): string {
+        this.cancelWelcomeTimer();
         const error = this.describeFailure(code);
         this.supervisor.childFailed(this.target, error);
         return error.message;
+    }
+
+    private markReady() {
+        this.cancelWelcomeTimer();
+        this.supervisor.childReady(this.target);
+    }
+
+    private cancelWelcomeTimer() {
+        if (this.welcomeTimer) {
+            clearTimeout(this.welcomeTimer);
+            this.welcomeTimer = undefined;
+        }
     }
 
     private bufferOutput(line: LogLine) {

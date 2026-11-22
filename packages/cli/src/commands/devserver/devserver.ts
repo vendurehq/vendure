@@ -5,7 +5,7 @@ import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
 import {
     DevServerState,
     DevServerStatusReport,
-    isProcessAlive,
+    isDevRunAlive,
     readDevServerState,
     toStatusReport,
 } from '../dev/state-file.js';
@@ -58,7 +58,7 @@ export function defaultTimeoutSeconds(ctx: CommandContext, timeout?: number): nu
 /** The state of the run serving the project, or `undefined` when no live run is. */
 export function readLiveDevServerState(projectDir: string): DevServerState | undefined {
     const state = readDevServerState(projectDir);
-    return state && isProcessAlive(state.pid) ? state : undefined;
+    return state && isDevRunAlive(state) ? state : undefined;
 }
 
 export interface WaitResult extends DevServerStatusReport {

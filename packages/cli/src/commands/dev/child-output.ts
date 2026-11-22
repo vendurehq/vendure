@@ -73,7 +73,10 @@ function parseJson(raw: string): unknown {
     }
 }
 
-function isLogLine(value: unknown): value is LogLine {
+/**
+ * Whether a parsed JSON value is a {@link LogLine}: it has a time, a known level and a message.
+ */
+export function isLogLine(value: unknown): value is LogLine {
     if (typeof value !== 'object' || value === null) {
         return false;
     }
@@ -151,6 +154,11 @@ const dashboardReadyPattern = /\bready in [\d.]+ ?m?s\b/;
 const serverUrlPattern = /^([A-Za-z][\w ]*?):\s+(https?:\/\/\S+)$/;
 // `➜  Local:   http://localhost:5173/dashboard/`, from the Vite dev server.
 const viteLocalUrlPattern = /Local:\s+(https?:\/\/\S+)/;
+// `Store MCP admin endpoint: http://localhost:3000/mcp/admin`, which the McpPlugin logs when the
+// server starts. The plugin is optional, so the line may never come.
+const mcpEndpointPattern = /^Store MCP admin endpoint: (https?:\/\/\S+)$/;
+// The line of `=` that closes the server's welcome message, after its URLs.
+const welcomeEndPattern = /^=+$/;
 
 /**
  * Whether a line tells that the process is ready: the server is listening, the worker is
@@ -170,8 +178,16 @@ export function isReadyLine(target: string, line: LogLine): boolean {
 }
 
 /**
+ * Whether a line closes the server's welcome message.
+ */
+export function isWelcomeEndLine(line: LogLine): boolean {
+    return welcomeEndPattern.test(line.msg.trim());
+}
+
+/**
  * The URLs a line names. The server's welcome message names the Shop API, the Admin API and the
- * routes plugins register, such as `Dashboard UI`. The Dashboard's Vite server names its local URL.
+ * routes plugins register, such as `Dashboard UI`, and the McpPlugin logs its admin endpoint. The
+ * Dashboard's Vite server names its local URL.
  */
 export function readUrls(target: string, line: LogLine): DevServerUrls {
     if (target === 'dashboard') {
@@ -180,6 +196,10 @@ export function readUrls(target: string, line: LogLine): DevServerUrls {
     }
     if (target !== 'server') {
         return {};
+    }
+    const mcpMatch = mcpEndpointPattern.exec(line.msg.trim());
+    if (mcpMatch) {
+        return { mcp: mcpMatch[1] };
     }
     const match = serverUrlPattern.exec(line.msg.trim());
     if (!match) {
@@ -195,9 +215,6 @@ export function readUrls(target: string, line: LogLine): DevServerUrls {
     }
     if (label.startsWith('dashboard')) {
         return { dashboard: url };
-    }
-    if (label === 'mcp' || label.startsWith('mcp ')) {
-        return { mcp: url };
     }
     return {};
 }

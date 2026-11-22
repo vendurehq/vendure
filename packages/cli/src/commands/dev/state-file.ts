@@ -3,8 +3,18 @@ import {
     LOCAL_TRUST_STATE_FILE,
     LocalTrustState,
 } from '@vendure/common/lib/local-trust';
+import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { closeSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from 'node:fs';
+import {
+    closeSync,
+    linkSync,
+    mkdirSync,
+    openSync,
+    readFileSync,
+    renameSync,
+    unlinkSync,
+    writeSync,
+} from 'node:fs';
 import path from 'node:path';
 
 /**
@@ -12,15 +22,9 @@ import path from 'node:path';
  * time, `restarting` while a file change restarts a process, `failed` when a process exited
  * before it was ready or crashed later, and `stopped` once the run has ended.
  */
-export type DevServerStatus = 'starting' | 'ready' | 'restarting' | 'failed' | 'stopped';
+export const DEV_SERVER_STATUSES = ['starting', 'ready', 'restarting', 'failed', 'stopped'] as const;
 
-export const DEV_SERVER_STATUSES: readonly DevServerStatus[] = [
-    'starting',
-    'ready',
-    'restarting',
-    'failed',
-    'stopped',
-];
+export type DevServerStatus = (typeof DEV_SERVER_STATUSES)[number];
 
 /**
  * The URLs the run serves. A URL is present once the process that serves it has reported it.
@@ -147,6 +151,7 @@ function isDevServerState(value: unknown): value is DevServerState {
 
 /**
  * Whether a process with this ID is running. A process owned by another user counts as running.
+ * Use {@link isDevRunAlive} to ask whether the run that wrote a state file is still running.
  */
 export function isProcessAlive(pid: number): boolean {
     if (!Number.isInteger(pid) || pid <= 0) {
@@ -158,6 +163,66 @@ export function isProcessAlive(pid: number): boolean {
     } catch (e: unknown) {
         return (e as NodeJS.ErrnoException).code === 'EPERM';
     }
+}
+
+/** How far the start of a process may lie after the run's `startedAt`, for the rounding of `ps`. */
+const START_TIME_TOLERANCE_MS = 2000;
+
+/**
+ * Whether the run that wrote a state file is still running.
+ *
+ * The pid alone is not enough: after a crash or a reboot the file stays behind, and the operating
+ * system can give its pid to an unrelated process. The run's process started before it wrote
+ * `startedAt`, so a process that started later is a different one. A process of another user is
+ * never the run, because the file is only readable by the user who wrote it. Where `ps` cannot
+ * report the start time, as on Windows, the pid is trusted.
+ */
+export function isDevRunAlive(state: Pick<DevServerState, 'pid' | 'startedAt'>, now = Date.now()): boolean {
+    if (state.pid === process.pid) {
+        return true;
+    }
+    if (!Number.isInteger(state.pid) || state.pid <= 0) {
+        return false;
+    }
+    try {
+        process.kill(state.pid, 0);
+    } catch {
+        // ESRCH: no such process. EPERM: a process of another user.
+        return false;
+    }
+    const elapsedSeconds = readProcessElapsedSeconds(state.pid);
+    const runStartedAt = Date.parse(state.startedAt);
+    if (elapsedSeconds === undefined || Number.isNaN(runStartedAt)) {
+        return true;
+    }
+    return now - elapsedSeconds * 1000 <= runStartedAt + START_TIME_TOLERANCE_MS;
+}
+
+function readProcessElapsedSeconds(pid: number): number | undefined {
+    if (process.platform === 'win32') {
+        return undefined;
+    }
+    try {
+        const output = execFileSync('ps', ['-o', 'etime=', '-p', String(pid)], {
+            encoding: 'utf-8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        return parseElapsedTime(output);
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Reads the elapsed time that `ps -o etime=` prints, `[[dd-]hh:]mm:ss`, as seconds.
+ */
+export function parseElapsedTime(text: string): number | undefined {
+    const match = /^(?:(?:(\d+)-)?(\d+):)?(\d+):(\d+)$/.exec(text.trim());
+    if (!match) {
+        return undefined;
+    }
+    const [, days, hours, minutes, seconds] = match;
+    return ((Number(days ?? 0) * 24 + Number(hours ?? 0)) * 60 + Number(minutes)) * 60 + Number(seconds);
 }
 
 /**
@@ -175,7 +240,7 @@ export function toStatusReport(state: DevServerState | undefined): DevServerStat
         restarts: state.restarts,
         lastError: state.lastError ?? null,
     };
-    return isProcessAlive(state.pid) ? report : { ...report, status: 'stopped' };
+    return isDevRunAlive(state) ? report : { ...report, status: 'stopped' };
 }
 
 /**
@@ -196,7 +261,52 @@ export class DevServerStateFile {
         this.filePath = getDevServerStateFilePath(projectDir);
     }
 
+    /**
+     * Creates the state file for this run. It fails with {@link DevRunAlreadyRunningError} when the
+     * file belongs to another run that is still running. A file left behind by a run that is gone
+     * is replaced.
+     *
+     * The file is created with a hard link from the temporary file, which fails when the file
+     * already exists, so of two runs that start at the same moment only one creates it.
+     */
+    claim(state: Omit<DevServerState, 'secret'>): void {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const tempPath = this.writeTemporaryFile(state);
+            try {
+                linkSync(tempPath, this.filePath);
+                return;
+            } catch (e: unknown) {
+                if ((e as NodeJS.ErrnoException).code !== 'EEXIST') {
+                    throw e;
+                }
+            } finally {
+                unlinkIfExists(tempPath);
+            }
+            const existing = readDevServerState(this.projectDir);
+            if (existing && isDevRunAlive(existing)) {
+                throw new DevRunAlreadyRunningError(existing.pid);
+            }
+            unlinkIfExists(this.filePath);
+        }
+        throw new Error(
+            `Could not create ${LOCAL_TRUST_STATE_FILE}, because another process keeps writing it.`,
+        );
+    }
+
+    /**
+     * Replaces the state file with a new state.
+     */
     write(state: Omit<DevServerState, 'secret'>): void {
+        const tempPath = this.writeTemporaryFile(state);
+        try {
+            renameSync(tempPath, this.filePath);
+        } catch (e) {
+            unlinkIfExists(tempPath);
+            throw e;
+        }
+    }
+
+    private writeTemporaryFile(state: Omit<DevServerState, 'secret'>): string {
         mkdirSync(path.dirname(this.filePath), { recursive: true });
         const tempPath = `${this.filePath}.${process.pid}.${++this.writes}.tmp`;
         const fd = openSync(tempPath, 'wx', 0o600);
@@ -205,12 +315,7 @@ export class DevServerStateFile {
         } finally {
             closeSync(fd);
         }
-        try {
-            renameSync(tempPath, this.filePath);
-        } catch (e) {
-            unlinkIfExists(tempPath);
-            throw e;
-        }
+        return tempPath;
     }
 
     /**
@@ -231,5 +336,17 @@ function unlinkIfExists(filePath: string) {
         if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
             throw e;
         }
+    }
+}
+
+/**
+ * Thrown when a `vendure dev` run starts while another live run holds the state file.
+ */
+export class DevRunAlreadyRunningError extends Error {
+    constructor(readonly pid: number) {
+        super(
+            `vendure dev is already running for this project (process ${pid}). ` +
+                'Stop it with "vendure devserver stop" first.',
+        );
     }
 }

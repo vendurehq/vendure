@@ -4,7 +4,7 @@ import { LogLevelName, LogLine } from '@vendure/common/lib/log';
 import { formatLogLineAsText } from '../dev/child-output.js';
 
 import { devServerErrors, resolveDevServerProject } from './devserver.js';
-import { parseSince, readDevServerLogs } from './log-reader.js';
+import { MAX_LOG_LINES, parseSince, readDevServerLogs } from './log-reader.js';
 
 /**
  * Reads the dev log of the project, filtered like `vendure cloud logs`.
@@ -38,11 +38,22 @@ function readLogs(input: LogsInput, ctx: CommandContext) {
         requestId: input.request,
         minSeverity: input.minSeverity,
     });
-    return { lines };
+    const omitted = Math.max(lines.length - MAX_LOG_LINES, 0);
+    if (omitted > 0) {
+        ctx.notice(
+            'info',
+            `Left out the ${omitted} oldest lines. Narrow the filters, for example with --since, to see them.`,
+        );
+    }
+    return { lines: lines.slice(omitted), omitted };
 }
 
-export function render(output: { lines: LogLine[] }): string {
-    return output.lines
-        .map(line => `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`)
-        .join('\n');
+export function render(output: { lines: LogLine[]; omitted: number }): string {
+    const lines = output.lines.map(
+        line => `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`,
+    );
+    if (output.omitted > 0) {
+        lines.unshift(`(${output.omitted} older lines left out)`);
+    }
+    return lines.join('\n');
 }

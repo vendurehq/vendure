@@ -8,16 +8,17 @@ import pc from 'picocolors';
 import ts from 'typescript';
 
 import {
+    forEachLine,
     getProcessPrefix,
-    pipePrefixedOutput,
     resolvePackageBin,
     signalToExitCode,
+    writePrefixedLines,
 } from '../../shared/cli-process-utils.js';
 import { showConsoleHintIfUnlinked } from '../../shared/console-hint.js';
 import { showStarPromptOnce } from '../../shared/star-prompt.js';
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
 
-import { assertNoOtherDevRun, DevChildMonitor, DevRun } from './dev-run.js';
+import { DevChildMonitor, DevRun } from './dev-run.js';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 
@@ -90,18 +91,17 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
         const runsServer = processes.some(processDefinition => processDefinition.target === 'server');
 
         validateProjectFiles(projectDir, processes);
-        if (runsServer) {
-            assertNoOtherDevRun(projectDir);
-        }
         // Once per process start. File-watcher restarts happen inside startDevProcess.
         showConsoleHintIfUnlinked(projectDir);
 
-        // Only a run that starts the server writes the state file, so a second terminal running
-        // `vendure dev dashboard` leaves the server's state alone.
+        // Only a run that starts the server writes the state file and the dev log, so a second
+        // terminal running `vendure dev dashboard` leaves them alone. It refuses to start while
+        // another live run holds the state file.
         const run = new DevRun({
             projectDir,
             targets: processes.map(processDefinition => processDefinition.target),
             writeState: runsServer,
+            warn: message => log.warn(message),
             print: (processTarget, stream, text) =>
                 printChildOutput(devProcessDefinitions[processTarget as keyof typeof devProcessDefinitions], {
                     stream,
@@ -195,11 +195,8 @@ function printChildOutput(
     processDefinition: DevProcessDefinition,
     { stream, text, prefixOutput }: { stream: 'stdout' | 'stderr'; text: string; prefixOutput: boolean },
 ) {
-    const output = stream === 'stderr' ? process.stderr : process.stdout;
     const prefix = prefixOutput ? `${getProcessPrefix(processDefinition)} ` : '';
-    for (const line of text.split('\n')) {
-        output.write(line.length ? `${prefix}${line}\n` : '\n');
-    }
+    writePrefixedLines(stream === 'stderr' ? process.stderr : process.stdout, prefix, text);
 }
 
 export function getDevProcessDefinitions(
@@ -264,10 +261,10 @@ interface DevChildOptions {
     /** The environment of the child. Defaults to the environment of this process. */
     env?: NodeJS.ProcessEnv;
     /**
-     * Receives what happens to the child. With a monitor, the child's output is piped to it line by
-     * line, and the monitor decides what reaches the terminal.
+     * Receives what happens to the child. The child's output is piped to it line by line, and the
+     * monitor decides what reaches the terminal.
      */
-    monitor?: DevChildMonitor;
+    monitor: DevChildMonitor;
 }
 
 function startDevProcess(
@@ -298,39 +295,12 @@ function spawnDevChild(
                 ...baseEnv,
                 FORCE_COLOR: baseEnv.FORCE_COLOR ?? '1',
             },
-            stdio: options.monitor || options.prefixOutput ? [stdinMode, 'pipe', 'pipe'] : 'inherit',
+            stdio: [stdinMode, 'pipe', 'pipe'],
         },
     );
-    const monitor = options.monitor;
-    if (monitor) {
-        pipeLines(child.stdout, line => monitor.onOutput('stdout', line));
-        pipeLines(child.stderr, line => monitor.onOutput('stderr', line));
-    } else if (options.prefixOutput) {
-        pipePrefixedOutput(child.stdout, process.stdout, processDefinition);
-        pipePrefixedOutput(child.stderr, process.stderr, processDefinition);
-    }
+    forEachLine(child.stdout, line => options.monitor.onOutput('stdout', line));
+    forEachLine(child.stderr, line => options.monitor.onOutput('stderr', line));
     return child;
-}
-
-function pipeLines(stream: NodeJS.ReadableStream | null, onLine: (line: string) => void) {
-    if (!stream) {
-        return;
-    }
-    let buffered = '';
-    stream.on('data', data => {
-        buffered += data.toString();
-        const lines = buffered.split(/\r?\n/);
-        buffered = lines.pop() ?? '';
-        for (const line of lines) {
-            onLine(line);
-        }
-    });
-    stream.on('end', () => {
-        if (buffered.length) {
-            onLine(buffered);
-            buffered = '';
-        }
-    });
 }
 
 function startPlainDevProcess(
@@ -339,7 +309,7 @@ function startPlainDevProcess(
     binPath: string,
     options: DevChildOptions,
 ): ManagedDevProcess {
-    options.monitor?.onSpawn(false);
+    options.monitor.onSpawn(false);
     const child = spawnDevChild(projectDir, processDefinition, binPath, options);
     const runningProcess = new ManagedDevProcess(signal => {
         stopChildWithGrace(child, signal, restartShutdownGraceMs);
@@ -398,7 +368,7 @@ export function startSupervisedDevProcess(
 
     const startChild = (restart: boolean) => {
         crashExitCode = undefined;
-        options.monitor?.onSpawn(restart);
+        options.monitor.onSpawn(restart);
         const startedChild = spawnChild(projectDir, processDefinition, binPath, options);
         child = startedChild;
         startedChild.once('error', error => runningProcess.emit('error', error));
@@ -427,10 +397,11 @@ export function startSupervisedDevProcess(
             // before the watcher respawns this process, the run failed.
             child = undefined;
             crashExitCode = code;
-            const reason =
-                options.monitor?.onRecoverableExit(code) ??
-                `The ${processDefinition.target} exited with code ${code}`;
-            writeDevStatus(processDefinition, `${reason}. Waiting for a file change to restart it.`, options);
+            writeDevStatus(
+                processDefinition,
+                `${options.monitor.onRecoverableExit(code)}. Waiting for a file change to restart it.`,
+                options,
+            );
         });
     };
 
@@ -462,9 +433,12 @@ export function startSupervisedDevProcess(
     };
 
     watcher.on('all', (_event, filePath) => {
-        if (!shouldRestartOnFileChange(filePath, projectDir, reloadPathScope())) {
+        if (stopping || !shouldRestartOnFileChange(filePath, projectDir, reloadPathScope())) {
             return;
         }
+        // Report the restart as soon as the change is seen, so that the state does not say `ready`
+        // or `failed` for the old process during the debounce and while it shuts down.
+        options.monitor.onChangeDetected();
         if (restartTimer) {
             clearTimeout(restartTimer);
         }

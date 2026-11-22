@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { stripAnsi } from '../../shared/strip-ansi.js';
 
-import { formatLogLineAsText, isReadyLine, readChildOutputLine, readUrls } from './child-output.js';
+import {
+    formatLogLineAsText,
+    isReadyLine,
+    isWelcomeEndLine,
+    readChildOutputLine,
+    readUrls,
+} from './child-output.js';
 
 const now = () => new Date('2026-11-22T10:00:00.000Z');
 
@@ -88,6 +94,16 @@ describe('isReadyLine()', () => {
     });
 });
 
+describe('isWelcomeEndLine()', () => {
+    const line = (msg: string) => ({ ts: '', level: 'info' as const, msg });
+
+    it('recognises the line of = that closes the welcome message', () => {
+        expect(isWelcomeEndLine(line('=================================='))).toBe(true);
+        expect(isWelcomeEndLine(line('----------------------------------'))).toBe(false);
+        expect(isWelcomeEndLine(line('Shop API: http://localhost:3000/shop-api'))).toBe(false);
+    });
+});
+
 describe('readUrls()', () => {
     const line = (msg: string) => ({ ts: '', level: 'info' as const, msg });
 
@@ -101,10 +117,17 @@ describe('readUrls()', () => {
         expect(readUrls('server', line('Dashboard UI: http://localhost:3000/dashboard'))).toEqual({
             dashboard: 'http://localhost:3000/dashboard',
         });
-        expect(readUrls('server', line('MCP:          http://localhost:3000/mcp'))).toEqual({
-            mcp: 'http://localhost:3000/mcp',
-        });
+        expect(readUrls('server', line('GraphiQL Shop: http://localhost:3000/graphiql/shop'))).toEqual({});
         expect(readUrls('server', line('GraphiQL Admin: http://localhost:3000/graphiql/admin'))).toEqual({});
+    });
+
+    it('reads the MCP URL from the exact line the McpPlugin logs', () => {
+        expect(readUrls('server', line('Store MCP admin endpoint: http://localhost:3000/mcp/admin'))).toEqual(
+            { mcp: 'http://localhost:3000/mcp/admin' },
+        );
+        expect(readUrls('worker', line('Store MCP admin endpoint: http://localhost:3000/mcp/admin'))).toEqual(
+            {},
+        );
     });
 
     it('reads the local URL of the Vite dev server', () => {

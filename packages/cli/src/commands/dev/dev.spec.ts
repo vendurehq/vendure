@@ -491,11 +491,20 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
                     prefixOutput: false,
                     reloadIgnoredPaths: options.reloadIgnoredPaths?.(projectDir) ?? [],
                     spawnChild,
-                    monitor: options.monitor,
+                    monitor: options.monitor ?? createMonitor(),
                 },
             );
             startedProcesses.push(supervised);
             return { children, projectDir, spawnChild, supervised };
+        }
+
+        function createMonitor() {
+            return {
+                onChangeDetected: vi.fn(),
+                onSpawn: vi.fn(),
+                onOutput: vi.fn(),
+                onRecoverableExit: vi.fn(() => 'The server exited with code 1'),
+            };
         }
 
         // Saves a file until the supervisor reacts. See the comment in the respawn test below.
@@ -509,7 +518,7 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
             );
         }
 
-        it('restarts once for an edit, and not again for the generated file codegen writes after it', async () => {
+        it('does not restart again for the generated file that codegen writes after an edit', async () => {
             const { children, projectDir, spawnChild, supervised } = startSupervisor({
                 reloadIgnoredPaths: dir => [path.join(dir, 'src', 'gql')],
             });
@@ -546,14 +555,19 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
                     return true;
                 }
             }
+            const monitor = createMonitor();
             const { children, projectDir, spawnChild, supervised } = startSupervisor({
                 childClass: SlowChildProcess,
+                monitor,
             });
             const promise = waitForDevProcesses([supervised]);
             const first = children[0] as SlowChildProcess;
             const configPath = path.join(projectDir, 'src', 'vendure-config.ts');
 
             await saveUntil(configPath, () => expect(first.kills).toEqual(['SIGTERM']));
+            // The restart was reported when the change was seen, while the old child still runs.
+            expect(monitor.onChangeDetected).toHaveBeenCalled();
+            expect(monitor.onSpawn).not.toHaveBeenCalledWith(true);
             writeFileSync(configPath, 'export const second = true;');
             await new Promise(resolve => setTimeout(resolve, 400));
 
@@ -566,11 +580,7 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
         }, 20000);
 
         it('tells the monitor about each spawn and each crash it can recover from', async () => {
-            const monitor = {
-                onSpawn: vi.fn(),
-                onOutput: vi.fn(),
-                onRecoverableExit: vi.fn(() => 'The server failed to compile: 1 compile error'),
-            };
+            const monitor = createMonitor();
             const { children, projectDir, supervised } = startSupervisor({ monitor });
             const promise = waitForDevProcesses([supervised]);
 
@@ -580,6 +590,9 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
 
             await saveUntil(path.join(projectDir, 'src', 'index.ts'), () =>
                 expect(monitor.onSpawn).toHaveBeenLastCalledWith(true),
+            );
+            expect(monitor.onChangeDetected.mock.invocationCallOrder[0]).toBeLessThan(
+                monitor.onSpawn.mock.invocationCallOrder[1],
             );
 
             process.emit('SIGINT');

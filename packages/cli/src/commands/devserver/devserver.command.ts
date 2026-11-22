@@ -51,7 +51,7 @@ export const devServerStartDefinition = defineCommand({
     schemas: async () => (await import('./devserver.schema.js')).start,
     cli: { positional: ['target'] },
     errors: [devServerErrors.projectNotFound, devServerErrors.alreadyRunning, devServerErrors.startFailed],
-    examples: ['vendure devserver start', 'vendure devserver start server --wait --timeout 60'],
+    examples: ['vendure devserver start', 'vendure devserver start server --timeout 60'],
     run: () => import('./start.js'),
     render: () => import('./start.js'),
 });

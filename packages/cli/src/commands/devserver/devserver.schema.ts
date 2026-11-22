@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 import { DEV_SERVER_STATUSES } from '../dev/state-file.js';
 
+import { MAX_LOG_LINES } from './log-reader.js';
+
 const timeout = z
     .number()
     .positive()
@@ -18,7 +20,7 @@ const diagnostic = z.object({
 });
 
 const statusReport = z.object({
-    status: z.enum(DEV_SERVER_STATUSES as [string, ...string[]]),
+    status: z.enum(DEV_SERVER_STATUSES),
     urls: z.object({
         admin: z.string().optional(),
         shop: z.string().optional(),
@@ -77,19 +79,27 @@ export const logs = {
             .optional()
             .describe('Only lines at this level or a more severe one: error, warn, info, verbose, debug'),
     }),
-    output: z.object({ lines: z.array(logLine) }),
+    output: z.object({
+        lines: z
+            .array(logLine)
+            .describe(`The newest ${MAX_LOG_LINES} lines that pass the filters, oldest first`),
+        omitted: z.number().describe('How many older lines that pass the filters were left out'),
+    }),
 };
 
 export const start = {
     input: z.object({
         target: z
-            .enum(['all', 'server', 'worker', 'dashboard'])
+            .enum(['all', 'server'])
             .optional()
-            .describe('What to run: all, server, worker or dashboard (default: all)'),
+            .describe('What to run: all, or the server only (default: all)'),
         wait: z
             .boolean()
             .optional()
-            .describe('Wait until the run is ready or failed, instead of returning once it has started'),
+            .describe(
+                'Wait until the run is ready or failed, instead of returning once it has started. ' +
+                    'Defaults to true, or false when called as an MCP tool',
+            ),
         timeout,
     }),
     output: statusReport,

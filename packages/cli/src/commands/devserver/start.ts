@@ -1,5 +1,4 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
-import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,15 +40,17 @@ const { spawn } = require('node:child_process');
 const { openSync } = require('node:fs');
 const [outputFile, cwd, ...args] = process.argv.slice(1);
 const output = openSync(outputFile, 'w', 0o600);
-const env = { ...process.env };
-delete env.${LOCAL_TRUST_SECRET_ENV_VAR};
-const child = spawn(process.execPath, args, { cwd, env, detached: true, stdio: ['ignore', output, output], windowsHide: true });
+const child = spawn(process.execPath, args, { cwd, detached: true, stdio: ['ignore', output, output], windowsHide: true });
 child.unref();
 process.stdout.write(JSON.stringify({ pid: child.pid }));
 `;
 
 export interface StartInput {
-    target?: 'all' | 'server' | 'worker' | 'dashboard';
+    /**
+     * Only runs that start the server write the state file, so `worker` and `dashboard` are not
+     * offered: a run without the state file could not be waited for or stopped.
+     */
+    target?: 'all' | 'server';
     wait?: boolean;
     timeout?: number;
 }
@@ -61,8 +62,9 @@ export function getCliEntryPath(): string {
 
 /**
  * Starts `vendure dev` in the background, and returns once it has written its state file. With
- * `wait`, it then waits until the run is ready or failed. It refuses to start while another run
- * serves the project.
+ * `wait`, it then waits until the run is ready or failed. `wait` defaults to true, and to false
+ * for an MCP tool call, which should not block for a whole start. It refuses to start while another
+ * run serves the project.
  */
 export async function run(input: StartInput, ctx: CommandContext, cliEntryPath = getCliEntryPath()) {
     let projectDir: string;
@@ -80,12 +82,13 @@ export async function run(input: StartInput, ctx: CommandContext, cliEntryPath =
     mkdirSync(path.dirname(outputFile), { recursive: true });
     const devArgs = [cliEntryPath, 'dev', input.target ?? 'all', '--project', projectDir];
     ctx.progress('Starting vendure dev');
+    // `ctx.spawn` removes a local-trust secret inherited from the shell, and the detached run
+    // inherits the launcher's environment.
     const launch = await ctx.spawn(
         process.execPath,
         ['-e', LAUNCH_SCRIPT, outputFile, projectDir, ...devArgs],
         {
             cwd: projectDir,
-            env: { [LOCAL_TRUST_SECRET_ENV_VAR]: undefined },
         },
     );
     const pid = readLaunchedPid(launch.stdout);
@@ -108,7 +111,7 @@ export async function run(input: StartInput, ctx: CommandContext, cliEntryPath =
         await sleep(POLL_INTERVAL_MS);
     }
 
-    if (!input.wait) {
+    if (!(input.wait ?? !ctx.mcp)) {
         return toStatusReport(readDevServerState(projectDir));
     }
     const { timedOut, ...report } = await waitForDevServer(projectDir, {

@@ -5,22 +5,32 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { z } from 'zod';
 
 import { runCommandInHarness } from '../../command-host/__tests__/command-harness.js';
 import { buildCommandManifest } from '../../command-host/manifest-build.js';
 import { mergeManifests } from '../../command-host/manifest.js';
 import { kebab } from '../../command-host/naming.js';
 import { createSpawn } from '../../command-host/spawn.js';
-import { DevServerState, DevServerStateFile, isProcessAlive, readDevServerState } from '../dev/state-file.js';
+import {
+    DevServerState,
+    DevServerStateFile,
+    DevServerStatusReport,
+    isProcessAlive,
+    readDevServerState,
+} from '../dev/state-file.js';
 
 import {
     devServerDefinitions,
     devServerLogsDefinition,
+    devServerStartDefinition,
     devServerStatusDefinition,
     devServerStopDefinition,
     devServerWaitDefinition,
 } from './devserver.command.js';
+import * as schemas from './devserver.schema.js';
+import { MAX_LOG_LINES } from './log-reader.js';
 import { run as startRun } from './start.js';
 
 const DEAD_PID = 2 ** 22 + 12345;
@@ -91,6 +101,11 @@ describe('devserver command definitions', () => {
             'devserver logs',
             'devserver stop',
         ]);
+    });
+
+    it('declares output schemas that match the TypeScript types', () => {
+        expectTypeOf<z.infer<typeof schemas.status.output>>().toEqualTypeOf<DevServerStatusReport>();
+        expectTypeOf<z.infer<typeof schemas.logs.output>['lines'][number]>().toEqualTypeOf<LogLine>();
     });
 
     it.each(devServerDefinitions.map(def => [def.path.join(' '), def] as const))(
@@ -294,6 +309,24 @@ describe('devserver logs', () => {
         expect((byDuration.envelope.output as { lines: LogLine[] }).lines).toEqual([]);
     });
 
+    it('returns the newest lines only, and says how many it left out', async () => {
+        const projectDir = createProject();
+        const many = Array.from({ length: MAX_LOG_LINES + 5 }, (_, index) => ({
+            ts: new Date(Date.UTC(2020, 0, 1, 0, 0, index)).toISOString(),
+            level: 'info' as const,
+            msg: `line ${index}`,
+        }));
+        writeLog(projectDir, many);
+
+        const result = await runInProject(projectDir, devServerLogsDefinition, {});
+        const output = result.envelope.output as { lines: LogLine[]; omitted: number };
+
+        expect(output.omitted).toBe(5);
+        expect(output.lines).toHaveLength(MAX_LOG_LINES);
+        expect(output.lines[0].msg).toBe('line 5');
+        expect(result.envelope.notices[0].message).toContain('Left out the 5 oldest lines');
+    });
+
     it('refuses a --since value it cannot read', async () => {
         const result = await readLogs({ since: 'yesterday-ish' });
 
@@ -312,7 +345,8 @@ describe('devserver stop', () => {
         const projectDir = createProject();
         const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
         children.push(child);
-        writeState(projectDir, { pid: child.pid });
+        // The run's start time is after its process started, as it is for a real run.
+        writeState(projectDir, { pid: child.pid, startedAt: new Date().toISOString() });
 
         const result = await runInProject(projectDir, devServerStopDefinition, {});
 
@@ -393,17 +427,37 @@ setInterval(() => {}, 1000);
         }
     }, 20000);
 
-    it('returns once the state file exists when it is not asked to wait', async () => {
-        const projectDir = createProject();
-        const cliPath = createFakeCli(projectDir);
-        try {
-            const result = await startRun({}, createContext(projectDir, true), cliPath);
+    it.each([
+        ['waits by default for a person or a --json caller', {}, false, 'ready'],
+        ['returns once the state file exists by default for an MCP tool call', {}, true, 'starting'],
+        ['returns once the state file exists with wait: false', { wait: false }, false, 'starting'],
+        ['waits under MCP with wait: true', { wait: true }, true, 'ready'],
+    ] as const)(
+        '%s',
+        async (_name, input, mcp, status) => {
+            const projectDir = createProject();
+            const cliPath = createFakeCli(projectDir);
+            try {
+                const result = await startRun(
+                    { ...input, timeout: 10 },
+                    createContext(projectDir, mcp),
+                    cliPath,
+                );
 
-            expect(result).toMatchObject({ status: 'starting' });
-        } finally {
-            stopFakeRun(projectDir);
-        }
-    }, 20000);
+                expect(result).toMatchObject({ status });
+            } finally {
+                stopFakeRun(projectDir);
+            }
+        },
+        20000,
+    );
+
+    it('only offers the targets that start the server, so the run can be waited for and stopped', async () => {
+        const result = await runInProject(createProject(), devServerStartDefinition, { target: 'worker' });
+
+        expect(result.envelope.error).toMatchObject({ code: 'input.invalid' });
+        expect(result.envelope.error?.message).toContain('target');
+    });
 
     it('refuses to start while another run serves the project', async () => {
         const projectDir = createProject();

@@ -1,13 +1,13 @@
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { readDevServerLogs } from '../devserver/log-reader.js';
 
-import { assertNoOtherDevRun, DevRun } from './dev-run.js';
-import { DevServerStateFile, readDevServerState } from './state-file.js';
+import { DevRun } from './dev-run.js';
+import { DevRunAlreadyRunningError, DevServerStateFile, readDevServerState } from './state-file.js';
 
 const directories: string[] = [];
 const runs: DevRun[] = [];
@@ -21,20 +21,35 @@ afterEach(() => {
     }
 });
 
-function createRun(options: { targets?: string[]; writeState?: boolean } = {}) {
+function createProjectDir() {
     const projectDir = mkdtempSync(path.join(tmpdir(), 'vendure-cli-run-'));
     directories.push(projectDir);
+    return projectDir;
+}
+
+function createRun(options: { targets?: string[]; writeState?: boolean; projectDir?: string } = {}) {
+    const projectDir = options.projectDir ?? createProjectDir();
     const print = vi.fn();
+    const warn = vi.fn();
     const run = new DevRun({
         projectDir,
         targets: options.targets ?? ['server'],
         writeState: options.writeState ?? true,
         print,
+        warn,
         secret: 'run-secret',
     });
     runs.push(run);
-    return { run, projectDir, print };
+    return { run, projectDir, print, warn };
 }
+
+const welcome = [
+    'Vendure server (v4.0.0) now running on port 3000',
+    '-----------------------------------------------',
+    'Shop API:     http://localhost:3000/shop-api',
+    'Admin API:    http://localhost:3000/admin-api',
+    '===============================================',
+];
 
 const json = (line: Record<string, unknown>) =>
     JSON.stringify({ ts: '2026-11-22T10:00:00.000Z', level: 'info', ...line });
@@ -109,19 +124,14 @@ describe('DevRun', () => {
         monitor.onSpawn(true);
         expect(readDevServerState(projectDir)).toMatchObject({ status: 'restarting', restarts: 1 });
 
-        monitor.onOutput(
-            'stdout',
-            json({ ctx: 'Vendure Server', msg: 'Shop API:  http://localhost:3000/shop-api' }),
-        );
-        monitor.onOutput(
-            'stdout',
-            json({ ctx: 'Vendure Server', msg: 'Vendure server (v4.0.0) now running on port 3000' }),
-        );
+        for (const msg of welcome) {
+            monitor.onOutput('stdout', json({ ctx: 'Vendure Server', msg }));
+        }
         expect(readDevServerState(projectDir)).toMatchObject({
             status: 'ready',
             restarts: 1,
             lastError: null,
-            urls: { shop: 'http://localhost:3000/shop-api' },
+            urls: { shop: 'http://localhost:3000/shop-api', admin: 'http://localhost:3000/admin-api' },
         });
         // The terminal shows JSON lines as text, and other lines as they were written.
         expect(print).toHaveBeenCalledWith('server', 'stderr', 'TSError: ⨯ Unable to compile TypeScript:');
@@ -184,22 +194,103 @@ describe('DevRun', () => {
     });
 });
 
-describe('assertNoOtherDevRun()', () => {
-    it('refuses while another live process holds the state file', () => {
-        const projectDir = mkdtempSync(path.join(tmpdir(), 'vendure-cli-run-'));
-        directories.push(projectDir);
-        const state = {
-            status: 'ready' as const,
+describe('DevRun readiness and URLs', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('marks the server ready only once its welcome message, with the URLs, is complete', () => {
+        const { run, projectDir } = createRun();
+        const monitor = run.monitor('server');
+        monitor.onSpawn(false);
+
+        monitor.onOutput('stdout', json({ msg: welcome[0] }));
+        expect(readDevServerState(projectDir)?.status).toBe('starting');
+        for (const msg of welcome.slice(1)) {
+            monitor.onOutput('stdout', json({ msg }));
+        }
+
+        expect(readDevServerState(projectDir)).toMatchObject({
+            status: 'ready',
+            urls: { shop: 'http://localhost:3000/shop-api', admin: 'http://localhost:3000/admin-api' },
+        });
+    });
+
+    it('marks the server ready a second after its "now running" line when the welcome message does not close', () => {
+        vi.useFakeTimers();
+        const { run, projectDir } = createRun();
+        const monitor = run.monitor('server');
+        monitor.onSpawn(false);
+        monitor.onOutput('stdout', json({ msg: welcome[0] }));
+
+        vi.advanceTimersByTime(999);
+        expect(readDevServerState(projectDir)?.status).toBe('starting');
+        vi.advanceTimersByTime(1);
+        expect(readDevServerState(projectDir)?.status).toBe('ready');
+    });
+
+    it('reads the MCP URL from the line the McpPlugin logs', () => {
+        const { run, projectDir } = createRun();
+        run.monitor('server').onOutput(
+            'stdout',
+            json({ ctx: 'McpPlugin', msg: 'Store MCP admin endpoint: http://localhost:3000/mcp/admin' }),
+        );
+
+        expect(readDevServerState(projectDir)?.urls).toEqual({ mcp: 'http://localhost:3000/mcp/admin' });
+    });
+
+    it('reports restarting as soon as a change is seen, before the old process has stopped', () => {
+        const { run, projectDir } = createRun();
+        const monitor = run.monitor('server');
+        monitor.onSpawn(false);
+        for (const msg of welcome) {
+            monitor.onOutput('stdout', json({ msg }));
+        }
+
+        monitor.onChangeDetected();
+        expect(readDevServerState(projectDir)).toMatchObject({ status: 'restarting', restarts: 1 });
+        monitor.onSpawn(true);
+        expect(readDevServerState(projectDir)).toMatchObject({ status: 'restarting', restarts: 1 });
+    });
+});
+
+describe('DevRun state file ownership', () => {
+    it('refuses to start while another live run holds the state file', () => {
+        const projectDir = createProjectDir();
+        new DevServerStateFile(projectDir, 'other-secret').write({
+            status: 'ready',
             urls: {},
-            startedAt: '2026-11-22T10:00:00.000Z',
+            startedAt: new Date().toISOString(),
             restarts: 0,
             lastError: null,
-        };
-        // The parent process of the test runner is alive and is not this process.
-        new DevServerStateFile(projectDir, 's').write({ ...state, pid: process.ppid });
-        expect(() => assertNoOtherDevRun(projectDir)).toThrow(`(process ${process.ppid})`);
+            // The parent process of the test runner is alive and started before now.
+            pid: process.ppid,
+        });
 
-        new DevServerStateFile(projectDir, 's').write({ ...state, pid: 2 ** 22 + 12345 });
-        expect(() => assertNoOtherDevRun(projectDir)).not.toThrow();
+        expect(() => createRun({ projectDir })).toThrow(DevRunAlreadyRunningError);
+        expect(() => createRun({ projectDir })).toThrow(`(process ${process.ppid})`);
+    });
+
+    it('writes neither the state file nor the dev log for a run without the server', () => {
+        const { run, projectDir } = createRun({ targets: ['dashboard'], writeState: false });
+        run.monitor('dashboard').onOutput('stdout', 'VITE ready in 300 ms');
+        run.end();
+
+        expect(readdirSync(projectDir)).toEqual([]);
+    });
+
+    it('keeps running and warns once when the state file cannot be written', () => {
+        const { run, projectDir, warn } = createRun();
+        chmodSync(path.join(projectDir, '.vendure'), 0o500);
+        try {
+            const monitor = run.monitor('server');
+            expect(() => monitor.onRecoverableExit(1)).not.toThrow();
+            expect(() => monitor.onSpawn(true)).not.toThrow();
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain('Could not write .vendure/devserver.json');
+        } finally {
+            chmodSync(path.join(projectDir, '.vendure'), 0o700);
+        }
     });
 });

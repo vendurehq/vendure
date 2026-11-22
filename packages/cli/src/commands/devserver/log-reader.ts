@@ -1,7 +1,11 @@
 import { LOG_LEVEL_NAMES, LogLevelName, LogLine } from '@vendure/common/lib/log';
 import { readFileSync } from 'node:fs';
 
+import { isLogLine } from '../dev/child-output.js';
 import { getDevLogFilePaths } from '../dev/log-writer.js';
+
+/** The most lines `vendure devserver logs` returns. Older lines are left out. */
+export const MAX_LOG_LINES = 1000;
 
 export interface DevLogFilter {
     /** Only lines written at or after this time. */
@@ -16,7 +20,8 @@ export interface DevLogFilter {
  * Reads the dev log of a project, `.vendure/logs/dev.jsonl` and its rotated files, oldest line
  * first, and returns the lines that pass the filter. A line that is not a log line is skipped.
  *
- * `vendure devserver logs` and `vendure explain` both read the log through this function.
+ * Every command that reads the dev log, such as `vendure devserver logs`, reads it through this
+ * function.
  */
 export function readDevServerLogs(projectDir: string, filter: DevLogFilter = {}): LogLine[] {
     const sinceTime = filter.since?.getTime();
@@ -54,18 +59,12 @@ function parseLogLine(raw: string): LogLine | undefined {
         return undefined;
     }
     try {
-        const value = JSON.parse(raw);
-        if (
-            typeof value?.ts === 'string' &&
-            typeof value.msg === 'string' &&
-            LOG_LEVEL_NAMES.includes(value.level)
-        ) {
-            return value as LogLine;
-        }
+        const value: unknown = JSON.parse(raw);
+        return isLogLine(value) ? value : undefined;
     } catch {
         // A line cut off by a crash mid-write is not a log line.
+        return undefined;
     }
-    return undefined;
 }
 
 const durationUnits: Record<string, number> = {

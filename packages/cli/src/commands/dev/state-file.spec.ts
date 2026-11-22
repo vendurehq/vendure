@@ -5,9 +5,12 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+    DevRunAlreadyRunningError,
     DevServerState,
     DevServerStateFile,
     getDevServerStateFilePath,
+    isDevRunAlive,
+    parseElapsedTime,
     readDevServerState,
     toStatusReport,
     withoutLocalTrustSecret,
@@ -88,6 +91,75 @@ describe('DevServerStateFile', () => {
         older.remove();
 
         expect(readDevServerState(projectDir)?.secret).toBe('newer-secret');
+    });
+});
+
+describe('DevServerStateFile.claim()', () => {
+    // The parent of the test runner is a live process that is not this one, and it started
+    // before now.
+    const liveOther = () => ({ ...stateFor(process.ppid), startedAt: new Date().toISOString() });
+
+    it('creates the state file when there is none', () => {
+        const projectDir = createProjectDir();
+        new DevServerStateFile(projectDir, 'run-secret').claim(stateFor());
+
+        expect(readDevServerState(projectDir)?.secret).toBe('run-secret');
+        expect(statSync(getDevServerStateFilePath(projectDir)).mode % 0o1000).toBe(0o600);
+        expect(readdirSync(path.join(projectDir, '.vendure'))).toEqual(['devserver.json']);
+    });
+
+    it('refuses while another live run holds the file', () => {
+        const projectDir = createProjectDir();
+        new DevServerStateFile(projectDir, 'other-secret').write(liveOther());
+
+        expect(() => new DevServerStateFile(projectDir, 'run-secret').claim(stateFor())).toThrow(
+            DevRunAlreadyRunningError,
+        );
+        expect(readDevServerState(projectDir)?.secret).toBe('other-secret');
+    });
+
+    it('replaces a file left behind by a run that is gone', () => {
+        const projectDir = createProjectDir();
+        new DevServerStateFile(projectDir, 'old-secret').write(stateFor(2 ** 22 + 12345));
+        new DevServerStateFile(projectDir, 'run-secret').claim(stateFor());
+
+        expect(readDevServerState(projectDir)?.secret).toBe('run-secret');
+    });
+
+    it('lets only one of two runs claim the file', () => {
+        const projectDir = createProjectDir();
+        const first = new DevServerStateFile(projectDir, 'first-secret');
+        const second = new DevServerStateFile(projectDir, 'second-secret');
+        first.claim(liveOther());
+
+        expect(() => second.claim(stateFor())).toThrow('already running');
+    });
+});
+
+describe('isDevRunAlive()', () => {
+    it('is true for this process', () => {
+        expect(isDevRunAlive({ pid: process.pid, startedAt: '2000-01-01T00:00:00.000Z' })).toBe(true);
+    });
+
+    it('is false for a pid that no process has', () => {
+        expect(isDevRunAlive({ pid: 2 ** 22 + 12345, startedAt: new Date().toISOString() })).toBe(false);
+    });
+
+    it('is false for a live process that started after the run did, as after pid reuse', () => {
+        expect(isDevRunAlive({ pid: process.ppid, startedAt: '2000-01-01T00:00:00.000Z' })).toBe(
+            process.platform === 'win32',
+        );
+        expect(isDevRunAlive({ pid: process.ppid, startedAt: new Date().toISOString() })).toBe(true);
+    });
+});
+
+describe('parseElapsedTime()', () => {
+    it('reads the forms that ps -o etime= prints', () => {
+        expect(parseElapsedTime('  00:07\n')).toBe(7);
+        expect(parseElapsedTime('12:34')).toBe(12 * 60 + 34);
+        expect(parseElapsedTime('01:02:03')).toBe(3723);
+        expect(parseElapsedTime('2-01:02:03')).toBe(2 * 86400 + 3723);
+        expect(parseElapsedTime('')).toBeUndefined();
     });
 });
 
