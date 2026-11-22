@@ -4,8 +4,6 @@ import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-export { LOCAL_TRUST_SECRET_ENV_VAR };
-
 /**
  * A project directory as the Vendure CLI leaves it while a dev server runs: `.vendure/devserver.json`
  * with mode 0600, holding the run's secret. The plugin reads it from the server's working directory.
