@@ -2,7 +2,6 @@ import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types'
 import { SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { describe, expect, it, vi } from 'vitest';
 
-
 import { AddressBasedTaxZoneStrategy } from '../../../config/tax/address-based-tax-zone-strategy';
 import { DefaultTaxZoneStrategy } from '../../../config/tax/default-tax-zone-strategy';
 import { checkFailed } from '../../services/store-readiness.service';

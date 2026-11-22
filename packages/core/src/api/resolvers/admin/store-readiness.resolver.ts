@@ -9,7 +9,7 @@ import { Ctx } from '../../decorators/request-context.decorator';
 
 @Resolver()
 export class StoreReadinessResolver {
-    constructor(private storeReadinessService: StoreReadinessService) {}
+    constructor(private readonly storeReadinessService: StoreReadinessService) {}
 
     @Query()
     @Allow(Permission.ReadSettings)
