@@ -15,6 +15,14 @@ import { CreateTaxCategoryTool } from './create-tax-category.tool';
 import { CreateTaxRateTool } from './create-tax-rate.tool';
 import { CreateVariantTool } from './create-variant.tool';
 import { CreateZoneTool } from './create-zone.tool';
+import { DeleteChannelTool } from './delete-channel.tool';
+import { DeletePaymentMethodTool } from './delete-payment-method.tool';
+import { DeleteRoleTool } from './delete-role.tool';
+import { DeleteShippingMethodTool } from './delete-shipping-method.tool';
+import { DeleteStockLocationTool } from './delete-stock-location.tool';
+import { DeleteTaxCategoryTool } from './delete-tax-category.tool';
+import { DeleteTaxRateTool } from './delete-tax-rate.tool';
+import { DeleteZoneTool } from './delete-zone.tool';
 import { EnableCountriesTool } from './enable-countries.tool';
 import { GetChannelTool } from './get-channel.tool';
 import { GetCustomerTool } from './get-customer.tool';
@@ -83,31 +91,39 @@ export const adminToolProviders = [
     GetChannelTool,
     CreateChannelTool,
     UpdateChannelTool,
+    DeleteChannelTool,
     ListZonesTool,
     CreateZoneTool,
     UpdateZoneTool,
+    DeleteZoneTool,
     ListCountriesTool,
     EnableCountriesTool,
     ListTaxCategoriesTool,
     CreateTaxCategoryTool,
     UpdateTaxCategoryTool,
+    DeleteTaxCategoryTool,
     ListTaxRatesTool,
     CreateTaxRateTool,
     UpdateTaxRateTool,
+    DeleteTaxRateTool,
     ListShippingMethodsTool,
     CreateShippingMethodTool,
     UpdateShippingMethodTool,
+    DeleteShippingMethodTool,
     ListShippingOptionsTool,
     ListPaymentMethodsTool,
     CreatePaymentMethodTool,
     UpdatePaymentMethodTool,
+    DeletePaymentMethodTool,
     ListPaymentOptionsTool,
     ListStockLocationsTool,
     CreateStockLocationTool,
     UpdateStockLocationTool,
+    DeleteStockLocationTool,
     ListRolesTool,
     CreateRoleTool,
     UpdateRoleTool,
+    DeleteRoleTool,
     GetSettingTool,
     SetSettingTool,
     CheckStoreTool,

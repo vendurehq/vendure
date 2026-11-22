@@ -19,7 +19,7 @@ import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
-import { callTool, postMcp } from './utils/mcp-http-client';
+import { callTool, consentDigestOf, postMcp, withConsent } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { testServerInit } from './utils/test-server';
 
@@ -43,7 +43,14 @@ const secretArgPaymentHandler = new PaymentMethodHandler({
 describe('MCP setup-entity admin tools', () => {
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        rateLimits: { oauthIp: false },
+        // One grant makes every call in this suite, more than the default per-minute limits allow.
+        // Nothing here tests rate limiting.
+        rateLimits: {
+            oauthIp: false,
+            perSession: { rpm: 1000 },
+            perUser: { rpm: 1000 },
+            perClient: { rpm: 1000 },
+        },
         // Full capture, so a test can show that no secret config arg reaches the log.
         logging: { capture: 'full' },
     };
@@ -369,6 +376,149 @@ describe('MCP setup-entity admin tools', () => {
             expect(created?.input).toMatchObject({
                 input: { handler: { args: { apiKey: REDACTED_SECRET_PLACEHOLDER } } },
             });
+        });
+    });
+
+    describe('delete tools', () => {
+        /** Calls a delete tool, checks that its preview names the target, then confirms with the digest. */
+        async function deleteWithConsent(name: string, args: Record<string, unknown>, previewText: string) {
+            const message = callTool(name, args);
+            const preview = await postMcp(baseUrl(), 'admin', message, { token });
+            const content = preview.body.result.structuredContent;
+            expect(content.status).toBe('incomplete');
+            expect(content.preview).toEqual(expect.stringContaining(previewText));
+            const digest = consentDigestOf(preview);
+            expect(digest).toEqual(expect.any(String));
+            const confirmed = await postMcp(baseUrl(), 'admin', withConsent(message, digest as string), {
+                token,
+            });
+            return confirmed.body.result;
+        }
+
+        it('refuses confirm: true, and deletes only with the digest of the preview', async () => {
+            const { zone } = await call('create_zone', {
+                input: { name: 'Doomed', memberCountryCodes: ['CN'] },
+            });
+            const withTrue = await callRaw('delete_zone', { id: zone.id, confirm: true });
+            expect(withTrue.isError ?? withTrue.structuredContent?.status === 'incomplete').toBeTruthy();
+
+            const result = await deleteWithConsent('delete_zone', { id: zone.id }, 'Delete zone "Doomed"');
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toEqual({ result: 'DELETED', message: null });
+            const listed = await call('list_zones', { limit: 100 });
+            expect(listed.items.map((z: { id: string }) => z.id)).not.toContain(zone.id);
+        });
+
+        it('reports a zone that is still in use as a failed call', async () => {
+            const result = await deleteWithConsent(
+                'delete_zone',
+                { id: europeZoneId },
+                'Delete zone "Europe"',
+            );
+            expect(result.isError).toBe(true);
+            expect(result.content[0].text).toContain('used');
+        });
+
+        it('deletes a tax rate, a tax category, a shipping method and a payment method', async () => {
+            const { taxCategory } = await call('create_tax_category', { input: { name: 'Temporary' } });
+            const { taxRate } = await call('create_tax_rate', {
+                input: {
+                    name: 'Temporary rate',
+                    value: 5,
+                    taxCategoryId: taxCategory.id,
+                    target: { countryCode: 'CA' },
+                },
+            });
+            expect(
+                (await deleteWithConsent('delete_tax_rate', { id: taxRate.id }, '"Temporary rate"')).isError,
+            ).toBeUndefined();
+            expect(
+                (await deleteWithConsent('delete_tax_category', { id: taxCategory.id }, '"Temporary"'))
+                    .isError,
+            ).toBeUndefined();
+
+            const { shippingMethod } = await call('create_shipping_method', {
+                input: {
+                    code: 'mcp-temporary',
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: { code: 'default-shipping-eligibility-checker', args: { orderMinimum: 0 } },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        args: { rate: 1, includesTax: 'auto', taxRate: 0 },
+                    },
+                    translations: [{ languageCode: 'en', name: 'Temporary shipping' }],
+                },
+            });
+            expect(
+                (
+                    await deleteWithConsent(
+                        'delete_shipping_method',
+                        { id: shippingMethod.id },
+                        'mcp-temporary',
+                    )
+                ).isError,
+            ).toBeUndefined();
+            const shipping = await call('list_shipping_methods', { limit: 100 });
+            expect(shipping.items.map((m: { code: string }) => m.code)).not.toContain('mcp-temporary');
+
+            const { paymentMethod } = await call('create_payment_method', {
+                input: {
+                    code: 'mcp-temporary-payment',
+                    handler: { code: 'e2e-secret-handler', args: { mode: 'test' } },
+                    translations: [{ languageCode: 'en', name: 'Temporary payment' }],
+                },
+            });
+            expect(
+                (
+                    await deleteWithConsent(
+                        'delete_payment_method',
+                        { id: paymentMethod.id },
+                        'mcp-temporary-payment',
+                    )
+                ).isError,
+            ).toBeUndefined();
+        });
+
+        it('deletes a stock location, moving its stock, and a role', async () => {
+            const { stockLocation } = await call('create_stock_location', {
+                input: { name: 'Temporary depot' },
+            });
+            const locations = await call('list_stock_locations', { limit: 100 });
+            const other = locations.items.find((l: { id: string }) => l.id !== stockLocation.id);
+            const result = await deleteWithConsent(
+                'delete_stock_location',
+                { id: stockLocation.id, transferToLocationId: other.id },
+                `moves to location ${String(other.id)}`,
+            );
+            expect(result.isError).toBeUndefined();
+
+            const { role } = await call('create_role', {
+                input: { code: 'mcp-temporary', description: 'Temporary', permissions: ['ReadCatalog'] },
+            });
+            expect(
+                (await deleteWithConsent('delete_role', { id: role.id }, '"mcp-temporary"')).isError,
+            ).toBeUndefined();
+        });
+
+        it('deletes a channel', async () => {
+            const { channel } = await call('create_channel', {
+                input: {
+                    code: 'mcp-temporary-channel',
+                    token: 'mcp-temporary-channel-token',
+                    defaultLanguageCode: 'en',
+                    defaultCurrencyCode: 'USD',
+                    pricesIncludeTax: false,
+                    defaultTaxZoneId: europeZoneId,
+                    defaultShippingZoneId: europeZoneId,
+                },
+            });
+            const result = await deleteWithConsent(
+                'delete_channel',
+                { id: channel.id },
+                'Delete channel "mcp-temporary-channel"',
+            );
+            expect(result.isError).toBeUndefined();
+            expect((await call('get_channel', { id: channel.id })).channel).toBeNull();
         });
     });
 
