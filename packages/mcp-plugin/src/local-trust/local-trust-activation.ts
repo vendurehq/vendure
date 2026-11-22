@@ -1,8 +1,11 @@
+import {
+    LOCAL_TRUST_SECRET_ENV_VAR,
+    LOCAL_TRUST_STATE_FILE,
+    LocalTrustState,
+} from '@vendure/common/lib/local-trust';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { closeSync, constants, fstatSync, openSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-
-import { LOCAL_TRUST_SECRET_ENV_VAR, LOCAL_TRUST_STATE_FILE, LocalTrustState } from './local-trust-contract';
 
 /**
  * Whether local trust is on for this server, decided once at startup. When it is on, only the

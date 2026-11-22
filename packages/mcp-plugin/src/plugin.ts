@@ -1,6 +1,7 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
 import { MiddlewareConsumer, NestModule, OnApplicationBootstrap, Type } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
+import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import {
     ConfigService,
     I18nService,
@@ -42,7 +43,6 @@ import {
     LocalTrustActivation,
     readLocalTrustActivation,
 } from './local-trust/local-trust-activation';
-import { LOCAL_TRUST_SECRET_ENV_VAR } from './local-trust/local-trust-contract';
 import { LocalTrustService } from './local-trust/local-trust.service';
 import { McpToolCallLogRetentionService } from './logging/mcp-tool-call-log-retention.service';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';

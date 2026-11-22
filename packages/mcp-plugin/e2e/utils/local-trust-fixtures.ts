@@ -1,12 +1,8 @@
+import { LOCAL_TRUST_SECRET_ENV_VAR, LOCAL_TRUST_STATE_FILE } from '@vendure/common/lib/local-trust';
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
-import {
-    LOCAL_TRUST_SECRET_ENV_VAR,
-    LOCAL_TRUST_STATE_FILE,
-} from '../../src/local-trust/local-trust-contract';
 
 export { LOCAL_TRUST_SECRET_ENV_VAR };
 

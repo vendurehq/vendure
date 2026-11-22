@@ -1,4 +1,5 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
+import { LOCAL_TRUST_SECRET_ENV_VAR, LOCAL_TRUST_STATE_FILE } from '@vendure/common/lib/local-trust';
 import { ConfigService, getConfigurationFunction, I18nService, Logger, ProcessContext } from '@vendure/core';
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -7,7 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResolvedMcpPluginOptions } from './internal-types';
 import { LOCAL_TRUST_OFF } from './local-trust/local-trust-activation';
-import { LOCAL_TRUST_SECRET_ENV_VAR, LOCAL_TRUST_STATE_FILE } from './local-trust/local-trust-contract';
 import { LocalTrustService } from './local-trust/local-trust.service';
 import { McpPlugin } from './plugin';
 import { resolveMcpPluginOptions } from './resolve-options';
