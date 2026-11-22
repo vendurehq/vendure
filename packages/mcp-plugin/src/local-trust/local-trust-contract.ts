@@ -3,8 +3,9 @@
  * server with the secret in its environment, and reads the endpoint URL from the server's log. This
  * file holds every part of that contract the plugin uses.
  *
- * TODO: import all four from `@vendure/common/lib/local-trust` once `@vendure/common` exports that
- * module, and delete the copies here. They use the same names.
+ * TODO: once `@vendure/common` exports them, import `LOCAL_TRUST_STATE_FILE`,
+ * `LOCAL_TRUST_SECRET_ENV_VAR` and `LocalTrustState` from `@vendure/common/lib/local-trust`, and
+ * `MCP_ADMIN_ENDPOINT_LOG_PREFIX` from `@vendure/common/lib/log`, then delete the copies here.
  */
 
 /** The dev server's state file, relative to the project directory the server runs in. */
