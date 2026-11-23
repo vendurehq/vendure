@@ -595,6 +595,14 @@ export function DataTable<TData>({
         );
     };
 
+    // Until a faceted filter reports its label (a custom component may never do so),
+    // its chip names the value or counts the values.
+    const facetedValueFallback = (value: unknown) => {
+        if (Array.isArray(value)) return value.length === 1 ? String(value[0]) : t`${value.length} selected`;
+        if (value && typeof value === 'object') return Object.values(value).map(String).join(', ');
+        return '';
+    };
+
     // One entry per applied filter: the chip text and the editor its chip opens.
     const filterColumns: DataTableFilterColumn<TData>[] = columnFilters.map(filter => {
         const faceted = facetedFilters?.[filter.id];
@@ -605,7 +613,9 @@ export function DataTable<TData>({
                 formatChip: () => (
                     <>
                         {faceted.title}{' '}
-                        <span className="text-muted-foreground">{facetedValueLabels[filter.id] ?? ''}</span>
+                        <span className="text-muted-foreground">
+                            {facetedValueLabels[filter.id] ?? facetedValueFallback(filter.value)}
+                        </span>
                     </>
                 ),
                 renderEditor: ctx => renderFacetedEditor(filter.id, ctx),
