@@ -648,8 +648,8 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         }
         const rawConnection = this.connection.rawConnection;
         const skip = Math.max(options.skip ?? 0, 0);
-        // `take` must not be negative, and must not be greater than takeLimit
-        let take = options.take == null ? takeLimit : Math.min(Math.max(options.take, 0), takeLimit);
+        // A `take` of 0 or less would reach TypeORM as "no LIMIT", so it falls back to takeLimit
+        let take = options.take == null || options.take <= 0 ? takeLimit : Math.min(options.take, takeLimit);
         if (options.skip !== undefined && options.take === undefined) {
             take = takeLimit;
         }
