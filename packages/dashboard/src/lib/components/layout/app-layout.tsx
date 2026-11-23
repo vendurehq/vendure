@@ -167,7 +167,7 @@ export function AppLayout() {
                         </div>
                     </AppShellHeader>
                     <AppShellMain>
-                        <div className="container mx-auto">
+                        <div className="mx-auto w-full min-w-0 max-w-6xl md:p-4">
                             <CustomProviders location={'layout'}>
                                 <Outlet />
                             </CustomProviders>
