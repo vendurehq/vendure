@@ -60,6 +60,10 @@ msgstr "سبک متن"
 #~ msgid "The selected permissions will be applied to the these channels."
 #~ msgstr "مجوزهای انتخاب شده به این کانال‌ها اعمال خواهد شد."
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "No products found."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
 msgstr "گزینه‌های محصول"
@@ -87,8 +91,8 @@ msgstr "آپارتمان، سوئیت و غیره"
 
 #: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more items"
-msgstr "موردی دیگر وجود ندارد"
+#~ msgid "No more items"
+#~ msgstr "موردی دیگر وجود ندارد"
 
 #. placeholder {0}: fileUploads.length
 #. placeholder {1}: fileUploads.length
@@ -606,7 +610,6 @@ msgstr "گروه مشتری جدید"
 
 #. placeholder {0}: searchValue.trim()
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "ایجاد \"{0}\""
 
@@ -633,6 +636,10 @@ msgstr "{successCount} گروه گزینه با موفقیت از کانال ح�
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx
 msgid "Shipping method is not eligible for this order"
 msgstr "روش ارسال برای این سفارش واجد شرایط نیست"
+
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Failed to update address"
@@ -698,6 +705,10 @@ msgstr ""
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "We couldn't load the stock levels"
 msgstr "نتوانستیم سطوح موجودی را بارگذاری کنیم"
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Fulfillments appear here once items are shipped."
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -1407,6 +1418,10 @@ msgstr "محصولی یافت نشد"
 msgid "Add row before"
 msgstr "افزودن سطر قبل از"
 
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs left"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Transition to {suggestedState}"
 msgstr "انتقال به {suggestedState}"
@@ -1681,6 +1696,11 @@ msgstr "باقیمانده:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "هیچ تکثیرکننده‌ای با کد \"{duplicatorCode}\" برای {entityName} یافت نشد"
 
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
+msgid "Loading facet values"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Prices include tax for default tax zone"
 msgstr "قیمت‌ها شامل مالیات برای منطقه مالیاتی پیش‌فرض است"
@@ -1698,6 +1718,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Total refund:"
 msgstr "مجموع بازپرداخت:"
+
+#: src/lib/components/shared/alerts.tsx
+msgid "Notifications ({activeCount})"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
@@ -1734,7 +1758,6 @@ msgstr "هیچ کشوری یافت نشد"
 msgid "Successfully created variants"
 msgstr "گونه‌ها با موفقیت ایجاد شدند"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Generate slug automatically"
 msgstr "ایجاد خودکار نامک"
@@ -2302,6 +2325,10 @@ msgstr "دسته‌بندی مالیاتی جدید"
 #~ msgid "Partial refund completed"
 #~ msgstr "بازپرداخت جزئی تکمیل شد"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Column options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "تنظیم فیلدهای سفارشی"
@@ -2313,6 +2340,7 @@ msgid "Collections"
 msgstr "مجموعه‌ها"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 msgid "Done"
 msgstr ""
 
@@ -2543,6 +2571,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Edit"
 msgstr "ویرایش"
@@ -3243,7 +3272,6 @@ msgid "Size, colour, etc."
 msgstr "اندازه، رنگ و غیره"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-#: src/lib/components/shared/facet-value-selector.tsx
 msgid "Browse facets"
 msgstr "مرور فاست‌ها"
 
@@ -3778,6 +3806,10 @@ msgstr "{0, plural, one {# روش ارسال واجد شرایط یافت شد} 
 msgid "Upload failed (HTTP {detail})"
 msgstr ""
 
+#: src/lib/components/shared/rich-text-editor/table-delete-menu.tsx
+msgid "Delete table"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3961,8 +3993,8 @@ msgid "Global view renamed successfully"
 msgstr "نام نمای عمومی با موفقیت تغییر کرد"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-msgid "No tags selected"
-msgstr "هیچ برچسبی انتخاب نشده است"
+#~ msgid "No tags selected"
+#~ msgstr "هیچ برچسبی انتخاب نشده است"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
@@ -4421,10 +4453,15 @@ msgstr "دوباره تلاش کنید"
 msgid "Successfully updated shipping method"
 msgstr "روش ارسال با موفقیت به‌روزرسانی شد"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Row options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "به‌روزرسانی نوع محصول ناموفق بود"
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Drag to reorder"
 msgstr "برای مرتب‌سازی بکشید"
@@ -4441,6 +4478,8 @@ msgstr "انتخاب کنید با موجودی باقی‌مانده در {coun
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "Search facet values..."
 msgstr "جستجوی مقادیر فاست..."
@@ -4775,6 +4814,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/order-address.tsx
+msgid "The address appears here once the customer or an admin adds it to the order."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Use the channel's out-of-stock threshold"
 msgstr ""
@@ -4932,6 +4975,7 @@ msgstr "انتخاب فروشنده"
 msgid "Your image is cropped to fit wherever it appears."
 msgstr ""
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Loading tags..."
 msgstr "در حال بارگذاری برچسب‌ها..."
@@ -5029,6 +5073,10 @@ msgstr "و"
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx
 msgid "Failed to create customer group"
 msgstr "ایجاد گروه مشتری ناموفق بود"
+
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+msgid "No results found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Failed to create role"
@@ -5470,10 +5518,9 @@ msgstr "آپلود"
 msgid "Product with options"
 msgstr "محصول با گزینه‌ها"
 
-#. placeholder {0}: filteredTags.length
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
-msgid "Showing all {0} results"
-msgstr "نمایش همه {0} نتیجه"
+#~ msgid "Showing all {0} results"
+#~ msgstr "نمایش همه {0} نتیجه"
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 msgid "Delete {selectionLength} assets?"
@@ -5921,6 +5968,7 @@ msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "نما را به عنوان \"عمومی\" ذخیره کنید تا برای همه کاربران در دسترس باشد."
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 msgid "Search tags..."
 msgstr ""
 
@@ -5967,6 +6015,7 @@ msgstr "اقدامات گروهی"
 msgid "New seller"
 msgstr "فروشنده جدید"
 
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "در حال بارگذاری…"
@@ -6646,6 +6695,11 @@ msgstr ""
 msgid "Add tags..."
 msgstr "افزودن برچسب‌ها..."
 
+#: src/lib/components/shared/customer-group-selector.tsx
+#: src/lib/components/shared/customer-group-selector.tsx
+msgid "Search customer groups"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to create product option group"
 #~ msgstr "ایجاد گروه گزینه‌های محصول ناموفق بود"
@@ -6729,6 +6783,7 @@ msgstr "نام نوع"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
+#: src/lib/components/shared/configurable-operation-input.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
 msgid "Remove"
 msgstr "حذف"
@@ -6828,8 +6883,8 @@ msgid "No low stock in this sample"
 msgstr "موجودی کمی در این نمونه وجود ندارد"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more facets"
-msgstr "فاست دیگری وجود ندارد"
+#~ msgid "No more facets"
+#~ msgstr "فاست دیگری وجود ندارد"
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Search index rebuild started"
@@ -6846,6 +6901,10 @@ msgstr "موقعیت مجموعه به‌روزرسانی شد"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Add \"{newOptionInput}\""
 msgstr "افزودن \"{newOptionInput}\""
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Search customers"
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -7005,8 +7064,10 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "مدیر با موفقیت به‌روزرسانی شد"
 
+#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -7079,6 +7140,11 @@ msgstr "روش ارسال جدید"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 10 seconds"
 msgstr "هر ۱۰ ثانیه"
+
+#: src/lib/components/shared/country-selector.tsx
+#: src/lib/components/shared/country-selector.tsx
+msgid "Search countries"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Low Stock"
@@ -7208,6 +7274,7 @@ msgstr "پردازش بازپرداخت ناموفق بود"
 msgid "First name"
 msgstr "نام"
 
+#: src/lib/components/shared/product-variant-selector.tsx
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order"
 msgstr "افزودن مورد به سفارش"
@@ -7369,6 +7436,7 @@ msgstr "اولین تبلیغ خود را ایجاد کنید"
 msgid "Defaults to the default language."
 msgstr ""
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Remove item"
 msgstr "حذف مورد"
@@ -7621,6 +7689,11 @@ msgstr ""
 #~ msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 #~ msgstr "{cancellableCount, plural, one {آیا مطمئن هستید که می‌خواهید {cancellableCount} کار را لغو کنید؟ این عمل قابل بازگشت نیست.} other {آیا مطمئن هستید که می‌خواهید {cancellableCount} کار را لغو کنید؟ این عمل قابل بازگشت نیست.}}"
 
+#. placeholder {0}: price.currencyCode
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Remove {0} price"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx
 msgid "Go to option group"
 msgstr ""
@@ -7682,7 +7755,6 @@ msgstr "تکثیر نما ناموفق بود"
 msgid "Use as the default shipping address"
 msgstr "استفاده به عنوان آدرس ارسال پیش‌فرض"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Edit slug manually"
 msgstr "ویرایش دستی نامک"
@@ -8003,6 +8075,7 @@ msgid "Failed to create product variant"
 msgstr "ایجاد نوع محصول ناموفق بود"
 
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/data-table/data-table.tsx
 msgid "Search..."
 msgstr "جستجو..."
@@ -8094,8 +8167,8 @@ msgstr "فیلترهای فعال"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
-msgid "Clear all"
-msgstr "پاک کردن همه"
+#~ msgid "Clear all"
+#~ msgstr "پاک کردن همه"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than"
@@ -8115,6 +8188,10 @@ msgstr "بستن"
 msgid "Link"
 msgstr "لینک"
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "Add item to order..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"
 msgstr "افزودن پرداخت به سفارش"
@@ -8130,6 +8207,10 @@ msgstr "افزودن پرداخت به سفارش"
 #: src/lib/components/shared/facet-value-selector.tsx
 #~ msgid "Loading..."
 #~ msgstr "در حال بارگذاری..."
+
+#: src/lib/components/data-input/combination-mode-input.tsx
+msgid "Combine with the condition before"
+msgstr ""
 
 #: src/lib/providers/auth.tsx
 msgid "You do not have access to any channel"

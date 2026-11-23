@@ -60,6 +60,10 @@ msgstr "テキストスタイル"
 #~ msgid "The selected permissions will be applied to the these channels."
 #~ msgstr "選択された権限がこれらのチャネルに適用されます。"
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "No products found."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
 msgstr "商品オプション"
@@ -87,8 +91,8 @@ msgstr "マンション、スイートなど"
 
 #: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more items"
-msgstr "これ以上のアイテムはありません"
+#~ msgid "No more items"
+#~ msgstr "これ以上のアイテムはありません"
 
 #. placeholder {0}: fileUploads.length
 #. placeholder {1}: fileUploads.length
@@ -606,7 +610,6 @@ msgstr "新しい顧客グループ"
 
 #. placeholder {0}: searchValue.trim()
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "「{0}」を作成"
 
@@ -633,6 +636,10 @@ msgstr "チャネルから {successCount} 件のオプショングループを�
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx
 msgid "Shipping method is not eligible for this order"
 msgstr "この配送方法はこの注文に適格ではありません"
+
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Failed to update address"
@@ -698,6 +705,10 @@ msgstr ""
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "We couldn't load the stock levels"
 msgstr "在庫レベルを読み込めませんでした"
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Fulfillments appear here once items are shipped."
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -1407,6 +1418,10 @@ msgstr "商品が見つかりません"
 msgid "Add row before"
 msgstr "前に行を追加"
 
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs left"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Transition to {suggestedState}"
 msgstr "{suggestedState}に遷移"
@@ -1681,6 +1696,11 @@ msgstr "残り："
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "{entityName}用のコード「{duplicatorCode}」を持つ複製ツールが見つかりません"
 
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
+msgid "Loading facet values"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Prices include tax for default tax zone"
 msgstr "価格はデフォルト税ゾーンの税を含みます"
@@ -1698,6 +1718,10 @@ msgstr "このフィールドは必須です"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Total refund:"
 msgstr "返金合計："
+
+#: src/lib/components/shared/alerts.tsx
+msgid "Notifications ({activeCount})"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
@@ -1734,7 +1758,6 @@ msgstr "国が見つかりません"
 msgid "Successfully created variants"
 msgstr "バリエーションの作成に成功しました"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Generate slug automatically"
 msgstr "スラッグを自動生成"
@@ -2302,6 +2325,10 @@ msgstr "新しい税カテゴリ"
 #~ msgid "Partial refund completed"
 #~ msgstr "一部返金が完了しました"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Column options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "カスタムフィールドを設定"
@@ -2313,6 +2340,7 @@ msgid "Collections"
 msgstr "コレクション"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 msgid "Done"
 msgstr ""
 
@@ -2543,6 +2571,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Edit"
 msgstr "編集"
@@ -3243,7 +3272,6 @@ msgid "Size, colour, etc."
 msgstr "サイズ、カラーなど"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-#: src/lib/components/shared/facet-value-selector.tsx
 msgid "Browse facets"
 msgstr "ファセットを参照"
 
@@ -3778,6 +3806,10 @@ msgstr "{0, plural, other {# 件の適格な配送方法が見つかりました
 msgid "Upload failed (HTTP {detail})"
 msgstr ""
 
+#: src/lib/components/shared/rich-text-editor/table-delete-menu.tsx
+msgid "Delete table"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3961,8 +3993,8 @@ msgid "Global view renamed successfully"
 msgstr "グローバルビューの名前を変更しました"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-msgid "No tags selected"
-msgstr "タグが選択されていません"
+#~ msgid "No tags selected"
+#~ msgstr "タグが選択されていません"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
@@ -4421,10 +4453,15 @@ msgstr "再試行"
 msgid "Successfully updated shipping method"
 msgstr "配送方法を正常に更新しました"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Row options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "商品バリエーションの更新に失敗しました"
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Drag to reorder"
 msgstr "ドラッグして並べ替え"
@@ -4441,6 +4478,8 @@ msgstr "削除する{count, plural, other {#件の在庫ロケーション}}に�
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "Search facet values..."
 msgstr "ファセット値を検索..."
@@ -4775,6 +4814,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/order-address.tsx
+msgid "The address appears here once the customer or an admin adds it to the order."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Use the channel's out-of-stock threshold"
 msgstr ""
@@ -4932,6 +4975,7 @@ msgstr "販売者を選択"
 msgid "Your image is cropped to fit wherever it appears."
 msgstr ""
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Loading tags..."
 msgstr "タグを読み込み中..."
@@ -5029,6 +5073,10 @@ msgstr "AND"
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx
 msgid "Failed to create customer group"
 msgstr "顧客グループの作成に失敗しました"
+
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+msgid "No results found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Failed to create role"
@@ -5470,10 +5518,9 @@ msgstr "アップロード"
 msgid "Product with options"
 msgstr "オプション付き商品"
 
-#. placeholder {0}: filteredTags.length
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
-msgid "Showing all {0} results"
-msgstr "{0}件の結果をすべて表示"
+#~ msgid "Showing all {0} results"
+#~ msgstr "{0}件の結果をすべて表示"
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 msgid "Delete {selectionLength} assets?"
@@ -5921,6 +5968,7 @@ msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "すべてのユーザーが利用できるように、ビューを「グローバル」として保存してください。"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 msgid "Search tags..."
 msgstr ""
 
@@ -5967,6 +6015,7 @@ msgstr "一括操作"
 msgid "New seller"
 msgstr "新しい販売者"
 
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "読み込み中…"
@@ -6646,6 +6695,11 @@ msgstr ""
 msgid "Add tags..."
 msgstr "タグを追加..."
 
+#: src/lib/components/shared/customer-group-selector.tsx
+#: src/lib/components/shared/customer-group-selector.tsx
+msgid "Search customer groups"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to create product option group"
 #~ msgstr "商品オプショングループの作成に失敗しました"
@@ -6729,6 +6783,7 @@ msgstr "バリエーション名"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
+#: src/lib/components/shared/configurable-operation-input.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
 msgid "Remove"
 msgstr "削除"
@@ -6828,8 +6883,8 @@ msgid "No low stock in this sample"
 msgstr "このサンプルに低在庫はありません"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more facets"
-msgstr "これ以上ファセットはありません"
+#~ msgid "No more facets"
+#~ msgstr "これ以上ファセットはありません"
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Search index rebuild started"
@@ -6846,6 +6901,10 @@ msgstr "コレクションの位置を更新しました"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Add \"{newOptionInput}\""
 msgstr "「{newOptionInput}」を追加"
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Search customers"
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -7005,8 +7064,10 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "管理者を正常に更新しました"
 
+#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -7079,6 +7140,11 @@ msgstr "新しい配送方法"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 10 seconds"
 msgstr "10秒ごと"
+
+#: src/lib/components/shared/country-selector.tsx
+#: src/lib/components/shared/country-selector.tsx
+msgid "Search countries"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Low Stock"
@@ -7208,6 +7274,7 @@ msgstr "返金の処理に失敗しました"
 msgid "First name"
 msgstr "名"
 
+#: src/lib/components/shared/product-variant-selector.tsx
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order"
 msgstr "注文にアイテムを追加"
@@ -7369,6 +7436,7 @@ msgstr "最初のプロモーションを作成しましょう"
 msgid "Defaults to the default language."
 msgstr "デフォルト言語が使用されます。"
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Remove item"
 msgstr "アイテムを削除"
@@ -7621,6 +7689,11 @@ msgstr ""
 #~ msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 #~ msgstr "{cancellableCount, plural, other {{cancellableCount} 件のジョブをキャンセルしてもよろしいですか？この操作は取り消せません。}}"
 
+#. placeholder {0}: price.currencyCode
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Remove {0} price"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx
 msgid "Go to option group"
 msgstr ""
@@ -7682,7 +7755,6 @@ msgstr "ビューの複製に失敗しました"
 msgid "Use as the default shipping address"
 msgstr "デフォルトの配送先住所として使用"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Edit slug manually"
 msgstr "スラッグを手動で編集"
@@ -8003,6 +8075,7 @@ msgid "Failed to create product variant"
 msgstr "商品バリエーションの作成に失敗しました"
 
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/data-table/data-table.tsx
 msgid "Search..."
 msgstr "検索..."
@@ -8094,8 +8167,8 @@ msgstr "アクティブなフィルター"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
-msgid "Clear all"
-msgstr "すべてクリア"
+#~ msgid "Clear all"
+#~ msgstr "すべてクリア"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than"
@@ -8115,6 +8188,10 @@ msgstr "閉じる"
 msgid "Link"
 msgstr "リンク"
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "Add item to order..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"
 msgstr "注文に支払いを追加"
@@ -8130,6 +8207,10 @@ msgstr "注文に支払いを追加"
 #: src/lib/components/shared/facet-value-selector.tsx
 #~ msgid "Loading..."
 #~ msgstr "読み込み中..."
+
+#: src/lib/components/data-input/combination-mode-input.tsx
+msgid "Combine with the condition before"
+msgstr ""
 
 #: src/lib/providers/auth.tsx
 msgid "You do not have access to any channel"

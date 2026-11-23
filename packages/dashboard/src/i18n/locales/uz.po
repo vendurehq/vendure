@@ -60,6 +60,10 @@ msgstr "Matn uslubi"
 #~ msgid "The selected permissions will be applied to the these channels."
 #~ msgstr "Tanlangan ruxsatlar ushbu kanallarga qo'llaniladi."
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "No products found."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
 msgstr "Mahsulot variantlari"
@@ -87,8 +91,8 @@ msgstr "Kvartira, ofis va h.k."
 
 #: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more items"
-msgstr "Boshqa elementlar yo'q"
+#~ msgid "No more items"
+#~ msgstr "Boshqa elementlar yo'q"
 
 #. placeholder {0}: fileUploads.length
 #. placeholder {1}: fileUploads.length
@@ -582,7 +586,6 @@ msgstr "Yangi mijozlar guruhi"
 
 #. placeholder {0}: searchValue.trim()
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "\"{0}\" ni yaratish"
 
@@ -605,6 +608,10 @@ msgstr "{successCount} ta optsiya guruhi kanaldan olib tashlandi"
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx
 msgid "Shipping method is not eligible for this order"
 msgstr "Yetkazib berish usuli ushbu buyurtma uchun mos emas"
+
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Failed to update address"
@@ -670,6 +677,10 @@ msgstr ""
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "We couldn't load the stock levels"
 msgstr "Zaxira darajalarini yuklab bo'lmadi"
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Fulfillments appear here once items are shipped."
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -1379,6 +1390,10 @@ msgstr "Mahsulotlar topilmadi"
 msgid "Add row before"
 msgstr "Oldin qator qo'shish"
 
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs left"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Transition to {suggestedState}"
 msgstr "{suggestedState} holatiga o'tkazish"
@@ -1645,6 +1660,11 @@ msgstr "Qolgan:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "{entityName}lar uchun \"{duplicatorCode}\" kodli dublikator topilmadi"
 
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
+msgid "Loading facet values"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Prices include tax for default tax zone"
 msgstr "Narxlar standart soliq hududi uchun soliqni o'z ichiga oladi"
@@ -1662,6 +1682,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Total refund:"
 msgstr "Jami pul qaytarish:"
+
+#: src/lib/components/shared/alerts.tsx
+msgid "Notifications ({activeCount})"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
@@ -1698,7 +1722,6 @@ msgstr "Mamlakatlar topilmadi"
 msgid "Successfully created variants"
 msgstr "Variantlar muvaffaqiyatli yaratildi"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Generate slug automatically"
 msgstr "Slugni avtomatik yaratish"
@@ -2241,6 +2264,10 @@ msgstr "Yangi soliq toifasi"
 #~ msgid "Partial refund completed"
 #~ msgstr "Qisman pul qaytarish bajarildi"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Column options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Maxsus maydonlarni o'rnatish"
@@ -2252,6 +2279,7 @@ msgid "Collections"
 msgstr "To'plamlar"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 msgid "Done"
 msgstr ""
 
@@ -2476,6 +2504,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Edit"
 msgstr "Tahrirlash"
@@ -3176,7 +3205,6 @@ msgid "Size, colour, etc."
 msgstr "O'lcham, rang va h.k."
 
 #: src/lib/components/shared/facet-value-selector.tsx
-#: src/lib/components/shared/facet-value-selector.tsx
 msgid "Browse facets"
 msgstr "Fasetlarni ko'rib chiqish"
 
@@ -3694,6 +3722,10 @@ msgstr "{0, plural, one {# ta mos yetkazib berish usuli topildi} other {# ta mos
 msgid "Upload failed (HTTP {detail})"
 msgstr ""
 
+#: src/lib/components/shared/rich-text-editor/table-delete-menu.tsx
+msgid "Delete table"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3873,8 +3905,8 @@ msgid "Global view renamed successfully"
 msgstr "Global koʻrinish nomi oʻzgartirildi"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-msgid "No tags selected"
-msgstr "Hech qanday teg tanlanmagan"
+#~ msgid "No tags selected"
+#~ msgstr "Hech qanday teg tanlanmagan"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
@@ -4329,10 +4361,15 @@ msgstr "Qayta urinib ko'ring"
 msgid "Successfully updated shipping method"
 msgstr "Yetkazib berish usuli yangilandi"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Row options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "Mahsulot variantini yangilab bo'lmadi"
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Drag to reorder"
 msgstr "Qayta tartiblash uchun torting"
@@ -4349,6 +4386,8 @@ msgstr "O'chirilayotgan {count, plural, one {# ombor joylashuvida} other {# ombo
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "Search facet values..."
 msgstr "Faset qiymatlarini qidirish..."
@@ -4675,6 +4714,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/order-address.tsx
+msgid "The address appears here once the customer or an admin adds it to the order."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Use the channel's out-of-stock threshold"
 msgstr ""
@@ -4825,6 +4868,7 @@ msgstr "Sotuvchini tanlang"
 msgid "Your image is cropped to fit wherever it appears."
 msgstr ""
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Loading tags..."
 msgstr "Teglar yuklanmoqda..."
@@ -4922,6 +4966,10 @@ msgstr "VA"
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx
 msgid "Failed to create customer group"
 msgstr "Mijozlar guruhini yaratib bo'lmadi"
+
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+msgid "No results found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Failed to create role"
@@ -5346,10 +5394,9 @@ msgstr "Yuklash"
 msgid "Product with options"
 msgstr "Variantli mahsulot"
 
-#. placeholder {0}: filteredTags.length
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
-msgid "Showing all {0} results"
-msgstr "Barcha {0} ta natija ko'rsatilmoqda"
+#~ msgid "Showing all {0} results"
+#~ msgstr "Barcha {0} ta natija ko'rsatilmoqda"
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 msgid "Delete {selectionLength} assets?"
@@ -5785,6 +5832,7 @@ msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "Ko'rinishni barcha foydalanuvchilarga ochish uchun uni \"Global\" qilib saqlang."
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 msgid "Search tags..."
 msgstr ""
 
@@ -5827,6 +5875,7 @@ msgstr "Ommaviy amallar"
 msgid "New seller"
 msgstr "Yangi sotuvchi"
 
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "Yuklanmoqda…"
@@ -6490,6 +6539,11 @@ msgstr ""
 msgid "Add tags..."
 msgstr "Teglar qo'shish..."
 
+#: src/lib/components/shared/customer-group-selector.tsx
+#: src/lib/components/shared/customer-group-selector.tsx
+msgid "Search customer groups"
+msgstr ""
+
 #. placeholder {0}: createdAssets.length
 #: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "{0, plural, one {Uploaded # asset} other {Uploaded # assets}}"
@@ -6565,6 +6619,7 @@ msgstr "Variant nomi"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
+#: src/lib/components/shared/configurable-operation-input.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
 msgid "Remove"
 msgstr "Olib tashlash"
@@ -6656,8 +6711,8 @@ msgid "No low stock in this sample"
 msgstr "Bu namunada kam zaxira yo'q"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more facets"
-msgstr "Boshqa fasetlar yo'q"
+#~ msgid "No more facets"
+#~ msgstr "Boshqa fasetlar yo'q"
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Search index rebuild started"
@@ -6670,6 +6725,10 @@ msgstr "To'plam pozitsiyasi yangilandi"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Add \"{newOptionInput}\""
 msgstr "\"{newOptionInput}\" qo'shish"
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Search customers"
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -6825,8 +6884,10 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "Administrator muvaffaqiyatli yangilandi"
 
+#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -6899,6 +6960,11 @@ msgstr "Yangi yetkazib berish usuli"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 10 seconds"
 msgstr "Har 10 soniyada"
+
+#: src/lib/components/shared/country-selector.tsx
+#: src/lib/components/shared/country-selector.tsx
+msgid "Search countries"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Low Stock"
@@ -7024,6 +7090,7 @@ msgstr "Pul qaytarishni qayta ishlab bo'lmadi"
 msgid "First name"
 msgstr "Ismi"
 
+#: src/lib/components/shared/product-variant-selector.tsx
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order"
 msgstr "Buyurtmaga element qo'shish"
@@ -7185,6 +7252,7 @@ msgstr "Birinchi aksiyangizni yarating"
 msgid "Defaults to the default language."
 msgstr ""
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Remove item"
 msgstr "Elementni olib tashlash"
@@ -7429,6 +7497,11 @@ msgstr ""
 #~ msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 #~ msgstr "{cancellableCount, plural, one {{cancellableCount} ta vazifani bekor qilmoqchimisiz? Bu amalni qaytarib bo'lmaydi.} other {{cancellableCount} ta vazifani bekor qilmoqchimisiz? Bu amalni qaytarib bo'lmaydi.}}"
 
+#. placeholder {0}: price.currencyCode
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Remove {0} price"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx
 msgid "Go to option group"
 msgstr ""
@@ -7490,7 +7563,6 @@ msgstr "Ko'rinishni nusxalash amalga oshmadi"
 msgid "Use as the default shipping address"
 msgstr "Standart yetkazib berish manzili sifatida ishlatish"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Edit slug manually"
 msgstr "Slug'ni qo'lda tahrirlash"
@@ -7799,6 +7871,7 @@ msgid "Failed to create product variant"
 msgstr "Mahsulot variantini yaratish amalga oshmadi"
 
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/data-table/data-table.tsx
 msgid "Search..."
 msgstr "Qidirish..."
@@ -7890,8 +7963,8 @@ msgstr "Faol filtrlar"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
-msgid "Clear all"
-msgstr "Hammasini tozalash"
+#~ msgid "Clear all"
+#~ msgstr "Hammasini tozalash"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than"
@@ -7911,6 +7984,10 @@ msgstr "Yopish"
 msgid "Link"
 msgstr "Havola"
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "Add item to order..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"
 msgstr "Buyurtmaga to'lov qo'shish"
@@ -7926,6 +8003,10 @@ msgstr "Buyurtmaga to'lov qo'shish"
 #: src/lib/components/shared/facet-value-selector.tsx
 #~ msgid "Loading..."
 #~ msgstr "Yuklanmoqda..."
+
+#: src/lib/components/data-input/combination-mode-input.tsx
+msgid "Combine with the condition before"
+msgstr ""
 
 #: src/lib/providers/auth.tsx
 msgid "You do not have access to any channel"
