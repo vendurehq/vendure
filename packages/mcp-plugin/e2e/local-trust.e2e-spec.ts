@@ -1,4 +1,5 @@
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/server';
+import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import {
     AuthenticatedSession,
     ConfigService,
@@ -21,7 +22,6 @@ import { McpPluginOptions } from '../src/types';
 import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/mcp-documents';
 import {
     createLocalTrustProject,
-    LOCAL_TRUST_SECRET_ENV_VAR,
     postAdminApi,
     postRaw,
     startAsDevServer,

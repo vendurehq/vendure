@@ -5,6 +5,7 @@ import {
     OnApplicationShutdown,
     UnauthorizedException,
 } from '@nestjs/common';
+import { MCP_ADMIN_ENDPOINT_LOG_PREFIX } from '@vendure/common/lib/log';
 import {
     AuthenticatedSession,
     ConfigService,
@@ -30,7 +31,6 @@ import { McpRateLimiterService } from '../rate-limit/mcp-rate-limiter.service';
 import { isLoopbackHostname } from '../shared/loopback';
 
 import { hashLocalTrustSecret, LocalTrustActivation } from './local-trust-activation';
-import { MCP_ADMIN_ENDPOINT_LOG_PREFIX } from './local-trust-contract';
 import { isLoopbackSocketAddress } from './loopback-socket-address';
 
 /** The authentication strategy name recorded on the Admin API session that local trust creates. */
@@ -274,9 +274,8 @@ export class LocalTrustService implements OnApplicationBootstrap, OnApplicationS
             const leftovers = await this.connection
                 .getRepository(ctx, AuthenticatedSession)
                 .find({ where: { authenticationStrategy: LOCAL_TRUST_SESSION_STRATEGY } });
-            for (const leftover of leftovers) {
-                await this.deleteSession(leftover.token);
-            }
+            // The rows are independent, so they are deleted at once.
+            await Promise.all(leftovers.map(leftover => this.deleteSession(leftover.token)));
         } catch (e) {
             Logger.warn(
                 `Could not delete the local-trust sessions of earlier runs: ${e instanceof Error ? e.message : String(e)}`,
