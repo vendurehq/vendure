@@ -8209,3 +8209,31 @@ msgstr "API 키가 업데이트되었습니다"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "이 언어는 모든 채널에서 사용할 수 있습니다"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""

@@ -8289,3 +8289,31 @@ msgstr "API Key 更新成功"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "这些语言将可供所有渠道使用"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""

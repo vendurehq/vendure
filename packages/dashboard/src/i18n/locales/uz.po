@@ -8081,3 +8081,31 @@ msgstr "API kaliti muvaffaqiyatli yangilandi"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "Bu tillar barcha kanallar uchun mavjud bo'ladi"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""
