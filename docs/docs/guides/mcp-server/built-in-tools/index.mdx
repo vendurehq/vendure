@@ -1,11 +1,11 @@
 ---
 title: 'Built-in Tool Reference'
 metaTitle: 'MCP Built-in Tool Reference | Vendure'
-metaDescription: 'The 73 tools the Vendure MCP plugin ships — 18 shop and 55 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
+metaDescription: 'The 81 tools the Vendure MCP plugin ships — 18 shop and 63 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
 order: 9
 ---
 
-The plugin ships 73 built-in tools: 18 on the shop toolset and 55 on the admin toolset. The tables below list
+The plugin ships 81 built-in tools: 18 on the shop toolset and 63 on the admin toolset. The tables below list
 every tool. A tool name that is a link has extra notes in [Tool details](#tool-details).
 
 This page does not cover every input field. The live `tools/list` response for your configuration is the
@@ -57,7 +57,7 @@ To run the tool, the agent shows the preview to its user and calls the tool agai
 ten minutes. If the target changed in the meantime, the call returns a new preview instead of running.
 `confirm: true` is not accepted.
 
-Seven built-in tools are destructive. They are marked **destructive** in the tables below. One of them,
+Fifteen built-in tools are destructive. They are marked **destructive** in the tables below. One of them,
 `place_order`, is a shop tool: placing an order is a real-money action, so it is gated like the destructive
 admin tools.
 
@@ -157,40 +157,49 @@ from `tools/list` and cannot be called. Tool toggles are the primary lever for s
 | `get_channel` | readonly | ReadSettings or ReadChannel | Get a channel with its languages, currencies, tax-inclusive pricing and default zones |
 | `create_channel` | mutating | CreateChannel | Create a channel |
 | `update_channel` | mutating | UpdateChannel | Update a channel's languages, currencies, pricing or default zones |
+| `delete_channel` | **destructive** | DeleteChannel | Delete a channel and the roles it owns; not the default or the active channel |
 | `set_active_channel` | **destructive** | Authenticated | Set the active channel for this MCP grant |
 
 ### Store setup
 
 These tools let an agent configure a store without the Dashboard. Each one checks the same permissions as the
-matching Admin API operation.
+matching Admin API operation. Each delete tool asks for consent first, with a preview that names its target, and
+a delete that core refuses, such as a zone that a channel still uses, is reported as a failed call.
 
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `list_zones` | readonly | ReadSettings or ReadZone | List zones with their member country codes |
 | `create_zone` | mutating | CreateSettings or CreateZone | Create a zone, with members given by country code |
 | `update_zone` | mutating | UpdateSettings or UpdateZone | Rename a zone or replace its member countries |
+| `delete_zone` | **destructive** | DeleteSettings or DeleteZone | Delete a zone that no channel or tax rate uses |
 | `list_countries` | readonly | ReadSettings or ReadCountry | List countries, sorted by code, with whether each is enabled |
 | `enable_countries` | mutating | UpdateSettings or UpdateCountry | Enable countries by code. It never creates a country |
 | `list_tax_categories` | readonly | ReadSettings or ReadTaxCategory | List tax categories |
 | `create_tax_category` | mutating | CreateSettings or CreateTaxCategory | Create a tax category |
 | `update_tax_category` | mutating | UpdateSettings or UpdateTaxCategory | Rename a tax category or make it the default |
+| `delete_tax_category` | **destructive** | DeleteSettings or DeleteTaxCategory | Delete a tax category that no tax rate or variant uses |
 | `list_tax_rates` | readonly | ReadSettings or ReadTaxRate | List tax rates with their category and target |
 | [`create_tax_rate`](#create_tax_rate-and-update_tax_rate) | mutating | CreateSettings or CreateTaxRate | Create a tax rate for one country or a zone |
 | [`update_tax_rate`](#create_tax_rate-and-update_tax_rate) | mutating | UpdateSettings or UpdateTaxRate | Change a tax rate's value, category, target or enabled state |
+| `delete_tax_rate` | **destructive** | DeleteSettings or DeleteTaxRate | Delete a tax rate |
 | `list_shipping_methods` | readonly | ReadSettings or ReadShippingMethod | List the active channel's shipping methods |
 | [`create_shipping_method`](#configurable-operations) | mutating | CreateSettings or CreateShippingMethod | Create a shipping method with its checker, calculator and fulfillment handler |
 | [`update_shipping_method`](#configurable-operations) | mutating | UpdateSettings or UpdateShippingMethod | Update a shipping method |
+| `delete_shipping_method` | **destructive** | DeleteSettings or DeleteShippingMethod | Delete a shipping method; it is removed from every channel it is assigned to |
 | `list_shipping_options` | readonly | ReadSettings or ReadShippingMethod | List the checkers, calculators and fulfillment handlers, with their arguments |
 | `list_payment_methods` | readonly | ReadSettings or ReadPaymentMethod | List the active channel's payment methods |
 | [`create_payment_method`](#configurable-operations) | mutating | CreateSettings or CreatePaymentMethod | Create a payment method with its handler and optional checker |
 | [`update_payment_method`](#configurable-operations) | mutating | UpdateSettings or UpdatePaymentMethod | Update a payment method |
+| `delete_payment_method` | **destructive** | DeleteSettings or DeletePaymentMethod | In the default channel, delete a payment method (`force` when other channels use it); elsewhere, remove it from that channel |
 | `list_payment_options` | readonly | ReadSettings or ReadPaymentMethod | List the payment handlers and checkers, with their arguments |
 | `list_stock_locations` | readonly | ReadCatalog or ReadStockLocation | List the active channel's stock locations |
 | `create_stock_location` | mutating | CreateStockLocation | Create a stock location |
 | `update_stock_location` | mutating | UpdateStockLocation | Rename a stock location or change its description |
+| `delete_stock_location` | **destructive** | DeleteStockLocation | Delete a stock location, optionally moving its stock to another location first; it is removed from every channel |
 | `list_roles` | readonly | ReadAdministrator or ReadRole | List the roles the caller can see, with their permissions |
 | [`create_role`](#create_role-and-update_role) | mutating | CreateRole | Create a role in the active channel |
 | [`update_role`](#create_role-and-update_role) | mutating | UpdateRole | Change a role's code, description or permissions |
+| `delete_role` | **destructive** | DeleteRole | Delete a role; not a system role |
 | `get_setting` | readonly | Authenticated | Read one settings-store value by its full key |
 | [`set_setting`](#set_setting) | mutating | Authenticated | Write one settings-store value by its full key |
 | [`check_store`](#check_store) | readonly | ReadSettings | Report the setup gaps that stop each channel from taking an order |
@@ -484,7 +493,7 @@ tool's schema exactly as a direct call would.
 
 Reach for discovery only when the full list is a problem:
 
-- A host with a low tool cap: 73 tools exceeds some clients' limits.
+- A host with a low tool cap: 81 tools exceeds some clients' limits.
 - A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
   models.
 

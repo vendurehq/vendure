@@ -19,9 +19,9 @@ import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
-import { callTool, postMcp } from './utils/mcp-http-client';
+import { callTool, consentDigestOf, postMcp, withConsent } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { testServerInit } from './utils/test-server';
+import { getIdStrategy, testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'setup-tools-secret-00000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -43,7 +43,14 @@ const secretArgPaymentHandler = new PaymentMethodHandler({
 describe('MCP setup-entity admin tools', () => {
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        rateLimits: { oauthIp: false },
+        // One grant makes every call in this suite, more than the default per-minute limits allow.
+        // Nothing here tests rate limiting.
+        rateLimits: {
+            oauthIp: false,
+            perSession: { rpm: 1000 },
+            perUser: { rpm: 1000 },
+            perClient: { rpm: 1000 },
+        },
         // Full capture, so a test can show that no secret config arg reaches the log.
         logging: { capture: 'full' },
     };
@@ -369,6 +376,300 @@ describe('MCP setup-entity admin tools', () => {
             expect(created?.input).toMatchObject({
                 input: { handler: { args: { apiKey: REDACTED_SECRET_PLACEHOLDER } } },
             });
+        });
+    });
+
+    describe('delete tools', () => {
+        /** Calls a delete tool, checks that its preview names the target, then confirms with the digest. */
+        async function deleteWithConsent(name: string, args: Record<string, unknown>, previewText: string) {
+            const message = callTool(name, args);
+            const preview = await postMcp(baseUrl(), 'admin', message, { token });
+            const content = preview.body.result.structuredContent;
+            expect(content?.status, JSON.stringify(preview.body.result)).toBe('incomplete');
+            expect(content.preview).toEqual(expect.stringContaining(previewText));
+            const digest = consentDigestOf(preview);
+            expect(digest).toEqual(expect.any(String));
+            const confirmed = await postMcp(baseUrl(), 'admin', withConsent(message, digest as string), {
+                token,
+            });
+            return confirmed.body.result;
+        }
+
+        async function ids(listTool: string): Promise<string[]> {
+            const listed = await call(listTool, { limit: 100 });
+            return listed.items.map((item: { id: string | number }) => String(item.id));
+        }
+
+        const encode = (id: string | number) => getIdStrategy(server.app.get(ConfigService)).encodeId(id);
+
+        it('refuses confirm: true, and deletes only with the digest of the preview', async () => {
+            const { zone } = await call('create_zone', {
+                input: { name: 'Doomed', memberCountryCodes: ['CN'] },
+            });
+            const withTrue = await callRaw('delete_zone', { id: zone.id, confirm: true });
+            expect(withTrue.isError).toBe(true);
+            expect(withTrue.content[0].text).toMatch(/"confirm" must be the consent digest/);
+
+            const result = await deleteWithConsent('delete_zone', { id: zone.id }, 'Delete zone "Doomed"');
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toEqual({ result: 'DELETED', message: null });
+            expect(await ids('list_zones')).not.toContain(String(zone.id));
+        });
+
+        it('refuses a zone that a channel uses, before asking for consent', async () => {
+            const refused = await callRaw('delete_zone', { id: europeZoneId });
+            expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is a default zone of channels');
+            expect(refused.content[0].text).toContain('"__default_channel__"');
+            expect(await ids('list_zones')).toContain(String(europeZoneId));
+        });
+
+        it('deletes a tax rate and a tax category, and refuses a category that variants use', async () => {
+            const { taxCategory } = await call('create_tax_category', { input: { name: 'Temporary' } });
+            const { taxRate } = await call('create_tax_rate', {
+                input: {
+                    name: 'Temporary rate',
+                    value: 5,
+                    taxCategoryId: taxCategory.id,
+                    target: { countryCode: 'CA' },
+                },
+            });
+            expect(
+                (await deleteWithConsent('delete_tax_rate', { id: taxRate.id }, '"Temporary rate"')).isError,
+            ).toBeUndefined();
+            expect(await ids('list_tax_rates')).not.toContain(String(taxRate.id));
+            expect(
+                (await deleteWithConsent('delete_tax_category', { id: taxCategory.id }, '"Temporary"'))
+                    .isError,
+            ).toBeUndefined();
+            expect(await ids('list_tax_categories')).not.toContain(String(taxCategory.id));
+
+            // A category that seeded variants use is refused before core runs into the database constraint.
+            const { productVariants } = await adminClient.query(gql`
+                query {
+                    productVariants(options: { take: 1 }) {
+                        items {
+                            taxCategory {
+                                id
+                            }
+                        }
+                    }
+                }
+            `);
+            const usedCategoryId = getIdStrategy(server.app.get(ConfigService)).decodeId(
+                productVariants.items[0].taxCategory.id,
+            );
+            const used = await callRaw('delete_tax_category', { id: usedCategoryId });
+            expect(used.isError).toBe(true);
+            expect(used.content[0].text).toMatch(/is used by \d+ product variant\(s\)/);
+        });
+
+        it('deletes a shipping method, naming the channels it leaves', async () => {
+            const { shippingMethod } = await call('create_shipping_method', {
+                input: {
+                    code: 'mcp-temporary',
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: { code: 'default-shipping-eligibility-checker', args: { orderMinimum: 0 } },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        args: { rate: 1, includesTax: 'auto', taxRate: 0 },
+                    },
+                    translations: [{ languageCode: 'en', name: 'Temporary shipping' }],
+                },
+            });
+            const result = await deleteWithConsent(
+                'delete_shipping_method',
+                { id: shippingMethod.id },
+                'It is removed from channel "__default_channel__"',
+            );
+            expect(result.isError).toBeUndefined();
+            expect(await ids('list_shipping_methods')).not.toContain(String(shippingMethod.id));
+        });
+
+        it('deletes a payment method that another channel uses only with force', async () => {
+            const { channel } = await call('create_channel', {
+                input: {
+                    code: 'mcp-payment-channel',
+                    token: 'mcp-payment-channel-token',
+                    defaultLanguageCode: 'en',
+                    defaultCurrencyCode: 'USD',
+                    pricesIncludeTax: false,
+                    defaultTaxZoneId: europeZoneId,
+                    defaultShippingZoneId: europeZoneId,
+                },
+            });
+            const { paymentMethod } = await call('create_payment_method', {
+                input: {
+                    code: 'mcp-shared-payment',
+                    handler: { code: 'e2e-secret-handler', args: { mode: 'test' } },
+                    translations: [{ languageCode: 'en', name: 'Shared payment' }],
+                },
+            });
+            await adminClient.query(
+                gql`
+                    mutation ($input: AssignPaymentMethodsToChannelInput!) {
+                        assignPaymentMethodsToChannel(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { paymentMethodIds: [encode(paymentMethod.id)], channelId: encode(channel.id) } },
+            );
+
+            // Without force, core would refuse it, so the tool refuses before asking for consent.
+            const refused = await callRaw('delete_payment_method', { id: paymentMethod.id });
+            expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is also used by channels "mcp-payment-channel"');
+            expect(refused.content[0].text).toContain('Pass "force": true');
+            expect(await ids('list_payment_methods')).toContain(String(paymentMethod.id));
+
+            const forced = await deleteWithConsent(
+                'delete_payment_method',
+                { id: paymentMethod.id, force: true },
+                'remove it from the channels that also use it: "mcp-payment-channel"',
+            );
+            expect(forced.isError).toBeUndefined();
+            expect(await ids('list_payment_methods')).not.toContain(String(paymentMethod.id));
+        });
+
+        it('deletes a stock location after moving its stock to another location', async () => {
+            const { stockLocation } = await call('create_stock_location', {
+                input: { name: 'Temporary depot' },
+            });
+            const target = (await call('list_stock_locations', { limit: 100 })).items.find(
+                (l: { id: string }) => String(l.id) !== String(stockLocation.id),
+            );
+            const { productVariants } = await adminClient.query(gql`
+                query {
+                    productVariants(options: { take: 1 }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            const variantId = productVariants.items[0].id;
+            const stockAt = async (locationId: string | number) => {
+                const { productVariant } = await adminClient.query(
+                    gql`
+                        query ($id: ID!) {
+                            productVariant(id: $id) {
+                                stockLevels {
+                                    stockLocationId
+                                    stockOnHand
+                                }
+                            }
+                        }
+                    `,
+                    { id: variantId },
+                );
+                return (
+                    productVariant.stockLevels.find(
+                        (level: { stockLocationId: string }) => level.stockLocationId === encode(locationId),
+                    )?.stockOnHand ?? 0
+                );
+            };
+            await adminClient.query(
+                gql`
+                    mutation ($input: [UpdateProductVariantInput!]!) {
+                        updateProductVariants(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: [
+                        {
+                            id: variantId,
+                            stockLevels: [{ stockLocationId: encode(stockLocation.id), stockOnHand: 7 }],
+                        },
+                    ],
+                },
+            );
+            const before = await stockAt(target.id);
+            expect(await stockAt(stockLocation.id)).toBe(7);
+
+            const sameTarget = await callRaw('delete_stock_location', {
+                id: stockLocation.id,
+                transferToLocationId: stockLocation.id,
+            });
+            expect(sameTarget.isError).toBe(true);
+            expect(sameTarget.content[0].text).toContain('cannot move to the location that is being deleted');
+
+            const result = await deleteWithConsent(
+                'delete_stock_location',
+                { id: stockLocation.id, transferToLocationId: target.id },
+                `Its stock moves to location "${target.name}" (id ${String(target.id)})`,
+            );
+            expect(result.isError).toBeUndefined();
+            expect(await stockAt(target.id)).toBe(before + 7);
+            expect(await ids('list_stock_locations')).not.toContain(String(stockLocation.id));
+        });
+
+        it('deletes a role, and refuses a system role', async () => {
+            const { role } = await call('create_role', {
+                input: { code: 'mcp-temporary', description: 'Temporary', permissions: ['ReadCatalog'] },
+            });
+            expect(
+                (await deleteWithConsent('delete_role', { id: role.id }, '"mcp-temporary"')).isError,
+            ).toBeUndefined();
+            expect(await ids('list_roles')).not.toContain(String(role.id));
+
+            const roles = await call('list_roles', { limit: 100 });
+            const superAdmin = roles.items.find((r: { code: string }) => r.code === '__super_admin_role__');
+            const refused = await callRaw('delete_role', { id: superAdmin.id });
+            expect(refused.isError).toBe(true);
+            expect(refused.content[0].text).toContain('is a system role and cannot be deleted');
+        });
+
+        it('refuses the active channel and the default channel, and deletes another channel', async () => {
+            const { channel } = await call('create_channel', {
+                input: {
+                    code: 'mcp-temporary-channel',
+                    token: 'mcp-temporary-channel-token',
+                    defaultLanguageCode: 'en',
+                    defaultCurrencyCode: 'USD',
+                    pricesIncludeTax: false,
+                    defaultTaxZoneId: europeZoneId,
+                    defaultShippingZoneId: europeZoneId,
+                },
+            });
+            const channels = await call('list_channels', {});
+            const defaultChannel = channels.items.find(
+                (c: { code: string }) => c.code === '__default_channel__',
+            );
+            const switchTo = async (channelToken: string) => {
+                const message = callTool('set_active_channel', { channelToken });
+                const preview = await postMcp(baseUrl(), 'admin', message, { token });
+                const switched = await postMcp(
+                    baseUrl(),
+                    'admin',
+                    withConsent(message, consentDigestOf(preview) as string),
+                    { token },
+                );
+                expect(switched.body.result.isError).toBeUndefined();
+            };
+
+            // While the new channel is active, deleting it is refused, and so is the default channel.
+            await switchTo('mcp-temporary-channel-token');
+            try {
+                const active = await callRaw('delete_channel', { id: channel.id });
+                expect(active.isError).toBe(true);
+                expect(active.content[0].text).toContain('"mcp-temporary-channel" is the active channel');
+                const defaultRefused = await callRaw('delete_channel', { id: defaultChannel.id });
+                expect(defaultRefused.isError).toBe(true);
+                expect(defaultRefused.content[0].text).toContain('The default channel cannot be deleted');
+            } finally {
+                await switchTo(defaultChannel.token);
+            }
+
+            const result = await deleteWithConsent(
+                'delete_channel',
+                { id: channel.id },
+                'Delete channel "mcp-temporary-channel"',
+            );
+            expect(result.isError).toBeUndefined();
+            expect((await call('get_channel', { id: channel.id })).channel).toBeNull();
         });
     });
 
