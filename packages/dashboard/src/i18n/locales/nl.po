@@ -238,6 +238,10 @@ msgstr "Meer toevoegen ({0} geselecteerd)"
 #~ msgid "View values"
 #~ msgstr "Waarden bekijken"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Delete row"
 msgstr "Rij verwijderen"
@@ -427,6 +431,7 @@ msgstr "{0, plural, one {# collectie verplaatsen naar de geselecteerde collectie
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -528,6 +533,10 @@ msgstr "Onbekende fout"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Uploading image..."
 msgstr "Afbeelding uploaden..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
 
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/entity-assets.tsx
@@ -1136,6 +1145,10 @@ msgstr "Bestelling afhandelen mislukt"
 msgid "Total"
 msgstr "Totaal"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx
 msgid "Enter the transaction ID for this refund settlement"
 msgstr "Voer de transactie-ID in voor deze terugbetalingsafhandeling"
@@ -1471,6 +1484,11 @@ msgstr "Instellen van couponcode voor bestelling mislukt: {0}"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
 msgstr "Kies wat er met de resterende voorraad moet gebeuren"
+
+#: src/lib/components/layout/command-palette.tsx
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
 #: src/lib/components/data-table/data-table-settings-menu.tsx
@@ -1916,6 +1934,10 @@ msgstr "Waar"
 msgid "Select customer"
 msgstr "Selecteer klant"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Order transitioned"
 msgstr "Bestelling overgegaan"
@@ -2232,6 +2254,10 @@ msgstr "Toepassen"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Search tax rates..."
 msgstr "Belastingtarieven zoeken..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "New product option"
@@ -4523,6 +4549,10 @@ msgstr "Niet gevonden"
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Facet values"
 msgstr "Facetwaarden"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
 msgid "Failed to reorder items"
@@ -8174,6 +8204,7 @@ msgstr "is groter dan"
 msgid "Underline"
 msgstr "Onderstrepen"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Sluiten"
@@ -8365,31 +8396,3 @@ msgstr "API Key succesvol bijgewerkt"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "Deze talen zijn beschikbaar voor alle kanalen"
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search the Dashboard"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Find pages and settings."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search (command palette)"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search pages and settings…"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "No results for “{search}”."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Navigate"
-msgstr ""

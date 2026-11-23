@@ -234,6 +234,10 @@ msgstr "Adaugă mai multe ({0} selectate)"
 #~ msgid "View values"
 #~ msgstr "Vizualizează valorile"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Delete row"
 msgstr "Șterge rândul"
@@ -403,6 +407,7 @@ msgstr "Ești sigur că vrei să ștergi această variantă?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {Se mută # colecție în colecția selectată} few {Se mută # colecții în colecția selectată} other {Se mută # de colecții în colecția selectată}}"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -504,6 +509,10 @@ msgstr "Eroare necunoscută"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Uploading image..."
 msgstr "Se încarcă imaginea..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
 
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/entity-assets.tsx
@@ -1108,6 +1117,10 @@ msgstr "Nu s-a putut livra comanda"
 msgid "Total"
 msgstr "Total"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx
 msgid "Enter the transaction ID for this refund settlement"
 msgstr "Introdu ID-ul tranzacției pentru această soluționare rambursare"
@@ -1435,6 +1448,11 @@ msgstr "Nu s-a putut aplica codul promoțional pentru comandă: {0}"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
 msgstr "Selectați ce se întâmplă cu stocul rămas"
+
+#: src/lib/components/layout/command-palette.tsx
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
 #: src/lib/components/data-table/data-table-settings-menu.tsx
@@ -1868,6 +1886,10 @@ msgstr "Adevărat"
 msgid "Select customer"
 msgstr "Selectează clientul"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Order transitioned"
 msgstr "Status comandă schimbat"
@@ -2175,6 +2197,10 @@ msgstr "Aplică"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Search tax rates..."
 msgstr "Caută cote de taxă..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "New product option"
@@ -4437,6 +4463,10 @@ msgstr "Nu a fost găsit"
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Facet values"
 msgstr "Valori atribut"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
 msgid "Failed to reorder items"
@@ -7975,6 +8005,7 @@ msgstr "este mai mare decât"
 msgid "Underline"
 msgstr "Subliniat"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Închide"
@@ -8162,31 +8193,3 @@ msgstr "Cheia API a fost actualizată cu succes"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "Aceste limbi vor fi disponibile pentru toate canalele"
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search the Dashboard"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Find pages and settings."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search (command palette)"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search pages and settings…"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "No results for “{search}”."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Navigate"
-msgstr ""

@@ -234,6 +234,10 @@ msgstr "Yana qo'shish ({0} tanlandi)"
 #~ msgid "View values"
 #~ msgstr "Qiymatlarni ko'rish"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Delete row"
 msgstr "Qatorni o'chirish"
@@ -403,6 +407,7 @@ msgstr "Ushbu variant o'chirilsinmi?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {# ta to'plam tanlangan to'plamga ko'chirilmoqda} other {# ta to'plam tanlangan to'plamga ko'chirilmoqda}}"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -504,6 +509,10 @@ msgstr "Noma'lum xato"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Uploading image..."
 msgstr "Rasm yuklanmoqda..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
 
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/entity-assets.tsx
@@ -1108,6 +1117,10 @@ msgstr "Buyurtmani bajarib bo'lmadi"
 msgid "Total"
 msgstr "Jami"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx
 msgid "Enter the transaction ID for this refund settlement"
 msgstr "Ushbu pul qaytarish uchun tranzaksiya ID raqamini kiriting"
@@ -1435,6 +1448,11 @@ msgstr "Buyurtma uchun kupon kodini o'rnatib bo'lmadi: {0}"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
 msgstr "Qolgan zaxira bilan nima qilishni tanlang"
+
+#: src/lib/components/layout/command-palette.tsx
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
 #: src/lib/components/data-table/data-table-settings-menu.tsx
@@ -1868,6 +1886,10 @@ msgstr "To'g'ri"
 msgid "Select customer"
 msgstr "Mijozni tanlash"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Order transitioned"
 msgstr "Buyurtma o'tkazildi"
@@ -2175,6 +2197,10 @@ msgstr "Qo'llash"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Search tax rates..."
 msgstr "Soliq stavkalarini qidirish..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "New product option"
@@ -4437,6 +4463,10 @@ msgstr "Topilmadi"
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Facet values"
 msgstr "Faset qiymatlari"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
 msgid "Failed to reorder items"
@@ -7975,6 +8005,7 @@ msgstr "dan katta"
 msgid "Underline"
 msgstr "Tagiga chizilgan"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Yopish"
@@ -8162,31 +8193,3 @@ msgstr "API kaliti muvaffaqiyatli yangilandi"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "Bu tillar barcha kanallar uchun mavjud bo'ladi"
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search the Dashboard"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Find pages and settings."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search (command palette)"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search pages and settings…"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "No results for “{search}”."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Navigate"
-msgstr ""

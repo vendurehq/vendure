@@ -238,6 +238,10 @@ msgstr "Ajouter plus ({0} sélectionnés)"
 #~ msgid "View values"
 #~ msgstr "Voir les valeurs"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Delete row"
 msgstr "Supprimer la ligne"
@@ -427,6 +431,7 @@ msgstr "{0, plural, one {Déplacement de # collection vers la collection sélect
 #~ msgid "All resources are up and running"
 #~ msgstr "Toutes les ressources sont opérationnelles"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -528,6 +533,10 @@ msgstr "Erreur inconnue"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Uploading image..."
 msgstr "Téléversement de l'image..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
 
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/entity-assets.tsx
@@ -1136,6 +1145,10 @@ msgstr "Échec de l'exécution de la commande"
 msgid "Total"
 msgstr "Total"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx
 msgid "Enter the transaction ID for this refund settlement"
 msgstr "Saisissez l'ID de transaction pour ce règlement de remboursement"
@@ -1467,6 +1480,11 @@ msgstr "Échec de l'application du code promo à la commande : {0}"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
 msgstr "Choisissez ce qu'il advient du stock restant"
+
+#: src/lib/components/layout/command-palette.tsx
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
 #: src/lib/components/data-table/data-table-settings-menu.tsx
@@ -1912,6 +1930,10 @@ msgstr "Vrai"
 msgid "Select customer"
 msgstr "Sélectionner un client"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Order transitioned"
 msgstr "Commande transférée"
@@ -2228,6 +2250,10 @@ msgstr "Appliquer"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Search tax rates..."
 msgstr "Rechercher des taux de taxe..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "New product option"
@@ -4529,6 +4555,10 @@ msgstr "Introuvable"
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Facet values"
 msgstr "Valeurs de facette"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
 msgid "Failed to reorder items"
@@ -8179,6 +8209,7 @@ msgstr "est supérieur à"
 msgid "Underline"
 msgstr "Souligné"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Fermer"
@@ -8370,31 +8401,3 @@ msgstr "API Key mis à jour avec succès"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
 msgstr "Ces langues seront disponibles pour tous les canaux"
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search the Dashboard"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Find pages and settings."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search (command palette)"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Search pages and settings…"
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "No results for “{search}”."
-msgstr ""
-
-#: src/lib/components/layout/command-palette.tsx
-msgid "Navigate"
-msgstr ""
