@@ -2,6 +2,7 @@ import { DataTableSettingsMenu } from '@/vdb/components/data-table/data-table-se
 import { DataTableViewsTabs } from '@/vdb/components/data-table/data-table-views-tabs.js';
 import { getRowLabel } from '@/vdb/components/data-table/row-label.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
 import { CardTitle } from '@/vdb/components/ui/card.js';
 import { EmptyCollectionIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
 import { Input } from '@/vdb/components/ui/input.js';
@@ -556,7 +557,10 @@ export function DataTable<TData>({
         ? showFilterRow
         : hasSearchOrFilter || showViewsControls || hasHeaderControls;
 
-    const renderTools = (table: TableType<TData> | undefined) => (
+    const renderTools = (table: TableType<TData> | undefined) => {
+        const showFilterMenu = !!table && (onFilterChange != null || hasFacetedFilters);
+        const showSettings = !!table && hasHeaderControls;
+        return (
         <div className="flex flex-wrap items-center justify-end gap-2">
             {onSearchTermChange && (
                 <Input
@@ -566,24 +570,30 @@ export function DataTable<TData>({
                     className="w-full @sm/table:w-64"
                 />
             )}
-            {table && (onFilterChange != null || hasFacetedFilters) && (
-                <AddFilterMenu
-                    columns={onFilterChange ? table.getAllColumns() : []}
-                    facetedFilters={facetedFilters}
-                    onSelectFacetedFilter={setOpenFacetedFilterKey}
-                />
-            )}
-            {actions}
-            {table && hasHeaderControls && (
-                <DataTableSettingsMenu
-                    table={table}
-                    disableViewOptions={disableViewOptions}
-                    onRefresh={onRefresh}
-                    isLoading={isLoading}
-                />
+            {/* The tools of one kind (filter, page actions, settings) are one joined group. */}
+            {(showFilterMenu || showSettings || actions != null) && (
+            <ButtonGroup>
+                {table && showFilterMenu && (
+                    <AddFilterMenu
+                        columns={onFilterChange ? table.getAllColumns() : []}
+                        facetedFilters={facetedFilters}
+                        onSelectFacetedFilter={setOpenFacetedFilterKey}
+                    />
+                )}
+                {actions}
+                {table && showSettings && (
+                    <DataTableSettingsMenu
+                        table={table}
+                        disableViewOptions={disableViewOptions}
+                        onRefresh={onRefresh}
+                        isLoading={isLoading}
+                    />
+                )}
+            </ButtonGroup>
             )}
         </div>
-    );
+        );
+    };
 
     const renderToolbar = (table: TableType<TData>) => {
         return (
