@@ -1,4 +1,5 @@
 import { AppSidebar } from '@/vdb/components/layout/app-sidebar.js';
+import { CommandPaletteProvider, CommandPaletteTrigger } from '@/vdb/components/layout/command-palette.js';
 import { DevModeIndicator } from '@/vdb/components/layout/dev-mode-indicator.js';
 import { GeneratedBreadcrumbs } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
@@ -87,6 +88,10 @@ function ToolbarItems() {
 
     const builtinItems: BuiltInToolbarItem[] = [
         {
+            id: 'search',
+            component: CommandPaletteTrigger,
+        },
+        {
             id: 'dev-mode-indicator',
             component: DevModeIndicator,
             shouldRender: settings.devMode,
@@ -140,34 +145,36 @@ function ToolbarItems() {
 export function AppLayout() {
     return (
         <SidebarProvider className="h-svh">
-            <AppSidebar />
-            <SidebarInset render={<div />} className="overflow-hidden">
-                <AppShellHeader>
-                    <div className="flex items-center justify-start gap-1.5 min-w-0 overflow-hidden -m-1 p-1">
-                        <Tooltip>
-                            <TooltipTrigger render={<SidebarTrigger className="-ml-1 shrink-0" />} />
-                            <TooltipContent>
-                                Toggle sidebar <Kbd className="ms-2">{formatShortcut('mod+B')}</Kbd>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Separator
-                            orientation="vertical"
-                            className="me-2 shrink-0 data-vertical:h-4 data-vertical:self-center"
-                        />
-                        <GeneratedBreadcrumbs />
-                    </div>
-                    <div className="ms-auto flex items-center justify-end gap-2 shrink-0">
-                        <ToolbarItems />
-                    </div>
-                </AppShellHeader>
-                <AppShellMain>
-                    <div className="container mx-auto">
-                        <CustomProviders location={'layout'}>
-                            <Outlet />
-                        </CustomProviders>
-                    </div>
-                </AppShellMain>
-            </SidebarInset>
+            <CommandPaletteProvider>
+                <AppSidebar />
+                <SidebarInset render={<div />} className="overflow-hidden">
+                    <AppShellHeader>
+                        <div className="flex items-center justify-start gap-1.5 min-w-0 overflow-hidden -m-1 p-1">
+                            <Tooltip>
+                                <TooltipTrigger render={<SidebarTrigger className="-ml-1 shrink-0" />} />
+                                <TooltipContent>
+                                    Toggle sidebar <Kbd className="ms-2">{formatShortcut('mod+B')}</Kbd>
+                                </TooltipContent>
+                            </Tooltip>
+                            <Separator
+                                orientation="vertical"
+                                className="me-2 shrink-0 data-vertical:h-4 data-vertical:self-center"
+                            />
+                            <GeneratedBreadcrumbs />
+                        </div>
+                        <div className="ms-auto flex items-center justify-end gap-2 shrink-0">
+                            <ToolbarItems />
+                        </div>
+                    </AppShellHeader>
+                    <AppShellMain>
+                        <div className="container mx-auto">
+                            <CustomProviders location={'layout'}>
+                                <Outlet />
+                            </CustomProviders>
+                        </div>
+                    </AppShellMain>
+                </SidebarInset>
+            </CommandPaletteProvider>
         </SidebarProvider>
     );
 }

@@ -23,7 +23,7 @@ export type ToolbarItemPosition = { itemId: string; order: 'before' | 'after' | 
  * Dev Mode indicator, and alerts icon.
  *
  * Items can be positioned relative to existing items (including built-in ones like
- * `'alerts'` and `'dev-mode-indicator'`) using the `position` property. Items without
+ * `'search'`, `'alerts'` and `'dev-mode-indicator'`) using the `position` property. Items without
  * a `position` are placed before all built-in items.
  *
  * Toolbar items should typically be compact, icon-sized components (e.g. icon buttons)
