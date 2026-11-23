@@ -60,6 +60,10 @@ msgstr "文本样式"
 #~ msgid "The selected permissions will be applied to the these channels."
 #~ msgstr "所选权限将应用于这些渠道。"
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "No products found."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Product options"
 msgstr "商品选项"
@@ -87,8 +91,8 @@ msgstr "公寓、套房等"
 
 #: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more items"
-msgstr "没有更多项目"
+#~ msgid "No more items"
+#~ msgstr "没有更多项目"
 
 #. placeholder {0}: fileUploads.length
 #. placeholder {1}: fileUploads.length
@@ -606,7 +610,6 @@ msgstr "新客户组"
 
 #. placeholder {0}: searchValue.trim()
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-#: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "创建\"{0}\""
 
@@ -633,6 +636,10 @@ msgstr "已成功从渠道中移除 {successCount} 个选项组"
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx
 msgid "Shipping method is not eligible for this order"
 msgstr "配送方式不适用于此订单"
+
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Failed to update address"
@@ -698,6 +705,10 @@ msgstr ""
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "We couldn't load the stock levels"
 msgstr "无法加载库存水平"
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
+msgid "Fulfillments appear here once items are shipped."
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -1407,6 +1418,10 @@ msgstr "未找到产品"
 msgid "Add row before"
 msgstr "在前面添加行"
 
+#: src/lib/components/shared/custom-fields-form.tsx
+msgid "Scroll tabs left"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 msgid "Transition to {suggestedState}"
 msgstr "转换到 {suggestedState}"
@@ -1681,6 +1696,11 @@ msgstr "剩余："
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "未找到代码为\"{duplicatorCode}\"的 {entityName} 复制器"
 
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
+msgid "Loading facet values"
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Prices include tax for default tax zone"
 msgstr "价格包含默认税务区域的税费"
@@ -1698,6 +1718,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Total refund:"
 msgstr "退款总计："
+
+#: src/lib/components/shared/alerts.tsx
+msgid "Notifications ({activeCount})"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
@@ -1734,7 +1758,6 @@ msgstr "未找到国家"
 msgid "Successfully created variants"
 msgstr "变体创建成功"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Generate slug automatically"
 msgstr "自动生成 slug"
@@ -2302,6 +2325,10 @@ msgstr "新税务类别"
 #~ msgid "Partial refund completed"
 #~ msgstr "部分退款已完成"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Column options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "设置自定义字段"
@@ -2313,6 +2340,7 @@ msgid "Collections"
 msgstr "集合"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 msgid "Done"
 msgstr ""
 
@@ -2543,6 +2571,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
+#: src/lib/components/data-input/struct-form-input.tsx
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx
 msgid "Edit"
 msgstr "编辑"
@@ -3243,7 +3272,6 @@ msgid "Size, colour, etc."
 msgstr "大小、颜色等"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-#: src/lib/components/shared/facet-value-selector.tsx
 msgid "Browse facets"
 msgstr "浏览分面"
 
@@ -3778,6 +3806,10 @@ msgstr "{0, plural, other {找到 # 个符合条件的配送方式}}"
 msgid "Upload failed (HTTP {detail})"
 msgstr ""
 
+#: src/lib/components/shared/rich-text-editor/table-delete-menu.tsx
+msgid "Delete table"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3961,8 +3993,8 @@ msgid "Global view renamed successfully"
 msgstr "全局视图已成功重命名"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
-msgid "No tags selected"
-msgstr "未选择标签"
+#~ msgid "No tags selected"
+#~ msgstr "未选择标签"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
@@ -4421,10 +4453,15 @@ msgstr "重试"
 msgid "Successfully updated shipping method"
 msgstr "成功更新配送方式"
 
+#: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
+msgid "Row options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
 msgstr "更新商品变体失败"
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Drag to reorder"
 msgstr "拖动以重新排序"
@@ -4441,6 +4478,8 @@ msgstr "请选择如何处理您要删除的 {count, plural, other {# 个库存�
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
+#: src/lib/components/shared/facet-value-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "Search facet values..."
 msgstr "搜索分面值..."
@@ -4775,6 +4814,10 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/order-address.tsx
+msgid "The address appears here once the customer or an admin adds it to the order."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Use the channel's out-of-stock threshold"
 msgstr ""
@@ -4932,6 +4975,7 @@ msgstr "选择卖家"
 msgid "Your image is cropped to fit wherever it appears."
 msgstr ""
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 msgid "Loading tags..."
 msgstr "正在加载标签..."
@@ -5029,6 +5073,10 @@ msgstr "与"
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx
 msgid "Failed to create customer group"
 msgstr "创建客户组失败"
+
+#: src/lib/components/data-table/data-table-faceted-filter.tsx
+msgid "No results found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Failed to create role"
@@ -5470,10 +5518,9 @@ msgstr "上传"
 msgid "Product with options"
 msgstr "带选项的产品"
 
-#. placeholder {0}: filteredTags.length
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
-msgid "Showing all {0} results"
-msgstr "显示所有 {0} 个结果"
+#~ msgid "Showing all {0} results"
+#~ msgstr "显示所有 {0} 个结果"
 
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx
 msgid "Delete {selectionLength} assets?"
@@ -5921,6 +5968,7 @@ msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "将视图保存为\"全局\"以使其对所有用户可用。"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 msgid "Search tags..."
 msgstr ""
 
@@ -5967,6 +6015,7 @@ msgstr "批量操作"
 msgid "New seller"
 msgstr "新卖家"
 
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "正在加载…"
@@ -6646,6 +6695,11 @@ msgstr ""
 msgid "Add tags..."
 msgstr "添加标签..."
 
+#: src/lib/components/shared/customer-group-selector.tsx
+#: src/lib/components/shared/customer-group-selector.tsx
+msgid "Search customer groups"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$id.tsx
 #~ msgid "Failed to create product option group"
 #~ msgstr "创建商品选项组失败"
@@ -6729,6 +6783,7 @@ msgstr "变体名称"
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
+#: src/lib/components/shared/configurable-operation-input.tsx
 #: src/lib/components/shared/configurable-operation-input.tsx
 msgid "Remove"
 msgstr "删除"
@@ -6828,8 +6883,8 @@ msgid "No low stock in this sample"
 msgstr "此样本中没有低库存"
 
 #: src/lib/components/shared/facet-value-selector.tsx
-msgid "No more facets"
-msgstr "没有更多分面"
+#~ msgid "No more facets"
+#~ msgstr "没有更多分面"
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Search index rebuild started"
@@ -6846,6 +6901,10 @@ msgstr "集合位置已更新"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Add \"{newOptionInput}\""
 msgstr "添加「{newOptionInput}」"
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Search customers"
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -7005,8 +7064,10 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "成功更新管理员"
 
+#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -7079,6 +7140,11 @@ msgstr "新配送方式"
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 10 seconds"
 msgstr "每 10 秒"
+
+#: src/lib/components/shared/country-selector.tsx
+#: src/lib/components/shared/country-selector.tsx
+msgid "Search countries"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "Low Stock"
@@ -7208,6 +7274,7 @@ msgstr "处理退款失败"
 msgid "First name"
 msgstr "名"
 
+#: src/lib/components/shared/product-variant-selector.tsx
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order"
 msgstr "向订单添加商品"
@@ -7369,6 +7436,7 @@ msgstr "创建您的第一个促销"
 msgid "Defaults to the default language."
 msgstr ""
 
+#: src/lib/components/data-input/custom-field-list-input.tsx
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Remove item"
 msgstr "删除项目"
@@ -7621,6 +7689,11 @@ msgstr ""
 #~ msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 #~ msgstr "{cancellableCount, plural, one {确定要取消 {cancellableCount} 个任务吗？此操作无法撤销。} other {确定要取消 {cancellableCount} 个任务吗？此操作无法撤销。}}"
 
+#. placeholder {0}: price.currencyCode
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+msgid "Remove {0} price"
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx
 msgid "Go to option group"
 msgstr ""
@@ -7682,7 +7755,6 @@ msgstr "复制视图失败"
 msgid "Use as the default shipping address"
 msgstr "用作默认配送地址"
 
-#: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Edit slug manually"
 msgstr "手动编辑 slug"
@@ -8003,6 +8075,7 @@ msgid "Failed to create product variant"
 msgstr "创建商品变体失败"
 
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/data-input/relation-selector.tsx
 #: src/lib/components/data-table/data-table.tsx
 msgid "Search..."
 msgstr "搜索..."
@@ -8094,8 +8167,8 @@ msgstr "活动筛选条件"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
-msgid "Clear all"
-msgstr "全部清除"
+#~ msgid "Clear all"
+#~ msgstr "全部清除"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than"
@@ -8115,6 +8188,10 @@ msgstr "关闭"
 msgid "Link"
 msgstr "链接"
 
+#: src/lib/components/shared/product-variant-selector.tsx
+msgid "Add item to order..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"
 msgstr "向订单添加支付"
@@ -8130,6 +8207,10 @@ msgstr "向订单添加支付"
 #: src/lib/components/shared/facet-value-selector.tsx
 #~ msgid "Loading..."
 #~ msgstr "正在加载..."
+
+#: src/lib/components/data-input/combination-mode-input.tsx
+msgid "Combine with the condition before"
+msgstr ""
 
 #: src/lib/providers/auth.tsx
 msgid "You do not have access to any channel"

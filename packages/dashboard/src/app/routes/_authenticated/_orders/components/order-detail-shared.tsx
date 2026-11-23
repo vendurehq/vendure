@@ -22,7 +22,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
-import { Ban, Pencil, RotateCcw, User } from 'lucide-react';
+import { Ban, Pencil, RotateCcw, Truck, User } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -334,7 +334,12 @@ export function OrderDetailShared({
                             ))}
                         </div>
                     ) : (
-                        <EmptyState size="compact" title={<Trans>No fulfillments</Trans>} />
+                        <EmptyState
+                            size="compact"
+                            icon={<Truck />}
+                            title={<Trans>No fulfillments</Trans>}
+                            description={<Trans>Fulfillments appear here once items are shipped.</Trans>}
+                        />
                     )}
                 </PageBlock>
                 <PageBlock column="main" blockId="order-history" title={<Trans>Order history</Trans>}>

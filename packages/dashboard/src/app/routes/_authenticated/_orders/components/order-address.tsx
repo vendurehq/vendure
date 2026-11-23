@@ -1,7 +1,7 @@
 import { EmptyState } from '@/vdb/components/ui/state-views.js';
 import { Trans } from '@lingui/react/macro';
 import { ResultOf } from 'gql.tada';
-import { Globe, Phone } from 'lucide-react';
+import { Globe, MapPin, Phone } from 'lucide-react';
 
 import { orderAddressFragment } from '../orders.graphql.js';
 
@@ -27,7 +27,14 @@ export function OrderAddress({ address }: Readonly<{ address?: OrderAddress }>) 
     const countryCodeString = country && typeof country !== 'string' ? country?.code : countryCode;
 
     if (!address || Object.values(address).every(value => !value)) {
-        return <EmptyState size="compact" title={<Trans>No address</Trans>} />;
+        return (
+            <EmptyState
+                size="compact"
+                icon={<MapPin />}
+                title={<Trans>No address</Trans>}
+                description={<Trans>The address appears here once the customer or an admin adds it to the order.</Trans>}
+            />
+        );
     }
 
     return (

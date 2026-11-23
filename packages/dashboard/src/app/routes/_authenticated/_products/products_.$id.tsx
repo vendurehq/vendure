@@ -321,8 +321,8 @@ function ProductDetailPage() {
                             }}
                             title={<Trans>Product variants</Trans>}
                             actions={
-                                <Button render={<Link to="./variants" />} variant="outline" size="sm">
-                                    <PlusIcon className="mr-2 h-4 w-4" />
+                                <Button render={<Link to="./variants" />} variant="outline">
+                                    <PlusIcon />
                                     <Trans>Manage variants</Trans>
                                 </Button>
                             }
