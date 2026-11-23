@@ -227,6 +227,7 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
                 env: process.env,
                 projectDir: process.cwd(),
                 uid: process.getuid?.(),
+                platform: process.platform,
             });
         }
         // An app configured with localTrust: false never uses what an earlier run read.

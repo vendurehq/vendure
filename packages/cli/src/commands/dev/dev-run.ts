@@ -86,7 +86,7 @@ export interface DevRunOptions {
 /**
  * The state, logs and secret of one `vendure dev` run.
  *
- * It owns the supervisor state machine, the single writer of `.vendure/devserver.json`, and the
+ * It owns the supervisor state machine, the single writer of the state file, and the
  * writer of `.vendure/logs/dev.jsonl`. Each process of the run reports to it through its
  * {@link DevChildMonitor}.
  */
@@ -104,15 +104,16 @@ export class DevRun {
      */
     constructor(private readonly options: DevRunOptions) {
         this.secret = options.secret ?? generateLocalTrustSecret();
-        this.stateFile = options.writeState
-            ? new DevServerStateFile(options.projectDir, this.secret)
-            : undefined;
         this.supervisor = new DevSupervisor(
             options.targets,
             snapshot => this.writeState(snapshot),
             options.now,
         );
         try {
+            // Inside the try: on Windows without LOCALAPPDATA the state file has no path.
+            this.stateFile = options.writeState
+                ? new DevServerStateFile(options.projectDir, this.secret)
+                : undefined;
             this.stateFile?.claim({ ...this.supervisor.snapshot(), pid: process.pid });
         } catch (e) {
             if (e instanceof DevRunAlreadyRunningError || options.requireStateFile) {
@@ -123,7 +124,7 @@ export class DevRun {
             this.stateFile = undefined;
             this.warnOnce(
                 'state',
-                'Could not create .vendure/devserver.json, so vendure devserver and local trust ' +
+                'Could not create the dev server state file, so vendure devserver and local trust ' +
                     `are not available for this run: ${(e as Error).message}`,
             );
         }
@@ -176,7 +177,7 @@ export class DevRun {
         try {
             this.stateFile?.write({ ...snapshot, pid: process.pid });
         } catch (e) {
-            this.warnOnce('state', `Could not write .vendure/devserver.json: ${(e as Error).message}`);
+            this.warnOnce('state', `Could not write the dev server state file: ${(e as Error).message}`);
         }
     }
 

@@ -114,17 +114,21 @@ dashboard.
 
 ## Local trust in development
 
-When the Vendure CLI starts your dev server, it gives the server a new secret for that run and writes it to
-`.vendure/devserver.json`, readable only by you. The CLI's own tools present that secret instead of an OAuth
-token, so they can call the store without signing in. This is called local trust.
+When the Vendure CLI starts your dev server, it gives the server a new secret for that run and writes it to a
+state file that only you can read. On macOS and Linux that file is `.vendure/devserver.json` in the project
+directory. On Windows, which has no file modes, it is `%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in your
+user profile, where `<hash>` comes from the project path, so each project and worktree has its own file. The
+CLI's own tools present that secret instead of an OAuth token, so they can call the store without signing in.
+This is called local trust.
 
 Local trust is full superadmin access on your machine, on `POST /mcp/admin` and on the Admin API. It never applies
 to `/mcp/shop`. The plugin accepts the secret only when all of these hold:
 
 - the `localTrust` option is not `false`;
 - the server received the secret from the CLI in its environment;
-- `.vendure/devserver.json` exists in the project directory, has mode 0600, is owned by the user the server runs
-  as, and holds the same secret;
+- the state file holds the same secret. On macOS and Linux it must also have mode 0600 and be owned by the user
+  the server runs as. On Windows its real path must be under your `%LOCALAPPDATA%`, so a link or junction to a
+  file elsewhere does not count, and local trust stays off when `LOCALAPPDATA` is not set;
 - the request comes from a loopback address, names `localhost`, `127.0.0.1` or `[::1]` as its host, and carries
   no `Origin` header and no forwarded header, such as `X-Forwarded-For` or `Via`.
 

@@ -1,4 +1,4 @@
-import { LOCAL_TRUST_STATE_FILE, LocalTrustState } from '@vendure/common/lib/local-trust';
+import { LocalTrustState, localTrustStatePath } from '@vendure/common/lib/local-trust';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -60,8 +60,9 @@ export interface DevServerError {
 }
 
 /**
- * The state file of a `vendure dev` run, at {@link LOCAL_TRUST_STATE_FILE} in the project directory.
- * The run that serves the project is its only writer.
+ * The state file of a `vendure dev` run, at {@link localTrustStatePath}: `.vendure/devserver.json` in
+ * the project directory, or a file in `%LOCALAPPDATA%` on Windows. The run that serves the project is
+ * its only writer.
  */
 export interface DevServerState extends LocalTrustState {
     status: DevServerStatus;
@@ -87,8 +88,11 @@ export interface DevServerStatusReport {
     lastError: DevServerError | null;
 }
 
+/**
+ * Throws `LocalAppDataNotSetError` on Windows when `LOCALAPPDATA` is not set.
+ */
 export function getDevServerStateFilePath(projectDir: string): string {
-    return path.join(projectDir, LOCAL_TRUST_STATE_FILE);
+    return localTrustStatePath(projectDir);
 }
 
 /**
@@ -99,10 +103,17 @@ export function generateLocalTrustSecret(): string {
 }
 
 /**
- * Reads the state file. Returns `undefined` when there is no file or it is not a state file.
+ * Reads the state file. Returns `undefined` when there is no file, it is not a state file, or, on
+ * Windows without `LOCALAPPDATA`, there is nowhere for it to be.
  */
 export function readDevServerState(projectDir: string): DevServerState | undefined {
-    return readStateFileAt(getDevServerStateFilePath(projectDir));
+    let filePath: string;
+    try {
+        filePath = getDevServerStateFilePath(projectDir);
+    } catch {
+        return undefined;
+    }
+    return readStateFileAt(filePath);
 }
 
 function readStateFileAt(filePath: string): DevServerState | undefined {
@@ -286,7 +297,7 @@ export class DevServerStateFile {
             this.removeStaleFile(existing?.secret);
         }
         throw new Error(
-            `Could not create ${LOCAL_TRUST_STATE_FILE}, because another process keeps writing it.`,
+            `Could not create ${this.filePath}, because another process keeps writing it.`,
         );
     }
 
@@ -331,6 +342,7 @@ export class DevServerStateFile {
     }
 
     private writeTemporaryFile(state: Omit<DevServerState, 'secret'>): string {
+        // On Windows the first run creates %LOCALAPPDATA%\Vendure\devserver.
         mkdirSync(path.dirname(this.filePath), { recursive: true });
         const tempPath = `${this.filePath}.${process.pid}.${++this.writes}.tmp`;
         const fd = openSync(tempPath, 'wx', 0o600);

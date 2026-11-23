@@ -353,10 +353,33 @@ describe('DevRun state file ownership', () => {
         const { run, warn } = createRun({ projectDir });
 
         expect(warn).toHaveBeenCalledWith(
-            expect.stringContaining('Could not create .vendure/devserver.json'),
+            expect.stringContaining('Could not create the dev server state file'),
         );
         expect(run.childEnv('server', {})).not.toHaveProperty(LOCAL_TRUST_SECRET_ENV_VAR);
         expect(() => run.monitor('server').onRecoverableExit(1)).not.toThrow();
+    });
+
+    // The state file lives in %LOCALAPPDATA% on Windows. Faking the platform is safe here, because
+    // the path cannot be built, so nothing touches the file system.
+    it('starts without a state file or a secret, with a warning, on Windows without LOCALAPPDATA', () => {
+        const platform = Object.getOwnPropertyDescriptor(process, 'platform');
+        const localAppData = process.env.LOCALAPPDATA;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+        delete process.env.LOCALAPPDATA;
+        try {
+            const { run, warn, projectDir } = createRun();
+
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('LOCALAPPDATA is not set'));
+            expect(run.childEnv('server', {})).not.toHaveProperty(LOCAL_TRUST_SECRET_ENV_VAR);
+            expect(readDevServerState(projectDir)).toBeUndefined();
+        } finally {
+            if (platform) {
+                Object.defineProperty(process, 'platform', platform);
+            }
+            if (localAppData !== undefined) {
+                process.env.LOCALAPPDATA = localAppData;
+            }
+        }
     });
 
     it('keeps running and warns once when the state file cannot be written', () => {
@@ -368,7 +391,7 @@ describe('DevRun state file ownership', () => {
             expect(() => monitor.onSpawn(true)).not.toThrow();
 
             expect(warn).toHaveBeenCalledTimes(1);
-            expect(warn.mock.calls[0][0]).toContain('Could not write .vendure/devserver.json');
+            expect(warn.mock.calls[0][0]).toContain('Could not write the dev server state file');
         } finally {
             chmodSync(path.join(projectDir, '.vendure'), 0o700);
         }

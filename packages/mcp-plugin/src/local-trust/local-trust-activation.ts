@@ -1,10 +1,11 @@
 import {
+    LOCAL_APP_DATA_ENV_VAR,
     LOCAL_TRUST_SECRET_ENV_VAR,
-    LOCAL_TRUST_STATE_FILE,
     LocalTrustState,
+    localTrustStatePath,
 } from '@vendure/common/lib/local-trust';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { closeSync, constants, fstatSync, openSync, readFileSync } from 'node:fs';
+import { closeSync, constants, fstatSync, openSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
 /**
@@ -29,10 +30,18 @@ export interface ReadLocalTrustActivationInput {
     localTrust: boolean;
     /** The environment to read the secret from. The secret is deleted from it. */
     env: NodeJS.ProcessEnv;
-    /** The project directory the state file is resolved against. */
+    /** The project directory the state file belongs to. */
     projectDir: string;
     /** The uid of this process. Undefined on platforms without uids, such as Windows. */
     uid: number | undefined;
+    /** The platform, which decides where the state file is and how it is checked. */
+    platform: NodeJS.Platform;
+    /**
+     * Where the state file of the project is. Tests replace it to point at a fixture.
+     *
+     * @default localTrustStatePath
+     */
+    statePath?: (projectDir: string) => string;
 }
 
 export function hashLocalTrustSecret(secret: string): Buffer {
@@ -45,8 +54,11 @@ export function hashLocalTrustSecret(secret: string): Buffer {
  *
  * 1. the `localTrust` option is not `false`;
  * 2. the environment holds a non-empty secret;
- * 3. the CLI's state file exists in the project directory, is a regular file with mode 0600, is
- *    owned by this process's uid, and holds the same secret.
+ * 3. the CLI's state file holds the same secret. On macOS and Linux the file is
+ *    `.vendure/devserver.json` in the project directory, and must be a regular file with mode 0600
+ *    owned by this process's uid. On Windows, which has no file modes, the file is in the user
+ *    profile, and its real path must be under the real path of the current user's `%LOCALAPPDATA%`,
+ *    which only that user, SYSTEM and administrators can read.
  *
  * It always deletes the secret from the environment, so child processes and other plugins never
  * inherit it, even when local trust stays off.
@@ -60,14 +72,12 @@ export function readLocalTrustActivation(input: ReadLocalTrustActivationInput): 
     if (!input.localTrust) {
         return refused('the localTrust option is false');
     }
-    const stateFile = path.resolve(input.projectDir, LOCAL_TRUST_STATE_FILE);
-    if (input.uid === undefined) {
-        return refused(
-            `this platform has no file owner to check ${LOCAL_TRUST_STATE_FILE} against, so local ` +
-                'trust is not supported on it',
-        );
+    const located = locateStateFile(input);
+    if (typeof located === 'string') {
+        return refused(located);
     }
-    const state = readStateFile(stateFile, input.uid);
+    const { stateFile } = located;
+    const state = readStateFile(stateFile, located.uid);
     if (typeof state === 'string') {
         return refused(state);
     }
@@ -78,8 +88,66 @@ export function readLocalTrustActivation(input: ReadLocalTrustActivationInput): 
     return { enabled: true, secretHash, stateFile };
 }
 
-/** Returns the state, or the reason it cannot be used. */
-function readStateFile(stateFile: string, uid: number): LocalTrustState | string {
+/**
+ * Finds the state file, and on Windows checks that it is in the current user's profile. Returns
+ * the file and, outside Windows, the uid that must own it, or the reason it cannot be used.
+ */
+function locateStateFile(
+    input: ReadLocalTrustActivationInput,
+): { stateFile: string; uid: number | undefined } | string {
+    if (input.platform === 'win32') {
+        return locateWindowsStateFile(input);
+    }
+    if (input.uid === undefined) {
+        return 'this platform has no file owner to check the state file against, so local trust is not supported on it';
+    }
+    const statePath = input.statePath ?? (dir => localTrustStatePath(dir, { platform: input.platform }));
+    return { stateFile: statePath(input.projectDir), uid: input.uid };
+}
+
+function locateWindowsStateFile(
+    input: ReadLocalTrustActivationInput,
+): { stateFile: string; uid: undefined } | string {
+    const localAppData = input.env[LOCAL_APP_DATA_ENV_VAR];
+    if (!localAppData) {
+        return `${LOCAL_APP_DATA_ENV_VAR} is not set, so there is no user profile to keep the state file in`;
+    }
+    const statePath =
+        input.statePath ?? (dir => localTrustStatePath(dir, { platform: input.platform, env: input.env }));
+    const stateFile = statePath(input.projectDir);
+    let realStateFile: string;
+    let realLocalAppData: string;
+    try {
+        realStateFile = realpathSync.native(stateFile);
+    } catch (e) {
+        const code = (e as NodeJS.ErrnoException).code;
+        return code === 'ENOENT'
+            ? `${stateFile} does not exist`
+            : `${stateFile} could not be resolved (${code ?? String(e)})`;
+    }
+    try {
+        realLocalAppData = realpathSync.native(localAppData);
+    } catch (e) {
+        return `${LOCAL_APP_DATA_ENV_VAR} (${localAppData}) could not be resolved (${(e as NodeJS.ErrnoException).code ?? String(e)})`;
+    }
+    // Real paths on both sides, so a junction or link out of the profile does not pass.
+    if (!isInside(realLocalAppData, realStateFile)) {
+        return (
+            `${stateFile} resolves to ${realStateFile}, which is not under the current user's ` +
+            `${LOCAL_APP_DATA_ENV_VAR} (${realLocalAppData})`
+        );
+    }
+    return { stateFile: realStateFile, uid: undefined };
+}
+
+/** Whether `file` is inside `dir`. Windows paths ignore case. */
+function isInside(dir: string, file: string): boolean {
+    const relative = path.relative(dir.toLowerCase(), file.toLowerCase());
+    return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+/** Returns the state, or the reason it cannot be used. `uid` is undefined on Windows. */
+function readStateFile(stateFile: string, uid: number | undefined): LocalTrustState | string {
     let fd: number;
     try {
         // O_NOFOLLOW: a symlink could point at a file someone else controls.
@@ -97,13 +165,16 @@ function readStateFile(stateFile: string, uid: number): LocalTrustState | string
         if (!stats.isFile()) {
             return `${stateFile} is not a regular file`;
         }
-        // The permission bits are the low nine bits of the mode.
-        const mode = stats.mode % 0o1000;
-        if (mode !== 0o600) {
-            return `${stateFile} has mode ${mode.toString(8).padStart(4, '0')}, not 0600`;
-        }
-        if (stats.uid !== uid) {
-            return `${stateFile} is owned by uid ${stats.uid}, not by this process (uid ${uid})`;
+        // On Windows there are no modes or uids. The profile directory protects the file instead.
+        if (uid !== undefined) {
+            // The permission bits are the low nine bits of the mode.
+            const mode = stats.mode % 0o1000;
+            if (mode !== 0o600) {
+                return `${stateFile} has mode ${mode.toString(8).padStart(4, '0')}, not 0600`;
+            }
+            if (stats.uid !== uid) {
+                return `${stateFile} is owned by uid ${stats.uid}, not by this process (uid ${uid})`;
+            }
         }
         return parseState(readFileSync(fd, 'utf8'), stateFile);
     } finally {
