@@ -151,12 +151,11 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     const start = lines.findIndex(isOwnHeader);
     // A key named `vendure`, as in `vendure = { ... }` under `[mcp_servers]` or the dotted
     // `mcp_servers.vendure.command = ...`, outside the tables this function manages.
-    const ownKey = new RegExp(`(^|[\\s.{,])${SERVER_NAME}\\s*[.=]`);
     const otherForm = lines.some(
         (line, index) =>
             !isHeader(line) &&
             !isWithinOwnTables(lines, index, isHeader, isOwnHeader) &&
-            ownKey.test(line.replace(/#.*$/, '')),
+            namesServerKey(line),
     );
     if (otherForm) {
         throw new ConfigFileUnreadable(
@@ -173,7 +172,7 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     while (end < lines.length && !(isHeader(lines[end]) && !isOwnHeader(lines[end]))) {
         end++;
     }
-    while (end > start + 1 && (lines[end - 1].trim() === '' || /^\s*#/.test(lines[end - 1]))) {
+    while (end > start + 1 && (lines[end - 1].trim() === '' || lines[end - 1].trimStart().startsWith('#'))) {
         end--;
     }
     const current = lines.slice(start, end).join('\n').trim();
@@ -186,12 +185,55 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     return { text: text.endsWith('\n') ? text : `${text}\n`, action: 'updated' };
 }
 
+/** A TOML line without its comment. */
+function withoutComment(line: string): string {
+    const hash = line.indexOf('#');
+    return hash === -1 ? line : line.slice(0, hash);
+}
+
 /** The dotted keys of a TOML table header, without quotes: `[a."b.c"]` gives `['a', 'b.c']`. */
 function headerKeys(line: string): string[] {
-    const header = line.replace(/#.*$/, '').trim().replace(/^\[+/, '').replace(/\]+$/, '');
-    return (header.match(/"[^"]*"|'[^']*'|[^.]+/g) ?? []).map(key =>
-        key.trim().replace(/^(["'])(.*)\1$/, '$2'),
-    );
+    const header = withoutComment(line).trim();
+    let start = 0;
+    let end = header.length;
+    while (header[start] === '[') {
+        start++;
+    }
+    while (end > start && header[end - 1] === ']') {
+        end--;
+    }
+    const keys: string[] = [];
+    let key = '';
+    let quote: string | undefined;
+    for (const char of header.slice(start, end)) {
+        if (quote && char === quote) {
+            quote = undefined;
+        } else if (quote) {
+            key += char;
+        } else if (char === '"' || char === "'") {
+            quote = char;
+        } else if (char === '.') {
+            keys.push(key.trim());
+            key = '';
+        } else {
+            key += char;
+        }
+    }
+    keys.push(key.trim());
+    return keys;
+}
+
+/** Whether a line uses `vendure` as a key, as in `vendure = ...` or `mcp_servers.vendure.command = ...`. */
+function namesServerKey(line: string): boolean {
+    const text = withoutComment(line);
+    for (let at = text.indexOf(SERVER_NAME); at !== -1; at = text.indexOf(SERVER_NAME, at + 1)) {
+        const before = at === 0 ? ' ' : text[at - 1];
+        const after = text.slice(at + SERVER_NAME.length).trimStart();
+        if (' \t.{,'.includes(before) && (after.startsWith('.') || after.startsWith('='))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** Whether a line belongs to the `vendure` table or one of its sub-tables. */

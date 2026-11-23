@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -8,6 +7,7 @@ import {
     hasWorkspaceMarker,
     MONOREPO_PACKAGE_DIRS,
 } from '../../utilities/monorepo-utils.js';
+import { compareCodeUnits } from '../naming.js';
 
 /** The Vendure project the Developer MCP serves, found from a starting directory. */
 export type McpProject =
@@ -73,7 +73,7 @@ function projectsBelow(root: string): string[] {
             }
         }
     }
-    return [...new Set([...projects].map(dir => fs.realpathSync(dir)))].sort();
+    return [...new Set([...projects].map(dir => fs.realpathSync(dir)))].sort(compareCodeUnits);
 }
 
 function dependsOnCore(dir: string): boolean {
@@ -89,18 +89,21 @@ function dependsOnCore(dir: string): boolean {
 
 /**
  * The top directory of the git working tree `dir` is in, with symlinks resolved, or `undefined`
- * outside one or without git. In a git worktree, it is the worktree's own directory.
+ * outside one: the nearest directory with a `.git` entry. In a git worktree, or a submodule, that
+ * entry is a file, and the worktree's own directory is the top. Reading the directories, rather
+ * than running git, needs no git on the PATH and prints nothing.
  */
 export function findGitRoot(dir: string): string | undefined {
-    try {
-        const root = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-            cwd: dir,
-            encoding: 'utf-8',
-            stdio: ['ignore', 'pipe', 'ignore'],
-        }).trim();
-        return root ? fs.realpathSync(root) : undefined;
-    } catch {
-        return undefined;
+    let current = fs.realpathSync(dir);
+    for (;;) {
+        if (fs.existsSync(path.join(current, '.git'))) {
+            return current;
+        }
+        const parent = path.dirname(current);
+        if (parent === current) {
+            return undefined;
+        }
+        current = parent;
     }
 }
 
