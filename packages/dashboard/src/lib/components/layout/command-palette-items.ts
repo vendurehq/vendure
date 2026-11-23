@@ -23,19 +23,25 @@ export interface CommandPaletteGroup {
 
 /**
  * Turns the resolved navigation menu into the groups of the command palette: one group for
- * the top-level pages, then one group per section, in menu order. A shortcut is shown only
+ * the top-level pages, then one group per section, in sidebar order. A shortcut is shown only
  * when the `G` chord accepts it, so the hint never names a key that does nothing.
  */
 export function buildCommandPaletteGroups(
     resolved: Array<NavMenuSection | NavMenuItem>,
 ): CommandPaletteGroup[] {
-    const shortcutMap = buildShortcutMap(resolved);
+    // The sidebar order: the top placement, then the bottom one. Entries with neither
+    // do not show in the sidebar, so they do not show here.
+    const ordered = [
+        ...resolved.filter(entry => entry.placement === 'top'),
+        ...resolved.filter(entry => entry.placement === 'bottom'),
+    ];
+    // The same shortcut map as the chord handler in the sidebar.
+    const shortcutMap = buildShortcutMap(ordered);
     const shortcutOf = (item: NavMenuItem) =>
         item.shortcut && shortcutMap.get(item.shortcut) === item ? item.shortcut : undefined;
-
     const topLevel: CommandPaletteItem[] = [];
     const sections: CommandPaletteGroup[] = [];
-    for (const entry of resolved) {
+    for (const entry of ordered) {
         if (!('items' in entry)) {
             if ('url' in entry && entry.url) {
                 topLevel.push({
