@@ -29,7 +29,7 @@ export interface AddFilterMenuProps {
      * The menu's button. A faceted filter picked from the menu has no chip
      * until it has a value, so its popup lines up with this button.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     triggerRef?: React.Ref<HTMLButtonElement>;
 }

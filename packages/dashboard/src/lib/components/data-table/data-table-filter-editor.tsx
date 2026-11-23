@@ -8,7 +8,7 @@ import { DataTableFilterDialog } from './data-table-filter-dialog.js';
  * filter's chip.
  *
  * @docsCategory list-views
- * @since 3.8.0
+ * @since 4.0.0
  */
 export function DataTableFilterEditor({
     column,

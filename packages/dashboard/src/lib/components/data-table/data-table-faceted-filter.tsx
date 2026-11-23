@@ -42,7 +42,7 @@ export interface DataTableFacetedFilterProps<TData, TValue> {
      * (or from the Filter menu), so the component renders no trigger of its own.
      * The popup lines up with `anchor` and is open while `open` is true.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     anchor?: React.RefObject<HTMLElement | null>;
     open?: boolean;
@@ -51,7 +51,7 @@ export interface DataTableFacetedFilterProps<TData, TValue> {
      * Reports the text that names the selected values, e.g. "Draft, Active" or
      * "3 selected". The data table shows it in the filter's chip.
      *
-     * @since 3.8.0
+     * @since 4.0.0
      */
     onValueLabelChange?: (label: string | undefined) => void;
 }

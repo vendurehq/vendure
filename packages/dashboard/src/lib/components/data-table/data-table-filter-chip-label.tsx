@@ -11,7 +11,7 @@ import { ColumnDataType } from './types.js';
  * the value, on one line. The chip cuts it to its width.
  *
  * @docsCategory list-views
- * @since 3.8.0
+ * @since 4.0.0
  */
 export function DataTableFilterChipLabel({
     filter,
