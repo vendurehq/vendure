@@ -3,8 +3,8 @@ import { ComboboxPrimitive } from '@vendure-io/ui/lib/base-ui';
 import { FilterIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { Button } from '@/vdb/components/ui/button.js';
 import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
+import { Button } from '@/vdb/components/ui/button.js';
 import {
     Combobox,
     ComboboxContent,
@@ -36,12 +36,48 @@ export interface DataTableFacetedFilterProps<TData, TValue> {
      */
     defaultOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
+    /**
+     * @description
+     * Set by the data table: the filter's popup opens from its applied-filter chip
+     * (or from the Filter menu), so the component renders no trigger of its own.
+     * The popup lines up with `anchor` and is open while `open` is true.
+     *
+     * @since 3.8.0
+     */
+    anchor?: React.RefObject<HTMLElement | null>;
+    open?: boolean;
+    /**
+     * @description
+     * Reports the text that names the selected values, e.g. "Draft, Active" or
+     * "3 selected". The data table shows it in the filter's chip.
+     *
+     * @since 3.8.0
+     */
+    onValueLabelChange?: (label: string | undefined) => void;
 }
 
 /**
- * The chip that represents a faceted filter in the toolbar's active-filter row.
- * Styled to match {@link DataTableFilterBadge} so faceted and column filters
- * read as one system. The chip body opens the filter; the ✕ segment clears it.
+ * Where focus goes when an anchored filter popup closes: the chip's edit
+ * button, or the anchor itself (the Filter menu button).
+ */
+export function facetedFilterFinalFocus(anchor: React.RefObject<HTMLElement | null>) {
+    return () => anchor.current?.querySelector<HTMLElement>('button') ?? anchor.current ?? true;
+}
+
+/** Reports a faceted filter's value label to the data table. */
+export function useReportValueLabel(
+    label: string | undefined,
+    onChange?: (label: string | undefined) => void,
+) {
+    React.useEffect(() => {
+        onChange?.(label);
+    }, [label, onChange]);
+}
+
+/**
+ * A faceted filter's own trigger, used when the filter is rendered outside the
+ * data table (without `anchor`). The data table draws its applied filters as
+ * chips instead. The chip body opens the filter; the ✕ segment clears it.
  * By default it must be rendered inside a `<Popover>`. With `triggerType="combobox"`
  * it must be rendered inside a `<Combobox>`, whose search input sits in the popup.
  */
@@ -108,9 +144,13 @@ export function DataTableFacetedFilter<TData, TValue>({
     optionsFn,
     defaultOpen,
     onOpenChange,
+    anchor: externalAnchor,
+    open,
+    onValueLabelChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
     const { t } = useLingui();
-    const anchor = useComboboxAnchor();
+    const ownAnchor = useComboboxAnchor();
+    const anchor = externalAnchor ?? ownAnchor;
     const facets = column?.getFacetedUniqueValues();
     const filterValue = column?.getFilterValue();
 
@@ -150,6 +190,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 ? t`${selectedValues.size} selected`
                 : selectedOptions.map(option => option.label).join(', ');
     }
+    useReportValueLabel(valueLabel, onValueLabelChange);
 
     return (
         <Combobox
@@ -171,24 +212,24 @@ export function DataTableFacetedFilter<TData, TValue>({
                 a.value === b.value
             }
             defaultOpen={defaultOpen}
-            onOpenChange={open => onOpenChange?.(open)}
+            {...(externalAnchor ? { open: !!open } : {})}
+            onOpenChange={next => onOpenChange?.(next)}
             loading={isLoading}
         >
-            <span ref={anchor} className="inline-flex">
-                <FacetedFilterChip
-                    icon={icon}
-                    title={title}
-                    valueLabel={valueLabel}
-                    onClear={() => column?.setFilterValue(undefined)}
-                    triggerType="combobox"
-                />
-            </span>
-            {/* Opened from the toolbar's Filter menu, the popup has no trigger interaction to
-                return focus to when it closes, so it returns focus to the chip. */}
-            <ComboboxContent
-                anchor={anchor}
-                finalFocus={() => anchor.current?.querySelector('button') ?? true}
-            >
+            {!externalAnchor && (
+                <span ref={ownAnchor} className="inline-flex">
+                    <FacetedFilterChip
+                        icon={icon}
+                        title={title}
+                        valueLabel={valueLabel}
+                        onClear={() => column?.setFilterValue(undefined)}
+                        triggerType="combobox"
+                    />
+                </span>
+            )}
+            {/* The popup has no trigger interaction to return focus to when it closes,
+                so it returns focus to the chip. */}
+            <ComboboxContent anchor={anchor} finalFocus={facetedFilterFinalFocus(anchor)}>
                 <ComboboxInput aria-label={title} placeholder={title} showTrigger={false} />
                 <ComboboxEmpty>
                     <Trans>No results found.</Trans>
