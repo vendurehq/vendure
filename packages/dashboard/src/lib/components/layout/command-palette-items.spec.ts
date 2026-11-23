@@ -38,9 +38,11 @@ describe('buildCommandPaletteGroups', () => {
 
         expect(groups.map(g => g.id)).toEqual(['top-level', 'catalog', 'settings']);
         expect(groups[0].title).toBeUndefined();
-        expect(groups[0].items).toEqual([
-            { id: 'insights', title: 'insights', url: '/insights', icon: undefined, shortcut: undefined },
-        ]);
+        const insights = groups[0].items[0];
+        expect(groups[0].items).toHaveLength(1);
+        expect(insights).toMatchObject({ id: 'insights', title: 'insights', url: '/insights' });
+        expect(insights.sectionTitle).toBeUndefined();
+        expect(insights.source.id).toBe('insights');
         expect(groups[1].title).toBe('Catalog');
         expect(groups[1].items.map(i => i.id)).toEqual(['products', 'facets']);
         expect(groups[1].items[0]).toMatchObject({ sectionTitle: 'Catalog', icon: Tags });

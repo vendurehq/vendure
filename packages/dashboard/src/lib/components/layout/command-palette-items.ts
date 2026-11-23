@@ -12,6 +12,8 @@ export interface CommandPaletteItem {
     sectionTitle?: string;
     /** The second key of the `G` navigation chord, when the page has a valid one. */
     shortcut?: string;
+    /** The nav menu item the row comes from, for lookups keyed by the item, such as a lock. */
+    source: NavMenuItem;
 }
 
 export interface CommandPaletteGroup {
@@ -50,6 +52,7 @@ export function buildCommandPaletteGroups(
                     url: entry.url,
                     icon: entry.icon,
                     shortcut: shortcutOf(entry),
+                    source: entry,
                 });
             }
             continue;
@@ -61,6 +64,7 @@ export function buildCommandPaletteGroups(
             icon: item.icon ?? entry.icon,
             sectionTitle: entry.title,
             shortcut: shortcutOf(item),
+            source: item,
         }));
         if (items.length > 0) {
             sections.push({ id: entry.id, title: entry.title, items });

@@ -1,3 +1,4 @@
+import { LockedTierLabel } from '@/vdb/components/platform-promotion/platform-promo.js';
 import {
     Command,
     CommandDialog,
@@ -6,6 +7,7 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
+    CommandItemDetail,
     CommandItemLabel,
     CommandList,
     CommandShortcut,
@@ -14,6 +16,9 @@ import { Kbd } from '@/vdb/components/ui/kbd.js';
 import { SearchTrigger } from '@/vdb/components/ui/search-trigger.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { getNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
+import { getLockedCapability } from '@/vdb/framework/platform-promotion/locked-capabilities.js';
+import { getLockedNavItemCapability } from '@/vdb/framework/platform-promotion/register-locked-navigation.js';
+import { usePlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useNavigate } from '@tanstack/react-router';
 import * as React from 'react';
@@ -95,6 +100,21 @@ export function CommandPaletteTrigger() {
     return <SearchTrigger label={t`Search`} aria-label={t`Search (command palette)`} onClick={openPalette} />;
 }
 
+/**
+ * The plan a locked Platform page needs, as the sidebar marks it. The row still opens the
+ * page, which explains the plan, as a click in the sidebar does.
+ */
+function LockedDetail({ item }: Readonly<{ item: CommandPaletteItem }>) {
+    const state = usePlatformPromotion();
+    const capability = getLockedNavItemCapability(item.source);
+    const promotion = capability ? getLockedCapability(state, capability) : undefined;
+    return promotion ? (
+        <CommandItemDetail>
+            <LockedTierLabel promotion={promotion} />
+        </CommandItemDetail>
+    ) : null;
+}
+
 function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
     const { t, i18n } = useLingui();
     const navigate = useNavigate();
@@ -154,6 +174,7 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
                             >
                                 {item.icon ? <item.icon /> : null}
                                 <CommandItemLabel>{i18n.t(item.title)}</CommandItemLabel>
+                                <LockedDetail item={item} />
                                 {item.shortcut ? (
                                     <CommandShortcut aria-hidden>
                                         G {item.shortcut.toUpperCase()}
