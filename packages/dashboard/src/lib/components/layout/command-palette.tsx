@@ -151,6 +151,8 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
     return (
         <Command ref={rootRef} value={value} onValueChange={setValue}>
             <CommandInput
+                // The palette opens to type in: the search takes the focus, not the dialog.
+                autoFocus
                 aria-label={t`Search`}
                 placeholder={t`Search pages and settings…`}
                 value={search}
