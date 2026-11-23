@@ -1,8 +1,8 @@
 import { DataTableSettingsMenu } from '@/vdb/components/data-table/data-table-settings-menu.js';
 import { DataTableViewsTabs } from '@/vdb/components/data-table/data-table-views-tabs.js';
 import { getRowLabel } from '@/vdb/components/data-table/row-label.js';
-import { Button } from '@/vdb/components/ui/button.js';
 import { ButtonGroup } from '@/vdb/components/ui/button-group.js';
+import { Button } from '@/vdb/components/ui/button.js';
 import { CardTitle } from '@/vdb/components/ui/card.js';
 import { EmptyCollectionIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
 import { Input } from '@/vdb/components/ui/input.js';
@@ -12,6 +12,7 @@ import { TableCell, TableRow } from '@/vdb/components/ui/table.js';
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useDragAndDrop } from '@/vdb/hooks/use-drag-and-drop.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { closestCenter, DndContext } from '@dnd-kit/core';
@@ -33,6 +34,7 @@ import {
 import { RowSelectionState, TableOptions } from '@tanstack/table-core';
 import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import type {
+    DataTableFilterColumn,
     DataTableRowCellProps,
     DataTableRowRipple,
     DataTableRowSelectProps,
@@ -40,16 +42,16 @@ import type {
 import { GripVertical } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { AddFilterMenu } from './add-filter-menu.js';
-import { ActiveFiltersPopover } from './data-table-active-filters-popover.js';
 import { DataTableBulkActions, getRowItemId } from './data-table-bulk-actions.js';
 import { DataTableProvider } from './data-table-context.js';
-import { createPaginationState, syncPaginationState } from './data-table-pagination-state.js';
 import {
     DataTableFacetedFilter,
     DataTableFacetedFilterOption,
     DataTableFacetedFilterProps,
 } from './data-table-faceted-filter.js';
-import { DataTableFilterBadgeEditable } from './data-table-filter-badge-editable.js';
+import { DataTableFilterChipLabel } from './data-table-filter-chip-label.js';
+import { DataTableFilterEditor } from './data-table-filter-editor.js';
+import { createPaginationState, syncPaginationState } from './data-table-pagination-state.js';
 
 // Skeleton rows are capped so a large pageSize doesn't bloat the DOM during
 // the initial fetch.
@@ -125,8 +127,6 @@ function DraggableRow<TData>({
         </TableRow>
     );
 }
-
-const INLINE_FILTER_BADGE_LIMIT = 2;
 
 export interface FacetedFilter {
     title: string;
@@ -346,9 +346,8 @@ export function DataTable<TData>({
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
-    // The faceted filter the user is currently interacting with — launched from
-    // the unified Filter menu or reopened from its chip. Keeps the chip mounted
-    // while its popover is open even when no values are selected yet.
+    // The faceted filter picked from the unified Filter menu, while its popup
+    // is open. Once it has a value, its chip opens it again.
     const [openFacetedFilterKey, setOpenFacetedFilterKey] = React.useState<string | null>(null);
     const prevSearchTermRef = useRef(searchTerm);
     const prevColumnFiltersRef = useRef(columnFilters);
@@ -376,7 +375,9 @@ export function DataTable<TData>({
         setRowSelection(nextSelection);
     }, [selectedItemIds]);
 
-    const handleRowSelectionChange = (updater: RowSelectionState | ((previous: RowSelectionState) => RowSelectionState)) => {
+    const handleRowSelectionChange = (
+        updater: RowSelectionState | ((previous: RowSelectionState) => RowSelectionState),
+    ) => {
         const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
 
         data.forEach(item => {
@@ -492,9 +493,8 @@ export function DataTable<TData>({
         onSearchTermChange?.(value);
     };
 
-    const nonFacetedFilters = columnFilters.filter(f => !facetedFilters?.[f.id]);
     const currencyCode = activeChannel?.defaultCurrencyCode ?? 'USD';
-    const clearNonFacetedFilters = () => setColumnFilters(old => old.filter(f => !!facetedFilters?.[f.id]));
+    const { getTranslatedFieldName } = useDynamicTranslations();
     // Distinguishes the two empty states: `hasActiveFilters` means data may
     // exist but the current query hides it (offer clear-filters), otherwise
     // it's a genuine first-run empty (neutral message; the surrounding page
@@ -504,30 +504,48 @@ export function DataTable<TData>({
         setColumnFilters([]);
         handleSearchChange('');
     };
-    // With filters that match no rows, the empty state holds the only "Clear
-    // filters" action, so the toolbar does not repeat it.
-    const hasNoMatches = hasActiveFilters && !isLoading && localData.length === 0;
 
-    // Everything TanStack-related that the dashboard renders its own UI for
-    // (sort headers, add-filter menu, editable filter badges, view options) is
-    // wired directly into the table options instead of the molecule's capability
-    // configs — passing those configs would make the molecule render a second,
-    // parallel UI for each feature. The consumer's setTableOptions is applied
-    // last, preserving its full-control contract.
+    // The text a faceted filter reports for its selected values ("Draft, Active"),
+    // shown in its chip.
+    const [facetedValueLabels, setFacetedValueLabels] = React.useState<Record<string, string | undefined>>(
+        {},
+    );
+    const reportFacetedValueLabel = React.useCallback((key: string, label: string | undefined) => {
+        setFacetedValueLabels(old => (old[key] === label ? old : { ...old, [key]: label }));
+    }, []);
+    // Keyed on the filter keys: pages pass a new `facetedFilters` object each render.
+    const facetedKeys = Object.keys(facetedFilters ?? {}).join('\n');
+    const facetedValueLabelReporters = useMemo(
+        () =>
+            Object.fromEntries(
+                facetedKeys
+                    .split('\n')
+                    .filter(Boolean)
+                    .map(key => [key, (label: string | undefined) => reportFacetedValueLabel(key, label)]),
+            ),
+        [facetedKeys, reportFacetedValueLabel],
+    );
+    // A faceted filter picked from the Filter menu has no chip until it has a
+    // value, so its popup lines up with the menu's button.
+    const addFilterTriggerRef = useRef<HTMLButtonElement>(null);
+
+    // Sorting and column visibility, which the dashboard renders its own UI for
+    // (sort headers, view options), are wired directly into the table options
+    // instead of the molecule's capability configs — passing those configs would
+    // make the molecule render a second, parallel UI. Filters go through the
+    // molecule's `filters` config: it draws the applied-filter chips. The
+    // consumer's setTableOptions is applied last, preserving its full-control
+    // contract.
     const bridgeSetTableOptions = (options: TableOptions<TData>): TableOptions<TData> => {
         let merged: TableOptions<TData> = {
             ...options,
             enableSorting: true,
-            enableFilters: true,
             manualSorting: true,
-            manualFiltering: true,
             onSortingChange: setSorting,
-            onColumnFiltersChange: setColumnFilters,
             onColumnVisibilityChange: setColumnVisibility,
             state: {
                 ...options.state,
                 sorting,
-                columnFilters,
                 columnVisibility,
             },
         };
@@ -541,57 +559,122 @@ export function DataTable<TData>({
     const hasHeaderControls = actions != null || !disableViewOptions || onRefresh != null;
     const hasFacetedFilters = Object.keys(facetedFilters ?? {}).length > 0;
     const hasSearchOrFilter = onSearchTermChange != null || onFilterChange != null || hasFacetedFilters;
-    // A faceted filter's chip is only rendered while it has selected values
-    // or the user is interacting with it — dormant filters live in the
-    // unified Filter menu instead of permanently occupying the toolbar.
-    const visibleFacetedEntries = Object.entries(facetedFilters ?? {}).filter(
-        ([key]) => columnFilters.some(f => f.id === key) || openFacetedFilterKey === key,
-    );
-    const showFilterRow = visibleFacetedEntries.length > 0 || nonFacetedFilters.length > 0;
     // With a title (a table embedded in a detail-page card), every tool sits in
-    // one group on the right of the title, and the toolbar row only appears for
-    // the applied-filter chips. Without a title, the tools share the toolbar
-    // row with the view tabs.
+    // one group on the right of the title. Without a title, the tools share the
+    // toolbar row with the view tabs. The molecule draws the applied-filter
+    // chips below either.
     const toolsInHeader = title != null;
-    const hasToolbarContent = toolsInHeader
-        ? showFilterRow
-        : hasSearchOrFilter || showViewsControls || hasHeaderControls;
+    const hasToolbarContent = !toolsInHeader && (hasSearchOrFilter || showViewsControls || hasHeaderControls);
+
+    const renderFacetedEditor = (
+        key: string,
+        props: {
+            anchor: React.RefObject<HTMLElement | null>;
+            open: boolean;
+            onOpenChange: (open: boolean) => void;
+        },
+    ) => {
+        const filter = facetedFilters?.[key];
+        const table = tableInstance;
+        if (!filter || !table) return null;
+        const FilterComponent = filter.component ?? DataTableFacetedFilter;
+        return (
+            <Suspense>
+                <FilterComponent
+                    column={table.getColumn(key) as any}
+                    title={filter.title}
+                    options={filter.options}
+                    optionsFn={filter.optionsFn}
+                    icon={filter.icon}
+                    anchor={props.anchor}
+                    open={props.open}
+                    onOpenChange={props.onOpenChange}
+                    onValueLabelChange={facetedValueLabelReporters[key]}
+                />
+            </Suspense>
+        );
+    };
+
+    // One entry per applied filter: the chip text and the editor its chip opens.
+    const filterColumns: DataTableFilterColumn<TData>[] = columnFilters.map(filter => {
+        const faceted = facetedFilters?.[filter.id];
+        if (faceted) {
+            return {
+                id: filter.id,
+                label: faceted.title,
+                formatChip: () => (
+                    <>
+                        {faceted.title}{' '}
+                        <span className="text-muted-foreground">{facetedValueLabels[filter.id] ?? ''}</span>
+                    </>
+                ),
+                renderEditor: ctx => renderFacetedEditor(filter.id, ctx),
+            };
+        }
+        const column = tableInstance?.getColumn(filter.id);
+        return {
+            id: filter.id,
+            label: getTranslatedFieldName(filter.id),
+            formatChip: () => (
+                <DataTableFilterChipLabel
+                    filter={filter}
+                    currencyCode={currencyCode}
+                    dataType={(column?.columnDef.meta as any)?.fieldInfo?.type ?? 'String'}
+                />
+            ),
+            renderEditor: ctx => (
+                <DataTableFilterEditor column={column} open={ctx.open} onOpenChange={ctx.onOpenChange} />
+            ),
+        };
+    });
 
     const renderTools = (table: TableType<TData> | undefined) => {
         const showFilterMenu = !!table && (onFilterChange != null || hasFacetedFilters);
         const showSettings = !!table && hasHeaderControls;
         return (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-            {onSearchTermChange && (
-                <Input
-                    placeholder={searchPlaceholder ?? t`Search...`}
-                    value={searchTerm}
-                    onChange={event => handleSearchChange(event.target.value)}
-                    className="w-full @sm/table:w-64"
-                />
-            )}
-            {/* The tools of one kind (filter, page actions, settings) are one joined group. */}
-            {(showFilterMenu || showSettings || actions != null) && (
-            <ButtonGroup>
-                {table && showFilterMenu && (
-                    <AddFilterMenu
-                        columns={onFilterChange ? table.getAllColumns() : []}
-                        facetedFilters={facetedFilters}
-                        onSelectFacetedFilter={setOpenFacetedFilterKey}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+                {onSearchTermChange && (
+                    <Input
+                        placeholder={searchPlaceholder ?? t`Search...`}
+                        value={searchTerm}
+                        onChange={event => handleSearchChange(event.target.value)}
+                        className="w-full @sm/table:w-64"
                     />
                 )}
-                {actions}
-                {table && showSettings && (
-                    <DataTableSettingsMenu
-                        table={table}
-                        disableViewOptions={disableViewOptions}
-                        onRefresh={onRefresh}
-                        isLoading={isLoading}
-                    />
+                {/* The tools of one kind (filter, page actions, settings) are one joined group. */}
+                {(showFilterMenu || showSettings || actions != null) && (
+                    <ButtonGroup>
+                        {table && showFilterMenu && (
+                            <AddFilterMenu
+                                columns={onFilterChange ? table.getAllColumns() : []}
+                                facetedFilters={facetedFilters}
+                                onSelectFacetedFilter={setOpenFacetedFilterKey}
+                                triggerRef={addFilterTriggerRef}
+                            />
+                        )}
+                        {actions}
+                        {table && showSettings && (
+                            <DataTableSettingsMenu
+                                table={table}
+                                disableViewOptions={disableViewOptions}
+                                onRefresh={onRefresh}
+                                isLoading={isLoading}
+                            />
+                        )}
+                    </ButtonGroup>
                 )}
-            </ButtonGroup>
-            )}
-        </div>
+                {/* A faceted filter picked from the Filter menu. Its popup has no
+                trigger of its own and stays open while the first values are
+                picked, after its chip appears. */}
+                {openFacetedFilterKey &&
+                    renderFacetedEditor(openFacetedFilterKey, {
+                        anchor: addFilterTriggerRef,
+                        open: true,
+                        onOpenChange: open => {
+                            if (!open) setOpenFacetedFilterKey(null);
+                        },
+                    })}
+            </div>
         );
     };
 
@@ -605,71 +688,6 @@ export function DataTable<TData>({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
                         {renderTools(table)}
-                    </div>
-                )}
-                {showFilterRow && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Suspense>
-                            {visibleFacetedEntries.map(([key, filter]) => {
-                                const FilterComponent = filter?.component ?? DataTableFacetedFilter;
-                                return (
-                                    <FilterComponent
-                                        key={key}
-                                        column={table.getColumn(key) as any}
-                                        title={filter?.title}
-                                        options={filter?.options}
-                                        optionsFn={filter?.optionsFn}
-                                        icon={filter?.icon}
-                                        defaultOpen={openFacetedFilterKey === key}
-                                        onOpenChange={(open: boolean) =>
-                                            setOpenFacetedFilterKey(prev =>
-                                                open ? key : prev === key ? null : prev,
-                                            )
-                                        }
-                                    />
-                                );
-                            })}
-                        </Suspense>
-                        {nonFacetedFilters.length > 0 &&
-                            (nonFacetedFilters.length <= INLINE_FILTER_BADGE_LIMIT ? (
-                                nonFacetedFilters.map(f => {
-                                    const column = table.getColumn(f.id);
-                                    return (
-                                        <DataTableFilterBadgeEditable
-                                            key={f.id}
-                                            filter={f}
-                                            column={column}
-                                            currencyCode={currencyCode}
-                                            dataType={
-                                                (column?.columnDef.meta as any)?.fieldInfo?.type ?? 'String'
-                                            }
-                                            onRemove={() =>
-                                                setColumnFilters(old => old.filter(x => x.id !== f.id))
-                                            }
-                                        />
-                                    );
-                                })
-                            ) : (
-                                <ActiveFiltersPopover
-                                    filters={nonFacetedFilters}
-                                    table={table}
-                                    currencyCode={currencyCode}
-                                    onRemoveFilter={id =>
-                                        setColumnFilters(old => old.filter(x => x.id !== id))
-                                    }
-                                    onClearAll={hasNoMatches ? undefined : clearNonFacetedFilters}
-                                />
-                            ))}
-                        {columnFilters.length > 0 && !hasNoMatches && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setColumnFilters([])}
-                                className="text-xs opacity-60 hover:opacity-100"
-                            >
-                                <Trans>Clear filters</Trans>
-                            </Button>
-                        )}
                     </div>
                 )}
             </div>
@@ -765,6 +783,14 @@ export function DataTable<TData>({
                             ) : undefined
                         }
                         toolbar={hasToolbarContent ? renderToolbar : undefined}
+                        filters={{
+                            value: columnFilters,
+                            onChange: setColumnFilters,
+                            columns: filterColumns,
+                            // The dashboard's own Filter menu adds filters.
+                            showAddFilter: false,
+                            clearFilters: true,
+                        }}
                         bulkActions={
                             hasSelectionColumn && bulkActions !== false
                                 ? ctx => (
@@ -772,7 +798,9 @@ export function DataTable<TData>({
                                           bulkActions={bulkActions ?? []}
                                           table={ctx.table}
                                           selectedItems={
-                                              selectedItems ? [...ctx.selection, ...selectedItems] : ctx.selection
+                                              selectedItems
+                                                  ? [...ctx.selection, ...selectedItems]
+                                                  : ctx.selection
                                           }
                                           selectedRowIds={ctx.selectedRowIds}
                                       />
@@ -780,7 +808,10 @@ export function DataTable<TData>({
                                 : undefined
                         }
                         emptyState={emptyState}
-                        renderRow={(row, { table, columnCount, defaultRow, ripple, cellProps, selectProps }) => {
+                        renderRow={(
+                            row,
+                            { table, columnCount, defaultRow, ripple, cellProps, selectProps },
+                        ) => {
                             const tableMeta = table.options.meta as any;
                             // Utility rows (e.g. the draft order's "add item" row) span
                             // the full visible width and render custom content.
@@ -813,6 +844,9 @@ export function DataTable<TData>({
                             selectAllOnPage: t`Select all on this page`,
                             clearPageSelection: t`Clear selection on this page`,
                             selectRow: () => t`Select row`,
+                            clearFilters: t`Clear filters`,
+                            removeFilter: label => t`Remove ${label} filter`,
+                            filtersCollapsed: count => t`${count} filters`,
                             pagination: {
                                 navLabel: t`Pagination`,
                                 previousLabel: t`Go to previous page`,
