@@ -5,16 +5,18 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 /**
- * A project directory as the Vendure CLI leaves it while a dev server runs: `.vendure/devserver.json`
- * with mode 0600, holding the run's secret. The plugin reads it from the server's working directory.
+ * A project directory as the Vendure CLI leaves it while a dev server runs, with the run's secret in
+ * the state file at `localTrustStatePath(projectDir)`: `.vendure/devserver.json` with mode 0600 on
+ * macOS and Linux, a file in `%LOCALAPPDATA%` on Windows. The plugin finds it from the server's
+ * working directory. `remove` deletes the state file too, which on Windows is outside the project.
  */
 export function createLocalTrustProject(stateFile?: { secret: string; mode?: number }): {
     projectDir: string;
     remove: () => void;
 } {
     const projectDir = mkdtempSync(path.join(tmpdir(), 'mcp-local-trust-e2e-'));
+    const file = localTrustStatePath(projectDir);
     if (stateFile) {
-        const file = localTrustStatePath(projectDir);
         mkdirSync(path.dirname(file), { recursive: true });
         const mode = stateFile.mode ?? 0o600;
         writeFileSync(
@@ -25,7 +27,13 @@ export function createLocalTrustProject(stateFile?: { secret: string; mode?: num
         // The mode passed to writeFileSync is masked by the umask, so it is set again.
         chmodSync(file, mode);
     }
-    return { projectDir, remove: () => rmSync(projectDir, { recursive: true, force: true }) };
+    return {
+        projectDir,
+        remove: () => {
+            rmSync(file, { force: true });
+            rmSync(projectDir, { recursive: true, force: true });
+        },
+    };
 }
 
 /**

@@ -1,5 +1,5 @@
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
-import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -371,7 +371,8 @@ describe('DevRun state file ownership', () => {
 
             expect(warn).toHaveBeenCalledWith(expect.stringContaining('LOCALAPPDATA is not set'));
             expect(run.childEnv('server', {})).not.toHaveProperty(LOCAL_TRUST_SECRET_ENV_VAR);
-            expect(readDevServerState(projectDir)).toBeUndefined();
+            // On the file system, since readDevServerState has no path to read on fake Windows.
+            expect(existsSync(path.join(projectDir, '.vendure', 'devserver.json'))).toBe(false);
         } finally {
             if (platform) {
                 Object.defineProperty(process, 'platform', platform);

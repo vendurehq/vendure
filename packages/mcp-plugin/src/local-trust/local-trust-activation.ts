@@ -57,8 +57,9 @@ export function hashLocalTrustSecret(secret: string): Buffer {
  * 3. the CLI's state file holds the same secret. On macOS and Linux the file is
  *    `.vendure/devserver.json` in the project directory, and must be a regular file with mode 0600
  *    owned by this process's uid. On Windows, which has no file modes, the file is in the user
- *    profile, and its real path must be under the real path of the current user's `%LOCALAPPDATA%`,
- *    which only that user, SYSTEM and administrators can read.
+ *    profile, and its real path must be under the real path of the current user's `%LOCALAPPDATA%`.
+ *    By default only that user, SYSTEM and administrators can read that directory. Nothing here
+ *    checks its permissions, so a `LOCALAPPDATA` that names a shared directory is trusted.
  *
  * It always deletes the secret from the environment, so child processes and other plugins never
  * inherit it, even when local trust stays off.

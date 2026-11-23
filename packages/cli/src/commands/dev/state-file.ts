@@ -253,8 +253,10 @@ export function toStatusReport(state: DevServerState | undefined): DevServerStat
  * The single writer of the state file of one `vendure dev` run.
  *
  * Each write goes to a new temporary file, created with the `wx` flag and mode 0600, which is then
- * renamed over the state file. A reader never sees a partial file, and the secret is never in a
- * file other users can read.
+ * renamed over the state file. A reader never sees a partial file. On macOS and Linux the mode keeps
+ * the secret from other users. Windows ignores the mode: the file takes the permissions of the
+ * `%LOCALAPPDATA%` directory it is in, which by default only the user, SYSTEM and administrators
+ * can read. Nothing checks those permissions.
  */
 export class DevServerStateFile {
     private readonly filePath: string;
@@ -296,9 +298,7 @@ export class DevServerStateFile {
             }
             this.removeStaleFile(existing?.secret);
         }
-        throw new Error(
-            `Could not create ${this.filePath}, because another process keeps writing it.`,
-        );
+        throw new Error(`Could not create ${this.filePath}, because another process keeps writing it.`);
     }
 
     /**

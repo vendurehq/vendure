@@ -115,11 +115,16 @@ dashboard.
 ## Local trust in development
 
 When the Vendure CLI starts your dev server, it gives the server a new secret for that run and writes it to a
-state file that only you can read. On macOS and Linux that file is `.vendure/devserver.json` in the project
-directory. On Windows, which has no file modes, it is `%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in your
-user profile, where `<hash>` comes from the project path, so each project and worktree has its own file. The
-CLI's own tools present that secret instead of an OAuth token, so they can call the store without signing in.
-This is called local trust.
+state file. The CLI's own tools present that secret instead of an OAuth token, so they can call the store
+without signing in. This is called local trust.
+
+- On macOS and Linux the state file is `.vendure/devserver.json` in the project directory, with mode 0600, so
+  only you can read it.
+- On Windows, which has no file modes, it is `%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in your user
+  profile, where `<hash>` comes from the project path, so each project and worktree has its own file. The file
+  takes the permissions of that directory, which by default only you, SYSTEM and administrators can read. The
+  server checks that the file is under `%LOCALAPPDATA%`, but not who can read that directory. If `LOCALAPPDATA`
+  points at a directory other users can read, they can read the secret too.
 
 Local trust is full superadmin access on your machine, on `POST /mcp/admin` and on the Admin API. It never applies
 to `/mcp/shop`. The plugin accepts the secret only when all of these hold:

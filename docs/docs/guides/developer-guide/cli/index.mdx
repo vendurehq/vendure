@@ -128,8 +128,10 @@ Changes under `.vendure/` and under the `gqlOutputPath` of the Dashboard Vite co
 
 A run that starts the server keeps its state in a state file, which the `devserver` commands read. On macOS
 and Linux it is `.vendure/devserver.json` in the project directory. On Windows it is
-`%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in your user profile, one file per project directory. The
-file is readable only by your user and is deleted when the run stops. The server and the worker
+`%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in your user profile, one file per project directory. On
+macOS and Linux the file has mode 0600, so only your user can read it. On Windows it takes the permissions of
+your profile's `%LOCALAPPDATA%`, which by default only you, SYSTEM and administrators can read. The file is
+deleted when the run stops. The server and the worker
 log as JSON, and every line of output goes to `.vendure/logs/dev.jsonl`. The terminal still shows readable
 text. The log rotates at 10 MB and keeps three files.
 
