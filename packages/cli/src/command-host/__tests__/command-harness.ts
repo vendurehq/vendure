@@ -1,4 +1,4 @@
-import type { CommandDefinition, CommandEvent, SpawnResult } from '@vendure/common/lib/command';
+import type { CommandDefinition, CommandEvent, SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
 import { vi } from 'vitest';
 
 import { executeCommand, HostEnvironment, HostResult, Prompter } from '../host.js';
@@ -19,7 +19,7 @@ export async function runCommandInHarness(
         prompter?: Prompter;
         mcp?: boolean;
         projectRoot?: string | undefined;
-        spawn?: (command: string, args: string[]) => Promise<SpawnResult>;
+        spawn?: (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult>;
         signal?: AbortSignal;
     } = {},
 ): Promise<HarnessRun> {
@@ -40,9 +40,9 @@ export async function runCommandInHarness(
         mcp: options.mcp ?? false,
         prompter: options.prompter,
         emit: event => events.push(event),
-        spawn: async (command, args) => {
+        spawn: async (command, args, spawnOptions) => {
             spawned.push({ command, args });
-            return options.spawn?.(command, args) ?? { exitCode: 0, stdout: '', stderr: '' };
+            return options.spawn?.(command, args, spawnOptions) ?? { exitCode: 0, stdout: '', stderr: '' };
         },
         findProjectRoot: () => ('projectRoot' in options ? options.projectRoot : '/project'),
     };

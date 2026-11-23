@@ -43,6 +43,7 @@ describe('loadMergedManifest', () => {
             'devserver stop',
             'devserver wait',
             'doctor',
+            'mcp install',
             'migrate generate',
             'migrate revert',
             'migrate run',

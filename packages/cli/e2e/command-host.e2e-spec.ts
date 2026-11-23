@@ -4,7 +4,7 @@ import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CliTestProject, createTestProject } from './cli-test-utils.js';
+import { CliTestProject, createTestProject, installThisCli } from './cli-test-utils.js';
 
 const cliPath = join(import.meta.dirname, '..', 'dist', 'cli.js');
 
@@ -275,6 +275,7 @@ describe('Command host E2E', () => {
     describe('vendure mcp', () => {
         it('lists the discovery tools, finds a command and runs it in a child process', async () => {
             testProject = createTestProject('mcp-discovery');
+            installThisCli(testProject.projectDir);
             const mcp = startMcp(testProject.projectDir);
             try {
                 const init = await mcp.request('initialize', { protocolVersion: '2025-06-18' });
@@ -329,6 +330,7 @@ describe('Command host E2E', () => {
 
         it('returns incomplete as a normal result', async () => {
             testProject = createTestProject('mcp-incomplete');
+            installThisCli(testProject.projectDir);
             testProject.writeFile(
                 'tsconfig.json',
                 JSON.stringify({ compilerOptions: { experimentalDecorators: true } }),
@@ -348,6 +350,7 @@ describe('Command host E2E', () => {
 
         it('lists each command as a tool in direct mode, without service or CLI-only commands', async () => {
             testProject = createTestProject('mcp-direct');
+            installThisCli(testProject.projectDir);
             const child = spawn(process.execPath, [cliPath, 'mcp', '--mode', 'direct'], {
                 cwd: testProject.projectDir,
                 stdio: ['pipe', 'pipe', 'pipe'],
