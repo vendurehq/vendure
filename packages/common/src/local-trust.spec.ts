@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -6,9 +5,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { LOCAL_APP_DATA_ENV_VAR, LocalAppDataNotSetError, localTrustStatePath } from './local-trust';
 
-function expectedHash(realPath: string): string {
-    return createHash('sha256').update(realPath.toLowerCase()).digest('hex').slice(0, 16);
-}
+/**
+ * The file name for `C:\Users\dev\shop`, written out, because the CLI and the server can load
+ * different copies of this module and must agree on it.
+ */
+const SHOP_FILE = '71bba24849765385.json';
 
 describe('localTrustStatePath() on macOS and Linux', () => {
     it('is .vendure/devserver.json in the project directory', () => {
@@ -43,7 +44,7 @@ describe('localTrustStatePath() on Windows', () => {
     it('is a file named by the hash of the project path in %LOCALAPPDATA%\\Vendure\\devserver', () => {
         const projectDir = 'C:\\Users\\dev\\shop';
         expect(localTrustStatePath(projectDir, { platform: 'win32', env, realpath })).toBe(
-            `C:\\Users\\dev\\AppData\\Local\\Vendure\\devserver\\${expectedHash(projectDir)}.json`,
+            `C:\\Users\\dev\\AppData\\Local\\Vendure\\devserver\\${SHOP_FILE}`,
         );
     });
 
@@ -78,9 +79,9 @@ describe('localTrustStatePath() on Windows', () => {
         const fails = () => {
             throw new Error('ENOENT');
         };
-        expect(localTrustStatePath('C:\\gone', { platform: 'win32', env, realpath: fails })).toBe(
-            `C:\\Users\\dev\\AppData\\Local\\Vendure\\devserver\\${expectedHash('C:\\gone')}.json`,
-        );
+        expect(
+            localTrustStatePath('C:\\Users\\dev\\shop', { platform: 'win32', env, realpath: fails }),
+        ).toBe(`C:\\Users\\dev\\AppData\\Local\\Vendure\\devserver\\${SHOP_FILE}`);
     });
 
     it('throws when LOCALAPPDATA is not set', () => {

@@ -1,4 +1,8 @@
-import { LocalTrustState, localTrustStatePath } from '@vendure/common/lib/local-trust';
+import {
+    LocalAppDataNotSetError,
+    LocalTrustState,
+    localTrustStatePath,
+} from '@vendure/common/lib/local-trust';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -110,8 +114,11 @@ export function readDevServerState(projectDir: string): DevServerState | undefin
     let filePath: string;
     try {
         filePath = getDevServerStateFilePath(projectDir);
-    } catch {
-        return undefined;
+    } catch (e) {
+        if (e instanceof LocalAppDataNotSetError) {
+            return undefined;
+        }
+        throw e;
     }
     return readStateFileAt(filePath);
 }

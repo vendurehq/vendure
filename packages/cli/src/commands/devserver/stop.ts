@@ -1,14 +1,14 @@
-import { CommandContext, fail, failed } from '@vendure/common/lib/command';
+import { CommandContext, failed } from '@vendure/common/lib/command';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 import { DevServerStateFile, isProcessAlive } from '../dev/state-file.js';
 
 import {
-    devServerErrors,
     POLL_INTERVAL_MS,
+    projectResolutionFailure,
     readLiveDevServerState,
-    resolveDevServerProject,
+    resolveDevServerStateProject,
     sleep,
 } from './devserver.js';
 
@@ -27,9 +27,9 @@ interface StopResult {
 export async function run(_input: Record<string, never>, ctx: CommandContext) {
     let projectDir: string;
     try {
-        projectDir = resolveDevServerProject(ctx);
+        projectDir = resolveDevServerStateProject(ctx);
     } catch (e) {
-        return fail(devServerErrors.projectNotFound, { message: (e as Error).message });
+        return projectResolutionFailure(e);
     }
     const state = readLiveDevServerState(projectDir);
     if (!state) {

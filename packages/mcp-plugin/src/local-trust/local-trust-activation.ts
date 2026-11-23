@@ -78,7 +78,7 @@ export function readLocalTrustActivation(input: ReadLocalTrustActivationInput): 
         return refused(located);
     }
     const { stateFile } = located;
-    const state = readStateFile(stateFile, located.uid);
+    const state = readStateFile(stateFile, located.fileCheck);
     if (typeof state === 'string') {
         return refused(state);
     }
@@ -90,12 +90,21 @@ export function readLocalTrustActivation(input: ReadLocalTrustActivationInput): 
 }
 
 /**
- * Finds the state file, and on Windows checks that it is in the current user's profile. Returns
- * the file and, outside Windows, the uid that must own it, or the reason it cannot be used.
+ * How the state file itself is checked once it is open: its mode and owner on macOS and Linux, or
+ * nothing on Windows, where {@link locateWindowsStateFile} already checked that it is in the profile.
  */
-function locateStateFile(
-    input: ReadLocalTrustActivationInput,
-): { stateFile: string; uid: number | undefined } | string {
+type StateFileCheck = { kind: 'mode-and-owner'; uid: number } | { kind: 'in-profile' };
+
+interface LocatedStateFile {
+    stateFile: string;
+    fileCheck: StateFileCheck;
+}
+
+/**
+ * Finds the state file, and on Windows checks that it is in the current user's profile. Returns
+ * the file and the check its descriptor still needs, or the reason it cannot be used.
+ */
+function locateStateFile(input: ReadLocalTrustActivationInput): LocatedStateFile | string {
     if (input.platform === 'win32') {
         return locateWindowsStateFile(input);
     }
@@ -103,12 +112,10 @@ function locateStateFile(
         return 'this platform has no file owner to check the state file against, so local trust is not supported on it';
     }
     const statePath = input.statePath ?? (dir => localTrustStatePath(dir, { platform: input.platform }));
-    return { stateFile: statePath(input.projectDir), uid: input.uid };
+    return { stateFile: statePath(input.projectDir), fileCheck: { kind: 'mode-and-owner', uid: input.uid } };
 }
 
-function locateWindowsStateFile(
-    input: ReadLocalTrustActivationInput,
-): { stateFile: string; uid: undefined } | string {
+function locateWindowsStateFile(input: ReadLocalTrustActivationInput): LocatedStateFile | string {
     const localAppData = input.env[LOCAL_APP_DATA_ENV_VAR];
     if (!localAppData) {
         return `${LOCAL_APP_DATA_ENV_VAR} is not set, so there is no user profile to keep the state file in`;
@@ -138,7 +145,7 @@ function locateWindowsStateFile(
             `${LOCAL_APP_DATA_ENV_VAR} (${realLocalAppData})`
         );
     }
-    return { stateFile: realStateFile, uid: undefined };
+    return { stateFile: realStateFile, fileCheck: { kind: 'in-profile' } };
 }
 
 /** Whether `file` is inside `dir`. Windows paths ignore case. */
@@ -147,8 +154,8 @@ function isInside(dir: string, file: string): boolean {
     return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
-/** Returns the state, or the reason it cannot be used. `uid` is undefined on Windows. */
-function readStateFile(stateFile: string, uid: number | undefined): LocalTrustState | string {
+/** Returns the state, or the reason it cannot be used. */
+function readStateFile(stateFile: string, fileCheck: StateFileCheck): LocalTrustState | string {
     let fd: number;
     try {
         // O_NOFOLLOW: a symlink could point at a file someone else controls.
@@ -166,15 +173,14 @@ function readStateFile(stateFile: string, uid: number | undefined): LocalTrustSt
         if (!stats.isFile()) {
             return `${stateFile} is not a regular file`;
         }
-        // On Windows there are no modes or uids. The profile directory protects the file instead.
-        if (uid !== undefined) {
+        if (fileCheck.kind === 'mode-and-owner') {
             // The permission bits are the low nine bits of the mode.
             const mode = stats.mode % 0o1000;
             if (mode !== 0o600) {
                 return `${stateFile} has mode ${mode.toString(8).padStart(4, '0')}, not 0600`;
             }
-            if (stats.uid !== uid) {
-                return `${stateFile} is owned by uid ${stats.uid}, not by this process (uid ${uid})`;
+            if (stats.uid !== fileCheck.uid) {
+                return `${stateFile} is owned by uid ${stats.uid}, not by this process (uid ${fileCheck.uid})`;
             }
         }
         return parseState(readFileSync(fd, 'utf8'), stateFile);

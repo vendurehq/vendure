@@ -3,10 +3,10 @@
  *
  * Each `vendure dev` run generates one secret. It passes the secret to the server child
  * in the {@link LOCAL_TRUST_SECRET_ENV_VAR} environment variable, and writes it to the state
- * file at {@link localTrustStatePath}, where only the current user can read it. The server
- * accepts the secret only when the file exists and holds the same secret.
+ * file at {@link localTrustStatePath}. The server accepts the secret only when the file exists
+ * and holds the same secret.
  *
- * {@link localTrustStatePath} uses `node:fs`, so this module runs only in Node.
+ * {@link localTrustStatePath} uses `node:fs` and `node:crypto`, so this module runs only in Node.
  */
 import { createHash } from 'node:crypto';
 import { realpathSync } from 'node:fs';
@@ -54,13 +54,13 @@ export interface LocalTrustStatePathOptions {
 
 /**
  * Thrown by {@link localTrustStatePath} on Windows when `LOCALAPPDATA` is not set, so there is no
- * directory that only the current user can read.
+ * user profile directory to keep the state file in.
  */
 export class LocalAppDataNotSetError extends Error {
     constructor() {
         super(
-            `${LOCAL_APP_DATA_ENV_VAR} is not set, so there is no directory for the local-trust state file ` +
-                'that only the current user can read.',
+            `${LOCAL_APP_DATA_ENV_VAR} is not set, so there is no user profile directory for the ` +
+                'local-trust state file.',
         );
         this.name = 'LocalAppDataNotSetError';
     }
@@ -72,8 +72,9 @@ export class LocalAppDataNotSetError extends Error {
  * - On macOS and Linux it is `<projectDir>/.vendure/devserver.json`. The file has mode 0600, so
  *   only its owner can read it.
  * - On Windows, which has no file modes, it is
- *   `%LOCALAPPDATA%\Vendure\devserver\<hash>.json`, in the user profile that only the user,
- *   SYSTEM and administrators can read. `<hash>` is the first 16 hex characters of the SHA-256 of
+ *   `%LOCALAPPDATA%\Vendure\devserver\<hash>.json`, in the user profile. The file takes the
+ *   permissions of that directory, which by default only the user, SYSTEM and administrators can
+ *   read. Nothing checks them. `<hash>` is the first 16 hex characters of the SHA-256 of
  *   the project directory's real path, in lower case, so each worktree gets its own file and two
  *   spellings of one directory get the same file.
  *

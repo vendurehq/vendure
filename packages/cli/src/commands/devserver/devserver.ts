@@ -1,10 +1,12 @@
-import { CommandContext, defineError } from '@vendure/common/lib/command';
+import { CommandContext, defineError, fail } from '@vendure/common/lib/command';
+import { LocalAppDataNotSetError } from '@vendure/common/lib/local-trust';
 import pc from 'picocolors';
 
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
 import {
     DevServerState,
     DevServerStatusReport,
+    getDevServerStateFilePath,
     isDevRunAlive,
     isProcessAlive,
     readDevServerState,
@@ -44,6 +46,11 @@ export const devServerErrors = {
         exit: 1,
         message: ({ message }) => message,
     }),
+    stateFileUnavailable: defineError<{ message: string }>({
+        code: 'devserver.state-file-unavailable',
+        exit: 1,
+        message: ({ message }) => `The dev server state file cannot be found: ${message}`,
+    }),
 };
 
 /**
@@ -52,6 +59,24 @@ export const devServerErrors = {
  */
 export function resolveDevServerProject(ctx: CommandContext): string {
     return resolveCoreProjectDirectory(ctx.cwd);
+}
+
+/**
+ * As {@link resolveDevServerProject}, for a command that reads the state file. It also throws when
+ * the state file has no path, as on Windows without `LOCALAPPDATA`, so the command refuses rather
+ * than reporting that no run is live.
+ */
+export function resolveDevServerStateProject(ctx: CommandContext): string {
+    const projectDir = resolveDevServerProject(ctx);
+    getDevServerStateFilePath(projectDir);
+    return projectDir;
+}
+
+/** The coded error for a failure of {@link resolveDevServerStateProject}. */
+export function projectResolutionFailure(e: unknown) {
+    return e instanceof LocalAppDataNotSetError
+        ? fail(devServerErrors.stateFileUnavailable, { message: e.message })
+        : fail(devServerErrors.projectNotFound, { message: (e as Error).message });
 }
 
 export function defaultTimeoutSeconds(ctx: CommandContext, timeout?: number): number {

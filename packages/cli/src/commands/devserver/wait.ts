@@ -1,10 +1,10 @@
-import { CommandContext, fail, failed } from '@vendure/common/lib/command';
+import { CommandContext, failed } from '@vendure/common/lib/command';
 
 import {
     defaultTimeoutSeconds,
-    devServerErrors,
+    projectResolutionFailure,
     renderStatusReport,
-    resolveDevServerProject,
+    resolveDevServerStateProject,
     waitForDevServer,
     WaitResult,
 } from './devserver.js';
@@ -20,9 +20,9 @@ export async function run(
 ) {
     let projectDir: string;
     try {
-        projectDir = resolveDevServerProject(ctx);
+        projectDir = resolveDevServerStateProject(ctx);
     } catch (e) {
-        return fail(devServerErrors.projectNotFound, { message: (e as Error).message });
+        return projectResolutionFailure(e);
     }
     const result = await waitForDevServer(projectDir, {
         timeoutMs: defaultTimeoutSeconds(ctx, input.timeout) * 1000,

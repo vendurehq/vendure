@@ -83,13 +83,13 @@ const distImportBan = {
 };
 
 /**
- * These entry points of `@vendure/common` use `node:fs`, so only Node code imports them:
- * `readManifestFile` and `writeCommandManifest`, and `localTrustStatePath`.
+ * `@vendure/common/lib/command/manifest` and `@vendure/common/lib/local-trust` use Node built-ins,
+ * so only Node code imports them.
  */
 const nodeOnlyMessage =
     '`@vendure/common/lib/command/manifest` uses `node:fs` and runs only in Node. Import the command contract from `@vendure/common/lib/command`.';
 const localTrustNodeOnlyMessage =
-    '`@vendure/common/lib/local-trust` uses `node:fs` and runs only in Node, in the server and the CLI.';
+    '`@vendure/common/lib/local-trust` uses Node built-ins and runs only in Node, in the server and the CLI.';
 const nodeOnlyImportBans = [
     { name: '@vendure/common/lib/command/manifest', message: nodeOnlyMessage },
     { name: '@vendure/common/lib/local-trust', message: localTrustNodeOnlyMessage },
