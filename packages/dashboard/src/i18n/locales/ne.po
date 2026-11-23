@@ -238,6 +238,10 @@ msgstr "थप थप्नुहोस् ({0} चयन गरिएको)"
 #~ msgid "View values"
 #~ msgstr "मानहरू हेर्नुहोस्"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search (command palette)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Delete row"
 msgstr "पङ्क्ति मेट्नुहोस्"
@@ -427,6 +431,7 @@ msgstr "{0, plural, one {# संग्रह चयन गरिएको स�
 #~ msgid "All resources are up and running"
 #~ msgstr "सबै स्रोतहरू चलिरहेका छन्"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -528,6 +533,10 @@ msgstr "अज्ञात त्रुटि"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx
 msgid "Uploading image..."
 msgstr "छवि अपलोड हुँदै..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "No results for “{search}”."
+msgstr ""
 
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/entity-assets.tsx
@@ -1136,6 +1145,10 @@ msgstr "अर्डर पूरा गर्न असफल"
 msgid "Total"
 msgstr "कुल"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Find pages and settings."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx
 msgid "Enter the transaction ID for this refund settlement"
 msgstr "यो रिफन्ड सेटलमेन्टको लागि लेनदेन ID प्रविष्ट गर्नुहोस्"
@@ -1467,6 +1480,11 @@ msgstr "अर्डरका लागि कुपन कोड सेट ग�
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
 msgstr "बाँकी स्टकको के गर्ने भन्ने छान्नुहोस्"
+
+#: src/lib/components/layout/command-palette.tsx
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx
 #: src/lib/components/data-table/data-table-settings-menu.tsx
@@ -1912,6 +1930,10 @@ msgstr "सत्य"
 msgid "Select customer"
 msgstr "ग्राहक चयन गर्नुहोस्"
 
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search pages and settings…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Order transitioned"
 msgstr "अर्डर संक्रमण भयो"
@@ -2228,6 +2250,10 @@ msgstr "लागू गर्नुहोस्"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Search tax rates..."
 msgstr "कर दरहरू खोज्नुहोस्..."
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Navigate"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "New product option"
@@ -4529,6 +4555,10 @@ msgstr "फेला परेन"
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Facet values"
 msgstr "विशेषता मानहरू"
+
+#: src/lib/components/layout/command-palette.tsx
+msgid "Search the Dashboard"
+msgstr ""
 
 #: src/lib/components/data-table/data-table.tsx
 msgid "Failed to reorder items"
@@ -8179,6 +8209,7 @@ msgstr "भन्दा ठूलो छ"
 msgid "Underline"
 msgstr "अन्डरलाइन"
 
+#: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "बन्द गर्नुहोस्"
