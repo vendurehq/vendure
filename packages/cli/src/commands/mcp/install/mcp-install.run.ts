@@ -186,7 +186,8 @@ async function registerLocally(
         '--dir',
         result.project,
     ];
-    const command = ['claude', ...add].map(shellQuote).join(' ');
+    // Local scope belongs to the folder `claude` is run in, so a printed command starts there.
+    const command = `cd ${shellQuote(root)} && ${['claude', ...add].map(shellQuote).join(' ')}`;
     const done = (action: 'printed' | 'registered' | 'run-yourself') => ({
         ...result,
         action,

@@ -95,6 +95,21 @@ describe('findMcpProject()', () => {
         expect(findMcpProject(path.join(outer, 'inner'))).toEqual({ kind: 'not-found' });
     });
 
+    // pnpm declares its members in pnpm-workspace.yaml, not in package.json.
+    it('lists the projects of a pnpm workspace root that holds more than one', () => {
+        const root = tree({
+            'package.json': JSON.stringify({ private: true }),
+            'pnpm-workspace.yaml': "packages:\n  - 'apps/*'\n",
+            'apps/one/package.json': vendureProject,
+            'apps/two/package.json': vendureProject,
+        });
+
+        expect(findMcpProject(root)).toMatchObject({
+            kind: 'ambiguous',
+            candidates: [path.join(root, 'apps/one'), path.join(root, 'apps/two')],
+        });
+    });
+
     it('finds nothing outside a Vendure project', () => {
         const root = tree({ 'package.json': JSON.stringify({ dependencies: { express: '5' } }) });
 

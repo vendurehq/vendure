@@ -1,5 +1,7 @@
 import { defineError } from '@vendure/common/lib/command';
 
+import { localOnlyAdvice } from '../mcp.errors.js';
+
 import { McpClient } from './client-config.js';
 
 export const rootCannotSelectProject = defineError<{
@@ -10,10 +12,9 @@ export const rootCannotSelectProject = defineError<{
 }>({
     code: 'mcp.root-cannot-select-project',
     exit: 1,
-    message: ({ root, project, fromRoot }) =>
-        `MCP clients start the server from the repository root, "${root}", and from there it ${fromRoot}. ` +
-        `A checked-in config has no project directory, so it cannot select "${project}". ` +
-        'Register the server for this machine only with --scope local, which passes the project directory.',
+    message: ({ root, project, fromRoot, client }) =>
+        `MCP clients start the server from the repository root, "${root}", and from there it ${fromRoot}, ` +
+        `not "${project}". ${localOnlyAdvice(client)}`,
     fix: ({ client, project }) =>
         client === 'claude'
             ? [
@@ -35,17 +36,20 @@ export const rootCannotResolveCli = defineError<{
 }>({
     code: 'mcp.root-cannot-resolve-cli',
     exit: 1,
-    message: ({ root, project, projectVersion, rootVersion }) =>
+    message: ({ root, project, projectVersion, rootVersion, client }) =>
         `MCP clients start the server from the repository root, "${root}", and ${
             rootVersion ? `that resolves @vendure/cli ${rootVersion}` : 'no @vendure/cli resolves from there'
         }, while the project in "${project}" installs ${projectVersion}. ` +
-        `Add @vendure/cli ${projectVersion} as a devDependency of the root package.json, or register the server for this machine only with --scope local.`,
-    fix: ({ client }) =>
+        `Add @vendure/cli ${projectVersion} as a devDependency of the root package.json. ` +
+        (client === 'claude'
+            ? 'Or register the server for this machine only with --scope local.'
+            : `Or add the server to your ${client} user-level config, with --dir and the project's path.`),
+    fix: ({ client, project }) =>
         client === 'claude'
             ? [
                   {
                       path: ['mcp', 'install'],
-                      input: { client, scope: 'local' },
+                      input: { client, dir: project, scope: 'local' },
                       description: "Register the server in Claude Code's local scope instead",
                   },
               ]

@@ -15,10 +15,11 @@ export const projectNotFound = defineError<{ dir: string }>({
 export const projectAmbiguous = defineError<{ root: string; candidates: string[]; client?: string }>({
     code: 'mcp.project-ambiguous',
     exit: 1,
-    message: ({ root, candidates }) =>
-        `"${root}" holds more than one Vendure project: ${candidates.join(', ')}. Choose one with --dir.`,
+    message: ({ root, candidates, client }) =>
+        `"${root}" holds more than one Vendure project: ${candidates.join(', ')}. ` +
+        (client ? localOnlyAdvice(client) : 'Start the server with --dir and one of them.'),
     fix: ({ candidates, client }) =>
-        client
+        client === 'claude'
             ? candidates.map(dir => ({
                   path: ['mcp', 'install'],
                   input: { client, dir, scope: 'local' },
@@ -26,6 +27,19 @@ export const projectAmbiguous = defineError<{ root: string; candidates: string[]
               }))
             : [],
 });
+
+/**
+ * What to do when a checked-in config cannot select the project. Claude Code can register the
+ * server for this machine, with the project directory, through `install --scope local`. Other
+ * clients need the entry in their own user-level config.
+ */
+export function localOnlyAdvice(client: string): string {
+    return client === 'claude'
+        ? 'A checked-in config cannot select the project, so register the server for this machine only ' +
+              'with --scope local, which passes the project directory.'
+        : `A checked-in config cannot select the project, so add the server to your ${client} user-level ` +
+              "config instead, with --dir and the project's path. --print shows the entry.";
+}
 
 export const cliNotInstalled = defineError<{ project: string }>({
     code: 'mcp.cli-not-installed',
@@ -43,5 +57,7 @@ export const notProjectCli = defineError<{
     code: 'mcp.not-project-cli',
     exit: 1,
     message: ({ project, projectVersion, running, runningVersion }) =>
-        `The project in "${project}" installs @vendure/cli ${projectVersion}, but this is @vendure/cli ${runningVersion} from "${running}", for example a global install that npx fell back to. Start the server from the project, where npx runs the project's own CLI.`,
+        `The project in "${project}" installs @vendure/cli ${projectVersion}, but this is ` +
+        `@vendure/cli ${runningVersion} from "${running}", for example a global install that npx fell ` +
+        "back to. Start the server from the project, where npx runs the project's own CLI.",
 });

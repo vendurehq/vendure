@@ -104,11 +104,17 @@ function updateJsonConfig(client: McpClient, existing: string | undefined): Conf
         return { text: existing, action: 'unchanged' };
     }
     const action = servers[SERVER_NAME] === undefined ? 'created' : 'updated';
-    return { text: toJson({ ...config, [key]: { ...servers, [SERVER_NAME]: entry } }), action };
+    const text = toJson({ ...config, [key]: { ...servers, [SERVER_NAME]: entry } }, indentOf(existing));
+    return { text, action };
 }
 
-function toJson(value: unknown): string {
-    return `${JSON.stringify(value, null, 2)}\n`;
+/** The file's own indentation, so that adding the entry does not reformat every line. */
+function indentOf(text: string): string | number {
+    return /^([ \t]+)\S/m.exec(text)?.[1] ?? 2;
+}
+
+function toJson(value: unknown, indent: string | number = 2): string {
+    return `${JSON.stringify(value, null, indent)}\n`;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -126,7 +132,8 @@ function tomlTable(): string {
 /**
  * Replaces the `[mcp_servers.vendure]` table, with any of its sub-tables, or appends it. Other
  * tables, keys and comments stay as they were. A `vendure` server written in another form, such as
- * dotted keys or an inline table, is refused rather than duplicated.
+ * dotted keys or an inline table, is refused rather than duplicated. The JSON configs keep their
+ * indentation the same way.
  */
 function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     const table = tomlTable();
@@ -135,22 +142,12 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     }
     const lines = existing.split('\n');
     const isHeader = (line: string) => /^\s*\[/.test(line);
-    // A header without its trailing comment and whitespace, such as `[mcp_servers.vendure]`.
-    const headerOf = (line: string) => line.replace(/#.*$/, '').replace(/\s+/g, '');
+    // The `vendure` table and its sub-tables, however the key is quoted, such as
+    // `[mcp_servers."vendure"]` or `[mcp_servers.vendure.env] # comment`.
     const isOwnHeader = (line: string) => {
-        const header = headerOf(line);
-        return header === TOML_TABLE || header.startsWith(`[mcp_servers.${SERVER_NAME}.`);
+        const keys = headerKeys(line);
+        return keys[0] === 'mcp_servers' && keys[1] === SERVER_NAME;
     };
-    // Any other header that names the server, such as `[mcp_servers."vendure"]`, would make this
-    // function add a second table for it, which leaves the file invalid.
-    const otherHeader = lines.find(
-        line => isHeader(line) && !isOwnHeader(line) && headerOf(line).includes(SERVER_NAME),
-    );
-    if (otherHeader) {
-        throw new ConfigFileUnreadable(
-            `it has the header ${otherHeader.trim()}, which this command does not edit`,
-        );
-    }
     const start = lines.findIndex(isOwnHeader);
     // A key named `vendure`, as in `vendure = { ... }` under `[mcp_servers]` or the dotted
     // `mcp_servers.vendure.command = ...`, outside the tables this function manages.
@@ -170,10 +167,14 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
         const separator = existing.endsWith('\n') ? '\n' : '\n\n';
         return { text: `${existing}${separator}${table}`, action: 'created' };
     }
-    // The own tables run until the next header that is not one of them.
+    // The own tables run until the next header that is not one of them. Blank lines and comments
+    // just before that header belong to it, so they stay.
     let end = start + 1;
     while (end < lines.length && !(isHeader(lines[end]) && !isOwnHeader(lines[end]))) {
         end++;
+    }
+    while (end > start + 1 && (lines[end - 1].trim() === '' || /^\s*#/.test(lines[end - 1]))) {
+        end--;
     }
     const current = lines.slice(start, end).join('\n').trim();
     if (current === table.trim()) {
@@ -183,6 +184,14 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     const after = lines.slice(end).join('\n');
     const text = [before, table.trimEnd(), after].filter(part => part !== '').join('\n');
     return { text: text.endsWith('\n') ? text : `${text}\n`, action: 'updated' };
+}
+
+/** The dotted keys of a TOML table header, without quotes: `[a."b.c"]` gives `['a', 'b.c']`. */
+function headerKeys(line: string): string[] {
+    const header = line.replace(/#.*$/, '').trim().replace(/^\[+/, '').replace(/\]+$/, '');
+    return (header.match(/"[^"]*"|'[^']*'|[^.]+/g) ?? []).map(key =>
+        key.trim().replace(/^(["'])(.*)\1$/, '$2'),
+    );
 }
 
 /** Whether a line belongs to the `vendure` table or one of its sub-tables. */

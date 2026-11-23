@@ -45,6 +45,16 @@ describe('updateClientConfig() for JSON clients', () => {
         expect(JSON.parse(text).mcpServers).toEqual({ vendure: ENTRY, other: { command: 'o' } });
     });
 
+    it("keeps the file's indentation", () => {
+        const existing = JSON.stringify({ mcpServers: { other: { command: 'o' } } }, null, 4);
+
+        const { text } = updateClientConfig('claude', existing);
+
+        expect(text).toBe(
+            `${JSON.stringify({ mcpServers: { other: { command: 'o' }, vendure: ENTRY } }, null, 4)}\n`,
+        );
+    });
+
     it('leaves the file as it is when the entry is already there', () => {
         const existing = updateClientConfig('claude', undefined).text.replace('\n', '\n  ');
 
@@ -94,7 +104,7 @@ describe('updateClientConfig() for Codex', () => {
         const { text, action } = updateClientConfig('codex', existing);
 
         expect(action).toBe('updated');
-        expect(text).toBe(`${table}[mcp_servers.other]\ncommand = "other"\n`);
+        expect(text).toBe(`${table}\n[mcp_servers.other]\ncommand = "other"\n`);
     });
 
     it('leaves the file as it is when the table is already there', () => {
@@ -122,10 +132,30 @@ describe('updateClientConfig() for Codex', () => {
     });
 
     // A second table for the same server would leave the file invalid.
-    it('refuses a header that names the server another way', () => {
-        expect(() => updateClientConfig('codex', '[mcp_servers."vendure"]\ncommand = "npx"\n')).toThrow(
-            /does not edit/,
-        );
+    it('updates a quoted vendure header in place', () => {
+        const { text, action } = updateClientConfig('codex', '[mcp_servers."vendure"]\ncommand = "old"\n');
+
+        expect(action).toBe('updated');
+        expect(text).toBe(table);
+    });
+
+    it('leaves other tables that mention vendure alone', () => {
+        const existing =
+            '[projects."/home/me/vendure-shop"]\ntrust_level = "trusted"\n\n[mcp_servers.vendure-docs]\ncommand = "docs"\n';
+
+        const { text, action } = updateClientConfig('codex', existing);
+
+        expect(action).toBe('created');
+        expect(text).toBe(`${existing}\n${table}`);
+    });
+
+    it('keeps the comments and blank lines before the next table', () => {
+        const existing =
+            '[mcp_servers.vendure]\ncommand = "old"\n\n# Docs server, keep me\n[mcp_servers.docs]\ncommand = "docs"\n';
+
+        const { text } = updateClientConfig('codex', existing);
+
+        expect(text).toBe(`${table}\n# Docs server, keep me\n[mcp_servers.docs]\ncommand = "docs"\n`);
     });
 
     it('does not mistake a value that mentions vendure for the server', () => {

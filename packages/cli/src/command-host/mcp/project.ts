@@ -4,10 +4,9 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import {
-    AmbiguousVendureProjectError,
     findWorkspacePackageJsonsWithDependency,
     hasWorkspaceMarker,
-    resolveCoreProjectDirectory,
+    MONOREPO_PACKAGE_DIRS,
 } from '../../utilities/monorepo-utils.js';
 
 /** The Vendure project the Developer MCP serves, found from a starting directory. */
@@ -22,9 +21,10 @@ export type McpProject =
  * a monorepo, so this walks up from `startDir`, and no further than the git root.
  *
  * It accepts a directory whose package.json depends on `@vendure/core`. At the git root, or at a
- * directory that declares workspaces, it also looks in the workspace members and package folders,
- * as `vendure dev` does. Elsewhere it does not, so a folder next to an unrelated project is never
- * taken for it. Paths are returned with symlinks resolved.
+ * directory that declares workspaces, it also looks in the workspace members and in the package
+ * folders, such as `apps/*` and `packages/*`. More than one project there is ambiguous, whichever
+ * way the workspace is declared. Elsewhere it does not look, so a folder next to an unrelated
+ * project is never taken for it. Paths are returned with symlinks resolved.
  */
 export function findMcpProject(startDir: string): McpProject {
     let dir = fs.realpathSync(startDir);
@@ -34,15 +34,12 @@ export function findMcpProject(startDir: string): McpProject {
             return { kind: 'found', dir };
         }
         if (dir === gitRoot || hasWorkspaceMarker(dir)) {
-            try {
-                return { kind: 'found', dir: resolveCoreProjectDirectory(dir) };
-            } catch (e) {
-                if (e instanceof AmbiguousVendureProjectError) {
-                    const candidates = findWorkspacePackageJsonsWithDependency(dir, '@vendure/core').map(
-                        file => path.dirname(file),
-                    );
-                    return { kind: 'ambiguous', root: dir, candidates };
-                }
+            const candidates = projectsBelow(dir);
+            if (candidates.length === 1) {
+                return { kind: 'found', dir: candidates[0] };
+            }
+            if (candidates.length > 1) {
+                return { kind: 'ambiguous', root: dir, candidates };
             }
         }
         const parent = path.dirname(dir);
@@ -51,6 +48,32 @@ export function findMcpProject(startDir: string): McpProject {
         }
         dir = parent;
     }
+}
+
+/**
+ * The Vendure projects of a monorepo root: its workspace members, and the packages one level down
+ * in the conventional package folders. The second covers workspaces that package.json does not
+ * declare, such as pnpm's `pnpm-workspace.yaml`.
+ */
+function projectsBelow(root: string): string[] {
+    const projects = new Set(
+        findWorkspacePackageJsonsWithDependency(root, '@vendure/core').map(file => path.dirname(file)),
+    );
+    for (const group of MONOREPO_PACKAGE_DIRS) {
+        let entries: fs.Dirent[];
+        try {
+            entries = fs.readdirSync(path.join(root, group), { withFileTypes: true });
+        } catch {
+            continue;
+        }
+        for (const entry of entries) {
+            const dir = path.join(root, group, entry.name);
+            if (entry.isDirectory() && dependsOnCore(dir)) {
+                projects.add(dir);
+            }
+        }
+    }
+    return [...new Set([...projects].map(dir => fs.realpathSync(dir)))].sort();
 }
 
 function dependsOnCore(dir: string): boolean {

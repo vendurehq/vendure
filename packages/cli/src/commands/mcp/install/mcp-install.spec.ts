@@ -203,6 +203,22 @@ describe('vendure mcp install', () => {
         expect(fs.existsSync(path.join(root, '.mcp.json'))).toBe(false);
     });
 
+    // Only Claude Code has a --scope local to offer.
+    it('tells other clients to use their own user-level config at an ambiguous root', async () => {
+        const root = repo({
+            'package.json': JSON.stringify({ private: true, workspaces: ['apps/*'] }),
+            'apps/one/package.json': vendureProject,
+            'apps/two/package.json': vendureProject,
+        });
+
+        const result = await install({ client: 'vscode', dir: root });
+
+        expect(result.envelope.error).toMatchObject({ code: 'mcp.project-ambiguous' });
+        expect(result.envelope.error?.fixes).toBeUndefined();
+        expect(result.envelope.error?.message).toContain('vscode user-level config');
+        expect(result.envelope.error?.message).not.toContain('--scope local');
+    });
+
     it('leaves a config it cannot read alone, and offers --print', async () => {
         const root = singleProject();
         fs.writeFileSync(path.join(root, '.mcp.json'), '{ // comment\n}');
@@ -289,7 +305,9 @@ describe('vendure mcp install', () => {
 
             expect(result.envelope.output).toMatchObject({
                 action: 'run-yourself',
-                command: expect.stringMatching(/^claude mcp add --scope local vendure -- /),
+                command:
+                    `cd ${root} && claude mcp add --scope local vendure -- ${process.execPath} ` +
+                    `${path.join(root, 'node_modules/@vendure/cli/dist/cli.js')} mcp --dir ${root}`,
             });
         });
 
