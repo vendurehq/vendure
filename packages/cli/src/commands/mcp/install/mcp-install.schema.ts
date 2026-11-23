@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { MCP_CLIENTS } from './client-config.js';
 
 export const input = z.object({
-    client: z.enum(MCP_CLIENTS).describe('The MCP client to set up: claude, cursor, vscode or codex'),
+    client: z.enum(MCP_CLIENTS).describe('The MCP client to set up'),
     scope: z
         .enum(['project', 'local'])
         .optional()

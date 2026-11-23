@@ -78,6 +78,23 @@ describe('findMcpProject()', () => {
         });
     });
 
+    // The package-folder search applies only at a git root or a workspace root.
+    it('does not take a folder next to an unrelated project for that project', () => {
+        const root = tree({
+            'apps/shop/package.json': vendureProject,
+            'apps/blog/package.json': JSON.stringify({ dependencies: { astro: '5' } }),
+        });
+
+        expect(findMcpProject(path.join(root, 'apps/blog'))).toEqual({ kind: 'not-found' });
+    });
+
+    it('stops at the git root', () => {
+        const outer = tree({ 'package.json': vendureProject, 'inner/package.json': JSON.stringify({}) });
+        execFileSync('git', ['init', '-q'], { cwd: path.join(outer, 'inner') });
+
+        expect(findMcpProject(path.join(outer, 'inner'))).toEqual({ kind: 'not-found' });
+    });
+
     it('finds nothing outside a Vendure project', () => {
         const root = tree({ 'package.json': JSON.stringify({ dependencies: { express: '5' } }) });
 

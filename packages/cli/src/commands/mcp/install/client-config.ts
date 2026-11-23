@@ -135,10 +135,22 @@ function updateTomlConfig(existing: string | undefined): ConfigUpdate {
     }
     const lines = existing.split('\n');
     const isHeader = (line: string) => /^\s*\[/.test(line);
+    // A header without its trailing comment and whitespace, such as `[mcp_servers.vendure]`.
+    const headerOf = (line: string) => line.replace(/#.*$/, '').replace(/\s+/g, '');
     const isOwnHeader = (line: string) => {
-        const header = line.trim().replace(/\s+/g, '');
+        const header = headerOf(line);
         return header === TOML_TABLE || header.startsWith(`[mcp_servers.${SERVER_NAME}.`);
     };
+    // Any other header that names the server, such as `[mcp_servers."vendure"]`, would make this
+    // function add a second table for it, which leaves the file invalid.
+    const otherHeader = lines.find(
+        line => isHeader(line) && !isOwnHeader(line) && headerOf(line).includes(SERVER_NAME),
+    );
+    if (otherHeader) {
+        throw new ConfigFileUnreadable(
+            `it has the header ${otherHeader.trim()}, which this command does not edit`,
+        );
+    }
     const start = lines.findIndex(isOwnHeader);
     // A key named `vendure`, as in `vendure = { ... }` under `[mcp_servers]` or the dotted
     // `mcp_servers.vendure.command = ...`, outside the tables this function manages.

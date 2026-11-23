@@ -1,10 +1,13 @@
+import type { CommandErrorDefinition } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { loadMergedManifest } from '../../command-host/manifest.js';
-import { checkProjectCli, findMcpProject, ProjectCliCheck } from '../../command-host/mcp/project.js';
+import { checkProjectCli, findMcpProject } from '../../command-host/mcp/project.js';
 import { McpServer, McpToolMode } from '../../command-host/mcp/server.js';
+
+import { cliNotInstalled, notProjectCli, projectAmbiguous } from './mcp.errors.js';
 
 /**
  * Starts the Developer MCP server on stdio and returns when the client closes the connection.
@@ -28,22 +31,27 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     const packageRoot = path.join(import.meta.dirname, '..', '..', '..');
     const version = createRequire(import.meta.url)('../../../package.json').version as string;
 
-    let cwd = start;
     const project = findMcpProject(start);
-    if (project.kind === 'found') {
-        cwd = project.dir;
-        const check = checkProjectCli(project.dir, packageRoot, version);
-        if (!check.ok) {
-            process.stderr.write(`${projectCliMessage(check)}\n`);
-            return 1;
-        }
-    } else if (project.kind === 'ambiguous') {
-        process.stderr.write(
-            `[mcp.project-ambiguous] "${project.root}" holds more than one Vendure project. ` +
-                `Start the server with --dir and one of: ${project.candidates.join(', ')}\n`,
-        );
-        cwd = project.root;
+    if (project.kind === 'ambiguous') {
+        return stop(projectAmbiguous, { root: project.root, candidates: project.candidates });
     }
+    if (project.kind === 'found') {
+        const check = checkProjectCli(project.dir, packageRoot, version);
+        if (!check.ok && check.reason === 'not-installed') {
+            return stop(cliNotInstalled, { project: project.dir });
+        }
+        if (!check.ok && check.reason === 'other-cli') {
+            return stop(notProjectCli, {
+                project: project.dir,
+                projectVersion: check.local.version,
+                running: check.running,
+                runningVersion: check.runningVersion,
+            });
+        }
+    }
+    // Outside a Vendure project the server still starts: `doctor` and other commands report what
+    // is missing themselves.
+    const cwd = project.kind === 'found' ? project.dir : start;
 
     const server = new McpServer({
         commands: await loadMergedManifest(),
@@ -57,18 +65,8 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     return 0;
 }
 
-/** Why the running CLI is not the project's own, for stderr. */
-export function projectCliMessage(check: Exclude<ProjectCliCheck, { ok: true }>): string {
-    if (check.reason === 'not-installed') {
-        return (
-            `[mcp.cli-not-installed] The project in "${check.project}" does not install @vendure/cli, so this ` +
-            `@vendure/cli ${check.runningVersion} from "${check.running}" will not serve it. ` +
-            `Add @vendure/cli as a devDependency of the project.`
-        );
-    }
-    return (
-        `[mcp.not-project-cli] The project in "${check.project}" installs @vendure/cli ${check.local.version}, ` +
-        `but this is @vendure/cli ${check.runningVersion} from "${check.running}", for example a global install ` +
-        `that npx fell back to. Start the server from the project, where npx runs the project's own CLI.`
-    );
+/** Writes a coded error to stderr, since stdout carries the protocol, and returns its exit code. */
+function stop<Details>(error: CommandErrorDefinition<Details>, details: Details): number {
+    process.stderr.write(`[${error.code}] ${error.message(details)}\n`);
+    return error.exit;
 }

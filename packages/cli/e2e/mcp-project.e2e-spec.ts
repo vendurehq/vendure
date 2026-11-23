@@ -9,8 +9,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const cliPackage = path.join(import.meta.dirname, '..');
-const cliPath = path.join(cliPackage, 'dist', 'cli.js');
+import { installThisCli } from './cli-test-utils.js';
+
+const cliPath = path.join(import.meta.dirname, '..', 'dist', 'cli.js');
 const roots: string[] = [];
 
 /** A git repository holding a Vendure project, whose @vendure/cli is `cli` or this package. */
@@ -33,11 +34,10 @@ function project(cli: 'this' | 'other' | 'none' = 'this'): string {
 }
 
 function installCli(dir: string, cli: 'this' | 'other' | 'none') {
-    const target = path.join(dir, 'node_modules/@vendure/cli');
     if (cli === 'this') {
-        fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.symlinkSync(cliPackage, target, 'dir');
+        installThisCli(dir);
     } else if (cli === 'other') {
+        const target = path.join(dir, 'node_modules/@vendure/cli');
         fs.mkdirSync(target, { recursive: true });
         fs.writeFileSync(
             path.join(target, 'package.json'),
@@ -120,6 +120,27 @@ describe('vendure mcp project discovery', { timeout: 120_000 }, () => {
         expect(exitCode).toBe(1);
         expect(stderr).toContain('[mcp.not-project-cli]');
         expect(stderr).toContain('installs @vendure/cli 3.8.0');
+    });
+
+    // The server could otherwise not tell which project to serve, nor check its CLI.
+    it('stops at a monorepo root that holds more than one project', async () => {
+        const root = project('none');
+        fs.writeFileSync(
+            path.join(root, 'package.json'),
+            JSON.stringify({ private: true, workspaces: ['apps/*'] }),
+        );
+        for (const app of ['one', 'two']) {
+            fs.mkdirSync(path.join(root, 'apps', app), { recursive: true });
+            fs.writeFileSync(
+                path.join(root, 'apps', app, 'package.json'),
+                JSON.stringify({ dependencies: { '@vendure/core': '4.0.0' } }),
+            );
+        }
+
+        const { exitCode, stderr } = await startMcp(root);
+
+        expect(exitCode).toBe(1);
+        expect(stderr).toContain('[mcp.project-ambiguous]');
     });
 
     it('refuses to serve a project that does not install @vendure/cli', async () => {

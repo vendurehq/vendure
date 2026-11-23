@@ -905,6 +905,13 @@ finds the project's `@vendure/cli` from there. When it does not, for example wit
 `install` runs `claude mcp add --scope local` with the absolute path to the project's CLI. That entry belongs
 to your machine and is not checked in.
 
+A checked-in entry has no project directory, so the server has to find your project from the repository root.
+When the root holds more than one Vendure project, `install` refuses to write the file and offers
+`--scope local`, whose entry passes the project directory.
+
+The checked-in entry has not been tested on native Windows, where `npx` is `npx.cmd`. If your client cannot
+start it there, use `--scope local`, which runs Node with the absolute path to the CLI.
+
 By default, it offers four tools:
 
 | Tool                  | What it does                                                         |

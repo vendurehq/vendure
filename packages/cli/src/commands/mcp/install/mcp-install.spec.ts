@@ -184,6 +184,25 @@ describe('vendure mcp install', () => {
         expect(fs.existsSync(path.join(root, '.mcp.json'))).toBe(true);
     });
 
+    // The checked-in entry has no --dir, and the server started at the root could not choose.
+    it('refuses to write a config the root cannot select the project from, and offers --scope local', async () => {
+        const root = repo({
+            'package.json': JSON.stringify({ private: true, workspaces: ['apps/*'] }),
+            'node_modules/@vendure/cli/package.json': cli('4.0.0'),
+            'apps/one/package.json': vendureProject,
+            'apps/two/package.json': vendureProject,
+        });
+
+        const result = await install({ client: 'claude', dir: path.join(root, 'apps/one') });
+
+        expect(result.envelope.error).toMatchObject({
+            code: 'mcp.root-cannot-select-project',
+            fixes: [{ input: { client: 'claude', dir: path.join(root, 'apps/one'), scope: 'local' } }],
+        });
+        expect(result.envelope.error?.message).toContain('finds more than one project');
+        expect(fs.existsSync(path.join(root, '.mcp.json'))).toBe(false);
+    });
+
     it('leaves a config it cannot read alone, and offers --print', async () => {
         const root = singleProject();
         fs.writeFileSync(path.join(root, '.mcp.json'), '{ // comment\n}');

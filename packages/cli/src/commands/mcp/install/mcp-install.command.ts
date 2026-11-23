@@ -1,12 +1,13 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
+import { cliNotInstalled, projectAmbiguous, projectNotFound } from '../mcp.errors.js';
+
+import { MCP_CLIENTS } from './client-config.js';
 import {
     claudeMcpAddFailed,
-    cliNotInstalled,
     configUnreadable,
-    projectAmbiguous,
-    projectNotFound,
     rootCannotResolveCli,
+    rootCannotSelectProject,
     scopeLocalUnsupported,
 } from './mcp-install.errors.js';
 
@@ -20,13 +21,14 @@ export const mcpInstallDefinition = defineCommand({
     schemas: () => import('./mcp-install.schema.js'),
     cli: {
         fields: {
-            client: { choices: () => Promise.resolve(['claude', 'cursor', 'vscode', 'codex']) },
+            client: { choices: () => Promise.resolve([...MCP_CLIENTS]) },
         },
     },
     errors: [
         projectNotFound,
         projectAmbiguous,
         cliNotInstalled,
+        rootCannotSelectProject,
         rootCannotResolveCli,
         configUnreadable,
         scopeLocalUnsupported,

@@ -2,7 +2,13 @@ import { CommandContext, fail } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { findMcpProject, resolveCliFrom, ResolvedCli } from '../../../command-host/mcp/project.js';
+import {
+    findGitRoot,
+    findMcpProject,
+    resolveCliFrom,
+    ResolvedCli,
+} from '../../../command-host/mcp/project.js';
+import { cliNotInstalled, projectAmbiguous, projectNotFound } from '../mcp.errors.js';
 
 import {
     CLIENT_CONFIG,
@@ -14,11 +20,9 @@ import {
 } from './client-config.js';
 import {
     claudeMcpAddFailed,
-    cliNotInstalled,
     configUnreadable,
-    projectAmbiguous,
-    projectNotFound,
     rootCannotResolveCli,
+    rootCannotSelectProject,
     scopeLocalUnsupported,
 } from './mcp-install.errors.js';
 
@@ -53,18 +57,42 @@ export async function run(input: Input, ctx: CommandContext) {
     if (!local) {
         return fail(cliNotInstalled, { project });
     }
-    const root = (await gitRoot(project, ctx)) ?? project;
+    const root = findGitRoot(project);
+    if (!root) {
+        ctx.notice(
+            'info',
+            `"${project}" is not in a git repository, so the config is written to the project itself.`,
+        );
+    }
     const result = { client: input.client, scope, project };
 
     if (scope === 'local') {
         if (input.client !== 'claude') {
             return fail(scopeLocalUnsupported, { client: input.client });
         }
-        return registerLocally(input, ctx, result, local, root);
+        return registerLocally(input, ctx, result, local, root ?? project);
+    }
+
+    const configRoot = root ?? project;
+    // The checked-in entry has no project directory: the server finds the project from where the
+    // client starts it, usually the repository root. That has to be this project.
+    const fromRoot = findMcpProject(configRoot);
+    if (fromRoot.kind !== 'found' || fromRoot.dir !== project) {
+        return fail(rootCannotSelectProject, {
+            root: configRoot,
+            project,
+            fromRoot:
+                fromRoot.kind === 'found'
+                    ? `finds the project in "${fromRoot.dir}"`
+                    : fromRoot.kind === 'ambiguous'
+                      ? `finds more than one project: ${fromRoot.candidates.join(', ')}`
+                      : 'finds no project',
+            client: input.client,
+        });
     }
 
     const { file: relativeFile, writes } = CLIENT_CONFIG[input.client];
-    const file = path.join(root, relativeFile);
+    const file = path.join(configRoot, relativeFile);
     if (input.print || !writes) {
         if (!writes) {
             ctx.notice(
@@ -85,13 +113,13 @@ export async function run(input: Input, ctx: CommandContext) {
 
     // MCP clients start `npx` from the folder they were opened in, usually the repository root, and
     // npx runs the `@vendure/cli` installed there.
-    const fromRoot = resolveCliAtNpmPrefix(root);
-    if (fromRoot?.dir !== local.dir) {
+    const cliFromRoot = resolveCliAtNpmPrefix(configRoot);
+    if (cliFromRoot?.dir !== local.dir) {
         return fail(rootCannotResolveCli, {
-            root,
+            root: configRoot,
             project,
             projectVersion: local.version,
-            rootVersion: fromRoot?.version ?? null,
+            rootVersion: cliFromRoot?.version ?? null,
             client: input.client,
         });
     }
@@ -111,25 +139,6 @@ export async function run(input: Input, ctx: CommandContext) {
         fs.writeFileSync(file, update.text);
     }
     return { ...result, action: update.action, file, config: null, command: null };
-}
-
-/** The top directory of the git repository the project is in, or `undefined` outside one. */
-async function gitRoot(project: string, ctx: CommandContext): Promise<string | undefined> {
-    try {
-        const { exitCode, stdout } = await ctx.spawn('git', ['rev-parse', '--show-toplevel'], {
-            cwd: project,
-        });
-        if (exitCode === 0 && stdout.trim()) {
-            return stdout.trim();
-        }
-    } catch {
-        // git is not installed.
-    }
-    ctx.notice(
-        'info',
-        `"${project}" is not in a git repository, so the config is written to the project itself.`,
-    );
-    return undefined;
 }
 
 /**

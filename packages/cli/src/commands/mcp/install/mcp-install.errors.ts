@@ -2,31 +2,28 @@ import { defineError } from '@vendure/common/lib/command';
 
 import { McpClient } from './client-config.js';
 
-export const projectNotFound = defineError<{ dir: string }>({
-    code: 'mcp.project-not-found',
+export const rootCannotSelectProject = defineError<{
+    root: string;
+    project: string;
+    fromRoot: string;
+    client: McpClient;
+}>({
+    code: 'mcp.root-cannot-select-project',
     exit: 1,
-    message: ({ dir }) =>
-        `No Vendure project was found in "${dir}" or the directories above it. A Vendure project has a package.json with an @vendure/core dependency.`,
-});
-
-export const projectAmbiguous = defineError<{ root: string; candidates: string[]; client: McpClient }>({
-    code: 'mcp.project-ambiguous',
-    exit: 1,
-    message: ({ root, candidates }) =>
-        `"${root}" holds more than one Vendure project: ${candidates.join(', ')}. Choose one with --dir.`,
-    fix: ({ candidates, client }) =>
-        candidates.map(dir => ({
-            path: ['mcp', 'install'],
-            input: { client, dir },
-            description: `Install for ${dir}`,
-        })),
-});
-
-export const cliNotInstalled = defineError<{ project: string }>({
-    code: 'mcp.cli-not-installed',
-    exit: 1,
-    message: ({ project }) =>
-        `The project in "${project}" does not install @vendure/cli. Add it as a devDependency, so the MCP server runs the project's own version.`,
+    message: ({ root, project, fromRoot }) =>
+        `MCP clients start the server from the repository root, "${root}", and from there it ${fromRoot}. ` +
+        `A checked-in config has no project directory, so it cannot select "${project}". ` +
+        'Register the server for this machine only with --scope local, which passes the project directory.',
+    fix: ({ client, project }) =>
+        client === 'claude'
+            ? [
+                  {
+                      path: ['mcp', 'install'],
+                      input: { client, dir: project, scope: 'local' },
+                      description: "Register the server in Claude Code's local scope",
+                  },
+              ]
+            : [],
 });
 
 export const rootCannotResolveCli = defineError<{

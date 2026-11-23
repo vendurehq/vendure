@@ -112,6 +112,22 @@ describe('updateClientConfig() for Codex', () => {
         },
     );
 
+    it('treats a header with a trailing comment as the vendure table', () => {
+        const existing = `[mcp_servers.vendure] # ours\ncommand = "old"\n`;
+
+        const { text, action } = updateClientConfig('codex', existing);
+
+        expect(action).toBe('updated');
+        expect(text.match(/\[mcp_servers\.vendure\]/g)).toHaveLength(1);
+    });
+
+    // A second table for the same server would leave the file invalid.
+    it('refuses a header that names the server another way', () => {
+        expect(() => updateClientConfig('codex', '[mcp_servers."vendure"]\ncommand = "npx"\n')).toThrow(
+            /does not edit/,
+        );
+    });
+
     it('does not mistake a value that mentions vendure for the server', () => {
         const existing = '[mcp_servers.other]\nargs = ["vendure", "vendure.json"]\n';
 
