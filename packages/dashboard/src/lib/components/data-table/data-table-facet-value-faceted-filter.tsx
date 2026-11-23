@@ -22,7 +22,12 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { DataTableFacetedFilterProps, FacetedFilterChip } from './data-table-faceted-filter.js';
+import {
+    DataTableFacetedFilterProps,
+    FacetedFilterChip,
+    facetedFilterFinalFocus,
+    useReportValueLabel,
+} from './data-table-faceted-filter.js';
 
 type Entry =
     | { kind: 'back'; id: 'back' }
@@ -70,9 +75,13 @@ export function FacetValueFacetedFilter<TData, TValue>({
     icon,
     defaultOpen,
     onOpenChange,
+    anchor: externalAnchor,
+    open,
+    onValueLabelChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
     const { t } = useLingui();
-    const anchor = useComboboxAnchor();
+    const ownAnchor = useComboboxAnchor();
+    const anchor = externalAnchor ?? ownAnchor;
 
     const {
         searchTerm,
@@ -143,6 +152,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
     if (selectedIds.size > 0) {
         valueLabel = selectedIds.size > 2 ? t`${selectedIds.size} selected` : selectedLabels.join(', ');
     }
+    useReportValueLabel(valueLabel, onValueLabelChange);
 
     const groups: EntryGroup[] = [];
     if (expandedFacetId) {
@@ -209,24 +219,23 @@ export function FacetValueFacetedFilter<TData, TValue>({
             }
             loadingLabel={t`Loading facet values`}
             defaultOpen={defaultOpen}
-            onOpenChange={open => onOpenChange?.(open)}
+            {...(externalAnchor ? { open: !!open } : {})}
+            onOpenChange={next => onOpenChange?.(next)}
         >
-            <span ref={anchor} className="inline-flex">
-                <FacetedFilterChip
-                    icon={icon}
-                    title={title}
-                    valueLabel={valueLabel}
-                    onClear={() => column?.setFilterValue(undefined)}
-                    triggerType="combobox"
-                />
-            </span>
-            {/* Opened from the toolbar's Filter menu, the popup has no trigger interaction to
-                return focus to when it closes, so it returns focus to the chip. */}
-            <ComboboxContent
-                anchor={anchor}
-                className="w-100"
-                finalFocus={() => anchor.current?.querySelector('button') ?? true}
-            >
+            {!externalAnchor && (
+                <span ref={ownAnchor} className="inline-flex">
+                    <FacetedFilterChip
+                        icon={icon}
+                        title={title}
+                        valueLabel={valueLabel}
+                        onClear={() => column?.setFilterValue(undefined)}
+                        triggerType="combobox"
+                    />
+                </span>
+            )}
+            {/* The popup has no trigger interaction to return focus to when it closes,
+                so it returns focus to the chip. */}
+            <ComboboxContent anchor={anchor} className="w-100" finalFocus={facetedFilterFinalFocus(anchor)}>
                 <ComboboxInput
                     aria-label={t`Search facet values...`}
                     placeholder={t`Search facet values...`}

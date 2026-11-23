@@ -105,8 +105,8 @@ test.describe('Product List', () => {
             // Launch the "Facet values" filter from the unified Filter menu
             await page.getByTestId('dt-add-filter-trigger').click();
             await page.getByRole('menuitem', { name: 'Facet values' }).click();
+            // The filter has no chip until it has a value: its popup opens from the Filter menu.
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await expect(facetFilterButton).toBeVisible();
 
             // The popover should open showing facets in browse mode
             const popover = page.locator('[data-slot="popover-content"]');
@@ -141,7 +141,7 @@ test.describe('Product List', () => {
                 await expect(lp.getRows().filter({ hasText: name })).toHaveCount(1);
             }
 
-            // The filter button should now show the selected facet value label
+            // The filter's chip should now show the selected facet value label
             await expect(facetFilterButton).toContainText('photo');
         });
 
@@ -203,7 +203,7 @@ test.describe('Product List', () => {
             // Close and reopen to access "Clear filters"
             await page.keyboard.press('Escape');
 
-            // Reopen the filter
+            // Reopen the filter from its chip
             await facetFilterButton.click();
             await expect(popover).toBeVisible({ timeout: 5_000 });
 

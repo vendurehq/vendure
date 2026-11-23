@@ -12,7 +12,7 @@ import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js'
 import { Trans } from '@lingui/react/macro';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { FacetedFilter } from './data-table.js';
 
 export interface AddFilterMenuProps {
@@ -24,12 +24,21 @@ export interface AddFilterMenuProps {
      */
     facetedFilters?: { [key: string]: FacetedFilter | undefined };
     onSelectFacetedFilter?: (key: string) => void;
+    /**
+     * @description
+     * The menu's button. A faceted filter picked from the menu has no chip
+     * until it has a value, so its popup lines up with this button.
+     *
+     * @since 4.0.0
+     */
+    triggerRef?: React.Ref<HTMLButtonElement>;
 }
 
 export function AddFilterMenu({
     columns,
     facetedFilters,
     onSelectFacetedFilter,
+    triggerRef,
 }: Readonly<AddFilterMenuProps>) {
     const [selectedColumn, setSelectedColumn] = useState<ColumnDef<any> | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -52,6 +61,7 @@ export function AddFilterMenu({
                 }}
             >
                 <DropdownMenuTrigger
+                    ref={triggerRef}
                     render={<Button variant="outline" data-testid="dt-add-filter-trigger" />}
                 >
                     <PlusIcon />
@@ -59,10 +69,7 @@ export function AddFilterMenu({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[200px]" finalFocus={!pendingFacetedKey}>
                     {facetedEntries.map(([key, filter]) => (
-                        <DropdownMenuItem
-                            key={key}
-                            onClick={() => setPendingFacetedKey(key)}
-                        >
+                        <DropdownMenuItem key={key} onClick={() => setPendingFacetedKey(key)}>
                             {filter?.title}
                         </DropdownMenuItem>
                     ))}
