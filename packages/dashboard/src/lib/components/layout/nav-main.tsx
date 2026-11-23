@@ -14,10 +14,8 @@ import {
     useSidebar,
 } from '@/vdb/components/ui/sidebar.js';
 import { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
-import { resolveNavMenu } from '@/vdb/framework/nav-menu/resolve-nav-menu.js';
 import { getLockedCapability } from '@/vdb/framework/platform-promotion/locked-capabilities.js';
 import { getLockedNavItemCapability } from '@/vdb/framework/platform-promotion/register-locked-navigation.js';
-import { useDashboardUserContext } from '@/vdb/hooks/use-dashboard-user-context.js';
 import { usePlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react';
@@ -26,6 +24,7 @@ import { ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import { NavItemWrapper } from './nav-item-wrapper.js';
 import { buildShortcutMap, isEditableTarget } from './navigation-shortcuts.js';
+import { useResolvedNavMenu } from './use-resolved-nav-menu.js';
 
 /**
  * Escapes special regex characters in a string to be used as a literal pattern
@@ -46,11 +45,7 @@ const HOVER_OPEN_DELAY = 150;
 const HOVER_CLOSE_DELAY = 250;
 
 function ShortcutBadge({ shortcut }: { shortcut?: string }) {
-    return shortcut ? (
-        <Kbd className="ms-auto">
-            {shortcut.toUpperCase()}
-        </Kbd>
-    ) : null;
+    return shortcut ? <Kbd className="ms-auto">{shortcut.toUpperCase()}</Kbd> : null;
 }
 
 function CollapsedSectionMenu({
@@ -106,39 +101,8 @@ function CollapsedSectionMenu({
 
 export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSection | NavMenuItem> }>) {
     const router = useRouter();
-    const platformPromotion = usePlatformPromotion();
-    // A locked Platform item goes away when its capability is granted, or when all locked
-    // items are hidden. A section left with no items is then dropped by resolveNavMenu.
-    const items = React.useMemo(
-        () =>
-            allItems.map(section => {
-                if (!('items' in section)) {
-                    return section;
-                }
-                return {
-                    ...section,
-                    items: section.items?.filter(item => {
-                        const capability = getLockedNavItemCapability(item);
-                        return !capability || !!getLockedCapability(platformPromotion, capability);
-                    }),
-                };
-            }),
-        [allItems, platformPromotion],
-    );
+    const resolved = useResolvedNavMenu(allItems);
     const routerState = useRouterState();
-    // With no isVisible predicate anywhere, the resolved output cannot depend on
-    // administrator custom fields, so a vanilla install skips that request entirely.
-    const hasUserDependentRules = React.useMemo(
-        () =>
-            items.some(
-                entry =>
-                    entry.isVisible !== undefined ||
-                    ('items' in entry && (entry.items ?? []).some(i => i.isVisible !== undefined)),
-            ),
-        [items],
-    );
-
-    const { ctx, ready } = useDashboardUserContext({ includeCustomFields: hasUserDependentRules });
     const { i18n } = useLingui();
     const { state: sidebarState, isMobile, setOpenMobile, open, setOpen } = useSidebar();
     const isCollapsed = sidebarState === 'collapsed' && !isMobile;
@@ -191,17 +155,6 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
             return { activeTopSections, activeBottomSection };
         },
         [isPathActive],
-    );
-
-    const resolved = React.useMemo(
-        () =>
-            resolveNavMenu({ sections: items }, ctx, {
-                // Withhold only the entries with a predicate until the context has
-                // loaded: a rule reading customFields would otherwise briefly see them
-                // absent. Everything else renders immediately.
-                userContextPending: hasUserDependentRules && !ready,
-            }),
-        [items, ctx, ready, hasUserDependentRules],
     );
 
     // Initialize state with active sections on mount
@@ -267,7 +220,9 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
                 event.metaKey ||
                 event.ctrlKey ||
                 event.altKey ||
-                isEditableTarget(event.target)
+                isEditableTarget(event.target) ||
+                // The command palette has its own keys; a G pressed in it starts no chord.
+                (event.target instanceof Element && event.target.closest('[data-command-palette]'))
             ) {
                 return;
             }
