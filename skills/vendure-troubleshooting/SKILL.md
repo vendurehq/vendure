@@ -74,7 +74,10 @@ know the cause.
      replayed. Ask the user before you replay one, and name the data it
      changes;
    - or, for a setup problem such as a missing tax rate or shipping method,
-     run `vendure store check`.
+     run `vendure store check`. It reports each finding with a code, such as
+     `store.tax.no-rate`, and fixes that name an MCP admin tool of the dev
+     server. `vendure mcp` does not offer `store check`; call the McpPlugin's
+     `check_store` tool there instead.
 
    If the replay fails with a request ID, start again at step 3 with it.
    Otherwise, start again at step 1.
