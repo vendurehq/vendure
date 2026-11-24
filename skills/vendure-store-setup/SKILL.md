@@ -23,6 +23,9 @@ There are two ways to get it:
 
 ## Presets
 
+Run `vendure` through the project's package manager (for example `npx vendure`),
+as the `vendure-cli` skill describes.
+
 List them with `vendure seed`. Each preset:
 
 - sets the default channel's currency, languages and `pricesIncludeTax`;
@@ -72,7 +75,7 @@ Rules that matter when something looks wrong:
 
 Over `vendure mcp` the tools carry an `admin_` prefix; on the store's own MCP
 server they have none. Start with `admin_check_store`: it lists what stops the
-store taking an order, and each finding names the tool call that fixes it.
+store taking an order, and most findings name the tool call that fixes them.
 
 | Task | Tools |
 | --- | --- |
@@ -89,7 +92,8 @@ A tax rate targets either a country (`target: {countryCode}`) or a zone
 (`target: {zoneId}`). For a buyer's country, a country rate wins over a zone
 rate. In a store whose prices include tax, the default tax zone needs a zone
 rate per tax category: it is the rate the entered prices include, and
-`admin_check_store` reports a tax-inclusive channel whose default zone lacks one.
+`admin_check_store` reports a missing one for each tax category the channel's
+products use. A category no product uses yet is not checked.
 
 ## Regional guidance
 
