@@ -23,6 +23,7 @@ describe('core command definitions', () => {
             'devserver stop',
             'devserver wait',
             'doctor',
+            'explain',
             'mcp install',
             'migrate generate',
             'migrate revert',

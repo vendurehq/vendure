@@ -41,7 +41,7 @@ const statusReport = z.object({
         .describe('Why the run is failed'),
 });
 
-const logLine = z.object({
+export const logLine = z.object({
     ts: z.string(),
     level: z.enum(LOG_LEVEL_NAMES),
     ctx: z.string().optional(),
