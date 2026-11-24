@@ -4,8 +4,9 @@ description: >-
   Find and fix the cause of an error in a local Vendure 4 project. Use when
   the dev server does not start or stops being ready, a GraphQL request
   fails, the Dashboard shows an error with a code and a request ID,
-  migrations fail, versions do not match, or assets or emails do not work.
-  Follows one fixed order: status, logs, explain, doctor, fix, wait, replay.
+  migrations fail, versions do not match, assets or emails do not work, or
+  something broke after an upgrade. Follows one fixed order: status, logs,
+  explain, doctor, fix, wait, replay.
 allowed-tools: Bash, Read, Glob, Grep
 ---
 
@@ -32,7 +33,8 @@ know the cause.
    it stopped on an error, the status shows the error's code and its fixes.
    If the server is not running, ask the user whether to start it. With their
    agreement, run `vendure devserver start`, which starts it in the
-   background and waits until it is ready.
+   background and waits until it is ready. When it fails without a reason,
+   read `.vendure/logs/devserver.log`.
 2. **`vendure devserver logs --min-severity warn`.** Read the recent warnings
    and errors. Note the request ID of each failed request.
 3. **`vendure explain <requestId>`.** Collect the error for one request: its
@@ -48,18 +50,24 @@ know the cause.
    the project's version.
 5. **Fix the cause.** Use the fixes that the error, the check or the support
    case names. Ask the user before a fix changes files, dependencies or the
-   database. If no fix fits, say so. Do not invent one. Just before a fix
-   that edits a `.ts` or `.env` file, read the `restarts` count from
-   `vendure devserver status`.
+   database. If no fix fits, say so. Do not invent one. Ask the user to make
+   any change to a `.env` file. Just before a fix that edits a source file,
+   read the `restarts` count from `vendure devserver status`.
 6. **Wait until the server runs the fix.**
-   - After an edit of a `.ts` or `.env` file, run
+   - After an edit of a `.ts` file in the project's source, or after the user
+     changed a `.env` file, run
      `vendure devserver wait --until ready --after-restarts <n>`, where `<n>`
-     is the `restarts` count from step 5 plus 1. The edit restarts the server,
-     and without the flag `wait` returns at once when the server was already
-     ready.
-   - Any other fix, such as a migration or a dependency change, does not
-     restart the server. If the fix needs a restart, ask the user to restart
-     `vendure dev`. Then run `vendure devserver wait --until ready`.
+     is the `restarts` count from step 5 plus 1. Without the flag, `wait`
+     returns at once when the server was already ready.
+   - If that `wait` reports `timedOut: true`, the change did not restart the
+     server: for example a `.d.ts` file, a Dashboard extension, a file
+     outside the project, or a run started with `--no-reload`. Run
+     `vendure devserver status` and ask the user to restart `vendure dev`
+     when the fix needs it.
+   - A fix that changes no source file, such as installing dependencies or
+     running a migration, may not restart the server. Ask the user to restart
+     `vendure dev` when it needs to, then run
+     `vendure devserver wait --until ready`.
 7. **Replay.** Prove the fix:
    - run a failed query again with `vendure api admin '<query>'` or
      `vendure api shop '<query>'`. A mutation changes data again when it is
@@ -80,7 +88,7 @@ know the cause.
 | `@vendure/*` versions differ, or a plugin is not compatible          | `cases/version-mismatch.md` |
 | Asset upload, preview or URL problems, local or S3 storage           | `cases/assets.md`           |
 | Emails are not sent, not received or render wrongly                  | `cases/email.md`            |
-| Something broke after an upgrade to the next 3.x minor               | `cases/upgrade.md`          |
+| Something broke after an upgrade to the next 3.x minor (4.x: none)   | `cases/upgrade.md`          |
 
 ## Docs MCP
 
@@ -115,12 +123,14 @@ when you need the full text.
 ## Rules for agents
 
 1. **Do not read or send secrets.** Do not open `.env` files, credential
-   files, `.vendure/` files other than `project.json`, or the CLI login file
-   `auth.json`. Read the dev server's state and logs only through the
-   `vendure devserver` and `vendure explain` commands. Remove host names,
-   user names, tokens and connection strings from logs and stacks before you
-   send them to the docs MCP or a human. Do not query the database and do not
-   copy database contents.
+   files, `.vendure/` files other than `project.json` and
+   `logs/devserver.log`, or the CLI login file `auth.json`. Read the dev
+   server's state and logs only through the `vendure devserver` and
+   `vendure explain` commands, and `logs/devserver.log` only when
+   `vendure devserver start` fails. Remove host names, user names, tokens and
+   connection strings from logs and stacks before you send them to the docs
+   MCP or a human. Do not query the database and do not copy database
+   contents.
 2. **`vendure api admin` acts as the local superadmin.** Use it to replay a
    request, not to change data the user did not ask you to change.
 3. **Send context per request only.** The skill stores nothing and uploads
