@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { bootstrap, DefaultLogger, JobQueueService, LogLevel } from '@vendure/core';
+import { bootstrap, ConfigService, DefaultLogger, JobQueueService, LogLevel } from '@vendure/core';
 import { populate } from '@vendure/core/cli';
 import path from 'path';
 
@@ -29,11 +29,36 @@ populate(
     path.join(__dirname, 'initial-data.json'),
     path.join(mockDataDir, 'data-sources/products.csv'),
 )
-    // The search index is rebuilt by jobs that run after the import.
-    .then(app => new Promise(resolve => setTimeout(() => resolve(app), 10_000)))
-    .then(app => (app as { close(): Promise<void> }).close())
+    .then(app => awaitSettledJobs(app).then(() => app.close()))
     .then(() => process.exit(0))
     .catch(err => {
         console.log(err);
         process.exit(1);
     });
+
+/**
+ * The import queues search-index jobs. They must all finish here: the server and the worker share
+ * the SQLite file, and a worker still rebuilding the index when the smoke tests run holds the
+ * write lock they need.
+ */
+async function awaitSettledJobs(
+    app: Awaited<ReturnType<typeof bootstrap>>,
+    timeoutMs = 180_000,
+): Promise<void> {
+    await app.get(JobQueueService).flush();
+    const strategy = app.get(ConfigService).jobQueueOptions.jobQueueStrategy as {
+        findMany?: (options: unknown) => Promise<{ totalItems: number }>;
+    };
+    if (!strategy.findMany) {
+        return;
+    }
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        const { totalItems } = await strategy.findMany({ filter: { isSettled: { eq: false } } });
+        if (totalItems === 0) {
+            return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    throw new Error(`Jobs were still running after ${timeoutMs / 1000}s`);
+}
