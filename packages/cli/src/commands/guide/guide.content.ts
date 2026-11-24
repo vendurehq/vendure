@@ -1,3 +1,5 @@
+import { MCP_CLIENTS } from '../mcp/install/client-config.js';
+
 /**
  * The agent guide that `vendure guide` prints. It ships with the CLI, so it always matches the
  * commands of the installed version. The `vendure-cli` skill points here.
@@ -16,18 +18,23 @@ project. Run it from the project directory with the project's package manager:
 
 ## Run commands with --json
 
-Add \`--json\` to any command. It writes exactly one JSON document to stdout:
+The commands that \`vendure commands --json\` lists accept \`--json\`. With it, a command writes
+exactly one JSON document to stdout:
 
 \`\`\`json
 { "schemaVersion": 1, "status": "ok", "output": {}, "notices": [] }
 \`\`\`
 
 - \`status\` is \`ok\`, \`failed\` (the command ran and its checks failed), \`incomplete\` or
-  \`error\`. The exit code is 0 for \`ok\`, 3 for \`incomplete\` and 1 otherwise.
+  \`error\`. The exit code is 0 for \`ok\`, 3 for \`incomplete\`, and 1 or more for \`failed\` and
+  \`error\`.
 - Read \`notices\`. They hold what a person must know, such as the ID of a safety backup.
 - Progress events and library output go to stderr. Lines tagged \`"vendure": "event"\` are events.
 - Pass the whole input as JSON with \`--input '<json>'\`, or \`--input -\` to read it from stdin.
-- Without a TTY, or with \`CI\` or \`VENDURE_CLI_NON_INTERACTIVE\` set, the CLI never prompts.
+- Without a TTY, or with \`CI\` or \`VENDURE_CLI_NON_INTERACTIVE\` set, these commands never prompt.
+  A missing input returns \`incomplete\` at once.
+- Other commands, such as \`vendure dev\`, \`build\` and \`start\`, have no \`--json\`. Run
+  \`vendure <command> --help\` for their options.
 
 ## Answer an incomplete result
 
@@ -52,7 +59,10 @@ Use the \`devserver\` commands, not the foreground \`vendure dev\`, which never 
 
 - \`vendure devserver start --json\` starts it in the background and returns when it is ready.
 - \`vendure devserver status --json\` shows its status, URLs and last error.
-- \`vendure devserver wait --json\` waits until it is ready again after a change.
+- After you edit server code, the dev server restarts. Read \`restarts\` from
+  \`vendure devserver status --json\` before the edit, then run
+  \`vendure devserver wait --after-restarts <restarts + 1> --json\`. Without \`--after-restarts\`, it
+  returns at once while the old run is still ready.
 - \`vendure devserver logs --since 5m --json\` reads its logs. \`vendure devserver stop\` stops it.
 
 After you change an entity, run \`vendure migrate generate\`, then \`vendure migrate run\`.
@@ -60,9 +70,8 @@ After you change an entity, run \`vendure migrate generate\`, then \`vendure mig
 
 ## The Developer MCP and the Store MCP
 
-- The **Developer MCP** is \`vendure mcp\`. It offers the commands of this CLI as MCP tools, and
-  the admin tools of the running dev server as \`admin_*\` tools. Add it to a client with
-  \`vendure mcp install --client <claude|cursor|vscode|codex>\`.
+- The **Developer MCP** is \`vendure mcp\`. It offers the commands of this CLI as MCP tools. Add
+  it to a client with \`vendure mcp install --client <${MCP_CLIENTS.join('|')}>\`.
 - The **Store MCP** is the MCP server of \`@vendure/mcp-plugin\`, inside a running Vendure server,
   local or deployed. Its tools work with the store's data: products, orders, customers, channels,
   tax and shipping setup, and a store check.
@@ -70,17 +79,8 @@ After you change an entity, run \`vendure migrate generate\`, then \`vendure mig
 Working on the code, use the Developer MCP. Working with a running store, use the Store MCP.
 
 If you have a shell, run CLI commands with \`--json\`: you get the same commands, results and
-errors as the MCP tools, without their tool descriptions in your context. Use \`vendure mcp\` for
-the \`admin_*\` tools. Without a shell, use \`vendure mcp\` for everything.
+errors as the MCP tools, without their tool descriptions in your context. Without a shell, use
+\`vendure mcp\`. In its default discovery mode, find a tool with \`search_tools\`, then run it with
+the executor of its behavior: \`execute_readonly\`, \`execute_mutating\` or \`execute_destructive\`.
 
-## The admin_* tools
-
-- They act as the superadmin of the local dev server, and are listed only while it is running.
-  When it stops or starts, the tool list changes. A call while it is stopped returns an error
-  whose fix starts it.
-- In the default discovery mode, find tools with \`search_tools\`, then run each one with the
-  executor of its behavior: \`execute_readonly\`, \`execute_mutating\` or \`execute_destructive\`.
-- A destructive tool first returns an \`incomplete\` result with a preview and a consent digest.
-  Call it again with \`confirm\` set to that digest.
-- \`admin_set_active_channel\` selects the channel for the later calls of the session.
 `;
