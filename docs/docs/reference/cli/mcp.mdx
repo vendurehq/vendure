@@ -4,8 +4,6 @@ generated: true
 ---
 
 
-Run the Developer MCP server over stdio.
-
 <a name="mcp-install"></a>
 
 ## vendure mcp install
@@ -23,7 +21,7 @@ vendure mcp install [options]
 
 | Option | Type | Description |
 | ------ | ---- | ----------- |
-| `--client <client>` | `"claude"` or `"cursor"` or `"vscode"` or `"codex"` | Required. The MCP client to set up. The valid values depend on the project, and an `input` need lists them. |
+| `--client <client>` | `"claude"` or `"cursor"` or `"vscode"` or `"codex"` | Required. The MCP client to set up. |
 | `--scope <scope>` | `"project"` or `"local"` | project writes the checked-in config at the git root. local registers the server for this machine only, in Claude Code. |
 | `--print`, `--no-print` | boolean | Print what would be written or run, and change nothing. |
 | `--dir <dir>` | string | The Vendure project directory. Found by walking up from the current directory by default. |

@@ -6,7 +6,7 @@ generated: true
 
 The reference of the `vendure` commands that `@vendure/cli` declares with `defineCommand`. It is generated from the command manifest of the CLI, `vendure-commands.json`.
 
-Run `vendure commands --json` in a project for the commands it really has, including those that plugins add, and `vendure guide` for how an agent works with the CLI.
+Run `vendure commands --json` in a project for the commands it really has, including those that plugins add.
 
 ## Every command
 
@@ -40,9 +40,9 @@ Run `vendure commands --json` in a project for the commands it really has, inclu
 
 With `--json`, a command writes one envelope: `{ schemaVersion, status, output, needs, error, notices }`. `status` is `ok`, `failed`, `incomplete` or `error`. See [JSON output for scripts and agents](/guides/developer-guide/cli/#json-output-for-scripts-and-agents).
 
-## Commands described in the CLI guide
+## Commands without a generated reference
 
-These commands are not declared with `defineCommand` yet, so they have no generated reference. The [CLI guide](/guides/developer-guide/cli/) describes them, and `vendure <command> --help` lists their options.
+These commands are not declared with `defineCommand` yet, so they have no generated reference. Run `vendure <command> --help` for their options. The [CLI guide](/guides/developer-guide/cli/) covers several of them.
 
 - `vendure add`: Add a feature to your Vendure project. Its subcommands are on the [`vendure add`](/reference/cli/add) page.
 - `vendure dev`: Run Vendure in development mode.
