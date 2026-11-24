@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import {
     applyPreset,
     ChannelService,
@@ -14,7 +14,6 @@ import {
     SEED_PRESET_KEY,
     SEED_SCENARIO_KEY,
     seedScenario,
-    SeedSentinelService,
     SettingsStoreEntry,
     ShippingMethod,
     ShippingMethodService,
@@ -31,12 +30,17 @@ import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+import { ISO_COUNTRIES } from '../src/data-import/presets/iso-countries';
 
 import {
+    createAdministratorDocument,
     createChannelDocument,
     createProductDocument,
     createProductVariantsDocument,
+    createRoleDocument,
+    getSettingsStoreValueDocument,
     getTaxRatesListDocument,
+    setSettingsStoreValueDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
@@ -101,7 +105,7 @@ describe('Base-data presets', () => {
     });
 
     it('lists the presets', () => {
-        expect(listPresets().map(p => p.name)).toEqual(['eu', 'uk', 'us', 'au', 'single-country']);
+        expect(listPresets().map(p => p.name)).toEqual(['uk', 'us', 'au', 'single-country']);
         expect(listPresets().find(p => p.name === 'single-country')!.options).toEqual({
             country: expect.objectContaining({ required: true }),
             currency: expect.objectContaining({ required: true }),
@@ -115,7 +119,7 @@ describe('Base-data presets', () => {
                 const result = await applyPreset(server.app, 'uk');
 
                 expect(result.created).toEqual({
-                    countries: expect.any(Number),
+                    countries: ISO_COUNTRIES.length,
                     zones: 1,
                     taxCategories: 3,
                     taxRates: 3,
@@ -164,14 +168,47 @@ describe('Base-data presets', () => {
             expect(error.fix[0].description).toContain('uk');
         });
 
-        it('the sentinel is read-only and readable by the SuperAdmin only', () => {
-            const sentinels = server.app.get(SeedSentinelService);
-            expect(sentinels).toBeDefined();
-            const settingsStore = (sentinels as any).settingsStoreService;
-            expect(settingsStore.isReadonly(SEED_PRESET_KEY)).toBe(true);
-            expect(settingsStore.isReadonly(SEED_SCENARIO_KEY)).toBe(true);
-            expect(settingsStore.getFieldDefinition(SEED_PRESET_KEY).requiresPermission).toBe('SuperAdmin');
-        });
+        it(
+            'the sentinel is read-only, and readable by the SuperAdmin only',
+            async () => {
+                await adminClient.asSuperAdmin();
+                const { getSettingsStoreValue } = await adminClient.query(getSettingsStoreValueDocument, {
+                    key: SEED_PRESET_KEY,
+                });
+                expect(getSettingsStoreValue).toEqual(expect.objectContaining({ name: 'uk' }));
+                const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
+                    input: { key: SEED_PRESET_KEY, value: { name: 'us' } },
+                });
+                expect(setSettingsStoreValue.result).toBe(false);
+
+                const { createRole } = await adminClient.query(createRoleDocument, {
+                    input: {
+                        code: 'settings-reader',
+                        description: 'Reads settings',
+                        permissions: [Permission.ReadSettings, Permission.UpdateSettings],
+                    },
+                });
+                await adminClient.query(createAdministratorDocument, {
+                    input: {
+                        firstName: 'Settings',
+                        lastName: 'Reader',
+                        emailAddress: 'settings-reader@test.com',
+                        password: 'password',
+                        roleIds: [createRole.id],
+                    },
+                });
+                await adminClient.asUserWithCredentials('settings-reader@test.com', 'password');
+                const read = await adminClient
+                    .query(getSettingsStoreValueDocument, { key: SEED_PRESET_KEY })
+                    .then(
+                        r => r.getSettingsStoreValue,
+                        () => undefined,
+                    );
+                expect(read ?? undefined).toBeUndefined();
+                await adminClient.asSuperAdmin();
+            },
+            TEST_SETUP_TIMEOUT_MS,
+        );
     });
 
     describe('us', () => {
@@ -270,92 +307,112 @@ describe('Base-data presets', () => {
     describe('eu', () => {
         beforeAll(resetToEmptyDatabase, TEST_SETUP_TIMEOUT_MS);
 
-        it('requires the seller country to be a member state', async () => {
-            await expectSeedError(applyPreset(server.app, 'eu'), 'core.preset-invalid-option');
-            await expectSeedError(
-                applyPreset(server.app, 'eu', { country: 'GB' }),
-                'core.preset-invalid-option',
-            );
+        it('is hidden until its VAT rates are reviewed', async () => {
+            expect(listPresets().map(p => p.name)).not.toContain('eu');
+            await expectSeedError(applyPreset(server.app, 'eu', { country: 'DE' }), 'core.preset-unknown');
         });
 
-        it(
-            'creates a standard and a reduced rate per member state, and zone rates at the seller rate',
-            async () => {
-                const result = await applyPreset(server.app, 'eu', { country: 'DE' });
-                expect(result.created.taxRates).toBe(2 * 27 + 2);
-                const channel = await defaultChannel();
-                expect(channel.defaultCurrencyCode).toBe('EUR');
-                expect(channel.pricesIncludeTax).toBe(true);
-                const zone = await repo(Zone).findOne({
-                    where: { name: 'EU' },
-                    relations: { members: true },
-                });
-                expect(zone!.members.length).toBe(27);
+        describe('with the unreleased preset enabled', () => {
+            beforeAll(() => {
+                process.env.VENDURE_UNRELEASED_PRESETS = 'eu';
+            });
 
-                await adminClient.asSuperAdmin();
-                const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
-                    options: { take: 100 },
-                });
-                const zoneRates = taxRates.items.filter(r => r.zone?.name === 'EU');
-                expect(zoneRates.map(r => [r.category.name, r.value]).sort()).toEqual([
-                    ['Reduced', 7],
-                    ['Standard', 19],
-                ]);
-            },
-            TEST_SETUP_TIMEOUT_MS,
-        );
+            afterAll(() => {
+                delete process.env.VENDURE_UNRELEASED_PRESETS;
+            });
 
-        it(
-            'prices a DE and an FR order at the country rate',
-            async () => {
-                await adminClient.asSuperAdmin();
-                const categories = await repo(TaxCategory).find();
-                const standard = categories.find(c => c.name === 'Standard')!;
-                const { createProduct } = await adminClient.query(createProductDocument, {
-                    input: {
-                        translations: [
-                            { languageCode: LanguageCode.en, name: 'Mug', slug: 'mug', description: '' },
-                        ],
-                    },
-                });
-                const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
-                    input: [
-                        {
-                            productId: createProduct.id,
-                            sku: 'MUG',
-                            price: 1190,
-                            taxCategoryId: String(standard.id),
-                            translations: [{ languageCode: LanguageCode.en, name: 'Mug' }],
-                            stockOnHand: 100,
-                        },
-                    ],
-                });
-                await shopClient.asAnonymousUser();
-                await shopClient.query(addItemToOrderDocument, {
-                    productVariantId: createProductVariants[0]!.id,
-                    quantity: 1,
-                });
+            it('requires the seller country to be a member state', async () => {
+                await expectSeedError(applyPreset(server.app, 'eu'), 'core.preset-invalid-option');
+                await expectSeedError(
+                    applyPreset(server.app, 'eu', { country: 'GB' }),
+                    'core.preset-invalid-option',
+                );
+            });
 
-                async function lineFor(countryCode: string) {
-                    await shopClient.query(setShippingAddressDocument, {
-                        input: { countryCode, streetLine1: '1 Main St', city: 'City', postalCode: '12345' },
+            it(
+                'creates a standard and a reduced rate per member state, and zone rates at the seller rate',
+                async () => {
+                    const result = await applyPreset(server.app, 'eu', { country: 'DE' });
+                    expect(result.created.taxRates).toBe(2 * 27 + 2);
+                    const channel = await defaultChannel();
+                    expect(channel.defaultCurrencyCode).toBe('EUR');
+                    expect(channel.pricesIncludeTax).toBe(true);
+                    const zone = await repo(Zone).findOne({
+                        where: { name: 'EU' },
+                        relations: { members: true },
                     });
-                    const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
-                    return activeOrder!.lines[0];
-                }
+                    expect(zone!.members.length).toBe(27);
 
-                const de = await lineFor('DE');
-                expect(de.taxRate).toBe(19);
-                expect(de.unitPriceWithTax).toBe(1190);
+                    await adminClient.asSuperAdmin();
+                    const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
+                        options: { take: 100 },
+                    });
+                    const zoneRates = taxRates.items.filter(r => r.zone?.name === 'EU');
+                    expect(zoneRates.map(r => [r.category.name, r.value]).sort()).toEqual([
+                        ['Reduced', 7],
+                        ['Standard', 19],
+                    ]);
+                },
+                TEST_SETUP_TIMEOUT_MS,
+            );
 
-                // The entered price includes the DE rate. FR takes out 19% and adds 20%.
-                const fr = await lineFor('FR');
-                expect(fr.taxRate).toBe(20);
-                expect(fr.unitPrice).toBe(1000);
-                expect(fr.unitPriceWithTax).toBe(1200);
-            },
-            TEST_SETUP_TIMEOUT_MS,
-        );
+            it(
+                'prices a DE and an FR order at the country rate',
+                async () => {
+                    await adminClient.asSuperAdmin();
+                    const categories = await repo(TaxCategory).find();
+                    const standard = categories.find(c => c.name === 'Standard')!;
+                    const { createProduct } = await adminClient.query(createProductDocument, {
+                        input: {
+                            translations: [
+                                { languageCode: LanguageCode.en, name: 'Mug', slug: 'mug', description: '' },
+                            ],
+                        },
+                    });
+                    const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                        input: [
+                            {
+                                productId: createProduct.id,
+                                sku: 'MUG',
+                                price: 1190,
+                                taxCategoryId: String(standard.id),
+                                translations: [{ languageCode: LanguageCode.en, name: 'Mug' }],
+                                stockOnHand: 100,
+                            },
+                        ],
+                    });
+                    await shopClient.asAnonymousUser();
+                    await shopClient.query(addItemToOrderDocument, {
+                        productVariantId: createProductVariants[0]!.id,
+                        quantity: 1,
+                    });
+
+                    async function lineFor(countryCode: string) {
+                        await shopClient.query(setShippingAddressDocument, {
+                            input: {
+                                countryCode,
+                                streetLine1: '1 Main St',
+                                city: 'City',
+                                postalCode: '12345',
+                            },
+                        });
+                        const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
+                        return activeOrder!.lines[0];
+                    }
+
+                    const de = await lineFor('DE');
+                    expect(de.taxRate).toBe(19);
+                    expect(de.unitPriceWithTax).toBe(1190);
+
+                    // The entered price includes the DE rate. FR takes out 19% and adds 20%.
+                    const fr = await lineFor('FR');
+                    expect(fr.taxRate).toBe(20);
+                    expect(fr.unitPrice).toBe(1000);
+                    expect(fr.unitPriceWithTax).toBe(1200);
+                },
+                TEST_SETUP_TIMEOUT_MS,
+            );
+        });
     });
 
     describe('refusals', () => {
@@ -445,6 +502,9 @@ describe('Base-data presets', () => {
                 try {
                     const result = await applyPreset(server.app, 'uk');
                     expect(result.created.paymentMethods).toBe(0);
+                    expect(result.notices).toEqual([
+                        'No test payment method was created, because NODE_ENV is production.',
+                    ]);
                 } finally {
                     process.env.NODE_ENV = originalNodeEnv;
                 }
@@ -539,7 +599,7 @@ describe('Base-data presets', () => {
                 .rawConnection.getRepository(SettingsStoreEntry)
                 .delete({ key: SEED_SCENARIO_KEY });
             const pack = validateScenarioPack(
-                { name: 'other', preset: 'us', seed: () => Promise.resolve() },
+                { name: 'fixture', preset: 'us', seed: () => Promise.resolve() },
                 'pkg',
             );
             const error = await expectSeedError(
@@ -547,6 +607,14 @@ describe('Base-data presets', () => {
                 'core.scenario-preset-mismatch',
             );
             expect(error.details.appliedPreset).toBe('uk');
+        });
+
+        it('refuses a pack whose name differs from the record', async () => {
+            const pack = validateScenarioPack(
+                { name: 'other', preset: 'uk', seed: () => Promise.resolve() },
+                'pkg',
+            );
+            await expectSeedError(seedScenario(server.app, reference, pack), 'core.scenario-invalid');
         });
 
         it('loads a scenario pack from a package', () => {

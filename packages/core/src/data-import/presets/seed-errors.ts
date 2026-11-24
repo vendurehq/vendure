@@ -50,6 +50,10 @@ export interface PresetDatabaseNotEmptyDetails {
     countries: number;
     zones: number;
     taxRates: number;
+    taxCategories: number;
+    shippingMethods: number;
+    paymentMethods: number;
+    products: number;
     channels: number;
     /** The preset recorded in the `vendure.seed.preset` sentinel, if one was applied. */
     appliedPreset?: string;
@@ -177,7 +181,11 @@ function describeExisting(details: PresetDatabaseNotEmptyDetails): string {
     };
     add(details.countries, 'country', 'countries');
     add(details.zones, 'zone', 'zones');
+    add(details.taxCategories, 'tax category', 'tax categories');
     add(details.taxRates, 'tax rate', 'tax rates');
+    add(details.shippingMethods, 'shipping method', 'shipping methods');
+    add(details.paymentMethods, 'payment method', 'payment methods');
+    add(details.products, 'product', 'products');
     if (details.channels > 1) {
         parts.push(`${details.channels} channels`);
     }

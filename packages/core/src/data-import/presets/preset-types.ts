@@ -91,6 +91,11 @@ export interface Preset {
     description: string;
     options?: Record<string, PresetOptionDefinition>;
     /**
+     * Whether the preset is released. An unreleased preset is left out of `listPresets()` and
+     * treated as unknown. Defaults to released.
+     */
+    released?: () => boolean;
+    /**
      * Checks the values of the options, after the required options have been checked. Returns the
      * first problem, or `undefined`. It must not touch the database, so a caller such as
      * `@vendure/create` can validate options before any database exists.

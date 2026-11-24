@@ -29,19 +29,21 @@ export interface PresetDescription {
  * @since 4.0.0
  */
 export function getPreset(name: string): Preset | undefined {
-    return presets.get(name);
+    const preset = presets.get(name);
+    return preset && isReleased(preset) ? preset : undefined;
 }
 
 /**
  * @description
- * Lists the base-data presets: `eu`, `uk`, `us`, `au` and `single-country`.
+ * Lists the released base-data presets: `eu`, `uk`, `us`, `au` and `single-country`. `eu` is
+ * released once its VAT rates have been reviewed.
  *
  * @docsCategory import-export
  * @docsPage Presets
  * @since 4.0.0
  */
 export function listPresets(): PresetDescription[] {
-    return [...presets.values()].map(({ name, description, options }) => ({
+    return releasedPresets().map(({ name, description, options }) => ({
         name,
         description,
         options: options ?? {},
@@ -58,9 +60,12 @@ export function listPresets(): PresetDescription[] {
  * @since 4.0.0
  */
 export function validatePresetOptions(name: string, options: Record<string, string>): Preset {
-    const preset = presets.get(name);
+    const preset = getPreset(name);
     if (!preset) {
-        throw presetUnknownError(name, [...presets.keys()]);
+        throw presetUnknownError(
+            name,
+            releasedPresets().map(p => p.name),
+        );
     }
     const declared = preset.options ?? {};
     for (const key of Object.keys(options)) {
@@ -85,4 +90,12 @@ export function validatePresetOptions(name: string, options: Record<string, stri
         throw presetInvalidOptionError(name, problem.option, problem.reason);
     }
     return preset;
+}
+
+function isReleased(preset: Preset): boolean {
+    return preset.released?.() ?? true;
+}
+
+function releasedPresets(): Preset[] {
+    return [...presets.values()].filter(isReleased);
 }

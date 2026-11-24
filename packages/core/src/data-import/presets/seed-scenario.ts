@@ -121,6 +121,12 @@ export async function seedScenario(
     reference: ScenarioReference,
     pack: ScenarioPack,
 ): Promise<{ scenario: string; preset: string }> {
+    if (pack.name !== reference.name) {
+        throw scenarioInvalidError(
+            reference.package,
+            `declares the scenario "${pack.name}", but the record names "${reference.name}"`,
+        );
+    }
     const connection = app.get(TransactionalConnection);
     const sentinels = app.get(SeedSentinelService);
     const ctx = await createSuperAdminContext(app);

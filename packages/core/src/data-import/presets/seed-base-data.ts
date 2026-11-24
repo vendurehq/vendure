@@ -40,9 +40,15 @@ export interface BaseDataPlan {
     pricesIncludeTax: boolean;
     zone: { name: string; countryCodes: string[] };
     taxCategories: BaseDataTaxCategory[];
-    /** The price of the flat-rate shipping method, in minor units. */
-    shippingRate: number;
+    /** The price of the flat-rate shipping method, in minor units. Defaults to {@link DEFAULT_SHIPPING_RATE}. */
+    shippingRate?: number;
 }
+
+/**
+ * The price of the flat-rate shipping method a preset creates, in minor units: 5.00 in the
+ * channel's currency. It is a placeholder for the merchant to change.
+ */
+export const DEFAULT_SHIPPING_RATE = 500;
 
 /**
  * @description
@@ -113,7 +119,7 @@ export async function seedBaseData(
         calculator: {
             code: defaultShippingCalculator.code,
             arguments: [
-                { name: 'rate', value: String(plan.shippingRate) },
+                { name: 'rate', value: String(plan.shippingRate ?? DEFAULT_SHIPPING_RATE) },
                 { name: 'includesTax', value: 'auto' },
                 { name: 'taxRate', value: String(standardRate) },
             ],
@@ -126,12 +132,13 @@ export async function seedBaseData(
     const dummyHandlerConfigured = services.configService.paymentOptions.paymentMethodHandlers.some(
         h => h.code === dummyPaymentHandler.code,
     );
-    if (process.env.NODE_ENV !== 'production' && !dummyHandlerConfigured) {
+    if (process.env.NODE_ENV === 'production') {
+        notices.push('No test payment method was created, because NODE_ENV is production.');
+    } else if (!dummyHandlerConfigured) {
         notices.push(
             'No test payment method was created, because dummyPaymentHandler is not in paymentOptions.paymentMethodHandlers.',
         );
-    }
-    if (process.env.NODE_ENV !== 'production' && dummyHandlerConfigured) {
+    } else {
         await services.paymentMethodService.create(ctx, {
             code: 'test-payment',
             enabled: true,

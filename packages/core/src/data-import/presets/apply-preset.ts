@@ -2,7 +2,16 @@ import { INestApplicationContext } from '@nestjs/common';
 
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Channel, Country, TaxRate, Zone } from '../../entity';
+import {
+    Channel,
+    Country,
+    PaymentMethod,
+    Product,
+    ShippingMethod,
+    TaxCategory,
+    TaxRate,
+    Zone,
+} from '../../entity';
 import { SeedSentinelService } from '../../service/helpers/seed-sentinel/seed-sentinel.service';
 import { ChannelService } from '../../service/services/channel.service';
 import { CountryService } from '../../service/services/country.service';
@@ -26,8 +35,9 @@ import { presetDatabaseNotEmptyError } from './seed-errors';
  * It refuses with a {@link SeedError}:
  *
  * - `core.preset-unknown` or `core.preset-invalid-option` when the name or the options are wrong;
- * - `core.preset-database-not-empty` when the database already has countries, zones, tax rates,
- *   more than one Channel, or a preset sentinel.
+ * - `core.preset-database-not-empty` when the database is not empty: it has countries, zones,
+ *   tax categories or rates, shipping or payment methods, products, more than one Channel, or a
+ *   preset sentinel.
  *
  * Errors are never swallowed: any failure rolls the transaction back and is thrown.
  *
@@ -72,17 +82,28 @@ export async function applyPreset(
         const zones = await connection.getRepository(txCtx, Zone).count();
         const taxRates = await connection.getRepository(txCtx, TaxRate).count();
         const channels = await connection.getRepository(txCtx, Channel).count();
-        if (appliedPreset || countries > 0 || zones > 0 || taxRates > 0 || channels > 1) {
+        const taxCategories = await connection.getRepository(txCtx, TaxCategory).count();
+        const shippingMethods = await connection.getRepository(txCtx, ShippingMethod).count();
+        const paymentMethods = await connection.getRepository(txCtx, PaymentMethod).count();
+        // Deleted products count too: changing the channel currency rewrites their prices.
+        const products = await connection.getRepository(txCtx, Product).count();
+        const existing = {
+            countries,
+            zones,
+            taxRates,
+            taxCategories,
+            shippingMethods,
+            paymentMethods,
+            products,
+        };
+        if (appliedPreset || channels > 1 || Object.values(existing).some(count => count > 0)) {
             throw presetDatabaseNotEmptyError({
-                countries,
-                zones,
-                taxRates,
+                ...existing,
                 channels,
                 appliedPreset: appliedPreset?.name,
             });
         }
         const result = await preset.apply(txCtx, services, options);
-        // The sentinel is the last write of the transaction.
         await sentinels.setPresetSentinel(txCtx, {
             name: preset.name,
             options,

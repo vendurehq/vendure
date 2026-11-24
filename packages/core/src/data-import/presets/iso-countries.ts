@@ -1,7 +1,8 @@
 /**
  * @description
  * The ISO 3166-1 alpha-2 country codes with their English names. A preset creates every one of them,
- * enabled, so a customer can enter an address in any country.
+ * enabled, so a customer can enter an address in any country. The names are the ISO 3166-1
+ * English short names as of 2026-11, some shortened (for example United Kingdom).
  */
 export const ISO_COUNTRIES: ReadonlyArray<{ code: string; name: string }> = [
     { code: 'AF', name: 'Afghanistan' },
@@ -135,7 +136,7 @@ export const ISO_COUNTRIES: ReadonlyArray<{ code: string; name: string }> = [
     { code: 'LT', name: 'Lithuania' },
     { code: 'LU', name: 'Luxembourg' },
     { code: 'MO', name: 'Macao' },
-    { code: 'MK', name: 'Macedonia (the former Yugoslav Republic of)' },
+    { code: 'MK', name: 'North Macedonia' },
     { code: 'MG', name: 'Madagascar' },
     { code: 'MW', name: 'Malawi' },
     { code: 'MY', name: 'Malaysia' },
@@ -230,7 +231,7 @@ export const ISO_COUNTRIES: ReadonlyArray<{ code: string; name: string }> = [
     { code: 'TO', name: 'Tonga' },
     { code: 'TT', name: 'Trinidad and Tobago' },
     { code: 'TN', name: 'Tunisia' },
-    { code: 'TR', name: 'Turkey' },
+    { code: 'TR', name: 'Türkiye' },
     { code: 'TM', name: 'Turkmenistan' },
     { code: 'TC', name: 'Turks and Caicos Islands' },
     { code: 'TV', name: 'Tuvalu' },

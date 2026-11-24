@@ -31,7 +31,8 @@ export const EU_VAT_RATES_SOURCE =
 
 /**
  * The date a person checked every rate below against the source. `undefined` until that review is
- * done. The `eu` preset must not be released before it is set.
+ * done. While it is `undefined`, the `eu` preset is hidden: `listPresets()` leaves it out and
+ * `applyPreset()` treats it as unknown.
  */
 export const EU_VAT_RATES_REVIEWED_AT: string | undefined = undefined;
 

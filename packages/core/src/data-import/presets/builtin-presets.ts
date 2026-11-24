@@ -1,6 +1,6 @@
 import { CurrencyCode } from '@vendure/common/lib/generated-types';
 
-import { EU_VAT_RATES } from './eu-vat-rates';
+import { EU_VAT_RATES, EU_VAT_RATES_REVIEWED_AT } from './eu-vat-rates';
 import { isIsoCountryCode } from './iso-countries';
 import { Preset } from './preset-types';
 import { seedBaseData } from './seed-base-data';
@@ -14,6 +14,9 @@ const EU_COUNTRY_CODES = EU_VAT_RATES.map(r => r.countryCode);
  */
 export const euPreset: Preset = {
     name: 'eu',
+    released: () =>
+        EU_VAT_RATES_REVIEWED_AT !== undefined ||
+        (process.env.VENDURE_UNRELEASED_PRESETS ?? '').split(',').includes('eu'),
     description:
         'EUR, prices include VAT. Standard and reduced VAT for each EU member state (One-Stop Shop), and an EU shipping zone.',
     options: {
@@ -33,10 +36,9 @@ export const euPreset: Preset = {
         return undefined;
     },
     apply(ctx, services, options) {
-        const seller = EU_VAT_RATES.find(r => r.countryCode === options.country);
-        if (!seller) {
-            throw new Error(`Unknown EU member state: ${options.country}`);
-        }
+        // validate() has checked that the country is a member state.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const seller = EU_VAT_RATES.find(r => r.countryCode === options.country)!;
         return seedBaseData(ctx, services, {
             preset: 'eu',
             options,
@@ -56,7 +58,6 @@ export const euPreset: Preset = {
                     countryRates: Object.fromEntries(EU_VAT_RATES.map(r => [r.countryCode, r.reduced])),
                 },
             ],
-            shippingRate: 500,
         });
     },
 };
@@ -77,7 +78,6 @@ export const ukPreset: Preset = {
                 { name: 'Reduced', zoneRate: 5 },
                 { name: 'Zero', zoneRate: 0 },
             ],
-            shippingRate: 500,
         });
     },
 };
@@ -99,7 +99,6 @@ export const usPreset: Preset = {
             pricesIncludeTax: false,
             zone: { name: 'US', countryCodes: ['US'] },
             taxCategories: [{ name: 'Standard', isDefault: true, zoneRate: 0 }],
-            shippingRate: 500,
         });
     },
 };
@@ -119,7 +118,6 @@ export const auPreset: Preset = {
                 { name: 'Standard', isDefault: true, zoneRate: 10 },
                 { name: 'Zero', zoneRate: 0 },
             ],
-            shippingRate: 500,
         });
     },
 };
@@ -163,7 +161,6 @@ export const singleCountryPreset: Preset = {
                     zoneRateName: 'Standard rate, set the value',
                 },
             ],
-            shippingRate: 500,
         });
     },
 };
