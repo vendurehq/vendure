@@ -5,8 +5,8 @@ import { uiConfig } from 'virtual:vendure-ui-config';
 
 /**
  * @description
- * What "Copy for agent" puts on the clipboard, as JSON. The code says what failed, and the request ID
- * finds the request's log lines.
+ * The report that "Copy for agent" copies. The code says what failed, and the request ID finds the
+ * request's log lines.
  */
 export interface AgentErrorReport {
     code: string;
@@ -53,8 +53,14 @@ export function toAgentErrorReport(error: unknown, document: string): AgentError
     };
 }
 
+/**
+ * The report as JSON, then the command that reads the request's error, stack and log lines from the
+ * dev log of the project.
+ */
 export function formatAgentErrorReport(report: AgentErrorReport): string {
-    return JSON.stringify(report, null, 2);
+    // A request ID from an inbound `x-request-id` header can start with `-`, which would read as an option.
+    const requestId = report.requestId.startsWith('-') ? `-- ${report.requestId}` : report.requestId;
+    return `${JSON.stringify(report, null, 2)}\n\nnpx vendure explain --json ${requestId}\n`;
 }
 
 /**

@@ -64,9 +64,21 @@ describe('copy for agent', () => {
         ).toBeUndefined();
     });
 
-    it('copies the report as JSON', () => {
+    it('copies the report as JSON, followed by the vendure explain command', () => {
         const report = toAgentErrorReport(requestError(extensions), UPDATE_PRODUCT_DOCUMENT)!;
-        expect(JSON.parse(formatAgentErrorReport(report))).toEqual(report);
+        const parts = formatAgentErrorReport(report).split('\n\n');
+
+        expect(parts).toHaveLength(2);
+        expect(JSON.parse(parts[0])).toEqual(report);
+        expect(parts[1]).toBe('npx vendure explain --json req-1\n');
+    });
+
+    it('ends the options before a request ID that starts with a dash', () => {
+        const report = toAgentErrorReport(requestError(extensions), UPDATE_PRODUCT_DOCUMENT)!;
+
+        expect(formatAgentErrorReport({ ...report, requestId: '-x' }).split('\n\n')[1]).toBe(
+            'npx vendure explain --json -- -x\n',
+        );
     });
 
     it('offers a recorded error only to a toast that shows its message, once, while it is recent', () => {
