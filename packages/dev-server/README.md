@@ -23,6 +23,10 @@ DB=postgres bun run dev
 The default database is MySQL, although most local development uses Postgres. The database can be
 changed to `DB=mysql` or `DB=sqlite` when needed.
 
+The files in `migrations/` are generated for MySQL/MariaDB, so only `DB=mysql` (and `DB=mariadb`) runs
+them. `DB=postgres`, `DB=sqlite` and `DB=sqljs` create the schema with `synchronize` and load no
+migration files. `DB=sqlite bun run dev:agent` therefore starts on a fresh database without a local MySQL.
+
 On its first run, Portless may ask to install and trust its local HTTPS certificate. If the Portless
 proxy cannot start, `dev` fails with the Portless setup instructions rather than falling back to
 fixed ports.
@@ -100,6 +104,17 @@ The output has this shape:
 ```
 
 Failed or timed-out status responses also include an `error` field.
+
+The first build of `common` and `core` can be slow when several worktrees build at once. The launcher
+fails a watcher only after it has printed no TypeScript watch output for 120 seconds. Any output
+restarts that timer. Change the limit with `VENDURE_DEV_WATCH_TIMEOUT_SECONDS`:
+
+```bash
+VENDURE_DEV_WATCH_TIMEOUT_SECONDS=600 bun run dev:agent
+```
+
+`tsc --watch` prints only when a build starts and when it ends, so a single long compile still needs
+a limit longer than that compile.
 
 The default readiness timeout is 300 seconds. Override it when needed:
 
