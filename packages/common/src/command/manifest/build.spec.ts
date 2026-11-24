@@ -87,6 +87,16 @@ describe('buildCommandManifest', () => {
         expect(wipe.cli.fields?.name).toMatchObject({ hasChoices: true });
     });
 
+    it('lists the secret output fields, and leaves the field out when there are none', async () => {
+        const { command } = wipeCommand();
+        const built = await buildCommandManifest('@vendure/cli', '1.0.0', [
+            command,
+            { ...command, path: ['demo', 'key'], secretOutputs: ['key'] },
+        ]);
+        expect(built.commands[0]).not.toHaveProperty('secretOutputs');
+        expect(built.commands[1].secretOutputs).toEqual(['key']);
+    });
+
     // A caller sends the input, and receives the output and the events.
     it('converts the input side of the input schema, and the output side of the others', async () => {
         const { command, input, output, events } = wipeCommand();

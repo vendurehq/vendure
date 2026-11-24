@@ -12,6 +12,7 @@ import { errorResult, executeCommand, HostEnvironment, HostResult } from './host
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
+import { writeSecretFile } from './secret-file.js';
 import { createSpawn } from './spawn.js';
 import { JsonOutput, redirectStdoutToStderr } from './stdio.js';
 
@@ -299,6 +300,7 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             wholeLines: !!out,
         }),
         findProjectRoot: () => findVendureProjectRoot(),
+        writeSecret: (command, field, value) => writeSecretFile(command, field, value),
         requireCredential: async (_kind, ctx) => {
             const result = await requireCredential({
                 signal: ctx.signal,

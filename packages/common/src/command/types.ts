@@ -386,6 +386,17 @@ export interface CommandCliMetadata {
 
 /**
  * @description
+ * What a field of {@link CommandDefinition.secretOutputs} holds in the output when the host wrote
+ * the secret to a file: the absolute path of a file that only the user can read.
+ *
+ * @since 4.0.0
+ */
+export interface SecretFileReference {
+    secretFile: string;
+}
+
+/**
+ * @description
  * A command declared as plain data. Declaring it loads no implementation and no schema library.
  */
 export interface CommandDefinition {
@@ -419,6 +430,15 @@ export interface CommandDefinition {
     errors?: CommandErrorDefinition[];
     examples?: string[];
     expose?: { mcp?: boolean };
+    /**
+     * Top-level output fields that hold a secret, such as a key. A person at the terminal sees
+     * them once, through `render()`. Under `--json`, as an MCP tool, or when the host may not
+     * prompt, the host writes each value to a file that only the user can read, and the output
+     * holds a {@link SecretFileReference} in its place. The value never reaches stdout or a model.
+     *
+     * @since 4.0.0
+     */
+    secretOutputs?: string[];
     run: () => Promise<{ run: CommandRunFn }>;
     plan?: () => Promise<{ plan: CommandPlanFn }>;
     render?: () => Promise<{ render: CommandRenderFn }>;

@@ -52,6 +52,7 @@ export async function buildCommandManifest(
             examples: def.examples ?? [],
             expose: { mcp: def.expose?.mcp !== false },
             hasPlan: def.plan !== undefined,
+            ...(def.secretOutputs?.length ? { secretOutputs: [...def.secretOutputs] } : {}),
         });
     }
     const manifest: CommandManifest = { manifestVersion: 1, package: packageName, version, commands };

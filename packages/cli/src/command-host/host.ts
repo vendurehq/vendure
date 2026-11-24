@@ -64,6 +64,11 @@ export interface HostEnvironment {
      * credential.
      */
     requireCredential?(kind: 'cloud', ctx: CommandContext): Promise<CommandNeed[] | undefined>;
+    /**
+     * Writes a secret output value to a file that only the user can read, and returns its
+     * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
+     */
+    writeSecret?(command: string[], field: string, value: string): string;
 }
 
 export interface HostResult {
@@ -244,6 +249,51 @@ async function inputNeeds(
         });
     }
     return needs;
+}
+
+/**
+ * Moves the command's secret output fields out of the output when no person sees it: each value
+ * goes to a file only the user can read, and the output holds `{ secretFile }` instead. A person
+ * at the terminal sees the value once, through `render()`.
+ */
+function protectSecrets(
+    def: CommandDefinition,
+    output: unknown,
+    env: HostEnvironment,
+    notices: CommandNotice[],
+): { output: unknown } | { error: HostResult } {
+    const fields = def.secretOutputs ?? [];
+    const personSees = env.prompter !== undefined && !env.mcp;
+    if (fields.length === 0 || personSees || output === null || typeof output !== 'object') {
+        return { output };
+    }
+    const copy: Record<string, unknown> = { ...(output as Record<string, unknown>) };
+    for (const field of fields) {
+        const value = copy[field];
+        if (value === undefined || value === null) {
+            continue;
+        }
+        if (!env.writeSecret) {
+            return {
+                error: errorResult(
+                    hostErrors.internal,
+                    { message: `This host cannot keep the secret "${field}" out of the output` },
+                    notices,
+                ),
+            };
+        }
+        const secretFile = env.writeSecret(
+            def.path,
+            field,
+            typeof value === 'string' ? value : JSON.stringify(value),
+        );
+        copy[field] = { secretFile };
+        notices.push({
+            level: 'info',
+            message: `${field} is in ${secretFile}, which only you can read. It is not in this output.`,
+        });
+    }
+    return { output: copy };
 }
 
 /**
@@ -462,13 +512,21 @@ export async function executeCommand(
         if (isErrorResult(result)) {
             return declaredError(def, result, notices);
         }
+        const output = isFailedResult(result) ? result.output : result;
+        const protectedOutput = protectSecrets(def, output, env, notices);
+        if ('error' in protectedOutput) {
+            return protectedOutput.error;
+        }
         if (isFailedResult(result)) {
             return {
-                envelope: envelope('failed', notices, { output: result.output }),
+                envelope: envelope('failed', notices, { output: protectedOutput.output }),
                 exitCode: COMMAND_EXIT_CODES.failed,
             };
         }
-        return { envelope: envelope('ok', notices, { output: result }), exitCode: COMMAND_EXIT_CODES.ok };
+        return {
+            envelope: envelope('ok', notices, { output: protectedOutput.output }),
+            exitCode: COMMAND_EXIT_CODES.ok,
+        };
     } catch (e) {
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);
