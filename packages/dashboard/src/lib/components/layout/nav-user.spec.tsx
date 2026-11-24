@@ -51,6 +51,9 @@ vi.mock('@/vdb/hooks/use-auth.js', () => ({
         logout: vi.fn(),
     }),
 }));
+vi.mock('@/vdb/hooks/use-permissions.js', () => ({
+    usePermissions: () => ({ hasPermissions: () => true }),
+}));
 vi.mock('@/vdb/hooks/use-display-locale.js', () => ({
     useDisplayLocale: () => ({ humanReadableLanguage: 'English' }),
 }));
