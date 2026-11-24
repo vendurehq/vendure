@@ -178,8 +178,6 @@ describe('create choices', () => {
             '--no-git',
             '--scenario',
             'demo',
-            '--agents',
-            'claude',
             '--package-manager',
             'bun',
         ]);

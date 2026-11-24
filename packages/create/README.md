@@ -28,7 +28,6 @@ Create writes the files, installs the dependencies, and makes a git repository w
 | `--scenario <name>`         | The demo scenario to seed, or `none`. A scenario sets its own preset, and another `--preset` is refused.                |
 | `--features <sets>`         | A comma-separated list of feature sets to install.                                                                      |
 | `--package-manager <name>`  | `npm`, `pnpm`, `yarn` or `bun`. The default is the one that ran create, for example `pnpm` for `pnpm dlx`.              |
-| `--agents <clients>`        | The agent clients to set the project up for: `claude`, `cursor`, `vscode`, `codex`, or `none`. The default is all four. |
 | `-y`, `--yes`               | Accept every default and never prompt.                                                                                  |
 | `--json`                    | Print one JSON result on stdout, and everything else on stderr. Never prompts.                                          |
 | `--no-install`              | Write the files without installing the dependencies.                                                                    |

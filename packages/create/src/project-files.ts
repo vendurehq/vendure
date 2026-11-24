@@ -178,8 +178,9 @@ export function getYarnRcYml(): string {
     return 'nodeLinker: node-modules\n';
 }
 
-export function renderVendureConfig(template: string, input: { mcpDevTokenSecret: string }): string {
-    return Handlebars.compile(template, { noEscape: true })(input);
+/** The config template has no placeholders: every project gets the same Cloud Config. */
+export function renderVendureConfig(template: string): string {
+    return template;
 }
 
 export interface ReadmeInput {

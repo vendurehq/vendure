@@ -1,6 +1,7 @@
 import { defineCloudConfig, defineVendureExtension } from '@vendure/cloud';
 import { DefaultSearchPlugin, dummyPaymentHandler } from '@vendure/core';
 import { McpPlugin } from '@vendure/mcp-plugin';
+import { randomBytes } from 'node:crypto';
 
 // The store's own plugins and migrations. The first `vendure dev` writes the initial migration
 // into ./migrations and runs it. Commit it, together with every later migration.
@@ -24,11 +25,13 @@ export const config = defineCloudConfig({
         McpPlugin.init({
             oauth: {
                 // Production refuses to start without both of these. MCP_TOKEN_SECRET hashes the
-                // OAuth tokens the plugin issues, and its fallback is for local development only.
+                // OAuth tokens the plugin issues. Without it, a non-production process uses a new
+                // random secret, so its tokens last until the process restarts. `vendure dev`
+                // trusts the local `vendure mcp` server and needs no token.
                 // MCP_ISSUER is the server's public https origin; locally it defaults to localhost.
                 tokenSecret:
                     process.env.MCP_TOKEN_SECRET ??
-                    (process.env.NODE_ENV === 'production' ? '' : '{{ mcpDevTokenSecret }}'),
+                    (process.env.NODE_ENV === 'production' ? '' : randomBytes(32).toString('hex')),
                 issuer: process.env.MCP_ISSUER,
             },
             shopAccess: 'anonymous',

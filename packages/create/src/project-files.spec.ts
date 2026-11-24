@@ -10,9 +10,11 @@ import {
     getNextCommands,
     getServerPackageJson,
     getWorkspaceRootPackageJson,
+    renderReadme,
     renderVendureConfig,
     toPackageName,
 } from './project-files.js';
+import { STOREFRONT_STARTERS } from './storefront-starters.js';
 import { CreateOptions } from './types.js';
 
 const options: CreateOptions = {
@@ -99,7 +101,7 @@ describe('renderVendureConfig()', () => {
         path.join(import.meta.dirname, '../templates/vendure-config.hbs'),
         'utf-8',
     );
-    const source = renderVendureConfig(template, { mcpDevTokenSecret: 'dev-secret' });
+    const source = renderVendureConfig(template);
 
     it('defines a Cloud Config with a store extension that declares migrations', () => {
         expect(source).toContain('export const config = defineCloudConfig(');
@@ -113,12 +115,39 @@ describe('renderVendureConfig()', () => {
         expect(source).toContain("shopAccess: 'anonymous'");
         // The secret: the env var, then the development fallback, and nothing in production.
         expect(source).toMatch(/tokenSecret:\s*process\.env\.MCP_TOKEN_SECRET \?\?/);
-        expect(source).toMatch(/process\.env\.NODE_ENV === 'production' \? '' : 'dev-secret'/);
+        expect(source).toMatch(/process\.env\.NODE_ENV === 'production' \? '' : randomBytes\(32\)/);
         expect(source).toMatch(/issuer: process\.env\.MCP_ISSUER/);
     });
 
     it('sets nothing the Cloud runtime owns', () => {
         expect(source).not.toMatch(/dbConnectionOptions|superadminCredentials|port:|logger:/);
+    });
+});
+
+describe('renderReadme()', () => {
+    const template = fs.readFileSync(path.join(import.meta.dirname, '../templates/readme.hbs'), 'utf-8');
+    const pmInfo = getPackageManagerInfo('pnpm');
+
+    it('renders Markdown with its headings, fence and list on their own lines', () => {
+        const readme = renderReadme(template, { name: 'my-shop', pmInfo, storefront: undefined });
+        const lines = readme.split('\n');
+        expect(lines[0]).toBe('# my-shop');
+        for (const heading of ['## Develop', '## Project structure', '## Scripts', '## Deploy']) {
+            expect(lines).toContain(heading);
+        }
+        expect(lines).toContain('```bash');
+        expect(lines).toContain('pnpm run dev');
+        expect(lines).toContain('- `src/vendure-config.ts`: the Vendure configuration, a Cloud Config.');
+        expect(readme).not.toContain('{{');
+    });
+
+    it('names the server workspace and the storefront when there is one', () => {
+        const storefront = STOREFRONT_STARTERS.find(s => s.id === 'nextjs');
+        const readme = renderReadme(template, { name: 'my-shop', pmInfo, storefront });
+        expect(readme.split('\n')).toContain(
+            '- `apps/server/src/vendure-config.ts`: the Vendure configuration, a Cloud Config.',
+        );
+        expect(readme).toContain('- Storefront: http://localhost:3001');
     });
 });
 

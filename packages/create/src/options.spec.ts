@@ -62,7 +62,6 @@ describe('option table', () => {
                 '--scenario=none',
                 '--features=none',
                 '--package-manager=pnpm',
-                '--agents=claude',
                 '--yes',
                 '--json',
                 '--no-install',

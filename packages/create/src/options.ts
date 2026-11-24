@@ -88,11 +88,6 @@ export const CREATE_OPTIONS: readonly CreateOption[] = [
         flags: '--package-manager <name>',
         description: `The package manager: ${PACKAGE_MANAGERS.join(', ')} (default: the one that ran create)`,
     },
-    {
-        key: 'agents',
-        flags: '--agents <clients>',
-        description: `A comma-separated list of the agent clients to write files for: ${AGENT_CLIENTS.join(', ')}, or none (default all)`,
-    },
     { key: 'yes', flags: '-y, --yes', description: 'Accept every default and never prompt' },
     {
         key: 'json',

@@ -142,9 +142,7 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
     }
     fs.outputFileSync(
         path.join(serverDir, 'src/vendure-config.ts'),
-        renderVendureConfig(template('vendure-config.hbs'), {
-            mcpDevTokenSecret: randomBytes(32).toString('base64url'),
-        }),
+        renderVendureConfig(template('vendure-config.hbs')),
     );
     // Git keeps no empty directory. The migrations glob matches no dotfile.
     fs.outputFileSync(path.join(serverDir, 'src/migrations/.gitkeep'), '');

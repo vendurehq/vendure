@@ -47,7 +47,7 @@ if (require.main === module) {
                                     await app.get(JobQueueService).start();
                                     return app;
                                 }),
-                            path.join(__dirname, '../../create/assets/initial-data.json'),
+                            initialData,
                             csvFile,
                         ),
                     )
