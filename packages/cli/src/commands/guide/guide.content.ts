@@ -7,14 +7,15 @@ import { MCP_CLIENTS } from '../mcp/install/client-config.js';
 export const AGENT_GUIDE = `# Working with the Vendure CLI as an agent
 
 The Vendure CLI (\`vendure\`, from \`@vendure/cli\`) runs, builds, migrates and scaffolds a Vendure
-project. Run it from the project directory with the project's package manager:
-\`npx vendure\`, \`pnpm exec vendure\`, \`yarn vendure\` or \`bunx vendure\`.
+project. Run it from the project directory with the runner of the project's package manager, so
+you get the project's own CLI version: \`bunx vendure\` with \`bun.lock\`, \`pnpm exec vendure\` with
+\`pnpm-lock.yaml\`, \`yarn vendure\` with \`yarn.lock\`, and \`npx vendure\` with \`package-lock.json\`.
 
 ## Find the commands
 
-- \`vendure commands --json\` lists every command of this project, including those added by
-  plugins, with its behavior and the JSON Schema of its input and output.
-- \`vendure <command> --help\` shows the flags of one command.
+- \`vendure commands --json\` lists the commands that accept \`--json\`, including those added by
+  plugins, with their behavior and the JSON Schema of their input and output.
+- \`vendure --help\` lists every command, and \`vendure <command> --help\` shows the flags of one.
 
 ## Run commands with --json
 
@@ -49,15 +50,16 @@ exactly one JSON document to stdout:
 
 ## Fix errors
 
-An \`error\` result has a namespaced \`code\`, a \`message\` and \`fixes\`. A fix with a \`path\` and
-an \`input\` is a command: run \`vendure <path…>\` with that input. Otherwise follow its
-\`description\`.
+An \`error\` result has a namespaced \`code\`, a \`message\` and \`fixes\`. Each fix is a command:
+run \`vendure <path…>\` with its \`input\`. Its \`description\` says why. A need can carry a \`fix\`
+of the same shape.
 
 ## The dev server
 
 Use the \`devserver\` commands, not the foreground \`vendure dev\`, which never returns:
 
 - \`vendure devserver start --json\` starts it in the background and returns when it is ready.
+  Over \`vendure mcp\` it returns once the run has started: then call \`devserver_wait\`.
 - \`vendure devserver status --json\` shows its status, URLs and last error.
 - After you edit server code, the dev server restarts. Read \`restarts\` from
   \`vendure devserver status --json\` before the edit, then run

@@ -13,19 +13,20 @@ The guide for agents ships with the CLI, so it always matches the installed
 version. Run it from the project directory before you use the CLI:
 
 ```bash
-npx vendure guide
+<runner> vendure guide
 ```
 
-Use the project's package manager to run it: `npx vendure`, `pnpm exec vendure`,
-`yarn vendure` or `bunx vendure`.
+Use the runner of the project's package manager, so you get the project's own
+CLI version: `bunx` with `bun.lock`, `pnpm exec` with `pnpm-lock.yaml`, `yarn`
+with `yarn.lock`, and `npx` with `package-lock.json`.
 
 The guide covers running commands with `--json`, answering `incomplete`
 results, fixing errors, the dev server, and when to use the Developer MCP
 (`vendure mcp`) or the Store MCP (`@vendure/mcp-plugin`).
 
-`vendure commands --json` lists every command of the project, including those
-added by plugins. The CLI guide is at
-https://docs.vendure.io/guides/developer-guide/cli/.
+`vendure commands --json` lists the commands that accept `--json`, including
+those added by plugins, and `vendure --help` lists every command. The CLI guide
+is at https://docs.vendure.io/current/core/developer-guide/cli.
 
 If `vendure guide` is an unknown command, the project uses a CLI older than
 Vendure 4. Run `vendure --help` and `vendure <command> --help` instead.

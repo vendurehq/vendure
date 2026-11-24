@@ -31,6 +31,9 @@ describe('vendure guide', () => {
         expect(lines.length).toBeGreaterThan(5);
         for (const words of lines) {
             const [first, second] = words;
+            if (first === '--help') {
+                continue;
+            }
             if (first.startsWith('<')) {
                 // A placeholder such as `vendure <command> --help`.
                 continue;
