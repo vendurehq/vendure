@@ -32,10 +32,20 @@ export interface CreateRecordPreset {
     options: Record<string, string>;
 }
 
-/** The scenario a project was created with, as create added it to `devDependencies`. */
+/**
+ * @description
+ * The scenario a project was created with, as create added it to `devDependencies`.
+ *
+ * @docsCategory import-export
+ * @docsPage Scenarios
+ * @since 4.0.0
+ */
 export interface CreateRecordScenario {
+    /** The scenario's name, for example `default`. */
     name: string;
+    /** The package that holds the scenario pack. */
     package: string;
+    /** The version of that package. */
     version: string;
 }
 
