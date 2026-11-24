@@ -466,7 +466,9 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
                 }
             }
         }
-        return roundMoney(this.withTaxBasis(amount + adjustmentTotal, withTax), quoted ? 1 : quantity);
+        // Rescaled promotions are rounded to whole units, so they can exceed the scaled quote.
+        const total = quoted ? Math.max(0, amount + adjustmentTotal) : amount + adjustmentTotal;
+        return roundMoney(this.withTaxBasis(total, withTax), quoted ? 1 : quantity);
     }
 
     private scaleAmount(amount: number, quantity: number, basis: number): number {

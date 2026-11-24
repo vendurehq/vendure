@@ -85,6 +85,21 @@ describe('OrderLine entity', () => {
         expect(line.refundPriceParts).toEqual([]);
     });
 
+    it('does not report a negative total when a full quoted discount is rescaled', () => {
+        const line = new OrderLine({
+            quotedLinePrice: 101,
+            quotedQuantity: 20,
+            quantity: 20,
+            listPrice: 5,
+            listPriceIncludesTax: false,
+            taxLines: [{ description: 'VAT', taxRate: 20 }],
+            adjustments: [{ ...itemPromotionAdjustment, amount: -101 }],
+        });
+        line.setQuantityRescalingAdjustments(11);
+        expect(line.discountedLinePrice).toBe(0);
+        expect(line.discountedLinePriceWithTax).toBe(0);
+    });
+
     describe('discounts', () => {
         function createOrderLine(
             quantity: number,
