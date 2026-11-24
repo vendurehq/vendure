@@ -5,8 +5,14 @@ export const REQUIRED_NODE_VERSION = '>=22.12.0';
  * Bump when the oldest maintained LTS goes EOL: https://nodejs.org/en/about/previous-releases
  */
 export const OLDEST_NON_EOL_NODE_MAJOR = 22;
+/** The port `vendure dev` serves the API on, which the storefront's env file points at. */
 export const SERVER_PORT = 3000;
 export const STOREFRONT_PORT = 3001;
+/**
+ * The `@vendure/cloud` range a generated project depends on. It is bumped by hand when a
+ * `@vendure/cloud` release is needed by what create writes, and a test pins it.
+ */
+export const CLOUD_PACKAGE_RANGE = '^0.9.0';
 /**
  * The TypeScript version needs to pinned because minor versions often
  * introduce breaking changes.
@@ -17,96 +23,25 @@ export const TYPESCRIPT_VERSION = '5.8.2';
  * pnpm's strict, non-hoisting `node_modules` does not expose `typeorm` (a transitive dep of
  * `@vendure/core`), so pnpm-scaffolded projects must declare it directly. Must stay equal to the
  * range `@vendure/core` depends on so pnpm dedupes to a single instance - a mismatch would produce
- * duplicate TypeORM copies with separate decorator metadata. Enforced by a test in helpers.spec.ts.
+ * duplicate TypeORM copies with separate decorator metadata. Enforced by a test in project-files.spec.ts.
  */
 export const TYPEORM_VERSION = '^0.3.21 || ^1.1.2';
 /**
- * Vite must be a direct dependency of the scaffolded project because the
- * generated vite.config.mts imports `vite` directly, and strict
- * (non-hoisting) package managers like pnpm don't expose transitive deps.
- * The range tracks @vendure/dashboard's declaration so the scaffold stays
- * on the same Vite major line as the dashboard (currently v8, the
- * Rolldown-based release); the caret caps at <9.0.0 so a future major with
- * breaking changes is not picked up implicitly.
+ * The Dashboard build that `vendure dev` runs needs `vite` as a direct dependency, because strict
+ * (non-hoisting) package managers like pnpm don't expose transitive deps. The range tracks
+ * @vendure/dashboard's declaration, so the project stays on the same Vite major as the Dashboard.
  */
 export const VITE_VERSION = '^8.3.5';
+/** The local services `vendure dev` starts are PostgreSQL and Redis, reached through these. */
+export const PG_VERSION = '^8.16.0';
+export const IOREDIS_VERSION = '^5.3.2';
+export const TS_NODE_VERSION = '^10.9.2';
+export const TYPES_NODE_VERSION = '^22.20.1';
 /**
- * `concurrently` runs the generated `dev`/`start` scripts. The major is pinned because
- * the `<pm>:script:*` shorthand expansion (relied on by both the server scripts and the
- * monorepo root) is a feature whose behaviour could change across majors.
+ * `concurrently` runs the monorepo root's `dev` script. The major is pinned because its
+ * command-line behaviour could change across majors.
  */
 export const CONCURRENTLY_VERSION = '^9.0.0';
-
-// Port scanning
-export const PORT_SCAN_RANGE = 20;
-/**
- * Per-attempt timeout for the TCP probe used by `isServerPortInUse`. Guards against
- * scenarios where a firewall silently drops SYN packets (rather than rejecting them):
- * without this, the OS-level connect timeout (75s on macOS, ~127s on Linux) multiplied
- * by `PORT_SCAN_RANGE` could stall the CLI for tens of minutes.
- */
-export const SOCKET_TIMEOUT_MS = 2_000;
-
-/**
- * How long to wait for the dockerized PostgreSQL container to accept connections.
- * A first boot runs `initdb`, which alone can take well over 10 seconds on slower
- * machines, so the budget must comfortably exceed that.
- */
-export const PG_READY_MAX_ATTEMPTS = 120;
-export const PG_READY_POLL_INTERVAL_MS = 500;
-/**
- * Upper limit on the whole readiness wait. It sits above the attempt budget, because each
- * `pg_isready` call also takes time, so a slow but healthy first start is not cut short.
- */
-export const PG_READY_TIMEOUT_MS = 120_000;
-
-/**
- * Budgets for calls to the Docker CLI. A daemon that is up answers in well under a
- * second, but an unresponsive one (e.g. Docker Desktop's VM stuck on a full disk)
- * makes every `docker` call hang with no error, so each call needs its own limit.
- */
-export const DOCKER_PROBE_TIMEOUT_MS = 10_000;
-/** Total time to wait for the daemon after trying to start Docker. */
-export const DOCKER_START_WAIT_MS = 60_000;
-/** Pause between daemon checks while waiting for Docker to start. */
-export const DOCKER_START_POLL_INTERVAL_MS = 1_000;
-/** `docker compose up` may pull the postgres image first, which is slow on some networks. */
-export const DOCKER_COMPOSE_TIMEOUT_MS = 5 * 60_000;
-/** Short Docker calls: listing and removing old containers, and each `pg_isready` check. */
-export const DOCKER_COMMAND_TIMEOUT_MS = 10_000;
-/** `docker stop` waits up to 10 seconds for a container to exit before it kills it. */
-export const DOCKER_STOP_TIMEOUT_MS = 30_000;
-
-// Timing constants (milliseconds)
-export const SCAFFOLD_DELAY_MS = 500;
-export const TIP_INTERVAL_MS = 10_000;
-export const CI_PAUSE_BEFORE_CLOSE_MS = 30_000;
-export const CI_PAUSE_AFTER_CLOSE_MS = 10_000;
-export const NORMAL_PAUSE_BEFORE_CLOSE_MS = 2_000;
-export const AUTO_RUN_DELAY_MS = 10_000;
-
-// Default project values
 export const DEFAULT_PROJECT_VERSION = '0.1.0';
-export const TIPS_WHILE_WAITING = [
-    '☕ This can take a minute or two, so grab a coffee',
-    `✨ We'd love it if you drop us a star on GitHub: https://github.com/vendurehq/vendure`,
-    `📖 Check out the Vendure documentation at https://docs.vendure.io`,
-    `💬 Join our Discord community to chat with other Vendure developers: https://vendure.io/community`,
-    '💡 In the mean time, here are some tips to get you started',
-    `Vendure provides dedicated GraphQL APIs for both the Admin and Shop`,
-    `Almost every aspect of Vendure is customizable via plugins`,
-    `You can run 'vendure add' from the command line to add new plugins & features`,
-    `Use the EventBus in your plugins to react to events in the system`,
-    `Vendure supports multiple languages & currencies out of the box`,
-    `☕ Did we mention this can take a while?`,
-    `Our custom fields feature allows you to add any kind of data to your entities`,
-    `Vendure is built with TypeScript, so you get full type safety`,
-    `Combined with GraphQL's static schema, your type safety is end-to-end`,
-    `☕ Almost there now... thanks for your patience!`,
-    `Collections allow you to group products together`,
-    `Our AssetServerPlugin allows you to dynamically resize & optimize images`,
-    `Order flows are fully customizable to suit your business requirements`,
-    `Role-based permissions allow you to control access to every part of the system`,
-    `Customers can be grouped for targeted promotions & custom pricing`,
-    `You can find integrations in the Vendure Hub: https://vendure.io/hub`,
-];
+/** The docs page on running Vendure on your own infrastructure. */
+export const SELF_HOSTING_GUIDE_URL = 'https://docs.vendure.io/guides/deployment/self-hosting';

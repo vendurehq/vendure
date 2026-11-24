@@ -19,9 +19,10 @@ export default defineConfig({
             // In production, 'auto' lets the dashboard derive the API URL from the
             // server that serves it. In development, we use explicit defaults so that
             // the Vite dev server can reach the Vendure backend.
-            api: process.env.NODE_ENV === 'production'
-                ? { host: 'auto', port: 'auto' }
-                : { host: 'http://localhost', port: 3000 },
+            api:
+                process.env.NODE_ENV === 'production'
+                    ? { host: 'auto', port: 'auto' }
+                    : { host: 'http://localhost', port: 3000 },
             // When you start the Vite server, your Admin API schema will
             // be introspected and the types will be generated in this location.
             // These types can be used in your dashboard extensions to provide

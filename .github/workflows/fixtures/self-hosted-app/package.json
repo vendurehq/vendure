@@ -1,0 +1,28 @@
+{
+    "name": "test-app",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "vendure dev all",
+        "populate": "ts-node populate.ts"
+    },
+    "dependencies": {
+        "@vendure/asset-server-plugin": "__VENDURE_VERSION__",
+        "@vendure/core": "__VENDURE_VERSION__",
+        "@vendure/dashboard": "__VENDURE_VERSION__",
+        "better-sqlite3": "^12.0.0"
+    },
+    "devDependencies": {
+        "@vendure/cli": "__VENDURE_VERSION__",
+        "ts-node": "^10.9.2",
+        "typescript": "5.8.2",
+        "vite": "^8.3.5"
+    },
+    "allowScripts": {
+        "bcrypt": true,
+        "better-sqlite3": true,
+        "esbuild": true,
+        "re2": true,
+        "sharp": true
+    }
+}

@@ -21,7 +21,7 @@
     },
     "scripts": {
         "dev": "npm run build && node index.js",
-        "copy-assets": "rimraf assets && ts-node ./build.cts",
+        "copy-assets": "ts-node ./build.cts",
         "build": "npm run copy-assets && rimraf lib && tsc -p ./tsconfig.build.json",
         "watch": "npm run copy-assets && rimraf lib && tsc -p ./tsconfig.build.json -w",
         "lint": "eslint --fix .",
@@ -35,7 +35,6 @@
     "devDependencies": {
         "@types/cross-spawn": "^6.0.6",
         "@types/fs-extra": "^11.0.4",
-        "@types/handlebars": "^4.1.0",
         "@types/semver": "^7.5.8",
         "@vendure/core": "3.8.2",
         "rimraf": "^5.0.5",
@@ -50,7 +49,6 @@
         "cross-spawn": "^7.0.6",
         "fs-extra": "^11.2.0",
         "handlebars": "^4.7.9",
-        "open": "^11.0.1",
         "picocolors": "^1.1.1",
         "semver": "^7.7.2",
         "tar": "^7.4.3"

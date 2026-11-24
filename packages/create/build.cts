@@ -1,30 +1,20 @@
 import fs from 'fs-extra';
 import path from 'path';
 
-import { initialData } from '../core/mock-data/data-sources/initial-data';
-
-const dataDir = path.join(__dirname, '../core/mock-data');
-
-function copyTemplates() {
-    return fs.copy('./templates', './assets');
+/**
+ * The base-data presets of the `@vendure/core` version create installs. create cannot load
+ * `@vendure/core` before the project is installed, so it validates `--preset` against this list.
+ * The two packages share one version, and core is built before create.
+ */
+function writePresetCatalog() {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+    const { listPresets } = require(path.join(__dirname, '../core/dist/data-import/presets/preset-registry'));
+    return fs.outputFile('./assets/presets.json', JSON.stringify(listPresets(), null, 2) + '\n', 'utf-8');
 }
 
-function copyImages() {
-    return fs.copy(path.join(dataDir, 'assets'), './assets/images');
-}
-
-function copyProductData() {
-    return fs.copy(path.join(dataDir, 'data-sources/products.csv'), './assets/products.csv');
-}
-
-function copyCliInitialData() {
-    return fs.outputFile('./assets/initial-data.json', JSON.stringify(initialData, null, 2), 'utf-8');
-}
-
-copyTemplates()
-    .then(copyImages)
-    .then(copyProductData)
-    .then(copyCliInitialData)
+fs.remove('./assets')
+    .then(() => fs.copy('./templates', './assets'))
+    .then(writePresetCatalog)
     .then(() => process.exit(0))
     .catch(err => {
         // eslint-disable-next-line no-console

@@ -1,4 +1,9 @@
-import { InvalidArgumentError } from 'commander';
+import fs from 'fs-extra';
+import { createWriteStream } from 'node:fs';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import * as tar from 'tar';
 
 export interface StorefrontSetupContext {
     projectName: string;
@@ -70,24 +75,6 @@ export const STOREFRONT_STARTERS = [
 
 export type StorefrontId = (typeof STOREFRONT_STARTERS)[number]['id'];
 
-export function resolveCiStorefront(options: {
-    storefront?: StorefrontId;
-    withStorefront?: boolean;
-}): StorefrontId | undefined {
-    return options.storefront ?? (options.withStorefront ? 'nextjs' : undefined);
-}
-
-export function parseStorefrontId(value: string): StorefrontId {
-    const normalizedValue = value.toLowerCase();
-    const storefront = STOREFRONT_STARTERS.find(candidate => candidate.id === normalizedValue);
-    if (!storefront) {
-        throw new InvalidArgumentError(
-            `Allowed choices are: ${STOREFRONT_STARTERS.map(candidate => candidate.id).join(', ')}.`,
-        );
-    }
-    return storefront.id;
-}
-
 export function getStorefrontStarter(id: StorefrontId): StorefrontStarter {
     const storefront = STOREFRONT_STARTERS.find(candidate => candidate.id === id);
     if (!storefront) {
@@ -134,4 +121,37 @@ function quoteEnvironmentValue(key: string, value: string): string {
         );
     }
     return `${delimiter}${value}${delimiter}`;
+}
+
+/**
+ * Downloads a storefront starter from GitHub and extracts it to the target directory.
+ * Uses the starter's main branch intentionally, so improvements and fixes are available to newly
+ * scaffolded projects without requiring a matching @vendure/create release.
+ */
+export async function downloadAndExtractStorefront(
+    targetDir: string,
+    storefront: StorefrontStarter,
+): Promise<void> {
+    const tarballUrl = `https://api.github.com/repos/${storefront.repository}/tarball/${storefront.ref}`;
+    const tempTarPath = path.join(targetDir, '..', 'storefront-temp.tar.gz');
+    try {
+        // A token (e.g. in CI) raises the rate limit.
+        const response = await fetch(tarballUrl, {
+            headers: {
+                Accept: 'application/vnd.github+json',
+                'User-Agent': 'vendure-create',
+                ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to download storefront: ${response.status} ${response.statusText}`);
+        }
+        const nodeReadable = Readable.fromWeb(response.body as import('node:stream/web').ReadableStream);
+        await pipeline(nodeReadable, createWriteStream(tempTarPath));
+        await fs.ensureDir(targetDir);
+        // Remove the top-level directory from the archive.
+        await tar.extract({ file: tempTarPath, cwd: targetDir, strip: 1 });
+    } finally {
+        await fs.remove(tempTarPath);
+    }
 }
