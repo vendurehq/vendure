@@ -55,6 +55,10 @@ export type {
     MergedManifestCommand,
 } from '@vendure/common/lib/command/manifest';
 export {
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     NotLoggedInError,
     ReauthenticationRequiredError,
     SessionLockUnavailableError,
@@ -62,6 +66,7 @@ export {
     SessionRejectedError,
     SessionUnstorableError,
     checkAuthStatus,
+    completeDeviceLogin,
     getAccessToken,
     isRenewalRefused,
     listOrganizations,
@@ -69,18 +74,22 @@ export {
     logout,
     readAuthStatus,
     refreshAccessToken,
+    startDeviceLogin,
 } from './auth/index.js';
 export type {
     AuthOptions,
     AuthOrganization,
     AuthStatus,
     AuthUser,
+    CompleteDeviceLoginOptions,
     DeviceAuthorization,
     DeviceLoginOptions,
     LogoutResult,
     RenewalError,
     RenewalFailureDetails,
+    StartedDeviceLogin,
     StoredOrganization,
+    WorkosClient,
 } from './auth/index.js';
 export { builtinCommands } from './commands/builtins.js';
 export {

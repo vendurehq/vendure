@@ -49,3 +49,17 @@ export function getAuthFilePath(options: AuthOptions = {}): string {
 export function getAuthLockPath(options: AuthOptions = {}): string {
     return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth.lock');
 }
+
+/** The device login that `vendure auth login --json` started and `vendure auth wait` finishes. */
+export function getPendingLoginPath(options: AuthOptions = {}): string {
+    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending.json');
+}
+
+export function getPendingLoginLockPath(options: AuthOptions = {}): string {
+    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending.lock');
+}
+
+/** How the last pending device login ended, for a wait that queued behind the one that finished it. */
+export function getFinishedLoginPath(options: AuthOptions = {}): string {
+    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending-outcome.json');
+}

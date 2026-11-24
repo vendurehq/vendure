@@ -535,9 +535,34 @@ The CLI shows a one-time code and opens your browser. Confirm the code and sign 
 than one organization, the CLI then asks which one to use, starting from the one chosen in the browser. Nothing on this
 machine needs a browser: you can open the URL on another device.
 
-Without a terminal, for example in a script, the CLI does not ask. It keeps the organization chosen in the browser, names
-it, and shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
-`vendure auth status` shows its ID and that command.
+### Signing in without a terminal
+
+Without a person at a terminal, `vendure auth login` does not wait. That is the case under `--json`, as an MCP tool, when
+`CI` or `VENDURE_CLI_NON_INTERACTIVE` is set, or when stdin or stdout is not a terminal. It returns the URL and code to
+approve at once, and `vendure auth wait` finishes the login:
+
+```bash
+npx vendure auth login --json
+# {"schemaVersion":1,"status":"ok","output":{"status":"pending","url":"https://...","code":"ABCD-EFGH","expiresAt":"..."},...}
+npx vendure auth wait --json
+```
+
+Give the URL and code to a person, who opens the URL on any device and confirms the code. `vendure auth wait` returns
+the login once the code is approved. With `--timeout <seconds>` it stops waiting earlier and returns the pending login
+again, so you can run it again. Without `--timeout` it waits for the rest of the code lifetime, or 30 seconds as an MCP
+tool. Only one `vendure auth wait` polls at a time: another one waits for it and then reports the same login.
+
+The pending login is stored in `auth-pending.json` next to `auth.json`, readable only by your user. A new
+`vendure auth login --json` replaces it, and `vendure auth logout` removes it. A stored login stays until the new one
+is approved. When no login is pending, or its code has expired or was denied, `vendure auth wait` returns an error whose
+fix is `vendure auth login --json`.
+
+Nobody is asked which organization to use either. The CLI keeps the organization chosen in the browser, names it, and
+shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
+`vendure auth status` shows its ID and that command. `--organization` passed to `vendure auth login --json` is used
+when `vendure auth wait` finishes the login.
+
+### Choosing the organization
 
 To choose the organization on the command line instead, for example in a script or on a remote machine, pass its
 Account identifier (in Vendure Console under **Settings**) or its name. Names match ignoring case:
@@ -551,6 +576,8 @@ The CLI looks the organization up in Vendure Console after you sign in. It refus
 organizations share, and lists their Account identifiers so you can pick one. To change organization later, run
 `vendure auth login --organization` again.
 
+### Checking and ending the login
+
 Check who is signed in, or sign out:
 
 ```bash
@@ -563,8 +590,9 @@ npx vendure auth logout
 `status` says so with the code it answered, for example `invalid_grant`, and tells you to run `vendure auth login`. When
 the check cannot finish, for example without a network, it shows the login with a warning.
 
-`status --json` prints the user, organization, client and access token expiry, and `renewable` with the result of the
-check. It never includes a token. It exits with code 1 when nobody is signed in or the login can no longer be renewed.
+`status --json` writes the user, organization, client and access token expiry, and `renewable` with the result of the
+check, as the `output` of the JSON result. It never includes a token. It exits with code 1, with the status `failed`,
+when nobody is signed in or the login can no longer be renewed.
 
 When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
 asks before it is replaced. A login that can no longer be renewed is replaced without asking.

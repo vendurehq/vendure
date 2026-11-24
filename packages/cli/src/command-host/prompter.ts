@@ -1,5 +1,5 @@
 import { confirm, isCancel, password, select, text } from '@clack/prompts';
-import type { ConsentNeed, InputNeed } from '@vendure/common/lib/command';
+import type { CommandChoice, ConsentNeed, InputNeed } from '@vendure/common/lib/command';
 
 import type { Prompter } from './host.js';
 
@@ -31,6 +31,14 @@ export function createClackPrompter(): Prompter {
             }
             const answer = await confirm({ message: need.description });
             return answer === true;
+        },
+        async confirm(message: string) {
+            const answer = await confirm({ message, initialValue: false });
+            return isCancel(answer) ? undefined : answer;
+        },
+        async select(message: string, choices: CommandChoice[]) {
+            const answer = await select({ message, options: choices });
+            return isCancel(answer) ? undefined : String(answer);
         },
     };
 }

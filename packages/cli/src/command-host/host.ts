@@ -1,6 +1,7 @@
 import {
     COMMAND_ENVELOPE_SCHEMA_VERSION,
     COMMAND_EXIT_CODES,
+    CommandChoice,
     CommandContext,
     CommandDefinition,
     CommandEnvelope,
@@ -41,6 +42,10 @@ export interface Prompter {
     askInput(need: InputNeed, options: AskInputOptions): Promise<string | undefined>;
     /** Shows the preview and asks whether to go ahead. */
     askConsent(need: ConsentNeed): Promise<boolean>;
+    /** Asks a yes or no question for `ctx.ask`. Resolves to `undefined` when the person cancels. */
+    confirm(message: string): Promise<boolean | undefined>;
+    /** Asks for one of `choices` for `ctx.ask`. Resolves to `undefined` when the person cancels. */
+    select(message: string, choices: CommandChoice[]): Promise<string | undefined>;
 }
 
 export interface HostEnvironment {
@@ -176,10 +181,19 @@ function answerProblem(
 }
 
 function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandContext {
+    const { prompter } = env;
     return {
         cwd: env.cwd,
         signal: env.signal,
         mcp: env.mcp,
+        ...(prompter
+            ? {
+                  ask: {
+                      confirm: message => prompter.confirm(message),
+                      select: (message, choices) => prompter.select(message, choices),
+                  },
+              }
+            : {}),
         notice: (level, message) => {
             notices.push({ level, message });
             env.emit({ vendure: 'event', type: 'notice', level, message });
@@ -433,4 +447,3 @@ export async function executeCommand(
         );
     }
 }
-
