@@ -1,7 +1,7 @@
 import { MenuBranding } from '@/vdb/components/shared/powered-by-vendure.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
 import { Link, useNavigate, useRouter } from '@tanstack/react-router';
-import { ChevronsUpDown, LogOut, Monitor, Moon, Sparkles, Sun } from 'lucide-react';
+import { ChevronsUpDown, ListChecks, LogOut, Monitor, Moon, Sparkles, Sun } from 'lucide-react';
 
 import {
     DropdownMenu,
@@ -19,6 +19,7 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/vdb/components/ui/sidebar.js';
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Theme } from '@/vdb/providers/theme-provider.js';
 import { Trans } from '@lingui/react/macro';
@@ -33,6 +34,7 @@ export function NavUser() {
     const { humanReadableLanguage } = useDisplayLocale();
     const { user, ...auth } = useAuth();
     const { settings, setTheme, setDevMode } = useUserSettings();
+    const { hasPermissions } = usePermissions();
 
     const handleLogout = () => {
         auth.logout().then(() => {
@@ -98,6 +100,13 @@ export function NavUser() {
                                 <DropdownMenuItem render={<Link to="/profile" />}>
                                     <Trans>Profile</Trans>
                                 </DropdownMenuItem>
+                                {/* The store setup check needs ReadSettings. */}
+                                {hasPermissions(['ReadSettings']) && (
+                                    <DropdownMenuItem render={<Link to="/" search={{ setup: true }} />}>
+                                        <ListChecks />
+                                        <Trans>Setup</Trans>
+                                    </DropdownMenuItem>
+                                )}
                                 <DialogTrigger
                                     nativeButton={false}
                                     render={<DropdownMenuItem className="flex gap-2" />}
