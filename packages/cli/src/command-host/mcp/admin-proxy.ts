@@ -53,7 +53,7 @@ const REQUEST_TIMEOUT_MS = 60_000;
 const LIST_TIMEOUT_MS = 5_000;
 
 /** The protocol version sent on each stateless request to the Store MCP. */
-const STORE_PROTOCOL_VERSION = '2025-11-25';
+export const STORE_PROTOCOL_VERSION = '2025-11-25';
 
 /** A tool of the Store MCP, as the Developer MCP offers it. */
 export interface AdminTool {
@@ -440,7 +440,7 @@ export class AdminProxy {
                 target.code === localAdminApiErrors.endpointUnknown.code
                     ? errorEnvelope(adminToolsErrors.storeMcpMissing, {})
                     : envelopeOf(target);
-            return unavailable(`no-mcp:${ready.startedAt}:${ready.restarts}`, error);
+            return unavailable(`${target.code}:${ready.startedAt}:${ready.restarts}`, error);
         }
         return {
             available: true,
@@ -464,9 +464,9 @@ const NOT_SENT_CODES = new Set([
     localAdminApiErrors.notReady.code,
     localAdminApiErrors.endpointUnknown.code,
     localAdminApiErrors.endpointNotLocal.code,
-    'mcp.admin-tools.store-mcp-missing',
-    'mcp.admin-tools.channel-refused',
-    'mcp.admin-tools.store-timed-out',
+    adminToolsErrors.storeMcpMissing.code,
+    adminToolsErrors.channelRefused.code,
+    adminToolsErrors.storeTimedOut.code,
 ]);
 
 /**
@@ -476,7 +476,7 @@ const NOT_SENT_CODES = new Set([
 function withMayHaveRun(envelope: CommandEnvelope): CommandEnvelope {
     const code = envelope.error?.code ?? '';
     const refused = /ECONNREFUSED/.test(envelope.error?.message ?? '');
-    if (NOT_SENT_CODES.has(code) || refused || code === 'mcp.admin-tools.store-refused') {
+    if (NOT_SENT_CODES.has(code) || refused || code === adminToolsErrors.storeRefused.code) {
         return envelope;
     }
     return {

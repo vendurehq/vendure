@@ -15,6 +15,7 @@ import {
     parseStoreBody,
     SendToStore,
     sendToStore,
+    STORE_PROTOCOL_VERSION,
     StoreResponse,
     withDeveloperMcpCall,
 } from './admin-proxy.js';
@@ -577,7 +578,7 @@ describe('sendToStore', () => {
             expect(received[0].url).toBe('/mcp/admin');
             expect(received[0].headers.authorization).toBe('Bearer run-secret');
             expect(received[0].headers['vendure-token']).toBe('eu');
-            expect(received[0].headers['mcp-protocol-version']).toBeDefined();
+            expect(received[0].headers['mcp-protocol-version']).toBe(STORE_PROTOCOL_VERSION);
             expect(JSON.parse(received[0].body)).toEqual(message);
         } finally {
             await new Promise(resolve => server.close(resolve));
