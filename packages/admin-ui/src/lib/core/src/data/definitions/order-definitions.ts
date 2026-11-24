@@ -153,7 +153,7 @@ export const ORDER_LINE_FRAGMENT = gql`
         unitPriceWithTax
         proratedUnitPrice
         proratedUnitPriceWithTax
-        refundPriceBasis {
+        refundPriceParts {
             priceWithTax
             quantity
         }

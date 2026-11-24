@@ -4499,8 +4499,8 @@ export type OrderLine = Node & {
   proratedUnitPriceWithTax: Scalars['Money']['output'];
   /** The quantity of items purchased */
   quantity: Scalars['Int']['output'];
-  /** Total and quantity to use when allocating partial refunds for a quoted line. */
-  refundPriceBasis?: Maybe<RefundPriceBasis>;
+  /** Cancelled quantities in cancellation order, followed by the surviving units at their current price. */
+  refundPriceParts: Array<RefundPricePart>;
   taxLines: Array<TaxLine>;
   taxRate: Scalars['Float']['output'];
   /** The price of a single unit, excluding tax and discounts */
@@ -6172,8 +6172,9 @@ export type RefundPaymentIdMissingError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
-export type RefundPriceBasis = {
-  __typename?: 'RefundPriceBasis';
+/** A group of units from one order line that share a tax-inclusive refund value. */
+export type RefundPricePart = {
+  __typename?: 'RefundPricePart';
   priceWithTax: Scalars['Money']['output'];
   quantity: Scalars['Int']['output'];
 };

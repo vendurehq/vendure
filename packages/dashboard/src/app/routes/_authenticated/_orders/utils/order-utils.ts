@@ -244,7 +244,11 @@ export function getRefundedQuantity(order: Order, lineId: string): number {
  * pattern (see OrderLine price/discount distribution).
  */
 export function getRefundableQuantity(line: Order['lines'][number]): number {
-    return Math.max(line.orderPlacedQuantity, line.quantity, line.refundPriceBasis?.quantity ?? 0);
+    return Math.max(
+        line.orderPlacedQuantity,
+        line.quantity,
+        line.refundPriceParts?.reduce((sum, part) => sum + part.quantity, 0) ?? 0,
+    );
 }
 
 /**

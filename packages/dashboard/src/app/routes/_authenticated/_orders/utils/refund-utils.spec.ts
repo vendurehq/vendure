@@ -30,7 +30,7 @@ describe('calculateRefundTotal', () => {
                 {
                     id: 'L1',
                     proratedUnitPriceWithTax: 960,
-                    refundPriceBasis: { priceWithTax: 10555, quantity: 11 },
+                    refundPriceParts: [{ priceWithTax: 10555, quantity: 11 }],
                 },
             ],
             payments: [{ refunds: [{ state: 'Settled', lines: [{ orderLineId: 'L1', quantity: 1 }] }] }],

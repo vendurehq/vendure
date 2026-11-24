@@ -1,11 +1,12 @@
-type RefundPriceBasis {
+"A group of units from one order line that share a tax-inclusive refund value."
+type RefundPricePart {
     priceWithTax: Money!
     quantity: Int!
 }
 
 extend type OrderLine {
-    "Total and quantity to use when allocating partial refunds for a quoted line."
-    refundPriceBasis: RefundPriceBasis
+    "Cancelled quantities in cancellation order, followed by the surviving units at their current price."
+    refundPriceParts: [RefundPricePart!]!
 }
 
 type Query {

@@ -148,7 +148,6 @@ export class OrderSplitter {
                     'initialListPrice',
                     'quotedLinePrice',
                     'quotedQuantity',
-                    'quotedRefundTotal',
                     'listPrice',
                     'listPriceIncludesTax',
                     'adjustments',

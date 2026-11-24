@@ -14,6 +14,7 @@ import { CustomOrderLineFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
 import { OrderLineReference } from '../order-line-reference/order-line-reference.entity';
+import type { QuotedLineCancellation } from '../order-line-reference/quoted-line-cancellation.entity';
 import { Order } from '../order/order.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
 import { ShippingLine } from '../shipping-line/shipping-line.entity';
@@ -121,11 +122,13 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     listPrice: number;
 
     /** Total returned by calculateLinePrice, in the same tax basis as listPrice. */
+    @Money({ nullable: true })
     quotedLinePrice?: number | null;
     /** Quantity covered by the quote, retained when items are cancelled. */
+    @Column({ type: 'int', nullable: true })
     quotedQuantity?: number | null;
-    /** Refund basis captured before cancellation rescales the line discounts. */
-    quotedRefundTotal?: number | null;
+    @OneToMany('QuotedLineCancellation', 'orderLine', { persistence: false })
+    quotedCancellations: QuotedLineCancellation[];
 
     /**
      * @description
@@ -352,15 +355,23 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         return this.getPrice(true, this.quantity, 'all');
     }
 
-    @Calculated()
-    get refundPriceBasis(): { priceWithTax: number; quantity: number } | null {
-        if (this.quotedLinePrice == null || !this.quotedQuantity) {
-            return null;
+    @Calculated({ relations: ['quotedCancellations'] })
+    get refundPriceParts(): Array<{ priceWithTax: number; quantity: number }> {
+        const cancellations = this.quotedCancellations ?? [];
+        if (this.quotedLinePrice == null && !cancellations.length) {
+            return [];
         }
-        return {
-            priceWithTax: this.quotedRefundTotal ?? this.proratedLinePriceWithTax,
-            quantity: this.quotedQuantity,
-        };
+        const parts = cancellations
+            .slice()
+            .sort(
+                (a, b) =>
+                    a.createdAt.getTime() - b.createdAt.getTime() || String(a.id).localeCompare(String(b.id)),
+            )
+            .map(({ priceWithTax, quantity }) => ({ priceWithTax, quantity }));
+        if (this.quantity > 0) {
+            parts.push({ priceWithTax: this.proratedLinePriceWithTax, quantity: this.quantity });
+        }
+        return parts;
     }
 
     @Calculated()
@@ -370,6 +381,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
 
     /** Convert a promotion amount in the channel's tax basis to the stored quote's tax basis. */
     getAdjustmentAmount(amount: number, includesTax: boolean): number {
+        // Existing unit-price strategies keep their historical promotion tax treatment.
         if (this.quotedLinePrice == null || includesTax === this.listPriceIncludesTax) {
             return amount;
         }
@@ -404,9 +416,6 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * record of the discount that had applied, which plugins and accounting exports read back.
      */
     setQuantityRescalingAdjustments(newQuantity: number) {
-        if (this.quotedLinePrice != null) {
-            this.quotedRefundTotal ??= this.proratedLinePriceWithTax;
-        }
         if (0 < newQuantity) {
             const scaleFactor = newQuantity / this.quantity;
             this.adjustments = (this.adjustments ?? []).map(adjustment =>

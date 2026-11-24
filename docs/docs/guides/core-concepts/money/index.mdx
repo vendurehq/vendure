@@ -253,6 +253,6 @@ gives a line price of €24.70 and a displayed unit price of €1.24. At precisi
 for 20 units of €1.01 with a 5% discount gives €19.190. Further Vendure promotions apply to that price.
 
 Vendure calls the hook again when it reprices a line, including after a quantity change. Return
-`undefined` to use `calculateUnitPrice` for that line. Generate and apply a database migration with
-the hook configured before deploying it. Existing order lines continue to use their stored unit prices
-until repriced. Keep the hook configured to read orders that contain stored quotes.
+`undefined` to use `calculateUnitPrice` for that line. Vendure reads placed orders from their
+stored prices even if you remove the hook. Generate and apply the schema migration on upgrade.
+Existing order lines use their stored unit prices until repriced.

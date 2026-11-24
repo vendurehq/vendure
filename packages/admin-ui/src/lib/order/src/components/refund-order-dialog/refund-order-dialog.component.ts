@@ -55,7 +55,10 @@ export class RefundOrderDialogComponent
     }
 
     lineCanBeRefundedOrCancelled(line: OrderDetailFragment['lines'][number]): boolean {
-        const refundableQuantity = Math.max(line.orderPlacedQuantity, line.refundPriceBasis?.quantity ?? 0);
+        const refundableQuantity = Math.max(
+            line.orderPlacedQuantity,
+            line.refundPriceParts?.reduce((sum, part) => sum + part.quantity, 0) ?? 0,
+        );
         return this.getRefundedQuantity(line) < refundableQuantity;
     }
 

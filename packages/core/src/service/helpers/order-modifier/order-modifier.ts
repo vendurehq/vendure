@@ -41,6 +41,7 @@ import { TransactionalConnection } from '../../../connection/transactional-conne
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { FulfillmentLine } from '../../../entity/order-line-reference/fulfillment-line.entity';
 import { OrderModificationLine } from '../../../entity/order-line-reference/order-modification-line.entity';
+import { QuotedLineCancellation } from '../../../entity/order-line-reference/quoted-line-cancellation.entity';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../../entity/order-modification/order-modification.entity';
 import { Order } from '../../../entity/order/order.entity';
@@ -284,7 +285,7 @@ export class OrderModifier {
             return new CancelActiveOrderError({ orderState: order.state });
         }
         const fullOrder = await this.connection.getEntityOrThrow(ctx, Order, order.id, {
-            relations: ['lines'],
+            relations: ['lines', 'lines.quotedCancellations'],
         });
 
         const allocatedLines: OrderLineInput[] = [];
@@ -359,13 +360,19 @@ export class OrderModifier {
                 // A partial cancellation bypasses `OrderCalculator` recalculation entirely, so the
                 // `PROMOTION` adjustments are rescaled here to preserve the invariant that they are
                 // stored scaled to the current quantity.
+                const trackQuote = orderLine.quotedLinePrice != null || orderLine.quotedCancellations?.length;
+                const before = orderLine.proratedLinePriceWithTax;
                 orderLine.setQuantityRescalingAdjustments(orderLine.quantity - line.quantity);
+                if (trackQuote && line.quantity > 0) {
+                    await this.connection.getRepository(ctx, QuotedLineCancellation).save({
+                        orderLineId: orderLine.id,
+                        quantity: line.quantity,
+                        priceWithTax: before - orderLine.proratedLinePriceWithTax,
+                    });
+                }
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
                     quantity: orderLine.quantity,
                     adjustments: orderLine.adjustments,
-                    ...(orderLine.quotedRefundTotal != null && {
-                        quotedRefundTotal: orderLine.quotedRefundTotal,
-                    }),
                 });
 
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, orderLine, 'cancelled'));

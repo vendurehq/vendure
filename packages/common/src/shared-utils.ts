@@ -111,20 +111,30 @@ export function getGraphQlInputName(config: { name: string; type: string; list?:
 export function getLineRefundAmount(
     line: {
         proratedUnitPriceWithTax: number;
-        refundPriceBasis?: { priceWithTax: number; quantity: number } | null;
+        refundPriceParts: ReadonlyArray<{ priceWithTax: number; quantity: number }>;
     },
     quantity: number,
     alreadyRefunded: number,
 ): number {
-    const basis = line.refundPriceBasis;
-    if (!basis) {
+    const parts = line.refundPriceParts;
+    if (!parts.length) {
         return line.proratedUnitPriceWithTax * quantity;
     }
-    const remaining = Math.max(0, basis.quantity - alreadyRefunded);
-    const priceForQuantity = (count: number) => {
-        // Keep the multiplication exact even when a bigint money column holds a large safe integer.
-        const divisor = BigInt(basis.quantity);
-        return Number((BigInt(basis.priceWithTax) * BigInt(count) + divisor / BigInt(2)) / divisor);
-    };
-    return priceForQuantity(remaining) - priceForQuantity(Math.max(0, remaining - quantity));
+    let amount = 0;
+    for (const part of parts) {
+        const skip = Math.min(part.quantity, alreadyRefunded);
+        alreadyRefunded -= skip;
+        const remaining = part.quantity - skip;
+        const take = Math.min(remaining, quantity);
+        if (take > 0) {
+            // Bigint money columns support totals up to Number.MAX_SAFE_INTEGER.
+            const divisor = BigInt(part.quantity);
+            const priceForQuantity = (count: number) =>
+                Number((BigInt(part.priceWithTax) * BigInt(count) + divisor / BigInt(2)) / divisor);
+            amount += priceForQuantity(remaining) - priceForQuantity(remaining - take);
+            quantity -= take;
+            if (quantity === 0) break;
+        }
+    }
+    return amount;
 }

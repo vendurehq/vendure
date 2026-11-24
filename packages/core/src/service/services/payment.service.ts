@@ -749,8 +749,11 @@ export class PaymentService {
         }
         const lines = await this.connection.getRepository(ctx, OrderLine).find({
             where: { id: In(inputs.map(input => input.orderLineId)) },
+            relations: { quotedCancellations: true },
         });
-        const quotedIds = lines.filter(line => line.quotedLinePrice != null).map(line => line.id);
+        const quotedIds = lines
+            .filter(line => line.quotedLinePrice != null || line.quotedCancellations.length > 0)
+            .map(line => line.id);
         const previousRefunds = quotedIds.length
             ? await this.connection.getRepository(ctx, RefundLine).find({
                   where: { orderLineId: In(quotedIds), refund: { state: Not('Failed') } },
@@ -758,7 +761,7 @@ export class PaymentService {
             : [];
         let total = 0;
         for (const line of lines) {
-            if (includeUnplacedLines || line.orderPlacedQuantity > 0 || line.quotedLinePrice != null) {
+            if (includeUnplacedLines || line.orderPlacedQuantity > 0 || quotedIds.includes(line.id)) {
                 const refunded = previousRefunds.filter(refund => idsAreEqual(refund.orderLineId, line.id));
                 total += getLineRefundAmount(
                     line,

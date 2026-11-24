@@ -50,6 +50,7 @@ describe('OrderLine entity', () => {
     it('refunds the difference between the paid and retained quantities at a rounding tie', () => {
         const line = new OrderLine({
             quotedLinePrice: 19190,
+            quotedCancellations: [{ quantity: 1, priceWithTax: 959 }],
             quotedQuantity: 20,
             quantity: 20,
             listPrice: 960,
@@ -63,7 +64,7 @@ describe('OrderLine entity', () => {
         expect(getLineRefundAmount(line, 19, 1)).toBe(18231);
     });
 
-    it('applies tax and discounts to a quote and retains the refund basis through cancellation', () => {
+    it('applies tax and discounts to the remaining quoted units', () => {
         const line = new OrderLine({
             quotedLinePrice: 19190,
             quotedQuantity: 20,
@@ -77,11 +78,11 @@ describe('OrderLine entity', () => {
         expect(line.linePriceWithTax).toBe(23028);
         expect(line.discountedLinePrice).toBe(17271);
         expect(line.proratedLinePriceWithTax).toBe(20725);
-        expect(line.refundPriceBasis).toEqual({ priceWithTax: 20725, quantity: 20 });
+        expect(line.refundPriceParts).toEqual([{ priceWithTax: 20725, quantity: 20 }]);
         line.setQuantityRescalingAdjustments(7);
         line.setQuantityRescalingAdjustments(0);
         expect(line.proratedLinePriceWithTax).toBe(0);
-        expect(line.refundPriceBasis).toEqual({ priceWithTax: 20725, quantity: 20 });
+        expect(line.refundPriceParts).toEqual([]);
     });
 
     describe('discounts', () => {

@@ -359,11 +359,7 @@ export async function preBootstrapConfig(
     registerTranslationEntityUniqueConstraints(entities);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
-    setMoneyStrategy(
-        moneyStrategy,
-        entities,
-        typeof config.orderOptions.orderItemPriceCalculationStrategy.calculateLinePrice === 'function',
-    );
+    setMoneyStrategy(moneyStrategy, entities);
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;

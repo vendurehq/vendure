@@ -1,4 +1,5 @@
 import { RequestContext } from '../../../api/common/request-context';
+import { InternalServerError } from '../../../common/error/errors';
 import { roundMoney } from '../../../common/round-money';
 import { ChangedPriceHandlingStrategy } from '../../../config/order/changed-price-handling-strategy';
 import { OrderItemPriceCalculationStrategy } from '../../../config/order/order-item-price-calculation-strategy';
@@ -24,7 +25,7 @@ export async function setOrderLinePrice(
             ? await strategy.calculateLinePrice?.(ctx, variant, fields, order, line.quantity)
             : undefined;
     if (quote && (!Number.isSafeInteger(quote.price) || quote.price < 0)) {
-        throw new Error('calculateLinePrice must return a non-negative integer price');
+        throw new InternalServerError('calculateLinePrice must return a non-negative integer price');
     }
     const calculated = quote
         ? { price: roundMoney(quote.price / line.quantity), priceIncludesTax: quote.priceIncludesTax }
@@ -40,11 +41,7 @@ export async function setOrderLinePrice(
     }
     line.listPrice = price.price;
     line.listPriceIncludesTax = price.priceIncludesTax;
-    if (typeof strategy.calculateLinePrice === 'function') {
-        const keepQuote =
-            quote && price.price === unitPrice && price.priceIncludesTax === quote.priceIncludesTax;
-        line.quotedLinePrice = keepQuote ? quote.price : null;
-        line.quotedQuantity = keepQuote ? line.quantity : null;
-        line.quotedRefundTotal = null;
-    }
+    const keepQuote = quote && price.price === unitPrice && price.priceIncludesTax === quote.priceIncludesTax;
+    line.quotedLinePrice = keepQuote ? quote.price : null;
+    line.quotedQuantity = keepQuote ? line.quantity : null;
 }

@@ -1,3 +1,10 @@
+## Unreleased
+
+#### Upgrade notes
+
+* Generate and apply a database migration to add the nullable quote price and quantity to `order_line` and the nullable cancelled amount to `order_line_reference`. Existing order lines need no data backfill.
+* Product CSV imports and the email plugin's `formatMoney` helper now use the configured `MoneyStrategy.precision`. At precision 3, a CSV price of `1.235` imports as `1235`, and an email amount of `1235` represents `1.235`. Review any custom conversions made for the former two-decimal scale. The default precision remains 2.
+
 ## <small>3.8.2 (2026-11-12)</small>
 
 

@@ -25,6 +25,7 @@ import { OrderHistoryEntry } from './history-entry/order-history-entry.entity';
 import { FulfillmentLine } from './order-line-reference/fulfillment-line.entity';
 import { OrderLineReference } from './order-line-reference/order-line-reference.entity';
 import { OrderModificationLine } from './order-line-reference/order-modification-line.entity';
+import { QuotedLineCancellation } from './order-line-reference/quoted-line-cancellation.entity';
 import { RefundLine } from './order-line-reference/refund-line.entity';
 import { OrderLine } from './order-line/order-line.entity';
 import { OrderModification } from './order-modification/order-modification.entity';
@@ -132,6 +133,7 @@ export const coreEntitiesMap = {
     PromotionTranslation,
     Province,
     Refund,
+    QuotedLineCancellation,
     RefundLine,
     Region,
     RegionTranslation,
