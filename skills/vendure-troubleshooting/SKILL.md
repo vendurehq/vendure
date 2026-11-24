@@ -1,10 +1,11 @@
 ---
 name: vendure-troubleshooting
 description: >-
-  Find and fix the cause of an error in a local Vendure 4 project. Use when the dev server does not
-  start or stops being ready, a GraphQL request fails, the Dashboard shows an error with a code and a
-  request ID, migrations fail, versions do not match, or assets or emails do not work. Follows one
-  fixed order: status, logs, explain, doctor, fix, wait, replay.
+  Find and fix the cause of an error in a local Vendure 4 project. Use when
+  the dev server does not start or stops being ready, a GraphQL request
+  fails, the Dashboard shows an error with a code and a request ID,
+  migrations fail, versions do not match, or assets or emails do not work.
+  Follows one fixed order: status, logs, explain, doctor, fix, wait, replay.
 allowed-tools: Bash, Read, Glob, Grep
 ---
 
@@ -20,31 +21,47 @@ run the CLI with the project's package manager (`bunx`, `pnpm exec`, `yarn`,
 
 ## Workflow
 
-Every Vendure error carries a code, such as `core.entity-with-id-not-found`. An error from a request
-also carries the request ID. The code says what failed. The request ID finds the log lines.
+Every Vendure error carries a code, such as `core.entity-with-id-not-found`.
+An error from a request also carries the request ID. The code says what
+failed. The request ID finds the log lines.
 
-Follow these steps in this order. Do not skip a step because you think you know the cause.
+Follow these steps in this order. Do not skip a step because you think you
+know the cause.
 
-1. **`vendure devserver status`.** Is the dev server running and ready? When it stopped on an error,
-   the status shows the error's code and its fixes. If it is not running, ask the user to start it.
-2. **`vendure devserver logs --min-severity warn`.** Read the recent warnings and errors. Note the
-   request ID of each failed request.
-3. **`vendure explain <requestId>`.** Collect the error for one request: its code, message, stack
-   and the log lines of that request. If the user copied an error with "Copy for agent" in the
-   Dashboard, the request ID is the `requestId` in what they copied.
-4. **`vendure doctor --json`.** Check the project itself: versions, config and migrations. When
-   the cause is still unclear, collect the context in `context.md` and match a support case below.
-5. **Fix the cause.** Use the fixes that the error, the check or the support case names. Ask the
-   user before a fix changes files, dependencies or the database. If no fix fits, say so. Do not
-   invent one.
-6. **`vendure devserver wait --until ready`.** Wait until the dev server has restarted with the fix.
+1. **`vendure devserver status`.** Is the dev server running and ready? When
+   it stopped on an error, the status shows the error's code and its fixes.
+   Note the `restarts` count for step 6. If the server is not running, ask the
+   user to start it.
+2. **`vendure devserver logs --min-severity warn`.** Read the recent warnings
+   and errors. Note the request ID of each failed request.
+3. **`vendure explain <requestId>`.** Collect the error for one request: its
+   code, message, stack and the log lines of that request. If the user copied
+   an error with "Copy for agent" in the Dashboard, the request ID is the
+   `requestId` in what they copied. Skip this step when there is no request
+   ID, for example when the server does not start.
+4. **`vendure doctor --check project dependencies config schema --json`.**
+   Check the project itself: versions, config and the schema. Leave out the
+   `database` check, as `context.md` says. When the cause is still unclear,
+   collect the context in `context.md` and match a support case below. The
+   case files were written for Vendure 3.x. Their checks of versions, config,
+   migrations, assets and email still apply to 4.x.
+5. **Fix the cause.** Use the fixes that the error, the check or the support
+   case names. Ask the user before a fix changes files, dependencies or the
+   database. If no fix fits, say so. Do not invent one.
+6. **`vendure devserver wait --until ready --after-restarts <n>`**, where `<n>`
+   is the `restarts` count from step 1 plus 1. This waits for the restart that
+   the fix causes. Without it, `wait` returns at once when the server was
+   already ready.
 7. **Replay.** Prove the fix:
-   - run the request that failed again with `vendure api admin '<query>'` or
-     `vendure api shop '<query>'`;
-   - or, for a setup problem such as a missing tax rate or shipping method, run
-     `vendure store check`.
+   - run a failed query again with `vendure api admin '<query>'` or
+     `vendure api shop '<query>'`. A mutation changes data again when it is
+     replayed. Ask the user before you replay one, and name the data it
+     changes;
+   - or, for a setup problem such as a missing tax rate or shipping method,
+     run `vendure store check`.
 
-   If the replay fails, start again at step 2 with the new request ID.
+   If the replay fails with a request ID, start again at step 3 with it.
+   Otherwise, start again at step 1.
 
 ## Support cases
 
@@ -55,7 +72,7 @@ Follow these steps in this order. Do not skip a step because you think you know 
 | `@vendure/*` versions differ, or a plugin is not compatible          | `cases/version-mismatch.md` |
 | Asset upload, preview or URL problems, local or S3 storage           | `cases/assets.md`           |
 | Emails are not sent, not received or render wrongly                  | `cases/email.md`            |
-| Something broke after an upgrade to the next 3.x minor               | `cases/upgrade.md`          |
+| Something broke after an upgrade to the next minor                   | `cases/upgrade.md`          |
 
 ## Docs MCP
 
@@ -92,8 +109,10 @@ when you need the full text.
 1. **Do not read or send secrets.** Do not open `.env` files, credential
    files, `.vendure/` files other than `project.json`, or the CLI login file
    `auth.json`. Read the dev server's state and logs only through the
-   `vendure devserver` and `vendure explain` commands. Do not query the
-   database and do not copy database contents.
+   `vendure devserver` and `vendure explain` commands. Remove host names,
+   user names, tokens and connection strings from logs and stacks before you
+   send them to the docs MCP or a human. Do not query the database and do not
+   copy database contents.
 2. **`vendure api admin` acts as the local superadmin.** Use it to replay a
    request, not to change data the user did not ask you to change.
 3. **Send context per request only.** The skill stores nothing and uploads

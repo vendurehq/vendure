@@ -15,8 +15,9 @@ the workspace root.
   (`~/.config/vendure` or `VENDURE_CLI_CONFIG_DIR`)
 - Files in `.vendure/` other than `project.json`
 - Database contents. Do not run queries.
-- Logs and stack traces, unless the user gives them to you. Remove host
-  names, user names, tokens and connection strings before you send them.
+- Logs and stack traces, other than through `vendure devserver logs` and
+  `vendure explain`, unless the user gives them to you. Remove host names,
+  user names, tokens and connection strings before you send them.
 - Values from `vendure-config.ts`. You can read the file to find plugin class
   names, but do not copy option values. The file can contain inline secrets.
 
