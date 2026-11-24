@@ -2,6 +2,7 @@ import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { ID } from '@vendure/common/lib/shared-types';
 import { In } from 'typeorm';
 
+import { idsAreEqual } from '../../../common/utils';
 import { TaxZoneStrategy } from '../../../config/tax/tax-zone-strategy';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
@@ -59,7 +60,7 @@ export const noApplicableTaxRate = defineError<NoRateDetails>({
 });
 
 /** An order to one country, or with no address, as the tax zone strategy sees it. */
-interface TaxTarget {
+export interface TaxTarget {
     countryCode?: string;
 }
 
@@ -88,7 +89,7 @@ export async function checkTaxRates(
     const findings: StoreReadinessFinding[] = [];
     for (const taxCategory of categories) {
         const missing = await findMissingRates(input, services.taxRateService, taxZones, taxCategory);
-        for (const details of missing) {
+        for (const details of missing.filter(d => !isTaxInclusiveDefaultZone(channel, d.zone))) {
             findings.push(
                 toFinding(noApplicableTaxRate, StoreReadinessSeverity.ERROR, details, {
                     channelId: channel.id,
@@ -100,6 +101,16 @@ export async function checkTaxRates(
         }
     }
     return findings;
+}
+
+/**
+ * A tax-inclusive Channel needs a zone rate on its default tax zone, and a country rate is not
+ * enough. `checkTaxInclusiveRates` reports that zone, with the orders it leaves untaxed, so this
+ * check leaves it out rather than report it twice with a fix that says a country rate would be
+ * enough.
+ */
+function isTaxInclusiveDefaultZone(channel: Channel, zone: Zone): boolean {
+    return channel.pricesIncludeTax && idsAreEqual(channel.defaultTaxZone?.id, zone.id);
 }
 
 /** The enabled countries the Channel ships to, by code. */
@@ -116,7 +127,7 @@ function shippingCountryCodes(shippingZones: Zone[]): string[] {
  * The tax zone of an order with no address yet, and of an order to each country the Channel ships
  * to, as the configured strategy picks it.
  */
-async function resolveTaxZones(
+export async function resolveTaxZones(
     { ctx, channel, allZones, shippingZones }: ChannelReadinessInput,
     taxZoneStrategy: TaxZoneStrategy,
 ): Promise<Map<TaxTarget, Zone>> {
