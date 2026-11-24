@@ -4,7 +4,8 @@ import { VendurePlugin } from '@vendure/core';
  * A minimal test plugin that demonstrates the function form of `navSections`
  * in `defineDashboardExtension`. It moves the "Administrators" and "Roles"
  * items out of the "Settings" section and "API Keys" out of the "System"
- * section into a new "Access & Identity" section.
+ * section into a new "Access & Identity" section, and adds a "New product"
+ * entry to the command palette.
  */
 @VendurePlugin({
     dashboard: './dashboard/index.tsx',
