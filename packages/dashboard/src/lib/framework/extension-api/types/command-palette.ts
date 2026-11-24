@@ -19,37 +19,14 @@ export interface CommandPaletteSelectContext {
 
 /**
  * @description
- * An entry of the ⌘K command palette, added by a Dashboard extension. The palette lists it
- * next to the pages of the nav menu, and finds it by its title and keywords.
- *
- * An entry either opens a page (`url`) or runs an action (`onSelect`). Set exactly one of them.
- *
- * @example
- * ```ts
- * import { defineDashboardExtension } from '\@vendure/dashboard';
- * import { Star } from 'lucide-react';
- *
- * defineDashboardExtension({
- *     commandPaletteItems: [
- *         {
- *             id: 'pending-reviews',
- *             title: 'Pending reviews',
- *             icon: Star,
- *             keywords: ['moderation', 'ratings'],
- *             group: 'catalog',
- *             url: '/reviews?status=pending',
- *             requiresPermission: 'ReadCatalog',
- *         },
- *     ],
- * });
- * ```
+ * The fields every {@link DashboardCommandPaletteItemDefinition} has, whether it opens a page
+ * or runs an action.
  *
  * @docsCategory extensions-api
  * @docsPage CommandPalette
- * @docsWeight 0
  * @since 4.0.0
  */
-export interface DashboardCommandPaletteItemDefinition {
+export interface DashboardCommandPaletteItemBase {
     /**
      * @description
      * A unique id for the entry. An entry registered later with the same id replaces it.
@@ -90,19 +67,89 @@ export interface DashboardCommandPaletteItemDefinition {
     order?: number;
     /**
      * @description
-     * The page the entry opens, such as `'/products/new'` or `'/orders?state=PaymentSettled'`.
-     */
-    url?: string;
-    /**
-     * @description
-     * The action the entry runs. The palette closes first. An error it throws, or a promise
-     * it rejects, is logged to the console.
-     */
-    onSelect?: (context: CommandPaletteSelectContext) => void | Promise<void>;
-    /**
-     * @description
      * Restricts the entry to administrators with the given permission or permissions. The
      * administrator needs ANY of them on the active channel, as for a nav menu item.
      */
     requiresPermission?: string | string[];
 }
+
+/**
+ * @description
+ * A command palette entry that opens a page.
+ *
+ * @docsCategory extensions-api
+ * @docsPage CommandPalette
+ * @since 4.0.0
+ */
+export interface DashboardCommandPaletteLinkItem extends DashboardCommandPaletteItemBase {
+    /**
+     * @description
+     * The page the entry opens, such as `'/products/new'` or `'/orders?state=PaymentSettled'`.
+     */
+    url: string;
+    /**
+     * @description
+     * Not allowed: an entry that opens a page runs no action.
+     */
+    onSelect?: never;
+}
+
+/**
+ * @description
+ * A command palette entry that runs an action.
+ *
+ * @docsCategory extensions-api
+ * @docsPage CommandPalette
+ * @since 4.0.0
+ */
+export interface DashboardCommandPaletteActionItem extends DashboardCommandPaletteItemBase {
+    /**
+     * @description
+     * The action the entry runs. The palette closes first. An error it throws, or a promise
+     * it rejects, is logged to the console.
+     */
+    onSelect: (context: CommandPaletteSelectContext) => void | Promise<void>;
+    /**
+     * @description
+     * Not allowed: an entry that runs an action opens no page.
+     */
+    url?: never;
+}
+
+/**
+ * @description
+ * An entry of the ⌘K command palette, added by a Dashboard extension. The palette lists it
+ * next to the pages of the nav menu, and finds it by its title and keywords.
+ *
+ * An entry either opens a page (`url`, see {@link DashboardCommandPaletteLinkItem}) or runs
+ * an action (`onSelect`, see {@link DashboardCommandPaletteActionItem}). The type accepts
+ * exactly one of them.
+ *
+ * @example
+ * ```ts
+ * import { defineDashboardExtension } from '\@vendure/dashboard';
+ * import { Star } from 'lucide-react';
+ *
+ * defineDashboardExtension({
+ *     commandPaletteItems: [
+ *         {
+ *             id: 'pending-reviews',
+ *             title: 'Pending reviews',
+ *             icon: Star,
+ *             keywords: ['moderation', 'ratings'],
+ *             group: 'catalog',
+ *             url: '/reviews?status=pending',
+ *             requiresPermission: 'ReadCatalog',
+ *         },
+ *     ],
+ * });
+ * ```
+ *
+ * @docsCategory extensions-api
+ * @docsPage CommandPalette
+ * @docsWeight 0
+ * @since 4.0.0
+ */
+export type DashboardCommandPaletteItemDefinition =
+    | DashboardCommandPaletteLinkItem
+    | DashboardCommandPaletteActionItem;

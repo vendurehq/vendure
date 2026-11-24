@@ -729,7 +729,10 @@ describe('defineDashboardExtension - commandPaletteItems', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         defineDashboardExtension({
             commandPaletteItems: [
+                // The type rejects both cases; the runtime check is for JavaScript callers.
+                // @ts-expect-error neither url nor onSelect
                 { id: 'neither', title: 'Neither' },
+                // @ts-expect-error both url and onSelect
                 { id: 'both', title: 'Both', url: '/both', onSelect: () => undefined },
                 { id: 'ok', title: 'OK', url: '/ok' },
             ],

@@ -1,7 +1,10 @@
 import { Settings2, Star, Tags } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DashboardCommandPaletteItemDefinition } from '@/vdb/framework/extension-api/types/command-palette.js';
+import {
+    DashboardCommandPaletteItemBase,
+    DashboardCommandPaletteItemDefinition,
+} from '@/vdb/framework/extension-api/types/command-palette.js';
 import {
     NavigationShortcut,
     NavMenuItem,
@@ -43,7 +46,7 @@ describe('buildCommandPaletteGroups', () => {
         expect(groups[0].items).toHaveLength(1);
         expect(insights).toMatchObject({ id: 'insights', title: 'insights', url: '/insights' });
         expect(insights.sectionTitle).toBeUndefined();
-        expect(insights.source.id).toBe('insights');
+        expect(insights.source?.id).toBe('insights');
         expect(groups[1].title).toBe('Catalog');
         expect(groups[1].items.map(i => i.id)).toEqual(['products', 'facets']);
         expect(groups[1].items[0]).toMatchObject({ sectionTitle: 'Catalog', icon: Tags });
@@ -89,7 +92,7 @@ describe('buildCommandPaletteGroups with extension entries', () => {
     };
     const entry = (
         id: string,
-        extra: Partial<DashboardCommandPaletteItemDefinition> = {},
+        extra: Partial<DashboardCommandPaletteItemBase> = {},
     ): DashboardCommandPaletteItemDefinition => ({ id, title: id, url: `/${id}`, ...extra });
 
     it('lists an entry after the pages of the nav section its group names', () => {
