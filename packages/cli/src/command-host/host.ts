@@ -275,6 +275,7 @@ function protectSecrets(
         }
         let secretFile: string;
         try {
+            // executeCommand refuses before run() without a writer; this keeps the function safe alone.
             if (!env.writeSecret) {
                 throw new Error('this host cannot write secret files');
             }
