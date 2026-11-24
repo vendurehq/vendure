@@ -36,6 +36,7 @@ describe('loadMergedManifest', () => {
             'add job-queue',
             'add plugin',
             'add service',
+            'api',
             'commands',
             'devserver logs',
             'devserver start',

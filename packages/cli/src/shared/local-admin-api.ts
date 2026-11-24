@@ -1,6 +1,11 @@
 import { defineError, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
 
-import { DevServerStatus, isDevRunAlive, readDevServerState } from '../commands/dev/state-file.js';
+import {
+    DevServerState,
+    DevServerStatus,
+    isDevRunAlive,
+    readDevServerState,
+} from '../commands/dev/state-file.js';
 
 /**
  * The local endpoints that accept the per-run secret of a `vendure dev` run as a credential:
@@ -9,8 +14,9 @@ import { DevServerStatus, isDevRunAlive, readDevServerState } from '../commands/
 export type LocalAdminEndpoint = 'admin-api' | 'mcp-admin';
 
 /**
- * The errors of {@link resolveLocalAdminTarget} and {@link sendLocalAdminRequest}. A command that
- * uses them lists {@link localAdminApiErrorList} in its `errors`.
+ * The errors of the functions in this module that reach the local dev server: the Admin API and
+ * MCP calls with the per-run secret, and the anonymous Shop API call. A command that uses them lists
+ * {@link localAdminApiErrorList} in its `errors`.
  */
 export const localAdminApiErrors = {
     notRunning: defineError<Record<string, never>>({
@@ -40,13 +46,13 @@ export const localAdminApiErrors = {
                       },
                   ],
     }),
-    endpointUnknown: defineError<{ endpoint: LocalAdminEndpoint }>({
+    endpointUnknown: defineError<{ endpoint: LocalAdminEndpoint | 'shop-api' }>({
         code: 'devserver.endpoint-unknown',
         exit: 1,
         message: ({ endpoint }) =>
             endpoint === 'mcp-admin'
                 ? 'The vendure dev run has not reported an MCP admin endpoint. The McpPlugin may not be installed.'
-                : 'The vendure dev run has not reported the URL of its Admin API.',
+                : `The vendure dev run has not reported the URL of its ${apiName(endpoint)}.`,
         fix: () => [
             {
                 path: ['devserver', 'status'],
@@ -83,6 +89,10 @@ export const localAdminApiErrors = {
     }),
 };
 
+function apiName(endpoint: LocalAdminEndpoint | 'shop-api'): string {
+    return endpoint === 'shop-api' ? 'Shop API' : 'Admin API';
+}
+
 /** Every error in {@link localAdminApiErrors}, for a command's `errors`. */
 export const localAdminApiErrorList = Object.values(localAdminApiErrors);
 
@@ -104,13 +114,9 @@ export function resolveLocalAdminTarget(
     projectDir: string,
     endpoint: LocalAdminEndpoint,
 ): LocalAdminTarget | ErrorResult {
-    const state = readDevServerState(projectDir);
-    // A run writes `stopped` just before its process exits.
-    if (!state || state.status === 'stopped' || !isDevRunAlive(state)) {
-        return fail(localAdminApiErrors.notRunning, {});
-    }
-    if (state.status !== 'ready') {
-        return fail(localAdminApiErrors.notReady, { status: state.status });
+    const state = readReadyState(projectDir);
+    if (isErrorResult(state)) {
+        return state;
     }
     const reported = endpoint === 'mcp-admin' ? state.urls.mcp : state.urls.admin;
     if (!reported) {
@@ -123,9 +129,41 @@ export function resolveLocalAdminTarget(
     return { url, secret: state.secret };
 }
 
+/**
+ * The Shop API URL of the `vendure dev` run serving the project, with the run checks of
+ * {@link resolveLocalAdminTarget}. A Shop API call carries no credential, so a URL that is not on a
+ * loopback address is used as it is; only a wildcard bind is mapped to loopback.
+ */
+export function resolveLocalShopApiUrl(projectDir: string): string | ErrorResult {
+    const state = readReadyState(projectDir);
+    if (isErrorResult(state)) {
+        return state;
+    }
+    const reported = state.urls.shop;
+    if (!reported) {
+        return fail(localAdminApiErrors.endpointUnknown, { endpoint: 'shop-api' });
+    }
+    return toLoopbackUrl(reported) ?? reported;
+}
+
+function readReadyState(projectDir: string): DevServerState | ErrorResult {
+    const state = readDevServerState(projectDir);
+    // A run writes `stopped` just before its process exits.
+    if (!state || state.status === 'stopped' || !isDevRunAlive(state)) {
+        return fail(localAdminApiErrors.notRunning, {});
+    }
+    if (state.status !== 'ready') {
+        return fail(localAdminApiErrors.notReady, { status: state.status });
+    }
+    return state;
+}
+
 export interface LocalAdminRequestOptions {
     signal?: AbortSignal;
-    /** Extra headers, such as `vendure-token`. The helper always sets `Authorization` and `Content-Type`. */
+    /**
+     * Extra headers, such as `vendure-token`. The helper always sets `Content-Type`, and sets
+     * `Authorization` on the calls that carry the per-run secret.
+     */
     headers?: Record<string, string>;
     /** @default globalThis.fetch */
     fetch?: typeof fetch;
@@ -151,22 +189,34 @@ export async function sendLocalAdminRequest(
         return target;
     }
     const headers = new Headers(options.headers);
-    if (!headers.has('accept')) {
+    headers.set('authorization', `Bearer ${target.secret}`);
+    return postJson(target.url, body, headers, {
+        ...options,
         // Streamable HTTP MCP answers with JSON or an event stream, and needs both accepted.
-        headers.set(
-            'accept',
-            endpoint === 'mcp-admin' ? 'application/json, text/event-stream' : 'application/json',
-        );
+        accept: endpoint === 'mcp-admin' ? 'application/json, text/event-stream' : 'application/json',
+    });
+}
+
+/**
+ * POSTs a JSON body, and maps a connection that fails to `devserver.unreachable`. A request the
+ * caller aborted rethrows. Redirects are refused, so a credential in `headers` stays with `url`.
+ */
+async function postJson(
+    url: string,
+    body: unknown,
+    headers: Headers,
+    options: LocalAdminRequestOptions & { accept: string },
+): Promise<Response | ErrorResult> {
+    if (!headers.has('accept')) {
+        headers.set('accept', options.accept);
     }
     headers.set('content-type', 'application/json');
-    headers.set('authorization', `Bearer ${target.secret}`);
     const doFetch = options.fetch ?? globalThis.fetch;
     try {
-        return await doFetch(target.url, {
+        return await doFetch(url, {
             method: 'POST',
             headers,
             body: JSON.stringify(body),
-            // A redirect could carry the credential to another URL.
             redirect: 'error',
             signal: options.signal,
         });
@@ -174,7 +224,7 @@ export async function sendLocalAdminRequest(
         if (options.signal?.aborted) {
             throw e;
         }
-        return fail(localAdminApiErrors.unreachable, { url: target.url, message: describeFetchError(e) });
+        return fail(localAdminApiErrors.unreachable, { url, message: describeFetchError(e) });
     }
 }
 
@@ -192,22 +242,61 @@ export interface GraphqlResponse<Data = Record<string, unknown>> {
  */
 export async function localAdminGraphql<Data = Record<string, unknown>>(
     projectDir: string,
-    operation: { query: string; variables?: Record<string, unknown>; operationName?: string },
+    operation: GraphqlOperation,
     options: LocalAdminRequestOptions = {},
 ): Promise<GraphqlResponse<Data> | ErrorResult> {
     const response = await sendLocalAdminRequest(projectDir, 'admin-api', operation, options);
     if (isErrorResult(response)) {
         return response;
     }
+    return readResponse<Data>(response, 'the Admin API', options.signal);
+}
+
+/**
+ * Runs a GraphQL operation on the Shop API of the local `vendure dev` run with no credential, the
+ * same as a storefront. Each call is a new anonymous session. The result is the same as for
+ * {@link localAdminGraphql}.
+ */
+export async function localShopGraphql<Data = Record<string, unknown>>(
+    projectDir: string,
+    operation: GraphqlOperation,
+    options: LocalAdminRequestOptions = {},
+): Promise<GraphqlResponse<Data> | ErrorResult> {
+    const url = resolveLocalShopApiUrl(projectDir);
+    if (isErrorResult(url)) {
+        return url;
+    }
+    const response = await postJson(url, operation, new Headers(options.headers), {
+        ...options,
+        accept: 'application/json',
+    });
+    if (isErrorResult(response)) {
+        return response;
+    }
+    return readResponse<Data>(response, url, options.signal);
+}
+
+/** A GraphQL operation as it is posted. */
+export interface GraphqlOperation {
+    query: string;
+    variables?: Record<string, unknown>;
+    operationName?: string;
+}
+
+async function readResponse<Data>(
+    response: Response,
+    fallbackUrl: string,
+    signal: AbortSignal | undefined,
+): Promise<GraphqlResponse<Data> | ErrorResult> {
     try {
         return await readGraphqlResponse<Data>(response);
     } catch (e: unknown) {
         // The connection can fail while the body arrives, after `fetch` resolved.
-        if (options.signal?.aborted) {
+        if (signal?.aborted) {
             throw e;
         }
         return fail(localAdminApiErrors.unreachable, {
-            url: response.url || 'the Admin API',
+            url: response.url || fallbackUrl,
             message: describeFetchError(e),
         });
     }

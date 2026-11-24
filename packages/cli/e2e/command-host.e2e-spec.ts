@@ -378,6 +378,7 @@ describe('Command host E2E', () => {
                 'add_job-queue',
                 'add_plugin',
                 'add_service',
+                'api',
                 'devserver_start',
                 'devserver_status',
                 'devserver_wait',
