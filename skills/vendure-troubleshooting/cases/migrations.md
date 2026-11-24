@@ -53,7 +53,7 @@ that the config points to. Confirm that this is the intended database.
 | No initial migration              | `vendure migrate -g initial --from-empty`                                                         | `developer-guide/migrations#generating-a-baseline-migration-for-an-existing-project` |
 | Pattern matches no files          | Fix `dbConnectionOptions.migrations`, or build the project first                                  | `reference/typescript-api/migration/migration-diagnostic`                            |
 | `synchronize: true` in production | Set `synchronize: false` and use migrations                                                       | `developer-guide/migrations#synchronize-vs-migrate`                                  |
-| Generated migration is empty      | Build the project if entities changed, then generate again                                        | `skills/vendure-cli/commands/migrate.md`                                             |
+| Generated migration is empty      | Build the project if entities changed, then generate again                                        | `developer-guide/cli#the-migrate-command`                                            |
 
 Notes for the remedies:
 

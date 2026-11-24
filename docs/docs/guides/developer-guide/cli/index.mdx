@@ -35,7 +35,7 @@ For guidance on using the CLI together with project instructions for AI coding a
 ## JSON Output for Scripts and Agents
 
 `doctor`, the `add` commands, `migrate generate`, `migrate run`, `migrate revert`, the `devserver`
-commands and `commands` accept `--json`. With `--json`, the command
+commands, `commands` and `guide` accept `--json`. With `--json`, the command
 writes exactly one JSON document to stdout, and sends everything else, including output from libraries
 and the processes it starts, to stderr:
 
@@ -72,6 +72,11 @@ While it runs, a command writes events to stderr as one JSON object per line, ea
 `"vendure": "event"`, so a script can tell them apart from other output.
 
 `vendure commands --json` lists these commands, with the JSON Schema of each one's input and output.
+
+`vendure guide` prints a short guide for coding agents: how to run commands with `--json`, answer
+`incomplete` results, use the dev server, and when to use the Developer MCP (`vendure mcp`) or the
+Store MCP. It ships with the CLI, so it always matches the installed version. The `vendure-cli` agent
+skill (`npx skills add vendurehq/vendure --skill vendure-cli`) points agents to it.
 
 ## The Dev Command
 

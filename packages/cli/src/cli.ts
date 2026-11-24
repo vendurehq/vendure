@@ -51,6 +51,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // complete. Commander copies the help configuration into each subcommand as
     // it is created, so this must be set first.
     program.configureHelp({ showGlobalOptions: true, styleTitle: styleHelpTitle });
+    // Only on the top-level help, which is where an agent looks first.
+    program.addHelpText(
+        'after',
+        '\nAgents: run "vendure guide" for how to use this CLI, --json and the Developer MCP.',
+    );
 
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
