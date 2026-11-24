@@ -18,6 +18,7 @@ import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import { Channel } from '../../entity/channel/channel.entity';
 import { CustomerGroup } from '../../entity/customer-group/customer-group.entity';
 import { Region } from '../../entity/region/region.entity';
 import { TaxCategory } from '../../entity/tax-category/tax-category.entity';
@@ -123,6 +124,15 @@ export class TaxRateService {
         await this.ensureCacheExists();
     }
 
+    /**
+     * Reloads the cache of active TaxRates, which keys country rates by country code. Called when a
+     * country's code changes.
+     * @internal
+     */
+    async refreshActiveTaxRates(ctx: RequestContext) {
+        await this.updateActiveTaxRates(ctx);
+    }
+
     findAll(
         ctx: RequestContext,
         options?: ListQueryOptions<TaxRate>,
@@ -212,6 +222,7 @@ export class TaxRateService {
         if (!taxRate) {
             throw new EntityNotFoundError('TaxRate', input.id);
         }
+        const previousTarget = { zoneId: taxRate.zoneId ?? null, regionId: taxRate.regionId ?? null };
         // Setting one target clears the other, so check the targets the rate has after the update.
         const nextZoneId = input.zoneId !== undefined ? input.zoneId : input.regionId ? null : taxRate.zoneId;
         const nextRegionId =
@@ -252,7 +263,7 @@ export class TaxRateService {
         // TaxRate when updating its own tax rate cache.
         await this.connection.commitOpenTransaction(ctx);
 
-        await this.eventBus.publish(new TaxRateEvent(ctx, updatedTaxRate, 'updated', input));
+        await this.eventBus.publish(new TaxRateEvent(ctx, updatedTaxRate, 'updated', input, previousTarget));
 
         return assertFound(this.findOne(ctx, taxRate.id));
     }
@@ -262,6 +273,9 @@ export class TaxRateService {
         const deletedTaxRate = new TaxRate(taxRate);
         try {
             await this.connection.getRepository(ctx, TaxRate).remove(taxRate);
+            // As on update, so that prices calculated from now on no longer use the deleted rate
+            await this.updateActiveTaxRates(ctx);
+            await this.connection.commitOpenTransaction(ctx);
             await this.eventBus.publish(new TaxRateEvent(ctx, deletedTaxRate, 'deleted', id));
             return {
                 result: DeletionResult.DELETED,
@@ -309,6 +323,27 @@ export class TaxRateService {
             ? byCountry.get(`${target.countryCode}:${categoryId}`)
             : undefined;
         return countryRate ?? byZone.get(`${String(this.idOf(target.zone))}:${categoryId}`);
+    }
+
+    /**
+     * @description
+     * Returns the TaxRate that a tax-inclusive price in the Channel includes: the country rate of the
+     * Channel's `taxCountryCode` when it is set, otherwise the zone rate of its default tax Zone.
+     * With a tax country but no country rate for it, the default tax Zone's zone rate is used.
+     * Returns `undefined` when neither exists.
+     *
+     * @since 4.0.0
+     */
+    async findIncludedTaxRate(
+        ctx: RequestContext,
+        channel: Channel,
+        taxCategory: TaxCategory | ID,
+    ): Promise<TaxRate | undefined> {
+        return this.findApplicableTaxRate(
+            ctx,
+            { countryCode: channel.taxCountryCode ?? undefined, zone: channel.defaultTaxZone },
+            taxCategory,
+        );
     }
 
     /**

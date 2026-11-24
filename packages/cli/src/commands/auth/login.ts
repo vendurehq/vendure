@@ -1,8 +1,7 @@
 import { CommandContext } from '@vendure/common/lib/command';
 
-import { checkAuthStatus, loginWithDevice, readAuthStatus } from '../../auth/auth-session.js';
-import { clearPendingLogin, startPendingLogin } from '../../auth/pending-login.js';
-import { openConsoleBrowser } from '../console/authentication.js';
+import { checkAuthStatus, readAuthStatus } from '../../auth/auth-session.js';
+import { startPendingLogin } from '../../auth/pending-login.js';
 
 import {
     AuthCommandDependencies,
@@ -10,12 +9,11 @@ import {
     describeLoggedIn,
     describeRefusal,
     invalidConsoleApi,
-    keptBrowserChoiceNotice,
     loginError,
-    organizationChooser,
     toLoggedIn,
 } from './auth.js';
 import { LoginOutput } from './auth.schema.js';
+import { signInWithDevice } from './sign-in.js';
 
 /**
  * Signs in with the device flow. A person at a terminal is shown the code, the browser opens,
@@ -81,33 +79,10 @@ export async function runLogin(
         }
     }
 
-    let keptBrowserChoice = false;
-    const openUrl = dependencies.openUrl ?? openConsoleBrowser;
     try {
-        const status = await loginWithDevice({
-            ...options,
-            organization,
-            chooseOrganization: organizationChooser(ctx, () => (keptBrowserChoice = true)),
-            onDeviceAuthorization: async device => {
-                ctx.notice(
-                    'info',
-                    `Confirm this code in your browser: ${device.userCode}\n` +
-                        `If the browser does not open, visit ${device.verificationUriComplete}`,
-                );
-                try {
-                    await openUrl(device.verificationUriComplete);
-                } catch {
-                    // The URL is already on screen.
-                }
-                ctx.progress('Waiting for approval...');
-            },
-        });
-        // A later `auth wait` must not finish an older code and replace this login.
-        clearPendingLogin(options);
-        if (keptBrowserChoice) {
-            ctx.notice('info', keptBrowserChoiceNotice(status));
-        }
-        return toLoggedIn(status);
+        return toLoggedIn(
+            await signInWithDevice(ctx, { ...options, organization, openUrl: dependencies.openUrl }),
+        );
     } catch (error) {
         return loginError(error);
     }

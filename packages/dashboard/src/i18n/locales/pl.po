@@ -1828,6 +1828,11 @@ msgstr "Przeniesiono zamówienie"
 msgid "is before"
 msgstr "jest przed"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr ""
+
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "This option combination is already used by \"{0}\""
@@ -2359,6 +2364,7 @@ msgstr "Ostatnie 30 dni"
 msgid "No facet values"
 msgstr "Brak wartości aspektów"
 
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
 #: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "None"
 msgstr ""
@@ -7654,6 +7660,10 @@ msgstr "Dodaj zasób"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Dodano klienta do grupy"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"

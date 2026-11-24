@@ -131,6 +131,7 @@ A TaxRate can now target a country as well as a Zone, and a country rate wins ov
 These additions need no change to your code:
 
 - **`TaxZoneStrategy.determineTaxCountryCode()`** is a new optional method, which chooses the country whose country rates apply. Without it, the country of the shipping address is used, as above. The new **`defaultTaxCountryCode()`** function exports that default, so a strategy can keep it for some cases. See [Choosing the tax country](/core-concepts/taxes/#choosing-the-tax-country).
+- **`Channel.taxCountryCode`** is a new optional field, the country whose rate the Channel's tax-inclusive prices include. **`channel`** has a new nullable column, `taxCountryCode`. The generated migration adds it. Channels that leave it unset behave as before, and `defaultTaxZone` keeps all its roles. **`TaxRateService.findIncludedTaxRate()`** returns the included rate, and `DefaultProductVariantPriceCalculationStrategy` uses it. See [The Channel's tax country](/core-concepts/taxes/#the-channels-tax-country).
 - In a Channel whose prices include tax, when the tax Zone or the tax country of an active Order changes, every OrderLine is now priced again, as on a currency change, because its net price depends on the rate. Before, only the lines being edited were. The line's `initialListPrice` is converted between gross and net the same way, so the `ChangedPriceHandlingStrategy` is only called when the merchant changed the price. Order modifications keep the prices of the lines they do not change.
 
 ## Changed defaults

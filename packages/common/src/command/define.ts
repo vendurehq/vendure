@@ -7,6 +7,7 @@ import type {
     FailedResult,
     Fix,
     IncompleteResult,
+    SecretFileReference,
 } from './types';
 
 /**
@@ -92,6 +93,21 @@ export function isErrorResult(value: unknown): value is ErrorResult {
 
 function isMarked(value: unknown, kind: string): boolean {
     return typeof value === 'object' && value !== null && (value as any).vendureResult === kind;
+}
+
+/**
+ * @description
+ * Whether a field of `secretOutputs` holds a {@link SecretFileReference} instead of the secret,
+ * because no person saw the output at a terminal. `render()` uses it to print the path instead.
+ *
+ * @since 4.0.0
+ */
+export function isSecretFileReference(value: unknown): value is SecretFileReference {
+    return (
+        value !== null &&
+        typeof value === 'object' &&
+        typeof (value as { secretFile?: unknown }).secretFile === 'string'
+    );
 }
 
 /**

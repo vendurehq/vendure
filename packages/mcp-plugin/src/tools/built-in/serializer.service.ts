@@ -468,6 +468,7 @@ export class McpToolSerializerService {
             defaultCurrencyCode: channel.defaultCurrencyCode,
             availableCurrencyCodes: channel.availableCurrencyCodes,
             pricesIncludeTax: channel.pricesIncludeTax,
+            taxCountryCode: channel.taxCountryCode ?? null,
             defaultTaxZone: channel.defaultTaxZone ? this.zoneReference(channel.defaultTaxZone) : null,
             defaultShippingZone: channel.defaultShippingZone
                 ? this.zoneReference(channel.defaultShippingZone)

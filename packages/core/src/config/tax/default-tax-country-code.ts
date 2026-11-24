@@ -1,3 +1,4 @@
+import { idsAreEqual } from '../../common/utils';
 import { Channel, Order, Zone } from '../../entity';
 
 /**
@@ -6,8 +7,10 @@ import { Channel, Order, Zone } from '../../entity';
  * configured {@link TaxZoneStrategy} does not implement `determineTaxCountryCode()`, and a strategy
  * that does can call it to keep the default for some cases.
  *
- * It returns the country of the Order's shipping address, or `undefined` when there is no Order or
- * no shipping country.
+ * It returns the country of the Order's shipping address. With no Order or no shipping country, it
+ * returns the Channel's `taxCountryCode` when `activeTaxZone` is the Channel's default tax Zone, so
+ * that product pages and carts before an address is set show the rate of the seller's own country.
+ * Otherwise it returns `undefined`, and only the zone rate of `activeTaxZone` applies.
  *
  * @example
  * ```ts
@@ -27,5 +30,11 @@ export function defaultTaxCountryCode(
     activeTaxZone: Zone,
     order?: Order,
 ): string | undefined {
-    return order?.shippingAddress?.countryCode || undefined;
+    const shippingCountryCode = order?.shippingAddress?.countryCode;
+    if (shippingCountryCode) {
+        return shippingCountryCode;
+    }
+    const isDefaultTaxZone =
+        channel.defaultTaxZone && idsAreEqual(activeTaxZone.id, channel.defaultTaxZone.id);
+    return (isDefaultTaxZone && channel.taxCountryCode) || undefined;
 }

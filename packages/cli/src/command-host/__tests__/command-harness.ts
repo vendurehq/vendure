@@ -21,6 +21,8 @@ export async function runCommandInHarness(
         projectRoot?: string | undefined;
         spawn?: (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult>;
         signal?: AbortSignal;
+        requireCredential?: HostEnvironment['requireCredential'];
+        writeSecret?: HostEnvironment['writeSecret'];
     } = {},
 ): Promise<HarnessRun> {
     const events: CommandEvent[] = [];
@@ -39,6 +41,8 @@ export async function runCommandInHarness(
         signal: options.signal ?? new AbortController().signal,
         mcp: options.mcp ?? false,
         prompter: options.prompter,
+        ...(options.requireCredential ? { requireCredential: options.requireCredential } : {}),
+        ...(options.writeSecret ? { writeSecret: options.writeSecret } : {}),
         emit: event => events.push(event),
         spawn: async (command, args, spawnOptions) => {
             spawned.push({ command, args });

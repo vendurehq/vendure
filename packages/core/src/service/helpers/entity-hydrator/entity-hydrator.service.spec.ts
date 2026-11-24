@@ -386,7 +386,7 @@ describe('EntityHydrator', () => {
                 translator as any,
                 configService as any,
             );
-            const ctx = { channelId: 1, currencyCode: 'USD' } as any;
+            const ctx = { channelId: 1, channel: { id: 1 }, currencyCode: 'USD' } as any;
             return { hydrator, ctx, target: new TestOrder() };
         }
 
