@@ -42,7 +42,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { euPreset } from '../src/data-import/presets/builtin-presets';
+
 import { ISO_COUNTRIES } from '../src/data-import/presets/iso-countries';
+import { graphql as adminGraphql } from './graphql/graphql-admin';
 
 import { graphql } from './graphql/graphql-admin';
 import {
@@ -72,6 +74,16 @@ const EMPTY_DATABASE = {
     },
     customerCount: 0,
 };
+
+const taxStoreReadinessDocument = adminGraphql(`
+    query PresetTaxStoreReadiness {
+        storeReadiness {
+            findings {
+                code
+            }
+        }
+    }
+`);
 
 describe('Base-data presets', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
@@ -393,13 +405,15 @@ describe('Base-data presets', () => {
             });
 
             it(
-                'creates a standard and a reduced rate per member state, and zone rates at the seller rate',
+                'creates a standard and a reduced rate per member state, with the seller country as tax country',
                 async () => {
                     const result = await applyDirectly(euPreset, { country: 'DE' });
-                    expect(result.created.taxRates).toBe(2 * 27 + 2);
+                    expect(result.created.taxRates).toBe(2 * 27);
+                    expect(result.channel.taxCountryCode).toBe('DE');
                     const channel = await defaultChannel();
                     expect(channel.defaultCurrencyCode).toBe('EUR');
                     expect(channel.pricesIncludeTax).toBe(true);
+                    expect(channel.taxCountryCode).toBe('DE');
                     const zone = await repo(Zone).findOne({
                         where: { name: 'EU' },
                         relations: { members: true },
@@ -410,8 +424,10 @@ describe('Base-data presets', () => {
                     const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
                         options: { take: 100 },
                     });
-                    const zoneRates = taxRates.items.filter(r => r.zone?.name === 'EU');
-                    expect(zoneRates.map(r => [r.category.name, r.value]).sort()).toEqual([
+                    // The DE country rates are the included rates, so the zone has none
+                    expect(taxRates.items.filter(r => r.zone?.name === 'EU')).toEqual([]);
+                    const de = taxRates.items.filter(r => r.region?.code === 'DE');
+                    expect(de.map(r => [r.category.name, r.value]).sort()).toEqual([
                         ['Reduced', 7],
                         ['Standard', 19],
                     ]);
@@ -454,6 +470,18 @@ describe('Base-data presets', () => {
                 },
                 TEST_SETUP_TIMEOUT_MS,
             );
+
+            it('passes the tax checks of the store check', async () => {
+                await adminClient.asSuperAdmin();
+                const { storeReadiness } = await adminClient.query(taxStoreReadinessDocument);
+                expect(
+                    storeReadiness.findings
+                        .map(f => f.code)
+                        .filter(
+                            code => code.startsWith('store.tax.') || code.startsWith('store.channel.tax'),
+                        ),
+                ).toEqual([]);
+            });
         });
     });
 

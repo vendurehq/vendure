@@ -19,10 +19,11 @@ export interface BaseDataTaxCategory {
     name: string;
     isDefault?: boolean;
     /**
-     * The rate on the preset's zone, in percent. In a tax-inclusive channel it is the rate the
-     * entered prices include, so the default tax zone always has one.
+     * The rate on the preset's zone, in percent. In a tax-inclusive channel with no
+     * `taxCountryCode`, it is the rate the entered prices include, so the default tax zone needs one.
+     * Leave it out when the plan sets a tax country, whose country rate is then the included rate.
      */
-    zoneRate: number;
+    zoneRate?: number;
     /** The name of the zone rate. Defaults to the category name followed by the zone name. */
     zoneRateName?: string;
     /** Rates for single countries in the zone, keyed by country code, in percent. */
@@ -39,6 +40,11 @@ export interface BaseDataPlan {
     currencyCode: CurrencyCode;
     pricesIncludeTax: boolean;
     zone: { name: string; countryCodes: string[] };
+    /**
+     * The country whose rates the entered prices include, set as the channel's `taxCountryCode`.
+     * It must be in the zone, with a country rate in each tax category.
+     */
+    taxCountryCode?: string;
     taxCategories: BaseDataTaxCategory[];
     /** The price of the flat-rate shipping method, in minor units. Defaults to {@link DEFAULT_SHIPPING_RATE}. */
     shippingRate?: number;
@@ -92,14 +98,16 @@ export async function seedBaseData(
             name: category.name,
             isDefault: category.isDefault ?? false,
         });
-        await services.taxRateService.create(ctx, {
-            name: category.zoneRateName ?? `${category.name} ${plan.zone.name}`,
-            enabled: true,
-            value: category.zoneRate,
-            categoryId: taxCategory.id,
-            zoneId: zone.id,
-        });
-        taxRates++;
+        if (category.zoneRate !== undefined) {
+            await services.taxRateService.create(ctx, {
+                name: category.zoneRateName ?? `${category.name} ${plan.zone.name}`,
+                enabled: true,
+                value: category.zoneRate,
+                categoryId: taxCategory.id,
+                zoneId: zone.id,
+            });
+            taxRates++;
+        }
         for (const [countryCode, value] of Object.entries(category.countryRates ?? {})) {
             await services.taxRateService.create(ctx, {
                 name: `${category.name} ${countryCode}`,
@@ -112,7 +120,12 @@ export async function seedBaseData(
         }
     }
 
-    const standardRate = plan.taxCategories.find(c => c.isDefault)?.zoneRate ?? 0;
+    // The rate the shipping price includes: the standard rate of the tax country, or of the zone
+    const standardCategory = plan.taxCategories.find(c => c.isDefault);
+    const standardRate =
+        (plan.taxCountryCode ? standardCategory?.countryRates?.[plan.taxCountryCode] : undefined) ??
+        standardCategory?.zoneRate ??
+        0;
     await services.shippingMethodService.create(ctx, {
         code: 'flat-rate',
         fulfillmentHandler: manualFulfillmentHandler.code,
@@ -180,6 +193,7 @@ export async function seedBaseData(
         availableCurrencyCodes: [plan.currencyCode],
         availableLanguageCodes: [channel.defaultLanguageCode],
         pricesIncludeTax: plan.pricesIncludeTax,
+        ...(plan.taxCountryCode ? { taxCountryCode: plan.taxCountryCode } : {}),
         defaultTaxZoneId: zone.id,
         defaultShippingZoneId: zone.id,
     });
@@ -203,6 +217,7 @@ export async function seedBaseData(
         channel: {
             defaultCurrencyCode: plan.currencyCode,
             pricesIncludeTax: plan.pricesIncludeTax,
+            ...(plan.taxCountryCode ? { taxCountryCode: plan.taxCountryCode } : {}),
             defaultTaxZone: plan.zone.name,
             defaultShippingZone: plan.zone.name,
         },
