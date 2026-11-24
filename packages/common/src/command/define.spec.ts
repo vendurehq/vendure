@@ -64,7 +64,7 @@ describe('isValidErrorCode', () => {
         }
     });
 
-    it('refuses a code without a namespace, with upper case, underscores or empty parts', () => {
+    it('refuses a code without a namespace, with upper case, underscores, empty parts or stray hyphens', () => {
         for (const code of [
             'not-running',
             'Devserver.not-running',

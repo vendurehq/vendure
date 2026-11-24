@@ -13,7 +13,7 @@ import type {
  * lower-case letters, digits and hyphens, for example `devserver.not-running` or
  * `core.config.invalid-custom-fields`.
  */
-export const ERROR_CODE_PATTERN = /^[a-z]+(\.[a-z0-9-]+)+$/;
+export const ERROR_CODE_PATTERN = /^[a-z]+(\.[a-z0-9]+(-[a-z0-9]+)*)+$/;
 
 /**
  * @description

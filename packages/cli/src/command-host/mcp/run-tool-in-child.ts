@@ -14,7 +14,7 @@ const DEFAULT_SIGINT_AFTER_MS = 2_000;
 /**
  * How long a child has to stop after SIGINT, before the whole process group is killed. It is
  * longer than the grace the CLI gives a cancelled command, so the child can still write its
- * `cancelled` envelope.
+ * `cli.cancelled` envelope.
  */
 const KILL_AFTER_MS = 10_000;
 

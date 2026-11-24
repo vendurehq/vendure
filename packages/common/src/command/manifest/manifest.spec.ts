@@ -71,4 +71,15 @@ describe('mergeManifests', () => {
             ]),
         ).toThrow(/short flag -a/);
     });
+
+    it('refuses an error code that is not namespace.kebab-name', () => {
+        expect(() =>
+            mergeManifests([manifest('@a/one', entry(['x'], { errors: [{ code: 'NotFound', exit: 1 }] }))]),
+        ).toThrow(/@a\/one declares the command "x" with the error code "NotFound"/);
+        expect(
+            mergeManifests([
+                manifest('@a/one', entry(['x'], { errors: [{ code: 'a.not-found', exit: 1 }] })),
+            ]),
+        ).toHaveLength(1);
+    });
 });

@@ -1,3 +1,4 @@
+import { isValidErrorCode } from '@vendure/common/lib/command';
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { describe, expect, it, vi } from 'vitest';
@@ -109,7 +110,8 @@ describe('store readiness codes', () => {
         );
         expect(codes.length).toBeGreaterThanOrEqual(14);
         for (const code of codes) {
-            expect(code).toMatch(/^store(\.[a-z0-9-]+)+$/);
+            expect(code.startsWith('store.')).toBe(true);
+            expect(isValidErrorCode(code)).toBe(true);
         }
         expect(new Set(codes).size).toBe(codes.length);
     });
