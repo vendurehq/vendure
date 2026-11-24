@@ -23,6 +23,8 @@ import { checkStockLocations } from './stock-locations.check';
 import { ChannelReadinessInput } from './store-readiness-types';
 import * as superadminModule from './superadmin-credentials.check';
 import { checkSuperadminCredentials } from './superadmin-credentials.check';
+import * as taxInclusiveRatesModule from './tax-inclusive-rates.check';
+import { checkTaxInclusiveRates } from './tax-inclusive-rates.check';
 import * as taxRateOverlapsModule from './tax-rate-overlaps.check';
 import { checkTaxRateOverlaps } from './tax-rate-overlaps.check';
 import * as taxRatesModule from './tax-rates.check';
@@ -95,6 +97,7 @@ describe('store readiness codes', () => {
             shippingZonesModule,
             stockLocationsModule,
             superadminModule,
+            taxInclusiveRatesModule,
             taxRateOverlapsModule,
             taxRatesModule,
             { checkFailed },
@@ -107,7 +110,7 @@ describe('store readiness codes', () => {
                 )
                 .map(value => (value as { code: string }).code),
         );
-        expect(codes.length).toBeGreaterThanOrEqual(14);
+        expect(codes.length).toBeGreaterThanOrEqual(15);
         for (const code of codes) {
             expect(code).toMatch(/^store(\.[a-z0-9-]+)+$/);
         }
@@ -263,6 +266,95 @@ describe('checkTaxRates', () => {
                 connection: connection([]),
                 taxRateService: {} as any,
                 taxZoneStrategy: defaultStrategy,
+            }),
+        ).toEqual([]);
+    });
+});
+
+describe('checkTaxInclusiveRates', () => {
+    const europe = zone('eu', [country('DE'), country('FR')]);
+
+    function connection(categoryIds: string[]) {
+        return {
+            getRepository: () => ({
+                createQueryBuilder: () =>
+                    queryBuilder({ getRawMany: categoryIds.map(taxCategoryId => ({ taxCategoryId })) }),
+                find: () => Promise.resolve(categoryIds.map(id => ({ id, name: `Category ${id}` }))),
+            }),
+        } as any;
+    }
+
+    /** Zone rates exist for the given tax category IDs, on any zone. */
+    function taxRateService(categoriesWithZoneRate: string[]) {
+        return {
+            findApplicableTaxRate: vi.fn((_ctx: unknown, _zone: unknown, categoryId: string) =>
+                Promise.resolve(categoriesWithZoneRate.includes(categoryId) ? { id: 'rate' } : undefined),
+            ),
+        } as any;
+    }
+
+    function inclusiveInput(overrides: Record<string, unknown> = {}) {
+        return input({ channel: channel({ pricesIncludeTax: true, defaultTaxZone: europe, ...overrides }) });
+    }
+
+    it('reports each tax category with no zone rate on the default tax zone, with a fix', async () => {
+        const service = taxRateService(['tc1']);
+        const findings = await checkTaxInclusiveRates(inclusiveInput(), {
+            connection: connection(['tc1', 'tc2']),
+            taxRateService: service,
+        });
+        expect(findings).toHaveLength(1);
+        expect(findings[0]).toMatchObject({
+            code: 'store.tax.inclusive-rate-unknown',
+            severity: 'ERROR',
+            channelId: 1,
+            zoneId: 'eu',
+            taxCategoryId: 'tc2',
+            dashboardUrl: '/tax-rates',
+            fixes: [
+                {
+                    path: ['admin_create_tax_rate'],
+                    input: {
+                        input: {
+                            name: 'Category tc2 Zone eu',
+                            taxCategoryId: 'tc2',
+                            target: { zoneId: 'eu' },
+                        },
+                    },
+                },
+            ],
+        });
+        expect(findings[0].message).toContain('Channel "default"');
+        expect(findings[0].message).toContain('"Category tc2"');
+        // The lookup is by the zone alone, so a country rate does not count.
+        expect(service.findApplicableTaxRate).toHaveBeenCalledWith(ctx, europe, 'tc2');
+    });
+
+    it('reports nothing for a channel whose prices exclude tax', async () => {
+        const service = taxRateService([]);
+        expect(
+            await checkTaxInclusiveRates(input({ channel: channel({ pricesIncludeTax: false }) }), {
+                connection: connection(['tc1']),
+                taxRateService: service,
+            }),
+        ).toEqual([]);
+        expect(service.findApplicableTaxRate).not.toHaveBeenCalled();
+    });
+
+    it('leaves a channel with no default tax zone to the default-zones check', async () => {
+        expect(
+            await checkTaxInclusiveRates(inclusiveInput({ defaultTaxZone: undefined }), {
+                connection: connection(['tc1']),
+                taxRateService: taxRateService([]),
+            }),
+        ).toEqual([]);
+    });
+
+    it('reports nothing when the channel has no variants', async () => {
+        expect(
+            await checkTaxInclusiveRates(inclusiveInput(), {
+                connection: connection([]),
+                taxRateService: taxRateService([]),
             }),
         ).toEqual([]);
     });

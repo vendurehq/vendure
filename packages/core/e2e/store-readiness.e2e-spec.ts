@@ -241,6 +241,129 @@ describe('storeReadiness', () => {
         ).toBe(false);
     });
 
+    it('reports a tax-inclusive channel whose default tax zone has no zone rate for a tax category', async () => {
+        const { activeChannel } = await adminClient.query(gql`
+            query {
+                activeChannel {
+                    id
+                    defaultTaxZone {
+                        id
+                        members {
+                            id
+                        }
+                    }
+                }
+            }
+        `);
+        const defaultTaxZone = activeChannel.defaultTaxZone;
+        const { createTaxCategory } = await adminClient.query(
+            gql`
+                mutation ($input: CreateTaxCategoryInput!) {
+                    createTaxCategory(input: $input) {
+                        id
+                    }
+                }
+            `,
+            { input: { name: 'Inclusive test' } },
+        );
+        const { productVariants } = await adminClient.query(gql`
+            query {
+                productVariants(options: { take: 1 }) {
+                    items {
+                        id
+                        taxCategory {
+                            id
+                        }
+                    }
+                }
+            }
+        `);
+        const variant = productVariants.items[0];
+        const UPDATE_VARIANT = gql`
+            mutation ($input: [UpdateProductVariantInput!]!) {
+                updateProductVariants(input: $input) {
+                    id
+                }
+            }
+        `;
+        const UPDATE_CHANNEL = gql`
+            mutation ($input: UpdateChannelInput!) {
+                updateChannel(input: $input) {
+                    ... on Channel {
+                        id
+                    }
+                }
+            }
+        `;
+        const CREATE_TAX_RATE = gql`
+            mutation ($input: CreateTaxRateInput!) {
+                createTaxRate(input: $input) {
+                    id
+                }
+            }
+        `;
+        const inclusiveFindings = async () =>
+            (await check()).findings.filter(
+                f =>
+                    f.code === 'store.tax.inclusive-rate-unknown' && f.taxCategoryId === createTaxCategory.id,
+            );
+
+        await adminClient.query(UPDATE_VARIANT, {
+            input: [{ id: variant.id, taxCategoryId: createTaxCategory.id }],
+        });
+        try {
+            // Prices that exclude tax need no rate on the default tax zone.
+            expect(await inclusiveFindings()).toEqual([]);
+
+            await adminClient.query(UPDATE_CHANNEL, {
+                input: { id: activeChannel.id, pricesIncludeTax: true },
+            });
+            const [finding, ...others] = await inclusiveFindings();
+            expect(others).toEqual([]);
+            expect(finding).toMatchObject({
+                severity: 'ERROR',
+                channelId: activeChannel.id,
+                zoneId: defaultTaxZone.id,
+                dashboardUrl: '/tax-rates',
+            });
+            expect(finding.message).toContain('"Inclusive test"');
+            expect(finding.fixes[0].path).toEqual(['admin_create_tax_rate']);
+            const fixInput = finding.fixes[0].input.input;
+            expect(`T_${String(fixInput.target.zoneId)}`).toBe(defaultTaxZone.id);
+            expect(`T_${String(fixInput.taxCategoryId)}`).toBe(createTaxCategory.id);
+
+            // A country rate inside the default tax zone does not tell core which rate the price includes.
+            await adminClient.query(CREATE_TAX_RATE, {
+                input: {
+                    name: 'Inclusive test country',
+                    value: 20,
+                    enabled: true,
+                    categoryId: createTaxCategory.id,
+                    regionId: defaultTaxZone.members[0].id,
+                },
+            });
+            expect(await inclusiveFindings()).toHaveLength(1);
+
+            await adminClient.query(CREATE_TAX_RATE, {
+                input: {
+                    name: 'Inclusive test zone',
+                    value: 20,
+                    enabled: true,
+                    categoryId: createTaxCategory.id,
+                    zoneId: defaultTaxZone.id,
+                },
+            });
+            expect(await inclusiveFindings()).toEqual([]);
+        } finally {
+            await adminClient.query(UPDATE_CHANNEL, {
+                input: { id: activeChannel.id, pricesIncludeTax: false },
+            });
+            await adminClient.query(UPDATE_VARIANT, {
+                input: [{ id: variant.id, taxCategoryId: variant.taxCategory.id }],
+            });
+        }
+    });
+
     it('reports a country that matches two zone rates as ambiguous', async () => {
         const { zones } = await adminClient.query(gql`
             query {
