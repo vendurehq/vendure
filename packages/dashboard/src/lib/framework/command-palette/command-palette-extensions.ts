@@ -17,7 +17,6 @@ globalRegistry.register(
  */
 export function registerCommandPaletteItem(item: DashboardCommandPaletteItemDefinition) {
     if (!item.url === !item.onSelect) {
-        // eslint-disable-next-line no-console
         console.warn(
             `[Dashboard] The command palette entry "${item.id}" was not added: set exactly one ` +
                 `of \`url\` and \`onSelect\`.`,
@@ -28,7 +27,6 @@ export function registerCommandPaletteItem(item: DashboardCommandPaletteItemDefi
         // The same object again is a re-run of the registration (React StrictMode), not a clash.
         const existing = map.get(item.id);
         if (existing && existing !== item && process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
             console.warn(
                 `[Dashboard] A command palette entry with id "${item.id}" is already registered. ` +
                     `The later registration replaces it.`,

@@ -197,7 +197,6 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
             Promise.resolve()
                 .then(() => onSelect({ navigate: url => void navigate({ to: url }) }))
                 .catch((error: unknown) => {
-                    // eslint-disable-next-line no-console
                     console.error(`[Dashboard] The command palette entry "${item.id}" failed.`, error);
                 });
         } else if (item.url) {
