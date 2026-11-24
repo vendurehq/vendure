@@ -81,6 +81,8 @@ describe('isValidErrorCode', () => {
         ]) {
             expect(isValidErrorCode(code)).toBe(false);
         }
+    });
+});
 
 describe('isCommandFix', () => {
     it('is true for a fix that names a command', () => {
