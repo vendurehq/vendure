@@ -22,9 +22,13 @@ import {
     OrganizationNotFoundError,
     describeOrganizations,
     fetchOrganizations,
-    resolveOrganization,
 } from '../../auth/console-api.js';
-import { CredentialSource, credentialNeed, findCredential } from '../../auth/credential.js';
+import {
+    CredentialSource,
+    credentialNeed,
+    findCredential,
+    matchesOrganization,
+} from '../../auth/credential.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
@@ -132,6 +136,11 @@ interface ConsoleLogin {
     accessToken: string;
     /** `environment` for `VENDURE_CLOUD_TOKEN`, which cannot be renewed or given to plugin hooks. */
     source: CredentialSource;
+    /**
+     * Do not renew on a 401: the stored login has moved on to another account since this token was
+     * read, so a renewal would return that account's token.
+     */
+    noRenewal?: boolean;
 }
 
 /**
@@ -195,10 +204,21 @@ function environmentTokenRefused(): ConsoleInputError {
         'Vendure Console did not accept VENDURE_CLOUD_TOKEN. Check that the key is valid and has not ' +
             'expired, or unset it to use the stored CLI login.',
         credentialNeed(),
-        [
-            'Set VENDURE_CLOUD_TOKEN to a valid key, or unset it and run vendure auth login --json, ' +
-                'give the person the URL and code, and run vendure auth wait. Then run this command again.',
-        ],
+        [`Set VENDURE_CLOUD_TOKEN to a valid key, or unset it. ${loginNextStep()}`],
+    );
+}
+
+/**
+ * How to get a credential without a terminal, then `rerun`: sign a person in with the two-step
+ * login, or set `VENDURE_CLOUD_TOKEN`.
+ */
+function loginNextStep(organization?: string, rerun = 'this command'): string {
+    const login = organization
+        ? `vendure auth login --json --organization ${JSON.stringify(organization)}`
+        : 'vendure auth login --json';
+    return (
+        `Run ${login}, give the person the URL and code, and run vendure auth wait. ` +
+        `Or set VENDURE_CLOUD_TOKEN. Then run ${rerun} again.`
     );
 }
 
@@ -533,12 +553,10 @@ async function link(
                       available.refusal instanceof SessionRejectedError ? '.' : ''
                   } Nobody is at a terminal to sign in.`,
         );
-        const loginStep = requestedOrganization
-            ? `vendure auth login --json --organization ${JSON.stringify(requestedOrganization)}`
-            : 'vendure auth login --json';
-        const nextStep =
-            `Run ${loginStep}, give the person the URL and code, and run vendure auth wait. ` +
-            `Or set VENDURE_CLOUD_TOKEN. Then run vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} again.`;
+        const nextStep = loginNextStep(
+            requestedOrganization,
+            `vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag}`,
+        );
         state.result.nextSteps.push(nextStep);
         dependencies.reporter.info(nextStep);
         return 1;
@@ -709,14 +727,11 @@ async function signIn(
             return login;
         }
         if (dependencies.isNonInteractive()) {
-            // The one rule: no device flow without a person at a terminal.
+            // No device flow without a person at a terminal, as for requireCredential.
             throw new ConsoleInputError(
                 'No usable CLI login is stored on this machine, and nobody is at a terminal to sign in.',
                 credentialNeed(),
-                [
-                    'Run vendure auth login --json, give the person the URL and code, and run vendure auth wait. ' +
-                        'Or set VENDURE_CLOUD_TOKEN. Then run this command again.',
-                ],
+                [loginNextStep(wanted)],
             );
         }
         await loginWithDevice({
@@ -829,8 +844,8 @@ async function storedLoginOrInterrupt(
 }
 
 /**
- * The credential for `organization` that needs no sign-in, by the CLI's one
- * rule: the stored login, renewed first when it is about to expire, or else
+ * The credential for `organization` that needs no sign-in, in the order
+ * `requireCredential` uses: the stored login, renewed first when it is about to expire, or else
  * `VENDURE_CLOUD_TOKEN`. With `personOnly`, only the stored login. A renewal
  * that cannot finish, for example without a network, throws
  * {@link SessionRefreshUnavailableError} and keeps the login.
@@ -877,16 +892,31 @@ async function resolveAccount(
     signal: AbortSignal,
 ): Promise<StoredOrganization> {
     if (login.source === 'environment') {
-        // VENDURE_CLOUD_TOKEN cannot be scoped to another account, so the account is one it can see.
+        // VENDURE_CLOUD_TOKEN cannot be scoped to another account, so Console's project list is
+        // always the token's own account. Only a token that sees one account can say which.
         const organizations = await fetchOrganizations(endpoints.apiUrl, login.accessToken, login.auth).catch(
             error => {
                 throw error instanceof ConsoleTokenRefusedError ? environmentTokenRefused() : error;
             },
         );
+        if (organizations.length !== 1) {
+            throw new Error(
+                organizations.length === 0
+                    ? 'VENDURE_CLOUD_TOKEN has no Customer Account in Vendure Console.'
+                    : `VENDURE_CLOUD_TOKEN belongs to ${organizations.length} Customer Accounts, and the CLI ` +
+                          'cannot choose between them for it. Use a delegated key, which belongs to one, or ' +
+                          'unset VENDURE_CLOUD_TOKEN and sign in.',
+            );
+        }
+        const [organization] = organizations;
         const wanted = requested?.trim();
-        return wanted
-            ? resolveOrganization(organizations, wanted)
-            : chooseOrganization(organizations, undefined, endpoints, dependencies);
+        if (wanted && !matchesOrganization(organization, wanted)) {
+            throw new Error(
+                `VENDURE_CLOUD_TOKEN belongs to ${organization.name} (${organization.customerAccountId}), ` +
+                    `not ${wanted}. Leave out --organization, or unset VENDURE_CLOUD_TOKEN and sign in.`,
+            );
+        }
+        return organization;
     }
     if (current && requested?.trim()) {
         return current;
@@ -1170,6 +1200,9 @@ async function requestWithLogin(
     }
     if (login.source === 'environment') {
         throw environmentTokenRefused();
+    }
+    if (login.noRenewal) {
+        throw new Error('Vendure Console did not accept the login for the replaced link.');
     }
     login.accessToken = await refreshAccessToken(login.accessToken, login.auth);
     try {
@@ -1713,7 +1746,7 @@ async function detachTelemetry(
     try {
         const endpoints = resolveConsoleEndpoints(dependencies.env, manifest.console);
         const { login, refusal }: StoredLogin = replacing
-            ? replacing
+            ? { ...replacing, login: replacing.login && { ...replacing.login, noRenewal: true } }
             : reason === 'replace' || dependencies.isNonInteractive()
               ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), manifest.account.id)
               : { login: await signIn(endpoints, manifest.account.id, dependencies, signal) };

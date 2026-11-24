@@ -18,6 +18,7 @@ import {
     jsonRequested,
     registerManifestCommands,
 } from './commander-adapter.js';
+import { executeCommand } from './host.js';
 
 const demo = defineCommand({
     path: ['add', 'thing'],
@@ -328,6 +329,37 @@ describe('the credential check of createHostEnvironment', () => {
                     fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
                 }),
             ]);
+            expect(fetch).not.toHaveBeenCalled();
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('stops a requires.auth command run through the real host without a terminal', async () => {
+        const fetch = vi.fn();
+        vi.stubGlobal('fetch', fetch);
+        const run = vi.fn();
+        const def = defineCommand({
+            path: ['test', 'cloud'],
+            description: 'A test command that needs a login',
+            behavior: 'readonly',
+            requires: { auth: 'cloud' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({ run }),
+        });
+        try {
+            const { envelope, exitCode } = await executeCommand(
+                def,
+                {},
+                createHostEnvironment(new AbortController()),
+            );
+
+            expect(exitCode).toBe(3);
+            expect(envelope).toMatchObject({
+                status: 'incomplete',
+                needs: [{ kind: 'input', field: 'token' }],
+            });
+            expect(run).not.toHaveBeenCalled();
             expect(fetch).not.toHaveBeenCalled();
         } finally {
             vi.unstubAllGlobals();

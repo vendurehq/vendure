@@ -76,7 +76,7 @@ export function credentialNeed(): InputNeed {
 }
 
 /**
- * The one rule for finding a credential, in this order:
+ * Finds the credential a command needs, in this order:
  *
  * 1. The stored login, when there is one and it can be renewed.
  * 2. `VENDURE_CLOUD_TOKEN`, when it is set.

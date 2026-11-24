@@ -46,7 +46,7 @@ describe('EE-388 structured Console linking', () => {
             'link',
             { project: root, json: true, nonInteractive: true },
             {
-                env: {},
+                env: { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) },
                 fetch,
                 openUrl,
                 prompt,
@@ -178,7 +178,7 @@ describe('EE-388 structured Console linking', () => {
             'link',
             { project: root, json: true, nonInteractive: true },
             {
-                env: {},
+                env: { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) },
                 hooks: [
                     {
                         pluginId: '@example/setup',
@@ -225,7 +225,7 @@ describe('EE-388 structured Console linking', () => {
             'link',
             { project: root, json: true, nonInteractive: true, force: true, yes: true },
             {
-                env: {},
+                env: { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) },
                 fetch,
                 hooks: [{ pluginId: '@example/setup', hook }],
             },
@@ -304,7 +304,7 @@ describe('EE-388 structured Console linking', () => {
             'link',
             { project: root, json: true },
             {
-                env: {},
+                env: { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) },
                 prompt,
                 isNonInteractive: () => false,
                 hooks: [
@@ -359,7 +359,7 @@ describe('EE-388 structured Console linking', () => {
             'link',
             { project: root, json: true, nonInteractive: true },
             {
-                env: {},
+                env: { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) },
                 hooks: [
                     {
                         pluginId: '@example/setup',

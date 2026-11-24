@@ -978,6 +978,35 @@ describe('console link --non-interactive --console-project', () => {
         expect(deletes).toEqual([`Bearer ${STORED_ACCESS_TOKEN}`]);
     });
 
+    it('refuses VENDURE_CLOUD_TOKEN that sees several Customer Accounts, and never asks which', async () => {
+        const select = vi.fn();
+        const run = await runLink({
+            interactive: true,
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+            console: { memberships: twoAccounts },
+            select,
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.messages.join('\n')).toContain('VENDURE_CLOUD_TOKEN belongs to 2 Customer Accounts');
+        expect(run.urls()).not.toContain(`${API_URL}/v1/projects`);
+    });
+
+    it('refuses an --organization that VENDURE_CLOUD_TOKEN does not belong to', async () => {
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront', organization: 'Other' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.messages.join('\n')).toContain('VENDURE_CLOUD_TOKEN belongs to Acme');
+        expect(run.urls()).not.toContain(`${API_URL}/v1/projects`);
+    });
+
     it('says that Console refused VENDURE_CLOUD_TOKEN, and returns the token need', async () => {
         const api = fakeConsole();
         const fetch = ((url: string, init?: RequestInit) =>
