@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -54,6 +54,10 @@ export const DEFAULT_SHIPPING_RATE = 500;
  * @description
  * Creates the data of a {@link BaseDataPlan} through the services, in the transaction of `ctx`. It
  * never catches an error, so any failure rolls the whole preset back.
+ *
+ * Names are English, stored as the `en` translation whatever the channel's default language is.
+ * An entity shows its first translation when it has none in the requested language, so a merchant
+ * adds real translations later without overwriting English text.
  */
 export async function seedBaseData(
     ctx: RequestContext,
@@ -65,7 +69,7 @@ export async function seedBaseData(
         const country = await services.countryService.create(ctx, {
             code,
             enabled: true,
-            translations: [{ languageCode: ctx.languageCode, name }],
+            translations: [{ languageCode: LanguageCode.en, name }],
         });
         countryIds.set(code, country.id);
     }
@@ -124,7 +128,7 @@ export async function seedBaseData(
                 { name: 'taxRate', value: String(standardRate) },
             ],
         },
-        translations: [{ languageCode: ctx.languageCode, name: 'Flat rate', description: '' }],
+        translations: [{ languageCode: LanguageCode.en, name: 'Flat rate', description: '' }],
     });
 
     let paymentMethods = 0;
@@ -148,7 +152,7 @@ export async function seedBaseData(
             },
             translations: [
                 {
-                    languageCode: ctx.languageCode,
+                    languageCode: LanguageCode.en,
                     name: 'Test payment',
                     description: 'Takes no real payment. Created only outside production.',
                 },

@@ -1,4 +1,5 @@
 import { auPreset, euPreset, singleCountryPreset, ukPreset, usPreset } from './builtin-presets';
+import { EU_VAT_RATES_REVIEWED_AT } from './eu-vat-rates';
 import { Preset, PresetOptionDefinition } from './preset-types';
 import { presetInvalidOptionError, presetUnknownError } from './seed-errors';
 
@@ -92,8 +93,12 @@ export function validatePresetOptions(name: string, options: Record<string, stri
     return preset;
 }
 
+/**
+ * The `eu` preset is released once a person has reviewed its VAT rates. Until then it is hidden,
+ * so unreviewed rates can't reach a store.
+ */
 function isReleased(preset: Preset): boolean {
-    return preset.released?.() ?? true;
+    return preset !== euPreset || EU_VAT_RATES_REVIEWED_AT !== undefined;
 }
 
 function releasedPresets(): Preset[] {

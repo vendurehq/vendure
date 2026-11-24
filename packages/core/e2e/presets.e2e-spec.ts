@@ -2,15 +2,22 @@
 import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import {
     applyPreset,
+    Channel,
     ChannelService,
+    ConfigService,
     Country,
+    CountryService,
     dummyPaymentHandler,
     isSeedError,
     listPresets,
     loadScenarioPack,
     mergeConfig,
     PaymentMethod,
+    PaymentMethodService,
+    Preset,
+    ProductService,
     RequestContext,
+    RequestContextService,
     SEED_PRESET_KEY,
     SEED_SCENARIO_KEY,
     seedScenario,
@@ -18,9 +25,13 @@ import {
     ShippingMethod,
     ShippingMethodService,
     StockLocation,
+    StockLocationService,
     TaxCategory,
+    TaxCategoryService,
     TaxRate,
+    TaxRateService,
     TransactionalConnection,
+    User,
     validateScenarioPack,
     Zone,
     ZoneService,
@@ -30,11 +41,11 @@ import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+import { euPreset } from '../src/data-import/presets/builtin-presets';
 import { ISO_COUNTRIES } from '../src/data-import/presets/iso-countries';
 
 import {
     createAdministratorDocument,
-    createChannelDocument,
     createProductDocument,
     createProductVariantsDocument,
     createRoleDocument,
@@ -94,6 +105,34 @@ describe('Base-data presets', () => {
         expect(isSeedError(error), `expected a SeedError, got ${String(error)}`).toBe(true);
         expect(error.vendureCode).toBe(code);
         return error;
+    }
+
+    async function superAdminContext() {
+        const user = await repo(User).findOne({ where: { identifier: 'superadmin' } });
+        return server.app.get(RequestContextService).create({
+            apiType: 'admin',
+            user: user!,
+            channelOrToken: await defaultChannel(),
+        });
+    }
+
+    async function applyDirectly(preset: Preset, options: Record<string, string>) {
+        const app = server.app;
+        const services = {
+            configService: app.get(ConfigService),
+            channelService: app.get(ChannelService),
+            zoneService: app.get(ZoneService),
+            countryService: app.get(CountryService),
+            taxCategoryService: app.get(TaxCategoryService),
+            taxRateService: app.get(TaxRateService),
+            shippingMethodService: app.get(ShippingMethodService),
+            paymentMethodService: app.get(PaymentMethodService),
+            stockLocationService: app.get(StockLocationService),
+        };
+        const ctx = await superAdminContext();
+        return app
+            .get(TransactionalConnection)
+            .withTransaction(ctx, txCtx => preset.apply(txCtx as any, services as any, options));
     }
 
     beforeAll(async () => {
@@ -180,6 +219,7 @@ describe('Base-data presets', () => {
                     input: { key: SEED_PRESET_KEY, value: { name: 'us' } },
                 });
                 expect(setSettingsStoreValue.result).toBe(false);
+                expect(await sentinelValue(SEED_PRESET_KEY)).toEqual(expect.objectContaining({ name: 'uk' }));
 
                 const { createRole } = await adminClient.query(createRoleDocument, {
                     input: {
@@ -198,13 +238,11 @@ describe('Base-data presets', () => {
                     },
                 });
                 await adminClient.asUserWithCredentials('settings-reader@test.com', 'password');
-                const read = await adminClient
-                    .query(getSettingsStoreValueDocument, { key: SEED_PRESET_KEY })
-                    .then(
-                        r => r.getSettingsStoreValue,
-                        () => undefined,
-                    );
-                expect(read ?? undefined).toBeUndefined();
+                const { getSettingsStoreValue: read } = await adminClient.query(
+                    getSettingsStoreValueDocument,
+                    { key: SEED_PRESET_KEY },
+                );
+                expect(read).toBeNull();
                 await adminClient.asSuperAdmin();
             },
             TEST_SETUP_TIMEOUT_MS,
@@ -312,27 +350,21 @@ describe('Base-data presets', () => {
             await expectSeedError(applyPreset(server.app, 'eu', { country: 'DE' }), 'core.preset-unknown');
         });
 
-        describe('with the unreleased preset enabled', () => {
-            beforeAll(() => {
-                process.env.VENDURE_UNRELEASED_PRESETS = 'eu';
-            });
-
-            afterAll(() => {
-                delete process.env.VENDURE_UNRELEASED_PRESETS;
-            });
-
-            it('requires the seller country to be a member state', async () => {
-                await expectSeedError(applyPreset(server.app, 'eu'), 'core.preset-invalid-option');
-                await expectSeedError(
-                    applyPreset(server.app, 'eu', { country: 'GB' }),
-                    'core.preset-invalid-option',
+        // The preset is unreleased, so these tests call it directly, in a transaction as
+        // applyPreset() does.
+        describe('applied directly', () => {
+            it('requires the seller country to be a member state', () => {
+                expect(euPreset.validate!({})).toEqual(expect.objectContaining({ option: 'country' }));
+                expect(euPreset.validate!({ country: 'GB' })).toEqual(
+                    expect.objectContaining({ option: 'country' }),
                 );
+                expect(euPreset.validate!({ country: 'DE' })).toBeUndefined();
             });
 
             it(
                 'creates a standard and a reduced rate per member state, and zone rates at the seller rate',
                 async () => {
-                    const result = await applyPreset(server.app, 'eu', { country: 'DE' });
+                    const result = await applyDirectly(euPreset, { country: 'DE' });
                     expect(result.created.taxRates).toBe(2 * 27 + 2);
                     const channel = await defaultChannel();
                     expect(channel.defaultCurrencyCode).toBe('EUR');
@@ -416,52 +448,84 @@ describe('Base-data presets', () => {
     });
 
     describe('refusals', () => {
-        beforeAll(resetToEmptyDatabase, TEST_SETUP_TIMEOUT_MS);
+        const createdBefore: Array<[string, (ctx: RequestContext) => Promise<unknown>]> = [
+            [
+                'products',
+                ctx =>
+                    server.app.get(ProductService).create(ctx, {
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'P', slug: 'p', description: '' },
+                        ],
+                    }),
+            ],
+            ['taxCategories', ctx => server.app.get(TaxCategoryService).create(ctx, { name: 'Existing' })],
+            [
+                'shippingMethods',
+                ctx =>
+                    server.app.get(ShippingMethodService).create(ctx, {
+                        code: 'existing',
+                        fulfillmentHandler: 'manual-fulfillment',
+                        checker: { code: 'default-shipping-eligibility-checker', arguments: [] },
+                        calculator: { code: 'default-shipping-calculator', arguments: [] },
+                        translations: [{ languageCode: LanguageCode.en, name: 'Existing', description: '' }],
+                    }),
+            ],
+            [
+                'paymentMethods',
+                ctx =>
+                    server.app.get(PaymentMethodService).create(ctx, {
+                        code: 'existing',
+                        enabled: true,
+                        handler: {
+                            code: dummyPaymentHandler.code,
+                            arguments: [{ name: 'automaticSettle', value: 'false' }],
+                        },
+                        translations: [{ languageCode: LanguageCode.en, name: 'Existing', description: '' }],
+                    }),
+            ],
+            ['zones', ctx => server.app.get(ZoneService).create(ctx, { name: 'Existing' })],
+            [
+                'channels',
+                () =>
+                    repo(Channel).save(
+                        repo(Channel).create({
+                            code: 'second',
+                            token: 'second',
+                            defaultLanguageCode: LanguageCode.en,
+                            availableLanguageCodes: [LanguageCode.en],
+                            defaultCurrencyCode: CurrencyCode.USD,
+                            availableCurrencyCodes: [CurrencyCode.USD],
+                            pricesIncludeTax: false,
+                        }),
+                    ),
+            ],
+        ];
 
-        it(
-            'refuses a database that has a second channel, and writes nothing',
-            async () => {
-                const zone = await server.app
-                    .get(ZoneService)
-                    .create(RequestContext.empty(), { name: 'temp' });
-                await adminClient.asSuperAdmin();
-                await adminClient.query(createChannelDocument, {
-                    input: {
-                        code: 'second',
-                        token: 'second',
-                        defaultLanguageCode: LanguageCode.en,
-                        defaultCurrencyCode: CurrencyCode.USD,
-                        pricesIncludeTax: false,
-                        defaultShippingZoneId: String(zone.id),
-                        defaultTaxZoneId: String(zone.id),
-                    },
-                });
+        it.each(createdBefore)(
+            'refuses a database that has %s, and writes nothing',
+            async (field, create) => {
+                await resetToEmptyDatabase();
+                await create(await superAdminContext());
 
                 const error = await expectSeedError(
                     applyPreset(server.app, 'uk'),
                     'core.preset-database-not-empty',
                 );
-                expect(error.details).toEqual(
-                    expect.objectContaining({ channels: 2, zones: 1, taxRates: 0 }),
-                );
-                expect(error.message).toContain('2 channels');
+                const counts = { ...error.details };
+                delete counts.appliedPreset;
+                expect(counts).toEqual({
+                    countries: 0,
+                    zones: 0,
+                    taxRates: 0,
+                    taxCategories: 0,
+                    shippingMethods: 0,
+                    paymentMethods: 0,
+                    products: 0,
+                    channels: 1,
+                    [field]: field === 'channels' ? 2 : 1,
+                });
                 expect(await repo(Country).count()).toBe(0);
                 expect(await sentinelValue(SEED_PRESET_KEY)).toBeUndefined();
-            },
-            TEST_SETUP_TIMEOUT_MS,
-        );
-
-        it(
-            'refuses a database that has a zone',
-            async () => {
-                await resetToEmptyDatabase();
-                await server.app.get(ZoneService).create(RequestContext.empty(), { name: 'existing' });
-                const error = await expectSeedError(
-                    applyPreset(server.app, 'uk'),
-                    'core.preset-database-not-empty',
-                );
-                expect(error.details).toEqual(expect.objectContaining({ zones: 1 }));
-                expect(error.details.appliedPreset).toBeUndefined();
             },
             TEST_SETUP_TIMEOUT_MS,
         );

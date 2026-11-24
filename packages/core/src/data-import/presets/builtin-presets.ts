@@ -1,6 +1,6 @@
 import { CurrencyCode } from '@vendure/common/lib/generated-types';
 
-import { EU_VAT_RATES, EU_VAT_RATES_REVIEWED_AT } from './eu-vat-rates';
+import { EU_VAT_RATES } from './eu-vat-rates';
 import { isIsoCountryCode } from './iso-countries';
 import { Preset } from './preset-types';
 import { seedBaseData } from './seed-base-data';
@@ -14,9 +14,6 @@ const EU_COUNTRY_CODES = EU_VAT_RATES.map(r => r.countryCode);
  */
 export const euPreset: Preset = {
     name: 'eu',
-    released: () =>
-        EU_VAT_RATES_REVIEWED_AT !== undefined ||
-        (process.env.VENDURE_UNRELEASED_PRESETS ?? '').split(',').includes('eu'),
     description:
         'EUR, prices include VAT. Standard and reduced VAT for each EU member state (One-Stop Shop), and an EU shipping zone.',
     options: {
