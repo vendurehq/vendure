@@ -5,6 +5,7 @@ import { idsAreEqual } from '../../../common/utils';
 import { TaxZoneStrategy } from '../../../config/tax/tax-zone-strategy';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
+import { Country } from '../../../entity/region/country.entity';
 import { TaxCategory } from '../../../entity/tax-category/tax-category.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 import { TaxRateService } from '../../services/tax-rate.service';
@@ -30,7 +31,7 @@ interface InclusiveRateUnknownDetails {
     withoutAddress: boolean;
     /** Whether an order to a country the Channel ships to gets another tax zone. */
     shipsOutsideZone: boolean;
-    /** A country of the default tax zone with a country rate for the tax category, to suggest as tax country. */
+    /** The only enabled country of the default tax zone with a country rate for the tax category, to suggest as tax country. */
     candidateTaxCountryCode?: string;
 }
 
@@ -127,6 +128,16 @@ export async function checkTaxInclusiveRates(
     const defaultZoneId = channel.defaultTaxZone?.id;
     // With no default tax zone, the default-zones check reports the channel.
     if (!channel.pricesIncludeTax || defaultZoneId == null) {
+        return [];
+    }
+    // A tax country that is not the code of a country is reported by checkChannelTaxCountry, whose
+    // fix clears it. A country rate for it could not be created, so this check waits for that fix.
+    if (
+        channel.taxCountryCode &&
+        !(await services.connection
+            .getRepository(ctx, Country)
+            .findOne({ where: { code: channel.taxCountryCode } }))
+    ) {
         return [];
     }
     const zone = allZones.find(z => idsAreEqual(z.id, defaultZoneId)) ?? channel.defaultTaxZone;

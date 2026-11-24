@@ -119,7 +119,7 @@ Some things to know:
 * A Country that is the tax country of a Channel cannot be deleted. When its code changes, the Channels follow.
 * Changing the tax country, or a rate that targets it or the default tax Zone, updates the search index of every Channel it affects.
 * Channels that leave it unset work as described in [Tax rate resolution](#tax-rate-resolution).
-* When a Channel's prices include tax and there is no included rate for a TaxCategory its variants use, neither a country rate for the tax country nor a zone rate on the default tax Zone, the store check reports `store.tax.inclusive-rate-unknown`.
+* For a Channel whose prices include tax, the store check reports `store.tax.inclusive-rate-unknown` for each TaxCategory its variants use that has no included rate. An included rate is a country rate for the tax country, or a zone rate on the default tax Zone.
 * In a multi-vendor setup that prices the aggregate Order in the default Channel, such as the multivendor example plugin, the default Channel's tax country splits every line, whoever sells it. A split per seller needs a custom `OrderItemPriceCalculationStrategy`.
 
 ## Choosing the tax country

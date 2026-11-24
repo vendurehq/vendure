@@ -293,6 +293,7 @@ describe('checkTaxRates', () => {
             }),
             { connection: connection(['tc1']), taxRateService: service, taxZoneStrategy: byAddress },
         );
+        expect(findings).toHaveLength(1);
         expect(findings[0].message).toContain('orders to BE, FR');
         expect(findings[0].message).not.toContain('orders with no address yet');
     });
@@ -360,6 +361,9 @@ describe('checkTaxInclusiveRates', () => {
                 createQueryBuilder: () =>
                     queryBuilder({ getRawMany: categoryIds.map(taxCategoryId => ({ taxCategoryId })) }),
                 find: () => Promise.resolve(categoryIds.map(id => ({ id, name: `Category ${id}` }))),
+                // Every code is a country but XX
+                findOne: ({ where }: { where: { code: string } }) =>
+                    Promise.resolve(where.code === 'XX' ? null : country(where.code)),
             }),
         } as any;
     }
@@ -455,6 +459,26 @@ describe('checkTaxInclusiveRates', () => {
             input: { id: 1, input: {} },
         });
         expect(finding.fixes[0].description).toContain('normally your own');
+    });
+
+    it('ignores a disabled country when it suggests a tax country', async () => {
+        // NL is disabled, so FR is the only candidate
+        const [finding] = await checkTaxInclusiveRates(inclusiveInput(), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([], ['FR', 'NL']),
+            taxZoneStrategy: byAddress,
+        });
+        expect(finding.fixes[0].input).toEqual({ id: 1, input: { taxCountryCode: 'FR' } });
+    });
+
+    it('leaves a tax country that is not a country to checkChannelTaxCountry', async () => {
+        expect(
+            await checkTaxInclusiveRates(inclusiveInput({ taxCountryCode: 'XX' }), {
+                connection: connection(['tc1']),
+                taxRateService: taxRateService([]),
+                taxZoneStrategy: byAddress,
+            }),
+        ).toEqual([]);
     });
 
     it('reports nothing when the tax country has a country rate, with no zone rate', async () => {
