@@ -5,7 +5,6 @@ import {
     NotLoggedInError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
-    isRenewalRefused,
 } from '../../auth/auth-errors.js';
 import { AuthOptions } from '../../auth/auth-options.js';
 import {
@@ -19,12 +18,13 @@ import {
 import { StoredOrganization } from '../../auth/auth-store.js';
 import {
     AuthOrganization,
+    ConsoleTokenRefusedError,
     OrganizationNotFoundError,
     describeOrganizations,
     fetchOrganizations,
     resolveOrganization,
 } from '../../auth/console-api.js';
-import { CredentialSource, credentialNeed, readCloudTokenEnv } from '../../auth/credential.js';
+import { CredentialSource, credentialNeed, findCredential } from '../../auth/credential.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
@@ -187,6 +187,19 @@ function consoleProjectNeed(projects?: Array<{ id: string; slug?: string }>): In
         description: 'The Console Project to link, by its id or slug',
         ...(choices?.length ? { choices } : {}),
     };
+}
+
+/** Vendure Console refused `VENDURE_CLOUD_TOKEN`, which the CLI cannot renew. */
+function environmentTokenRefused(): ConsoleInputError {
+    return new ConsoleInputError(
+        'Vendure Console did not accept VENDURE_CLOUD_TOKEN. Check that the key is valid and has not ' +
+            'expired, or unset it to use the stored CLI login.',
+        credentialNeed(),
+        [
+            'Set VENDURE_CLOUD_TOKEN to a valid key, or unset it and run vendure auth login --json, ' +
+                'give the person the URL and code, and run vendure auth wait. Then run this command again.',
+        ],
+    );
 }
 
 /** The `input` need for `--force`, which replaces a different Project Link. */
@@ -536,19 +549,6 @@ async function link(
             return confirmed === 'cancelled' ? 0 : 1;
         }
     }
-    // Only `--force` gets here with a valid manifest. The user leaves its
-    // Project, so its attribution ends also when telemetry is off.
-    const previousAttribution =
-        existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
-    if (
-        existing.kind === 'valid' &&
-        previousAttribution &&
-        (await detachTelemetry(existing.manifest, previousAttribution, 'replace', dependencies, signal))
-    ) {
-        // Console no longer attributes the old link, also when the new link does not complete.
-        removeTelemetryAttribution(projectRoot);
-    }
-
     const login =
         available.login ?? (await signIn(endpoints, options.organization, dependencies, signal, true));
     const stored = readAuthStatus(login.auth).organization;
@@ -568,6 +568,20 @@ async function link(
         endpoints,
         dependencies,
     );
+    // Only `--force` gets here with a valid manifest. It is detached once the Project to link is
+    // known, so a run that cannot choose one changes nothing. The user leaves its
+    // Project, so its attribution ends also when telemetry is off.
+    const previousAttribution =
+        existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
+    if (
+        existing.kind === 'valid' &&
+        previousAttribution &&
+        (await detachTelemetry(existing.manifest, previousAttribution, 'replace', dependencies, signal))
+    ) {
+        // Console no longer attributes the old link, also when the new link does not complete.
+        removeTelemetryAttribution(projectRoot);
+    }
+
     const telemetryDisabled = isTelemetryDisabled(dependencies.env);
     const installationId = telemetryDisabled ? undefined : ensureTelemetryInstallationId(projectRoot);
     const linkedManifest = await linkProject(
@@ -622,7 +636,11 @@ async function link(
             manifestPath,
             endpoints,
             outcome: 'linked',
-            session: dependencies.hooks.some(hook => hook.requiresSession) ? hookSession(login) : undefined,
+            ...(dependencies.hooks.some(hook => hook.requiresSession)
+                ? login.source === 'environment'
+                    ? { sessionUnavailable: 'environment-credential' as const }
+                    : { session: hookSession(login) }
+                : {}),
         },
         options,
         dependencies,
@@ -794,39 +812,23 @@ async function storedLoginOrInterrupt(
 }
 
 /**
- * The credential for `organization` that needs no sign-in: the stored login,
- * renewed first when it is about to expire, or else `VENDURE_CLOUD_TOKEN`. A
- * renewal that cannot finish, for example without a network, throws
+ * The credential for `organization` that needs no sign-in, by the CLI's one
+ * rule: the stored login, renewed first when it is about to expire, or else
+ * `VENDURE_CLOUD_TOKEN`. With `personOnly`, only the stored login. A renewal
+ * that cannot finish, for example without a network, throws
  * {@link SessionRefreshUnavailableError} and keeps the login.
  */
-async function storedLogin(auth: AuthOptions, organization: string | undefined): Promise<StoredLogin> {
-    const stored = await storedPersonLogin(auth, organization);
-    if (stored.login) {
-        return stored;
-    }
-    const token = readCloudTokenEnv(auth);
-    return token ? { login: { auth, accessToken: token, source: 'environment' } } : stored;
-}
-
-/** The login `vendure auth login` stored, for `organization`. */
-async function storedPersonLogin(auth: AuthOptions, organization: string | undefined): Promise<StoredLogin> {
-    const stored = readAuthStatus(auth);
-    if (!stored.loggedIn || (organization && !matchesOrganization(stored.organization, organization))) {
-        return {};
-    }
-    try {
-        const accessToken = await getAccessToken(auth);
-        return accessToken ? { login: { auth, accessToken, source: 'stored-login' } } : {};
-    } catch (error) {
-        if (error instanceof NotLoggedInError) {
-            // Another command removed the login meanwhile.
-            return {};
-        }
-        if (error instanceof Error && isRenewalRefused(error)) {
-            return { refusal: error };
-        }
-        throw error;
-    }
+async function storedLogin(
+    auth: AuthOptions,
+    organization: string | undefined,
+    personOnly = false,
+): Promise<StoredLogin> {
+    const { credential, refusal } = await findCredential({ ...auth, organization, personOnly });
+    return credential
+        ? { login: { auth, accessToken: credential.token, source: credential.source } }
+        : refusal
+          ? { refusal }
+          : {};
 }
 
 /**
@@ -838,15 +840,6 @@ function describeRefusal(refusal: Error, subject: string): string {
     return refusal instanceof SessionRejectedError
         ? `Your Vendure CLI session for ${subject} has expired or was revoked`
         : `Your Vendure CLI session for ${subject} can no longer be renewed: ${refusal.message}`;
-}
-
-/** Matches `--organization` the way `vendure auth login` resolves it: an Account identifier or a name. */
-function matchesOrganization(organization: StoredOrganization | null | undefined, wanted: string): boolean {
-    const value = wanted.toLowerCase();
-    return (
-        organization?.customerAccountId?.toLowerCase() === value ||
-        organization?.name?.trim().toLowerCase() === value
-    );
 }
 
 /**
@@ -868,7 +861,11 @@ async function resolveAccount(
 ): Promise<StoredOrganization> {
     if (login.source === 'environment') {
         // VENDURE_CLOUD_TOKEN cannot be scoped to another account, so the account is one it can see.
-        const organizations = await fetchOrganizations(endpoints.apiUrl, login.accessToken, login.auth);
+        const organizations = await fetchOrganizations(endpoints.apiUrl, login.accessToken, login.auth).catch(
+            error => {
+                throw error instanceof ConsoleTokenRefusedError ? environmentTokenRefused() : error;
+            },
+        );
         const wanted = requested?.trim();
         return wanted
             ? resolveOrganization(organizations, wanted)
@@ -955,11 +952,8 @@ function describeOrganization(organization: StoredOrganization): string {
  * The refresh token stays in the login, because it is single-use and a copy
  * that a plugin spends ends the login for every other command.
  */
-function hookSession(login: ConsoleLogin): ConsoleSession | undefined {
-    if (login.source === 'environment') {
-        // A plugin hook may store or reuse the session, so it gets a person's login only.
-        return undefined;
-    }
+/** A plugin hook may store or reuse its session, so it is only ever a person's login. */
+function hookSession(login: ConsoleLogin): ConsoleSession {
     const expiresAt = readAuthStatus(login.auth).accessTokenExpiresAt;
     return { accessToken: login.accessToken, expiresAt: expiresAt ?? (login.auth.now ?? Date.now)() };
 }
@@ -1154,10 +1148,7 @@ async function requestWithLogin(
         }
     }
     if (login.source === 'environment') {
-        throw new Error(
-            'Vendure Console did not accept VENDURE_CLOUD_TOKEN. Check that the key is valid and has not ' +
-                'expired, or unset it to use the stored CLI login.',
-        );
+        throw environmentTokenRefused();
     }
     login.accessToken = await refreshAccessToken(login.accessToken, login.auth);
     try {
@@ -1294,7 +1285,8 @@ async function repairSession(
     const organization = requested ?? manifest.account.id;
     const auth = consoleAuthOptions(endpoints, dependencies, signal);
     try {
-        const { login, refusal } = await storedLogin(auth, organization);
+        // A hook's session is a person's login, never VENDURE_CLOUD_TOKEN.
+        const { login, refusal } = await storedLogin(auth, organization, true);
         if (login) {
             return { session: hookSession(login) };
         }

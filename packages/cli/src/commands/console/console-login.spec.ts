@@ -899,9 +899,72 @@ describe('console link --non-interactive --console-project', () => {
         });
 
         expect(run.exitCode).toBe(0);
-        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).not.toBe(
-            'Bearer vcdk_agent_key',
+        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).toBe(
+            `Bearer ${STORED_ACCESS_TOKEN}`,
         );
+    });
+
+    it('tells a hook that requested a session that the run uses VENDURE_CLOUD_TOKEN', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['environment-credential']);
+    });
+
+    it('gives a repair hook only a person login, not VENDURE_CLOUD_TOKEN', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['not-signed-in']);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+    });
+
+    it('says that Console refused VENDURE_CLOUD_TOKEN, and returns the token need', async () => {
+        const api = fakeConsole();
+        const fetch = ((url: string, init?: RequestInit) =>
+            new URL(url).pathname === '/v1/me'
+                ? Promise.resolve(jsonResponse({ message: 'Unauthorized' }, 401))
+                : api.fetch(url, init)) as typeof globalThis.fetch;
+        const stdout: string[] = [];
+        const write = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
+            stdout.push(String(chunk));
+            return true;
+        });
+        let run: Awaited<ReturnType<typeof runLink>>;
+        try {
+            run = await runLink({
+                login: false,
+                env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+                options: { json: true, consoleProject: 'storefront' },
+                fetch,
+            });
+        } finally {
+            write.mockRestore();
+        }
+
+        expect(run.exitCode).toBe(1);
+        const result = JSON.parse(stdout.join(''));
+        expect(result).toMatchObject({
+            outcome: 'incomplete',
+            needs: [{ kind: 'input', field: 'token', secret: true }],
+        });
+        expect(result.nextSteps.join('\n')).toContain('Set VENDURE_CLOUD_TOKEN to a valid key');
     });
 
     it('does not renew VENDURE_CLOUD_TOKEN when Console refuses it', async () => {

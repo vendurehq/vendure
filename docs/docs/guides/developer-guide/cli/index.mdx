@@ -756,7 +756,8 @@ more and no `--console-project`, or when `--console-project` names none of them,
 `input` need for `consoleProject` lists the Projects' slugs as its `choices`, and `nextSteps` lists the Projects with
 their names. For a value that names none of them, `nextSteps` also points to `--organization`. When
 `--console-project` names another Project than the linked one, the need is for `force`. `--force` still means a
-different Project Link, so without `--console-project` it requires a terminal even with `--yes`. Neither flag
+different Project Link. Without a terminal it replaces the link only with the Project that `--console-project` names,
+or the account's single Project, and nothing changes until that Project is known. Neither `--force` nor `--yes`
 authorizes a plugin to replace credentials or registry tokens.
 
 `--json` writes one result to stdout. Reporter progress goes to stderr. Human output remains the default. The result

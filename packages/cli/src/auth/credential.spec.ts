@@ -79,7 +79,7 @@ describe('requireCredential', () => {
             mayPrompt: false,
         });
 
-        expect(credential).toMatchObject({ source: 'environment' });
+        expect(credential).toEqual({ source: 'environment', token: 'vcdk_agent' });
     });
 
     it('returns an input need for the secret token, and never signs in, when nobody may be asked', async () => {

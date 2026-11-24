@@ -402,7 +402,9 @@ export interface CommandDefinition {
          * for one: the stored login, then `VENDURE_CLOUD_TOKEN`, then a device login when a person
          * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
          * secret `token` field, whose fix is `vendure auth login --json`. `run()` then reads the
-         * credential with `requireCredential` from `@vendure/cli`.
+         * credential with `requireCredential` from `@vendure/cli`, passing `mayPrompt: false`, and
+         * returns its `incomplete` result as is: a command that needs a login for one organization
+         * can still find none, because the host checks for any credential.
          *
          * @since 4.0.0
          */

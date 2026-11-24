@@ -92,13 +92,9 @@ export function credentialNeed(): InputNeed {
 export async function requireCredential(
     options: RequireCredentialOptions,
 ): Promise<CloudCredential | IncompleteResult> {
-    const stored = await storedLoginToken(options);
-    if (stored) {
-        return { source: 'stored-login', token: stored };
-    }
-    const environmentToken = readCloudTokenEnv(options);
-    if (environmentToken) {
-        return { source: 'environment', token: environmentToken };
+    const { credential } = await findCredential(options);
+    if (credential) {
+        return credential;
     }
     if (options.mayPrompt && options.signIn) {
         await options.signIn();
@@ -117,23 +113,60 @@ export function readCloudTokenEnv(options: AuthOptions = {}): string | undefined
     return value ? value : undefined;
 }
 
+/** @since 4.0.0 */
+export interface FindCredentialOptions extends AuthOptions {
+    /** Use the stored login only when it is scoped to this organization. */
+    organization?: string;
+    /** Leave out `VENDURE_CLOUD_TOKEN`, for a step that needs a person's own login. */
+    personOnly?: boolean;
+}
+
 /**
- * The access token of the stored login, renewed when needed, or `undefined` when there is none,
- * it is scoped to another organization, or the authentication service refused to renew it.
+ * The credential that needs no sign-in, by the rule of {@link requireCredential}: the stored
+ * login when it can be renewed, else `VENDURE_CLOUD_TOKEN`. `refusal` says why a stored login
+ * could not be used, when the authentication service refused to renew it.
+ *
+ * @throws SessionRefreshUnavailableError when the stored login could not be renewed for a transient reason. It is kept.
+ * @since 4.0.0
  */
-async function storedLoginToken(options: RequireCredentialOptions): Promise<string | undefined> {
+export async function findCredential(
+    options: FindCredentialOptions,
+): Promise<{ credential?: CloudCredential; refusal?: Error }> {
+    const { token, refusal } = await storedLoginToken(options);
+    if (token) {
+        return { credential: { source: 'stored-login', token } };
+    }
+    const environmentToken = options.personOnly ? undefined : readCloudTokenEnv(options);
+    if (environmentToken) {
+        return { credential: { source: 'environment', token: environmentToken } };
+    }
+    return refusal ? { refusal } : {};
+}
+
+/**
+ * The access token of the stored login, renewed when needed. None when there is no login, or it
+ * is scoped to another organization. `refusal` when the authentication service refused to renew it.
+ */
+async function storedLoginToken(
+    options: FindCredentialOptions,
+): Promise<{ token?: string; refusal?: Error }> {
     const status = readAuthStatus(options);
     if (!status.loggedIn) {
-        return undefined;
+        return {};
     }
     if (options.organization && !matchesOrganization(status.organization, options.organization)) {
-        return undefined;
+        return {};
     }
     try {
-        return await getAccessToken(options);
+        const token = await getAccessToken(options);
+        return token ? { token } : {};
     } catch (error) {
-        if (error instanceof NotLoggedInError || (error instanceof Error && isRenewalRefused(error))) {
-            return undefined;
+        if (error instanceof NotLoggedInError) {
+            // Another command removed the login meanwhile.
+            return {};
+        }
+        if (error instanceof Error && isRenewalRefused(error)) {
+            return { refusal: error };
         }
         throw error;
     }

@@ -404,6 +404,24 @@ describe('vendure auth status', () => {
         );
     });
 
+    it('says VENDURE_CLOUD_TOKEN is used because the stored login was refused', async () => {
+        storeLogin();
+
+        const result = await runStatus(makeContext().ctx, {
+            ...dependencies,
+            env: { ...dependencies.env, VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            fetch: renewalAnswers(INVALID_GRANT),
+        });
+
+        expect(result).toMatchObject({ renewable: false, credential: 'environment' });
+        const text = renderStatus(result as any);
+        expect(text).toContain('can no longer be renewed (invalid_grant, HTTP 400)');
+        expect(text).toContain(
+            'Commands use VENDURE_CLOUD_TOKEN, because the stored login can no longer be renewed.',
+        );
+        expect(text).not.toContain('no login is stored');
+    });
+
     it('reports the stored login as the credential even when VENDURE_CLOUD_TOKEN is set', async () => {
         storeLogin();
 

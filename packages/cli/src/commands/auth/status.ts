@@ -40,9 +40,11 @@ export async function runStatus(ctx: CommandContext, dependencies: AuthCommandDe
 
 export function render(status: StatusOutput): string {
     const environment =
-        status.credential === 'environment'
-            ? `Commands use ${CLOUD_TOKEN_ENV}, because no login is stored for ${status.consoleApiUrl}.`
-            : undefined;
+        status.credential !== 'environment'
+            ? undefined
+            : status.renewable === false
+              ? `Commands use ${CLOUD_TOKEN_ENV}, because the stored login can no longer be renewed.`
+              : `Commands use ${CLOUD_TOKEN_ENV}, because no login is stored for ${status.consoleApiUrl}.`;
     if (status.renewable === false) {
         const refusal = describeRefusal(status, 'Run `vendure auth login` to sign in again.');
         return environment ? `${refusal}\n${environment}` : refusal;

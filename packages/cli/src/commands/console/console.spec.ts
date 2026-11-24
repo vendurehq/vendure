@@ -700,6 +700,19 @@ describe('console command', () => {
             };
         }
 
+        it('detaches nothing when --force without --console-project cannot choose a Project', async () => {
+            const root = previouslyLinkedWithAttribution();
+            const fetchMock = sequenceFetch(twoProjects());
+
+            const run = await runJson(root, fetchMock, { force: true });
+
+            expect(run.exitCode).toBe(1);
+            expect(run.result.needs).toEqual([expect.objectContaining({ field: 'consoleProject' })]);
+            expect(fetchMock).toHaveBeenCalledOnce();
+            expect(fetchMock.mock.calls[0][1]?.method).not.toBe('DELETE');
+            expect(fs.existsSync(path.join(root, '.vendure', 'telemetry-attribution.json'))).toBe(true);
+        });
+
         it('lists the projects and names --organization when --console-project names none of them', async () => {
             const root = vendureProject();
             const run = await runJson(root, sequenceFetch(twoProjects()), {
@@ -1107,8 +1120,8 @@ describe('console command', () => {
     it('detaches the telemetry of the replaced link before a forced link', async () => {
         const root = previouslyLinkedWithAttribution();
         const fetchMock = sequenceFetch(
-            new Response(null, { status: 204 }),
             jsonResponse(projectList()),
+            new Response(null, { status: 204 }),
             jsonResponse(manifest),
         );
 
@@ -1116,9 +1129,10 @@ describe('console command', () => {
             await consoleCommand('link', { force: true }, testDependencies(root, fetchMock).dependencies),
         ).toBe(0);
 
+        // The Project to link is chosen first, so a run that cannot choose one detaches nothing.
         expect(fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${url}`)).toEqual([
-            `DELETE http://localhost:3001/v1/projects/${OTHER_PROJECT_ID}/link/telemetry-installations/${INSTALLATION_ID}`,
             'GET http://localhost:3001/v1/projects',
+            `DELETE http://localhost:3001/v1/projects/${OTHER_PROJECT_ID}/link/telemetry-installations/${INSTALLATION_ID}`,
             `POST http://localhost:3001/v1/projects/${PROJECT_ID}/link`,
         ]);
         expect(JSON.parse(fetchMock.mock.calls[2][1]?.body as string)).toEqual({
@@ -1133,8 +1147,8 @@ describe('console command', () => {
     it('reports the kept link as not attributed when the forced link fails after the detach', async () => {
         const root = previouslyLinkedWithAttribution();
         const fetchMock = sequenceFetch(
-            new Response(null, { status: 204 }),
             jsonResponse(projectList()),
+            new Response(null, { status: 204 }),
             jsonResponse({ message: 'unavailable' }, 503),
         );
 
@@ -1142,7 +1156,7 @@ describe('console command', () => {
             await consoleCommand('link', { force: true }, testDependencies(root, fetchMock).dependencies),
         ).toBe(1);
 
-        expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE');
+        expect(fetchMock.mock.calls[1][1]?.method).toBe('DELETE');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).link.id).toBe(OTHER_LINK_ID);
         expect(fs.existsSync(path.join(root, '.vendure', 'telemetry-attribution.json'))).toBe(false);
         const status = testDependencies(root, vi.fn() as unknown as typeof fetch);
@@ -1154,8 +1168,8 @@ describe('console command', () => {
         const root = previouslyLinkedWithAttribution();
         const fetchMock = vi
             .fn()
-            .mockRejectedValueOnce(new TypeError('fetch failed'))
             .mockResolvedValueOnce(jsonResponse(projectList()))
+            .mockRejectedValueOnce(new TypeError('fetch failed'))
             .mockResolvedValueOnce(jsonResponse(manifest));
         const test = testDependencies(root, fetchMock);
 
@@ -1170,8 +1184,8 @@ describe('console command', () => {
     it('detaches the replaced attribution but sends no installation ID when telemetry is turned off', async () => {
         const root = previouslyLinkedWithAttribution();
         const fetchMock = sequenceFetch(
-            new Response(null, { status: 204 }),
             jsonResponse(projectList()),
+            new Response(null, { status: 204 }),
             jsonResponse(manifest),
         );
         const test = testDependencies(root, fetchMock, {
@@ -1180,7 +1194,7 @@ describe('console command', () => {
 
         expect(await consoleCommand('link', { force: true }, test.dependencies)).toBe(0);
 
-        expect(fetchMock.mock.calls[0][1]?.method).toBe('DELETE');
+        expect(fetchMock.mock.calls[1][1]?.method).toBe('DELETE');
         expect(fetchMock.mock.calls[2][1]?.body).toBeUndefined();
         expect(fs.existsSync(path.join(root, '.vendure', 'telemetry-attribution.json'))).toBe(false);
     });
