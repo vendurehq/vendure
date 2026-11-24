@@ -106,7 +106,10 @@ test('watcher readiness fails clearly when the success signal never arrives', as
 
     triggerTimeout();
 
-    await assert.rejects(readiness.ready, /core printed no TypeScript watch output for 10 seconds.*VENDURE_DEV_WATCH_TIMEOUT_SECONDS/);
+    await assert.rejects(
+        readiness.ready,
+        /core printed no TypeScript watch output for 10 seconds.*VENDURE_DEV_WATCH_TIMEOUT_SECONDS/,
+    );
 });
 
 test('watcher output restarts the readiness timer until the first build succeeds', async () => {
