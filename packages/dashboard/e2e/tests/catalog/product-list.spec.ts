@@ -510,50 +510,55 @@ test.describe('Product List', () => {
         await client.login();
         const zones = await client.gql(`query { zones(options: { take: 1 }) { items { id } } }`);
         const zoneId = zones.zones.items[0].id as string;
-        const { createChannel } = await client.gql(
-            `mutation ($input: CreateChannelInput!) { createChannel(input: $input) { ... on Channel { id } } }`,
-            {
-                input: {
-                    code: channelCode,
-                    token: channelCode,
-                    defaultLanguageCode: 'en',
-                    pricesIncludeTax: false,
-                    defaultCurrencyCode: 'USD',
-                    defaultTaxZoneId: zoneId,
-                    defaultShippingZoneId: zoneId,
+        let channelId: string | undefined;
+        let productId: string | undefined;
+
+        try {
+            const { createChannel } = await client.gql(
+                `mutation ($input: CreateChannelInput!) { createChannel(input: $input) { ... on Channel { id } } }`,
+                {
+                    input: {
+                        code: channelCode,
+                        token: channelCode,
+                        defaultLanguageCode: 'en',
+                        pricesIncludeTax: false,
+                        defaultCurrencyCode: 'USD',
+                        defaultTaxZoneId: zoneId,
+                        defaultShippingZoneId: zoneId,
+                    },
                 },
-            },
-        );
-        const { createProduct } = await client.gql(
-            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
-            {
-                input: {
-                    translations: [
+            );
+            channelId = createChannel.id;
+            const { createProduct } = await client.gql(
+                `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+                {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: 'en',
+                                name: productName,
+                                slug: `price-factor-${suffix}`,
+                                description: '',
+                            },
+                        ],
+                    },
+                },
+            );
+            productId = createProduct.id;
+            await client.gql(
+                `mutation ($input: [CreateProductVariantInput!]!) { createProductVariants(input: $input) { id } }`,
+                {
+                    input: [
                         {
-                            languageCode: 'en',
-                            name: productName,
-                            slug: `price-factor-${suffix}`,
-                            description: '',
+                            productId: createProduct.id,
+                            sku: `PF-${suffix}`,
+                            price: 1000,
+                            translations: [{ languageCode: 'en', name: productName }],
                         },
                     ],
                 },
-            },
-        );
-        await client.gql(
-            `mutation ($input: [CreateProductVariantInput!]!) { createProductVariants(input: $input) { id } }`,
-            {
-                input: [
-                    {
-                        productId: createProduct.id,
-                        sku: `PF-${suffix}`,
-                        price: 1000,
-                        translations: [{ languageCode: 'en', name: productName }],
-                    },
-                ],
-            },
-        );
+            );
 
-        try {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
@@ -581,17 +586,21 @@ test.describe('Product List', () => {
 
             const result = await client.gql(
                 `query ($id: ID!) { product(id: $id) { variants { price } } }`,
-                { id: createProduct.id },
+                { id: productId },
                 { 'vendure-token': channelCode },
             );
             expect(result.product.variants[0].price).toBe(500);
         } finally {
-            await client
-                .gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: createProduct.id })
-                .catch(() => undefined);
-            await client
-                .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, { id: createChannel.id })
-                .catch(() => undefined);
+            if (productId) {
+                await client
+                    .gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId })
+                    .catch(() => undefined);
+            }
+            if (channelId) {
+                await client
+                    .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, { id: channelId })
+                    .catch(() => undefined);
+            }
         }
     });
 });
