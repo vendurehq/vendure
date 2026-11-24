@@ -2,6 +2,7 @@ import { CommandContext, defineError, fail } from '@vendure/common/lib/command';
 import { LocalAppDataNotSetError } from '@vendure/common/lib/local-trust';
 import pc from 'picocolors';
 
+import { describeFix } from '../../command-host/format-fix.js';
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
 import {
     DevServerState,
@@ -182,7 +183,7 @@ export function renderStatusReport(report: DevServerStatusReport): string {
             );
         }
         for (const fix of error.fix ?? []) {
-            lines.push(`  ${pc.green('fix:')} ${fix.description}`);
+            lines.push(`  ${pc.green('fix:')} ${describeFix(fix)}`);
         }
     }
     return lines.join('\n');

@@ -8,6 +8,7 @@ import {
     readChildOutputLine,
     readUrls,
     readyEventUrls,
+    startupErrorToDevServerError,
 } from './child-output.js';
 
 const now = () => new Date('2026-11-22T10:00:00.000Z');
@@ -135,6 +136,35 @@ describe('ready event', () => {
                 urls: { admin: 1 } as any,
             }),
         ).toEqual({});
+    });
+});
+
+describe('startupErrorToDevServerError()', () => {
+    it('keeps a fix that names a command, and drops a malformed command', () => {
+        const error = startupErrorToDevServerError(
+            {
+                vendure: 'event',
+                event: 'startup-error',
+                code: 'cloud.no-declared-migrations',
+                message: 'No migrations are declared',
+                fix: [
+                    { description: 'Generate a migration', path: ['migrate', 'generate'], input: {} },
+                    { description: 'Declare the migrations', path: 'migrate' as any, input: {} },
+                    { nope: true } as any,
+                ],
+            },
+            'server',
+        );
+
+        expect(error).toEqual({
+            process: 'server',
+            code: 'cloud.no-declared-migrations',
+            message: 'No migrations are declared',
+            fix: [
+                { description: 'Generate a migration', path: ['migrate', 'generate'], input: {} },
+                { description: 'Declare the migrations' },
+            ],
+        });
     });
 });
 

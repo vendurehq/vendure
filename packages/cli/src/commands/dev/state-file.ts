@@ -1,3 +1,4 @@
+import type { Fix } from '@vendure/common/lib/command';
 import {
     LocalAppDataNotSetError,
     LocalTrustState,
@@ -60,7 +61,7 @@ export interface DevServerError {
     code?: string;
     message: string;
     diagnostics?: DevServerDiagnostic[];
-    fix?: Array<{ description: string }>;
+    fix?: Fix[];
 }
 
 /**

@@ -8,6 +8,7 @@ import {
 } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
+import { readFixes } from '../../command-host/format-fix.js';
 import { stripAnsi } from '../../shared/strip-ansi.js';
 
 import { DevServerError, DevServerUrls } from './state-file.js';
@@ -151,9 +152,7 @@ export function readyEventUrls(event: ReadyEvent): DevServerUrls {
  * The `lastError` for a startup-error event.
  */
 export function startupErrorToDevServerError(event: StartupErrorEvent, processName: string): DevServerError {
-    const fix = Array.isArray(event.fix)
-        ? event.fix.filter(f => typeof f?.description === 'string').map(f => ({ description: f.description }))
-        : [];
+    const fix = readFixes(event.fix);
     return {
         process: processName,
         code: event.code,

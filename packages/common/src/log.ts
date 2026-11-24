@@ -1,3 +1,5 @@
+import type { Fix } from './command/types';
+
 /**
  * The names of the log levels, from the most severe to the least severe.
  */
@@ -52,8 +54,8 @@ export interface StartupErrorEvent {
     /** The namespaced code of the error, for example `core.config.invalid-custom-fields`. */
     code: string;
     message: string;
-    /** Ways to fix the error. */
-    fix: Array<{ description: string }>;
+    /** Ways to fix the error. A fix that is a command also names its `path` and `input`. */
+    fix: Fix[];
 }
 
 /**

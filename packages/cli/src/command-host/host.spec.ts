@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 import { runCommandInHarness } from './__tests__/command-harness.js';
 import { consentDigest } from './digest.js';
-import { formatFix } from './host.js';
+import { formatFix } from './format-fix.js';
 
 const input = z.object({
     name: z.string().describe('The name'),
