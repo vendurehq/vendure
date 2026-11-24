@@ -253,11 +253,15 @@ export class OrderCalculator {
         if (initialListPrice == null || line.listPriceIncludesTax === newPrice.priceIncludesTax) {
             return;
         }
-        const includedRate = await this.taxRateService.getApplicableTaxRate(
+        const includedRate = await this.taxRateService.findIncludedTaxRate(
             ctx,
-            ctx.channel.defaultTaxZone,
+            ctx.channel,
             line.taxCategoryId,
         );
+        if (!includedRate) {
+            // No tax is taken out, so the price has the same value in both forms
+            return;
+        }
         if (newPrice.priceIncludesTax) {
             const unchanged = roundMoney(includedRate.netPriceOf(newPrice.price)) === initialListPrice;
             line.initialListPrice = unchanged

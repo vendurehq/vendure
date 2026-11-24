@@ -23,4 +23,25 @@ describe('defaultTaxCountryCode()', () => {
     it('returns undefined with no order', () => {
         expect(defaultTaxCountryCode(channel, defaultZone)).toBeUndefined();
     });
+
+    describe('with a tax country', () => {
+        const otherZone = { id: 'zone-2', name: 'Other Zone' } as Zone;
+        const channelWithTaxCountry = { defaultTaxZone: defaultZone, taxCountryCode: 'DE' } as Channel;
+
+        it('the shipping country still wins', () => {
+            const order = { shippingAddress: { countryCode: 'FR' } } as Order;
+            expect(defaultTaxCountryCode(channelWithTaxCountry, defaultZone, order)).toBe('FR');
+        });
+
+        it('returns the tax country with no shipping country, in the default tax zone', () => {
+            expect(defaultTaxCountryCode(channelWithTaxCountry, defaultZone)).toBe('DE');
+            expect(
+                defaultTaxCountryCode(channelWithTaxCountry, defaultZone, { shippingAddress: {} } as Order),
+            ).toBe('DE');
+        });
+
+        it('returns undefined with no shipping country, in another zone', () => {
+            expect(defaultTaxCountryCode(channelWithTaxCountry, otherZone)).toBeUndefined();
+        });
+    });
 });

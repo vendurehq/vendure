@@ -161,6 +161,18 @@ export class MockTaxRateService {
         const rate = this.activeTaxRates.find(r => r.test(zone, taxCategory));
         return rate || taxRateDefaultStandard;
     }
+
+    async findIncludedTaxRate(
+        ctx: RequestContext,
+        channel: Channel,
+        taxCategory: TaxCategory | ID,
+    ): Promise<TaxRate | undefined> {
+        const countryCode = channel.taxCountryCode;
+        if (countryCode && taxRateCountryStandard.testRegion(countryCode, taxCategory)) {
+            return taxRateCountryStandard;
+        }
+        return this.activeTaxRates.find(r => r.test(channel.defaultTaxZone, taxCategory));
+    }
 }
 
 export function createOrder(

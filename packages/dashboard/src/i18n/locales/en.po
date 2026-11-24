@@ -1828,6 +1828,11 @@ msgstr "Order transitioned"
 msgid "is before"
 msgstr "is before"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr "Tax country"
+
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "This option combination is already used by \"{0}\""
@@ -2359,6 +2364,7 @@ msgstr "Last 30 days"
 msgid "No facet values"
 msgstr "No facet values"
 
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
 #: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "None"
 msgstr "None"
@@ -7654,6 +7660,10 @@ msgstr "Add asset"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Customer added to group"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"

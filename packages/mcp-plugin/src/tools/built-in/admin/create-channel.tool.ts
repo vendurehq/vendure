@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { McpToolSerializerService } from '../serializer.service';
 
-import { channelFieldsSchema } from './channel-fields-schema';
+import { channelFieldsSchema, withTaxCountryCodeForCore } from './channel-fields-schema';
 
 const createChannelInput = z.strictObject({ input: channelFieldsSchema });
 
@@ -36,6 +36,8 @@ export class CreateChannelTool implements McpToolHandler<CreateChannelToolInput>
     ) {}
 
     async execute(ctx: RequestContext, input: CreateChannelToolInput) {
-        return this.serializer.channelOrError(await this.channelService.create(ctx, input.input));
+        return this.serializer.channelOrError(
+            await this.channelService.create(ctx, withTaxCountryCodeForCore(input.input)),
+        );
     }
 }

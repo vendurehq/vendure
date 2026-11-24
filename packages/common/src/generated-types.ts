@@ -530,6 +530,8 @@ export type Channel = Node & {
   outOfStockThreshold?: Maybe<Scalars['Int']['output']>;
   pricesIncludeTax: Scalars['Boolean']['output'];
   seller?: Maybe<Seller>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: Maybe<Scalars['String']['output']>;
   token: Scalars['String']['output'];
   /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: Maybe<Scalars['Boolean']['output']>;
@@ -559,6 +561,8 @@ export type ChannelFilterParameter = {
   /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<StringOperators>;
   token?: InputMaybe<StringOperators>;
   /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: InputMaybe<BooleanOperators>;
@@ -590,6 +594,8 @@ export type ChannelSortParameter = {
   id?: InputMaybe<SortOrder>;
   /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: InputMaybe<SortOrder>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -947,6 +953,8 @@ export type CreateChannelInput = {
   outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
   pricesIncludeTax: Scalars['Boolean']['input'];
   sellerId?: InputMaybe<Scalars['ID']['input']>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<Scalars['String']['input']>;
   token: Scalars['String']['input'];
   trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -7564,6 +7572,8 @@ export type UpdateChannelInput = {
   outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
   pricesIncludeTax?: InputMaybe<Scalars['Boolean']['input']>;
   sellerId?: InputMaybe<Scalars['ID']['input']>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Set it to null to clear it. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<Scalars['String']['input']>;
   token?: InputMaybe<Scalars['String']['input']>;
   trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
 };
