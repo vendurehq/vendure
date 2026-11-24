@@ -3,6 +3,7 @@ import {
     LogLevelName,
     LogLine,
     MCP_ADMIN_ENDPOINT_LOG_PREFIX,
+    ReadyEvent,
     StartupErrorEvent,
 } from '@vendure/common/lib/log';
 import pc from 'picocolors';
@@ -15,12 +16,13 @@ import { DevServerError, DevServerUrls } from './state-file.js';
 export type ChildOutputLine =
     /** `json` is true when the child wrote the line as a JSON log line. */
     | { kind: 'log'; line: LogLine; json: boolean }
-    | { kind: 'startup-error'; event: StartupErrorEvent; line: LogLine };
+    | { kind: 'startup-error'; event: StartupErrorEvent; line: LogLine }
+    | { kind: 'ready'; event: ReadyEvent; line: LogLine };
 
 /**
  * Reads one line of a child's output. A JSON log line written by the `json` format of the
  * `DefaultLogger` is kept as it is. A startup-error event becomes an error line with the event's
- * code. Any other line is wrapped as a log line, `info` from stdout and `error` from stderr, so the
+ * code, and a ready event an info line. Any other line is wrapped as a log line, `info` from stdout and `error` from stderr, so the
  * dev log is always valid JSONL. ANSI colours are removed from the wrapped text.
  */
 export function readChildOutputLine(
@@ -41,6 +43,19 @@ export function readChildOutputLine(
                 msg: parsed.message,
                 process: processName,
                 code: parsed.code,
+            },
+        };
+    }
+    if (isReadyEvent(parsed)) {
+        return {
+            kind: 'ready',
+            event: parsed,
+            line: {
+                ts: now().toISOString(),
+                level: 'info',
+                ctx: 'Ready',
+                msg: `The ${parsed.process} is ready`,
+                process: processName,
             },
         };
     }
@@ -93,6 +108,32 @@ function isStartupErrorEvent(value: unknown): value is StartupErrorEvent {
         typeof event.code === 'string' &&
         typeof event.message === 'string'
     );
+}
+
+function isReadyEvent(value: unknown): value is ReadyEvent {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const event = value as Record<string, unknown>;
+    return (
+        event.vendure === 'event' &&
+        event.event === 'ready' &&
+        (event.process === 'server' || event.process === 'worker')
+    );
+}
+
+/**
+ * The URLs named by a ready event. URLs that are not strings are left out.
+ */
+export function readyEventUrls(event: ReadyEvent): DevServerUrls {
+    const urls: DevServerUrls = {};
+    if (typeof event.urls?.admin === 'string') {
+        urls.admin = event.urls.admin;
+    }
+    if (typeof event.urls?.shop === 'string') {
+        urls.shop = event.urls.shop;
+    }
+    return urls;
 }
 
 /**
@@ -167,12 +208,11 @@ const viteLocalUrlPattern = /Local:\s+(https?:\/\/\S+)/;
 // `Store MCP admin endpoint: http://localhost:3000/mcp/admin`, which the McpPlugin logs when the
 // server starts. The plugin is optional, so the line may never come.
 const mcpEndpointPattern = new RegExp(`^${escapeRegExp(MCP_ADMIN_ENDPOINT_LOG_PREFIX)}(https?://\\S+)$`);
-// The line of `=` that closes the server's welcome message, after its URLs.
-const welcomeEndPattern = /^=+$/;
 
 /**
  * Whether a line tells that the process is ready: the server is listening, the worker is
- * processing jobs, or the Dashboard's Vite server is serving.
+ * processing jobs, or the Dashboard's Vite server is serving. For the server and the worker this
+ * is the fallback for a `@vendure/core` that does not write the ready event.
  */
 export function isReadyLine(target: string, line: LogLine): boolean {
     switch (target) {
@@ -185,13 +225,6 @@ export function isReadyLine(target: string, line: LogLine): boolean {
         default:
             return false;
     }
-}
-
-/**
- * Whether a line closes the server's welcome message.
- */
-export function isWelcomeEndLine(line: LogLine): boolean {
-    return welcomeEndPattern.test(line.msg.trim());
 }
 
 /**

@@ -5,9 +5,9 @@ import { stripAnsi } from '../../shared/strip-ansi.js';
 import {
     formatLogLineAsText,
     isReadyLine,
-    isWelcomeEndLine,
     readChildOutputLine,
     readUrls,
+    readyEventUrls,
 } from './child-output.js';
 
 const now = () => new Date('2026-11-22T10:00:00.000Z');
@@ -79,6 +79,51 @@ describe('readChildOutputLine()', () => {
     });
 });
 
+describe('ready event', () => {
+    it('reads the ready event line from @vendure/core as an info line, with its URLs', () => {
+        const raw = JSON.stringify({
+            vendure: 'event',
+            event: 'ready',
+            process: 'server',
+            urls: { admin: 'http://localhost:3000/admin-api', shop: 'http://localhost:3000/shop-api' },
+        });
+        const read = readChildOutputLine(raw, 'stderr', 'server', now);
+
+        expect(read).toEqual({
+            kind: 'ready',
+            event: JSON.parse(raw),
+            line: {
+                ts: '2026-11-22T10:00:00.000Z',
+                level: 'info',
+                ctx: 'Ready',
+                msg: 'The server is ready',
+                process: 'server',
+            },
+        });
+        expect(read.kind === 'ready' && readyEventUrls(read.event)).toEqual({
+            admin: 'http://localhost:3000/admin-api',
+            shop: 'http://localhost:3000/shop-api',
+        });
+    });
+
+    it('does not read an event for another process as a ready event', () => {
+        const raw = JSON.stringify({ vendure: 'event', event: 'ready', process: 'dashboard' });
+
+        expect(readChildOutputLine(raw, 'stderr', 'server', now).kind).toBe('log');
+    });
+
+    it('leaves out URLs that are not strings', () => {
+        expect(
+            readyEventUrls({
+                vendure: 'event',
+                event: 'ready',
+                process: 'server',
+                urls: { admin: 1 } as any,
+            }),
+        ).toEqual({});
+    });
+});
+
 describe('isReadyLine()', () => {
     const line = (msg: string) => ({ ts: '', level: 'info' as const, msg });
 
@@ -91,16 +136,6 @@ describe('isReadyLine()', () => {
     it('does not take a line of another process as ready', () => {
         expect(isReadyLine('worker', line('Vendure server (v4.0.0) now running on port 3000'))).toBe(false);
         expect(isReadyLine('server', line('Bootstrapping Vendure Server'))).toBe(false);
-    });
-});
-
-describe('isWelcomeEndLine()', () => {
-    const line = (msg: string) => ({ ts: '', level: 'info' as const, msg });
-
-    it('recognises the line of = that closes the welcome message', () => {
-        expect(isWelcomeEndLine(line('=================================='))).toBe(true);
-        expect(isWelcomeEndLine(line('----------------------------------'))).toBe(false);
-        expect(isWelcomeEndLine(line('Shop API: http://localhost:3000/shop-api'))).toBe(false);
     });
 });
 

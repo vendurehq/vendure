@@ -7,9 +7,9 @@ import { withoutLocalTrustSecret } from '../../shared/local-trust-env.js';
 import {
     formatLogLineAsText,
     isReadyLine,
-    isWelcomeEndLine,
     readChildOutputLine,
     readUrls,
+    readyEventUrls,
     startupErrorToDevServerError,
 } from './child-output.js';
 import { parseDiagnostics } from './diagnostics.js';
@@ -18,6 +18,7 @@ import {
     DevRunAlreadyRunningError,
     DevServerError,
     DevServerStateFile,
+    DevServerUrls,
     generateLocalTrustSecret,
 } from './state-file.js';
 import { DevSupervisor, DevSupervisorSnapshot } from './supervisor.js';
@@ -25,10 +26,10 @@ import { DevSupervisor, DevSupervisorSnapshot } from './supervisor.js';
 /** How many lines of a process's output are kept to read compile errors from. */
 const MAX_BUFFERED_OUTPUT_LINES = 500;
 /**
- * How long after its "now running" line the server counts as ready without the line that closes
- * its welcome message.
+ * How long after its "now running" or "ready" log line the server or the worker counts as ready
+ * when it writes no ready event, as a `@vendure/core` from before the event does.
  */
-const WELCOME_MESSAGE_TIMEOUT_MS = 1000;
+const READY_EVENT_TIMEOUT_MS = 1000;
 
 /**
  * Receives what happens to one process of a `vendure dev` run.
@@ -202,7 +203,9 @@ export class DevRun {
 class ChildMonitor implements DevChildMonitor {
     private output: string[] = [];
     private startupError: StartupErrorEvent | undefined;
-    private welcomeTimer: NodeJS.Timeout | undefined;
+    private fallbackTimer: NodeJS.Timeout | undefined;
+    /** Whether this process has written a ready event, so its log lines no longer decide readiness. */
+    private writesReadyEvent = false;
 
     constructor(
         private readonly target: string,
@@ -212,14 +215,14 @@ class ChildMonitor implements DevChildMonitor {
     ) {}
 
     onChangeDetected(): void {
-        this.cancelWelcomeTimer();
+        this.cancelFallbackTimer();
         this.supervisor.childRestarting(this.target);
     }
 
     onSpawn(restart: boolean): void {
         this.output = [];
         this.startupError = undefined;
-        this.cancelWelcomeTimer();
+        this.cancelFallbackTimer();
         if (restart) {
             this.supervisor.childRestarting(this.target);
         }
@@ -233,9 +236,15 @@ class ChildMonitor implements DevChildMonitor {
             // catches the error and logs it keeps the process alive. The next file change restarts
             // it either way.
             this.startupError = read.event;
-            this.cancelWelcomeTimer();
+            this.cancelFallbackTimer();
             this.supervisor.childFailed(this.target, startupErrorToDevServerError(read.event, this.target));
             this.options.print(this.target, 'stderr', formatStartupError(read.event));
+            return;
+        }
+        if (read.kind === 'ready') {
+            this.writesReadyEvent = true;
+            this.supervisor.addUrls(this.readUrls(read.line, readyEventUrls(read.event)));
+            this.markReady();
             return;
         }
         // A line the child wrote as JSON is shown as text. Any other line is shown as it was
@@ -243,23 +252,23 @@ class ChildMonitor implements DevChildMonitor {
         this.options.print(this.target, stream, read.json ? formatLogLineAsText(read.line) : raw);
         this.bufferOutput(read.line);
         this.supervisor.addUrls(this.readUrls(read.line));
-        if (this.welcomeTimer && isWelcomeEndLine(read.line)) {
+        if (!isReadyLine(this.target, read.line)) {
+            return;
+        }
+        if (this.target === 'dashboard') {
             this.markReady();
-        } else if (isReadyLine(this.target, read.line)) {
-            if (this.target === 'server') {
-                // The server prints its URLs after the "now running" line, so it counts as ready
-                // once the line that closes its welcome message has arrived.
-                this.cancelWelcomeTimer();
-                this.welcomeTimer = setTimeout(() => this.markReady(), WELCOME_MESSAGE_TIMEOUT_MS);
-                this.welcomeTimer.unref?.();
-            } else {
-                this.markReady();
-            }
+        } else if (!this.writesReadyEvent) {
+            // A core that writes the ready event writes it straight after this line, and the event
+            // marks the process ready. A core from before the event never writes it, and the
+            // process counts as ready once its welcome message has had time to print its URLs.
+            this.cancelFallbackTimer();
+            this.fallbackTimer = setTimeout(() => this.markReady(), READY_EVENT_TIMEOUT_MS);
+            this.fallbackTimer.unref?.();
         }
     }
 
     onRecoverableExit(code: number): string {
-        this.cancelWelcomeTimer();
+        this.cancelFallbackTimer();
         const error = this.describeFailure(code);
         this.supervisor.childFailed(this.target, error);
         return error.message;
@@ -269,11 +278,11 @@ class ChildMonitor implements DevChildMonitor {
      * The URLs a line names. When the run includes the server, the Dashboard URL comes from the
      * server's welcome message only, so it does not depend on which process printed last.
      */
-    private readUrls(line: LogLine) {
+    private readUrls(line: LogLine, urls: DevServerUrls = readUrls(this.target, line)) {
         if (this.target === 'dashboard' && this.options.targets.includes('server')) {
             return {};
         }
-        return readUrls(this.target, line);
+        return urls;
     }
 
     hasStartupError(): boolean {
@@ -281,14 +290,14 @@ class ChildMonitor implements DevChildMonitor {
     }
 
     private markReady() {
-        this.cancelWelcomeTimer();
+        this.cancelFallbackTimer();
         this.supervisor.childReady(this.target);
     }
 
-    private cancelWelcomeTimer() {
-        if (this.welcomeTimer) {
-            clearTimeout(this.welcomeTimer);
-            this.welcomeTimer = undefined;
+    private cancelFallbackTimer() {
+        if (this.fallbackTimer) {
+            clearTimeout(this.fallbackTimer);
+            this.fallbackTimer = undefined;
         }
     }
 

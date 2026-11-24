@@ -20,6 +20,7 @@ import { CORE_STARTUP_ERROR_CODES } from './common/error/core-startup-error-code
 import { InternalServerError } from './common/error/errors';
 import { writeStartupErrorEvent } from './common/error/startup-error-event';
 import { VendureStartupError } from './common/error/vendure-startup-error';
+import { writeReadyEvent } from './common/ready-event';
 import { getConfig, setConfig } from './config/config-helpers';
 import { DefaultLogger } from './config/logger/default-logger';
 import { Logger } from './config/logger/vendure-logger';
@@ -283,6 +284,7 @@ async function startServer(
     app.enableShutdownHooks();
     logWelcomeMessage(config);
     logStartupBanner('server');
+    writeReadyEvent('server', getApiUrls(config));
     await app.get(EventBus).publish(new BootstrappedEvent());
     return app;
 }
@@ -353,6 +355,7 @@ async function startWorker(
     await checkDatabaseTimezone(workerApp.get<DataSource>(getConnectionToken()), config);
     Logger.info('Vendure Worker is ready');
     logStartupBanner('worker');
+    writeReadyEvent('worker');
     await workerApp.get(EventBus).publish(new BootstrappedEvent());
     return new VendureWorker(workerApp);
 }
@@ -559,12 +562,25 @@ function setExposedHeaders(config: Readonly<RuntimeVendureConfig>) {
     corsOptions.exposedHeaders = configuredHeaders.concat(addedHeaders);
 }
 
+function toServerUrl(config: RuntimeVendureConfig, path: string): string {
+    const { port, hostname } = config.apiOptions;
+    return `http://${hostname || 'localhost'}:${port}/${path}`;
+}
+
+function getApiUrls(config: RuntimeVendureConfig): { admin: string; shop: string } {
+    return {
+        admin: toServerUrl(config, config.apiOptions.adminApiPath),
+        shop: toServerUrl(config, config.apiOptions.shopApiPath),
+    };
+}
+
 function logWelcomeMessage(config: RuntimeVendureConfig) {
-    const { port, shopApiPath, adminApiPath, hostname } = config.apiOptions;
+    const { port } = config.apiOptions;
     const apiCliGreetings: Array<readonly [string, string]> = [];
-    const pathToUrl = (path: string) => `http://${hostname || 'localhost'}:${port}/${path}`;
-    apiCliGreetings.push(['Shop API', pathToUrl(shopApiPath)]);
-    apiCliGreetings.push(['Admin API', pathToUrl(adminApiPath)]);
+    const pathToUrl = (path: string) => toServerUrl(config, path);
+    const urls = getApiUrls(config);
+    apiCliGreetings.push(['Shop API', urls.shop]);
+    apiCliGreetings.push(['Admin API', urls.admin]);
     apiCliGreetings.push(
         ...getPluginStartupMessages().map(({ label, path }) => [label, pathToUrl(path)] as const),
     );

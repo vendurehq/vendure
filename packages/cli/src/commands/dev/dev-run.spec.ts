@@ -53,6 +53,14 @@ const welcome = [
     '===============================================',
 ];
 
+// The line `bootstrap()` writes to stderr straight after the welcome message.
+const serverReady = JSON.stringify({
+    vendure: 'event',
+    event: 'ready',
+    process: 'server',
+    urls: { admin: 'http://localhost:3000/admin-api', shop: 'http://localhost:3000/shop-api' },
+});
+
 const json = (line: Record<string, unknown>) =>
     JSON.stringify({ ts: '2026-11-22T10:00:00.000Z', level: 'info', ...line });
 
@@ -161,6 +169,7 @@ describe('DevRun', () => {
         for (const msg of welcome) {
             monitor.onOutput('stdout', json({ ctx: 'Vendure Server', msg }));
         }
+        monitor.onOutput('stderr', serverReady);
         expect(readDevServerState(projectDir)).toMatchObject({
             status: 'ready',
             restarts: 1,
@@ -233,36 +242,65 @@ describe('DevRun readiness and URLs', () => {
         vi.useRealTimers();
     });
 
-    it('marks the server ready only once its welcome message, with the URLs, is complete', () => {
-        const { run, projectDir } = createRun();
+    it('marks the server ready on its ready event, with the URLs, without the welcome message', () => {
+        const { run, projectDir, print } = createRun();
         const monitor = run.monitor('server');
         monitor.onSpawn(false);
-
-        // The line of `=` that opens the message does not count, nor does the title before the URLs.
-        monitor.onOutput('stdout', json({ msg: welcome[0] }));
-        monitor.onOutput('stdout', json({ msg: welcome[1] }));
         expect(readDevServerState(projectDir)?.status).toBe('starting');
-        for (const msg of welcome.slice(2)) {
-            monitor.onOutput('stdout', json({ msg }));
-        }
+
+        monitor.onOutput('stderr', serverReady);
 
         expect(readDevServerState(projectDir)).toMatchObject({
             status: 'ready',
             urls: { shop: 'http://localhost:3000/shop-api', admin: 'http://localhost:3000/admin-api' },
         });
+        // The event is not printed.
+        expect(print).not.toHaveBeenCalled();
     });
 
-    it('marks the server ready a second after its "now running" line when the welcome message does not close', () => {
+    it('marks the worker ready on its ready event', () => {
+        const { run, projectDir } = createRun({ targets: ['worker'] });
+        const monitor = run.monitor('worker');
+        monitor.onSpawn(false);
+
+        monitor.onOutput('stderr', JSON.stringify({ vendure: 'event', event: 'ready', process: 'worker' }));
+
+        expect(readDevServerState(projectDir)?.status).toBe('ready');
+    });
+
+    it('waits for the ready event after the welcome message, and marks the server ready a second later without it', () => {
         vi.useFakeTimers();
         const { run, projectDir } = createRun();
         const monitor = run.monitor('server');
         monitor.onSpawn(false);
-        monitor.onOutput('stdout', json({ msg: welcome[0] }));
-        monitor.onOutput('stdout', json({ msg: welcome[1] }));
+        for (const msg of welcome) {
+            monitor.onOutput('stdout', json({ msg }));
+        }
 
         vi.advanceTimersByTime(999);
-        expect(readDevServerState(projectDir)?.status).toBe('starting');
+        expect(readDevServerState(projectDir)).toMatchObject({
+            status: 'starting',
+            urls: { shop: 'http://localhost:3000/shop-api', admin: 'http://localhost:3000/admin-api' },
+        });
         vi.advanceTimersByTime(1);
+        expect(readDevServerState(projectDir)?.status).toBe('ready');
+    });
+
+    it('lets only the ready event decide once the process has written one', () => {
+        vi.useFakeTimers();
+        const { run, projectDir } = createRun();
+        const monitor = run.monitor('server');
+        monitor.onSpawn(false);
+        monitor.onOutput('stdout', json({ msg: welcome[1] }));
+        monitor.onOutput('stderr', serverReady);
+        expect(readDevServerState(projectDir)?.status).toBe('ready');
+
+        monitor.onSpawn(true);
+        monitor.onOutput('stdout', json({ msg: welcome[1] }));
+        vi.advanceTimersByTime(5000);
+        expect(readDevServerState(projectDir)?.status).toBe('restarting');
+
+        monitor.onOutput('stderr', serverReady);
         expect(readDevServerState(projectDir)?.status).toBe('ready');
     });
 
@@ -313,6 +351,7 @@ describe('DevRun readiness and URLs', () => {
         for (const msg of welcome) {
             monitor.onOutput('stdout', json({ msg }));
         }
+        monitor.onOutput('stderr', serverReady);
 
         monitor.onChangeDetected();
         expect(readDevServerState(projectDir)).toMatchObject({ status: 'restarting', restarts: 1 });
