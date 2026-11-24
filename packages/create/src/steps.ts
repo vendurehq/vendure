@@ -75,7 +75,9 @@ export const INITIAL_COMMIT_MESSAGE = 'Initial commit from @vendure/create';
  * Initialises a git repository, without committing. A missing git or a directory that is already
  * inside a repository is reported and never fails create.
  */
-export async function initGitRepository(cwd: string): Promise<GitResult | undefined> {
+export type GitInitResult = Exclude<GitResult, { status: 'committed' }> | { status: 'initialised' };
+
+export async function initGitRepository(cwd: string): Promise<GitInitResult> {
     const version = await runCommand('git', ['--version'], { cwd });
     if (version.spawnError || version.code !== 0) {
         return { status: 'skipped', reason: 'git is not installed' };
@@ -85,7 +87,7 @@ export async function initGitRepository(cwd: string): Promise<GitResult | undefi
         return { status: 'skipped', reason: 'the project directory is already inside a git repository' };
     }
     const init = await runCommand('git', ['init', '--quiet'], { cwd });
-    return init.code === 0 ? undefined : gitFailed('init', init);
+    return init.code === 0 ? { status: 'initialised' } : gitFailed('init', init);
 }
 
 /** Commits every file of a repository that {@link initGitRepository} created. */
@@ -102,15 +104,7 @@ export async function commitAll(cwd: string): Promise<GitResult> {
     return { status: 'committed' };
 }
 
-/**
- * Initialises a git repository and makes the initial commit. A missing git, a directory that is
- * already inside a repository, or a failed commit is reported and never fails create.
- */
-export async function initialiseGit(cwd: string): Promise<GitResult> {
-    return (await initGitRepository(cwd)) ?? commitAll(cwd);
-}
-
-function gitFailed(step: string, result: RunResult): GitResult {
+function gitFailed(step: string, result: RunResult): { status: 'failed'; reason: string } {
     return {
         status: 'failed',
         reason: `\`git ${step}\` failed: ${result.output.trim() || `exit code ${String(result.code)}`}`,

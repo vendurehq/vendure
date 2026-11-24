@@ -62,9 +62,7 @@
                 "inputs": [
                     "production",
                     "^production",
-                    "{workspaceRoot}/skills/vendure-cli/**/*",
-                    "{workspaceRoot}/skills/vendure-store-setup/**/*",
-                    "{workspaceRoot}/skills/vendure-troubleshooting/**/*"
+                    "{workspaceRoot}/skills/**/*"
                 ]
             },
             "test": {
@@ -76,9 +74,7 @@
                     {
                         "runtime": "node --version"
                     },
-                    "{workspaceRoot}/skills/vendure-cli/**/*",
-                    "{workspaceRoot}/skills/vendure-store-setup/**/*",
-                    "{workspaceRoot}/skills/vendure-troubleshooting/**/*"
+                    "{workspaceRoot}/skills/**/*"
                 ]
             }
         }

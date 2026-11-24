@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
-import { writeAgentFiles } from './agent-files.js';
+import { McpInstallUnavailable, writeAgentFiles } from './agent-files.js';
 import { SERVER_PORT, STOREFRONT_PORT } from './constants.js';
 import { CreateError } from './errors.js';
 import { getPackageManagerInfo } from './package-manager.js';
@@ -20,14 +20,14 @@ import {
     toPackageName,
 } from './project-files.js';
 import { findFeatureSets } from './registries.js';
-import { commitAll, initGitRepository, installDependencies, runCommand } from './steps.js';
+import { commitAll, GitInitResult, initGitRepository, installDependencies, runCommand } from './steps.js';
 import {
     configureStorefrontPackageJson,
     downloadAndExtractStorefront,
     getStorefrontStarter,
     renderStorefrontEnvironment,
 } from './storefront-starters.js';
-import { AgentClient, CliLogLevel, CreateOptions, CreateResult, GitResult } from './types.js';
+import { CliLogLevel, CreateOptions, CreateResult, GitResult } from './types.js';
 
 /** How create shows progress: clack spinners in a terminal, plain lines on stderr with --json. */
 export interface Reporter {
@@ -113,7 +113,10 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
 
     reporter.start(`Writing the project in ${root}`);
     if (storefront) {
-        writeJson(path.join(root, 'package.json'), getWorkspaceRootPackageJson(packageName, pmInfo));
+        writeJson(
+            path.join(root, 'package.json'),
+            getWorkspaceRootPackageJson(packageName, pmInfo, context.createVersion),
+        );
         fs.copySync(
             path.join(context.assetsDir, 'monorepo/root-gitignore.template'),
             path.join(root, '.gitignore'),
@@ -218,16 +221,13 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
         reporter.stop('Installed dependencies');
     }
 
-    let git: GitResult | undefined = options.git
-        ? undefined
+    // Before the agent files: `vendure mcp install` writes its config at the git root.
+    const gitInit: GitInitResult = options.git
+        ? await initGitRepository(root)
         : { status: 'skipped', reason: '--no-git was given' };
-    if (options.git) {
-        // Before the agent files: `vendure mcp install` writes its config at the git root.
-        git = await initGitRepository(root);
-    }
 
     reporter.start('Writing the agent files');
-    const agentResult = await writeAgentFiles({
+    const agentFiles = await writeAgentFiles({
         agents: options.agents,
         name: options.name,
         pmInfo,
@@ -238,17 +238,18 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
         mcpInstallUnavailable: await whyMcpInstallCannotRun(options, root),
     });
     reporter.stop(
-        agentResult.agentFiles.failed.length
-            ? `Wrote the agent files, except: ${agentResult.agentFiles.failed.map(f => `${f.client} (${f.reason})`).join('; ')}`
+        agentFiles.failed.length
+            ? `Wrote the agent files, except: ${agentFiles.failed.map(f => `${f.client} (${f.reason})`).join('; ')}`
             : 'Wrote the agent files',
     );
     // Rewritten with the clients whose files were written, which the record's contract names.
     writeJson(
         path.join(serverDir, CREATE_RECORD_PATH),
-        buildCreateRecord(options, context.createVersion, { agents: agentResult.agents }),
+        buildCreateRecord(options, context.createVersion, { agents: agentFiles.agents }),
     );
 
-    if (!git) {
+    let git: GitResult = gitInit.status === 'initialised' ? { status: 'committed' } : gitInit;
+    if (gitInit.status === 'initialised') {
         reporter.start('Making the initial git commit');
         git = await commitAll(root);
         reporter.stop(
@@ -256,37 +257,60 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
         );
     }
 
-    const mcpInstallDir = storefront ? SERVER_WORKSPACE_DIR : undefined;
     return {
         projectDir: root,
         packageManager: options.packageManager,
-        agentFiles: agentResult.agentFiles,
+        agentFiles: {
+            written: agentFiles.written,
+            failed: agentFiles.failed.map(({ client, reason }) => ({ client, reason })),
+        },
         git,
         next: [
             ...getNextCommands(options, context.projectDirArg),
-            ...agentResult.agentFiles.failed.map(({ client }) =>
-                mcpInstallCommand(pmInfo.exec, client as AgentClient, mcpInstallDir),
-            ),
+            // Only where running it again completes the config. The reason says what else to do.
+            ...agentFiles.failed
+                .filter(failure => failure.retryable)
+                .map(({ client }) => `${pmInfo.exec} vendure mcp install --client ${client}`),
         ],
     };
 }
 
+const INSIDE_ANOTHER_REPOSITORY = [
+    'the project is inside another git repository, and `vendure mcp install` writes at that',
+    "repository's root. Add the `vendure` server to the config by hand",
+].join(' ');
+
+const NO_REPOSITORY_IN_WORKSPACE = [
+    'the project has no git repository, so `vendure mcp install` would write into apps/server.',
+    'Run `git init`, then `vendure mcp install` in the project root',
+].join(' ');
+
 /**
- * `vendure mcp install` needs the project's own CLI, and writes at the git root, which must be the
- * project. Returns why it cannot run, or `undefined`.
+ * `vendure mcp install` writes at the git root, which must be the project root, and runs the
+ * project's own CLI. Returns why it cannot run, or `undefined`.
  */
-async function whyMcpInstallCannotRun(options: CreateOptions, root: string): Promise<string | undefined> {
-    if (!options.install) {
-        return 'the dependencies were not installed, so `vendure mcp install` could not run';
-    }
+async function whyMcpInstallCannotRun(
+    options: CreateOptions,
+    root: string,
+): Promise<McpInstallUnavailable | undefined> {
     const top = await runCommand('git', ['rev-parse', '--show-toplevel'], { cwd: root });
     if (top.code === 0 && fs.realpathSync(top.stdout.trim()) !== fs.realpathSync(root)) {
-        return 'the project is inside another git repository, and `vendure mcp install` writes at its root';
+        return {
+            reason: INSIDE_ANOTHER_REPOSITORY,
+            retryable: false,
+        };
+    }
+    if (top.code !== 0 && options.storefront) {
+        return {
+            reason: NO_REPOSITORY_IN_WORKSPACE,
+            retryable: false,
+        };
+    }
+    if (!options.install) {
+        return {
+            reason: 'the dependencies were not installed, so `vendure mcp install` could not run',
+            retryable: true,
+        };
     }
     return undefined;
-}
-
-function mcpInstallCommand(exec: string, client: AgentClient, dir: string | undefined): string {
-    const command = `${exec} vendure mcp install --client ${client}`;
-    return dir ? `(cd ${dir} && ${command})` : command;
 }

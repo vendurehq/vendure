@@ -6,7 +6,7 @@ import { CREATE_OPTIONS, PRESET_OPTION_FLAGS, RawCreateFlags } from './options.j
 import { PresetDescription } from './presets.js';
 import { FEATURE_SETS, SCENARIOS } from './registries.js';
 import { STOREFRONT_STARTERS } from './storefront-starters.js';
-import { AGENT_CLIENTS } from './types.js';
+import { AGENT_CLIENT_LABELS, AGENT_CLIENTS } from './types.js';
 
 function answer<T>(value: T | symbol): T {
     if (isCancel(value)) {
@@ -108,7 +108,7 @@ export async function promptForMissing(
         const agents = answer(
             await multiselect({
                 message: 'Which AI agent clients should the project be set up for?',
-                options: AGENT_CLIENTS.map(client => ({ label: client, value: client })),
+                options: AGENT_CLIENTS.map(client => ({ label: AGENT_CLIENT_LABELS[client], value: client })),
                 initialValues: [...AGENT_CLIENTS],
                 required: false,
             }),

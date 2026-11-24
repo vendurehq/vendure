@@ -107,6 +107,7 @@ export function getServerPackageJson(input: ServerPackageJsonInput): Record<stri
 export function getWorkspaceRootPackageJson(
     name: string,
     pmInfo: PackageManagerInfo,
+    vendureVersion: string,
 ): Record<string, unknown> {
     const ws = (workspace: string, script: string) => pmInfo.workspaceScript(workspace, script);
     const pkg: Record<string, unknown> = {
@@ -120,7 +121,9 @@ export function getWorkspaceRootPackageJson(
             build: `${ws('server', 'build')} && ${ws('storefront', 'build')}`,
             typecheck: ws('server', 'typecheck'),
         },
-        devDependencies: { concurrently: CONCURRENTLY_VERSION },
+        // The agent clients start `npx @vendure/cli mcp` at the git root, which is this workspace
+        // root. pnpm does not hoist a workspace's dependencies here, so the root declares it.
+        devDependencies: { '@vendure/cli': vendureVersion, concurrently: CONCURRENTLY_VERSION },
     };
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];

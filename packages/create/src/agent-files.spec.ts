@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
     claudeSettings,
+    CLIENT_CONFIG_FILES,
+    cursorConfig,
     DOCS_MCP_URL,
     docsServerConfig,
     renderAgentsMd,
@@ -82,23 +84,37 @@ describe('MCP configs', () => {
         expect(docsServerConfig('codex')).toBe(`[mcp_servers.vendure-docs]\nurl = "${DOCS_MCP_URL}"\n`);
     });
 
-    it("writes Cursor's vendure entry too, because vendure mcp install only prints it", () => {
-        expect(JSON.parse(docsServerConfig('cursor')).mcpServers.vendure).toEqual({
-            command: 'npx',
-            args: ['--no', '--offline', '@vendure/cli', 'mcp'],
+    it('adds the docs server to the entry vendure mcp install printed for Cursor', () => {
+        const printed = JSON.stringify({ mcpServers: { vendure: { command: 'npx', args: ['x'] } } });
+        expect(JSON.parse(cursorConfig(printed))).toEqual({
+            mcpServers: { vendure: { command: 'npx', args: ['x'] }, 'vendure-docs': { url: DOCS_MCP_URL } },
         });
     });
 
     it('enables both servers for Claude Code', () => {
         expect(JSON.parse(claudeSettings())).toEqual({ enabledMcpjsonServers: ['vendure', 'vendure-docs'] });
     });
+
+    it('names the config files vendure mcp install writes', () => {
+        const source = fs.readFileSync(
+            path.join(import.meta.dirname, '../../cli/src/commands/mcp/install/client-config.ts'),
+            'utf-8',
+        );
+        for (const [client, file] of Object.entries(CLIENT_CONFIG_FILES)) {
+            expect(source).toMatch(new RegExp(`${client}: \\{ file: '${file.replace(/\./g, '\\.')}'`));
+        }
+    });
 });
 
 describe('writeAgentFiles()', () => {
     const base = { name: 'shop', pmInfo: getPackageManagerInfo('npm'), storefront: undefined, assetsDir };
+    const printedCursorEntry = JSON.stringify({ mcpServers: { vendure: { command: 'npx' } } });
 
-    it("runs the project's vendure mcp install for each client but Cursor", async () => {
-        const dir = projectWithFakeCli('installs', { status: 'ok', output: { action: 'created' } });
+    it("runs the project's vendure mcp install for each client, and writes Cursor's printed entry", async () => {
+        const dir = projectWithFakeCli('installs', {
+            status: 'ok',
+            output: { action: 'printed', config: printedCursorEntry },
+        });
         const result = await writeAgentFiles({
             ...base,
             agents: ['claude', 'cursor', 'codex'],
@@ -108,11 +124,16 @@ describe('writeAgentFiles()', () => {
         });
 
         expect(result.agents).toEqual(['claude', 'cursor', 'codex']);
-        expect(result.agentFiles.failed).toEqual([]);
+        expect(result.failed).toEqual([]);
         expect(fs.readFileSync(path.join(dir, 'calls.log'), 'utf-8').trim().split('\n')).toEqual([
             'mcp install --client claude --json',
+            'mcp install --client cursor --json',
             'mcp install --client codex --json',
         ]);
+        expect(JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf-8')).mcpServers).toEqual({
+            vendure: { command: 'npx' },
+            'vendure-docs': { url: DOCS_MCP_URL },
+        });
         expect(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf-8')).toBe('@AGENTS.md\n');
         for (const skill of ['vendure-cli', 'vendure-store-setup', 'vendure-troubleshooting']) {
             expect(fs.existsSync(path.join(dir, '.agents/skills', skill, 'SKILL.md'))).toBe(true);
@@ -120,12 +141,21 @@ describe('writeAgentFiles()', () => {
         expect(fs.existsSync(path.join(dir, '.vscode/mcp.json'))).toBe(false);
     });
 
-    it('reports a client whose install failed, and leaves it out of the recorded clients', async () => {
-        const dir = projectWithFakeCli(
-            'fails',
+    it.each([
+        [
+            'an error envelope',
             { status: 'error', error: { code: 'mcp.x', message: 'The config is unreadable' } },
             1,
-        );
+            'The config is unreadable',
+        ],
+        [
+            'output that is not JSON',
+            'not json',
+            3,
+            '`vendure mcp install --client vscode` failed: "not json"',
+        ],
+    ])('reports a client whose install failed with %s', async (name, envelope, code, reason) => {
+        const dir = projectWithFakeCli(`fails-${code}`, envelope, code);
         const result = await writeAgentFiles({
             ...base,
             agents: ['vscode'],
@@ -135,22 +165,54 @@ describe('writeAgentFiles()', () => {
         });
 
         expect(result.agents).toEqual([]);
-        expect(result.agentFiles.failed).toEqual([{ client: 'vscode', reason: 'The config is unreadable' }]);
-        expect(result.agentFiles.written).toContain('.vscode/mcp.json');
+        expect(result.failed).toEqual([{ client: 'vscode', reason, retryable: false }]);
+        expect(result.written).toContain('.vscode/mcp.json');
     });
 
-    it('writes no claude files without claude, and nothing with no clients', async () => {
-        const dir = path.join(workDir, 'no-claude');
-        await writeAgentFiles({
+    it('reports a client whose install could not start', async () => {
+        const dir = path.join(workDir, 'no-cli');
+        // No `vendure` in the project, and none on the PATH.
+        vi.stubEnv('PATH', '');
+        try {
+            const result = await writeAgentFiles({
+                ...base,
+                agents: ['codex'],
+                root: dir,
+                serverDir: dir,
+                mcpInstallUnavailable: undefined,
+            });
+            expect(result.agents).toEqual([]);
+            expect(result.failed).toEqual([
+                {
+                    client: 'codex',
+                    reason: expect.stringMatching(/^Could not run `vendure mcp install`/),
+                    retryable: false,
+                },
+            ]);
+        } finally {
+            vi.unstubAllEnvs();
+        }
+    });
+
+    it('writes the docs server alone when vendure mcp install cannot run', async () => {
+        const dir = path.join(workDir, 'unavailable');
+        const unavailable = { reason: 'not installed', retryable: true };
+        const result = await writeAgentFiles({
             ...base,
             agents: ['cursor'],
             root: dir,
             serverDir: dir,
-            mcpInstallUnavailable: 'not installed',
+            mcpInstallUnavailable: unavailable,
+        });
+        expect(result.failed).toEqual([{ client: 'cursor', ...unavailable }]);
+        expect(JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf-8')).mcpServers).toEqual({
+            'vendure-docs': { url: DOCS_MCP_URL },
         });
         expect(fs.existsSync(path.join(dir, 'CLAUDE.md'))).toBe(false);
         expect(fs.existsSync(path.join(dir, '.claude'))).toBe(false);
+    });
 
+    it('writes nothing with no clients', async () => {
         const none = path.join(workDir, 'none');
         const result = await writeAgentFiles({
             ...base,
@@ -159,7 +221,7 @@ describe('writeAgentFiles()', () => {
             serverDir: none,
             mcpInstallUnavailable: undefined,
         });
-        expect(result.agentFiles.written).toEqual([]);
+        expect(result.written).toEqual([]);
         expect(fs.existsSync(none)).toBe(false);
     });
 });

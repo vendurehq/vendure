@@ -86,11 +86,12 @@ describe('getServerPackageJson()', () => {
 
 describe('getWorkspaceRootPackageJson()', () => {
     it('runs the server and the storefront workspaces with the chosen manager', () => {
-        const pkg = getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('pnpm')) as any;
+        const pkg = getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('pnpm'), '4.0.0') as any;
         expect(pkg.scripts['dev:server']).toBe('pnpm --filter server dev');
         expect(pkg.workspaces).toBeUndefined();
+        expect(pkg.devDependencies['@vendure/cli']).toBe('4.0.0');
         expect(
-            (getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('npm')) as any).workspaces,
+            (getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('npm'), '4.0.0') as any).workspaces,
         ).toEqual(['apps/*']);
     });
 });

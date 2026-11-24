@@ -1,4 +1,5 @@
 import { CREATE_RECORD_PATH } from '@vendure/common/lib/create-record';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 import { CreateError } from './errors.js';
 import { Reporter, runCreate } from './run-create.js';
-import { initialiseGit } from './steps.js';
+import { commitAll, initGitRepository } from './steps.js';
 import { CreateOptions } from './types.js';
 
 const install = vi.hoisted(() => ({ fail: false }));
@@ -142,7 +143,47 @@ describe('runCreate() when the install fails', () => {
     });
 });
 
-describe('initialiseGit()', () => {
+describe('runCreate() when vendure mcp install cannot complete the configs', () => {
+    const run = (options: CreateOptions) =>
+        runCreate(options, {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter: recordingReporter().reporter,
+            projectDirArg: 'x',
+        });
+
+    it('does not install into apps/server when the workspace has no git repository', async () => {
+        const result = await run(
+            optionsFor('no-git-workspace', { storefront: 'nextjs', agents: ['claude'] }),
+        );
+        expect(result.agentFiles.failed).toEqual([
+            { client: 'claude', reason: expect.stringContaining('would write into apps/server') },
+        ]);
+        expect(result.next.some(line => line.includes('mcp install'))).toBe(false);
+        expect(fs.existsSync(path.join(workDir, 'no-git-workspace/apps/server/.mcp.json'))).toBe(false);
+    });
+
+    it('names no command for a project inside another repository', async () => {
+        const outer = path.join(workDir, 'outer-repo');
+        fs.mkdirSync(outer);
+        execFileSync('git', ['init', '--quiet', outer]);
+        const result = await run({
+            ...optionsFor('outer-repo/inner', { agents: ['claude'], git: true }),
+            projectDir: path.join(outer, 'inner'),
+        });
+        expect(result.git).toEqual({
+            status: 'skipped',
+            reason: 'the project directory is already inside a git repository',
+        });
+        expect(result.agentFiles.failed).toEqual([
+            { client: 'claude', reason: expect.stringContaining('inside another git repository') },
+        ]);
+        expect(result.next.some(line => line.includes('mcp install'))).toBe(false);
+    });
+});
+
+describe('initGitRepository() and commitAll()', () => {
     it('reports a failed commit without throwing', async () => {
         const dir = path.join(workDir, 'git-fails');
         fs.mkdirSync(dir);
@@ -162,7 +203,8 @@ describe('initialiseGit()', () => {
             vi.stubEnv(key, undefined);
         }
         try {
-            const result = await initialiseGit(dir);
+            expect(await initGitRepository(dir)).toEqual({ status: 'initialised' });
+            const result = await commitAll(dir);
             expect(result.status).toBe('failed');
             expect(result.status === 'failed' && result.reason).toMatch(/^`git commit` failed/);
         } finally {

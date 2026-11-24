@@ -12,6 +12,12 @@ export type CliLogLevel = 'silent' | 'info' | 'verbose';
 /** The agent clients create writes files for. */
 export const AGENT_CLIENTS = ['claude', 'cursor', 'vscode', 'codex'] as const;
 export type AgentClient = (typeof AGENT_CLIENTS)[number];
+export const AGENT_CLIENT_LABELS: Record<AgentClient, string> = {
+    claude: 'Claude Code',
+    cursor: 'Cursor',
+    vscode: 'VS Code',
+    codex: 'Codex',
+};
 
 /**
  * Every choice create makes, resolved from the flags, the prompts and the defaults, and

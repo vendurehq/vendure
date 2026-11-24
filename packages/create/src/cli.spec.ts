@@ -118,7 +118,10 @@ describe('create --yes --json', () => {
                     '.codex/config.toml',
                 ],
                 // With --no-install there is no CLI to run `vendure mcp install` with.
-                failed: ['claude', 'vscode', 'codex'].map(client => ({ client, reason: NOT_INSTALLED })),
+                failed: ['claude', 'cursor', 'vscode', 'codex'].map(client => ({
+                    client,
+                    reason: NOT_INSTALLED,
+                })),
             },
             git: { status: 'committed' },
             next: [
@@ -126,6 +129,7 @@ describe('create --yes --json', () => {
                 'pnpm install',
                 'pnpm run dev',
                 'pnpm exec vendure mcp install --client claude',
+                'pnpm exec vendure mcp install --client cursor',
                 'pnpm exec vendure mcp install --client vscode',
                 'pnpm exec vendure mcp install --client codex',
             ],
@@ -178,8 +182,8 @@ describe('create --yes --json', () => {
                 scenario: null,
                 features: [],
                 storefront: null,
-                // Only Cursor's file is complete without `vendure mcp install`.
-                agents: ['cursor'],
+                // No config is complete without `vendure mcp install`.
+                agents: [],
             },
         });
     });
