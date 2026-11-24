@@ -1,29 +1,30 @@
 import { COMMAND_EXIT_CODES, fail } from '@vendure/common/lib/command';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runCommandInHarness } from '../../command-host/__tests__/command-harness.js';
-import { localAdminApiErrors } from '../../shared/local-admin-api.js';
-import { stripAnsi } from '../../shared/strip-ansi.js';
+import { runCommandInHarness } from '../../../command-host/__tests__/command-harness.js';
+import { localAdminApiErrors } from '../../../shared/local-admin-api.js';
+import { stripAnsi } from '../../../shared/strip-ansi.js';
 
 import { storeCheckDefinition } from './store-check.command.js';
+import { storeCheckErrors } from './store-check.errors.js';
 import { render } from './store-check.render.js';
 import { output, StoreCheckOutput } from './store-check.schema.js';
 
 const graphql = vi.hoisted(() => vi.fn());
 const devServerState = vi.hoisted(() => vi.fn());
 
-vi.mock('../../shared/local-admin-api.js', async importOriginal => ({
-    ...(await importOriginal<typeof import('../../shared/local-admin-api.js')>()),
+vi.mock('../../../shared/local-admin-api.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../../shared/local-admin-api.js')>()),
     localAdminGraphql: graphql,
 }));
 
-vi.mock('../devserver/devserver.js', async importOriginal => ({
-    ...(await importOriginal<typeof import('../devserver/devserver.js')>()),
+vi.mock('../../devserver/devserver.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../devserver/devserver.js')>()),
     resolveDevServerStateProject: () => '/project',
 }));
 
-vi.mock('../dev/state-file.js', async importOriginal => ({
-    ...(await importOriginal<typeof import('../dev/state-file.js')>()),
+vi.mock('../../dev/state-file.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../dev/state-file.js')>()),
     readDevServerState: devServerState,
 }));
 
@@ -112,8 +113,10 @@ describe('vendure store check', () => {
         graphql.mockResolvedValue({
             errors: [{ message: 'Cannot query field "storeReadiness" on type "Query".' }],
         });
-        const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
+        const { envelope, exitCode } = await runCommandInHarness(storeCheckDefinition, {});
+        expect(envelope.status).toBe('error');
         expect(envelope.error?.code).toBe('store.check.not-supported');
+        expect(exitCode).toBe(storeCheckErrors.notSupported.exit);
     });
 
     it('explains a refused query by the local trust of the McpPlugin', async () => {
@@ -122,7 +125,10 @@ describe('vendure store check', () => {
         });
         const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
         expect(envelope.error?.code).toBe('store.check.not-authorized');
-        expect(envelope.error?.message).toContain('add `McpPlugin.init({})`');
+        expect(envelope.error?.message).toContain('`McpPlugin.init({})`');
+        expect(envelope.error?.fixes).toEqual([
+            expect.objectContaining({ path: ['devserver', 'logs'], input: { minSeverity: 'warn' } }),
+        ]);
     });
 
     it('reports a failed query with its request ID, and a fix that reads its logs', async () => {
@@ -141,7 +147,14 @@ describe('vendure store check', () => {
         graphql.mockResolvedValue({ errors: [{ message: 'Something broke' }] });
         const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
         expect(envelope.error?.code).toBe('store.check.query-failed');
-        expect(envelope.error?.fixes ?? []).toEqual([]);
+        expect(envelope.error).not.toHaveProperty('fixes');
+    });
+
+    it('leaves out the Dashboard URL when the dev server reported none', async () => {
+        devServerState.mockReturnValue({ urls: {} });
+        graphql.mockResolvedValue(report(true, []));
+        const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
+        expect(envelope.output).toEqual({ ready: true, findings: [] });
     });
 
     it('reports a response without a report', async () => {

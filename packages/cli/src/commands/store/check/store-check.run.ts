@@ -1,13 +1,13 @@
 import { CommandContext, fail, failed, isErrorResult } from '@vendure/common/lib/command';
 
-import { localAdminGraphql } from '../../shared/local-admin-api.js';
-import { readDevServerState } from '../dev/state-file.js';
-import { projectResolutionFailure, resolveDevServerStateProject } from '../devserver/devserver.js';
+import { localAdminGraphql } from '../../../shared/local-admin-api.js';
+import { readDevServerState } from '../../dev/state-file.js';
+import { projectResolutionFailure, resolveDevServerStateProject } from '../../devserver/devserver.js';
 
 import { storeCheckErrors } from './store-check.errors.js';
 import { StoreCheckFinding, StoreCheckOutput } from './store-check.schema.js';
 
-export const STORE_READINESS_QUERY = /* GraphQL */ `
+const STORE_READINESS_QUERY = /* GraphQL */ `
     query StoreReadiness {
         storeReadiness {
             ready

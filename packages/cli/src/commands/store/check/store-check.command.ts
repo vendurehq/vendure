@@ -1,7 +1,7 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
-import { localAdminApiErrorList } from '../../shared/local-admin-api.js';
-import { devServerErrors } from '../devserver/devserver.js';
+import { localAdminApiErrorList } from '../../../shared/local-admin-api.js';
+import { devServerErrors } from '../../devserver/devserver.js';
 
 import { storeCheckErrors } from './store-check.errors.js';
 
