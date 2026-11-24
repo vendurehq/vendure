@@ -356,7 +356,7 @@ export abstract class PromotionAction<
  *     code: 'item_percentage_discount',
  *     args: { discount: 'percentage' },
  *     execute(ctx, orderLine, args) {
- *         const unitPrice = ctx.channel.pricesIncludeTax ? orderLine.unitPriceWithTax : orderLine.unitPrice;
+ *         const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
  *         return -unitPrice * (args.discount / 100);
  *     },
  *     description: 'Discount every item by { discount }%',
