@@ -37,7 +37,6 @@ import {
     ZoneService,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -45,6 +44,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { euPreset } from '../src/data-import/presets/builtin-presets';
 import { ISO_COUNTRIES } from '../src/data-import/presets/iso-countries';
 
+import { graphql } from './graphql/graphql-admin';
 import {
     createAdministratorDocument,
     createProductDocument,
@@ -532,11 +532,11 @@ describe('Base-data presets', () => {
         );
     });
 
-    // A store a preset seeds passes the store check once it has a product to sell. The
-    // tax-inclusive presets put a zone rate on the default tax zone, so the check knows the rate
-    // entered prices include.
+    // A store seeded by any released preset passes the store check once it has a product to sell.
+    // The tax-inclusive presets put a zone rate on the default tax zone, so the check knows the rate
+    // entered prices include. The only finding left is the warning about the test SuperAdmin password.
     describe('store readiness', () => {
-        const STORE_READINESS = gql`
+        const storeReadinessDocument = graphql(`
             query StoreReadiness {
                 storeReadiness {
                     ready
@@ -546,7 +546,7 @@ describe('Base-data presets', () => {
                     }
                 }
             }
-        `;
+        `);
 
         async function addProduct() {
             const standard = (await repo(TaxCategory).find()).find(c => c.name === 'Standard')!;
@@ -571,20 +571,24 @@ describe('Base-data presets', () => {
             });
         }
 
-        it.each(['uk', 'au', 'us'])(
+        it.each<[string, Record<string, string>]>([
+            ['uk', {}],
+            ['au', {}],
+            ['us', {}],
+            ['single-country', { country: 'NZ', currency: 'NZD' }],
+        ])(
             'a store seeded with the %s preset is ready',
-            async preset => {
+            async (preset, options) => {
                 await resetToEmptyDatabase();
-                await applyPreset(server.app, preset);
+                await applyPreset(server.app, preset, options);
                 await adminClient.asSuperAdmin();
                 await addProduct();
 
-                const { storeReadiness } = await adminClient.query(STORE_READINESS);
+                const { storeReadiness } = await adminClient.query(storeReadinessDocument);
 
-                expect(storeReadiness.findings.filter((f: any) => f.severity === 'ERROR')).toEqual([]);
-                expect(storeReadiness.findings.map((f: any) => f.code)).not.toContain(
-                    'store.tax.inclusive-rate-unknown',
-                );
+                expect(storeReadiness.findings).toEqual([
+                    { code: 'store.auth.default-superadmin-password', severity: 'WARNING' },
+                ]);
                 expect(storeReadiness.ready).toBe(true);
             },
             TEST_SETUP_TIMEOUT_MS,
