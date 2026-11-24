@@ -62,7 +62,8 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
             if (statusCode === 404) {
                 Logger.verbose(exception.message);
             } else {
-                Logger.error(message, undefined, exception.stack);
+                // The GraphQL error of an HttpException also has this code in `extensions.vendureCode`.
+                Logger.error(message, undefined, exception.stack, { code: UNEXPECTED_VENDURE_CODE });
             }
         } else {
             Logger.error(exception.message, undefined, exception.stack, { code: UNEXPECTED_VENDURE_CODE });

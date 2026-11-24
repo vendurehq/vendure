@@ -1,4 +1,4 @@
-import { ArgumentsHost } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ForbiddenError, InternalServerError } from '../../common/error/errors';
@@ -49,6 +49,17 @@ describe('ExceptionLoggerFilter', () => {
         createFilter().catch(exception, {} as ArgumentsHost);
 
         expect(error).toHaveBeenCalledWith(exception.message, undefined, exception.stack, {
+            code: 'core.unexpected',
+        });
+    });
+
+    it('logs an HttpException other than a 404 with the unexpected code', () => {
+        const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+        const exception = new BadRequestException('Bad input');
+
+        createFilter().catch(exception, {} as ArgumentsHost);
+
+        expect(error).toHaveBeenCalledWith('Bad input', undefined, exception.stack, {
             code: 'core.unexpected',
         });
     });

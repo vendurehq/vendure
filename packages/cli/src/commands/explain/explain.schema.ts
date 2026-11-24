@@ -18,8 +18,16 @@ export const output = z.object({
     error: z
         .object({
             code: z.string().describe('The namespaced code, for example core.entity-with-id-not-found'),
-            message: z.string(),
-            stack: z.string().optional().describe('The stack, trimmed to the frames of the project'),
+            message: z
+                .string()
+                .describe(
+                    'The message as logged, before translation, for example FORBIDDEN: error.forbidden',
+                ),
+            variables: z
+                .record(z.string(), z.unknown())
+                .optional()
+                .describe('The values for the placeholders of the message key, when logged'),
+            stack: z.string().optional().describe('The stack of the error, as logged'),
             process: z.string().optional(),
             ts: z.string(),
         })

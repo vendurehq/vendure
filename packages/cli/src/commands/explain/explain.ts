@@ -2,9 +2,8 @@ import { CommandContext, fail } from '@vendure/common/lib/command';
 import { LogLine } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
-import { formatLogLineAsText } from '../dev/child-output.js';
 import { devServerErrors, resolveDevServerProject } from '../devserver/devserver.js';
-import { MAX_LOG_LINES, readDevServerLogs } from '../devserver/log-reader.js';
+import { formatDevLogLine, MAX_LOG_LINES, readDevServerLogs } from '../devserver/log-reader.js';
 
 export interface ExplainInput {
     requestId: string;
@@ -14,7 +13,13 @@ export interface ExplainInput {
 export interface ExplainError {
     /** The namespaced code, for example `core.entity-with-id-not-found`. */
     code: string;
+    /**
+     * The message as the server logged it. For a core error it is the coarse code and the message
+     * key, for example `FORBIDDEN: error.forbidden`: the server logs it before it is translated.
+     */
     message: string;
+    /** The values for the placeholders of the message key, when the server logged them. */
+    variables?: Record<string, unknown>;
     stack?: string;
     process?: string;
     ts: string;
@@ -65,13 +70,40 @@ export function findRequestError(lines: LogLine[]): ExplainError | null {
     if (!line?.code) {
         return null;
     }
+    const { message, variables } = readLoggedMessage(line.msg);
     return {
         code: line.code,
-        message: line.msg,
+        message,
+        ...(variables ? { variables } : {}),
         ...(line.stack ? { stack: line.stack } : {}),
         ...(line.process ? { process: line.process } : {}),
         ts: line.ts,
     };
+}
+
+/**
+ * Core logs an error-level `I18nError` as JSON, `{"message": ..., "variables": {...}}`, so that the
+ * variables of the message are not lost. Any other message is returned as it is.
+ */
+function readLoggedMessage(msg: string): { message: string; variables?: Record<string, unknown> } {
+    if (!msg.trimStart().startsWith('{')) {
+        return { message: msg };
+    }
+    try {
+        const parsed = JSON.parse(msg);
+        if (typeof parsed?.message === 'string') {
+            const variables =
+                typeof parsed.variables === 'object' &&
+                parsed.variables !== null &&
+                Object.keys(parsed.variables).length > 0
+                    ? (parsed.variables as Record<string, unknown>)
+                    : undefined;
+            return variables ? { message: parsed.message, variables } : { message: parsed.message };
+        }
+    } catch {
+        // Not JSON: the message as it is.
+    }
+    return { message: msg };
 }
 
 export function render(output: ExplainOutput): string {
@@ -81,9 +113,10 @@ export function render(output: ExplainOutput): string {
     const lines: string[] = [];
     if (output.error) {
         lines.push(`${pc.red('error')} ${pc.gray(`(${output.error.code})`)} ${output.error.message}`);
-        if (output.error.stack) {
-            lines.push(pc.gray(output.error.stack));
+        if (output.error.variables) {
+            lines.push(pc.gray(`variables: ${JSON.stringify(output.error.variables)}`));
         }
+        // The stack shows below the error's own line in the log lines.
     } else {
         lines.push(`No coded error or warning was logged for request ${output.requestId}.`);
     }
@@ -92,7 +125,7 @@ export function render(output: ExplainOutput): string {
         lines.push(pc.gray(`(${output.omitted} older lines left out)`));
     }
     for (const line of output.logs) {
-        lines.push(`${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`);
+        lines.push(formatDevLogLine(line));
     }
     return lines.join('\n');
 }

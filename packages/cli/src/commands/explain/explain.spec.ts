@@ -2,11 +2,13 @@ import { LogLine } from '@vendure/common/lib/log';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
+import { z } from 'zod';
 
 import { stripAnsi } from '../../shared/strip-ansi.js';
 
-import { explainRequest, findRequestError, render } from './explain.js';
+import { ExplainOutput, explainRequest, findRequestError, render } from './explain.js';
+import * as schemas from './explain.schema.js';
 
 const directories: string[] = [];
 
@@ -47,7 +49,14 @@ describe('explainRequest()', () => {
                 line({
                     requestId: 'r-1',
                     level: 'error',
-                    msg: 'No Product with the id "99" could be found',
+                    msg: JSON.stringify(
+                        {
+                            message: 'INTERNAL_SERVER_ERROR: error.entity-with-id-not-found',
+                            variables: { entityName: 'Product', id: '99' },
+                        },
+                        null,
+                        2,
+                    ),
                     code: 'core.entity-with-id-not-found',
                     stack: 'Error: ...\n    at ProductResolver (src/product.ts:10:5)',
                 }),
@@ -60,7 +69,8 @@ describe('explainRequest()', () => {
             found: true,
             error: {
                 code: 'core.entity-with-id-not-found',
-                message: 'No Product with the id "99" could be found',
+                message: 'INTERNAL_SERVER_ERROR: error.entity-with-id-not-found',
+                variables: { entityName: 'Product', id: '99' },
                 stack: 'Error: ...\n    at ProductResolver (src/product.ts:10:5)',
                 process: 'server',
                 ts: '2026-11-24T10:00:00.000Z',
@@ -102,12 +112,12 @@ describe('findRequestError()', () => {
     it('falls back to the first coded warning', () => {
         const error = findRequestError([
             line({ level: 'info', code: 'core.x' }),
-            line({ level: 'warn', code: 'core.forbidden', msg: 'warned' }),
+            line({ level: 'warn', code: 'core.forbidden', msg: 'FORBIDDEN: error.forbidden' }),
         ]);
 
         expect(error).toEqual({
             code: 'core.forbidden',
-            message: 'warned',
+            message: 'FORBIDDEN: error.forbidden',
             process: 'server',
             ts: '2026-11-24T10:00:00.000Z',
         });
@@ -131,9 +141,15 @@ describe('render()', () => {
         );
 
         expect(text).toContain('error (core.forbidden) Forbidden');
-        expect(text).toContain('at x');
+        expect(text).not.toContain('at x');
         expect(text).toContain('(2 older lines left out)');
         expect(text).toContain('[server]');
         expect(text).toContain('Resolving');
+    });
+});
+
+describe('explain schema', () => {
+    it('declares an output schema that matches the TypeScript type', () => {
+        expectTypeOf<z.infer<typeof schemas.output>>().toEqualTypeOf<ExplainOutput>();
     });
 });
