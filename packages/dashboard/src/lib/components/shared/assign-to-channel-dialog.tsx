@@ -194,7 +194,12 @@ export function AssignToChannelDialog({
  * Hook for managing price factor state in assign-to-channel dialogs
  */
 export function usePriceFactor() {
-    const [priceFactor, setPriceFactor] = useState<number>(1);
+    // The input keeps the text as typed, so that it can be cleared and intermediate values
+    // such as `0.` can be entered. An empty or invalid value falls back to the default of 1.
+    const [value, setValue] = useState('1');
+    const parsed = Number.parseFloat(value);
+    const isValid = Number.isFinite(parsed) && parsed >= 0;
+    const priceFactor = isValid ? parsed : 1;
 
     const priceFactorField = (
         <div className="grid gap-2">
@@ -206,8 +211,10 @@ export function usePriceFactor() {
                 min="0"
                 max="99999"
                 step="0.01"
-                value={priceFactor}
-                onChange={e => setPriceFactor(Number.parseFloat(e.target.value) || 1)}
+                placeholder="1"
+                value={value}
+                onChange={e => setValue(e.target.value)}
+                aria-invalid={value !== '' && !isValid}
             />
         </div>
     );
