@@ -136,6 +136,36 @@ describe('Base-data presets', () => {
             .withTransaction(ctx, txCtx => preset.apply(txCtx as any, services as any, options));
     }
 
+    /**
+     * Creates a "Mug" product with one variant in each tax category, all at `price`, and returns
+     * the variant IDs by tax category name.
+     */
+    async function addMug(price: number): Promise<Record<string, string>> {
+        await adminClient.asSuperAdmin();
+        const categories = await repo(TaxCategory).find();
+        const { createProduct } = await adminClient.query(createProductDocument, {
+            input: {
+                translations: [{ languageCode: LanguageCode.en, name: 'Mug', slug: 'mug', description: '' }],
+            },
+        });
+        const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+            input: categories.map(category => ({
+                productId: createProduct.id,
+                sku: `MUG-${category.name.toUpperCase()}`,
+                price,
+                taxCategoryId: String(category.id),
+                translations: [{ languageCode: LanguageCode.en, name: `Mug ${category.name}` }],
+                stockOnHand: 100,
+            })),
+        });
+        return Object.fromEntries(
+            categories.map(category => [
+                category.name,
+                createProductVariants.find(v => v?.sku === `MUG-${category.name.toUpperCase()}`)!.id,
+            ]),
+        );
+    }
+
     beforeAll(async () => {
         await server.init(EMPTY_DATABASE);
     }, TEST_SETUP_TIMEOUT_MS);
@@ -392,31 +422,10 @@ describe('Base-data presets', () => {
             it(
                 'prices a DE and an FR order at the country rate',
                 async () => {
-                    await adminClient.asSuperAdmin();
-                    const categories = await repo(TaxCategory).find();
-                    const standard = categories.find(c => c.name === 'Standard')!;
-                    const { createProduct } = await adminClient.query(createProductDocument, {
-                        input: {
-                            translations: [
-                                { languageCode: LanguageCode.en, name: 'Mug', slug: 'mug', description: '' },
-                            ],
-                        },
-                    });
-                    const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
-                        input: [
-                            {
-                                productId: createProduct.id,
-                                sku: 'MUG',
-                                price: 1190,
-                                taxCategoryId: String(standard.id),
-                                translations: [{ languageCode: LanguageCode.en, name: 'Mug' }],
-                                stockOnHand: 100,
-                            },
-                        ],
-                    });
+                    const variantIds = await addMug(1190);
                     await shopClient.asAnonymousUser();
                     await shopClient.query(addItemToOrderDocument, {
-                        productVariantId: createProductVariants[0]!.id,
+                        productVariantId: variantIds.Standard,
                         quantity: 1,
                     });
 
@@ -532,9 +541,10 @@ describe('Base-data presets', () => {
         );
     });
 
-    // A store seeded by any released preset passes the store check once it has a product to sell.
-    // The tax-inclusive presets put a zone rate on the default tax zone, so the check knows the rate
-    // entered prices include. The only finding left is the warning about the test SuperAdmin password.
+    // A store seeded by any preset passes the store check once it sells a product in each of its
+    // tax categories. The tax-inclusive presets put a zone rate on the default tax zone, so the check
+    // knows the rate entered prices include. The only finding left is the warning about the test
+    // SuperAdmin password.
     describe('store readiness', () => {
         const storeReadinessDocument = graphql(`
             query StoreReadiness {
@@ -548,29 +558,6 @@ describe('Base-data presets', () => {
             }
         `);
 
-        async function addProduct() {
-            const standard = (await repo(TaxCategory).find()).find(c => c.name === 'Standard')!;
-            const { createProduct } = await adminClient.query(createProductDocument, {
-                input: {
-                    translations: [
-                        { languageCode: LanguageCode.en, name: 'Mug', slug: 'mug', description: '' },
-                    ],
-                },
-            });
-            await adminClient.query(createProductVariantsDocument, {
-                input: [
-                    {
-                        productId: createProduct.id,
-                        sku: 'MUG',
-                        price: 1000,
-                        taxCategoryId: String(standard.id),
-                        translations: [{ languageCode: LanguageCode.en, name: 'Mug' }],
-                        stockOnHand: 100,
-                    },
-                ],
-            });
-        }
-
         it.each<[string, Record<string, string>]>([
             ['uk', {}],
             ['au', {}],
@@ -581,8 +568,25 @@ describe('Base-data presets', () => {
             async (preset, options) => {
                 await resetToEmptyDatabase();
                 await applyPreset(server.app, preset, options);
-                await adminClient.asSuperAdmin();
-                await addProduct();
+                await addMug(1000);
+
+                const { storeReadiness } = await adminClient.query(storeReadinessDocument);
+
+                expect(storeReadiness.findings).toEqual([
+                    { code: 'store.auth.default-superadmin-password', severity: 'WARNING' },
+                ]);
+                expect(storeReadiness.ready).toBe(true);
+            },
+            TEST_SETUP_TIMEOUT_MS,
+        );
+
+        // eu is unreleased, so it is applied directly.
+        it(
+            'a store seeded with the eu preset is ready',
+            async () => {
+                await resetToEmptyDatabase();
+                await applyDirectly(euPreset, { country: 'DE' });
+                await addMug(1000);
 
                 const { storeReadiness } = await adminClient.query(storeReadinessDocument);
 
