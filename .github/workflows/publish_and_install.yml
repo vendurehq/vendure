@@ -167,7 +167,9 @@ jobs:
                   echo "Resolved @vendure/core@ci -> $VENDURE_VERSION"
                   node $GITHUB_WORKSPACE/.github/workflows/scripts/install-test-app.js "$GITHUB_WORKSPACE" test-app "$VENDURE_VERSION"
                   cd test-app
-                  npm install --loglevel error
+                  # Dependency scripts run only for the allowlisted native packages.
+                  npm install --ignore-scripts --loglevel error
+                  npm rebuild bcrypt better-sqlite3 esbuild re2 sharp
                   cp ~/test-app-data/initial-data.json initial-data.json
                   MOCK_DATA_DIR="$GITHUB_WORKSPACE/packages/core/mock-data" npm run populate
             - name: Create a project with @vendure/create
@@ -442,7 +444,9 @@ jobs:
                   VENDURE_VERSION=$(npm view @vendure/core@ci version)
                   node "$GITHUB_WORKSPACE/.github/workflows/scripts/install-test-app.js" "$GITHUB_WORKSPACE" test-app "$VENDURE_VERSION"
                   cd test-app
-                  npm install --loglevel error
+                  # Dependency scripts run only for the allowlisted native packages.
+                  npm install --ignore-scripts --loglevel error
+                  npm rebuild bcrypt better-sqlite3 esbuild re2 sharp
                   npm run schema
             - name: Dev server smoke test from a path containing a space
               timeout-minutes: 15

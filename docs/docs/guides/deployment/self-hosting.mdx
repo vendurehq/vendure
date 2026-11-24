@@ -23,11 +23,30 @@ npx vendure dev
 
 ## 1. Replace the dependencies
 
-Remove `@vendure/cloud`, and the `vendure.cli` key that lists it as a CLI plugin, from `package.json`. Add the packages the Cloud runtime supplied: a database driver, the plugins you use, and `dotenv` if you read settings from a `.env` file.
+Remove `@vendure/cloud`, and the `vendure.cli` key that lists it as a CLI plugin, from `package.json`. The server now loads the database driver and the Dashboard plugin itself, so `pg` and `@vendure/dashboard` move from `devDependencies` to `dependencies`. Add `dotenv` to read settings from a `.env` file.
 
 ```bash
 npm uninstall @vendure/cloud
-npm install @vendure/email-plugin @vendure/asset-server-plugin pg dotenv
+npm install --save-prod pg @vendure/dashboard dotenv
+```
+
+A production image that prunes development dependencies, such as the one in [Using Docker](/deployment/using-docker), would otherwise remove packages the server needs.
+
+Create a `.env` file for local development, and keep it out of git. `.gitignore` already ignores `.env`. Production sets the same variables through your hosting platform:
+
+```bash title=".env"
+PORT=3000
+SUPERADMIN_USERNAME=superadmin
+SUPERADMIN_PASSWORD=superadmin
+COOKIE_SECRET=replace-with-a-long-random-string
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=vendure
+DB_USERNAME=vendure
+DB_PASSWORD=secret
+MCP_TOKEN_SECRET=replace-with-another-long-random-string
+# Production only: the server's public https origin, for example https://shop.example.com
+# MCP_ISSUER=
 ```
 
 ## 2. Write a plain VendureConfig
@@ -170,7 +189,7 @@ See [Deploying the Dashboard](/extending-the-dashboard/deployment) for the optio
 }
 ```
 
-`vendure dev all` runs the server, the worker and the Dashboard against the database in your `.env`. Start your own PostgreSQL first, for example with Docker:
+`vendure dev all` runs the server, the worker and the Dashboard against the database in your `.env`. Start your own PostgreSQL first, for example with Docker, using the same credentials:
 
 ```bash
 docker run -d --name vendure-db -p 5432:5432 \

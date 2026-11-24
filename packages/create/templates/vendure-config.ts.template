@@ -24,11 +24,9 @@ export const config = defineCloudConfig({
         // server, so no sign-in is needed while you develop.
         McpPlugin.init({
             oauth: {
-                // Production refuses to start without both of these. MCP_TOKEN_SECRET hashes the
-                // OAuth tokens the plugin issues. Without it, a non-production process uses a new
-                // random secret, so its tokens last until the process restarts. `vendure dev`
-                // trusts the local `vendure mcp` server and needs no token.
-                // MCP_ISSUER is the server's public https origin; locally it defaults to localhost.
+                // Both are required in production. MCP_TOKEN_SECRET hashes the OAuth tokens the
+                // plugin issues; without it, a non-production process uses a random secret.
+                // MCP_ISSUER is the server's public https origin, and defaults to localhost.
                 tokenSecret:
                     process.env.MCP_TOKEN_SECRET ??
                     (process.env.NODE_ENV === 'production' ? '' : randomBytes(32).toString('hex')),

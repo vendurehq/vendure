@@ -139,7 +139,7 @@ describe('resolveCreateOptions()', () => {
             preset: null,
             scenario: null,
             features: [],
-            agents: ['claude', 'cursor', 'vscode', 'codex'],
+            agents: [],
             install: true,
             git: true,
         });

@@ -1,19 +1,16 @@
 import type { CreateRecordPreset } from '@vendure/common/lib/create-record';
+import type { PresetDescription } from '@vendure/core';
 import fs from 'fs-extra';
 import path from 'node:path';
 
 import { CreateError } from './errors.js';
 
 /**
- * A base-data preset as `listPresets()` in `@vendure/core` describes it. create cannot load
- * `@vendure/core` before the project is installed, so `build.cts` writes the list of the
- * `@vendure/core` version create installs to `assets/presets.json`.
+ * The presets of the `@vendure/core` version create installs, as `listPresets()` describes them.
+ * Create cannot load `@vendure/core` before the project is installed, so `build.cts` writes the
+ * list to `assets/presets.json`.
  */
-export interface PresetDescription {
-    name: string;
-    description: string;
-    options: Record<string, { description: string; required?: boolean }>;
-}
+export type { PresetDescription };
 
 export const PRESETS_ASSET = 'presets.json';
 
@@ -24,8 +21,8 @@ export function readPresetCatalog(
 }
 
 /**
- * Checks a preset name and its options against the catalog. The values themselves, such as
- * whether a country code exists, are checked by `vendure seed` when it applies the preset.
+ * Checks a preset name, and the names of its options, against the catalog. The option values,
+ * such as whether a country code exists, are checked by `vendure seed` when it applies the preset.
  */
 export function validatePreset(
     preset: CreateRecordPreset,

@@ -14,7 +14,6 @@ import {
     getWorkspaceRootPackageJson,
     getYarnRcYml,
     renderReadme,
-    renderVendureConfig,
     SERVER_WORKSPACE_DIR,
     STOREFRONT_WORKSPACE_DIR,
     toPackageName,
@@ -140,9 +139,9 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
     if (pmInfo.name === 'yarn') {
         fs.outputFileSync(path.join(root, '.yarnrc.yml'), getYarnRcYml());
     }
-    fs.outputFileSync(
+    fs.copySync(
+        path.join(context.assetsDir, 'vendure-config.ts.template'),
         path.join(serverDir, 'src/vendure-config.ts'),
-        renderVendureConfig(template('vendure-config.hbs')),
     );
     // Git keeps no empty directory. The migrations glob matches no dotfile.
     fs.outputFileSync(path.join(serverDir, 'src/migrations/.gitkeep'), '');

@@ -178,11 +178,6 @@ export function getYarnRcYml(): string {
     return 'nodeLinker: node-modules\n';
 }
 
-/** The config template has no placeholders: every project gets the same Cloud Config. */
-export function renderVendureConfig(template: string): string {
-    return template;
-}
-
 export interface ReadmeInput {
     name: string;
     pmInfo: PackageManagerInfo;
@@ -190,7 +185,7 @@ export interface ReadmeInput {
 }
 
 export function renderReadme(template: string, input: ReadmeInput): string {
-    return Handlebars.compile(template, { noEscape: true })({
+    return Handlebars.compile(template)({
         name: input.name,
         dev: `${input.pmInfo.runScript} dev`,
         build: `${input.pmInfo.runScript} build`,

@@ -203,9 +203,21 @@ describe('create choices', () => {
     });
 
     it('reports an unknown flag as a coded error', async () => {
-        const result = await create(['x', '--json', '--ci']);
+        const result = await create(['x', '--json', '--bogus']);
         expect(result.code).toBe(1);
         expect(result.json.error.code).toBe('create.invalid-arguments');
+    });
+
+    it('names the replacement of a flag the v3 create had', async () => {
+        const result = await create(['x', '--json', '--use-npm']);
+        expect(result.code).toBe(1);
+        expect(result.json.error).toEqual({
+            code: 'create.flag-removed',
+            message: '--use-npm was removed in Vendure 4.',
+            fix: 'Use --package-manager npm.',
+        });
+        const db = await create(['x', '--json', '--db=postgres']);
+        expect(db.json.error.code).toBe('create.flag-removed');
     });
 
     it('skips git when the project is inside a repository', async () => {

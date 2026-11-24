@@ -11,7 +11,6 @@ import {
     getServerPackageJson,
     getWorkspaceRootPackageJson,
     renderReadme,
-    renderVendureConfig,
     toPackageName,
 } from './project-files.js';
 import { STOREFRONT_STARTERS } from './storefront-starters.js';
@@ -96,12 +95,11 @@ describe('getWorkspaceRootPackageJson()', () => {
     });
 });
 
-describe('renderVendureConfig()', () => {
-    const template = fs.readFileSync(
-        path.join(import.meta.dirname, '../templates/vendure-config.hbs'),
+describe('the Cloud Config template', () => {
+    const source = fs.readFileSync(
+        path.join(import.meta.dirname, '../templates/vendure-config.ts.template'),
         'utf-8',
     );
-    const source = renderVendureConfig(template);
 
     it('defines a Cloud Config with a store extension that declares migrations', () => {
         expect(source).toContain('export const config = defineCloudConfig(');

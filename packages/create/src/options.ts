@@ -29,7 +29,6 @@ export interface RawCreateFlags {
     scenario?: string;
     features?: string;
     packageManager?: string;
-    agents?: string;
     yes?: boolean;
     json?: boolean;
     install?: boolean;
@@ -256,7 +255,8 @@ export function resolveCreateOptions(
         preset,
         scenario: resolved.scenario,
         features,
-        agents: flags.agents !== undefined ? parseAgents(flags.agents) : [...AGENT_CLIENTS],
+        // No agent files are written yet, so no client is chosen.
+        agents: [],
         install: flags.install !== false,
         git: flags.git !== false,
     };

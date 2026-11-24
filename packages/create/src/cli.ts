@@ -4,7 +4,7 @@ import path from 'node:path';
 import pc from 'picocolors';
 import semver from 'semver';
 
-import { OLDEST_NON_EOL_NODE_MAJOR, REQUIRED_NODE_VERSION } from './constants.js';
+import { OLDEST_NON_EOL_NODE_MAJOR, REQUIRED_NODE_VERSION, SELF_HOSTING_GUIDE_URL } from './constants.js';
 import { CreateError, toCreateError } from './errors.js';
 import {
     buildProgram,
@@ -49,6 +49,7 @@ export async function main(argv: string[], context: MainContext): Promise<number
     // Set once the flags are parsed, so an error is shown the same way as the progress was.
     let interactive = false;
     try {
+        refuseRemovedFlags(argv);
         try {
             program.parse(argv);
         } catch (e) {
@@ -110,6 +111,29 @@ export async function main(argv: string[], context: MainContext): Promise<number
             }
         }
         return 1;
+    }
+}
+
+/** The flags of the self-hosted create, which a v3 script may still pass, and what replaces them. */
+const REMOVED_FLAGS: Record<string, string> = {
+    '--ci': 'Use --yes to accept every default without prompts.',
+    '--use-npm': 'Use --package-manager npm.',
+    '--db':
+        'Create writes a Vendure Cloud app, whose database `vendure dev` starts. To choose your own database, see ' +
+        SELF_HOSTING_GUIDE_URL,
+    '--with-storefront': 'Use --storefront nextjs.',
+};
+
+function refuseRemovedFlags(argv: string[]): void {
+    for (const arg of argv) {
+        const flag = arg.split('=')[0];
+        if (REMOVED_FLAGS[flag]) {
+            throw new CreateError(
+                'create.flag-removed',
+                `${flag} was removed in Vendure 4.`,
+                REMOVED_FLAGS[flag],
+            );
+        }
     }
 }
 
