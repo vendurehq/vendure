@@ -2386,7 +2386,7 @@
                   "title": "Scenarios",
                   "slug": "scenarios",
                   "file": "docs/reference/typescript-api/import-export/scenarios.mdx",
-                  "lastModified": "2026-11-24T17:22:33Z"
+                  "lastModified": "2026-11-24T20:22:57Z"
                 },
                 {
                   "title": "Seed Sentinels",
@@ -4697,13 +4697,19 @@
               "lastModified": "2026-11-24T16:46:30+01:00"
             },
             {
+              "title": "vendure seed",
+              "slug": "seed",
+              "file": "docs/reference/cli/seed.mdx",
+              "lastModified": "2026-11-24T20:22:57Z"
+            },
+            {
               "title": "vendure store",
               "slug": "store",
               "file": "docs/reference/cli/store.mdx",
               "lastModified": "2026-11-24T17:24:04Z"
             }
           ],
-          "lastModified": "2026-11-24T17:24:04Z"
+          "lastModified": "2026-11-24T20:22:57Z"
         },
         {
           "title": "GraphQL API",
