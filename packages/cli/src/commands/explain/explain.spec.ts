@@ -66,6 +66,7 @@ describe('explainRequest()', () => {
 
         expect(explainRequest(projectDir, 'r-1')).toEqual({
             requestId: 'r-1',
+            hasLog: true,
             found: true,
             error: {
                 code: 'core.entity-with-id-not-found',
@@ -89,12 +90,22 @@ describe('explainRequest()', () => {
 
         const output = explainRequest(projectDir, 'r-1');
 
-        expect(output).toEqual({ requestId: 'r-1', found: false, error: null, logs: [], omitted: 0 });
-        expect(render(output)).toContain('.vendure/logs/dev.jsonl');
+        expect(output).toEqual({
+            requestId: 'r-1',
+            hasLog: true,
+            found: false,
+            error: null,
+            logs: [],
+            omitted: 0,
+        });
+        expect(render(output)).toContain('No line of the dev log');
     });
 
-    it('reports found: false when there is no dev log', () => {
-        expect(explainRequest(projectWithLog({}), 'r-1').found).toBe(false);
+    it('reports that there is no dev log, rather than an unknown request', () => {
+        const output = explainRequest(projectWithLog({}), 'r-1');
+
+        expect(output).toMatchObject({ hasLog: false, found: false });
+        expect(render(output)).toContain('This project has no dev log');
     });
 });
 
@@ -123,7 +134,16 @@ describe('findRequestError()', () => {
         });
     });
 
-    it('is null when no error or warning has a code', () => {
+    it('falls back to a coded line at any level, such as an info-level authentication error', () => {
+        const error = findRequestError([
+            line({ level: 'debug', msg: 'stack' }),
+            line({ level: 'info', code: 'core.unauthorized', msg: 'UNAUTHORIZED: error.unauthorized' }),
+        ]);
+
+        expect(error).toMatchObject({ code: 'core.unauthorized' });
+    });
+
+    it('is null when no line has a code', () => {
         expect(findRequestError([line({ level: 'error', msg: 'uncoded' })])).toBeNull();
     });
 });
@@ -133,6 +153,7 @@ describe('render()', () => {
         const text = stripAnsi(
             render({
                 requestId: 'r-1',
+                hasLog: true,
                 found: true,
                 error: { code: 'core.forbidden', message: 'Forbidden', stack: 'at x', ts: '' },
                 logs: [line({ requestId: 'r-1', msg: 'Resolving' })],
@@ -141,10 +162,42 @@ describe('render()', () => {
         );
 
         expect(text).toContain('error (core.forbidden) Forbidden');
-        expect(text).not.toContain('at x');
+        // The stack's line is among the omitted ones, so the header shows it.
+        expect(text).toContain('at x');
         expect(text).toContain('(2 older lines left out)');
         expect(text).toContain('[server]');
         expect(text).toContain('Resolving');
+    });
+});
+
+describe('render() without a coded error', () => {
+    it('says that some errors are only logged at the verbose level', () => {
+        const text = render({
+            requestId: 'r-1',
+            hasLog: true,
+            found: true,
+            error: null,
+            logs: [line({ requestId: 'r-1' })],
+            omitted: 0,
+        });
+
+        expect(stripAnsi(text)).toContain('logged at the verbose level');
+    });
+
+    it('shows the stack once, below its line, when the line is shown', () => {
+        const errorLine = line({ level: 'error', code: 'core.x', msg: 'boom', stack: 'at y' });
+        const text = stripAnsi(
+            render({
+                requestId: 'r-1',
+                hasLog: true,
+                found: true,
+                error: findRequestError([errorLine]),
+                logs: [errorLine],
+                omitted: 0,
+            }),
+        );
+
+        expect(text.split('at y').length - 1).toBe(1);
     });
 });
 

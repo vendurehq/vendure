@@ -14,6 +14,9 @@ export const input = z.object({
 
 export const output = z.object({
     requestId: z.string(),
+    hasLog: z
+        .boolean()
+        .describe('False when the project has no dev log, because no vendure dev run wrote one'),
     found: z.boolean().describe('False when no line of the dev log has this request ID'),
     error: z
         .object({
@@ -32,7 +35,9 @@ export const output = z.object({
             ts: z.string(),
         })
         .nullable()
-        .describe('The first coded error line of the request, or failing that the first coded warning'),
+        .describe(
+            'The first coded error line of the request, or failing that its first coded warning, or its first coded line',
+        ),
     logs: z
         .array(logLine)
         .describe(`The lines of the request, oldest first, at most the newest ${MAX_LOG_LINES}`),

@@ -29,6 +29,7 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
 
             switch (logLevel) {
                 case LogLevel.Error:
+                    // `vendure explain` reads the message and the variables back from this JSON.
                     Logger.error(
                         JSON.stringify({ message, variables: exception.variables }, null, 2),
                         undefined,

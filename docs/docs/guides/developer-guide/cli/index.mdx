@@ -35,7 +35,7 @@ For guidance on using the CLI together with project instructions for AI coding a
 ## JSON Output for Scripts and Agents
 
 `doctor`, the `add` commands, `migrate generate`, `migrate run`, `migrate revert`, the `devserver`
-commands and `commands` accept `--json`. With `--json`, the command
+commands, `explain` and `commands` accept `--json`. With `--json`, the command
 writes exactly one JSON document to stdout, and sends everything else, including output from libraries
 and the processes it starts, to stderr:
 
@@ -168,6 +168,14 @@ npx vendure devserver stop
 Each request has an ID, which the server returns in the `x-request-id` header and in the extensions of a
 GraphQL error. A job that a request adds carries the same ID, so `--request` finds the log lines of the
 request and of the jobs it started.
+
+`vendure explain <request-id>` collects what the log holds for one request: the error, with its code,
+message and stack, and every log line of the request. Take the ID from the `x-request-id` header or from
+`extensions.requestId` of a GraphQL error:
+
+```bash
+npx vendure explain 2b0c6c2e-5f6a-4a0e-9d1b-7f0d3c1e8a42 --json
+```
 
 ## The Add Command
 

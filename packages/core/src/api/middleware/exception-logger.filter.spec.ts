@@ -1,7 +1,7 @@
 import { ArgumentsHost, BadRequestException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ForbiddenError, InternalServerError } from '../../common/error/errors';
+import { ForbiddenError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 
@@ -25,7 +25,7 @@ describe('ExceptionLoggerFilter', () => {
 
         createFilter().catch(new ForbiddenError(), {} as ArgumentsHost);
 
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining('FORBIDDEN'), undefined, {
+        expect(warn).toHaveBeenCalledWith('FORBIDDEN: error.forbidden', undefined, {
             code: 'core.forbidden',
         });
     });
@@ -33,12 +33,35 @@ describe('ExceptionLoggerFilter', () => {
     it('logs an I18nError at error level with its namespaced code and stack', () => {
         const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
         vi.spyOn(Logger, 'debug').mockImplementation(() => undefined);
-        const exception = new InternalServerError('error.entity-with-id-not-found');
+        const exception = new InternalServerError('error.entity-with-id-not-found', {
+            entityName: 'Product',
+            id: '99',
+        });
 
         createFilter().catch(exception, {} as ArgumentsHost);
 
-        expect(error).toHaveBeenCalledWith(expect.any(String), undefined, exception.stack, {
-            code: 'core.entity-with-id-not-found',
+        expect(error).toHaveBeenCalledWith(
+            JSON.stringify(
+                {
+                    message: 'INTERNAL_SERVER_ERROR: error.entity-with-id-not-found',
+                    variables: { entityName: 'Product', id: '99' },
+                },
+                null,
+                2,
+            ),
+            undefined,
+            exception.stack,
+            { code: 'core.entity-with-id-not-found' },
+        );
+    });
+
+    it('logs an I18nError whose message is not a key with the unexpected code', () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+
+        createFilter().catch(new UserInputError('Something is wrong'), {} as ArgumentsHost);
+
+        expect(warn).toHaveBeenCalledWith('USER_INPUT_ERROR: Something is wrong', undefined, {
+            code: 'core.unexpected',
         });
     });
 

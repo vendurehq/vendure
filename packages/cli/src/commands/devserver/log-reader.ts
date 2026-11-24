@@ -55,8 +55,7 @@ export function readDevServerLogs(projectDir: string, filter: DevLogFilter = {})
 }
 
 /**
- * A line of the dev log as text for the terminal, named by its process. `vendure devserver logs`
- * and `vendure explain` print lines with it.
+ * A line of the dev log as text for the terminal, named by its process.
  */
 export function formatDevLogLine(line: LogLine): string {
     return `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`;
