@@ -10,6 +10,7 @@ import { claimDevStatus } from './dev-state.mjs';
 import {
     createWatcherReadiness,
     resolvePackageBin,
+    resolveWatcherReadinessTimeoutMs,
     RestartableProcess,
     RestartReadinessCoordinator,
 } from './dev-workflow-utils.mjs';
@@ -347,6 +348,7 @@ function startWatcher({ label, command, args, env, onSuccessfulRebuild }) {
     const readiness = createWatcherReadiness({
         label,
         onSuccessfulRebuild,
+        timeoutMs: resolveWatcherReadinessTimeoutMs(),
     });
     pipePrefixed(child.stdout, label, readiness.handleLine);
     pipePrefixed(child.stderr, label, readiness.handleLine);

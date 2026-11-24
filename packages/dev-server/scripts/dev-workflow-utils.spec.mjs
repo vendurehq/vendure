@@ -9,6 +9,7 @@ import {
     createWatcherBuildDetector,
     createWatcherReadiness,
     resolvePackageBin,
+    resolveWatcherReadinessTimeoutMs,
     RestartableProcess,
     RestartReadinessCoordinator,
 } from './dev-workflow-utils.mjs';
@@ -105,7 +106,37 @@ test('watcher readiness fails clearly when the success signal never arrives', as
 
     triggerTimeout();
 
-    await assert.rejects(readiness.ready, /core did not report.*10 seconds/);
+    await assert.rejects(readiness.ready, /core printed no TypeScript watch output for 10 seconds.*VENDURE_DEV_WATCH_TIMEOUT_SECONDS/);
+});
+
+test('watcher output restarts the readiness timer until the first build succeeds', async () => {
+    const timers = [];
+    const cancelled = [];
+    const readiness = createWatcherReadiness({
+        label: 'core',
+        onSuccessfulRebuild: () => undefined,
+        timeoutMs: 10_000,
+        scheduleTimeout: callback => timers.push(callback),
+        cancelTimeout: id => cancelled.push(id),
+    });
+
+    readiness.handleLine('Starting compilation in watch mode...');
+    assert.equal(timers.length, 2);
+    assert.deepEqual(cancelled, [undefined, 1]);
+
+    readiness.handleLine('Found 0 errors. Watching for file changes.');
+    assert.equal(readiness.isReady, true);
+    await readiness.ready;
+    // Output after the first build must not arm the timer again.
+    readiness.handleLine('File change detected.');
+    assert.equal(timers.length, 2);
+});
+
+test('reads the watch timeout from the environment and ignores invalid values', () => {
+    assert.equal(resolveWatcherReadinessTimeoutMs({}), 120_000);
+    assert.equal(resolveWatcherReadinessTimeoutMs({ VENDURE_DEV_WATCH_TIMEOUT_SECONDS: '600' }), 600_000);
+    assert.equal(resolveWatcherReadinessTimeoutMs({ VENDURE_DEV_WATCH_TIMEOUT_SECONDS: 'abc' }), 120_000);
+    assert.equal(resolveWatcherReadinessTimeoutMs({ VENDURE_DEV_WATCH_TIMEOUT_SECONDS: '0' }), 120_000);
 });
 
 test('resolves a package executable from its declared bin metadata', () => {
