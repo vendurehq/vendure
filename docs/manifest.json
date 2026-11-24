@@ -3860,7 +3860,7 @@
                   "title": "Email Plugin Types",
                   "slug": "email-plugin-types",
                   "file": "docs/reference/core-plugins/email-plugin/email-plugin-types.mdx",
-                  "lastModified": "2026-09-09T11:11:11Z"
+                  "lastModified": "2026-11-24T13:09:43Z"
                 },
                 {
                   "title": "Email Utils",
@@ -3920,7 +3920,7 @@
                   "title": "Transport Options",
                   "slug": "transport-options",
                   "file": "docs/reference/core-plugins/email-plugin/transport-options.mdx",
-                  "lastModified": "2026-09-09T11:11:11Z"
+                  "lastModified": "2026-11-24T13:09:43Z"
                 }
               ],
               "lastModified": "2026-10-21T08:21:29Z"
