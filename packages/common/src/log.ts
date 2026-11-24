@@ -71,6 +71,11 @@ export interface ReadyEvent {
         admin: string;
         shop: string;
     };
+    /**
+     * The routes that plugins register, as the server's welcome message names them, for example
+     * `{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }`.
+     */
+    routes?: Array<{ label: string; url: string }>;
 }
 
 /**

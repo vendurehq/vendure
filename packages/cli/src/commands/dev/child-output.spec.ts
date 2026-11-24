@@ -112,6 +112,20 @@ describe('ready event', () => {
         expect(readChildOutputLine(raw, 'stderr', 'server', now).kind).toBe('log');
     });
 
+    it('takes the Dashboard URL from the routes', () => {
+        expect(
+            readyEventUrls({
+                vendure: 'event',
+                event: 'ready',
+                process: 'server',
+                routes: [
+                    { label: 'GraphiQL', url: 'http://localhost:3000/graphiql' },
+                    { label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' },
+                ],
+            }),
+        ).toEqual({ dashboard: 'http://localhost:3000/dashboard' });
+    });
+
     it('leaves out URLs that are not strings', () => {
         expect(
             readyEventUrls({

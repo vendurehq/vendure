@@ -282,9 +282,10 @@ async function startServer(
     await options?.onBeforeAppListen?.(app);
     await app.listen(port, hostname || '');
     app.enableShutdownHooks();
-    logWelcomeMessage(config);
+    const serverUrls = getServerUrls(config);
+    logWelcomeMessage(config, serverUrls);
     logStartupBanner('server');
-    writeReadyEvent('server', getApiUrls(config));
+    writeReadyEvent('server', { admin: serverUrls.admin, shop: serverUrls.shop }, serverUrls.routes);
     await app.get(EventBus).publish(new BootstrappedEvent());
     return app;
 }
@@ -562,28 +563,30 @@ function setExposedHeaders(config: Readonly<RuntimeVendureConfig>) {
     corsOptions.exposedHeaders = configuredHeaders.concat(addedHeaders);
 }
 
-function toServerUrl(config: RuntimeVendureConfig, path: string): string {
-    const { port, hostname } = config.apiOptions;
-    return `http://${hostname || 'localhost'}:${port}/${path}`;
+interface ServerUrls {
+    shop: string;
+    admin: string;
+    /** The routes that plugins register for the welcome message, such as the Dashboard. */
+    routes: Array<{ label: string; url: string }>;
 }
 
-function getApiUrls(config: RuntimeVendureConfig): { admin: string; shop: string } {
+function getServerUrls(config: RuntimeVendureConfig): ServerUrls {
+    const { port, hostname, shopApiPath, adminApiPath } = config.apiOptions;
+    const pathToUrl = (path: string) => `http://${hostname || 'localhost'}:${port}/${path}`;
     return {
-        admin: toServerUrl(config, config.apiOptions.adminApiPath),
-        shop: toServerUrl(config, config.apiOptions.shopApiPath),
+        shop: pathToUrl(shopApiPath),
+        admin: pathToUrl(adminApiPath),
+        routes: getPluginStartupMessages().map(({ label, path }) => ({ label, url: pathToUrl(path) })),
     };
 }
 
-function logWelcomeMessage(config: RuntimeVendureConfig) {
+function logWelcomeMessage(config: RuntimeVendureConfig, urls: ServerUrls) {
     const { port } = config.apiOptions;
-    const apiCliGreetings: Array<readonly [string, string]> = [];
-    const pathToUrl = (path: string) => toServerUrl(config, path);
-    const urls = getApiUrls(config);
-    apiCliGreetings.push(['Shop API', urls.shop]);
-    apiCliGreetings.push(['Admin API', urls.admin]);
-    apiCliGreetings.push(
-        ...getPluginStartupMessages().map(({ label, path }) => [label, pathToUrl(path)] as const),
-    );
+    const apiCliGreetings: Array<readonly [string, string]> = [
+        ['Shop API', urls.shop],
+        ['Admin API', urls.admin],
+        ...urls.routes.map(({ label, url }) => [label, url] as const),
+    ];
     const columnarGreetings = arrangeCliGreetingsInColumns(apiCliGreetings);
     const title = `Vendure server (v${VENDURE_VERSION}) now running on port ${port}`;
     const maxLineLength = Math.max(title.length, ...columnarGreetings.map(l => l.length));

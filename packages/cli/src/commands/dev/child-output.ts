@@ -123,7 +123,8 @@ function isReadyEvent(value: unknown): value is ReadyEvent {
 }
 
 /**
- * The URLs named by a ready event. URLs that are not strings are left out.
+ * The URLs named by a ready event: the Admin and Shop APIs, and the Dashboard among the routes that
+ * plugins register. Values that are not strings are left out.
  */
 export function readyEventUrls(event: ReadyEvent): DevServerUrls {
     const urls: DevServerUrls = {};
@@ -132,6 +133,15 @@ export function readyEventUrls(event: ReadyEvent): DevServerUrls {
     }
     if (typeof event.urls?.shop === 'string') {
         urls.shop = event.urls.shop;
+    }
+    for (const route of Array.isArray(event.routes) ? event.routes : []) {
+        if (
+            typeof route?.label === 'string' &&
+            typeof route.url === 'string' &&
+            route.label.trim().toLowerCase().startsWith('dashboard')
+        ) {
+            urls.dashboard ??= route.url;
+        }
     }
     return urls;
 }

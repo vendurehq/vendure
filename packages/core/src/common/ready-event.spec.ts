@@ -22,10 +22,11 @@ describe('writeReadyEvent()', () => {
     }
 
     it('writes the server event with its URLs as one line of JSON to stderr', () => {
-        writeReadyEvent('server', {
-            admin: 'http://localhost:3000/admin-api',
-            shop: 'http://localhost:3000/shop-api',
-        });
+        writeReadyEvent(
+            'server',
+            { admin: 'http://localhost:3000/admin-api', shop: 'http://localhost:3000/shop-api' },
+            [{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }],
+        );
 
         const line = writtenLine();
         expect(line.endsWith('\n')).toBe(true);
@@ -35,6 +36,7 @@ describe('writeReadyEvent()', () => {
             event: 'ready',
             process: 'server',
             urls: { admin: 'http://localhost:3000/admin-api', shop: 'http://localhost:3000/shop-api' },
+            routes: [{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }],
         });
     });
 

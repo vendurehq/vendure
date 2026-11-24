@@ -59,6 +59,7 @@ const serverReady = JSON.stringify({
     event: 'ready',
     process: 'server',
     urls: { admin: 'http://localhost:3000/admin-api', shop: 'http://localhost:3000/shop-api' },
+    routes: [{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }],
 });
 
 const json = (line: Record<string, unknown>) =>
@@ -252,9 +253,24 @@ describe('DevRun readiness and URLs', () => {
 
         expect(readDevServerState(projectDir)).toMatchObject({
             status: 'ready',
-            urls: { shop: 'http://localhost:3000/shop-api', admin: 'http://localhost:3000/admin-api' },
+            urls: {
+                shop: 'http://localhost:3000/shop-api',
+                admin: 'http://localhost:3000/admin-api',
+                dashboard: 'http://localhost:3000/dashboard',
+            },
         });
         // The event is not printed.
+        expect(print).not.toHaveBeenCalled();
+    });
+
+    it('ignores the ready event of another process, as from an entry point that runs both', () => {
+        const { run, projectDir, print } = createRun();
+        const monitor = run.monitor('server');
+        monitor.onSpawn(false);
+
+        monitor.onOutput('stderr', JSON.stringify({ vendure: 'event', event: 'ready', process: 'worker' }));
+
+        expect(readDevServerState(projectDir)?.status).toBe('starting');
         expect(print).not.toHaveBeenCalled();
     });
 

@@ -242,9 +242,13 @@ class ChildMonitor implements DevChildMonitor {
             return;
         }
         if (read.kind === 'ready') {
-            this.writesReadyEvent = true;
-            this.supervisor.addUrls(this.readUrls(read.line, readyEventUrls(read.event)));
-            this.markReady();
+            // A process that runs both the server and the worker writes both events, and only the
+            // event of this monitor's target counts.
+            if (read.event.process === this.target) {
+                this.writesReadyEvent = true;
+                this.supervisor.addUrls(this.readUrls(read.line, readyEventUrls(read.event)));
+                this.markReady();
+            }
             return;
         }
         // A line the child wrote as JSON is shown as text. Any other line is shown as it was
