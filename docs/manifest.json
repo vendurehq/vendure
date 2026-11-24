@@ -4614,6 +4614,50 @@
           "lastModified": "2026-10-01T19:26:07+02:00"
         },
         {
+          "title": "CLI",
+          "slug": "cli",
+          "file": "docs/reference/cli/index.mdx",
+          "children": [
+            {
+              "title": "vendure add",
+              "slug": "add",
+              "file": "docs/reference/cli/add.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure commands",
+              "slug": "commands",
+              "file": "docs/reference/cli/commands.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure devserver",
+              "slug": "devserver",
+              "file": "docs/reference/cli/devserver.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure doctor",
+              "slug": "doctor",
+              "file": "docs/reference/cli/doctor.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure mcp",
+              "slug": "mcp",
+              "file": "docs/reference/cli/mcp.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure migrate",
+              "slug": "migrate",
+              "file": "docs/reference/cli/migrate.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            }
+          ],
+          "lastModified": "2026-11-24T16:46:30+01:00"
+        },
+        {
           "title": "GraphQL API",
           "slug": "graphql-api",
           "children": [
