@@ -1,8 +1,8 @@
 /*
  * The record `@vendure/create` writes of what a project was created with, at
- * `.vendure/create.json`. `@vendure/create`, `@vendure/cloud` and `vendure seed` all read it
- * through {@link parseCreateRecord}. Each reads the file itself: this module imports no `node:`
- * module, so any package can use it.
+ * `.vendure/create.json`. `@vendure/create` builds a {@link CreateRecord} and writes it.
+ * `@vendure/cloud` and `vendure seed` read it through {@link parseCreateRecord}. Each package reads
+ * or writes the file itself: this module imports no `node:` module, so any package can use it.
  *
  * The file is committed, and written once, by create. No later command writes it. Whether a seed
  * has run is recorded in the database, not here.
@@ -14,7 +14,7 @@
 export const CREATE_RECORD_PATH = '.vendure/create.json';
 
 /**
- * The format version this module reads and writes. A reader ignores a record with a higher version
+ * The format version of {@link CreateRecord}, which {@link parseCreateRecord} reads. A reader ignores a record with a higher version
  * and names the version in a notice. An optional field can be added without a new version; removing
  * a field or changing its meaning needs one.
  */
@@ -68,7 +68,7 @@ export interface CreateRecord {
  */
 export type ParseCreateRecordResult =
     | { result: 'ok'; record: CreateRecord }
-    | { result: 'unsupported-version'; version: unknown }
+    | { result: 'unsupported-version'; version: number }
     | { result: 'invalid'; field: string | undefined; message: string };
 
 /**
@@ -86,8 +86,8 @@ export function parseCreateRecord(json: unknown): ParseCreateRecordResult {
     if (version !== CREATE_RECORD_VERSION) {
         return { result: 'unsupported-version', version };
     }
-    if (typeof json.createdWith !== 'string') {
-        return invalid('createdWith', 'createdWith must be a string');
+    if (typeof json.createdWith !== 'string' || !json.createdWith) {
+        return invalid('createdWith', 'createdWith must be a non-empty string');
     }
     if (!CREATE_RECORD_PACKAGE_MANAGERS.includes(json.packageManager as CreateRecordPackageManager)) {
         return invalid(
@@ -104,13 +104,13 @@ export function parseCreateRecord(json: unknown): ParseCreateRecordResult {
         return invalid('scenario', 'scenario must be null or {name, package, version}, all strings');
     }
     if (!isStringArray(json.features)) {
-        return invalid('features', 'features must be an array of strings');
+        return invalid('features', 'features must be an array of non-empty strings');
     }
-    if (json.storefront !== null && typeof json.storefront !== 'string') {
-        return invalid('storefront', 'storefront must be a string or null');
+    if (json.storefront !== null && (typeof json.storefront !== 'string' || !json.storefront)) {
+        return invalid('storefront', 'storefront must be a non-empty string or null');
     }
     if (!isStringArray(json.agents)) {
-        return invalid('agents', 'agents must be an array of strings');
+        return invalid('agents', 'agents must be an array of non-empty strings');
     }
     return {
         result: 'ok',
@@ -173,5 +173,5 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function isStringArray(value: unknown): value is string[] {
-    return Array.isArray(value) && value.every(item => typeof item === 'string');
+    return Array.isArray(value) && value.every(item => typeof item === 'string' && item !== '');
 }

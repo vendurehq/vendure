@@ -24,8 +24,8 @@ describe('parseCreateRecord()', () => {
     });
 
     it('accepts a null preset, scenario and storefront', () => {
-        const result = parseCreateRecord({ ...valid, preset: null, scenario: null, storefront: null });
-        expect(result.result).toBe('ok');
+        const record = { ...valid, preset: null, scenario: null, storefront: null };
+        expect(parseCreateRecord(record)).toEqual({ result: 'ok', record });
     });
 
     it('ignores unknown fields', () => {
@@ -41,21 +41,33 @@ describe('parseCreateRecord()', () => {
     });
 
     it('rejects a value that is not an object', () => {
-        expect(parseCreateRecord('x')).toEqual(expect.objectContaining({ result: 'invalid', field: undefined }));
-        expect(parseCreateRecord([valid])).toEqual(expect.objectContaining({ result: 'invalid' }));
+        expect(parseCreateRecord('x')).toEqual(
+            expect.objectContaining({ result: 'invalid', field: undefined }),
+        );
+        expect(parseCreateRecord([valid])).toEqual(
+            expect.objectContaining({ result: 'invalid', field: undefined }),
+        );
     });
 
     it.each([
         ['version', { version: '1' }],
         ['version', { version: 0 }],
+        ['version', { version: 1.5 }],
         ['createdWith', { createdWith: 4 }],
+        ['createdWith', { createdWith: '' }],
         ['packageManager', { packageManager: 'deno' }],
         ['preset', { preset: { name: 'uk' } }],
         ['preset', { preset: { name: 'uk', options: { count: 3 } } }],
         ['preset', { preset: undefined }],
+        ['preset', { preset: { name: '', options: {} } }],
+        ['preset', { preset: { name: 'uk', options: ['GB'] } }],
         ['scenario', { scenario: { name: 'default', package: 'x' } }],
+        ['scenario', { scenario: { name: 'default', package: '', version: '1.0.0' } }],
+        ['scenario', { scenario: { name: '', package: 'x', version: '1.0.0' } }],
         ['features', { features: 'b2b' }],
+        ['features', { features: [''] }],
         ['storefront', { storefront: undefined }],
+        ['storefront', { storefront: '' }],
         ['agents', { agents: [1] }],
     ])('names the invalid field %s', (field, patch) => {
         expect(parseCreateRecord({ ...valid, ...patch })).toEqual(
