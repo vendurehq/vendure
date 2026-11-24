@@ -1,3 +1,5 @@
+import type { Fix } from '@vendure/common/lib/command';
+
 /**
  * @description
  * The codes of a {@link SeedError}.
@@ -28,15 +30,14 @@ export type SeedErrorCode =
 
 /**
  * @description
- * One way to fix a {@link SeedError}. `description` says what to do.
+ * One way to fix a {@link SeedError}. It is the `Fix` type of `@vendure/common`. None of the seed
+ * errors can be fixed by a command, so these fixes carry only a `description`.
  *
  * @docsCategory import-export
  * @docsPage Presets
  * @since 4.0.0
  */
-export interface SeedErrorFix {
-    description: string;
-}
+export type SeedErrorFix = Fix;
 
 /**
  * @description
