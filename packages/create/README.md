@@ -16,7 +16,7 @@ In a terminal, create asks for each choice. Every choice also has a flag, so age
 npx @vendure/create my-shop --yes --json
 ```
 
-Create writes the files, installs the dependencies, and makes a git repository with an initial commit. It records your choices in `.vendure/create.json`, which `vendure dev` reads.
+Create writes the files, installs the dependencies, writes the agent files, and makes a git repository with an initial commit. The agent files are `AGENTS.md`, the Vendure skills in `.agents/skills/`, and each agent client's MCP config, with the `vendure` server (added by `vendure mcp install`) and the `vendure-docs` server. A client whose config could not be completed is listed in `agentFiles.failed`, and `next` names the command to finish it. It records your choices in `.vendure/create.json`, which `vendure dev` reads.
 
 ## Options
 
@@ -28,6 +28,7 @@ Create writes the files, installs the dependencies, and makes a git repository w
 | `--scenario <name>`         | The demo scenario to seed, or `none`. A scenario sets its own preset, and another `--preset` is refused.                |
 | `--features <sets>`         | A comma-separated list of feature sets to install.                                                                      |
 | `--package-manager <name>`  | `npm`, `pnpm`, `yarn` or `bun`. The default is the one that ran create, for example `pnpm` for `pnpm dlx`.              |
+| `--agents <clients>`        | The agent clients to set the project up for: `claude`, `cursor`, `vscode`, `codex`, or `none`. The default is all four. |
 | `-y`, `--yes`               | Accept every default and never prompt.                                                                                  |
 | `--json`                    | Print one JSON result on stdout, and everything else on stderr. Never prompts.                                          |
 | `--no-install`              | Write the files without installing the dependencies.                                                                    |
@@ -42,7 +43,10 @@ With `--json`, create prints one document on stdout:
 {
     "projectDir": "/home/me/my-shop",
     "packageManager": "pnpm",
-    "agentFiles": { "written": [], "failed": [] },
+    "agentFiles": {
+        "written": ["AGENTS.md", ".agents/skills/vendure-cli/", "CLAUDE.md", ".mcp.json"],
+        "failed": []
+    },
     "git": { "status": "committed" },
     "next": ["cd my-shop", "pnpm run dev"]
 }

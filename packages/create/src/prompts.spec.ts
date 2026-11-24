@@ -46,7 +46,7 @@ beforeEach(() => {
 
 describe('promptForMissing()', () => {
     it('asks for the required options of the chosen preset', async () => {
-        answers.queue = ['none', 'none', 'single-country', ' NZ ', 'NZD'];
+        answers.queue = ['none', 'none', 'single-country', ' NZ ', 'NZD', ['claude']];
         const result = await promptForMissing('shop', {}, presets);
         expect(result).toEqual({
             projectDirectory: 'shop',
@@ -56,20 +56,21 @@ describe('promptForMissing()', () => {
                 preset: 'single-country',
                 country: 'NZ',
                 currency: 'NZD',
+                agents: 'claude',
             },
         });
-        expect(answers.messages.slice(-2)).toEqual(['The country code', 'The currency code']);
+        expect(answers.messages.slice(3, 5)).toEqual(['The country code', 'The currency code']);
     });
 
     it('skips the preset when a scenario was chosen, because the scenario brings its own', async () => {
-        answers.queue = ['nextjs', 'demo'];
+        answers.queue = ['nextjs', 'demo', []];
         const result = await promptForMissing('shop', {}, presets);
-        expect(result.flags).toEqual({ storefront: 'nextjs', scenario: 'demo' });
-        expect(answers.messages).toHaveLength(2);
+        expect(result.flags).toEqual({ storefront: 'nextjs', scenario: 'demo', agents: 'none' });
+        expect(answers.messages).toHaveLength(3);
     });
 
     it('turns the "None" preset answer into no preset', async () => {
-        answers.queue = ['none', 'none', ''];
+        answers.queue = ['none', 'none', '', []];
         const result = await promptForMissing('shop', {}, presets);
         expect(result.flags.preset).toBeUndefined();
     });
@@ -78,7 +79,7 @@ describe('promptForMissing()', () => {
         answers.queue = [' my-shop '];
         const result = await promptForMissing(
             undefined,
-            { storefront: 'none', scenario: 'none', preset: 'uk' },
+            { storefront: 'none', scenario: 'none', preset: 'uk', agents: 'none' },
             presets,
         );
         expect(result.projectDirectory).toBe('my-shop');

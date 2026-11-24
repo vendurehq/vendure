@@ -56,7 +56,8 @@ function optionsFor(name: string, overrides: Partial<CreateOptions> = {}): Creat
         preset: { name: 'uk', options: {} },
         scenario: null,
         features: [],
-        agents: ['claude'],
+        // Agent files have their own spec; these tests cover the project files.
+        agents: [],
         install: true,
         git: false,
         ...overrides,

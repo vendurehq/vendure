@@ -225,7 +225,9 @@ function headerKeys(line: string): string[] {
 
 /** Whether a line uses `vendure` as a key, as in `vendure = ...` or `mcp_servers.vendure.command = ...`. */
 function namesServerKey(line: string): boolean {
-    const text = withoutComment(line);
+    // String values are blanked first, so a value such as "https://docs.vendure.io/mcp" is not
+    // read as a `vendure.` key. Quoted keys, which come before the `=`, are kept.
+    const text = withoutComment(line).replace(/=\s*("(?:[^"\\]|\\.)*"|'[^']*')/g, '= ""');
     for (let at = text.indexOf(SERVER_NAME); at !== -1; at = text.indexOf(SERVER_NAME, at + 1)) {
         const before = at === 0 ? ' ' : text[at - 1];
         const after = text.slice(at + SERVER_NAME.length).trimStart();

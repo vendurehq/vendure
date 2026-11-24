@@ -29,6 +29,7 @@ vi.mock('./registries.js', async importOriginal => {
 });
 
 const assetsDir = path.join(import.meta.dirname, '../assets');
+const NOT_INSTALLED = 'the dependencies were not installed, so `vendure mcp install` could not run';
 
 class Capture extends Writable {
     text = '';
@@ -103,16 +104,45 @@ describe('create --yes --json', () => {
         expect(result.json).toEqual({
             projectDir,
             packageManager: 'pnpm',
-            agentFiles: { written: [], failed: [] },
+            agentFiles: {
+                written: [
+                    'AGENTS.md',
+                    '.agents/skills/vendure-cli/',
+                    '.agents/skills/vendure-store-setup/',
+                    '.agents/skills/vendure-troubleshooting/',
+                    'CLAUDE.md',
+                    '.claude/settings.json',
+                    '.mcp.json',
+                    '.cursor/mcp.json',
+                    '.vscode/mcp.json',
+                    '.codex/config.toml',
+                ],
+                // With --no-install there is no CLI to run `vendure mcp install` with.
+                failed: ['claude', 'vscode', 'codex'].map(client => ({ client, reason: NOT_INSTALLED })),
+            },
             git: { status: 'committed' },
-            next: ['cd my-shop', 'pnpm install', 'pnpm run dev'],
+            next: [
+                'cd my-shop',
+                'pnpm install',
+                'pnpm run dev',
+                'pnpm exec vendure mcp install --client claude',
+                'pnpm exec vendure mcp install --client vscode',
+                'pnpm exec vendure mcp install --client codex',
+            ],
         });
     });
 
     it('writes a Cloud Config app and no self-hosted files', () => {
-        expect(filesIn(projectDir)).toEqual([
+        expect(filesIn(projectDir).filter(file => !file.startsWith('.agents/'))).toEqual([
+            '.claude/settings.json',
+            '.codex/config.toml',
+            '.cursor/mcp.json',
             '.gitignore',
+            '.mcp.json',
             '.vendure/create.json',
+            '.vscode/mcp.json',
+            'AGENTS.md',
+            'CLAUDE.md',
             'README.md',
             'package.json',
             'pnpm-workspace.yaml',
@@ -148,8 +178,8 @@ describe('create --yes --json', () => {
                 scenario: null,
                 features: [],
                 storefront: null,
-                // No agent files are written yet, so no client is recorded.
-                agents: [],
+                // Only Cursor's file is complete without `vendure mcp install`.
+                agents: ['cursor'],
             },
         });
     });
@@ -180,6 +210,8 @@ describe('create choices', () => {
             'demo',
             '--package-manager',
             'bun',
+            '--agents',
+            'none',
         ]);
         expect(result.code).toBe(0);
         expect(result.json.git).toEqual({ status: 'skipped', reason: '--no-git was given' });

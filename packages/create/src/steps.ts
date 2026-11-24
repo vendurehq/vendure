@@ -5,7 +5,10 @@ import { CliLogLevel, GitResult, PackageManager } from './types.js';
 
 export interface RunResult {
     code: number | null;
+    /** The tail of stdout and stderr together. */
     output: string;
+    /** All of stdout, for a command whose stdout is a result. */
+    stdout: string;
     /** Set when the command could not be started, for example because it is not on the PATH. */
     spawnError?: Error;
 }
@@ -26,13 +29,17 @@ export function runCommand(
             stdio: options.inherit ? ['ignore', process.stderr, process.stderr] : ['ignore', 'pipe', 'pipe'],
         });
         let output = '';
+        let stdout = '';
         const collect = (chunk: Buffer) => {
             output = (output + chunk.toString()).slice(-4000);
         };
-        child.stdout?.on('data', collect);
+        child.stdout?.on('data', (chunk: Buffer) => {
+            stdout += chunk.toString();
+            collect(chunk);
+        });
         child.stderr?.on('data', collect);
-        child.on('error', spawnError => resolve({ code: null, output, spawnError }));
-        child.on('close', code => resolve({ code, output }));
+        child.on('error', spawnError => resolve({ code: null, output, stdout, spawnError }));
+        child.on('close', code => resolve({ code, output, stdout }));
     });
 }
 
@@ -65,10 +72,10 @@ export async function installDependencies(
 export const INITIAL_COMMIT_MESSAGE = 'Initial commit from @vendure/create';
 
 /**
- * Initialises a git repository and makes the initial commit. A missing git, a directory that is
- * already inside a repository, or a failed commit is reported and never fails create.
+ * Initialises a git repository, without committing. A missing git or a directory that is already
+ * inside a repository is reported and never fails create.
  */
-export async function initialiseGit(cwd: string): Promise<GitResult> {
+export async function initGitRepository(cwd: string): Promise<GitResult | undefined> {
     const version = await runCommand('git', ['--version'], { cwd });
     if (version.spawnError || version.code !== 0) {
         return { status: 'skipped', reason: 'git is not installed' };
@@ -77,18 +84,35 @@ export async function initialiseGit(cwd: string): Promise<GitResult> {
     if (inside.code === 0 && inside.output.trim() === 'true') {
         return { status: 'skipped', reason: 'the project directory is already inside a git repository' };
     }
+    const init = await runCommand('git', ['init', '--quiet'], { cwd });
+    return init.code === 0 ? undefined : gitFailed('init', init);
+}
+
+/** Commits every file of a repository that {@link initGitRepository} created. */
+export async function commitAll(cwd: string): Promise<GitResult> {
     for (const args of [
-        ['init', '--quiet'],
         ['add', '--all'],
         ['commit', '--quiet', '--message', INITIAL_COMMIT_MESSAGE],
     ]) {
         const result = await runCommand('git', args, { cwd });
         if (result.code !== 0) {
-            return {
-                status: 'failed',
-                reason: `\`git ${args[0]}\` failed: ${result.output.trim() || `exit code ${String(result.code)}`}`,
-            };
+            return gitFailed(args[0], result);
         }
     }
     return { status: 'committed' };
+}
+
+/**
+ * Initialises a git repository and makes the initial commit. A missing git, a directory that is
+ * already inside a repository, or a failed commit is reported and never fails create.
+ */
+export async function initialiseGit(cwd: string): Promise<GitResult> {
+    return (await initGitRepository(cwd)) ?? commitAll(cwd);
+}
+
+function gitFailed(step: string, result: RunResult): GitResult {
+    return {
+        status: 'failed',
+        reason: `\`git ${step}\` failed: ${result.output.trim() || `exit code ${String(result.code)}`}`,
+    };
 }

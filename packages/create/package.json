@@ -56,6 +56,31 @@
     "nx": {
         "tags": [
             "scope:tool"
-        ]
+        ],
+        "targets": {
+            "build": {
+                "inputs": [
+                    "production",
+                    "^production",
+                    "{workspaceRoot}/skills/vendure-cli/**/*",
+                    "{workspaceRoot}/skills/vendure-store-setup/**/*",
+                    "{workspaceRoot}/skills/vendure-troubleshooting/**/*"
+                ]
+            },
+            "test": {
+                "inputs": [
+                    "default",
+                    "^production",
+                    "{workspaceRoot}/vitest.shared.mts",
+                    "{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts",
+                    {
+                        "runtime": "node --version"
+                    },
+                    "{workspaceRoot}/skills/vendure-cli/**/*",
+                    "{workspaceRoot}/skills/vendure-store-setup/**/*",
+                    "{workspaceRoot}/skills/vendure-troubleshooting/**/*"
+                ]
+            }
+        }
     }
 }

@@ -80,6 +80,18 @@ assert(record.version === 1, `Unexpected record version ${record.version}`);
 assert(record.packageManager === packageManager, `Unexpected record packageManager ${record.packageManager}`);
 assert(record.storefront === storefront, `Unexpected record storefront ${record.storefront}`);
 
+const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf-8');
+assert(agents.includes(`\`${packageManager} run dev\``), `Expected AGENTS.md to use ${packageManager}`);
+for (const file of [
+    'CLAUDE.md',
+    '.claude/settings.json',
+    '.mcp.json',
+    '.cursor/mcp.json',
+    '.agents/skills/vendure-cli/SKILL.md',
+]) {
+    assert(fs.existsSync(path.join(root, file)), `Expected the agent file ${file}`);
+}
+
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf-8' }).trim();
 assert(git('rev-list', '--count', 'HEAD') === '1', 'Expected exactly one commit');
 assert(git('status', '--porcelain') === '', 'Expected a clean working tree after the initial commit');

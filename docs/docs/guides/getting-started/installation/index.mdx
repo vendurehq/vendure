@@ -25,6 +25,7 @@ Create asks a few questions:
 
 - **Storefront**: whether to include an official [TanStack Start or Next.js storefront starter](/storefront/storefront-starters/). With a storefront, the project is a workspace: the Vendure server is in `apps/server` and the storefront in `apps/storefront`.
 - **Base data**: the preset that the first `vendure dev` seeds into the database, for example `uk`, or `single-country` with your country and currency. A preset sets up the currency, tax rates, zones and shipping for a market.
+- **Agent clients**: the AI coding assistants to set the project up for: Claude Code, Cursor, VS Code and Codex. Create writes `AGENTS.md`, the Vendure skills in `.agents/skills/`, and each client's MCP config with the `vendure` and `vendure-docs` servers.
 
 Every question also has a flag, so you can create a project without prompts, for example from a script or a coding agent:
 
