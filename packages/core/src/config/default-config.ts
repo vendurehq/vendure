@@ -20,10 +20,10 @@ import { NoAssetPreviewStrategy } from './asset-preview-strategy/no-asset-previe
 import { NoAssetStorageStrategy } from './asset-storage-strategy/no-asset-storage-strategy';
 import { BcryptPasswordHashingStrategy } from './auth/bcrypt-password-hashing-strategy';
 import { DefaultCustomerChannelAssignmentStrategy } from './auth/default-customer-channel-assignment-strategy';
+import { GlobalIdentityScopeStrategy } from './auth/identity-scope-strategy';
 import { DefaultEntityAccessControlStrategy } from './auth/default-entity-access-control-strategy';
 import { DefaultPasswordValidationStrategy } from './auth/default-password-validation-strategy';
 import { DefaultVerificationTokenStrategy } from './auth/default-verification-token-strategy';
-import { GlobalIdentityScopeStrategy } from './auth/identity-scope-strategy';
 import { NativeAuthenticationStrategy } from './auth/native-authentication-strategy';
 import { defaultCollectionFilters } from './catalog/default-collection-filters';
 import { DefaultProductVariantBuyerPriceStrategy } from './catalog/default-product-variant-buyer-price-strategy';
