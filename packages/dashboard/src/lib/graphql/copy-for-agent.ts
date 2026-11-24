@@ -58,7 +58,9 @@ export function toAgentErrorReport(error: unknown, document: string): AgentError
  * dev log of the project.
  */
 export function formatAgentErrorReport(report: AgentErrorReport): string {
-    return `${JSON.stringify(report, null, 2)}\n\nnpx vendure explain ${report.requestId} --json\n`;
+    // A request ID from an inbound `x-request-id` header can start with `-`, which would read as an option.
+    const requestId = report.requestId.startsWith('-') ? `-- ${report.requestId}` : report.requestId;
+    return `${JSON.stringify(report, null, 2)}\n\nnpx vendure explain --json ${requestId}\n`;
 }
 
 /**
