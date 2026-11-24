@@ -81,16 +81,29 @@ export interface StandardSchema<Input = unknown, Output = Input> {
 
 /**
  * @description
- * A way to fix a problem or to answer a need, as a command path with its input. The host shows it
- * as a command line on the CLI, and as a tool name with arguments over MCP. Error text never
- * contains CLI syntax, so a fix is always structured.
+ * One way to fix a problem. `description` says what to do. When the fix is a command, `path` and
+ * `input` name it, so a host can offer it as a command line or an MCP tool call. Startup errors,
+ * `vendure dev` and the Dashboard carry fixes of this shape.
  */
-export interface CommandFix {
+export interface Fix {
+    description: string;
+    /** The command path, for example `['migrate', 'generate']`. Present only when the fix is a command. */
+    path?: string[];
+    /** The input to pass to the command at `path`. Present only when the fix is a command. */
+    input?: Record<string, unknown>;
+}
+
+/**
+ * @description
+ * A {@link Fix} that is a command path with its input. The host shows it as a command line on the
+ * CLI, and as a tool name with arguments over MCP. Error text never contains CLI syntax, so a fix is
+ * always structured.
+ */
+export interface CommandFix extends Fix {
     /** The command path, for example `['auth', 'login']`. */
     path: string[];
     /** The input to pass to that command. */
     input: Record<string, unknown>;
-    description: string;
 }
 
 /**

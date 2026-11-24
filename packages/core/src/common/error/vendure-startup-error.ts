@@ -1,14 +1,18 @@
+import type { Fix } from '@vendure/common/lib/command';
+
 /**
  * @description
- * One way to fix a {@link VendureStartupError}. `description` says what to change.
+ * One way to fix a {@link VendureStartupError}. `description` says what to change. When the fix is
+ * a command, `path` and `input` name it, for example
+ * `{ description: 'Generate a migration', path: ['migrate', 'generate'], input: {} }`.
+ *
+ * It is the `Fix` type of `@vendure/common`.
  *
  * @docsCategory errors
  * @docsPage VendureStartupError
  * @since 4.0.0
  */
-export interface VendureErrorFix {
-    description: string;
-}
+export type VendureErrorFix = Fix;
 
 /**
  * @description
