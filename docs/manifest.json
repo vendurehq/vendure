@@ -4271,7 +4271,7 @@
                   "title": "McpConsentRequiredResult",
                   "slug": "mcp-consent-required-result",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-consent-required-result.mdx",
-                  "lastModified": "2026-11-22T19:21:26Z"
+                  "lastModified": "2026-11-24T07:11:29Z"
                 },
                 {
                   "title": "McpDnsRebindingOptions",
@@ -4319,7 +4319,7 @@
                   "title": "McpPluginOptions",
                   "slug": "mcp-plugin-options",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-plugin-options.mdx",
-                  "lastModified": "2026-11-22T19:21:26Z"
+                  "lastModified": "2026-11-24T07:11:29Z"
                 },
                 {
                   "title": "McpRateLimitOptions",
@@ -4355,7 +4355,7 @@
                   "title": "McpToolSummary",
                   "slug": "mcp-tool-summary",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-summary.mdx",
-                  "lastModified": "2026-11-22T19:21:26Z"
+                  "lastModified": "2026-11-24T07:11:29Z"
                 }
               ],
               "lastModified": "2026-11-22T19:21:26Z"
