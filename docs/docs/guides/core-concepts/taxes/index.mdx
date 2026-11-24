@@ -9,7 +9,7 @@ E-commerce applications need to correctly handle taxes such as sales tax or valu
 * **Tax categories** Each ProductVariant is assigned to a specific TaxCategory. In some tax systems, the tax rate differs depending on the type of good. For example, VAT in the UK has 3 rates, "standard" (most goods), "reduced" (e.g. child car seats) and "zero" (e.g. books).
 * **Tax rates** This is the tax rate applied to a specific tax category for a specific target. The target is either a country or a [Zone](/core-concepts/zones/). E.g., the tax rate for "standard" goods in the UK Zone is 20%, and the tax rate for "standard" goods in Germany is 19%.
 * **Channel tax settings** Each Channel can specify whether the prices of product variants are inclusive of tax or not, and also specify the default Zone to use for tax calculations.
-* **TaxZoneStrategy** Determines the active tax Zone used when calculating what TaxRate to apply. By default, it uses the default tax Zone from the Channel settings.
+* **TaxZoneStrategy** Determines the active tax Zone used when calculating what TaxRate to apply. By default, it uses the default tax Zone from the Channel settings. It can also choose the country whose country rates apply, which by default is the country of the shipping address.
 * **TaxLineCalculationStrategy** This determines the taxes applied when adding an item to an Order. If you want to integrate a 3rd-party tax API or other async lookup, this is where it would be done.
 
 ## API conventions
@@ -44,15 +44,16 @@ When a customer adds an item to the Order, the following logic takes place:
 1. The price of the item, and whether that price is inclusive of tax, is determined according to the configured [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy/).
 2. The active tax Zone is determined based on the configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/). By default, Vendure will use the default tax Zone from the Channel settings.
   However, you often want to use the customer's address as the basis for determining the tax Zone. In this case, you should use the [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy).
-3. The applicable TaxRate is fetched based on the ProductVariant's TaxCategory, the country of the Order's shipping address and the active tax Zone determined in step 2. See [Tax rate resolution](#tax-rate-resolution).
-4. The `TaxLineCalculationStrategy.calculate()` of the configured [TaxLineCalculationStrategy](/reference/typescript-api/tax/tax-line-calculation-strategy/) is called, which will return one or more [TaxLines](/reference/graphql-api/admin/object-types/#taxline).
-5. The final `priceWithTax` of the order line is calculated based on all the above.
+3. The tax country is determined by the `determineTaxCountryCode()` method of the TaxZoneStrategy. By default, it is the country of the Order's shipping address. See [Choosing the tax country](#choosing-the-tax-country).
+4. The applicable TaxRate is fetched based on the ProductVariant's TaxCategory, the tax country and the active tax Zone. See [Tax rate resolution](#tax-rate-resolution).
+5. The `TaxLineCalculationStrategy.calculate()` of the configured [TaxLineCalculationStrategy](/reference/typescript-api/tax/tax-line-calculation-strategy/) is called, which will return one or more [TaxLines](/reference/graphql-api/admin/object-types/#taxline).
+6. The final `priceWithTax` of the order line is calculated based on all the above.
 
 ## Tax rate resolution
 
 A TaxRate targets exactly one of a country or a Zone. When Vendure looks for the rate to apply, the most specific rate wins. It checks, in this order:
 
-1. A rate for the country of the Order's shipping address, with a matching TaxCategory.
+1. A rate for the tax country, with a matching TaxCategory. By default, the tax country is the country of the Order's shipping address.
 2. A rate for the active tax Zone, with a matching TaxCategory.
 3. If nothing matches, a rate of 0%.
 
@@ -60,10 +61,10 @@ Only enabled rates are considered. A rate that targets a Zone works as before, s
 
 Some things to know:
 
-* The country comes from the shipping address only. When there is no Order, for example when a product page or the search index shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, also create a zone rate for the Channel's default tax Zone, normally the rate of your own country. Without one, those prices show 0% tax.
-* A country rate applies whatever Zone the [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/) returns. A custom strategy which returns a special Zone, for example a 0% Zone for business customers under the reverse-charge rule, does not stop a country rate for the shipping country from applying.
+* By default, the country comes from the shipping address. When there is no Order, for example when a product page or the search index shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, also create a zone rate for the Channel's default tax Zone, normally the rate of your own country. Without one, those prices show 0% tax.
+* A country rate for the tax country applies whatever Zone the [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/) returns. A custom strategy which returns a special Zone, for example a 0% Zone for business customers under the reverse-charge rule, must also return no tax country for those customers. See [Choosing the tax country](#choosing-the-tax-country).
 * When the Channel's prices include tax, an entered price includes the rate of the default tax Zone. A country rate works as the rate of another Zone would: the net price is taken out at the default Zone's rate, and the country rate is added to it. With a 20% default Zone rate, a price entered as 120.00 costs 119.00 in a country with a 19% rate, as it would if that country had its own Zone. A country rate with the same value as the default Zone's rate, such as the rate of your own country, keeps the entered price. This needs a zone rate on the default tax Zone. Without one, the entered price is the gross price in every country of the default Zone, and a country in another Zone gets its rate added to the whole entered price.
-* When the shipping country of an Order changes, the taxes of all its lines are applied again. Changing a TaxRate does not by itself change the taxes of lines already in an Order.
+* When the tax Zone or the tax country of an Order changes, all its lines are priced and taxed again. Changing a TaxRate does not by itself change the taxes of lines already in an Order.
 * A country rate must target a country. Other types of region, such as provinces, are rejected.
 * If two Zones contain the same country, [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy) uses the first Zone it finds, so the result depends on the order of the Zones. Put the rates in country rates instead of overlapping Zones.
 
@@ -100,6 +101,96 @@ mutation {
 ```
 
 This example assumes a seller in Germany. An Order with a shipping address in Germany is taxed at 19%, and one in France at 20%. A member state with no country rate uses the rate of the `eu` Zone, 19%. Product pages and search results, which have no shipping address, also show prices with the `eu` Zone rate.
+
+## Choosing the tax country
+
+The country whose country rates apply comes from the optional `determineTaxCountryCode()` method of the [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/#determinetaxcountrycode). It is called after `determineTaxZone()`, and receives the Zone that method returned. When a strategy does not implement it, Vendure uses [defaultTaxCountryCode()](/reference/typescript-api/tax/default-tax-country-code/), which returns the country of the shipping address. The built-in strategies do not implement it.
+
+The method can return:
+
+* **A country code.** Country rates for that country apply, for example the country of the billing address.
+* **`undefined`.** No country rate applies. The zone rate of the active tax Zone applies, then 0%.
+
+A strategy can call `defaultTaxCountryCode()` to keep the default for some cases. The result is stored on the Order as `taxCountryCode`. When it or the tax Zone changes, every line of the Order is priced and taxed again, not only the lines being edited. In a Channel whose prices include tax, the net price of a line depends on the rate, so this keeps every line on the same basis.
+
+The method is called whenever prices are calculated, and its result is not cached, so keep it fast. If it depends on data outside the Order, such as the customer's groups, a change to that data takes effect the next time the Order is calculated, for example when the customer edits a line or sets an address.
+
+### Example: B2B reverse charge
+
+Under the EU reverse-charge rule, a business customer in another member state pays no VAT. This strategy returns a 0% Zone and no tax country for customers in a `B2B` customer group, and the default rules for everyone else. Create a Zone named `Reverse charge` with a 0% zone rate for each TaxCategory. The Zone needs no members.
+
+```ts title="src/reverse-charge-tax-zone-strategy.ts"
+import {
+    Channel,
+    Customer,
+    defaultTaxCountryCode,
+    Injector,
+    Order,
+    RequestContext,
+    TaxZoneStrategy,
+    TransactionalConnection,
+    Zone,
+} from '@vendure/core';
+
+export class ReverseChargeTaxZoneStrategy implements TaxZoneStrategy {
+    private connection: TransactionalConnection;
+
+    init(injector: Injector) {
+        this.connection = injector.get(TransactionalConnection);
+    }
+
+    async determineTaxZone(ctx: RequestContext, zones: Zone[], channel: Channel, order?: Order) {
+        if (await this.isBusinessCustomer(ctx, order)) {
+            return zones.find(zone => zone.name === 'Reverse charge') ?? channel.defaultTaxZone;
+        }
+        return channel.defaultTaxZone;
+    }
+
+    async determineTaxCountryCode(ctx: RequestContext, channel: Channel, activeTaxZone: Zone, order?: Order) {
+        if (await this.isBusinessCustomer(ctx, order)) {
+            // No country rate, so the 0% rate of the 'Reverse charge' Zone applies
+            return undefined;
+        }
+        return defaultTaxCountryCode(channel, activeTaxZone, order);
+    }
+
+    private async isBusinessCustomer(ctx: RequestContext, order?: Order): Promise<boolean> {
+        if (!order?.customerId) {
+            return false;
+        }
+        const customer = await this.connection.getRepository(ctx, Customer).findOne({
+            where: { id: order.customerId },
+            relations: { groups: true },
+        });
+        return !!customer?.groups.some(group => group.name === 'B2B');
+    }
+}
+```
+
+This strategy queries the database each time it is called. In production, cache the result, for example per customer for the length of the request. A real reverse-charge setup also checks the customer's VAT number and that they are in another member state. This example leaves that out.
+
+### Example: tax by billing address
+
+To charge the rate of the billing country, return it, and fall back to the default when there is no billing address:
+
+```ts title="src/billing-address-tax-zone-strategy.ts"
+import {
+    AddressBasedTaxZoneStrategy,
+    Channel,
+    defaultTaxCountryCode,
+    Order,
+    RequestContext,
+    Zone,
+} from '@vendure/core';
+
+export class BillingAddressTaxZoneStrategy extends AddressBasedTaxZoneStrategy {
+    determineTaxCountryCode(ctx: RequestContext, channel: Channel, activeTaxZone: Zone, order?: Order) {
+        return order?.billingAddress?.countryCode || defaultTaxCountryCode(channel, activeTaxZone, order);
+    }
+}
+```
+
+`AddressBasedTaxZoneStrategy` still picks the Zone from the shipping address, so a billing country with no country rate gets the zone rate of the shipping address's Zone. Override `determineTaxZone()` as well if the Zone should follow the billing address too.
 
 ## Calculating tax on shipping
 

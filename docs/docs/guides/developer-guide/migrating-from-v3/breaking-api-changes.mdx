@@ -126,7 +126,12 @@ A TaxRate can now target a country as well as a Zone, and a country rate wins ov
 - **`TaxRate.zone` is nullable** in the GraphQL APIs and on the entity (`zone?: Zone | null`, `zoneId?: ID | null`), because a country rate has no Zone. Code which reads `taxRate.zone.id` or `taxRate.zone.name` must handle `null`. The new `region` field holds the country of a country rate.
 - **`CreateTaxRateInput.zoneId` is optional.** Exactly one of `zoneId` and the new `regionId` must be set. Generated TypeScript types for the input change accordingly.
 - **`TaxRateService.getApplicableTaxRate()`** takes `{ countryCode, zone }` as its second argument, so that a country rate can be found. Passing a Zone or zone ID still works, but then only zone rates are found. To apply country rates in your own code, pass the country of the Order's shipping address as `countryCode`.
-- **`tax_rate`** has a new nullable column, `regionId`, and **`order`** a new nullable column, `taxCountryCode`. The generated migration adds them. `Order.taxCountryCode` records the shipping country of the last tax calculation. An Order placed before v4 has none. Its next calculation records the country and keeps the taxes the Order was placed with.
+- **`tax_rate`** has a new nullable column, `regionId`, and **`order`** a new nullable column, `taxCountryCode`. The generated migration adds them. `Order.taxCountryCode` records the tax country of the last tax calculation, which by default is the shipping country. An Order placed before v4 has none. Its next calculation records the country and keeps the taxes the Order was placed with.
+
+These additions need no change to your code:
+
+- **`TaxZoneStrategy.determineTaxCountryCode()`** is a new optional method, which chooses the country whose country rates apply. Without it, the country of the shipping address is used, as above. The new **`defaultTaxCountryCode()`** function exports that default, so a strategy can keep it for some cases. See [Choosing the tax country](/core-concepts/taxes/#choosing-the-tax-country).
+- When the tax Zone or the tax country of an Order changes, every OrderLine is now priced again, as on a currency change, and its `initialListPrice` is set to the new price. The `ChangedPriceHandlingStrategy` is not called for that change.
 
 ## Changed defaults
 

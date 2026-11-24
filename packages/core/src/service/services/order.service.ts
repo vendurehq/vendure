@@ -2749,6 +2749,17 @@ export class OrderService implements OnApplicationBootstrap {
             updatedOrderLines = order.lines;
             order.currencyCode = ctx.currencyCode;
         }
+        // In a Channel whose prices include tax, the net price of a line depends on the tax Zone and
+        // country, so when either changes, every OrderLine is priced again, not only the edited ones.
+        const taxTarget = await this.orderCalculator.determineTaxTarget(ctx, order);
+        const taxTargetChanged = this.orderCalculator.taxTargetChanged(
+            order,
+            taxTarget.zone,
+            taxTarget.countryCode,
+        );
+        if (taxTargetChanged) {
+            updatedOrderLines = order.lines;
+        }
 
         if (updatedOrderLines?.length) {
             const { orderItemPriceCalculationStrategy, changedPriceHandlingStrategy } =
@@ -2772,7 +2783,12 @@ export class OrderService implements OnApplicationBootstrap {
                     // No price for the buyer now: the line keeps its current price
                     continue;
                 }
-                const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
+                // A price that changed with the tax Zone or country is not a change by the merchant,
+                // so the ChangedPriceHandlingStrategy is not consulted, and the new price becomes the
+                // price the line is compared with from now on.
+                const initialListPrice = taxTargetChanged
+                    ? priceResult.price
+                    : (updatedOrderLine.initialListPrice ?? priceResult.price);
                 if (initialListPrice !== priceResult.price) {
                     priceResult = await changedPriceHandlingStrategy.handlePriceChange(
                         ctx,
@@ -2782,7 +2798,7 @@ export class OrderService implements OnApplicationBootstrap {
                     );
                 }
 
-                if (updatedOrderLine.initialListPrice == null) {
+                if (updatedOrderLine.initialListPrice == null || taxTargetChanged) {
                     updatedOrderLine.initialListPrice = initialListPrice;
                 }
                 updatedOrderLine.listPrice = priceResult.price;

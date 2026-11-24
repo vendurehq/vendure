@@ -205,8 +205,9 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
     /**
      * @description
      * The country code used to look up country TaxRates the last time the Order was calculated:
-     * the country of the shipping address, or an empty string if there was none. When it changes,
-     * the taxes of every OrderLine are applied again, as when the tax Zone changes. It is `null`
+     * the result of `TaxZoneStrategy.determineTaxCountryCode()`, which by default is the country of
+     * the shipping address, or an empty string if there was none. When it changes, every OrderLine
+     * is priced and taxed again, as when the tax Zone changes. It is `null`
      * until the first calculation, so an Order placed before it existed keeps its taxes.
      *
      * @since 4.0.0

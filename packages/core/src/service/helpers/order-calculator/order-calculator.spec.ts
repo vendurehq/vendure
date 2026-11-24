@@ -133,6 +133,75 @@ describe('OrderCalculator', () => {
             expect(order.taxCountryCode).toBe('XC');
         });
 
+        describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
+            const defaultTaxOptions = () => ({
+                taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
+                orderTaxCalculationStrategy: new DefaultOrderTaxCalculationStrategy(),
+            });
+
+            afterEach(() => {
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new DefaultTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+            });
+
+            it('applies no country rate when it returns undefined', async () => {
+                class NoCountryTaxZoneStrategy extends DefaultTaxZoneStrategy {
+                    determineTaxCountryCode() {
+                        return undefined;
+                    }
+                }
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new NoCountryTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                order.shippingAddress = { countryCode: 'XC' };
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+
+                // The zone rate, not the 19% country rate for XC
+                expect(order.lines[0].taxRate).toBe(20);
+                expect(order.taxCountryCode).toBe('');
+            });
+
+            it('applies the country rate of the country it returns', async () => {
+                class BillingCountryTaxZoneStrategy extends DefaultTaxZoneStrategy {
+                    determineTaxCountryCode(
+                        _ctx: RequestContext,
+                        _channel: unknown,
+                        _zone: unknown,
+                        o?: Order,
+                    ) {
+                        return o?.billingAddress?.countryCode;
+                    }
+                }
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new BillingCountryTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                order.shippingAddress = {};
+                order.billingAddress = { countryCode: 'XC' };
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines[0].taxRate).toBe(19);
+                expect(order.taxCountryCode).toBe('XC');
+
+                order.billingAddress = {};
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines[0].taxRate).toBe(20);
+                expect(order.taxCountryCode).toBe('');
+            });
+        });
+
         it('resets totals when lines array is empty', async () => {
             const ctx = createRequestContext({ pricesIncludeTax: false });
             const order = createOrder({
