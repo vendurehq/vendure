@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-24T08:08:52+01:00"
+          "lastModified": "2026-11-24T08:10:22+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -865,7 +865,7 @@
           "title": "Quick Start",
           "slug": "quick-start",
           "file": "docs/guides/mcp-server/quick-start/index.mdx",
-          "lastModified": "2026-11-22T20:20:28+01:00"
+          "lastModified": "2026-11-24T08:10:22+01:00"
         },
         {
           "title": "OAuth & Consent",
