@@ -187,7 +187,7 @@ describe('Base-data presets', () => {
     });
 
     it('lists the presets', () => {
-        expect(listPresets().map(p => p.name)).toEqual(['uk', 'us', 'au', 'single-country']);
+        expect(listPresets().map(p => p.name)).toEqual(['eu', 'uk', 'us', 'au', 'single-country']);
         expect(listPresets().find(p => p.name === 'single-country')!.options).toEqual({
             country: expect.objectContaining({ required: true }),
             currency: expect.objectContaining({ required: true }),
@@ -388,13 +388,17 @@ describe('Base-data presets', () => {
     describe('eu', () => {
         beforeAll(resetToEmptyDatabase, TEST_SETUP_TIMEOUT_MS);
 
-        it('is hidden until its VAT rates are reviewed', async () => {
-            expect(listPresets().map(p => p.name)).not.toContain('eu');
-            await expectSeedError(applyPreset(server.app, 'eu', { country: 'DE' }), 'core.preset-unknown');
+        it('is released after its VAT review', async () => {
+            expect(listPresets().map(p => p.name)).toContain('eu');
+            // A released preset checks its options instead of being unknown
+            await expectSeedError(
+                applyPreset(server.app, 'eu', { country: 'GB' }),
+                'core.preset-invalid-option',
+            );
         });
 
-        // The preset is unreleased, so these tests call it directly, in a transaction as
-        // applyPreset() does.
+        // These tests call the preset directly, in a transaction as applyPreset() does, so that they
+        // can inspect the result.
         describe('applied directly', () => {
             it('requires the seller country to be a member state', () => {
                 expect(euPreset.validate!({})).toEqual(expect.objectContaining({ option: 'country' }));

@@ -18,11 +18,13 @@ export interface EuVatRate {
 /**
  * The date the values below were taken from their source.
  */
-export const EU_VAT_RATES_SOURCE_DATE = '2026-07-13';
+export const EU_VAT_RATES_SOURCE_DATE = '2026-11-24';
 
 /**
  * The page the values were taken from. It printed "Last checked: 13/07/2026". The European
- * Commission's own PDF of the rates could not be read on the day.
+ * Commission's own PDF of the rates could not be read on the day. On 2026-11-24 the rows for EE,
+ * PL, SE and SK were checked against national and secondary sources, which are named in their
+ * comments.
  */
 export const EU_VAT_RATES_SOURCE =
     'https://europa.eu/youreurope/business/taxation/vat/vat-rules-rates/index_en.htm';
@@ -32,7 +34,7 @@ export const EU_VAT_RATES_SOURCE =
  * done. While it is `undefined`, the `eu` preset is hidden: `listPresets()` leaves it out and
  * `applyPreset()` treats it as unknown.
  */
-export const EU_VAT_RATES_REVIEWED_AT: string | undefined = undefined;
+export const EU_VAT_RATES_REVIEWED_AT: string | undefined = '2026-11-24';
 
 /**
  * @description
@@ -54,7 +56,7 @@ export const EU_VAT_RATES: readonly EuVatRate[] = [
     { countryCode: 'DE', standard: 19, reduced: 7 },
     // Denmark has no reduced rate. Its only other rate is a zero rate.
     { countryCode: 'DK', standard: 25, reduced: 25 },
-    { countryCode: 'EE', standard: 24, reduced: 9 },
+    { countryCode: 'EE', standard: 24, reduced: 9 }, // also 13 (accommodation, since 2025-01-01)
     { countryCode: 'ES', standard: 21, reduced: 10 },
     { countryCode: 'FI', standard: 25.5, reduced: 13.5 }, // also 10
     { countryCode: 'FR', standard: 20, reduced: 5.5 }, // also 10
@@ -68,10 +70,12 @@ export const EU_VAT_RATES: readonly EuVatRate[] = [
     { countryCode: 'LV', standard: 21, reduced: 12 }, // also 5
     { countryCode: 'MT', standard: 18, reduced: 7 }, // also 5
     { countryCode: 'NL', standard: 21, reduced: 9 },
-    { countryCode: 'PL', standard: 23, reduced: 8 }, // also 5
+    { countryCode: 'PL', standard: 23, reduced: 5 }, // also 8. Basic food 5% since 2024-04-01 (PwC, Your Europe)
     { countryCode: 'PT', standard: 23, reduced: 6 }, // also 13
     { countryCode: 'RO', standard: 21, reduced: 11 },
-    { countryCode: 'SE', standard: 25, reduced: 12 }, // also 6
+    // also 12; the 6% food rate is temporary, 2026-04-01 to 2027-12-31 (Riksdagen, KPMG)
+    { countryCode: 'SE', standard: 25, reduced: 6 },
     { countryCode: 'SI', standard: 22, reduced: 9.5 }, // also 5
-    { countryCode: 'SK', standard: 23, reduced: 19 }, // also 5
+    // also 19, 23 (basic food 5%, other food 19%, sugary and salty food 23% since 2026-01-01)
+    { countryCode: 'SK', standard: 23, reduced: 5 },
 ];
