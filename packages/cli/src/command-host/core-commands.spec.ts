@@ -1,10 +1,20 @@
+import { isValidErrorCode } from '@vendure/common/lib/command';
 import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { describe, expect, it } from 'vitest';
 
 import { coreCommandDefinitions } from './core-commands.js';
+import { hostErrors } from './host-errors.js';
 import { kebab } from './naming.js';
 
 describe('core command definitions', () => {
+    it('declare only error codes of the shape namespace.kebab-case', () => {
+        const codes = [
+            ...coreCommandDefinitions.flatMap(def => (def.errors ?? []).map(error => error.code)),
+            ...Object.values(hostErrors).map(error => error.code),
+        ];
+        expect(codes.filter(code => !isValidErrorCode(code))).toEqual([]);
+    });
+
     it('build into a manifest the host accepts', async () => {
         const manifest = await buildCommandManifest('@vendure/cli', '0.0.0', coreCommandDefinitions);
         const merged = mergeManifests([manifest]);

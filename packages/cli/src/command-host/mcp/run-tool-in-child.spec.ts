@@ -24,7 +24,7 @@ if (mode === 'echo') {
 } else if (mode === 'ipc-cancel') {
     process.on('message', (message) => {
         if (message.type === 'cancel') {
-            process.stdout.write(envelope({ status: 'error', error: { code: 'cancelled', exit: 130, message: 'cancelled' } }));
+            process.stdout.write(envelope({ status: 'error', error: { code: 'cli.cancelled', exit: 130, message: 'cancelled' } }));
             process.exit(130);
         }
     });
@@ -110,7 +110,7 @@ describe('runToolInChild', () => {
         });
         controller.abort();
         const envelope = await result;
-        expect(envelope.error?.code).toBe('cancelled');
+        expect(envelope.error?.code).toBe('cli.cancelled');
     });
 
     it.skipIf(!posix)('cancels the whole process group, so grandchildren stop too', async () => {

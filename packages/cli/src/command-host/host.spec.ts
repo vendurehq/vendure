@@ -118,7 +118,7 @@ describe('executeCommand', () => {
             makeCommand(async () => fail(other, {})),
             { name: 'a' },
         );
-        expect(result.envelope.error?.code).toBe('internal');
+        expect(result.envelope.error?.code).toBe('cli.internal');
     });
 
     it('turns a thrown error into an internal error', async () => {
@@ -128,7 +128,7 @@ describe('executeCommand', () => {
             }),
             { name: 'a' },
         );
-        expect(result.envelope.error).toMatchObject({ code: 'internal', message: 'boom' });
+        expect(result.envelope.error).toMatchObject({ code: 'cli.internal', message: 'boom' });
     });
 
     it('lets run return incomplete with the output of the stages that finished', async () => {
@@ -221,7 +221,7 @@ describe('executeCommand', () => {
             { name: 'a' },
             { signal: controller.signal },
         );
-        expect(result.envelope.error?.code).toBe('cancelled');
+        expect(result.envelope.error?.code).toBe('cli.cancelled');
         expect(run).not.toHaveBeenCalled();
     });
 
@@ -235,7 +235,7 @@ describe('executeCommand', () => {
             { name: 'a' },
             { signal: controller.signal },
         );
-        expect(result.envelope.error?.code).toBe('cancelled');
+        expect(result.envelope.error?.code).toBe('cli.cancelled');
     });
 
     // A revert or a file write that finished must not be reported as cancelled.
@@ -332,7 +332,7 @@ describe('executeCommand with plan()', () => {
             }),
             { name: 'a' },
         );
-        expect(result.envelope.error?.code).toBe('internal');
+        expect(result.envelope.error?.code).toBe('cli.internal');
     });
 
     it('asks a person for consent and runs after a yes, with no digest needed', async () => {
@@ -352,7 +352,7 @@ describe('executeCommand with plan()', () => {
             { name: 'a' },
             { prompter: { askInput: async () => undefined, askConsent: async () => false } },
         );
-        expect(result.envelope.error?.code).toBe('cancelled');
+        expect(result.envelope.error?.code).toBe('cli.cancelled');
     });
 });
 
@@ -457,7 +457,7 @@ describe('executeCommand prompting', () => {
             {},
             { prompter: { askInput: async () => undefined, askConsent: async () => true } },
         );
-        expect(result.envelope.error?.code).toBe('cancelled');
+        expect(result.envelope.error?.code).toBe('cli.cancelled');
     });
 });
 
