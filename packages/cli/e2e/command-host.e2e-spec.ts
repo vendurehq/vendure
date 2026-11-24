@@ -384,6 +384,7 @@ describe('Command host E2E', () => {
                 'devserver_logs',
                 'devserver_stop',
                 'doctor',
+                'guide',
                 'migrate_generate',
                 'migrate_revert',
                 'migrate_run',
