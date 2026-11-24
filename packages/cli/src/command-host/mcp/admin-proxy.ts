@@ -134,7 +134,7 @@ export class AdminProxy {
     private aliveCheck: { key: string; until: number; alive: boolean } | undefined;
     /** Why the last `tools/list` failed while the dev server was running. */
     private listError: CommandEnvelope | undefined;
-    private watchedPath: string | undefined;
+    private watchTimer: NodeJS.Timeout | undefined;
 
     constructor(private readonly options: AdminProxyOptions) {
         this.send = options.send ?? sendToStore;
@@ -161,7 +161,7 @@ export class AdminProxy {
 
     /** Starts watching the state file, so that a start or stop of the dev server is noticed. */
     watch(): void {
-        if (this.watchedPath || !this.options.projectDir) {
+        if (this.watchTimer || !this.options.projectDir) {
             return;
         }
         let statePath: string;
@@ -171,22 +171,26 @@ export class AdminProxy {
             // On Windows without LOCALAPPDATA there is no state file to watch, and the tools report why.
             return;
         }
-        this.watchedPath = statePath;
         this.lastKey = this.availability().key;
         // Polling, since the file and its directory may not exist yet, which fs.watch cannot follow.
-        const watcher = fs.watchFile(
-            statePath,
-            { interval: this.options.watchIntervalMs ?? WATCH_INTERVAL_MS, persistent: false },
-            () => this.checkForChange(),
-        );
-        watcher.unref?.();
+        // It compares the file's stat itself rather than using fs.watchFile: that watcher can stop
+        // reporting changes after the file appears, so a dev server that stopped went unnoticed.
+        let signature = statSignature(statePath);
+        this.watchTimer = setInterval(() => {
+            const next = statSignature(statePath);
+            if (next !== signature) {
+                signature = next;
+                this.checkForChange();
+            }
+        }, this.options.watchIntervalMs ?? WATCH_INTERVAL_MS);
+        this.watchTimer.unref();
     }
 
     /** Stops watching the state file. */
     close(): void {
-        if (this.watchedPath) {
-            fs.unwatchFile(this.watchedPath);
-            this.watchedPath = undefined;
+        if (this.watchTimer) {
+            clearInterval(this.watchTimer);
+            this.watchTimer = undefined;
         }
         this.listeners.clear();
     }
@@ -447,6 +451,19 @@ export class AdminProxy {
             key: `ready:${ready.startedAt}:${ready.restarts}:${target.url}`,
             target,
         };
+    }
+}
+
+/**
+ * What tells one version of the state file from another: its inode, size and times, or
+ * `missing`. A write that is still in progress changes it again when it finishes.
+ */
+function statSignature(file: string): string {
+    try {
+        const stat = fs.statSync(file);
+        return `${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+    } catch {
+        return 'missing';
     }
 }
 
