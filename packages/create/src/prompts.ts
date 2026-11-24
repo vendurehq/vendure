@@ -1,4 +1,6 @@
-import { cancel, isCancel, multiselect, select, text } from '@clack/prompts';
+import { isCancel, multiselect, select, text } from '@clack/prompts';
+
+import { CreateError } from './errors.js';
 
 import { CREATE_OPTIONS, PRESET_OPTION_FLAGS, RawCreateFlags } from './options.js';
 import { PresetDescription } from './presets.js';
@@ -7,8 +9,7 @@ import { STOREFRONT_STARTERS } from './storefront-starters.js';
 
 function answer<T>(value: T | symbol): T {
     if (isCancel(value)) {
-        cancel('Setup cancelled.');
-        process.exit(0);
+        throw new CreateError('create.cancelled', 'Setup cancelled.');
     }
     return value;
 }

@@ -25,7 +25,8 @@ export const config = defineCloudConfig({
         McpPlugin.init({
             oauth: {
                 // Both are required in production. MCP_TOKEN_SECRET hashes the OAuth tokens the
-                // plugin issues; without it, a non-production process uses a random secret.
+                // plugin issues; without it, a non-production process uses a random secret, so
+                // issued tokens stop working when the server restarts.
                 // MCP_ISSUER is the server's public https origin, and defaults to localhost.
                 tokenSecret:
                     process.env.MCP_TOKEN_SECRET ??

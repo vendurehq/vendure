@@ -34,7 +34,6 @@ export interface Reporter {
     stop(message: string): void;
     /** Stops the running step, if any, as failed. Called before the error is reported. */
     fail(message: string): void;
-    warn(message: string): void;
 }
 
 export interface RunCreateContext {

@@ -174,7 +174,6 @@ function clackReporter(): Reporter {
                 s.stop(message, 1);
             }
         },
-        warn: message => note(message, 'Warning'),
     };
 }
 
@@ -184,7 +183,7 @@ function streamReporter(stream: NodeJS.WritableStream, logLevel: CliLogLevel): R
             stream.write(`${message}\n`);
         }
     };
-    return { start: () => undefined, stop: write, fail: () => undefined, warn: write };
+    return { start: () => undefined, stop: write, fail: () => undefined };
 }
 
 export const defaultAssetsDir = (): string => path.join(import.meta.dirname, '../assets');

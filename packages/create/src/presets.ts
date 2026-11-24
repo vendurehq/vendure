@@ -14,9 +14,7 @@ export type { PresetDescription };
 
 export const PRESETS_ASSET = 'presets.json';
 
-export function readPresetCatalog(
-    assetsDir: string = path.join(import.meta.dirname, '../assets'),
-): PresetDescription[] {
+export function readPresetCatalog(assetsDir: string): PresetDescription[] {
     return fs.readJsonSync(path.join(assetsDir, PRESETS_ASSET)) as PresetDescription[];
 }
 

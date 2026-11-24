@@ -4,7 +4,6 @@ import {
     buildProgram,
     CREATE_OPTIONS,
     isInteractive,
-    parseAgents,
     parseFeatures,
     parseStorefront,
     resolveCreateOptions,
@@ -96,12 +95,6 @@ describe('flag parsing', () => {
         expect(parseStorefront('NextJS')).toBe('nextjs');
         expect(parseStorefront('none')).toBeNull();
         expect(codeOf(() => parseStorefront('gatsby'))).toBe('create.storefront-unknown');
-    });
-
-    it('parses agents in the table order, with none for no agents', () => {
-        expect(parseAgents('codex, claude,codex')).toEqual(['claude', 'codex']);
-        expect(parseAgents('none')).toEqual([]);
-        expect(codeOf(() => parseAgents('claude,emacs'))).toBe('create.agent-unknown');
     });
 
     it('parses feature lists', () => {

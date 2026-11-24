@@ -43,7 +43,6 @@ function recordingReporter() {
         start: message => events.push(`start: ${message}`),
         stop: message => events.push(`stop: ${message}`),
         fail: message => events.push(`fail: ${message}`),
-        warn: message => events.push(`warn: ${message}`),
     };
     return { events, reporter };
 }

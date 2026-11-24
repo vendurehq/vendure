@@ -15,7 +15,7 @@ import {
     SCENARIOS,
 } from './registries.js';
 import { STOREFRONT_STARTERS, StorefrontId } from './storefront-starters.js';
-import { AGENT_CLIENTS, AgentClient, CliLogLevel, CreateOptions } from './types.js';
+import { CliLogLevel, CreateOptions } from './types.js';
 
 /**
  * The raw values of the flags, as commander parses them. Every choice is a string here, and
@@ -152,24 +152,6 @@ export function parseStorefront(value: string): StorefrontId | null {
         );
     }
     return storefront.id;
-}
-
-export function parseAgents(value: string): AgentClient[] {
-    const names = splitList(value);
-    if (names.length === 1 && names[0] === 'none') {
-        return [];
-    }
-    for (const name of names) {
-        if (!(AGENT_CLIENTS as readonly string[]).includes(name)) {
-            throw new CreateError(
-                'create.agent-unknown',
-                `Unknown agent client "${name}".`,
-                `Use one or more of ${AGENT_CLIENTS.join(', ')}, or none.`,
-            );
-        }
-    }
-    // In the table's order, without duplicates, so the record does not depend on how they were typed.
-    return AGENT_CLIENTS.filter(client => names.includes(client));
 }
 
 export function parseFeatures(value: string): string[] {
