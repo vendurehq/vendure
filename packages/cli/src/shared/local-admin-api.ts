@@ -1,6 +1,11 @@
 import { defineError, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
 
-import { DevServerStatus, isDevRunAlive, readDevServerState } from '../commands/dev/state-file.js';
+import {
+    DevServerState,
+    DevServerStatus,
+    isDevRunAlive,
+    readDevServerState,
+} from '../commands/dev/state-file.js';
 
 /**
  * The local endpoints that accept the per-run secret of a `vendure dev` run as a credential:
@@ -40,13 +45,13 @@ export const localAdminApiErrors = {
                       },
                   ],
     }),
-    endpointUnknown: defineError<{ endpoint: LocalAdminEndpoint }>({
+    endpointUnknown: defineError<{ endpoint: LocalAdminEndpoint | 'shop-api' }>({
         code: 'devserver.endpoint-unknown',
         exit: 1,
         message: ({ endpoint }) =>
             endpoint === 'mcp-admin'
                 ? 'The vendure dev run has not reported an MCP admin endpoint. The McpPlugin may not be installed.'
-                : 'The vendure dev run has not reported the URL of its Admin API.',
+                : `The vendure dev run has not reported the URL of its ${endpoint === 'shop-api' ? 'Shop' : 'Admin'} API.`,
         fix: () => [
             {
                 path: ['devserver', 'status'],
@@ -104,13 +109,9 @@ export function resolveLocalAdminTarget(
     projectDir: string,
     endpoint: LocalAdminEndpoint,
 ): LocalAdminTarget | ErrorResult {
-    const state = readDevServerState(projectDir);
-    // A run writes `stopped` just before its process exits.
-    if (!state || state.status === 'stopped' || !isDevRunAlive(state)) {
-        return fail(localAdminApiErrors.notRunning, {});
-    }
-    if (state.status !== 'ready') {
-        return fail(localAdminApiErrors.notReady, { status: state.status });
+    const state = readReadyState(projectDir);
+    if (isErrorResult(state)) {
+        return state;
     }
     const reported = endpoint === 'mcp-admin' ? state.urls.mcp : state.urls.admin;
     if (!reported) {
@@ -121,6 +122,34 @@ export function resolveLocalAdminTarget(
         return fail(localAdminApiErrors.endpointNotLocal, { url: reported });
     }
     return { url, secret: state.secret };
+}
+
+/**
+ * The Shop API URL of the `vendure dev` run serving the project, with the same checks as
+ * {@link resolveLocalAdminTarget}. A Shop API call carries no credential, so it is the URL alone.
+ */
+export function resolveLocalShopApiUrl(projectDir: string): string | ErrorResult {
+    const state = readReadyState(projectDir);
+    if (isErrorResult(state)) {
+        return state;
+    }
+    const reported = state.urls.shop;
+    if (!reported) {
+        return fail(localAdminApiErrors.endpointUnknown, { endpoint: 'shop-api' });
+    }
+    return toLoopbackUrl(reported) ?? reported;
+}
+
+function readReadyState(projectDir: string): DevServerState | ErrorResult {
+    const state = readDevServerState(projectDir);
+    // A run writes `stopped` just before its process exits.
+    if (!state || state.status === 'stopped' || !isDevRunAlive(state)) {
+        return fail(localAdminApiErrors.notRunning, {});
+    }
+    if (state.status !== 'ready') {
+        return fail(localAdminApiErrors.notReady, { status: state.status });
+    }
+    return state;
 }
 
 export interface LocalAdminRequestOptions {
