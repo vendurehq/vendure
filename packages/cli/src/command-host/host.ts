@@ -294,7 +294,21 @@ export async function executeCommand(
                     notices,
                 );
             }
-            const needs = await env.requireCredential(def.requires.auth, ctx);
+            let needs: CommandNeed[] | undefined;
+            try {
+                needs = await env.requireCredential(def.requires.auth, ctx);
+            } catch (e) {
+                // A renewal without a network, or a denied or expired sign-in, is an ordinary
+                // outcome with a fix, not an internal error.
+                if (env.signal.aborted) {
+                    return errorResult(hostErrors.cancelled, {}, notices);
+                }
+                return errorResult(
+                    hostErrors.credentialFailed,
+                    { message: e instanceof Error ? e.message : String(e) },
+                    notices,
+                );
+            }
             if (needs?.length) {
                 return incompleteResult(needs, notices);
             }

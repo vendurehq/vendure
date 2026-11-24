@@ -98,6 +98,27 @@ describe('executeCommand', () => {
             expect(asked).toEqual([false, true]);
         });
 
+        it('is a coded error with the login fix when finding the credential fails', async () => {
+            const run = vi.fn();
+            const result = await runCommandInHarness(
+                makeCommand(run, { requires: { auth: 'cloud' } }),
+                { name: 'a' },
+                {
+                    requireCredential: async () => {
+                        throw new Error(
+                            'Could not reach the authentication service to renew your CLI session.',
+                        );
+                    },
+                },
+            );
+            expect(result.envelope.error).toMatchObject({
+                code: 'auth.credential-failed',
+                fixes: [expect.objectContaining({ path: ['auth', 'login'], input: { json: true } })],
+            });
+            expect(result.envelope.error?.message).toContain('Could not reach the authentication service');
+            expect(run).not.toHaveBeenCalled();
+        });
+
         it('is an internal error on a host that cannot provide a credential', async () => {
             const result = await runCommandInHarness(
                 makeCommand(async () => ({}), { requires: { auth: 'cloud' } }),

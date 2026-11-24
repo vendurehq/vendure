@@ -935,6 +935,49 @@ describe('console link --non-interactive --console-project', () => {
         expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
     });
 
+    it('signs a person in for a repair hook at a terminal, rather than handing it VENDURE_CLOUD_TOKEN', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            interactive: true,
+            linked: true,
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions).toHaveLength(1);
+        expect(sessions[0]?.accessToken).toBeDefined();
+        expect(sessions[0]?.accessToken).not.toBe('vcdk_agent_key');
+    });
+
+    it('detaches the old attribution with the old account login when --force links another account', async () => {
+        const installationId = '55555555-5555-4555-8555-555555555555';
+        const api = fakeConsole({ memberships: twoAccounts });
+        const deletes: Array<string | undefined> = [];
+        const fetch = ((url: string, init?: RequestInit) => {
+            if (init?.method === 'DELETE') {
+                deletes.push((init.headers as Record<string, string> | undefined)?.Authorization);
+                return Promise.resolve(new Response(null, { status: 204 }));
+            }
+            return api.fetch(url, init);
+        }) as typeof globalThis.fetch;
+
+        const run = await runLink({
+            interactive: true,
+            linked: true,
+            attribution: installationId,
+            options: { force: true },
+            fetch,
+            select: () => Promise.resolve(OTHER_ACCOUNT_ID),
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(readStoredAuth({ env: run.env })?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(deletes).toEqual([`Bearer ${STORED_ACCESS_TOKEN}`]);
+    });
+
     it('says that Console refused VENDURE_CLOUD_TOKEN, and returns the token need', async () => {
         const api = fakeConsole();
         const fetch = ((url: string, init?: RequestInit) =>
@@ -1016,6 +1059,8 @@ interface RunOptions {
     storedOrganization?: { workosOrganizationId: string; customerAccountId: string; name: string } | null;
     /** Start from a project that is already linked, so the run is a repair. */
     linked?: boolean;
+    /** With `linked`, the installation ID the link attributes telemetry to. */
+    attribution?: string;
     interactive?: boolean;
     /** Extra environment variables for the run. */
     env?: NodeJS.ProcessEnv;
@@ -1034,6 +1079,12 @@ async function runLink(options: RunOptions = {}) {
     if (options.linked) {
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), productionManifest);
+        if (options.attribution) {
+            fs.writeJsonSync(path.join(root, '.vendure', 'telemetry-attribution.json'), {
+                linkId: productionManifest.link.id,
+                installationId: options.attribution,
+            });
+        }
     }
     const env = {
         ...OFFICIAL_ENV,

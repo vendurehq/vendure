@@ -549,6 +549,18 @@ async function link(
             return confirmed === 'cancelled' ? 0 : 1;
         }
     }
+    // The old account's credential, found before signing in or choosing an account can change
+    // the stored login's account, so the replaced link's attribution can still be detached.
+    const previousAttribution =
+        existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
+    const previousLogin =
+        existing.kind === 'valid' && previousAttribution
+            ? // A failed lookup does not stop the link; the detach then looks again and reports it.
+              await storedLogin(
+                  consoleAuthOptions(endpoints, dependencies, signal),
+                  existing.manifest.account.id,
+              ).catch(() => undefined)
+            : undefined;
     const login =
         available.login ?? (await signIn(endpoints, options.organization, dependencies, signal, true));
     const stored = readAuthStatus(login.auth).organization;
@@ -571,12 +583,17 @@ async function link(
     // Only `--force` gets here with a valid manifest. It is detached once the Project to link is
     // known, so a run that cannot choose one changes nothing. The user leaves its
     // Project, so its attribution ends also when telemetry is off.
-    const previousAttribution =
-        existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
     if (
         existing.kind === 'valid' &&
         previousAttribution &&
-        (await detachTelemetry(existing.manifest, previousAttribution, 'replace', dependencies, signal))
+        (await detachTelemetry(
+            existing.manifest,
+            previousAttribution,
+            'replace',
+            dependencies,
+            signal,
+            previousLogin,
+        ))
     ) {
         // Console no longer attributes the old link, also when the new link does not complete.
         removeTelemetryAttribution(projectRoot);
@@ -950,10 +967,14 @@ function describeOrganization(organization: StoredOrganization): string {
 /**
  * What a hook that requested a session receives: the CLI login's access token.
  * The refresh token stays in the login, because it is single-use and a copy
- * that a plugin spends ends the login for every other command.
+ * that a plugin spends ends the login for every other command. A hook may store
+ * or reuse its session, so it is only ever a person's login, never
+ * `VENDURE_CLOUD_TOKEN`.
  */
-/** A plugin hook may store or reuse its session, so it is only ever a person's login. */
 function hookSession(login: ConsoleLogin): ConsoleSession {
+    if (login.source !== 'stored-login') {
+        throw new Error('A plugin hook is never given VENDURE_CLOUD_TOKEN.');
+    }
     const expiresAt = readAuthStatus(login.auth).accessTokenExpiresAt;
     return { accessToken: login.accessToken, expiresAt: expiresAt ?? (login.auth.now ?? Date.now)() };
 }
@@ -1320,7 +1341,9 @@ async function repairSession(
             );
             return { sessionUnavailable: 'not-signed-in' };
         }
-        return { session: hookSession(await signIn(endpoints, organization, dependencies, signal)) };
+        // The person-only lookup above found nothing, so the stored lookup in `signIn` is skipped:
+        // it would return VENDURE_CLOUD_TOKEN.
+        return { session: hookSession(await signIn(endpoints, organization, dependencies, signal, true)) };
     } catch (error) {
         if (signal.aborted || error instanceof CommandInterruptedError) {
             throw new CommandInterruptedError();
@@ -1684,13 +1707,16 @@ async function detachTelemetry(
     reason: 'unlink' | 'replace',
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
+    /** For a replacement, the credential for the old account, found before the link changed the login's account. */
+    replacing?: StoredLogin,
 ): Promise<boolean> {
     try {
         const endpoints = resolveConsoleEndpoints(dependencies.env, manifest.console);
-        const { login, refusal }: StoredLogin =
-            reason === 'replace' || dependencies.isNonInteractive()
-                ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), manifest.account.id)
-                : { login: await signIn(endpoints, manifest.account.id, dependencies, signal) };
+        const { login, refusal }: StoredLogin = replacing
+            ? replacing
+            : reason === 'replace' || dependencies.isNonInteractive()
+              ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), manifest.account.id)
+              : { login: await signIn(endpoints, manifest.account.id, dependencies, signal) };
         if (!login) {
             throw new Error(
                 refusal
