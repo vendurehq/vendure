@@ -88,7 +88,6 @@ export interface LocalAdminTarget {
     url: string;
     /** The per-run secret. Never put it in output, logs or errors. */
     secret: string;
-    state: DevServerState;
 }
 
 /**
@@ -116,7 +115,7 @@ export function resolveLocalAdminTarget(
     if (!isLoopbackUrl(url)) {
         return fail(localAdminApiErrors.endpointNotLocal, { url });
     }
-    return { url, secret: state.secret, state };
+    return { url, secret: state.secret };
 }
 
 export interface LocalAdminRequestOptions {

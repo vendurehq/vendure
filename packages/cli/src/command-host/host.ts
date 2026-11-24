@@ -434,4 +434,3 @@ export async function executeCommand(
     }
 }
 
-export { formatFix } from './format-fix.js';

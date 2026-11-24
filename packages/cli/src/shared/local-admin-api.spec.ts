@@ -155,6 +155,24 @@ describe('sendLocalAdminRequest', () => {
         expect(new Headers(init.headers).get('accept')).toBe('application/json, text/event-stream');
     });
 
+    it('rethrows when the caller aborted the request, instead of reporting the server unreachable', async () => {
+        const controller = new AbortController();
+        const abortError = new DOMException('aborted', 'AbortError');
+        const fetch = vi.fn(() => {
+            controller.abort();
+            return Promise.reject(abortError);
+        });
+
+        await expect(
+            sendLocalAdminRequest(
+                projectWithState({}),
+                'admin-api',
+                {},
+                { fetch, signal: controller.signal },
+            ),
+        ).rejects.toBe(abortError);
+    });
+
     it('does not call fetch when no ready run serves the project', async () => {
         const fetch = vi.fn();
         const result = await sendLocalAdminRequest(projectWithState(undefined), 'admin-api', {}, { fetch });
