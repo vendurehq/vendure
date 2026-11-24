@@ -46,6 +46,17 @@ describe('getRefundableQuantity', () => {
         expect(getRefundableQuantity(line({ orderPlacedQuantity: 1, quantity: 2 }))).toBe(2);
         expect(getRefundableQuantity(line({ orderPlacedQuantity: 0, quantity: 1 }))).toBe(1);
     });
+
+    it('counts cancelled quoted units only on lines that the placed order contains', () => {
+        const cancelled = { quantity: 2, priceWithTax: 200 };
+        const remaining = { quantity: 4, priceWithTax: 400 };
+        const quotedLine = (orderPlacedQuantity: number, quantity: number, refundPriceParts: any[]) => ({
+            ...line({ orderPlacedQuantity, quantity }),
+            refundPriceParts,
+        });
+        expect(getRefundableQuantity(quotedLine(0, 0, [cancelled]))).toBe(0);
+        expect(getRefundableQuantity(quotedLine(3, 4, [cancelled, remaining]))).toBe(6);
+    });
 });
 
 describe('lineCanBeRefunded', () => {
