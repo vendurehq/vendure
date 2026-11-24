@@ -4,6 +4,16 @@ import { fileURLToPath } from 'node:url';
 
 export const RESTART_DEBOUNCE_MS = 200;
 export const WATCHER_READINESS_TIMEOUT_MS = 120_000;
+export const WATCHER_TIMEOUT_ENV = 'VENDURE_DEV_WATCH_TIMEOUT_SECONDS';
+
+/**
+ * Reads the watch-build idle limit from the environment. The limit counts seconds without
+ * watcher output, not seconds since start. Unset or invalid values fall back to the default.
+ */
+export function resolveWatcherReadinessTimeoutMs(env = process.env) {
+    const seconds = Number(env[WATCHER_TIMEOUT_ENV]);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : WATCHER_READINESS_TIMEOUT_MS;
+}
 
 export function resolvePackageBin(packageEntryUrl, packageName, binName) {
     let currentDirectory = path.dirname(fileURLToPath(packageEntryUrl));
@@ -159,16 +169,22 @@ export function createWatcherReadiness({
         resolveReady = resolve;
         rejectReady = reject;
     });
-    const readinessTimer = scheduleTimeout(() => {
-        rejectReady(
-            new Error(
-                `${label} did not report a successful TypeScript watch build within ${
-                    timeoutMs / 1000
-                } seconds`,
-            ),
-        );
-    }, timeoutMs);
-    const handleLine = createWatcherBuildDetector({
+    let readinessTimer;
+    const armTimer = () => {
+        cancelTimeout(readinessTimer);
+        readinessTimer = scheduleTimeout(() => {
+            rejectReady(
+                new Error(
+                    `${label} printed no TypeScript watch output for ${
+                        timeoutMs / 1000
+                    } seconds and has not reported a successful build. ` +
+                        `Raise the limit with ${WATCHER_TIMEOUT_ENV}=<seconds> if the machine is busy.`,
+                ),
+            );
+        }, timeoutMs);
+    };
+    armTimer();
+    const detectBuild = createWatcherBuildDetector({
         onInitialBuild() {
             ready = true;
             cancelTimeout(readinessTimer);
@@ -176,6 +192,13 @@ export function createWatcherReadiness({
         },
         onSuccessfulRebuild,
     });
+    // Any watcher output means the build is still alive, so the idle timer starts over.
+    const handleLine = line => {
+        detectBuild(line);
+        if (!ready) {
+            armTimer();
+        }
+    };
 
     return {
         ready: readyPromise,
