@@ -213,6 +213,7 @@ export class TaxRateService {
         if (!taxRate) {
             throw new EntityNotFoundError('TaxRate', input.id);
         }
+        const previousTarget = { zoneId: taxRate.zoneId ?? null, regionId: taxRate.regionId ?? null };
         // Setting one target clears the other, so check the targets the rate has after the update.
         const nextZoneId = input.zoneId !== undefined ? input.zoneId : input.regionId ? null : taxRate.zoneId;
         const nextRegionId =
@@ -253,7 +254,7 @@ export class TaxRateService {
         // TaxRate when updating its own tax rate cache.
         await this.connection.commitOpenTransaction(ctx);
 
-        await this.eventBus.publish(new TaxRateEvent(ctx, updatedTaxRate, 'updated', input));
+        await this.eventBus.publish(new TaxRateEvent(ctx, updatedTaxRate, 'updated', input, previousTarget));
 
         return assertFound(this.findOne(ctx, taxRate.id));
     }
@@ -263,6 +264,9 @@ export class TaxRateService {
         const deletedTaxRate = new TaxRate(taxRate);
         try {
             await this.connection.getRepository(ctx, TaxRate).remove(taxRate);
+            // As on update, so that prices calculated from now on no longer use the deleted rate
+            await this.updateActiveTaxRates(ctx);
+            await this.connection.commitOpenTransaction(ctx);
             await this.eventBus.publish(new TaxRateEvent(ctx, deletedTaxRate, 'deleted', id));
             return {
                 result: DeletionResult.DELETED,

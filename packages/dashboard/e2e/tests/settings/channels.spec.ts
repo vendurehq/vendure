@@ -200,6 +200,44 @@ test.describe('Channels CRUD', () => {
         await dp.expectSuccessToast(/Successfully updated channel/);
     });
 
+    // The tax country chooses the rate that a Channel's tax-inclusive prices include
+    test('should set and clear the tax country of the channel', async ({ page }) => {
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.clickEntity('e2e-test-channel');
+        await expect(page).toHaveURL(/\/channels\/[^/]+$/);
+        await page.waitForLoadState('networkidle');
+
+        const dp = detailPage(page);
+        const taxCountry = () => dp.formItem('Tax country').getByRole('combobox');
+        await expect(taxCountry()).toContainText('None', { timeout: 10_000 });
+
+        await taxCountry().click();
+        await page.getByRole('option', { name: 'Austria', exact: true }).click();
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated channel/);
+
+        await page.reload();
+        await page.waitForLoadState('networkidle');
+        await expect(taxCountry()).toContainText('Austria', { timeout: 10_000 });
+        if (process.env.TAX_COUNTRY_SCREENSHOT_DIR) {
+            await dp.formItem('Tax country').scrollIntoViewIfNeeded();
+            await page.screenshot({
+                path: `${process.env.TAX_COUNTRY_SCREENSHOT_DIR}/5951-1-channel-tax-country-set.png`,
+                fullPage: true,
+            });
+        }
+
+        await taxCountry().click();
+        await page.getByRole('option', { name: 'None', exact: true }).click();
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated channel/);
+        await page.reload();
+        await page.waitForLoadState('networkidle');
+        await expect(taxCountry()).toContainText('None', { timeout: 10_000 });
+    });
+
     // #4995 — the Appearance PageBlock must be a direct PageLayout child or it is silently omitted.
     test('should update the channel color from the appearance card', async ({ page }) => {
         let channelColors: Record<string, string> = {};

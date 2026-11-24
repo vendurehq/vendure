@@ -306,13 +306,12 @@ describe('DefaultProductVariantPriceCalculationStrategy', () => {
         });
 
         it('a tax country with no country rate uses the default zone rate', async () => {
-            const withCountry = await strategy.calculate(
-                args(ctxWithTaxCountry('YY'), taxRateCountryStandard),
-            );
-            const without = await strategy.calculate(
-                args(createRequestContext({ pricesIncludeTax: true }), taxRateCountryStandard),
-            );
-            expect(withCountry).toEqual(without);
+            const result = await strategy.calculate(args(ctxWithTaxCountry('YY'), taxRateCountryStandard));
+            // The default zone rate is the included rate: the net is taken out at 20%
+            expect(result).toEqual({
+                price: roundMoney(taxRateDefaultStandard.netPriceOf(inputPrice)),
+                priceIncludesTax: false,
+            });
         });
     });
 });

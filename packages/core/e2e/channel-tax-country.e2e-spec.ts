@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { DeletionResult, LanguageCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, DeletionResult, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     AddressBasedTaxZoneStrategy,
     DefaultJobQueuePlugin,
     DefaultSearchPlugin,
     mergeConfig,
 } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
+import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -17,8 +17,11 @@ import { createCountryDocument, deleteCountryDocument } from './graphql/admin-de
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql as shopGraphql } from './graphql/graphql-shop';
 import {
+    assignProductToChannelDocument,
+    createChannelDocument,
     createTaxRateDocument,
     createZoneDocument,
+    deleteTaxRateDocument,
     getProductsWithVariantPricesDocument,
     getTaxRatesListDocument,
     updateCountryDocument,
@@ -88,6 +91,7 @@ describe('Channel.taxCountryCode', () => {
     const standardTaxCategoryId = 'T_1';
     const countryIds: Record<string, string> = {};
     let productId: string;
+    let euZoneId: string;
     let variantId: string;
 
     const address = (countryCode: string) => ({
@@ -121,9 +125,11 @@ describe('Channel.taxCountryCode', () => {
         return { price, priceWithTax };
     }
 
-    async function indexedPrices() {
+    async function indexedPrices(channelToken = E2E_DEFAULT_CHANNEL_TOKEN) {
         await awaitRunningJobs(adminClient);
+        shopClient.setChannelToken(channelToken);
         const { search } = await shopClient.query(searchVariantPricesDocument);
+        shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         const item = search.items.find(i => i.productVariantId === variantId)!;
         return {
             price: (item.price as { value: number }).value,
@@ -151,6 +157,7 @@ describe('Channel.taxCountryCode', () => {
         const { createZone } = await adminClient.query(createZoneDocument, {
             input: { name: 'eu', memberIds: [countryIds.DE, countryIds.FR, countryIds.LU] },
         });
+        euZoneId = createZone.id;
         await adminClient.query(updateChannelTaxCountryDocument, {
             input: { id: 'T_1', defaultTaxZoneId: createZone.id, pricesIncludeTax: true },
         });
@@ -305,6 +312,54 @@ describe('Channel.taxCountryCode', () => {
         it('a country no Channel uses can be deleted', async () => {
             const { deleteCountry } = await adminClient.query(deleteCountryDocument, { id: countryIds.LU });
             expect(deleteCountry.result).toBe(DeletionResult.DELETED);
+        });
+    });
+
+    // TaxRates are global, so editing one from the default Channel changes another Channel's prices.
+    describe('search index of another Channel with the tax country DE', () => {
+        const secondToken = 'second-channel-token';
+
+        beforeAll(async () => {
+            const { createChannel } = await adminClient.query(createChannelDocument, {
+                input: {
+                    code: 'second-channel',
+                    token: secondToken,
+                    defaultLanguageCode: LanguageCode.en,
+                    defaultCurrencyCode: CurrencyCode.USD,
+                    pricesIncludeTax: true,
+                    defaultTaxZoneId: euZoneId,
+                    defaultShippingZoneId: euZoneId,
+                    taxCountryCode: 'DE',
+                },
+            });
+            const channelId = (createChannel as { id: string }).id;
+            await adminClient.query(assignProductToChannelDocument, {
+                input: { channelId, productIds: [productId], priceFactor: 1 },
+            });
+        });
+
+        it('has the DE prices', async () => {
+            expect(await indexedPrices(secondToken)).toEqual({ price: 10000, priceWithTax: 11900 });
+        });
+
+        it('editing the DE rate from the default Channel reindexes it', async () => {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument);
+            const de = taxRates.items.find(r => r.name === 'DE')!;
+            await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 25 } });
+            try {
+                expect(await indexedPrices(secondToken)).toEqual({ price: 9520, priceWithTax: 11900 });
+            } finally {
+                await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
+            }
+            expect(await indexedPrices(secondToken)).toEqual({ price: 10000, priceWithTax: 11900 });
+        });
+
+        it('deleting the DE rate reindexes it', async () => {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument);
+            const de = taxRates.items.find(r => r.name === 'DE')!;
+            await adminClient.query(deleteTaxRateDocument, { id: de.id });
+            // With no included rate and no rate for DE, the entered price is kept and no tax is added.
+            expect(await indexedPrices(secondToken)).toEqual({ price: 11900, priceWithTax: 11900 });
         });
     });
 });

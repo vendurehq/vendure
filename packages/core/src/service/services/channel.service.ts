@@ -422,10 +422,11 @@ export class ChannelService {
         input: CreateChannelInput,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
         this.assertStockSettingsNotNull(input);
-        await this.assertValidTaxCountryCode(ctx, input.taxCountryCode);
+        const taxCountryCode = await this.validTaxCountryCode(ctx, input.taxCountryCode);
         const { defaultCurrencyCode } = input;
         const channel = new Channel({
             ...input,
+            taxCountryCode: taxCountryCode ?? null,
             defaultCurrencyCode,
             availableCurrencyCodes: input.availableCurrencyCodes ?? [defaultCurrencyCode],
             availableLanguageCodes: input.availableLanguageCodes ?? [input.defaultLanguageCode],
@@ -483,12 +484,15 @@ export class ChannelService {
         const originalTrackInventory = channel.trackInventory;
         const originalOutOfStockThreshold = channel.outOfStockThreshold;
         const originalTaxCountryCode = channel.taxCountryCode ?? null;
-        await this.assertValidTaxCountryCode(ctx, input.taxCountryCode);
+        const taxCountryCode = await this.validTaxCountryCode(ctx, input.taxCountryCode);
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
             return defaultLanguageValidationResult;
         }
         const updatedChannel = patchEntity(channel, input);
+        if (taxCountryCode !== undefined) {
+            updatedChannel.taxCountryCode = taxCountryCode;
+        }
         if (input.defaultTaxZoneId) {
             updatedChannel.defaultTaxZone = await this.connection.getEntityOrThrow(
                 ctx,
@@ -557,11 +561,17 @@ export class ChannelService {
 
     /**
      * The tax country is stored as a code, with no foreign key, so it is checked to be the code of
-     * a country Region. `null` clears it and `undefined` leaves it unchanged.
+     * a country Region. `null` or an empty string clears it, and `undefined` leaves it unchanged.
      */
-    private async assertValidTaxCountryCode(ctx: RequestContext, taxCountryCode?: string | null) {
-        if (taxCountryCode == null) {
-            return;
+    private async validTaxCountryCode(
+        ctx: RequestContext,
+        taxCountryCode?: string | null,
+    ): Promise<string | null | undefined> {
+        if (taxCountryCode === undefined) {
+            return undefined;
+        }
+        if (!taxCountryCode) {
+            return null;
         }
         const country = await this.connection
             .getRepository(ctx, Country)
@@ -569,6 +579,7 @@ export class ChannelService {
         if (!country) {
             throw new UserInputError('error.tax-country-code-not-valid', { countryCode: taxCountryCode });
         }
+        return taxCountryCode;
     }
 
     /**

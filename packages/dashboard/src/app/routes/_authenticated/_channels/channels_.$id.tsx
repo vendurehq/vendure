@@ -116,6 +116,8 @@ function ChannelDetailPage() {
         transformCreateInput: input => {
             return {
                 ...input,
+                // An unset tax country is sent as null rather than an empty string
+                taxCountryCode: input.taxCountryCode || null,
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
                     input.defaultLanguageCode,
@@ -381,8 +383,8 @@ function ChannelDetailPage() {
                             description={
                                 <Trans>
                                     The country whose tax rate the entered prices include, normally your own.
-                                    When it is set, prices that include tax are split into net and tax at
-                                    this country's rate. It should be in the default tax zone.
+                                    When it is set, prices that include tax are split into net and tax at this
+                                    country's rate. It should be in the default tax zone.
                                 </Trans>
                             }
                             render={({ field }) => (
