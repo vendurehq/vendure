@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { loadMergedManifest } from '../../command-host/manifest.js';
+import { AdminProxy } from '../../command-host/mcp/admin-proxy.js';
 import { checkProjectCli, findMcpProject } from '../../command-host/mcp/project.js';
 import { McpServer, McpToolMode } from '../../command-host/mcp/server.js';
 
@@ -60,6 +61,9 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
         output: process.stdout,
         version,
         cwd,
+        // The Store MCP's admin tools of the project's dev server. Outside a project they report why
+        // they are missing.
+        adminTools: new AdminProxy({ projectDir: project.kind === 'found' ? project.dir : undefined }),
     });
     await server.serve();
     return 0;

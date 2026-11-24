@@ -3,6 +3,9 @@ import { ManifestCommand, MergedManifestCommand } from '@vendure/common/lib/comm
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 
+import { DevServerState } from '../../commands/dev/state-file.js';
+
+import { AdminProxy, SendToStore } from './admin-proxy.js';
 import { McpServer, McpToolMode, RunTool } from './server.js';
 
 function command(path: string[], overrides: Partial<ManifestCommand> = {}): MergedManifestCommand {
@@ -46,7 +49,12 @@ interface Client {
     close(): Promise<void>;
 }
 
-function start(runTool: RunTool, mode: McpToolMode = 'discovery', commands = COMMANDS): Client {
+function start(
+    runTool: RunTool,
+    mode: McpToolMode = 'discovery',
+    commands = COMMANDS,
+    adminTools?: AdminProxy,
+): Client {
     const input = new PassThrough();
     const output = new PassThrough();
     const received: any[] = [];
@@ -62,7 +70,7 @@ function start(runTool: RunTool, mode: McpToolMode = 'discovery', commands = COM
             }
         }
     });
-    const server = new McpServer({ commands, mode, input, output, version: '1.2.3', runTool });
+    const server = new McpServer({ commands, mode, input, output, version: '1.2.3', runTool, adminTools });
     const done = server.serve();
     return {
         send: message => input.write(`${JSON.stringify({ jsonrpc: '2.0', ...message })}\n`),
@@ -362,6 +370,257 @@ describe('McpServer', () => {
         const client = start(async () => ok());
         client.send({ id: 1, method: 'nope' });
         expect((await client.next()).error.code).toBe(-32601);
+        await client.close();
+    });
+});
+
+const READY_STATE: DevServerState = {
+    status: 'ready',
+    urls: { mcp: 'http://localhost:3000/mcp/admin' },
+    startedAt: '2026-11-24T08:00:00.000Z',
+    restarts: 0,
+    lastError: null,
+    pid: 1,
+    secret: 'secret',
+};
+
+const STORE_TOOLS = [
+    {
+        name: 'list_zones',
+        description: 'List the zones of the store',
+        inputSchema: { type: 'object', properties: {} },
+        annotations: { readOnlyHint: true, destructiveHint: false },
+        _meta: { 'vendure.io/keywords': ['regions'] },
+    },
+    {
+        name: 'delete_zone',
+        description: 'Delete a zone',
+        inputSchema: { type: 'object', properties: { id: { type: 'string' } } },
+        annotations: { readOnlyHint: false, destructiveHint: true },
+    },
+];
+
+function adminProxy(options: { running?: () => boolean; calls?: any[]; result?: unknown } = {}) {
+    const send: SendToStore = async (_dir, message: any) => {
+        if (message.method === 'tools/list') {
+            return { status: 200, body: { jsonrpc: '2.0', id: 1, result: { tools: STORE_TOOLS } } };
+        }
+        options.calls?.push(message.params);
+        return { status: 200, body: { jsonrpc: '2.0', id: 1, result: options.result ?? { content: [] } } };
+    };
+    const running = options.running ?? (() => true);
+    return new AdminProxy({
+        projectDir: '/project',
+        send,
+        readState: () => (running() ? READY_STATE : undefined),
+        isAlive: () => true,
+    });
+}
+
+describe('McpServer with the admin tools of the dev server', () => {
+    it('announces that its tool list changes', async () => {
+        const client = start(async () => ok(), 'discovery', COMMANDS, adminProxy());
+        client.send({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } });
+        const reply = await client.next();
+        expect(reply.result.capabilities.tools.listChanged).toBe(true);
+        expect(reply.result.instructions).toContain('admin_*');
+        await client.close();
+    });
+
+    it('lists the admin tools after the commands in direct mode', async () => {
+        const client = start(async () => ok(), 'direct', COMMANDS, adminProxy());
+        client.send({ id: 1, method: 'tools/list' });
+        const { result } = await client.next();
+        expect(result.tools.map((t: any) => t.name)).toEqual([
+            'doctor',
+            'add_codegen',
+            'migrate_revert',
+            'admin_list_zones',
+            'admin_delete_zone',
+        ]);
+        expect(result.tools[4].annotations.destructiveHint).toBe(true);
+        await client.close();
+    });
+
+    it('finds admin tools by keyword in discovery mode', async () => {
+        const client = start(async () => ok(), 'discovery', COMMANDS, adminProxy());
+        client.send({
+            id: 1,
+            method: 'tools/call',
+            params: { name: 'search_tools', arguments: { query: 'regions' } },
+        });
+        const { result } = await client.next();
+        expect(result.structuredContent.tools).toEqual([
+            {
+                name: 'admin_list_zones',
+                description: 'List the zones of the store',
+                behavior: 'readonly',
+                inputSchema: STORE_TOOLS[0].inputSchema,
+            },
+        ]);
+        expect(result.structuredContent.adminTools).toBeUndefined();
+        await client.close();
+    });
+
+    it('says in search results why there are no admin tools, with a fix', async () => {
+        const client = start(async () => ok(), 'discovery', COMMANDS, adminProxy({ running: () => false }));
+        client.send({
+            id: 1,
+            method: 'tools/call',
+            params: { name: 'search_tools', arguments: { query: 'zones' } },
+        });
+        const { result } = await client.next();
+        expect(result.structuredContent.tools).toEqual([]);
+        expect(result.structuredContent.adminTools.error.code).toBe('devserver.not-running');
+        expect(result.structuredContent.adminTools.error.fixes[0].path).toEqual(['devserver', 'start']);
+        await client.close();
+    });
+
+    it('runs an admin tool with the executor of its behavior and passes the result through', async () => {
+        const calls: any[] = [];
+        const incomplete = {
+            structuredContent: { status: 'incomplete', needs: [{ kind: 'consent', digest: 'abc' }] },
+            content: [],
+        };
+        const client = start(
+            async () => ok(),
+            'discovery',
+            COMMANDS,
+            adminProxy({ calls, result: incomplete }),
+        );
+        client.send({
+            id: 1,
+            method: 'tools/call',
+            params: {
+                name: 'execute_destructive',
+                arguments: { tool: 'admin_delete_zone', input: { id: '2' } },
+            },
+        });
+        const { result } = await client.next();
+        expect(result.structuredContent).toEqual(incomplete.structuredContent);
+        expect(result.content.at(-1).text).toContain('execute_destructive');
+        expect(calls).toEqual([{ name: 'delete_zone', arguments: { id: '2' } }]);
+        await client.close();
+    });
+
+    it('refuses an admin tool run with the executor of another behavior', async () => {
+        const calls: any[] = [];
+        const client = start(async () => ok(), 'discovery', COMMANDS, adminProxy({ calls }));
+        client.send({
+            id: 1,
+            method: 'tools/call',
+            params: {
+                name: 'execute_readonly',
+                arguments: { tool: 'admin_delete_zone', input: { id: '2' } },
+            },
+        });
+        const { result } = await client.next();
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain('execute_destructive');
+        expect(calls).toEqual([]);
+        await client.close();
+    });
+
+    it('calls an admin tool directly in direct mode', async () => {
+        const calls: any[] = [];
+        const client = start(async () => ok(), 'direct', COMMANDS, adminProxy({ calls }));
+        client.send({ id: 1, method: 'tools/call', params: { name: 'admin_list_zones', arguments: {} } });
+        await client.next();
+        expect(calls).toEqual([{ name: 'list_zones', arguments: {} }]);
+        await client.close();
+    });
+
+    it('returns why an admin tool cannot run while the dev server is stopped', async () => {
+        const client = start(async () => ok(), 'direct', COMMANDS, adminProxy({ running: () => false }));
+        client.send({ id: 1, method: 'tools/call', params: { name: 'admin_list_zones', arguments: {} } });
+        const { result } = await client.next();
+        expect(result.isError).toBe(true);
+        expect(result.structuredContent.error.code).toBe('devserver.not-running');
+        await client.close();
+    });
+
+    it('reports an unknown admin tool while the dev server is running', async () => {
+        const client = start(async () => ok(), 'direct', COMMANDS, adminProxy());
+        client.send({ id: 1, method: 'tools/call', params: { name: 'admin_nope', arguments: {} } });
+        const { result } = await client.next();
+        expect(result.isError).toBe(true);
+        expect(result.content[0].text).toContain('Unknown tool "admin_nope"');
+        await client.close();
+    });
+
+    it('sends tools/list_changed when the dev server starts or stops', async () => {
+        let running = false;
+        const proxy = adminProxy({ running: () => running });
+        const client = start(async () => ok(), 'direct', COMMANDS, proxy);
+        running = true;
+        proxy.checkForChange();
+        expect(await client.next()).toEqual({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' });
+        running = false;
+        proxy.checkForChange();
+        expect(await client.next()).toEqual({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' });
+        await client.close();
+    });
+
+    it('queues a mutating admin call behind the running writes of the project', async () => {
+        const order: string[] = [];
+        let finishCommand: () => void = () => undefined;
+        const runTool: RunTool = path =>
+            new Promise(resolve => {
+                order.push(`start ${path.join(' ')}`);
+                finishCommand = () => {
+                    order.push(`end ${path.join(' ')}`);
+                    resolve(ok());
+                };
+            });
+        const proxy = adminProxy();
+        const original = proxy.call.bind(proxy);
+        proxy.call = (name, args, signal) => {
+            order.push(`call ${name}`);
+            return original(name, args, signal);
+        };
+        const client = start(runTool, 'direct', COMMANDS, proxy);
+        client.send({ id: 1, method: 'tools/call', params: { name: 'add_codegen', arguments: {} } });
+        await tick();
+        client.send({
+            id: 2,
+            method: 'tools/call',
+            params: { name: 'admin_delete_zone', arguments: { id: '2' } },
+        });
+        await tick();
+        expect(order).toEqual(['start add codegen']);
+        finishCommand();
+        await client.next();
+        await client.next();
+        expect(order).toEqual(['start add codegen', 'end add codegen', 'call admin_delete_zone']);
+        await client.close();
+    });
+
+    it('runs a command whose name starts with admin_ as a command', async () => {
+        const calls: string[][] = [];
+        const commands = [...COMMANDS, command(['admin_sync'])];
+        const client = start(
+            async path => {
+                calls.push(path);
+                return ok();
+            },
+            'direct',
+            commands,
+            adminProxy(),
+        );
+        client.send({ id: 1, method: 'tools/call', params: { name: 'admin_sync', arguments: {} } });
+        await client.next();
+        expect(calls).toEqual([['admin_sync']]);
+        await client.close();
+    });
+
+    it('lists a command rather than an admin tool of the same name', async () => {
+        const commands = [...COMMANDS, command(['admin_list_zones'])];
+        const client = start(async () => ok(), 'direct', commands, adminProxy());
+        client.send({ id: 1, method: 'tools/list' });
+        const { result } = await client.next();
+        const names = result.tools.map((t: any) => t.name);
+        expect(names.filter((n: string) => n === 'admin_list_zones')).toHaveLength(1);
+        expect(names).toContain('admin_delete_zone');
         await client.close();
     });
 });

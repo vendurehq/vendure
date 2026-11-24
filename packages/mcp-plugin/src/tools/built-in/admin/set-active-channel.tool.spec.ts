@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SetActiveChannelTool } from './set-active-channel.tool';
 
 const serializer = { channel: (channel: unknown) => channel } as any;
+const configService = { apiOptions: { channelTokenKey: 'x-shop-channel' } } as any;
 
 function ctxWithChannelAccess(channelId: number) {
     return { session: { user: { channelPermissions: [{ id: channelId }] } } } as any;
@@ -13,16 +14,31 @@ function build(affected: number | undefined) {
     const update = vi.fn().mockResolvedValue({ affected });
     const connection = { getRepository: () => ({ update }) } as any;
     const channelService = { getChannelFromToken: () => Promise.resolve({ id: 2, token: 'ch-2' }) } as any;
-    const tool = new SetActiveChannelTool(channelService, connection, serializer);
+    const tool = new SetActiveChannelTool(channelService, connection, serializer, configService);
     return { tool, update };
 }
 
 describe('SetActiveChannelTool', () => {
+    it('returns the token and the header to send it in under local trust, and stores nothing', async () => {
+        const { tool, update } = build(1);
+
+        const result = await tool.execute(ctxWithChannelAccess(2), { channelToken: 'ch-2' }, {
+            localTrust: true,
+        } as any);
+
+        expect(result).toEqual({
+            channel: { id: 2, token: 'ch-2' },
+            channelToken: 'ch-2',
+            channelTokenHeader: 'x-shop-channel',
+        });
+        expect(update).not.toHaveBeenCalled();
+    });
+
     it('names the token and the call that lists valid ones when the channel does not exist', async () => {
         const channelService = {
             getChannelFromToken: () => Promise.reject(new ChannelNotFoundError('no-such-token')),
         } as any;
-        const tool = new SetActiveChannelTool(channelService, {} as any, serializer);
+        const tool = new SetActiveChannelTool(channelService, {} as any, serializer, configService);
 
         const rejection = tool.execute(ctxWithChannelAccess(2), { channelToken: 'no-such-token' }, {
             grant: { id: 9 },
