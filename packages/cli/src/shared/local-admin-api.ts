@@ -1,11 +1,6 @@
 import { defineError, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
 
-import {
-    DevServerState,
-    DevServerStatus,
-    isDevRunAlive,
-    readDevServerState,
-} from '../commands/dev/state-file.js';
+import { DevServerStatus, isDevRunAlive, readDevServerState } from '../commands/dev/state-file.js';
 
 /**
  * The local endpoints that accept the per-run secret of a `vendure dev` run as a credential:
@@ -64,7 +59,15 @@ export const localAdminApiErrors = {
         code: 'devserver.endpoint-not-local',
         exit: 1,
         message: ({ url }) =>
-            `The dev server reported ${url}, which is not a loopback address, so the local credential is not sent to it.`,
+            `The dev server reported ${url}, which is not a loopback address, so the local credential ` +
+            'is not sent to it. Set apiOptions.hostname to localhost, 0.0.0.0 or leave it unset.',
+        fix: () => [
+            {
+                path: ['devserver', 'status'],
+                input: {},
+                description: 'See the URLs the dev server reported',
+            },
+        ],
     }),
     unreachable: defineError<{ url: string; message: string }>({
         code: 'devserver.unreachable',
@@ -102,18 +105,20 @@ export function resolveLocalAdminTarget(
     endpoint: LocalAdminEndpoint,
 ): LocalAdminTarget | ErrorResult {
     const state = readDevServerState(projectDir);
-    if (!state || !isDevRunAlive(state)) {
+    // A run writes `stopped` just before its process exits.
+    if (!state || state.status === 'stopped' || !isDevRunAlive(state)) {
         return fail(localAdminApiErrors.notRunning, {});
     }
     if (state.status !== 'ready') {
         return fail(localAdminApiErrors.notReady, { status: state.status });
     }
-    const url = endpoint === 'mcp-admin' ? state.urls.mcp : state.urls.admin;
-    if (!url) {
+    const reported = endpoint === 'mcp-admin' ? state.urls.mcp : state.urls.admin;
+    if (!reported) {
         return fail(localAdminApiErrors.endpointUnknown, { endpoint });
     }
-    if (!isLoopbackUrl(url)) {
-        return fail(localAdminApiErrors.endpointNotLocal, { url });
+    const url = toLoopbackUrl(reported);
+    if (!url) {
+        return fail(localAdminApiErrors.endpointNotLocal, { url: reported });
     }
     return { url, secret: state.secret };
 }
@@ -191,10 +196,21 @@ export async function localAdminGraphql<Data = Record<string, unknown>>(
     options: LocalAdminRequestOptions = {},
 ): Promise<GraphqlResponse<Data> | ErrorResult> {
     const response = await sendLocalAdminRequest(projectDir, 'admin-api', operation, options);
-    if (!(response instanceof Response)) {
+    if (isErrorResult(response)) {
         return response;
     }
-    return readGraphqlResponse<Data>(response);
+    try {
+        return await readGraphqlResponse<Data>(response);
+    } catch (e: unknown) {
+        // The connection can fail while the body arrives, after `fetch` resolved.
+        if (options.signal?.aborted) {
+            throw e;
+        }
+        return fail(localAdminApiErrors.unreachable, {
+            url: response.url || 'the Admin API',
+            message: describeFetchError(e),
+        });
+    }
 }
 
 /**
@@ -227,15 +243,27 @@ export async function readGraphqlResponse<Data = Record<string, unknown>>(
     };
 }
 
-function isLoopbackUrl(url: string): boolean {
-    let hostname: string;
+/**
+ * The URL to send the credential to: the reported URL when its host is a loopback address, or the
+ * same URL on 127.0.0.1 or [::1] when the server listens on every address, as with
+ * `apiOptions.hostname: '0.0.0.0'`. `undefined` for any other host.
+ */
+export function toLoopbackUrl(reported: string): string | undefined {
+    let url: URL;
     try {
-        hostname = new URL(url).hostname;
+        url = new URL(reported);
     } catch {
-        return false;
+        return undefined;
     }
-    const bare = hostname.replace(/^\[|\]$/g, '').toLowerCase();
-    return bare === 'localhost' || bare === '::1' || /^127(\.\d{1,3}){3}$/.test(bare);
+    const bare = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    if (bare === 'localhost' || bare === '::1' || /^127(\.\d{1,3}){3}$/.test(bare)) {
+        return reported;
+    }
+    if (bare === '0.0.0.0' || bare === '::') {
+        url.hostname = bare === '::' ? '[::1]' : '127.0.0.1';
+        return url.toString();
+    }
+    return undefined;
 }
 
 function describeFetchError(e: unknown): string {

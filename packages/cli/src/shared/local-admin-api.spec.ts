@@ -14,6 +14,7 @@ import {
     readGraphqlResponse,
     resolveLocalAdminTarget,
     sendLocalAdminRequest,
+    toLoopbackUrl,
 } from './local-admin-api.js';
 
 const SECRET = 'a'.repeat(43);
@@ -89,6 +90,27 @@ describe('resolveLocalAdminTarget', () => {
             'devserver',
             'status',
         ]);
+    });
+
+    it('fails with not-running when the run has written stopped', () => {
+        const target = resolveLocalAdminTarget(projectWithState({ status: 'stopped' }), 'admin-api');
+
+        expect(target).toMatchObject({ code: localAdminApiErrors.notRunning.code });
+    });
+
+    it('sends to loopback when the server listens on every address', () => {
+        expect(
+            resolveLocalAdminTarget(
+                projectWithState({ urls: { admin: 'http://0.0.0.0:3000/admin-api' } }),
+                'admin-api',
+            ),
+        ).toMatchObject({ url: 'http://127.0.0.1:3000/admin-api' });
+        expect(
+            resolveLocalAdminTarget(
+                projectWithState({ urls: { admin: 'http://[::]:3000/admin-api' } }),
+                'admin-api',
+            ),
+        ).toMatchObject({ url: 'http://[::1]:3000/admin-api' });
     });
 
     it('fails with endpoint-unknown when the run has not reported the URL', () => {
@@ -202,6 +224,22 @@ describe('sendLocalAdminRequest', () => {
 });
 
 describe('localAdminGraphql', () => {
+    it('fails with unreachable when the body cannot be read', async () => {
+        const body = new ReadableStream({
+            start(controller) {
+                controller.error(new Error('socket hang up'));
+            },
+        });
+        const fetch = vi.fn(() => Promise.resolve(new Response(body)));
+
+        const result = await localAdminGraphql(projectWithState({}), { query: '{ me { id } }' }, { fetch });
+
+        expect(result).toMatchObject({
+            code: localAdminApiErrors.unreachable.code,
+            details: { message: 'socket hang up' },
+        });
+    });
+
     it('sends the operation to a real local server and returns data and errors', async () => {
         let seenAuthorization: string | undefined;
         const server = createServer((req, res) => {
@@ -228,6 +266,18 @@ describe('localAdminGraphql', () => {
             data: null,
             errors: [{ message: 'Forbidden', extensions: { code: 'FORBIDDEN', requestId: 'r-1' } }],
         });
+    });
+});
+
+describe('toLoopbackUrl', () => {
+    it('keeps loopback URLs, maps wildcard binds to loopback, and refuses other hosts', () => {
+        expect(toLoopbackUrl('http://localhost:3000/admin-api')).toBe('http://localhost:3000/admin-api');
+        expect(toLoopbackUrl('http://127.0.0.2:3000/admin-api')).toBe('http://127.0.0.2:3000/admin-api');
+        expect(toLoopbackUrl('http://0.0.0.0:3000/mcp/admin')).toBe('http://127.0.0.1:3000/mcp/admin');
+        expect(toLoopbackUrl('http://[::]:3000/admin-api')).toBe('http://[::1]:3000/admin-api');
+        expect(toLoopbackUrl('http://192.168.1.5:3000/admin-api')).toBeUndefined();
+        expect(toLoopbackUrl('http://localhost.example.com/admin-api')).toBeUndefined();
+        expect(toLoopbackUrl('not a url')).toBeUndefined();
     });
 });
 

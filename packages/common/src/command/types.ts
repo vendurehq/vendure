@@ -84,6 +84,10 @@ export interface StandardSchema<Input = unknown, Output = Input> {
  * One way to fix a problem. `description` says what to do. When the fix is a command, `path` and
  * `input` name it, so a host can offer it as a command line or an MCP tool call. Startup errors and
  * `vendure dev` carry fixes of this shape.
+ *
+ * @docsCategory errors
+ * @docsPage VendureStartupError
+ * @since 4.0.0
  */
 export interface Fix {
     description: string;
