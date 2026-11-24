@@ -39,6 +39,7 @@ describe('core command definitions', () => {
             'migrate generate',
             'migrate revert',
             'migrate run',
+            'seed',
             'store check',
         ]);
     });

@@ -390,6 +390,7 @@ describe('Command host E2E', () => {
                 'migrate_generate',
                 'migrate_revert',
                 'migrate_run',
+                'seed',
             ]);
         });
     });
