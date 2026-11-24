@@ -171,11 +171,13 @@ export class AdminProxy {
             // On Windows without LOCALAPPDATA there is no state file to watch, and the tools report why.
             return;
         }
+        // The signature is taken first, so a file written before the key is read is at worst
+        // checked once more, never missed.
+        let signature = statSignature(statePath);
         this.lastKey = this.availability().key;
         // Polling, since the file and its directory may not exist yet, which fs.watch cannot follow.
-        // It compares the file's stat itself rather than using fs.watchFile: that watcher can stop
-        // reporting changes after the file appears, so a dev server that stopped went unnoticed.
-        let signature = statSignature(statePath);
+        // It compares the file's stat itself, because fs.watchFile can stop reporting changes
+        // after the file appears.
         this.watchTimer = setInterval(() => {
             const next = statSignature(statePath);
             if (next !== signature) {
@@ -456,7 +458,7 @@ export class AdminProxy {
 
 /**
  * What tells one version of the state file from another: its inode, size and times, or
- * `missing`. A write that is still in progress changes it again when it finishes.
+ * `missing`. The writer renames a new file into place, which gives it a new inode.
  */
 function statSignature(file: string): string {
     try {
