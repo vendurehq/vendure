@@ -16,6 +16,7 @@ import { singleStageRefundablePaymentMethod } from './fixtures/test-payment-meth
 import { graphql } from './graphql/graphql-admin';
 import { FragmentOf } from './graphql/graphql-shop';
 import {
+    addManualPaymentToOrderDocument,
     adminTransitionToStateDocument,
     cancelOrderDocument,
     createPromotionDocument,
@@ -249,7 +250,7 @@ describe('quoted order line prices', () => {
         },
     );
 
-    it('does not refund a quoted line added by a modification before it is paid', async () => {
+    it('rejects a line-based refund of a quoted line added by a modification', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
             productVariantId: variantId,
@@ -278,10 +279,41 @@ describe('quoted order line prices', () => {
             id: paid.id,
             state: 'ArrangingAdditionalPayment',
         });
-        const { refundOrder } = await adminClient.query(refundOrderDocument, {
-            input: { paymentId: payment.id, lines: [{ orderLineId: addedLine.id, quantity: 10 }] },
+        const lines = [{ orderLineId: addedLine.id, quantity: 10 }];
+        const rejected = await adminClient.query(refundOrderDocument, {
+            input: { paymentId: payment.id, lines },
         });
-        expect(refundOrder).toMatchObject({ total: 0 });
+        expect(rejected.refundOrder).toMatchObject({ errorCode: 'QUANTITY_TOO_GREAT_ERROR' });
+        const getRefundLines = graphql(`
+            query QuotedRefundLines($id: ID!) {
+                order(id: $id) {
+                    payments {
+                        refunds {
+                            total
+                            lines {
+                                orderLineId
+                                quantity
+                            }
+                        }
+                    }
+                }
+            }
+        `);
+        const before = await adminClient.query(getRefundLines, { id: paid.id });
+        expect(before.order?.payments?.flatMap(p => p.refunds)).toEqual([]);
+
+        const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentToOrderDocument, {
+            input: { orderId: paid.id, method: 'test', transactionId: 'ADDITIONAL', metadata: {} },
+        });
+        expect(addManualPaymentToOrder).toMatchObject({ id: paid.id });
+        const { refundOrder } = await adminClient.query(refundOrderDocument, {
+            input: { paymentId: payment.id, lines, amount: addedLine.proratedLinePriceWithTax },
+        });
+        expect(refundOrder).toMatchObject({ total: addedLine.proratedLinePriceWithTax });
+        const after = await adminClient.query(getRefundLines, { id: paid.id });
+        expect(after.order?.payments?.flatMap(p => p.refunds.flatMap(r => r.lines))).toEqual([
+            { orderLineId: addedLine.id, quantity: 10 },
+        ]);
     });
 
     it('reloads a placed quote after removing the hook and synchronizing the database', async () => {

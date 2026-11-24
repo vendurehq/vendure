@@ -62,6 +62,7 @@ import {
     MultipleOrderError,
     NothingToRefundError,
     PaymentOrderMismatchError,
+    QuantityTooGreatError,
     RefundOrderStateError,
     RefundStateTransitionError,
     SettlePaymentError,
@@ -2162,6 +2163,20 @@ export class OrderService implements OnApplicationBootstrap {
             order.state === 'PaymentAuthorized'
         ) {
             return new RefundOrderStateError({ orderState: order.state });
+        }
+        // The deprecated line-based amount excludes lines that were not part of the placed order.
+        // Recording RefundLines for them would mark unpaid units as refunded.
+        const legacyLineIds =
+            input.amount || input.targets?.length
+                ? []
+                : (input.lines ?? []).filter(line => 0 < line.quantity).map(line => line.orderLineId);
+        if (
+            legacyLineIds.length &&
+            (await this.connection.getRepository(ctx, OrderLine).count({
+                where: { id: In(legacyLineIds), orderPlacedQuantity: 0 },
+            }))
+        ) {
+            return new QuantityTooGreatError();
         }
 
         const createdRefund = await this.paymentService.createRefund(ctx, input, order, payment);
