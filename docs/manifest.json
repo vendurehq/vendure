@@ -1908,7 +1908,7 @@
                   "title": "Order",
                   "slug": "order",
                   "file": "docs/reference/typescript-api/entities/order.mdx",
-                  "lastModified": "2026-11-20T17:56:50+01:00"
+                  "lastModified": "2026-11-24T19:41:58Z"
                 },
                 {
                   "title": "OrderableAsset",
@@ -2942,7 +2942,7 @@
                   "title": "OrderRecalculationStrategy",
                   "slug": "order-recalculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-recalculation-strategy.mdx",
-                  "lastModified": "2026-11-20T17:56:50+01:00"
+                  "lastModified": "2026-11-24T19:41:58Z"
                 },
                 {
                   "title": "OrderSellerStrategy",
@@ -3358,13 +3358,13 @@
                   "title": "OrderCalculator",
                   "slug": "order-calculator",
                   "file": "docs/reference/typescript-api/service-helpers/order-calculator.mdx",
-                  "lastModified": "2026-11-20T17:56:50+01:00"
+                  "lastModified": "2026-11-24T19:41:58Z"
                 },
                 {
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-11-19T12:08:49Z"
+                  "lastModified": "2026-11-24T19:41:58Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3376,7 +3376,7 @@
                   "title": "SetShippingMethodsResult",
                   "slug": "set-shipping-methods-result",
                   "file": "docs/reference/typescript-api/service-helpers/set-shipping-methods-result.mdx",
-                  "lastModified": "2026-11-19T12:08:49Z"
+                  "lastModified": "2026-11-24T19:41:58Z"
                 },
                 {
                   "title": "SlugValidator",
@@ -3863,6 +3863,12 @@
                   "lastModified": "2026-02-09T11:17:54+01:00"
                 },
                 {
+                  "title": "DefaultTaxCountryCode",
+                  "slug": "default-tax-country-code",
+                  "file": "docs/reference/typescript-api/tax/default-tax-country-code.mdx",
+                  "lastModified": "2026-11-24T19:41:58Z"
+                },
+                {
                   "title": "DefaultTaxLineCalculationStrategy",
                   "slug": "default-tax-line-calculation-strategy",
                   "file": "docs/reference/typescript-api/tax/default-tax-line-calculation-strategy.mdx",
@@ -3896,7 +3902,7 @@
                   "title": "TaxZoneStrategy",
                   "slug": "tax-zone-strategy",
                   "file": "docs/reference/typescript-api/tax/tax-zone-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-24T19:41:58Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
