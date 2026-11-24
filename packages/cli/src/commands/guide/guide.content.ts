@@ -75,8 +75,9 @@ After you change an entity, run \`vendure migrate generate\`, then \`vendure mig
 
 ## The Developer MCP and the Store MCP
 
-- The **Developer MCP** is \`vendure mcp\`. It offers the commands of this CLI as MCP tools. Add
-  it to a client with \`vendure mcp install --client <${MCP_CLIENTS.join('|')}>\`.
+- The **Developer MCP** is \`vendure mcp\`. It offers the commands of this CLI as MCP tools, and
+  the admin tools of the project's running dev server as \`admin_*\` tools. Add it to a client
+  with \`vendure mcp install --client <${MCP_CLIENTS.join('|')}>\`.
 - The **Store MCP** is the MCP server of \`@vendure/mcp-plugin\`, inside a running Vendure server,
   local or deployed. Its tools work with the store's data: products, orders, customers, channels,
   tax and shipping setup, and a store check.
@@ -84,8 +85,25 @@ After you change an entity, run \`vendure migrate generate\`, then \`vendure mig
 Working on the code, use the Developer MCP. Working with a running store, use the Store MCP.
 
 If you have a shell, run CLI commands with \`--json\`: you get the same commands, results and
-errors as the MCP tools, without their tool descriptions in your context. Without a shell, use
-\`vendure mcp\`. In its default discovery mode, find a tool with \`search_tools\`, then run it with
-the executor of its behavior: \`execute_readonly\`, \`execute_mutating\` or \`execute_destructive\`.
+errors as the MCP tools, without their tool descriptions in your context. Use \`vendure mcp\` for
+the \`admin_*\` tools. Without a shell, use \`vendure mcp\` for everything. In its default
+discovery mode, find a tool with \`search_tools\`, then run it with the executor of its behavior:
+\`execute_readonly\`, \`execute_mutating\` or \`execute_destructive\`.
+
+## The admin_* tools
+
+- They are the Store MCP's admin tools of the dev server that \`vendure dev\` or
+  \`vendure devserver start\` runs for the project, and they act as its superadmin. They need the
+  \`McpPlugin\` in the project's config, with its \`localTrust\` option left on.
+- They are listed only while that dev server is ready. When it starts or stops, the Developer MCP
+  tells the client that its tool list changed. A call while it is stopped, starting or failed
+  returns an error whose fix is a command such as \`devserver_start\` or \`devserver_wait\`.
+- A destructive tool first returns an \`incomplete\` result with a preview and a consent digest.
+  Show the preview to the person you work for, then call the tool again with \`confirm\` set to
+  the digest, inside \`input\` when you call it through an executor.
+- \`admin_set_active_channel\` selects the channel for the later calls of the same MCP connection.
+  Without it, the tools act on the default channel.
+- If a write fails with a notice that it may still have run, check its effect with a read-only
+  tool before you call it again.
 
 `;

@@ -118,6 +118,18 @@ export function resolveLocalAdminTarget(
     if (isErrorResult(state)) {
         return state;
     }
+    return toLocalAdminTarget(state, endpoint);
+}
+
+/**
+ * The local endpoint of a ready `vendure dev` run, from its state, as {@link resolveLocalAdminTarget}
+ * finds it. It fails when the run has not reported the endpoint, or reported one that is not on a
+ * loopback address.
+ */
+export function toLocalAdminTarget(
+    state: DevServerState,
+    endpoint: LocalAdminEndpoint,
+): LocalAdminTarget | ErrorResult {
     const reported = endpoint === 'mcp-admin' ? state.urls.mcp : state.urls.admin;
     if (!reported) {
         return fail(localAdminApiErrors.endpointUnknown, { endpoint });
@@ -147,9 +159,19 @@ export function resolveLocalShopApiUrl(projectDir: string): string | ErrorResult
 }
 
 function readReadyState(projectDir: string): DevServerState | ErrorResult {
-    const state = readDevServerState(projectDir);
+    return checkReadyState(readDevServerState(projectDir));
+}
+
+/**
+ * Checks that a state file belongs to a live `vendure dev` run that is `ready`. A caller that reads
+ * the state itself, such as the `admin_*` proxy of `vendure mcp`, passes its own liveness check.
+ */
+export function checkReadyState(
+    state: DevServerState | undefined,
+    isAlive: (state: DevServerState) => boolean = isDevRunAlive,
+): DevServerState | ErrorResult {
     // A run writes `stopped` just before its process exits.
-    if (!state || state.status === 'stopped' || !isDevRunAlive(state)) {
+    if (!state || state.status === 'stopped' || !isAlive(state)) {
         return fail(localAdminApiErrors.notRunning, {});
     }
     if (state.status !== 'ready') {
@@ -175,8 +197,7 @@ export interface LocalAdminRequestOptions {
  * and acts as the superadmin. It returns the response as it is, or a coded error when no ready run
  * serves the project or the server cannot be reached.
  *
- * This is the one place the CLI sends the secret. For a GraphQL operation on the Admin API, use
- * {@link localAdminGraphql}.
+ * For a GraphQL operation on the Admin API, use {@link localAdminGraphql}.
  */
 export async function sendLocalAdminRequest(
     projectDir: string,
@@ -188,6 +209,20 @@ export async function sendLocalAdminRequest(
     if (isErrorResult(target)) {
         return target;
     }
+    return sendToLocalAdminTarget(target, endpoint, body, options);
+}
+
+/**
+ * POSTs a JSON body to a target that {@link resolveLocalAdminTarget} or {@link toLocalAdminTarget}
+ * returned, with its per-run secret as a Bearer token. This is the one place the CLI sends the
+ * secret.
+ */
+export async function sendToLocalAdminTarget(
+    target: LocalAdminTarget,
+    endpoint: LocalAdminEndpoint,
+    body: unknown,
+    options: LocalAdminRequestOptions = {},
+): Promise<Response | ErrorResult> {
     const headers = new Headers(options.headers);
     headers.set('authorization', `Bearer ${target.secret}`);
     return postJson(target.url, body, headers, {
