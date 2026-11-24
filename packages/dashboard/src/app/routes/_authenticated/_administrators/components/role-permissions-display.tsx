@@ -4,8 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/ta
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useGroupedPermissions } from '@/vdb/hooks/use-grouped-permissions.js';
-import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 
 const rolesByIdDocument = graphql(`
@@ -29,7 +29,7 @@ interface RolePermissionsDisplayProps {
 }
 
 export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsDisplayProps>) {
-    const { i18n } = useLingui();
+    const { getTranslatedText } = useDynamicTranslations();
     const groupedPermissions = useGroupedPermissions();
 
     const { data } = useQuery({
@@ -107,11 +107,11 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
                                                         />
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger render={<label className="text-sm cursor-default" aria-label={i18n.t(permission.name)} />}>
-                                                                    {i18n.t(permission.name)}
+                                                                <TooltipTrigger render={<label className="text-sm cursor-default" aria-label={getTranslatedText(permission.name)} />}>
+                                                                    {getTranslatedText(permission.name)}
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    <p>{i18n.t(permission.description)}</p>
+                                                                    <p>{getTranslatedText(permission.description)}</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
