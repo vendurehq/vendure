@@ -11,7 +11,8 @@ export const mcpCommandDef: CliCommandDefinition = {
     options: [
         {
             long: '--dir <path>',
-            description: 'The Vendure project directory. Defaults to the current directory',
+            description:
+                'The Vendure project directory. By default it is found by walking up from the current directory',
             required: false,
         },
         {

@@ -429,3 +429,13 @@ function linkDeclaredDependencies(cliDir: string): void {
         symlinkSync(source, target, linkType);
     }
 }
+
+/**
+ * Installs this CLI package into a test project, as `npm install @vendure/cli` would. `vendure mcp`
+ * serves a project only from the project's own `@vendure/cli`.
+ */
+export function installThisCli(projectDir: string): void {
+    const target = join(projectDir, 'node_modules', '@vendure', 'cli');
+    mkdirSync(join(target, '..'), { recursive: true });
+    symlinkSync(join(import.meta.dirname, '..'), target, 'dir');
+}

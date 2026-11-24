@@ -862,16 +862,55 @@ staging pair, or a loopback pair. It rejects other hosts.
 offers the commands listed by `vendure commands --json` to AI agents. It is for working on the code of a
 project. An agent that has a shell can run the same commands with `--json` instead.
 
+Add it to your MCP client with `vendure mcp install`:
+
+```bash
+npx vendure mcp install --client claude
+```
+
+This writes the client's project config at the root of your git repository. For Claude Code that is
+`.mcp.json`:
+
 ```json
 {
     "mcpServers": {
         "vendure": {
-            "command": "/absolute/path/to/my-shop/node_modules/.bin/vendure",
-            "args": ["mcp", "--dir", "/absolute/path/to/my-shop"]
+            "command": "npx",
+            "args": ["--no", "--offline", "@vendure/cli", "mcp"]
         }
     }
 }
 ```
+
+Commit the file. The entry has no absolute path, so every clone and every git worktree gets it, and each one
+runs the `@vendure/cli` that its own `node_modules` holds. `--no` and `--offline` stop npx from downloading
+anything. The client starts the server in the folder it was opened in, and `vendure mcp` finds the project by
+walking up from there. In a monorepo it looks in the package folders from the root, as `vendure dev` does.
+`vendure mcp` only runs from the project's own `@vendure/cli`. When npx falls back to a global install, it
+stops and names the version the project installs.
+
+| Client         | `--client` | What `install` does                                                                  |
+| -------------- | ---------- | ------------------------------------------------------------------------------------ |
+| Claude Code    | `claude`   | Writes `.mcp.json`                                                                   |
+| VS Code        | `vscode`   | Writes `.vscode/mcp.json`                                                            |
+| Codex          | `codex`    | Writes `.codex/config.toml`. Codex reads it in a trusted project                     |
+| Cursor         | `cursor`   | Prints the entry for `.cursor/mcp.json`, because Cursor does not document which folder it starts a server in |
+
+Running `install` again changes only the `vendure` entry, and leaves the others alone. `--print` shows the
+entry without writing anything.
+
+In a monorepo, the client usually starts the server from the repository root. `install` checks that npx
+finds the project's `@vendure/cli` from there. When it does not, for example with pnpm and no hoisting, add
+`@vendure/cli` as a devDependency of the root package.json, or use `--scope local`. With `--scope local`,
+`install` runs `claude mcp add --scope local` with the absolute path to the project's CLI. That entry belongs
+to your machine and is not checked in.
+
+A checked-in entry has no project directory, so the server has to find your project from the repository root.
+When the root holds more than one Vendure project, `install` refuses to write the file and offers
+`--scope local`, whose entry passes the project directory.
+
+The checked-in entry has not been tested on native Windows, where `npx` is `npx.cmd`. If your client cannot
+start it there, use `--scope local`, which runs Node with the absolute path to the CLI.
 
 By default, it offers four tools:
 
@@ -894,7 +933,7 @@ client cancels a call, the command and the processes it started are stopped.
 
 | Long Form       | Description                                                                  | Example                          |
 | --------------- | ---------------------------------------------------------------------------- | -------------------------------- |
-| `--dir <path>`  | The project directory. Defaults to the current directory                     | `vendure mcp --dir ./my-shop`    |
+| `--dir <path>`  | The project directory. Found by walking up from the current directory by default | `vendure mcp --dir ./my-shop` |
 | `--mode <mode>` | `discovery` (default) offers the four tools above, `direct` lists each command | `vendure mcp --mode direct`    |
 
 ## Working in Monorepos

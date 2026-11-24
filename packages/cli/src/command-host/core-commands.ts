@@ -10,6 +10,7 @@ import { addServiceDefinition } from '../commands/add/service/add-service.comman
 import { commandsDefinition } from '../commands/commands/commands.command.js';
 import { devServerDefinitions } from '../commands/devserver/devserver.command.js';
 import { doctorDefinition } from '../commands/doctor/doctor.command.js';
+import { mcpInstallDefinition } from '../commands/mcp/install/mcp-install.command.js';
 import { generateMigrationDefinition } from '../commands/migrate/generate-migration/generate-migration.command.js';
 import { revertMigrationDefinition } from '../commands/migrate/revert-migration/revert-migration.command.js';
 import { runMigrationDefinition } from '../commands/migrate/run-migration/run-migration.command.js';
@@ -29,6 +30,7 @@ export const coreCommandDefinitions: CommandDefinition[] = [
     commandsDefinition,
     ...devServerDefinitions,
     doctorDefinition,
+    mcpInstallDefinition,
     generateMigrationDefinition,
     revertMigrationDefinition,
     runMigrationDefinition,
