@@ -435,6 +435,8 @@ export interface CommandDefinition {
      * them once, through `render()`. Under `--json`, as an MCP tool, or when the host may not
      * prompt, the host writes each value to a file that only the user can read, and the output
      * holds a {@link SecretFileReference} in its place. The value never reaches stdout or a model.
+     * That includes a run whose output a person reads without a terminal, such as one piped or
+     * in CI, so `render()` must check each of these fields with `isSecretFileReference`.
      *
      * @since 4.0.0
      */

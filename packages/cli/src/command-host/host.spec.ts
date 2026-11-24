@@ -87,10 +87,41 @@ describe('executeCommand', () => {
             expect(result.envelope.output).toMatchObject({ key: 'vcdk_secret_value' });
         });
 
-        it('refuses to print the secret on a host that cannot write it to a file', async () => {
-            const result = await runCommandInHarness(keyCommand, { name: 'a' });
+        it('keeps the secret out of a failed output and an incomplete one', async () => {
+            const writeSecret = vi.fn(() => '/tmp/secret');
+            const failing = makeCommand(async () => failed({ key: 'vcdk_secret_value' }), {
+                secretOutputs: ['key'],
+            });
+            const stopping = makeCommand(
+                async () =>
+                    incomplete(
+                        [{ kind: 'person', action: 'production-request', summary: 'Ask', url: 'https://x' }],
+                        { key: 'vcdk_secret_value' },
+                    ),
+                { secretOutputs: ['key'] },
+            );
+            for (const def of [failing, stopping]) {
+                const result = await runCommandInHarness(def, { name: 'a' }, { writeSecret });
+                expect(JSON.stringify(result.envelope)).not.toContain('vcdk_secret_value');
+                expect(result.envelope.output).toEqual({ key: { secretFile: '/tmp/secret' } });
+            }
+        });
+
+        it('writes nothing for a secret field that is empty', async () => {
+            const writeSecret = vi.fn(() => '/tmp/secret');
+            const def = makeCommand(async () => ({ key: null }), { secretOutputs: ['key'] });
+            const result = await runCommandInHarness(def, { name: 'a' }, { writeSecret });
+            expect(writeSecret).not.toHaveBeenCalled();
+            expect(result.envelope.output).toEqual({ key: null });
+        });
+
+        it('refuses before running on a host that cannot write the secret to a file', async () => {
+            const run = vi.fn(async () => ({ key: 'vcdk_secret_value' }));
+            const result = await runCommandInHarness(makeCommand(run, { secretOutputs: ['key'] }), {
+                name: 'a',
+            });
             expect(result.envelope.status).toBe('error');
-            expect(JSON.stringify(result.envelope)).not.toContain('vcdk_secret_value');
+            expect(run).not.toHaveBeenCalled();
         });
     });
 

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { CommandDefinition } from '../types';
+import { CommandDefinition, JsonSchema } from '../types';
 
 import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest';
 
@@ -36,7 +36,10 @@ export async function buildCommandManifest(
             requires: def.requires ?? {},
             consents: def.consents ?? {},
             input: { ...input, properties },
-            output: schemas.output?.['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }),
+            output: withSecretFileFields(
+                schemas.output?.['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }),
+                def.secretOutputs ?? [],
+            ),
             events: schemas.events?.['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }),
             cli: {
                 flags: def.cli?.flags,
@@ -59,6 +62,31 @@ export async function buildCommandManifest(
     // Fails the build on a clash, so a bad declaration never ships.
     mergeManifests([manifest]);
     return manifest;
+}
+
+/**
+ * The output schema as a caller receives it: a secret output field holds either the value, for a
+ * person at a terminal, or the path of the file the host wrote it to.
+ */
+function withSecretFileFields(output: JsonSchema | undefined, fields: string[]): JsonSchema | undefined {
+    const properties = output?.properties as Record<string, JsonSchema> | undefined;
+    if (!output || !properties || fields.length === 0) {
+        return output;
+    }
+    const secretFile: JsonSchema = {
+        type: 'object',
+        properties: { secretFile: { type: 'string', description: 'A file only the user can read' } },
+        required: ['secretFile'],
+    };
+    return {
+        ...output,
+        properties: Object.fromEntries(
+            Object.entries(properties).map(([field, schema]) => [
+                field,
+                fields.includes(field) ? { anyOf: [schema, secretFile] } : schema,
+            ]),
+        ),
+    };
 }
 
 /** Writes `vendure-commands.json` into a directory of the package that ships it. */

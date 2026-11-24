@@ -7,6 +7,7 @@ import type {
     FailedResult,
     Fix,
     IncompleteResult,
+    SecretFileReference,
 } from './types';
 
 /**
@@ -98,6 +99,21 @@ function isMarked(value: unknown, kind: string): boolean {
  * @description
  * Whether a {@link Fix} is a command that a host can run: it names a `path` and an `input`.
  */
+/**
+ * @description
+ * Whether a field of `secretOutputs` holds a {@link SecretFileReference} instead of the secret,
+ * because no person saw the output at a terminal. `render()` uses it to print the path instead.
+ *
+ * @since 4.0.0
+ */
+export function isSecretFileReference(value: unknown): value is SecretFileReference {
+    return (
+        value !== null &&
+        typeof value === 'object' &&
+        typeof (value as { secretFile?: unknown }).secretFile === 'string'
+    );
+}
+
 export function isCommandFix(fix: Fix): fix is CommandFix {
     return (
         Array.isArray(fix.path) &&

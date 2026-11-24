@@ -97,6 +97,16 @@ describe('buildCommandManifest', () => {
         expect(built.commands[1].secretOutputs).toEqual(['key']);
     });
 
+    it('describes a secret output field as the value or the file it was written to', async () => {
+        const { command } = wipeCommand();
+        const built = await buildCommandManifest('@vendure/cli', '1.0.0', [
+            { ...command, secretOutputs: ['wiped'] },
+        ]);
+        const wiped = (built.commands[0].output as any).properties.wiped;
+        expect(wiped.anyOf[0].type).toBe('boolean');
+        expect(wiped.anyOf[1]).toMatchObject({ type: 'object', required: ['secretFile'] });
+    });
+
     // A caller sends the input, and receives the output and the events.
     it('converts the input side of the input schema, and the output side of the others', async () => {
         const { command, input, output, events } = wipeCommand();

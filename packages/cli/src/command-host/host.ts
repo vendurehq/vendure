@@ -263,37 +263,58 @@ function protectSecrets(
     notices: CommandNotice[],
 ): { output: unknown } | { error: HostResult } {
     const fields = def.secretOutputs ?? [];
-    const personSees = env.prompter !== undefined && !env.mcp;
-    if (fields.length === 0 || personSees || output === null || typeof output !== 'object') {
+    if (fields.length === 0 || personSeesOutput(env) || output === null || typeof output !== 'object') {
         return { output };
     }
     const copy: Record<string, unknown> = { ...(output as Record<string, unknown>) };
+    const written: string[] = [];
     for (const field of fields) {
         const value = copy[field];
         if (value === undefined || value === null) {
             continue;
         }
-        if (!env.writeSecret) {
+        let secretFile: string;
+        try {
+            if (!env.writeSecret) {
+                throw new Error('this host cannot write secret files');
+            }
+            secretFile = env.writeSecret(
+                def.path,
+                field,
+                typeof value === 'string' ? value : JSON.stringify(value),
+            );
+        } catch (e) {
+            // The files already written hold secrets too, so the error names them.
+            const already = written.length
+                ? ` The secrets already written are in ${written.join(', ')}.`
+                : '';
             return {
                 error: errorResult(
                     hostErrors.internal,
-                    { message: `This host cannot keep the secret "${field}" out of the output` },
+                    {
+                        message: `Could not keep the secret "${field}" out of the output: ${
+                            e instanceof Error ? e.message : String(e)
+                        }.${already}`,
+                    },
                     notices,
                 ),
             };
         }
-        const secretFile = env.writeSecret(
-            def.path,
-            field,
-            typeof value === 'string' ? value : JSON.stringify(value),
-        );
+        written.push(secretFile);
         copy[field] = { secretFile };
         notices.push({
             level: 'info',
-            message: `${field} is in ${secretFile}, which only you can read. It is not in this output.`,
+            message:
+                `${field} is in ${secretFile}, which only you can read. It is not in this output. ` +
+                'Delete the file once you have stored the value.',
         });
     }
     return { output: copy };
+}
+
+/** Whether a person sees the output, through `render()`: only at a terminal, never over MCP. */
+function personSeesOutput(env: HostEnvironment): boolean {
+    return env.prompter !== undefined && !env.mcp;
 }
 
 /**
@@ -464,6 +485,15 @@ export async function executeCommand(
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);
         }
+        // A command with secret outputs may create the secret, such as a minted key, so a host
+        // that could not keep it out of the output refuses before anything is created.
+        if (def.secretOutputs?.length && !personSeesOutput(env) && !env.writeSecret) {
+            return errorResult(
+                hostErrors.internal,
+                { message: 'This host cannot keep the secret outputs of this command out of its output' },
+                notices,
+            );
+        }
         const { run } = await def.run();
         const result = await run(parsed, ctx);
         if (isIncompleteResult(result)) {
@@ -507,7 +537,14 @@ export async function executeCommand(
                 retried.envelope.notices = [...notices, ...retried.envelope.notices];
                 return retried;
             }
-            return incompleteResult(result.needs, notices, result.output);
+            if (result.output === undefined) {
+                return incompleteResult(result.needs, notices);
+            }
+            const protectedPartial = protectSecrets(def, result.output, env, notices);
+            if ('error' in protectedPartial) {
+                return protectedPartial.error;
+            }
+            return incompleteResult(result.needs, notices, protectedPartial.output);
         }
         if (isErrorResult(result)) {
             return declaredError(def, result, notices);
