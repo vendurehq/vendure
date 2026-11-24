@@ -34,6 +34,7 @@ import { ProductPriceApplicator } from './helpers/product-price-applicator/produ
 import { RefundStateMachine } from './helpers/refund-state-machine/refund-state-machine';
 import { RequestContextService } from './helpers/request-context/request-context.service';
 import { RolePermissionResolver } from './helpers/role-permission-resolver/role-permission-resolver';
+import { SeedSentinelService } from './helpers/seed-sentinel/seed-sentinel.service';
 import { SettingsStoreService } from './helpers/settings-store/settings-store.service';
 import { ShippingCalculator } from './helpers/shipping-calculator/shipping-calculator';
 import { SlugValidator } from './helpers/slug-validator/slug-validator';
@@ -162,6 +163,7 @@ const helpers = [
     FacetValueChecker,
     SettingsStoreService,
     EncryptionKeyVerifierService,
+    SeedSentinelService,
     StoredMediaService,
 ];
 

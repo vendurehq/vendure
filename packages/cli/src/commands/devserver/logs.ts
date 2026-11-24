@@ -1,10 +1,8 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
 import { LogLevelName, LogLine } from '@vendure/common/lib/log';
 
-import { formatLogLineAsText } from '../dev/child-output.js';
-
 import { devServerErrors, resolveDevServerProject } from './devserver.js';
-import { MAX_LOG_LINES, parseSince, readDevServerLogs } from './log-reader.js';
+import { formatDevLogLine, MAX_LOG_LINES, parseSince, readDevServerLogs } from './log-reader.js';
 
 /**
  * Reads the dev log of the project, filtered like `vendure cloud logs`.
@@ -50,7 +48,5 @@ function readLogs(input: LogsInput, ctx: CommandContext) {
 
 export function render(output: { lines: LogLine[]; omitted: number }): string {
     // The number of left-out lines is reported once, as a notice.
-    return output.lines
-        .map(line => `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`)
-        .join('\n');
+    return output.lines.map(formatDevLogLine).join('\n');
 }

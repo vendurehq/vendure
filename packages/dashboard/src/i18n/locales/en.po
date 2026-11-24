@@ -401,10 +401,15 @@ msgstr "Are you sure you want to delete this variant?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr "Dismiss"
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "All resources are up and running"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -471,6 +476,10 @@ msgstr "Custom fields changed"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "Successfully created stock location"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr "Hide for now"
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -1085,6 +1094,10 @@ msgstr "Your API Key"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Are you sure you want to delete this draft order?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr "Store setup"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -4163,6 +4176,10 @@ msgstr "Search roles..."
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr "Successfully cancelled {fulfilled} jobs"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr "Checking the store setup…"
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
@@ -4221,6 +4238,10 @@ msgstr "Needed only for a customer who has no password yet, since that account c
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "Assign"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr "This server cannot check the store setup."
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
@@ -4885,6 +4906,10 @@ msgstr "Address created"
 #~ msgid "Add an option group to get started with variants."
 #~ msgstr "Add an option group to get started with variants."
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr "This channel can take orders. These items are worth a look."
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "API key rotated successfully"
@@ -4918,6 +4943,10 @@ msgstr "Items included in this fulfillment."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "Failed to cancel payment"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr "No setup gaps found."
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5384,6 +5413,10 @@ msgstr "Shipped"
 msgid "This cannot be saved until the following are fixed:"
 msgstr "This cannot be saved until the following are fixed:"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr "Fix these before this channel can take orders."
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "Monitored Resources"
@@ -5590,6 +5623,10 @@ msgstr "A refund of {formattedDiff} is required. Select payment amounts and ente
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
 msgstr "File exceeds the server upload size limit"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
+msgstr "This channel is ready to take orders."
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
@@ -5990,6 +6027,10 @@ msgstr "New Shipping Method"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Delete stock locations"
 msgstr "Delete stock locations"
+
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr "Setup"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"

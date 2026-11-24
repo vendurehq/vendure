@@ -1,10 +1,10 @@
 import { LOG_LEVEL_NAMES, LogLevelName, LogLine } from '@vendure/common/lib/log';
 import { readFileSync } from 'node:fs';
 
-import { isLogLine } from '../dev/child-output.js';
+import { formatLogLineAsText, isLogLine } from '../dev/child-output.js';
 import { getDevLogFilePaths } from '../dev/log-writer.js';
 
-/** The most lines `vendure devserver logs` returns. Older lines are left out. */
+/** The most lines a command that reads the dev log returns. Older lines are left out. */
 export const MAX_LOG_LINES = 1000;
 
 export interface DevLogFilter {
@@ -52,6 +52,13 @@ export function readDevServerLogs(projectDir: string, filter: DevLogFilter = {})
         }
     }
     return lines;
+}
+
+/**
+ * A line of the dev log as text for the terminal, named by its process.
+ */
+export function formatDevLogLine(line: LogLine): string {
+    return `${line.process ? `[${line.process}] ` : ''}${formatLogLineAsText(line)}`;
 }
 
 function parseLogLine(raw: string): LogLine | undefined {

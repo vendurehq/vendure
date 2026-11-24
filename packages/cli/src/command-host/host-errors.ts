@@ -18,12 +18,12 @@ export const hostErrors = {
         message: ({ message }) => message,
     }),
     cancelled: defineError<Record<string, never>>({
-        code: 'cancelled',
+        code: 'cli.cancelled',
         exit: 130,
         message: () => 'The command was cancelled.',
     }),
     internal: defineError<{ message: string }>({
-        code: 'internal',
+        code: 'cli.internal',
         exit: 1,
         message: ({ message }) => message,
     }),

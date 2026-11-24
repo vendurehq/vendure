@@ -158,7 +158,7 @@ from `tools/list` and cannot be called. Tool toggles are the primary lever for s
 | `create_channel` | mutating | CreateChannel | Create a channel |
 | `update_channel` | mutating | UpdateChannel | Update a channel's languages, currencies, pricing or default zones |
 | `delete_channel` | **destructive** | DeleteChannel | Delete a channel and the roles it owns; not the default or the active channel |
-| `set_active_channel` | **destructive** | Authenticated | Set the active channel for this MCP grant |
+| `set_active_channel` | **destructive** | Authenticated | Set the active channel for this MCP grant. Under local trust it stores nothing and returns `channelToken` and `channelTokenHeader`, the header to send the token in |
 
 ### Store setup
 

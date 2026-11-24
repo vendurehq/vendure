@@ -121,7 +121,7 @@ Notes:
 - The command exits with code 1 when `overallStatus` is `failed`. This is a
   result, not a tool error.
 
-See `skills/vendure-cli/commands/doctor.md` and
+See `vendure doctor --help` and
 https://docs.vendure.io/current/core/developer-guide/cli#the-doctor-command
 
 ## 6. Context summary

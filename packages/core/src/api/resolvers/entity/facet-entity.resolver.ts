@@ -1,12 +1,14 @@
-import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { FacetValueListOptions } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { Facet } from '../../../entity/facet/facet.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { FacetValueService } from '../../../service/services/facet-value.service';
+import { IdArgumentDecoder } from '../../common/id-argument-decoder';
 import { RequestContext } from '../../common/request-context';
 import { RelationPaths, Relations } from '../../decorators/relations.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
@@ -17,6 +19,7 @@ export class FacetEntityResolver {
         private facetValueService: FacetValueService,
         private localeStringHydrator: LocaleStringHydrator,
         private requestContextCache: RequestContextCacheService,
+        private idArgumentDecoder: IdArgumentDecoder,
     ) {}
 
     @ResolveField()
@@ -44,8 +47,10 @@ export class FacetEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() facet: Facet,
         @Args() args: { options: FacetValueListOptions },
+        @Info() info: GraphQLResolveInfo,
         @Relations({ entity: FacetValue }) relations: RelationPaths<FacetValue>,
     ): Promise<PaginatedList<FacetValue>> {
-        return this.facetValueService.findByFacetIdList(ctx, facet.id, args.options, relations);
+        const { options } = this.idArgumentDecoder.decode(info, args);
+        return this.facetValueService.findByFacetIdList(ctx, facet.id, options, relations);
     }
 }

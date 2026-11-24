@@ -1,11 +1,30 @@
 import type {
     CommandDefinition,
     CommandErrorDefinition,
+    CommandFix,
     CommandNeed,
     ErrorResult,
     FailedResult,
+    Fix,
     IncompleteResult,
 } from './types';
+
+/**
+ * @description
+ * The shape of an error code: a namespace of lower-case letters, then one or more dot-separated
+ * parts of lower-case letters and digits, with single hyphens between words. For example
+ * `devserver.not-running` or `core.config.invalid-custom-fields`. `mergeManifests` refuses a
+ * manifest that declares any other code.
+ */
+export const ERROR_CODE_PATTERN = /^[a-z]+(\.[a-z0-9]+(-[a-z0-9]+)*)+$/;
+
+/**
+ * @description
+ * Whether a code has the shape of {@link ERROR_CODE_PATTERN}.
+ */
+export function isValidErrorCode(code: string): boolean {
+    return ERROR_CODE_PATTERN.test(code);
+}
 
 /**
  * @description
@@ -73,4 +92,19 @@ export function isErrorResult(value: unknown): value is ErrorResult {
 
 function isMarked(value: unknown, kind: string): boolean {
     return typeof value === 'object' && value !== null && (value as any).vendureResult === kind;
+}
+
+/**
+ * @description
+ * Whether a {@link Fix} is a command that a host can run: it names a `path` and an `input`.
+ */
+export function isCommandFix(fix: Fix): fix is CommandFix {
+    return (
+        Array.isArray(fix.path) &&
+        fix.path.length > 0 &&
+        fix.path.every(segment => typeof segment === 'string') &&
+        typeof fix.input === 'object' &&
+        fix.input !== null &&
+        !Array.isArray(fix.input)
+    );
 }

@@ -3,6 +3,7 @@ import {
     Channel,
     ChannelNotFoundError,
     ChannelService,
+    ConfigService,
     EntityNotFoundError,
     ForbiddenError,
     InternalServerError,
@@ -30,7 +31,7 @@ type SetActiveChannelInput = z.infer<typeof setActiveChannelInput>;
     toolset: 'admin',
     description:
         'Set the active channel for this MCP grant by channel token. Under local trust the server ' +
-        'keeps no state: send the returned channelToken as the channel token header on later calls.',
+        'keeps no state: send the returned channelToken in the returned channelTokenHeader on later calls.',
     keywords: [
         'switch to another store',
         'change the active channel',
@@ -50,6 +51,7 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
         private readonly channelService: ChannelService,
         private readonly connection: TransactionalConnection,
         private readonly serializer: McpToolSerializerService,
+        private readonly configService: ConfigService,
     ) {}
 
     async describe(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
@@ -63,9 +65,13 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
     async execute(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
         const channel = await this.findAccessibleChannel(ctx, input);
         // A local-trust call has no grant to store the channel on. The Developer MCP keeps the
-        // channel per session and sends its token with each call instead.
+        // channel per session and sends its token with each call, in the header this server reads.
         if (caller?.localTrust) {
-            return { channel: this.serializer.channel(channel), channelToken: channel.token };
+            return {
+                channel: this.serializer.channel(channel),
+                channelToken: channel.token,
+                channelTokenHeader: this.configService.apiOptions.channelTokenKey,
+            };
         }
         // Update only channelId so a concurrent token refresh cannot overwrite rotated hashes.
         if (!caller?.grant) {

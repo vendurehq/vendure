@@ -35,13 +35,27 @@ const statusReport = z.object({
             code: z.string().optional(),
             message: z.string(),
             diagnostics: z.array(diagnostic).optional(),
-            fix: z.array(z.object({ description: z.string() })).optional(),
+            fix: z
+                .array(
+                    z.object({
+                        description: z.string(),
+                        path: z
+                            .array(z.string())
+                            .optional()
+                            .describe('The command to run, when the fix is one'),
+                        input: z
+                            .record(z.string(), z.unknown())
+                            .optional()
+                            .describe('The input of that command'),
+                    }),
+                )
+                .optional(),
         })
         .nullable()
         .describe('Why the run is failed'),
 });
 
-const logLine = z.object({
+export const logLine = z.object({
     ts: z.string(),
     level: z.enum(LOG_LEVEL_NAMES),
     ctx: z.string().optional(),

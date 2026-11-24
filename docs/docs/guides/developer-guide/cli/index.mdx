@@ -35,7 +35,7 @@ For guidance on using the CLI together with project instructions for AI coding a
 ## JSON Output for Scripts and Agents
 
 `doctor`, the `add` commands, `migrate generate`, `migrate run`, `migrate revert`, the `devserver`
-commands and `commands` accept `--json`. With `--json`, the command
+commands, `explain`, `commands` and `guide` accept `--json`. With `--json`, the command
 writes exactly one JSON document to stdout, and sends everything else, including output from libraries
 and the processes it starts, to stderr:
 
@@ -72,6 +72,11 @@ While it runs, a command writes events to stderr as one JSON object per line, ea
 `"vendure": "event"`, so a script can tell them apart from other output.
 
 `vendure commands --json` lists these commands, with the JSON Schema of each one's input and output.
+
+`vendure guide` prints a short guide for coding agents: how to run commands with `--json`, answer
+`incomplete` results, use the dev server, and when to use the Developer MCP (`vendure mcp`) or the
+Store MCP. It ships with the CLI, so it always matches the installed version. The `vendure-cli` agent
+skill (`npx skills add vendurehq/vendure --skill vendure-cli`) points agents to it.
 
 ## The Dev Command
 
@@ -157,6 +162,20 @@ npx vendure devserver logs --request <request-id> --json
 npx vendure devserver stop
 ```
 
+To run a GraphQL operation on the running dev server, use `vendure api`. `admin` runs it on the Admin API as the
+superadmin, with no credentials needed. `shop` runs it on the Shop API anonymously, like a storefront, and each call
+is a new session. A response with errors exits with code 1, and each error keeps its `extensions`, including the
+`requestId`:
+
+```bash
+npx vendure api admin '{ products(options: { take: 5 }) { items { id name } } }' --json
+npx vendure api shop 'query ($id: ID!) { product(id: $id) { name } }' --variables '{"id":"1"}' --json
+```
+
+`--operation-name` picks one operation from a document that holds several, and `--channel-token` sends the
+`vendure-token` header for another channel. A project that sets `apiOptions.channelTokenKey` to another header
+name ignores `--channel-token`.
+
 | Command | Description |
 | --- | --- |
 | `devserver start [target]` | Start `vendure dev` in the background, for the target `all` (the default) or `server`. It waits until the run is ready or failed, except under `vendure mcp`. `--no-wait` returns once the run has started. It refuses to start while another run serves the project. |
@@ -168,6 +187,14 @@ npx vendure devserver stop
 Each request has an ID, which the server returns in the `x-request-id` header and in the extensions of a
 GraphQL error. A job that a request adds carries the same ID, so `--request` finds the log lines of the
 request and of the jobs it started.
+
+`vendure explain <request-id>` collects what the log holds for one request: the error, with its code,
+message and stack, and every log line of the request. Take the ID from the `x-request-id` header or from
+`extensions.requestId` of a GraphQL error:
+
+```bash
+npx vendure explain 2b0c6c2e-5f6a-4a0e-9d1b-7f0d3c1e8a42 --json
+```
 
 ## The Add Command
 
@@ -932,6 +959,24 @@ MCP client can ask for approval before every destructive call and allow read-onl
 Every tool call runs the command as `vendure <command> --json` in a new process, so its result is the same
 JSON document. Changing commands run one at a time, and read-only commands run in parallel. When the
 client cancels a call, the command and the processes it started are stopped.
+
+#### The admin tools of the dev server
+
+While `vendure dev` or `vendure devserver start` runs the project with the `McpPlugin`, the Developer MCP
+also offers the Store MCP's admin tools, named `admin_<tool>`, for example `admin_list_zones` or
+`admin_create_tax_category`. They come from the running server, so they appear when it is ready and disappear
+when it stops, and the server tells your client that its tool list changed.
+
+- They act as the superadmin, through the local trust that `vendure dev` sets up for the server it starts.
+  Leave the plugin's `localTrust` option on. A deployed server never accepts it.
+- `search_tools` finds them, and each one runs through the executor of its kind, like a command:
+  `admin_list_zones` with `execute_readonly`, `admin_delete_zone` with `execute_destructive`.
+- A destructive tool first returns an `incomplete` result with a preview and a digest. Call it again with
+  `confirm` set to the digest.
+- `admin_set_active_channel` selects the channel for the later calls of the same MCP connection. The server
+  keeps no state: the Developer MCP sends the channel's token with each call.
+- While the dev server is stopped, starting or failed, or does not serve the Store MCP, a call to an admin tool
+  returns an error with a fix, such as `devserver_start`.
 
 #### MCP Command Options
 

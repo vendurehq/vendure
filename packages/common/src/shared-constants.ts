@@ -64,3 +64,9 @@ export function isForeignSecretPlaceholder(value: unknown): boolean {
 // to fit with the initial create task.
 export type CREATING_VENDURE_APP = 'CREATING_VENDURE_APP';
 export const CREATING_VENDURE_APP: CREATING_VENDURE_APP = 'CREATING_VENDURE_APP';
+
+/**
+ * When this environment variable is `true` and `apiOptions.includeStackInErrors` is not set, the
+ * Vendure APIs add stacks to their errors. `vendure dev` sets it for the server it starts.
+ */
+export const INCLUDE_STACK_IN_ERRORS_ENV_VAR = 'VENDURE_INCLUDE_STACK_IN_ERRORS';

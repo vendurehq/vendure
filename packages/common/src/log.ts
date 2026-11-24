@@ -1,3 +1,5 @@
+import type { Fix } from './command/types';
+
 /**
  * The names of the log levels, from the most severe to the least severe.
  */
@@ -35,7 +37,8 @@ export interface LogLine {
      */
     requestId?: string;
     /**
-     * The code of the error which the line reports.
+     * The namespaced code of the error which the line reports, for example `core.forbidden`. It is
+     * the same value as `extensions.vendureCode` of the GraphQL error.
      */
     code?: string;
     stack?: string;
@@ -52,8 +55,30 @@ export interface StartupErrorEvent {
     /** The namespaced code of the error, for example `core.config.invalid-custom-fields`. */
     code: string;
     message: string;
-    /** Ways to fix the error. */
-    fix: Array<{ description: string }>;
+    /** Ways to fix the error. A fix that is a command also names its `path` and `input`. */
+    fix: Fix[];
+}
+
+/**
+ * The line which `bootstrap()` and `bootstrapWorker()` of `@vendure/core` write to stderr, as one
+ * line of JSON, once the server is listening or the worker is ready. A supervising process such as
+ * `vendure dev` reads readiness and the API URLs from it, so it does not depend on the log level.
+ */
+export interface ReadyEvent {
+    vendure: 'event';
+    event: 'ready';
+    /** Which process is ready. */
+    process: 'server' | 'worker';
+    /** The URLs the server serves. The worker's line has none. */
+    urls?: {
+        admin: string;
+        shop: string;
+    };
+    /**
+     * The routes that plugins register, as the server's welcome message names them, for example
+     * `{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }`.
+     */
+    routes?: Array<{ label: string; url: string }>;
 }
 
 /**

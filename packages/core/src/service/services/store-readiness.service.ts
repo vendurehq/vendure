@@ -26,6 +26,7 @@ import {
     toFinding,
 } from '../helpers/store-readiness/store-readiness-types';
 import { checkSuperadminCredentials } from '../helpers/store-readiness/superadmin-credentials.check';
+import { checkTaxInclusiveRates } from '../helpers/store-readiness/tax-inclusive-rates.check';
 import { checkTaxRateOverlaps } from '../helpers/store-readiness/tax-rate-overlaps.check';
 import { checkTaxRates } from '../helpers/store-readiness/tax-rates.check';
 
@@ -148,6 +149,16 @@ export class StoreReadinessService {
                 'tax-rates',
                 () =>
                     checkTaxRates(input, {
+                        connection: this.connection,
+                        taxRateService: this.taxRateService,
+                        taxZoneStrategy,
+                    }),
+                channel,
+            );
+            await run(
+                'tax-inclusive-rates',
+                () =>
+                    checkTaxInclusiveRates(input, {
                         connection: this.connection,
                         taxRateService: this.taxRateService,
                         taxZoneStrategy,

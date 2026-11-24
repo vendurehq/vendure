@@ -36,6 +36,7 @@ describe('loadMergedManifest', () => {
             'add job-queue',
             'add plugin',
             'add service',
+            'api',
             'commands',
             'devserver logs',
             'devserver start',
@@ -43,10 +44,13 @@ describe('loadMergedManifest', () => {
             'devserver stop',
             'devserver wait',
             'doctor',
+            'explain',
+            'guide',
             'mcp install',
             'migrate generate',
             'migrate revert',
             'migrate run',
+            'store check',
         ]);
         expect(merged[0].source).toBe('@vendure/cli');
     });

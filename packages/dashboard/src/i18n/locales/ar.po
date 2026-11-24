@@ -401,10 +401,15 @@ msgstr "هل أنت متأكد من حذف هذا الشكل؟"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {نقل مجموعة واحدة إلى المجموعة المحددة} two {نقل مجموعتين إلى المجموعة المحددة} few {نقل # مجموعات إلى المجموعة المحددة} other {نقل # مجموعة إلى المجموعة المحددة}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "جميع الموارد تعمل بشكل جيد"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -471,6 +476,10 @@ msgstr "تم تغيير الحقول المخصصة"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "تم إنشاء موقع المخزون بنجاح"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr ""
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -1085,6 +1094,10 @@ msgstr "مفتاح API الخاص بك"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "هل أنت متأكد من حذف طلب المسودة هذا؟"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -4163,6 +4176,10 @@ msgstr "بحث في الأدوار..."
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "لا يوجد أي من الأشكال الـ {CANDIDATE_POOL_SIZE} المعاينة عند {threshold} أو أقل. قد تظل أشكال أخرى منخفضة."
@@ -4221,6 +4238,10 @@ msgstr ""
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "تعيين"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr ""
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
@@ -4885,6 +4906,10 @@ msgstr "تم إنشاء العنوان"
 #~ msgid "Add an option group to get started with variants."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "تم تدوير مفتاح API بنجاح"
@@ -4918,6 +4943,10 @@ msgstr "العناصر المضمنة في عملية التنفيذ هذه."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "فشل إلغاء الدفع"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5384,6 +5413,10 @@ msgstr "تم الشحن"
 msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "الموارد المراقبة"
@@ -5589,6 +5622,10 @@ msgstr "مطلوب استرداد بقيمة {formattedDiff}. حدد مبالغ 
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -5990,6 +6027,10 @@ msgstr "طريقة شحن جديدة"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Delete stock locations"
 msgstr "حذف مواقع المخزون"
+
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"

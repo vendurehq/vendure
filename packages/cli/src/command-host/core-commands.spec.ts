@@ -1,10 +1,19 @@
+import { isValidErrorCode } from '@vendure/common/lib/command';
 import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { describe, expect, it } from 'vitest';
 
 import { coreCommandDefinitions } from './core-commands.js';
+import { hostErrors } from './host-errors.js';
 import { kebab } from './naming.js';
 
 describe('core command definitions', () => {
+    // The codes of the commands are checked when their manifest merges, below. Host errors are in
+    // no manifest.
+    it('use host error codes of the shape namespace.kebab-name', () => {
+        const codes = Object.values(hostErrors).map(error => error.code);
+        expect(codes.filter(code => !isValidErrorCode(code))).toEqual([]);
+    });
+
     it('build into a manifest the host accepts', async () => {
         const manifest = await buildCommandManifest('@vendure/cli', '0.0.0', coreCommandDefinitions);
         const merged = mergeManifests([manifest]);
@@ -16,6 +25,7 @@ describe('core command definitions', () => {
             'add job-queue',
             'add plugin',
             'add service',
+            'api',
             'commands',
             'devserver logs',
             'devserver start',
@@ -23,10 +33,13 @@ describe('core command definitions', () => {
             'devserver stop',
             'devserver wait',
             'doctor',
+            'explain',
+            'guide',
             'mcp install',
             'migrate generate',
             'migrate revert',
             'migrate run',
+            'store check',
         ]);
     });
 

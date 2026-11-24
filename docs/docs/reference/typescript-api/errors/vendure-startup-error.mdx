@@ -4,7 +4,7 @@ generated: true
 ---
 ## VendureStartupError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/vendure-startup-error.ts" sourceLine="42" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/common/error/vendure-startup-error.ts" sourceLine="44" packageName="@vendure/core" since="4.0.0" />
 
 An error which stops the Vendure server or worker from starting, such as an invalid config. It carries
 a namespaced code, for example `core.config.invalid-custom-fields`, and a list of fixes.
@@ -57,13 +57,28 @@ class VendureStartupError extends Error {
 </div>
 ## VendureErrorFix
 
-<GenerationInfo sourceFile="packages/core/src/common/error/vendure-startup-error.ts" sourceLine="9" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/common/error/vendure-startup-error.ts" sourceLine="13" packageName="@vendure/core" since="4.0.0" />
 
-One way to fix a [VendureStartupError](/reference/typescript-api/errors/vendure-startup-error#vendurestartuperror). `description` says what to change.
+One way to fix a [VendureStartupError](/reference/typescript-api/errors/vendure-startup-error#vendurestartuperror). `description` says what to change. When the fix is
+a command, `path` and `input` name it, for example
+`{ description: 'Generate a migration', path: ['migrate', 'generate'], input: {} }`. See [Fix](/reference/typescript-api/errors/vendure-startup-error#fix).
 
 ```ts title="Signature"
-interface VendureErrorFix {
+type VendureErrorFix = Fix
+```
+## Fix
+
+<GenerationInfo sourceFile="packages/common/src/command/types.ts" sourceLine="92" packageName="@vendure/common" since="4.0.0" />
+
+One way to fix a problem. `description` says what to do. When the fix is a command, `path` and
+`input` name it, so a host can offer it as a command line or an MCP tool call. Startup errors and
+`vendure dev` carry fixes of this shape.
+
+```ts title="Signature"
+interface Fix {
     description: string;
+    path?: string[];
+    input?: Record<string, unknown>;
 }
 ```
 
@@ -72,6 +87,16 @@ interface VendureErrorFix {
 ### description
 
 <MemberInfo kind="property" type={`string`}   />
+
+
+### path
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+### input
+
+<MemberInfo kind="property" type={`Record<string, unknown>`}   />
 
 
 
