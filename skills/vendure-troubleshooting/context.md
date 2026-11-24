@@ -13,8 +13,9 @@ the workspace root.
 - `.env`, `.env.*` and other files that hold environment values
 - Credential and key files, and the CLI login file `auth.json`
   (`~/.config/vendure` or `VENDURE_CLI_CONFIG_DIR`)
-- Files in `.vendure/` other than `project.json`, and `logs/devserver.log`
-  when `vendure devserver start` fails
+- Files in `.vendure/` other than `project.json`. The one exception is
+  `logs/devserver.log`, which you may read when `vendure devserver start`
+  fails.
 - Database contents. Do not run queries.
 - Logs and stack traces, other than through `vendure devserver logs` and
   `vendure explain`, or when the user gives them to you.
