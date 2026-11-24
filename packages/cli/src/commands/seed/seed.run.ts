@@ -8,7 +8,6 @@ import {
     incomplete,
     IncompleteResult,
     isErrorResult,
-    isIncompleteResult,
 } from '@vendure/common/lib/command';
 import {
     CREATE_RECORD_PATH,
@@ -145,11 +144,12 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
         }
         return {};
     });
-    if (isErrorResult(outcome) || isIncompleteResult(outcome)) {
+    if (isErrorResult(outcome)) {
         // Vendure did not start, or failed outside a seed: every step that was still to run failed.
-        const code = isErrorResult(outcome) ? outcome.code : seedFailed.code;
+        // The callback catches every seed error, so the outcome is never incomplete here.
+        const { code } = outcome;
         const message =
-            (isErrorResult(outcome) && (outcome.details as { message?: string } | undefined)?.message) ||
+            (outcome.details as { message?: string } | undefined)?.message ??
             'Vendure could not be started to seed the database';
         const failPending = (step: PlannedStep): PlannedStep =>
             step.status === 'pending'

@@ -25,13 +25,20 @@ const BROKEN_CONFIG = './src/vendure-config-broken.ts';
  * first bootstrap for the life of a process, so a test about whether a run starts Vendure, with a
  * config whose plugin fails, needs a process of its own.
  */
-function seedInProcess(args: string[]): CommandEnvelope {
+function seedInProcess(args: string[]): { envelope: CommandEnvelope; exitCode: number | null } {
     const cliPath = path.join(import.meta.dirname, '..', 'dist', 'cli.js');
     const result = spawnSync(process.execPath, [cliPath, 'seed', ...args, '--json'], {
         cwd: PROJECT_DIR,
         encoding: 'utf-8',
+        timeout: 60_000,
     });
-    return JSON.parse(result.stdout) as CommandEnvelope;
+    try {
+        return { envelope: JSON.parse(result.stdout) as CommandEnvelope, exitCode: result.status };
+    } catch {
+        throw new Error(
+            `vendure seed printed no JSON (exit ${String(result.status)}, ${String(result.error ?? '')}): ${result.stderr}`,
+        );
+    }
 }
 
 function seed(input: Record<string, unknown>) {
@@ -175,8 +182,9 @@ describe('Seed command E2E', { timeout: 120_000 }, () => {
 
             // A config whose bootstrap fails proves that the second run does not start Vendure.
             const second = seedInProcess(['--first-run', '--config', BROKEN_CONFIG]);
-            expect(second.status).toBe('ok');
-            expect(second.output).toMatchObject({
+            expect(second.exitCode).toBe(0);
+            expect(second.envelope.status).toBe('ok');
+            expect(second.envelope.output).toMatchObject({
                 preset: { status: 'already-applied', name: 'single-country' },
             });
             const zones = await query('SELECT name FROM zone');
@@ -241,8 +249,9 @@ describe('Seed command E2E', { timeout: 120_000 }, () => {
 
             const result = seedInProcess(['--first-run', '--config', BROKEN_CONFIG]);
 
-            expect(result.status).toBe('failed');
-            expect(result.output).toMatchObject({
+            expect(result.exitCode).toBe(1);
+            expect(result.envelope.status).toBe('failed');
+            expect(result.envelope.output).toMatchObject({
                 preset: {
                     status: 'failed',
                     name: 'uk',

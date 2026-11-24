@@ -1,5 +1,5 @@
-import type { CreateRecordScenario } from '@vendure/common/lib/create-record';
 import { INestApplicationContext } from '@nestjs/common';
+import type { CreateRecordScenario } from '@vendure/common/lib/create-record';
 import { createRequire } from 'module';
 import path from 'path';
 
@@ -35,7 +35,9 @@ export interface ScenarioPack {
 
 /**
  * @description
- * Where a scenario comes from, as `.vendure/create.json` records it.
+ * Where a scenario comes from, as `.vendure/create.json` records it: the
+ * `CreateRecordScenario` type of `@vendure/common/lib/create-record`, with `name`, `package` and
+ * `version`.
  *
  * @docsCategory import-export
  * @docsPage Scenarios
