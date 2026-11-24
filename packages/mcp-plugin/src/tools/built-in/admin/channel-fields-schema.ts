@@ -40,3 +40,14 @@ export const channelFieldsSchema = z.strictObject({
         .describe('Stock level at or below which a variant counts as out of stock.')
         .optional(),
 });
+
+/**
+ * The generated channel inputs type `taxCountryCode` as `string | undefined`. `ChannelService` clears
+ * the tax country for `null` or an empty string, so a `null` from the tool is sent as an empty string.
+ */
+export function withTaxCountryCodeForCore<T extends { taxCountryCode?: string | null }>(
+    input: T,
+): Omit<T, 'taxCountryCode'> & { taxCountryCode?: string } {
+    const { taxCountryCode, ...rest } = input;
+    return taxCountryCode === undefined ? rest : { ...rest, taxCountryCode: taxCountryCode ?? '' };
+}
