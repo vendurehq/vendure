@@ -195,14 +195,32 @@ function renderGroupPage(
     for (const command of commands) {
         lines.push(...renderCommand(command), '');
     }
-    return lines.join('\n').replace(/\n+$/, '\n');
+    return lines.join('\n').trimEnd() + '\n';
 }
 
 function renderCommand(command: MergedManifestCommand): string[] {
+    return [
+        ...renderSummary(command),
+        ...renderOptions(command),
+        ...renderConsents(command),
+        ...renderOutput(command),
+        ...renderErrors(command),
+        ...renderExamples(command),
+    ];
+}
+
+function inputProperties(command: MergedManifestCommand): Record<string, JsonSchema> {
+    return (command.input.properties ?? {}) as Record<string, JsonSchema>;
+}
+
+function renderSummary(command: MergedManifestCommand): string[] {
     const name = command.path.join(' ');
-    const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
-    const required = new Set<string>((command.input.required as string[] | undefined) ?? []);
     const positional = command.cli.positional ?? [];
+    const args = positional.map(field => '[' + rules.kebab(field) + ']');
+    const hasOptions = Object.keys(inputProperties(command)).length > positional.length;
+    const mcpTool = rules.isExposed(command)
+        ? `\`${rules.toolName(command)}\``
+        : 'none. This command runs only on the command line.';
     const lines = [
         `<a name="${anchor(command)}"></a>`,
         '',
@@ -211,82 +229,104 @@ function renderCommand(command: MergedManifestCommand): string[] {
         escapeMdx(sentence(command.description)),
         '',
         '```bash',
-        `vendure ${[name, ...positional.map(field => `[${rules.kebab(field)}]`)].join(' ')}` +
-            (Object.keys(properties).length > positional.length ? ' [options]' : ''),
+        ['vendure', name, ...args, ...(hasOptions ? ['[options]'] : [])].join(' '),
         '```',
         '',
         `- **Behavior:** \`${command.behavior}\`. ${BEHAVIORS[command.behavior]}`,
-        rules.isExposed(command)
-            ? `- **Developer MCP tool:** \`${rules.toolName(command)}\``
-            : '- **Developer MCP tool:** none. This command runs only on the command line.',
+        `- **Developer MCP tool:** ${mcpTool}`,
     ];
     if (command.hasPlan) {
         lines.push('- Shows a preview of what it will do before it asks for consent.');
     }
-
-    // Consents are fields too, but they have their own section.
-    const options = Object.entries(properties).filter(([field]) => !(field in command.consents));
-    if (options.length) {
-        lines.push(
-            '',
-            '### Options',
-            '',
-            '| Option | Type | Description |',
-            '| ------ | ---- | ----------- |',
-        );
-        for (const [field, schema] of options) {
-            lines.push(
-                `| ${renderFlag(command, field, schema, positional)} | ${renderType(schema)} | ` +
-                    `${cell(describeField(command, field, schema, required))} |`,
-            );
-        }
-    }
-
-    const consents = Object.entries(command.consents);
-    if (consents.length) {
-        lines.push(
-            '',
-            '### Consents',
-            '',
-            'Without the consent, the command returns `incomplete` with a preview and a digest. Pass the ' +
-                'digest as the value of the consent to run it. `--yes` never grants a consent.',
-            '',
-        );
-        for (const [consent, description] of consents) {
-            lines.push(`- \`--${rules.kebab(consent)} <digest>\`: ${escapeMdx(description)}`);
-        }
-    }
-
-    const output = command.output?.properties as Record<string, JsonSchema> | undefined;
-    if (output && Object.keys(output).length) {
-        lines.push('', '### Output', '', '| Field | Type | Description |', '| ----- | ---- | ----------- |');
-        const outputRequired = new Set<string>((command.output?.required as string[] | undefined) ?? []);
-        for (const [field, schema] of Object.entries(output)) {
-            lines.push(
-                `| \`${field}\`${outputRequired.has(field) ? '' : ' (optional)'} | ${renderType(schema)} | ` +
-                    `${cell(schema.description ? sentence(String(schema.description)) : '')} |`,
-            );
-        }
-    }
-
-    if (command.errors.length) {
-        lines.push('', '### Errors', '');
-        for (const error of command.errors) {
-            lines.push(`- \`${error.code}\` (exit code ${error.exit})`);
-        }
-    }
-
-    if (command.examples.length) {
-        lines.push('', '### Examples', '', '```bash', ...command.examples, '```');
-    }
     return lines;
+}
+
+function renderOptions(command: MergedManifestCommand): string[] {
+    const required = new Set<string>((command.input.required as string[] | undefined) ?? []);
+    const positional = command.cli.positional ?? [];
+    // Consents are fields too, but they have their own section.
+    const options = Object.entries(inputProperties(command)).filter(
+        ([field]) => !(field in command.consents),
+    );
+    if (!options.length) {
+        return [];
+    }
+    return [
+        '',
+        '### Options',
+        '',
+        '| Option | Type | Description |',
+        '| ------ | ---- | ----------- |',
+        ...options.map(
+            ([field, schema]) =>
+                `| ${renderFlag(command, field, schema, positional)} | ${renderType(schema)} | ` +
+                `${cell(describeField(command, field, schema, required))} |`,
+        ),
+    ];
+}
+
+function renderConsents(command: MergedManifestCommand): string[] {
+    const consents = Object.entries(command.consents);
+    if (!consents.length) {
+        return [];
+    }
+    return [
+        '',
+        '### Consents',
+        '',
+        'Without the consent, the command returns `incomplete` with a preview and a digest. Pass the ' +
+            'digest as the value of the consent to run it. `--yes` never grants a consent.',
+        '',
+        ...consents.map(
+            ([consent, description]) => `- \`--${rules.kebab(consent)} <digest>\`: ${escapeMdx(description)}`,
+        ),
+    ];
+}
+
+function renderOutput(command: MergedManifestCommand): string[] {
+    const output = command.output?.properties as Record<string, JsonSchema> | undefined;
+    if (!output || !Object.keys(output).length) {
+        return [];
+    }
+    const required = new Set<string>((command.output?.required as string[] | undefined) ?? []);
+    return [
+        '',
+        '### Output',
+        '',
+        '| Field | Type | Description |',
+        '| ----- | ---- | ----------- |',
+        ...Object.entries(output).map(([field, schema]) => {
+            const optional = required.has(field) ? '' : ' (optional)';
+            const description = schema.description ? sentence(String(schema.description)) : '';
+            return `| \`${field}\`${optional} | ${renderType(schema)} | ${cell(description)} |`;
+        }),
+    ];
+}
+
+function renderErrors(command: MergedManifestCommand): string[] {
+    if (!command.errors.length) {
+        return [];
+    }
+    return ['', '### Errors', '', ...command.errors.map(e => `- \`${e.code}\` (exit code ${e.exit})`)];
+}
+
+function renderExamples(command: MergedManifestCommand): string[] {
+    if (!command.examples.length) {
+        return [];
+    }
+    return ['', '### Examples', '', '```bash', ...command.examples, '```'];
 }
 
 function renderFlag(command: MergedManifestCommand, field: string, schema: JsonSchema, positional: string[]) {
     const short = command.cli.flags?.[field]?.short;
     const type = primaryType(schema);
     const placeholder = rules.kebab(field);
-    const value = type === 'boolean' ? '' : type === 'array' ? ` <${placeholder}...>` : ` <${placeholder}>`;
+    let value = ` <${placeholder}>`;
+    if (type === 'boolean') {
+        value = '';
+    } else if (type === 'array') {
+        value = ` <${placeholder}...>`;
+    }
     const flags = [`\`--${rules.kebab(field)}${escapeCode(value)}\``];
     if (short) {
         flags.unshift(`\`${short}\``);
@@ -372,12 +412,12 @@ function cell(text: string): string {
         .split(/(`[^`]*`)/)
         .map(part => (part.startsWith('`') ? part : escapeMdx(part)))
         .join('')
-        .replace(/\|/g, '\\|')
+        .replace(/\|/g, String.raw`\|`)
         .replace(/\n+/g, ' ');
 }
 
 function escapeCode(text: string): string {
-    return text.replace(/\|/g, '\\|');
+    return text.replace(/\|/g, String.raw`\|`);
 }
 
 function sentence(text: string): string {
