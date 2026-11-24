@@ -1,5 +1,5 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
-import { LogLine } from '@vendure/common/lib/log';
+import { LogLevelName, LogLine } from '@vendure/common/lib/log';
 import { existsSync } from 'node:fs';
 import pc from 'picocolors';
 
@@ -15,6 +15,8 @@ export interface ExplainInput {
 export interface ExplainError {
     /** The namespaced code, for example `core.entity-with-id-not-found`. */
     code: string;
+    /** The level the error was logged at. Core logs most client errors at `warn`. */
+    level: LogLevelName;
     /**
      * The message as the server logged it. For a core error it is the coarse code and the message
      * key, for example `FORBIDDEN: error.forbidden`: the server logs it before it is translated.
@@ -79,14 +81,26 @@ export function findRequestError(lines: LogLine[]): ExplainError | null {
         return null;
     }
     const { message, variables } = readLoggedMessage(line.msg);
+    const stack = line.stack ?? findStackLine(lines, line)?.msg;
     return {
         code: line.code,
+        level: line.level,
         message,
         ...(variables ? { variables } : {}),
-        ...(line.stack ? { stack: line.stack } : {}),
+        ...(stack ? { stack } : {}),
         ...(line.process ? { process: line.process } : {}),
         ts: line.ts,
     };
+}
+
+/**
+ * Core logs the stack of an error below `error` level as a separate `debug` line with the same
+ * code, after the error's own line. The log has it only when the logger level is Debug.
+ */
+function findStackLine(lines: LogLine[], errorLine: LogLine): LogLine | undefined {
+    return lines
+        .slice(lines.indexOf(errorLine) + 1)
+        .find(l => l.level === 'debug' && l.code === errorLine.code && l.process === errorLine.process);
 }
 
 /**
@@ -128,15 +142,15 @@ export function render(output: ExplainOutput): string {
     const lines: string[] = [];
     const error = output.error;
     if (error) {
-        lines.push(`${pc.red('error')} ${pc.gray(`(${error.code})`)} ${error.message}`);
+        const color = error.level === 'error' ? pc.red : error.level === 'warn' ? pc.yellow : pc.cyan;
+        lines.push(`${color(error.level)} ${pc.gray(`(${error.code})`)} ${error.message}`);
         if (error.variables) {
             lines.push(pc.gray(`variables: ${JSON.stringify(error.variables)}`));
         }
-        // The stack shows below the error's own line, unless that line is among the omitted ones.
-        const errorLineShown = output.logs.some(
-            line => line.ts === error.ts && line.code === error.code && line.stack === error.stack,
-        );
-        if (error.stack && !errorLineShown) {
+        // The stack shows in the log lines, below the error's line or as its own debug line,
+        // unless that line is among the omitted ones.
+        const stackShown = output.logs.some(line => line.stack === error.stack || line.msg === error.stack);
+        if (error.stack && !stackShown) {
             lines.push(pc.gray(error.stack));
         }
     } else {

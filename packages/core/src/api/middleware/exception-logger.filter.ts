@@ -51,7 +51,8 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
                     break;
             }
             if (exception.stack) {
-                Logger.debug(exception.stack);
+                // With the code, `vendure explain` takes this line as the stack of the error.
+                Logger.debug(exception.stack, undefined, meta);
             }
             if (isGraphQL) {
                 return exception;

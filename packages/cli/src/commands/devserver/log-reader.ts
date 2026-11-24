@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { formatLogLineAsText, isLogLine } from '../dev/child-output.js';
 import { getDevLogFilePaths } from '../dev/log-writer.js';
 
-/** The most lines `vendure devserver logs` returns. Older lines are left out. */
+/** The most lines a command that reads the dev log returns. Older lines are left out. */
 export const MAX_LOG_LINES = 1000;
 
 export interface DevLogFilter {

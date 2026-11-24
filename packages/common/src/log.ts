@@ -35,7 +35,8 @@ export interface LogLine {
      */
     requestId?: string;
     /**
-     * The code of the error which the line reports.
+     * The namespaced code of the error which the line reports, for example `core.forbidden`. It is
+     * the same value as `extensions.vendureCode` of the GraphQL error.
      */
     code?: string;
     stack?: string;

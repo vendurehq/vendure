@@ -70,6 +70,7 @@ describe('explainRequest()', () => {
             found: true,
             error: {
                 code: 'core.entity-with-id-not-found',
+                level: 'error',
                 message: 'INTERNAL_SERVER_ERROR: error.entity-with-id-not-found',
                 variables: { entityName: 'Product', id: '99' },
                 stack: 'Error: ...\n    at ProductResolver (src/product.ts:10:5)',
@@ -104,7 +105,14 @@ describe('explainRequest()', () => {
     it('reports that there is no dev log, rather than an unknown request', () => {
         const output = explainRequest(projectWithLog({}), 'r-1');
 
-        expect(output).toMatchObject({ hasLog: false, found: false });
+        expect(output).toEqual({
+            requestId: 'r-1',
+            hasLog: false,
+            found: false,
+            error: null,
+            logs: [],
+            omitted: 0,
+        });
         expect(render(output)).toContain('This project has no dev log');
     });
 });
@@ -128,6 +136,7 @@ describe('findRequestError()', () => {
 
         expect(error).toEqual({
             code: 'core.forbidden',
+            level: 'warn',
             message: 'FORBIDDEN: error.forbidden',
             process: 'server',
             ts: '2026-11-24T10:00:00.000Z',
@@ -140,7 +149,23 @@ describe('findRequestError()', () => {
             line({ level: 'info', code: 'core.unauthorized', msg: 'UNAUTHORIZED: error.unauthorized' }),
         ]);
 
-        expect(error).toMatchObject({ code: 'core.unauthorized' });
+        expect(error).toEqual({
+            code: 'core.unauthorized',
+            level: 'info',
+            message: 'UNAUTHORIZED: error.unauthorized',
+            process: 'server',
+            ts: '2026-11-24T10:00:00.000Z',
+        });
+    });
+
+    it('takes the stack of an error below error level from its debug line', () => {
+        const error = findRequestError([
+            line({ level: 'warn', code: 'core.forbidden', msg: 'FORBIDDEN: error.forbidden' }),
+            line({ level: 'debug', code: 'core.other', msg: 'not this one' }),
+            line({ level: 'debug', code: 'core.forbidden', msg: 'ForbiddenError: ...\n    at AuthGuard' }),
+        ]);
+
+        expect(error?.stack).toBe('ForbiddenError: ...\n    at AuthGuard');
     });
 
     it('is null when no line has a code', () => {
@@ -155,33 +180,18 @@ describe('render()', () => {
                 requestId: 'r-1',
                 hasLog: true,
                 found: true,
-                error: { code: 'core.forbidden', message: 'Forbidden', stack: 'at x', ts: '' },
+                error: { code: 'core.forbidden', level: 'warn', message: 'Forbidden', stack: 'at x', ts: '' },
                 logs: [line({ requestId: 'r-1', msg: 'Resolving' })],
                 omitted: 2,
             }),
         );
 
-        expect(text).toContain('error (core.forbidden) Forbidden');
+        expect(text).toContain('warn (core.forbidden) Forbidden');
         // The stack's line is among the omitted ones, so the header shows it.
         expect(text).toContain('at x');
         expect(text).toContain('(2 older lines left out)');
         expect(text).toContain('[server]');
         expect(text).toContain('Resolving');
-    });
-});
-
-describe('render() without a coded error', () => {
-    it('says that some errors are only logged at the verbose level', () => {
-        const text = render({
-            requestId: 'r-1',
-            hasLog: true,
-            found: true,
-            error: null,
-            logs: [line({ requestId: 'r-1' })],
-            omitted: 0,
-        });
-
-        expect(stripAnsi(text)).toContain('logged at the verbose level');
     });
 
     it('shows the stack once, below its line, when the line is shown', () => {
@@ -198,6 +208,21 @@ describe('render() without a coded error', () => {
         );
 
         expect(text.split('at y').length - 1).toBe(1);
+    });
+});
+
+describe('render() without a coded error', () => {
+    it('says that some errors are only logged at the verbose level', () => {
+        const text = render({
+            requestId: 'r-1',
+            hasLog: true,
+            found: true,
+            error: null,
+            logs: [line({ requestId: 'r-1' })],
+            omitted: 0,
+        });
+
+        expect(stripAnsi(text)).toContain('logged at the verbose level');
     });
 });
 

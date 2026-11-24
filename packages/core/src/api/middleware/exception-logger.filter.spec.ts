@@ -1,4 +1,4 @@
-import { ArgumentsHost, BadRequestException } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException, NotFoundException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ForbiddenError, InternalServerError, UserInputError } from '../../common/error/errors';
@@ -28,6 +28,37 @@ describe('ExceptionLoggerFilter', () => {
         expect(warn).toHaveBeenCalledWith('FORBIDDEN: error.forbidden', undefined, {
             code: 'core.forbidden',
         });
+    });
+
+    it('logs the stack of an I18nError below error level as a debug line with the code', () => {
+        vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        const debug = vi.spyOn(Logger, 'debug').mockImplementation(() => undefined);
+        const exception = new ForbiddenError();
+
+        createFilter().catch(exception, {} as ArgumentsHost);
+
+        expect(debug).toHaveBeenCalledWith(exception.stack, undefined, { code: 'core.forbidden' });
+    });
+
+    it('logs an I18nError of a plugin with the code in its namespace', () => {
+        class ReviewNotFoundError extends UserInputError {
+            static namespace = 'reviews';
+        }
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+
+        createFilter().catch(new ReviewNotFoundError('error.review-not-found'), {} as ArgumentsHost);
+
+        expect(warn).toHaveBeenCalledWith('USER_INPUT_ERROR: error.review-not-found', undefined, {
+            code: 'reviews.review-not-found',
+        });
+    });
+
+    it('logs a 404 HttpException at verbose level without a code', () => {
+        const verbose = vi.spyOn(Logger, 'verbose').mockImplementation(() => undefined);
+
+        createFilter().catch(new NotFoundException('Not here'), {} as ArgumentsHost);
+
+        expect(verbose).toHaveBeenCalledWith('Not here');
     });
 
     it('logs an I18nError at error level with its namespaced code and stack', () => {

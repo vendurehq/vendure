@@ -1,3 +1,4 @@
+import { LOG_LEVEL_NAMES } from '@vendure/common/lib/log';
 import { z } from 'zod';
 
 import { logLine } from '../devserver/devserver.schema.js';
@@ -21,6 +22,7 @@ export const output = z.object({
     error: z
         .object({
             code: z.string().describe('The namespaced code, for example core.entity-with-id-not-found'),
+            level: z.enum(LOG_LEVEL_NAMES).describe('The level the error was logged at'),
             message: z
                 .string()
                 .describe(
@@ -30,7 +32,12 @@ export const output = z.object({
                 .record(z.string(), z.unknown())
                 .optional()
                 .describe('The values for the placeholders of the message key, when logged'),
-            stack: z.string().optional().describe('The stack of the error, as logged'),
+            stack: z
+                .string()
+                .optional()
+                .describe(
+                    'The stack of the error, as logged. Below error level, only when the logger level is Debug',
+                ),
             process: z.string().optional(),
             ts: z.string(),
         })
