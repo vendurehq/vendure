@@ -761,7 +761,7 @@ export class PaymentService {
             : [];
         let total = 0;
         for (const line of lines) {
-            if (includeUnplacedLines || line.orderPlacedQuantity > 0 || quotedIds.includes(line.id)) {
+            if (includeUnplacedLines || line.orderPlacedQuantity > 0) {
                 const refunded = previousRefunds.filter(refund => idsAreEqual(refund.orderLineId, line.id));
                 total += getLineRefundAmount(
                     line,

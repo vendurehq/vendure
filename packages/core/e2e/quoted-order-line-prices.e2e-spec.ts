@@ -39,6 +39,7 @@ class ThreeDecimalMoneyStrategy extends RoundPerUnitMoneyStrategy {
 
 describe('quoted order line prices', () => {
     let variantId: string;
+    let otherVariantId: string;
     let variantPrice: number;
     const config = mergeConfig(testConfig(), {
         entityOptions: { moneyStrategy: new ThreeDecimalMoneyStrategy() },
@@ -74,11 +75,12 @@ describe('quoted order line prices', () => {
         await adminClient.asSuperAdmin();
         // Don't read prices via the `search` query here: the index may still be filling.
         const { product } = await adminClient.query(getProductWithVariantsDocument, { id: 'T_1' });
-        const variant = product?.variants[0];
-        if (!variant) {
+        const [variant, otherVariant] = product?.variants ?? [];
+        if (!variant || !otherVariant) {
             throw new Error('Could not find a product variant for test setup');
         }
         variantId = variant.id;
+        otherVariantId = otherVariant.id;
         // `unitPrice` is the net price, so compare against the variant's net `price`
         variantPrice = variant.price;
         await adminClient.query(createPromotionDocument, {
@@ -236,6 +238,41 @@ describe('quoted order line prices', () => {
             expect(last.refundOrder).toMatchObject({ total: remaining });
         },
     );
+
+    it('does not refund a quoted line added by a modification before it is paid', async () => {
+        await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+        const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
+            productVariantId: variantId,
+            quantity: 11,
+            customFields: { giftWrap: true },
+        } as any);
+        orderGuard.assertSuccess(addItemToOrder);
+        await proceedToArrangingPayment(shopClient, 0);
+        const paid = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
+        const payment = paid.payments?.[0];
+        if (!payment) throw new Error('Expected a payment');
+        await adminClient.query(adminTransitionToStateDocument, { id: paid.id, state: 'Modifying' });
+        const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+            input: {
+                orderId: paid.id,
+                dryRun: false,
+                addItems: [
+                    { productVariantId: otherVariantId, quantity: 10, customFields: { giftWrap: true } },
+                ],
+            },
+        } as any);
+        const addedLine = (modifyOrder as any).lines.find(
+            (item: { productVariant: { id: string } }) => item.productVariant.id === otherVariantId,
+        );
+        await adminClient.query(adminTransitionToStateDocument, {
+            id: paid.id,
+            state: 'ArrangingAdditionalPayment',
+        });
+        const { refundOrder } = await adminClient.query(refundOrderDocument, {
+            input: { paymentId: payment.id, lines: [{ orderLineId: addedLine.id, quantity: 10 }] },
+        });
+        expect(refundOrder).toMatchObject({ total: 0 });
+    });
 
     it('reloads a placed quote after removing the hook and synchronizing the database', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
