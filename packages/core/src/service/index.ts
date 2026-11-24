@@ -27,6 +27,7 @@ export * from './helpers/refund-state-machine/refund-state';
 export * from './helpers/request-context/request-context.service';
 export * from './helpers/role-permission-resolver/role-permission-resolver';
 export * from './helpers/settings-store/settings-store.service';
+export * from './helpers/seed-sentinel/seed-sentinel.service';
 export * from './helpers/slug.service';
 export * from './helpers/store-readiness/store-readiness-types';
 export type { StoredMediaUpload } from './helpers/stored-media/stored-media.service';
