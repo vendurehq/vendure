@@ -58,3 +58,8 @@ export function getPendingLoginPath(options: AuthOptions = {}): string {
 export function getPendingLoginLockPath(options: AuthOptions = {}): string {
     return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending.lock');
 }
+
+/** How the last pending device login ended, for a wait that queued behind the one that finished it. */
+export function getFinishedLoginPath(options: AuthOptions = {}): string {
+    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending-outcome.json');
+}

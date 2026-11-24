@@ -9,6 +9,7 @@ import {
 } from './auth-errors.js';
 import {
     AuthOptions,
+    getFinishedLoginPath,
     getPendingLoginLockPath,
     getPendingLoginPath,
     resolveConsoleApiUrl,
@@ -49,8 +50,6 @@ interface PendingLoginRecord {
 /**
  * What a caller shows a person so they can approve the login: the URL with the
  * code filled in, the code, and when it expires as an ISO time.
- *
- * @since 4.0.0
  */
 export interface PendingLogin {
     status: 'pending';
@@ -95,8 +94,6 @@ interface FinishedLoginRecord {
  * Starts a device login, saves it to `auth-pending.json` at mode 0600, and
  * returns what a person needs to approve it, without waiting. Replaces a login
  * that is already pending. `organization` is used when the login finishes.
- *
- * @since 4.0.0
  */
 export async function startPendingLogin(
     options: AuthOptions & { organization?: string } = {},
@@ -142,7 +139,6 @@ export interface WaitForPendingLoginOptions extends Omit<
  * @throws NoPendingLoginError when no login is pending, or it expired.
  * @throws DeviceLoginDeniedError when the code was denied in the browser.
  * @throws DeviceLoginExpiredError when the code expired while waiting.
- * @since 4.0.0
  */
 export async function waitForPendingLogin(
     options: WaitForPendingLoginOptions,
@@ -247,16 +243,18 @@ function reportFinishedLogin(before: PendingLoginRecord, options: AuthOptions): 
     }
 }
 
-/** Replaces the record with how it ended, unless a newer `auth login --json` has replaced it meanwhile. */
+/**
+ * Records how the login ended, in its own file, so a wait queued behind this
+ * one reports the same outcome. `auth-pending.json` is left alone: a new
+ * `auth login --json` may have replaced it meanwhile, and the outcome names
+ * this code only, so the record reads as finished without being rewritten.
+ */
 function finishPendingLogin(
     options: AuthOptions,
     record: PendingLoginRecord,
     outcome: FinishedLoginRecord['outcome'],
     message?: string,
 ): void {
-    if (readPendingRecord(options)?.deviceCode !== record.deviceCode) {
-        return;
-    }
     const finished: FinishedLoginRecord = {
         version: 1,
         consoleApiUrl: record.consoleApiUrl,
@@ -264,7 +262,7 @@ function finishPendingLogin(
         outcome,
         ...(message ? { message } : {}),
     };
-    writePrivateFile(getPendingLoginPath(options), JSON.stringify(finished, null, 2));
+    writePrivateFile(getFinishedLoginPath(options), JSON.stringify(finished, null, 2));
 }
 
 function hashDeviceCode(deviceCode: string): string {
@@ -307,16 +305,19 @@ function readPendingRecord(options: AuthOptions): PendingLoginRecord | undefined
         return undefined;
     }
     const record = parsePendingRecord(value);
-    if (!record) {
+    if (!record || record.consoleApiUrl !== resolveConsoleApiUrl(options)) {
         return undefined;
     }
-    return record.consoleApiUrl === resolveConsoleApiUrl(options) ? record : undefined;
+    // A finished login stays in the file until a new one replaces it.
+    return readFinishedRecord(options)?.deviceCodeHash === hashDeviceCode(record.deviceCode)
+        ? undefined
+        : record;
 }
 
 function readFinishedRecord(options: AuthOptions): FinishedLoginRecord | undefined {
     let value: unknown;
     try {
-        value = JSON.parse(readFileSync(getPendingLoginPath(options), 'utf-8'));
+        value = JSON.parse(readFileSync(getFinishedLoginPath(options), 'utf-8'));
     } catch {
         return undefined;
     }
@@ -367,5 +368,6 @@ function parsePendingRecord(value: unknown): PendingLoginRecord | undefined {
 
 /** Removes any pending login, for any Console. Returns whether one was there. */
 export function clearPendingLogin(options: AuthOptions = {}): boolean {
+    removeFile(getFinishedLoginPath(options));
     return removeFile(getPendingLoginPath(options));
 }

@@ -609,7 +609,7 @@ describe('vendure auth wait', () => {
         });
 
         expect(result).toMatchObject({ status: 'pending', code: 'ABCD-EFGH' });
-        expect(device.polls()).toBe(4);
+        expect(device.polls()).toBe(5);
         expect(messages().join('\n')).toContain('Run `vendure auth wait` again');
         expect(readPendingLogin(dependencies)).toMatchObject({ code: 'ABCD-EFGH' });
     });
@@ -737,23 +737,50 @@ describe('vendure auth wait', () => {
         expect(polls).toBe(2);
     });
 
-    it('starts a new login at once while a wait holds the lock', async () => {
-        const device = deviceLoginAnswers({ pendingPolls: 1000 });
+    it('starts a new login at once while a wait holds the lock, and the wait returns the new code', async () => {
+        const device = deviceLoginAnswers({ pendingPolls: 1000, interval: 0.02 });
         await startPending(device);
-        const controller = new AbortController();
-        const waiting = runWait(
-            { timeout: 5 },
-            { ...makeContext().ctx, signal: controller.signal },
-            { ...dependencies, fetch: device.fetch },
-        );
-        await new Promise(resolve => setTimeout(resolve, 50));
+        const waiting = runWait({ timeout: 5 }, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+        const lock = path.join(configDir, 'auth-pending.lock');
+        for (let i = 0; i < 100 && !fs.existsSync(lock); i++) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        expect(fs.existsSync(lock)).toBe(true);
 
         const startedAt = Date.now();
-        await runLogin({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+        const replacement = deviceLoginAnswers({ pendingPolls: 1000 });
+        const answers = replacement.fetch;
+        await runLogin({}, makeContext().ctx, {
+            ...dependencies,
+            fetch: async (url, init) => {
+                const response = await answers(url, init);
+                if (String(url).endsWith('/authorize/device')) {
+                    const body = (await response.json()) as Record<string, unknown>;
+                    return new Response(
+                        JSON.stringify({ ...body, device_code: 'device_2', user_code: 'WXYZ-1234' }),
+                    );
+                }
+                return response;
+            },
+        });
 
         expect(Date.now() - startedAt).toBeLessThan(1000);
-        controller.abort();
-        await waiting.catch(() => undefined);
+        await expect(waiting).resolves.toMatchObject({ status: 'pending', code: 'WXYZ-1234' });
+    });
+
+    it('polls once even when the timeout is shorter than the interval', async () => {
+        const device = deviceLoginAnswers({ interval: 5 });
+        await startPending(device);
+        const clock = fakeClock();
+
+        const result = await runWait({ timeout: 1 }, makeContext().ctx, {
+            ...dependencies,
+            fetch: device.fetch,
+            ...clock,
+        });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(device.polls()).toBe(1);
     });
 
     it('reports a denied code and removes the pending login', async () => {
