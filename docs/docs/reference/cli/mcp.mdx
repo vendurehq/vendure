@@ -1,0 +1,60 @@
+---
+title: "vendure mcp"
+generated: true
+---
+
+
+Run the Developer MCP server over stdio.
+
+<a name="mcp-install"></a>
+
+## vendure mcp install
+
+Add the Developer MCP server to an MCP client's project config.
+
+```bash
+vendure mcp install [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** none. This command runs only on the command line.
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--client <client>` | `"claude"` or `"cursor"` or `"vscode"` or `"codex"` | Required. The MCP client to set up. The valid values depend on the project, and an `input` need lists them. |
+| `--scope <scope>` | `"project"` or `"local"` | project writes the checked-in config at the git root. local registers the server for this machine only, in Claude Code. |
+| `--print`, `--no-print` | boolean | Print what would be written or run, and change nothing. |
+| `--dir <dir>` | string | The Vendure project directory. Found by walking up from the current directory by default. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `client` | `"claude"` or `"cursor"` or `"vscode"` or `"codex"` |  |
+| `scope` | `"project"` or `"local"` |  |
+| `project` | string | The Vendure project directory. |
+| `action` | `"created"` or `"updated"` or `"unchanged"` or `"printed"` or `"registered"` or `"run-yourself"` | What happened: the config file was created, updated or already up to date; the entry was printed; the server was registered with the client; or a command is given to run by hand. |
+| `file` | string or null | The config file, or null for --scope local. |
+| `config` | string or null | The config block, when it was printed rather than written. |
+| `command` | string or null | The client command, for --scope local. |
+
+### Errors
+
+- `mcp.project-not-found` (exit code 1)
+- `mcp.project-ambiguous` (exit code 1)
+- `mcp.cli-not-installed` (exit code 1)
+- `mcp.root-cannot-select-project` (exit code 1)
+- `mcp.root-cannot-resolve-cli` (exit code 1)
+- `mcp.config-unreadable` (exit code 1)
+- `mcp.scope-local-unsupported` (exit code 1)
+- `mcp.claude-mcp-add-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure mcp install --client claude
+vendure mcp install --client vscode --print
+vendure mcp install --client claude --scope local
+```

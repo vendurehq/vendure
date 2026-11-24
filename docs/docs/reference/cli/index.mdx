@@ -1,0 +1,57 @@
+---
+title: "CLI"
+generated: true
+---
+
+
+The reference of the `vendure` commands that `@vendure/cli` declares with `defineCommand`. It is generated from the command manifest of the CLI, `vendure-commands.json`.
+
+Run `vendure commands --json` in a project for the commands it really has, including those that plugins add, and `vendure guide` for how an agent works with the CLI.
+
+## Every command
+
+| Command | Behavior | Description |
+| ------- | -------- | ----------- |
+| [`vendure add api-extension`](/reference/cli/add#add-api-extension) | mutating | Add an Admin API extension to a plugin, with a resolver that calls a service |
+| [`vendure add codegen`](/reference/cli/add#add-codegen) | mutating | Set up GraphQL code generation for a plugin |
+| [`vendure add dashboard`](/reference/cli/add#add-dashboard) | mutating | Add Dashboard extensions to a plugin |
+| [`vendure add entity`](/reference/cli/add#add-entity) | mutating | Add a new entity to a plugin |
+| [`vendure add job-queue`](/reference/cli/add#add-job-queue) | mutating | Add a job queue to a service of a plugin |
+| [`vendure add plugin`](/reference/cli/add#add-plugin) | mutating | Create a new Vendure plugin and add it to the Vendure config |
+| [`vendure add service`](/reference/cli/add#add-service) | mutating | Add a new service to a plugin |
+| [`vendure commands`](/reference/cli/commands#commands) | readonly | List the commands of this project with their input and output schemas |
+| [`vendure devserver logs`](/reference/cli/devserver#devserver-logs) | readonly | Read the logs of the vendure dev run, filtered by time, request ID or severity |
+| [`vendure devserver start`](/reference/cli/devserver#devserver-start) | mutating | Start vendure dev in the background for this project |
+| [`vendure devserver status`](/reference/cli/devserver#devserver-status) | readonly | Show the status, URLs and last error of the vendure dev run serving this project |
+| [`vendure devserver stop`](/reference/cli/devserver#devserver-stop) | mutating | Stop the vendure dev run serving this project |
+| [`vendure devserver wait`](/reference/cli/devserver#devserver-wait) | readonly | Wait until the vendure dev run is ready. Returns at once when it failed |
+| [`vendure doctor`](/reference/cli/doctor#doctor) | readonly | Run diagnostic checks on your Vendure project |
+| [`vendure mcp install`](/reference/cli/mcp#mcp-install) | mutating | Add the Developer MCP server to an MCP client's project config |
+| [`vendure migrate generate`](/reference/cli/migrate#migrate-generate) | mutating | Generate a database migration from the changes to your entities |
+| [`vendure migrate revert`](/reference/cli/migrate#migrate-revert) | destructive | Revert the last applied database migration |
+| [`vendure migrate run`](/reference/cli/migrate#migrate-run) | mutating | Run the pending database migrations |
+
+## Options of every command
+
+| Option | Description |
+| ------ | ----------- |
+| `--json` | Write one JSON document to stdout, and events to stderr. `--format json` is an alias. |
+| `--input <json\|->` | Pass the whole input as a JSON document, or read it from stdin with `-`. |
+
+With `--json`, a command writes one envelope: `{ schemaVersion, status, output, needs, error, notices }`. `status` is `ok`, `failed`, `incomplete` or `error`. See [JSON output for scripts and agents](/guides/developer-guide/cli/#json-output-for-scripts-and-agents).
+
+## Commands described in the CLI guide
+
+These commands are not declared with `defineCommand` yet, so they have no generated reference. The [CLI guide](/guides/developer-guide/cli/) describes them, and `vendure <command> --help` lists their options.
+
+- `vendure add`: Add a feature to your Vendure project. Its subcommands are on the [`vendure add`](/reference/cli/add) page.
+- `vendure dev`: Run Vendure in development mode.
+- `vendure build`: Build a Vendure project.
+- `vendure start`: Start a built Vendure project.
+- `vendure migrate`: Generate, run or revert a database migration. Its subcommands are on the [`vendure migrate`](/reference/cli/migrate) page.
+- `vendure codemod`: Run codemods to update your Vendure project code.
+- `vendure schema`: Generate a schema file from your GraphQL APIs.
+- `vendure console`: Link this Vendure project to Vendure Console.
+- `vendure auth`: Sign in to your Vendure account.
+- `vendure plugins`: List, enable, or disable CLI plugins.
+- `vendure mcp`: Run the Developer MCP server over stdio. Its subcommands are on the [`vendure mcp`](/reference/cli/mcp) page.

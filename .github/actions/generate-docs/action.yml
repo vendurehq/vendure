@@ -1,5 +1,5 @@
 name: 'Generate docs'
-description: 'Regenerate the TypeScript and GraphQL reference docs from source, then check the result is valid MDX'
+description: 'Regenerate the TypeScript, GraphQL and CLI reference docs from source, then check the result is valid MDX'
 runs:
     using: 'composite'
     steps:
@@ -12,6 +12,15 @@ runs:
         - name: Generate GraphQL docs
           shell: bash
           run: bun run docs:generate-graphql-docs
+
+        # The CLI reference is generated from the command manifest that the CLI build writes.
+        - name: Build the CLI
+          shell: bash
+          run: bunx nx run @vendure/cli:build
+
+        - name: Generate CLI docs
+          shell: bash
+          run: bun run docs:generate-cli-docs
 
         - name: Install docs dependencies
           shell: bash
