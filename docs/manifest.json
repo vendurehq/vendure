@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-02T13:57:36+01:00"
+          "lastModified": "2026-11-17T23:43:03+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -623,7 +623,7 @@
               "title": "Relation Selector Components",
               "slug": "relation-selectors",
               "file": "docs/guides/extending-the-dashboard/custom-form-components/relation-selectors.mdx",
-              "lastModified": "2026-06-24T13:43:54+02:00"
+              "lastModified": "2026-11-17T09:21:35+01:00"
             }
           ],
           "lastModified": "2026-07-15T13:23:53+02:00"
@@ -1584,7 +1584,7 @@
                   "title": "CustomFieldConfig",
                   "slug": "custom-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/custom-field-config.mdx",
-                  "lastModified": "2026-10-16T10:05:27Z"
+                  "lastModified": "2026-11-16T14:01:37Z"
                 },
                 {
                   "title": "CustomFieldType",
@@ -1602,13 +1602,13 @@
                   "title": "StructCustomFieldConfig",
                   "slug": "struct-custom-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/struct-custom-field-config.mdx",
-                  "lastModified": "2026-10-16T10:05:27Z"
+                  "lastModified": "2026-11-16T14:01:37Z"
                 },
                 {
                   "title": "StructFieldConfig",
                   "slug": "struct-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/struct-field-config.mdx",
-                  "lastModified": "2026-10-16T10:05:27Z"
+                  "lastModified": "2026-11-16T14:01:37Z"
                 },
                 {
                   "title": "TypedCustomSingleFieldConfig",
@@ -1623,7 +1623,7 @@
                   "lastModified": "2026-09-29T10:57:44+02:00"
                 }
               ],
-              "lastModified": "2026-10-16T10:05:27Z"
+              "lastModified": "2026-11-16T14:01:37Z"
             },
             {
               "title": "Data Access",
@@ -3108,7 +3108,7 @@
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-10-05T09:50:33+02:00"
+                  "lastModified": "2026-11-17T15:01:49Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3126,7 +3126,7 @@
                   "title": "TranslatableSaver",
                   "slug": "translatable-saver",
                   "file": "docs/reference/typescript-api/service-helpers/translatable-saver.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-17T09:20:30Z"
                 },
                 {
                   "title": "TranslatorService",
@@ -3242,7 +3242,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-10-19T19:00:30Z"
+                  "lastModified": "2026-11-17T15:01:49Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -4875,7 +4875,7 @@
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-09-29T13:43:24Z"
+                  "lastModified": "2026-11-17T14:25:16Z"
                 },
                 {
                   "title": "PageTitle",

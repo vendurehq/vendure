@@ -1,4 +1,4 @@
-import { confirm, isCancel, log } from '@clack/prompts';
+import { confirm, isCancel, log, select } from '@clack/prompts';
 
 import {
     AuthStatus,
@@ -13,9 +13,20 @@ import {
 import { AuthOptions, resolveConsoleApiUrl } from '../../auth/auth-options';
 import { hasLoginForOtherConsole } from '../../auth/auth-session';
 import { StoredOrganization } from '../../auth/auth-store';
+import { AuthOrganization } from '../../auth/console-api';
 import { TOKEN_TOO_BIG, TOKEN_TOO_BIG_ADVICE } from '../../auth/workos-client';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 import { openConsoleBrowser } from '../console/authentication';
+
+const ORGANIZATION_LOGIN_COMMAND = 'vendure auth login --organization <Account identifier or name>';
+
+/** The organization prompt was cancelled, as the replace-login prompt can be. */
+class LoginCancelledError extends Error {
+    constructor() {
+        super('Login cancelled.');
+        this.name = 'LoginCancelledError';
+    }
+}
 
 export interface AuthCommandReporter {
     error(message: string): void;
@@ -28,6 +39,11 @@ export interface AuthCommandDependencies extends AuthOptions {
     reporter: AuthCommandReporter;
     /** Resolves `undefined` when the prompt was cancelled. */
     confirm(message: string): Promise<boolean | undefined>;
+    /** Resolves `undefined` when the prompt was cancelled. */
+    selectOrganization(
+        organizations: AuthOrganization[],
+        current: AuthOrganization | undefined,
+    ): Promise<AuthOrganization | undefined>;
     isNonInteractive(): boolean;
     openUrl(url: string): Promise<void>;
     writeStdout(value: string): void;
@@ -47,6 +63,30 @@ function createDefaultDependencies(): AuthCommandDependencies {
                 helpCommands: ['vendure auth --help'],
             });
             return isCancel(result) ? undefined : result;
+        },
+        selectOrganization: async (organizations, current) => {
+            // Worded and ordered as `vendure console link` asks: the browser's choice first, so Enter keeps it.
+            const isCurrent = (org: AuthOrganization) =>
+                org.workosOrganizationId === current?.workosOrganizationId;
+            const ordered = [
+                ...organizations.filter(isCurrent),
+                ...organizations.filter(org => !isCurrent(org)),
+            ];
+            const result = await withInteractiveTimeout(
+                () =>
+                    select({
+                        message: 'Which Vendure Console account do you want to use?',
+                        options: ordered.map(org => ({
+                            value: org.workosOrganizationId,
+                            label: `${org.name} (${org.customerAccountId})`,
+                        })),
+                    }),
+                {
+                    examples: [ORGANIZATION_LOGIN_COMMAND],
+                    helpCommands: ['vendure auth login --help'],
+                },
+            );
+            return isCancel(result) ? undefined : ordered.find(org => org.workosOrganizationId === result);
         },
         isNonInteractive: () => isNonInteractiveEnvironment(),
         openUrl: openConsoleBrowser,
@@ -72,6 +112,8 @@ export async function authLoginCommand(
         return 0;
     }
 
+    // Without a terminal the browser's choice stands, and the result says how to pick another.
+    let keptBrowserChoice = false;
     const abortController = new AbortController();
     const onSignal = () => abortController.abort();
     process.once('SIGINT', onSignal);
@@ -80,6 +122,17 @@ export async function authLoginCommand(
         ...deps,
         signal: abortController.signal,
         organization,
+        chooseOrganization: async (organizations, current) => {
+            if (deps.isNonInteractive()) {
+                keptBrowserChoice = true;
+                return undefined;
+            }
+            const chosen = await deps.selectOrganization(organizations, current);
+            if (!chosen) {
+                throw new LoginCancelledError();
+            }
+            return chosen;
+        },
         onDeviceAuthorization: async device => {
             deps.reporter.info(
                 `Confirm this code in your browser: ${device.userCode}\n` +
@@ -97,8 +150,19 @@ export async function authLoginCommand(
         const status = await loginWithDevice(loginOptions);
         const scope = status.organization ? ` to ${describeOrganization(status.organization)}` : '';
         deps.reporter.success(`Logged in as ${describeLogin(status)}${scope}.`);
+        if (keptBrowserChoice) {
+            const used = status.organization ? describeOrganization(status.organization) : 'none of them';
+            deps.reporter.info(
+                `You belong to more than one organization, and this login uses ${used}. ` +
+                    `To use another, run \`${ORGANIZATION_LOGIN_COMMAND}\`.`,
+            );
+        }
         return 0;
     } catch (error) {
+        if (error instanceof LoginCancelledError) {
+            deps.reporter.info('Login cancelled. Nothing was stored.');
+            return 0;
+        }
         if (abortController.signal.aborted) {
             deps.reporter.warn('Login interrupted.');
             return 130;
@@ -144,7 +208,10 @@ export async function authStatusCommand(
     }
     const lines = [`Logged in as ${describeLogin(status)}`];
     if (status.organization) {
-        lines.push(`Organization: ${describeOrganization(status.organization)}`);
+        const unnamed = status.organization.name
+            ? ''
+            : ` (name unknown; run \`${ORGANIZATION_LOGIN_COMMAND}\` to choose it by name)`;
+        lines.push(`Organization: ${describeOrganization(status.organization)}${unnamed}`);
     }
     if (status.accessTokenExpiresAt !== undefined) {
         lines.push(

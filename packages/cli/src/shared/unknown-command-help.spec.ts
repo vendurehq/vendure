@@ -4,13 +4,15 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+    CliPluginLoadFailure,
     findEnabledPluginDeclaringCommand,
     findInactivePluginProvidingCommand,
     listInactiveCliPlugins,
     PackageJsonLike,
+    resolveCliPlugins,
     ResolveCliPluginsOptions,
 } from './resolve-cli-plugins';
-import { unknownCommandHelp } from './unknown-command-help';
+import { globalPluginNotInstalledHelp, unknownCommandHelp } from './unknown-command-help';
 
 /**
  * A machine with `@vendure/cli` installed globally and a project beside it,
@@ -47,7 +49,7 @@ describe('unknown command help', () => {
 
     function makeMachine(options: {
         global?: { installed: Array<[string, string[]?]>; enabled?: string[] };
-        project?: { installed: Array<[string, string[]?]>; enabled?: string[] };
+        project?: { installed: Array<[string, string[]?]>; enabled?: string[]; lockfile?: string };
     }): ResolveCliPluginsOptions {
         const globalRoot = makeTempDir('vendure-unknown-global-');
         const globalNodeModules = path.join(globalRoot, 'node_modules');
@@ -70,6 +72,9 @@ describe('unknown command help', () => {
         fs.writeJsonSync(path.join(projectRoot, 'package.json'), projectPackageJson);
         for (const [name, commands] of options.project?.installed ?? []) {
             installPlugin(projectRoot, name, commands);
+        }
+        if (options.project?.lockfile) {
+            fs.writeFileSync(path.join(projectRoot, options.project.lockfile), '');
         }
 
         return {
@@ -200,5 +205,68 @@ describe('unknown command help', () => {
             '"cloud" is also provided by @example/cloud, which is installed but not enabled.',
             'Enable it with: vendure plugins add @example/cloud',
         ]);
+    });
+
+    describe('a globally enabled package that is not installed', () => {
+        function notInstalled(options: ResolveCliPluginsOptions): CliPluginLoadFailure[] {
+            return resolveCliPlugins(options).failures.filter(
+                failure => failure.scope === 'global' && failure.notInstalled,
+            );
+        }
+
+        // CLO-1561
+        it('names the install and enable commands for the project', () => {
+            const options = makeMachine({
+                global: { installed: [], enabled: ['@example/cloud'] },
+                project: { installed: [], lockfile: 'bun.lock' },
+            });
+
+            expect(unknownCommandHelp('cloud', options, new Map(), notInstalled(options))).toEqual([
+                'Unknown command "cloud".',
+                `@example/cloud is enabled globally but not installed in ${options.cwd}. ` +
+                    'Install it with: bun add -D @example/cloud && vendure plugins add @example/cloud',
+            ]);
+        });
+
+        it('names only the enable command when the project already has it', () => {
+            const options = makeMachine({
+                global: { installed: [], enabled: ['@example/cloud'] },
+                project: { installed: [['@example/cloud']] },
+            });
+
+            expect(unknownCommandHelp('cloud', options, new Map(), notInstalled(options))).toContain(
+                `@example/cloud is enabled globally but not for ${options.cwd}. ` +
+                    'Enable it with: vendure plugins add @example/cloud',
+            );
+        });
+
+        it('gives the project check reason when the project copy is not a usable plugin', () => {
+            const options = makeMachine({
+                global: { installed: [], enabled: ['@example/cloud'] },
+                project: { installed: [['@example/cloud']] },
+            });
+            const pluginDir = path.join(options.cwd ?? '', 'node_modules', '@example', 'cloud');
+            fs.writeJsonSync(path.join(pluginDir, 'package.json'), { name: '@example/cloud' });
+
+            expect(unknownCommandHelp('cloud', options, new Map(), notInstalled(options))).toContain(
+                `@example/cloud is enabled globally but cannot be enabled for ${options.cwd}: ` +
+                    'Does not declare vendure.cliPlugin in its package.json',
+            );
+        });
+
+        it('gives the reason outside a project', () => {
+            const options = makeMachine({ global: { installed: [], enabled: ['@example/cloud'] } });
+            const failure = notInstalled(options)[0];
+
+            const outside = {
+                ...options,
+                cwd: makeTempDir('vendure-unknown-empty-'),
+                projectPackageJson: undefined,
+            };
+
+            expect(globalPluginNotInstalledHelp(failure, outside)).toBe(
+                `@example/cloud is enabled globally but could not be found. ${failure.reason}`,
+            );
+        });
     });
 });

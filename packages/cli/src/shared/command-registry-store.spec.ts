@@ -950,7 +950,7 @@ describe('resolveCliPlugins()', () => {
         expect(result.loaded).toEqual([]);
         expect(result.failures).toHaveLength(1);
         expect(result.failures[0].packageName).toBe('@missing/plugin');
-        expect(result.failures[0].reason).toMatch(/could not be resolved/);
+        expect(result.failures[0].reason).toMatch(/is a dependency of \/tmp but is not installed/);
     });
 
     it('reports a failure when an enabled plugin is not a direct dependency', () => {

@@ -1,5 +1,6 @@
 import { RefundOrderInput } from '@vendure/common/lib/generated-types';
 import {
+    Asset,
     CollectionFilter,
     Customer,
     CustomFields,
@@ -77,6 +78,50 @@ export const e2eCustomFields: CustomFields = {
             nullable: true,
             label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
             options: [{ value: 'standard' }, { value: 'premium' }],
+        },
+        // #4902 — readonly single relation with a custom form component: the component receives
+        // the related entity id as `value`. Seeded directly in global-setup.ts because readonly
+        // relations cannot be set via the Admin API.
+        {
+            name: 'relatedAsset',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset' }],
+            ui: { component: 'relation-cf.related-asset' },
+        },
+        // #4902 — the same for a readonly list relation: the component receives the ids as `value`.
+        {
+            name: 'relatedAssets',
+            type: 'relation',
+            entity: Asset,
+            list: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Assets' }],
+            ui: { component: 'relation-cf.related-assets' },
+        },
+        // #4902 — readonly relations rendered by the built-in relation input, chosen by id and by
+        // default. The built-in input receives the related entity id, not the object.
+        {
+            name: 'relatedAssetBuiltIn',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset Built In' }],
+            ui: { component: 'relation-form-input' },
+        },
+        {
+            name: 'relatedAssetPlain',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset Plain' }],
         },
         {
             // Used by the #4741 tests in catalog/custom-fields.spec.ts. Nullable, and the

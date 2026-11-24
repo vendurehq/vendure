@@ -9,11 +9,13 @@ import {
     CustomFields,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
+    EventBus,
     Facet,
     FacetValue,
     Logger,
     manualFulfillmentHandler,
     mergeConfig,
+    PaymentMethodEvent,
     Product,
     productIdCollectionFilter,
     ProductOption,
@@ -27,6 +29,7 @@ import {
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
+import { firstValueFrom } from 'rxjs';
 import { Repository } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -348,6 +351,79 @@ describe('Custom field relations', () => {
                 priceWithTax: 155880,
             });
         });
+    });
+
+    it('loads the TaxCategory of ProductVariant targets in one query for a list', async () => {
+        const productIds: string[] = [];
+        for (const [i, variantId] of ['T_5', 'T_6', 'T_7'].entries()) {
+            const { createProduct } = await adminClient.query(gql`
+                mutation {
+                    createProduct(
+                        input: {
+                            translations: [
+                                { languageCode: en, name: "tax batch ${i}", slug: "tax-batch-${i}", description: "" }
+                            ]
+                            customFields: { cfProductVariantId: "${variantId}" }
+                        }
+                    ) {
+                        id
+                    }
+                }
+            `);
+            productIds.push(createProduct.id);
+        }
+
+        // Count the queries which read the TaxCategory table while the list resolves.
+        const dataSource = server.app.get(TransactionalConnection).rawConnection as any;
+        const originalLogger = dataSource.logger;
+        const taxCategoryQueries: string[] = [];
+        dataSource.logger = {
+            logQuery: (query: string) => {
+                if (/FROM "?`?tax_category"?`?/i.test(query)) {
+                    taxCategoryQueries.push(query);
+                }
+            },
+            logQueryError: () => undefined,
+            logQuerySlow: () => undefined,
+            logSchemaBuild: () => undefined,
+            logMigration: () => undefined,
+            log: () => undefined,
+        };
+        let products: any;
+        try {
+            ({ products } = await adminClient.query(
+                gql`
+                    query ($ids: [String!]!) {
+                        products(options: { filter: { id: { in: $ids } } }) {
+                            items {
+                                customFields {
+                                    cfProductVariant {
+                                        id
+                                        priceWithTax
+                                    }
+                                }
+                            }
+                        }
+                    }
+                `,
+                { ids: productIds },
+            ));
+        } finally {
+            dataSource.logger = originalLogger;
+        }
+
+        expect(products.items.map((p: any) => p.customFields.cfProductVariant.id).sort()).toEqual([
+            'T_5',
+            'T_6',
+            'T_7',
+        ]);
+        expect(
+            products.items.every(
+                (p: any) => typeof p.customFields.cfProductVariant.priceWithTax === 'number',
+            ),
+        ).toBe(true);
+        // One batched query for all three variants, rather than one per variant.
+        expect(taxCategoryQueries).toHaveLength(1);
     });
 
     it('ProductVariant without a specified property value returns null', async () => {
@@ -1556,6 +1632,20 @@ describe('Custom field relations', () => {
                 expect(updateShippingMethod.customFields.primitive).toBe('test');
             });
 
+            // https://github.com/vendurehq/vendure/issues/5763
+            it('a partial updateShippingMethod keeps the custom fields it does not name', async () => {
+                const { updateShippingMethod } = await adminClient.query(gql`
+                    mutation {
+                        updateShippingMethod(input: { id: "${shippingMethodId}", translations: [] }) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                assertCustomFieldIds(updateShippingMethod.customFields, 'T_3', ['T_3', 'T_4']);
+                expect(updateShippingMethod.customFields.primitive).toBe('test');
+            });
+
             it('shop eligibleShippingMethods (ShippingMethodQuote)', async () => {
                 const { eligibleShippingMethods } = await shopClient.query(gql`
                     query {
@@ -1635,6 +1725,34 @@ describe('Custom field relations', () => {
                     }
                 `);
                 expect(updatePaymentMethod.customFields.single).toEqual({ id: 'T_3' });
+                expect(updatePaymentMethod.customFields.primitive).toBe('test');
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5763
+            it('the PaymentMethodEvent of an update holds the relations the input sets', async () => {
+                const eventPromise = firstValueFrom(server.app.get(EventBus).ofType(PaymentMethodEvent));
+                await adminClient.query(gql`
+                    mutation {
+                        updatePaymentMethod(input: { id: "${paymentMethodId}", customFields: { singleId: "T_3" } }) {
+                            id
+                        }
+                    }
+                `);
+                const event = await eventPromise;
+                expect(String((event.entity.customFields as any).single?.id)).toBe('3');
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5763
+            it('a partial updatePaymentMethod keeps the custom fields it does not name', async () => {
+                const { updatePaymentMethod } = await adminClient.query(gql`
+                    mutation {
+                        updatePaymentMethod(input: { id: "${paymentMethodId}", enabled: true }) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                assertCustomFieldIds(updatePaymentMethod.customFields, 'T_3', ['T_3', 'T_4']);
                 expect(updatePaymentMethod.customFields.primitive).toBe('test');
             });
 

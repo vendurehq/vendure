@@ -91,7 +91,7 @@ title and description are rendered as a heading above the content.
 </div>
 ## FullWidthPageBlock
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="1000" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="1005" packageName="@vendure/dashboard" since="3.3.0" />
 
 **Status: Developer Preview**
 
@@ -109,7 +109,7 @@ Parameters
 
 ## CustomFieldsPageBlock
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="1030" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="1035" packageName="@vendure/dashboard" since="3.3.0" />
 
 *
 A component for displaying an auto-generated form for custom fields on a page.
@@ -126,12 +126,12 @@ a form corresponding to the custom fields for the given entity type.
 function CustomFieldsPageBlock(props: Readonly<{
     column: 'main' | 'side';
     entityType: string;
-    control: Control<any, any>;
+    control: AnyFormControl;
 }>): void
 ```
 Parameters
 
 ### props
 
-<MemberInfo kind="parameter" type={`Readonly<{     column: 'main' | 'side';     entityType: string;     control: Control<any, any>; }>`} />
+<MemberInfo kind="parameter" type={`Readonly<{     column: 'main' | 'side';     entityType: string;     control: AnyFormControl; }>`} />
 

@@ -1,12 +1,13 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
+import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
 import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
-import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     DetailFormGrid,
@@ -16,8 +17,8 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
+import { dropUnchangedTranslationRows } from '@/vdb/framework/page/strip-unchanged-translations.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
@@ -25,8 +26,9 @@ import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
 import { useState } from 'react';
+import type { UseFormReturn } from 'react-hook-form';
+import { toast } from 'sonner';
 import {
     activeAdministratorRolesDocument,
     apiKeyDetailDocument,
@@ -87,6 +89,7 @@ function ApiKeyDetailPage() {
         queryDocument: apiKeyDetailDocument,
         createDocument: createApiKeyDocument,
         updateDocument: updateApiKeyDocument,
+        transformUpdateInput: dropUnchangedTranslationRows((): UseFormReturn<any> => form),
         setValuesForUpdate: entity => ({
             id: entity.id,
             roleIds: entity.user.roles.map(role => role.id),
@@ -117,10 +120,9 @@ function ApiKeyDetailPage() {
             }
         },
         onError: err => {
-            toast.error(
-                creatingNewEntity ? t`Failed to create API key` : t`Failed to update API key`,
-                { description: err instanceof Error ? err.message : 'Unknown error' },
-            );
+            toast.error(creatingNewEntity ? t`Failed to create API key` : t`Failed to update API key`, {
+                description: err instanceof Error ? err.message : 'Unknown error',
+            });
         },
     });
 
@@ -132,16 +134,11 @@ function ApiKeyDetailPage() {
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
-            <PageTitle>
-                {creatingNewEntity ? <Trans>New API Key</Trans> : (entity?.name ?? '')}
-            </PageTitle>
+            <PageTitle>{creatingNewEntity ? <Trans>New API Key</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
                 {!creatingNewEntity && (
                     <ActionBarItem itemId="rotate-button" requiresPermission={['UpdateApiKey']}>
-                        <RotateApiKeyButton
-                            apiKeyId={params.id}
-                            onSuccess={handleRotateSuccess}
-                        />
+                        <RotateApiKeyButton apiKeyId={params.id} onSuccess={handleRotateSuccess} />
                     </ActionBarItem>
                 )}
                 <ActionBarItem
@@ -201,29 +198,39 @@ function ApiKeyDetailPage() {
                     <PageBlock column="side" blockId="metadata" title={<Trans>Metadata</Trans>}>
                         <div className="space-y-4 text-sm">
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Lookup ID</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Lookup ID</Trans>
+                                </div>
                                 <CopyableText value={entity.lookupId}>
                                     <code className="font-mono text-xs">{entity.lookupId}</code>
                                 </CopyableText>
                             </div>
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Created by</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Created by</Trans>
+                                </div>
                                 <div>{entity.owner?.identifier ?? '-'}</div>
                             </div>
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Last used</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Last used</Trans>
+                                </div>
                                 <div>
                                     {entity.lastUsedAt ? (
                                         <time title={formatDate(new Date(entity.lastUsedAt))}>
                                             {formatRelativeDate(new Date(entity.lastUsedAt))}
                                         </time>
                                     ) : (
-                                        <span className="text-muted-foreground"><Trans>Never</Trans></span>
+                                        <span className="text-muted-foreground">
+                                            <Trans>Never</Trans>
+                                        </span>
                                     )}
                                 </div>
                             </div>
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Created</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Created</Trans>
+                                </div>
                                 <div>{formatDate(new Date(entity.createdAt))}</div>
                             </div>
                         </div>

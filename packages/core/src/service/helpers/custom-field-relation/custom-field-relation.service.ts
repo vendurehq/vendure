@@ -84,6 +84,25 @@ export class CustomFieldRelationService {
         return entity;
     }
 
+    /**
+     * @description
+     * Returns the relation paths, such as `customFields.featuredAsset`, of the relation custom
+     * fields which the input sets. Pass them when reloading the entity after an update, so that the
+     * reloaded entity holds the relations the input set.
+     */
+    getRelationPathsInInput<T extends HasCustomFields & VendureEntity>(
+        entityType: Type<T>,
+        input: { customFields?: { [key: string]: any } },
+    ): string[] {
+        if (!input.customFields) {
+            return [];
+        }
+        return (this.configService.customFields[entityType.name as keyof CustomFields] ?? [])
+            .filter(this.isRelationalType)
+            .filter(field => input.customFields?.[getGraphQlInputName(field)] !== undefined)
+            .map(field => `customFields.${field.name}`);
+    }
+
     private isRelationalType(this: void, input: CustomFieldConfig): input is RelationCustomFieldConfig {
         return input.type === 'relation';
     }
