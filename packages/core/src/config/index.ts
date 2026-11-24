@@ -124,6 +124,7 @@ export * from './system/permission-secret-access-strategy';
 export * from './system/secret-access-strategy';
 export * from './tax/address-based-tax-zone-strategy';
 export * from './tax/default-order-tax-calculation-strategy';
+export * from './tax/default-tax-country-code';
 export * from './tax/default-tax-line-calculation-strategy';
 export * from './tax/default-tax-zone-strategy';
 export * from './tax/order-level-tax-calculation-strategy';

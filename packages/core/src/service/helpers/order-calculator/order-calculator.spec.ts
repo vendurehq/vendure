@@ -133,6 +133,139 @@ describe('OrderCalculator', () => {
             expect(order.taxCountryCode).toBe('XC');
         });
 
+        it('reports no tax change for an Order not calculated yet, such as a new seller Order', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(false);
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(false);
+            order.shippingAddress = { countryCode: 'XC' };
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(true);
+        });
+
+        describe('convertInitialListPrice()', () => {
+            // The default Zone's standard rate is 20%: 9.99 gross is 8.33 net (8.325 rounded).
+            function lineAddedAt(initialListPrice: number, listPriceIncludesTax: boolean) {
+                const ctx = createRequestContext({ pricesIncludeTax: true });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: initialListPrice, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                const line = order.lines[0];
+                line.initialListPrice = initialListPrice;
+                line.listPriceIncludesTax = listPriceIncludesTax;
+                return { ctx, line };
+            }
+
+            it('converts a gross price to net', async () => {
+                const { ctx, line } = lineAddedAt(999, true);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 833,
+                    priceIncludesTax: false,
+                });
+                expect(line.initialListPrice).toBe(833);
+            });
+
+            it('converts an unchanged net price back to the exact gross price', async () => {
+                const { ctx, line } = lineAddedAt(833, false);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 999,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(999);
+            });
+
+            it('converts a net price to gross when the price changed, within one unit', async () => {
+                const { ctx, line } = lineAddedAt(833, false);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 1200,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(1000);
+            });
+
+            it('leaves a price in the same form unchanged', async () => {
+                const { ctx, line } = lineAddedAt(999, true);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 1200,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(999);
+            });
+        });
+
+        describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
+            const defaultTaxOptions = () => ({
+                taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
+                orderTaxCalculationStrategy: new DefaultOrderTaxCalculationStrategy(),
+            });
+
+            afterEach(() => {
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new DefaultTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+            });
+
+            it('applies no country rate when it returns undefined', async () => {
+                class NoCountryTaxZoneStrategy extends DefaultTaxZoneStrategy {
+                    determineTaxCountryCode() {
+                        return undefined;
+                    }
+                }
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new NoCountryTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                order.shippingAddress = { countryCode: 'XC' };
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+
+                // The zone rate, not the 19% country rate for XC
+                expect(order.lines[0].taxRate).toBe(20);
+                expect(order.taxCountryCode).toBe('');
+            });
+
+            it('applies the country rate of the country it returns', async () => {
+                class BillingCountryTaxZoneStrategy extends DefaultTaxZoneStrategy {
+                    determineTaxCountryCode(
+                        _ctx: RequestContext,
+                        _channel: unknown,
+                        _zone: unknown,
+                        o?: Order,
+                    ) {
+                        return o?.billingAddress?.countryCode;
+                    }
+                }
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new BillingCountryTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                order.shippingAddress = {};
+                order.billingAddress = { countryCode: 'XC' };
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines[0].taxRate).toBe(19);
+                expect(order.taxCountryCode).toBe('XC');
+
+                order.billingAddress = {};
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines[0].taxRate).toBe(20);
+                expect(order.taxCountryCode).toBe('');
+            });
+        });
+
         it('resets totals when lines array is empty', async () => {
             const ctx = createRequestContext({ pricesIncludeTax: false });
             const order = createOrder({

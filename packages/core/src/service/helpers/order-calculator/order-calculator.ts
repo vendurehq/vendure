@@ -8,7 +8,7 @@ import { RequestContextCacheService } from '../../../cache/request-context-cache
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
-import { getTaxCountryCode } from '../../../common/tax-utils';
+import { roundMoney } from '../../../common/round-money';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
@@ -24,6 +24,7 @@ import {
     setShippingLineOption,
     ShippingCalculator,
 } from '../shipping-calculator/shipping-calculator';
+import { resolveTaxCountryCode } from '../utils/resolve-tax-country-code';
 
 import { prorate } from './prorate';
 
@@ -109,37 +110,22 @@ export class OrderCalculator {
         updatedOrderLines: OrderLine[] = [],
         options?: ApplyPriceAdjustmentsOptions,
     ): Promise<Order> {
-        const { taxZoneStrategy } = this.configService.taxOptions;
         const freezePromotions = options?.freezePromotions === true;
         if (!freezePromotions) {
             // We reset the promotions array as all promotions
             // must be revalidated on any changes to an Order.
             order.promotions = [];
         }
-        const zones = await this.zoneService.getAllWithMembers(ctx);
-        const activeTaxZone = await this.requestContextCache.get(
-            ctx,
-            CacheKey.ActiveTaxZone(ctx.channelId),
-            () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
-        );
-
-        let taxTargetChanged = false;
-        if (!activeTaxZone) {
-            throw new InternalServerError('error.no-active-tax-zone');
-        }
-        if (!order.taxZoneId || !idsAreEqual(order.taxZoneId, activeTaxZone.id)) {
-            order.taxZoneId = activeTaxZone.id;
-            taxTargetChanged = true;
-        }
-        const countryCode = getTaxCountryCode(order);
+        const { zone: activeTaxZone, countryCode } = await this.determineTaxTarget(ctx, order);
+        const taxTargetChanged = this.taxTargetChanged(order, activeTaxZone, countryCode);
         if (order.taxCountryCode == null && !taxTargetChanged) {
             // The Order has not been calculated since taxCountryCode was added: record the country
             // and keep the taxes it was placed with.
             order.taxCountryCode = countryCode ?? '';
-        } else if (order.taxCountryCode !== (countryCode ?? '')) {
-            // A country rate can apply when the shipping country changes, even within the same Zone.
+        }
+        if (taxTargetChanged) {
+            order.taxZoneId = activeTaxZone.id;
             order.taxCountryCode = countryCode ?? '';
-            taxTargetChanged = true;
         }
         for (const updatedOrderLine of updatedOrderLines) {
             await this.applyTaxesToOrderLine(
@@ -153,7 +139,7 @@ export class OrderCalculator {
         if (order.lines.length) {
             if (taxTargetChanged) {
                 // First apply taxes to the non-discounted prices
-                await this.applyTaxes(ctx, order, activeTaxZone);
+                await this.applyTaxes(ctx, order, activeTaxZone, countryCode);
             }
 
             if (!freezePromotions) {
@@ -164,7 +150,7 @@ export class OrderCalculator {
                 if (order.subTotal !== totalBeforePromotions) {
                     // Finally, re-calculate taxes because the promotions may have
                     // altered the unit prices, which in turn will alter the tax payable.
-                    await this.applyTaxes(ctx, order, activeTaxZone);
+                    await this.applyTaxes(ctx, order, activeTaxZone, countryCode);
                 }
             }
         }
@@ -189,10 +175,105 @@ export class OrderCalculator {
 
     /**
      * @description
+     * Returns the active tax Zone and the tax country of the Order, from the configured
+     * {@link TaxZoneStrategy}. The country is resolved on every call, so that it always reflects
+     * the current state of the Order.
+     *
+     * @internal
+     */
+    async determineTaxTarget(
+        ctx: RequestContext,
+        order: Order,
+    ): Promise<{ zone: Zone; countryCode: string | undefined }> {
+        const { taxZoneStrategy } = this.configService.taxOptions;
+        const zones = await this.zoneService.getAllWithMembers(ctx);
+        const zone = await this.requestContextCache.get(
+            ctx,
+            CacheKey.ActiveTaxZone(ctx.channelId, order.id),
+            () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
+        );
+        if (!zone) {
+            throw new InternalServerError('error.no-active-tax-zone');
+        }
+        const countryCode = await resolveTaxCountryCode(taxZoneStrategy, ctx, ctx.channel, zone, order);
+        return { zone, countryCode };
+    }
+
+    /**
+     * @description
+     * Whether the tax Zone or the tax country differs from the one the Order was last calculated
+     * with. An Order whose `taxCountryCode` is still `null` was calculated before the field existed,
+     * so only its Zone is compared.
+     */
+    private taxTargetChanged(order: Order, zone: Zone, countryCode: string | undefined): boolean {
+        if (!order.taxZoneId || !idsAreEqual(order.taxZoneId, zone.id)) {
+            return true;
+        }
+        return order.taxCountryCode != null && order.taxCountryCode !== (countryCode ?? '');
+    }
+
+    /**
+     * @description
+     * Whether the tax Zone or the tax country of an Order which has been calculated before has
+     * changed since then, so that every OrderLine must be priced again. An Order which has not been
+     * calculated yet, such as a new seller Order, keeps the prices of its lines.
+     *
+     * @internal
+     */
+    async taxTargetChangedSinceLastCalculation(ctx: RequestContext, order: Order): Promise<boolean> {
+        if (order.taxZoneId == null) {
+            return false;
+        }
+        const { zone, countryCode } = await this.determineTaxTarget(ctx, order);
+        return this.taxTargetChanged(order, zone, countryCode);
+    }
+
+    /**
+     * @description
+     * Converts the `initialListPrice` of a line to the form of its new price, when a change of the
+     * tax Zone or country turns a tax-inclusive price into a net price, or back. The net price is
+     * taken out at the rate that the Channel's prices include, as
+     * {@link DefaultProductVariantPriceCalculationStrategy} does. A gross price which nets out to
+     * the recorded net price is unchanged, so rounding does not count as a price change. When the
+     * merchant has changed the price, converting a net price back to gross can differ from the
+     * gross price the line was added at by one unit of rounding.
+     *
+     * A custom {@link ProductVariantPriceCalculationStrategy} that takes the net out at another
+     * rate makes the converted price differ from the new one, so the
+     * {@link ChangedPriceHandlingStrategy} is called for the line as for a price change.
+     *
+     * @internal
+     */
+    async convertInitialListPrice(
+        ctx: RequestContext,
+        line: OrderLine,
+        newPrice: { price: number; priceIncludesTax: boolean },
+    ): Promise<void> {
+        const initialListPrice = line.initialListPrice;
+        if (initialListPrice == null || line.listPriceIncludesTax === newPrice.priceIncludesTax) {
+            return;
+        }
+        const includedRate = await this.taxRateService.getApplicableTaxRate(
+            ctx,
+            ctx.channel.defaultTaxZone,
+            line.taxCategoryId,
+        );
+        if (newPrice.priceIncludesTax) {
+            const unchanged = roundMoney(includedRate.netPriceOf(newPrice.price)) === initialListPrice;
+            line.initialListPrice = unchanged
+                ? newPrice.price
+                : roundMoney(includedRate.grossPriceOf(initialListPrice));
+        } else {
+            line.initialListPrice = roundMoney(includedRate.netPriceOf(initialListPrice));
+        }
+    }
+
+    /**
+     * @description
      * Applies the correct TaxRate to each OrderLine in the order.
      */
-    private async applyTaxes(ctx: RequestContext, order: Order, activeZone: Zone) {
-        const getTaxRate = this.createTaxRateGetter(ctx, activeZone, getTaxCountryCode(order));
+    private async applyTaxes(ctx: RequestContext, order: Order, activeZone: Zone, countryCode?: string) {
+        const getTaxRate = this.createTaxRateGetter(ctx, activeZone, countryCode);
         for (const line of order.lines) {
             await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate);
         }

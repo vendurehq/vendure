@@ -1238,8 +1238,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed ShippingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1262,8 +1262,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed BillingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1286,8 +1286,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed ShippingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1310,8 +1310,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed BillingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -2608,6 +2608,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (!fullOrder.lines.length) {
             return order;
         }
+        // The tax Zone can depend on the Customer, as for a B2B reverse charge
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
     }
 
@@ -2749,6 +2752,14 @@ export class OrderService implements OnApplicationBootstrap {
             updatedOrderLines = order.lines;
             order.currencyCode = ctx.currencyCode;
         }
+        // In a Channel whose prices include tax, the net price of a line depends on the tax Zone and
+        // country, so when either changes, every OrderLine is priced again, not only the edited ones.
+        const taxTargetChanged =
+            ctx.channel.pricesIncludeTax &&
+            (await this.orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order));
+        if (taxTargetChanged) {
+            updatedOrderLines = order.lines;
+        }
 
         if (updatedOrderLines?.length) {
             const { orderItemPriceCalculationStrategy, changedPriceHandlingStrategy } =
@@ -2771,6 +2782,12 @@ export class OrderService implements OnApplicationBootstrap {
                 if (!priceResult) {
                     // No price for the buyer now: the line keeps its current price
                     continue;
+                }
+                if (taxTargetChanged && !currencyChanged) {
+                    // The new tax target can turn a gross price into a net one, or back. The price
+                    // the line was added at is converted the same way, so that only a change by the
+                    // merchant reaches the ChangedPriceHandlingStrategy.
+                    await this.orderCalculator.convertInitialListPrice(ctx, updatedOrderLine, priceResult);
                 }
                 const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
                 if (initialListPrice !== priceResult.price) {
