@@ -66,10 +66,11 @@ describe('copy for agent', () => {
 
     it('copies the report as JSON, followed by the vendure explain command', () => {
         const report = toAgentErrorReport(requestError(extensions), UPDATE_PRODUCT_DOCUMENT)!;
-        const [json, command] = formatAgentErrorReport(report).split('\n\n');
+        const parts = formatAgentErrorReport(report).split('\n\n');
 
-        expect(JSON.parse(json)).toEqual(report);
-        expect(command).toBe(`vendure explain ${report.requestId}\n`);
+        expect(parts).toHaveLength(2);
+        expect(JSON.parse(parts[0])).toEqual(report);
+        expect(parts[1]).toBe('npx vendure explain req-1 --json\n');
     });
 
     it('offers a recorded error only to a toast that shows its message, once, while it is recent', () => {
