@@ -93,7 +93,7 @@ export interface SetupChecklistState {
 export function useSetupChecklist(open: boolean, onClose?: () => void): SetupChecklistState {
     const { activeChannel } = useChannel();
     const { hasPermissions } = usePermissions();
-    const { settings, setHasSeenOnboarding } = useUserSettings();
+    const { settings, settingsReady, setHasSeenOnboarding } = useUserSettings();
     const channelId = activeChannel?.id;
     const [hiddenChannels, setHiddenChannels] = useState<string[]>([]);
     const hiddenForSession = channelId
@@ -116,12 +116,19 @@ export function useSetupChecklist(open: boolean, onClose?: () => void): SetupChe
 
     const report = data?.storeReadiness;
     const hasFindings = !!report && report.findings.length > 0;
+    // Until the stored settings load, `hasSeenOnboarding` is the local copy or the default.
     const shownByItself =
-        !!report && hasFindings && !hiddenForSession && (!settings.hasSeenOnboarding || !report.ready);
+        !!report &&
+        hasFindings &&
+        !hiddenForSession &&
+        (!report.ready || (settingsReady && !settings.hasSeenOnboarding));
     const visible = canRead && !!channelId && (open || shownByItself);
 
     const dismiss = () => {
-        setHasSeenOnboarding(true);
+        // Set before the stored settings load, the flag would be replaced by the stored value.
+        if (settingsReady) {
+            setHasSeenOnboarding(true);
+        }
         if (channelId && report && !report.ready) {
             hideForSession(channelId);
             setHiddenChannels(channels => [...channels, channelId]);
