@@ -1,4 +1,5 @@
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
+import { INCLUDE_STACK_IN_ERRORS_ENV_VAR } from '@vendure/common/lib/shared-constants';
 import { chmodSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -77,7 +78,7 @@ describe('DevRun', () => {
             PATH: '/usr/bin',
             VENDURE_PROCESS: 'server',
             VENDURE_LOG_FORMAT: 'json',
-            VENDURE_INCLUDE_STACK_IN_ERRORS: 'true',
+            [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: 'true',
             [LOCAL_TRUST_SECRET_ENV_VAR]: 'run-secret',
         });
         expect(run.childEnv('worker', shell)).toEqual({

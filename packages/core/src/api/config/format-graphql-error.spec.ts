@@ -1,3 +1,4 @@
+import { INCLUDE_STACK_IN_ERRORS_ENV_VAR } from '@vendure/common/lib/shared-constants';
 import { GraphQLError } from 'graphql';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -87,14 +88,19 @@ describe('createFormatGraphQLError()', () => {
 });
 
 describe('shouldIncludeStackInErrors()', () => {
-    it('is on when the option is on or vendure dev set the variable', () => {
+    it('is on when the option is on, or is not set and vendure dev set the variable', () => {
         expect(shouldIncludeStackInErrors(true, {})).toBe(true);
-        expect(shouldIncludeStackInErrors(false, { VENDURE_INCLUDE_STACK_IN_ERRORS: 'true' })).toBe(true);
-        expect(shouldIncludeStackInErrors(undefined, { VENDURE_INCLUDE_STACK_IN_ERRORS: 'true' })).toBe(true);
+        expect(shouldIncludeStackInErrors(undefined, { [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: 'true' })).toBe(
+            true,
+        );
+    });
+
+    it('lets an explicit false win over the variable', () => {
+        expect(shouldIncludeStackInErrors(false, { [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: 'true' })).toBe(false);
     });
 
     it('is off otherwise', () => {
-        expect(shouldIncludeStackInErrors(false, {})).toBe(false);
-        expect(shouldIncludeStackInErrors(undefined, { VENDURE_INCLUDE_STACK_IN_ERRORS: '1' })).toBe(false);
+        expect(shouldIncludeStackInErrors(undefined, {})).toBe(false);
+        expect(shouldIncludeStackInErrors(undefined, { [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: '1' })).toBe(false);
     });
 });

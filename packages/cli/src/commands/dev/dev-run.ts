@@ -1,5 +1,6 @@
 import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import { LogLine, StartupErrorEvent } from '@vendure/common/lib/log';
+import { INCLUDE_STACK_IN_ERRORS_ENV_VAR } from '@vendure/common/lib/shared-constants';
 import pc from 'picocolors';
 
 import { withoutLocalTrustSecret } from '../../shared/local-trust-env.js';
@@ -146,9 +147,9 @@ export class DevRun {
             env.VENDURE_LOG_FORMAT = 'json';
         }
         if (target === 'server') {
-            // GraphQL errors carry their stack, trimmed to the project's frames, as with
-            // `apiOptions.includeStackInErrors` in @vendure/core.
-            env.VENDURE_INCLUDE_STACK_IN_ERRORS = 'true';
+            // GraphQL errors carry their stack, trimmed to the project's frames, unless the
+            // project set `apiOptions.includeStackInErrors` itself.
+            env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] = 'true';
         }
         if (target === 'server' && this.stateFile) {
             env[LOCAL_TRUST_SECRET_ENV_VAR] = this.secret;

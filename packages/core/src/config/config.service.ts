@@ -36,7 +36,7 @@ export class ConfigService implements VendureConfig {
         }
     }
 
-    get apiOptions(): Required<ApiOptions> {
+    get apiOptions(): RuntimeVendureConfig['apiOptions'] {
         return this.activeConfig.apiOptions;
     }
 

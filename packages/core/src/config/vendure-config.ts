@@ -294,11 +294,12 @@ export interface ApiOptions {
      *
      * This is meant for local development only, so that a developer or a coding agent can see where an
      * error was thrown. The frames name the project's files and functions, so this must stay off on any
-     * server which untrusted callers can reach, including staging servers. When it is off, no error
-     * response carries a stack, whatever `NODE_ENV` is set to.
+     * server which untrusted callers can reach, including staging servers. When it is `false`, no error
+     * response carries a stack, whatever `NODE_ENV` or any environment variable is set to.
      *
-     * The `VENDURE_INCLUDE_STACK_IN_ERRORS=true` environment variable also turns it on. `vendure dev`
-     * sets it for the server it starts, so stacks show in local development without a config change.
+     * When it is not set, the `VENDURE_INCLUDE_STACK_IN_ERRORS` environment variable decides: stacks are
+     * added when it is `true`. `vendure dev` sets it for the server it starts, so stacks show in local
+     * development without a config change.
      *
      * @example
      * ```ts
@@ -308,7 +309,7 @@ export interface ApiOptions {
      * }
      * ```
      *
-     * @default false
+     * @default undefined, which is off unless `VENDURE_INCLUDE_STACK_IN_ERRORS` is `true`
      * @since 4.0.0
      */
     includeStackInErrors?: boolean;
@@ -1566,7 +1567,8 @@ export interface VendureConfig {
  * @docsCategory configuration
  */
 export interface RuntimeVendureConfig extends Required<VendureConfig> {
-    apiOptions: Required<ApiOptions>;
+    // `includeStackInErrors` stays optional: when it is not set, an environment variable decides.
+    apiOptions: Required<Omit<ApiOptions, 'includeStackInErrors'>> & Pick<ApiOptions, 'includeStackInErrors'>;
     assetOptions: Required<AssetOptions>;
     authOptions: Required<AuthOptions>;
     catalogOptions: Required<CatalogOptions>;
