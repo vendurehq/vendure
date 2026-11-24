@@ -498,6 +498,12 @@ In this example we're defining a resolver for the `product` field of the `Wishli
 `@ResolveField()` decorator is used to mark a method as a field resolver. The method name should match the name of the
 field in the GraphQL schema, or if the method name is different, a name can be provided as an argument to the decorator.
 
+The `IdInterceptor` that decodes ID arguments does not run for field resolvers. If your field resolver has arguments
+that contain IDs, such as list options with a filter on `id`, inject the `IdArgumentDecoder` and call
+`this.idArgumentDecoder.decode(info, args)` to decode them as per the configured `EntityIdStrategy`. The
+`PluginCommonModule` provides the `IdArgumentDecoder`, so your plugin must have `imports: [PluginCommonModule]`, as most
+plugins already do.
+
 ## REST endpoints
 
 Although Vendure is primarily a GraphQL-based API, it is possible to add REST endpoints to the API. This is useful if
