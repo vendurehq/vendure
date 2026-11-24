@@ -302,6 +302,11 @@ describe('storeReadiness', () => {
                 }
             }
         `;
+        const createdRateIds: string[] = [];
+        const createTaxRate = async (input: Record<string, unknown>) => {
+            const { createTaxRate: rate } = await adminClient.query(CREATE_TAX_RATE, { input });
+            createdRateIds.push(rate.id);
+        };
         const inclusiveFindings = async () =>
             (await check()).findings.filter(
                 f =>
@@ -341,25 +346,21 @@ describe('storeReadiness', () => {
             expect(`T_${String(fixInput.taxCategoryId)}`).toBe(createTaxCategory.id);
 
             // A country rate inside the default tax zone does not tell core which rate the price includes.
-            await adminClient.query(CREATE_TAX_RATE, {
-                input: {
-                    name: 'Inclusive test country',
-                    value: 20,
-                    enabled: true,
-                    categoryId: createTaxCategory.id,
-                    regionId: defaultTaxZone.members[0].id,
-                },
+            await createTaxRate({
+                name: 'Inclusive test country',
+                value: 20,
+                enabled: true,
+                categoryId: createTaxCategory.id,
+                regionId: defaultTaxZone.members[0].id,
             });
             expect(await inclusiveFindings()).toHaveLength(1);
 
-            await adminClient.query(CREATE_TAX_RATE, {
-                input: {
-                    name: 'Inclusive test zone',
-                    value: 20,
-                    enabled: true,
-                    categoryId: createTaxCategory.id,
-                    zoneId: defaultTaxZone.id,
-                },
+            await createTaxRate({
+                name: 'Inclusive test zone',
+                value: 20,
+                enabled: true,
+                categoryId: createTaxCategory.id,
+                zoneId: defaultTaxZone.id,
             });
             expect(await inclusiveFindings()).toEqual([]);
         } finally {
@@ -369,6 +370,28 @@ describe('storeReadiness', () => {
             await adminClient.query(UPDATE_VARIANT, {
                 input: [{ id: variant.id, taxCategoryId: variant.taxCategory.id }],
             });
+            for (const id of createdRateIds) {
+                await adminClient.query(
+                    gql`
+                        mutation ($id: ID!) {
+                            deleteTaxRate(id: $id) {
+                                result
+                            }
+                        }
+                    `,
+                    { id },
+                );
+            }
+            await adminClient.query(
+                gql`
+                    mutation ($id: ID!) {
+                        deleteTaxCategory(id: $id) {
+                            result
+                        }
+                    }
+                `,
+                { id: createTaxCategory.id },
+            );
         }
     });
 
