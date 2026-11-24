@@ -1,5 +1,7 @@
 import { fail } from '@vendure/common/lib/command';
 import fs from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,6 +14,7 @@ import {
     behaviorOf,
     parseStoreBody,
     SendToStore,
+    sendToStore,
     StoreResponse,
     withDeveloperMcpCall,
 } from './admin-proxy.js';
@@ -262,20 +265,11 @@ describe('AdminProxy', () => {
         expect(store.sent).toEqual([]);
     });
 
-    it('checks that the run is alive once for a call, and sends to the target it resolved', async () => {
+    it('sends a call to the target it resolved from the state', async () => {
         const store = fakeStore();
-        let checks = 0;
-        const proxy = proxyWith(
-            store.send,
-            () => state(),
-            () => {
-                checks++;
-                return true;
-            },
-        );
+        const proxy = proxyWith(store.send);
         await proxy.call('admin_list_channels', {}, signal());
-        expect(checks).toBe(1);
-        expect(store.sent.map(r => r.target.url)).toEqual([MCP_URL]);
+        expect(store.sent.map(r => r.target)).toEqual([{ url: MCP_URL, secret: 'secret-1' }]);
     });
 
     it('reports the tools as unavailable outside a project', () => {
@@ -553,5 +547,40 @@ describe('withDeveloperMcpCall', () => {
     it('leaves other results alone', () => {
         const ok = { content: [], structuredContent: { result: 'DELETED' } };
         expect(withDeveloperMcpCall(ok, 'admin_delete_zone', undefined)).toBe(ok);
+    });
+});
+
+describe('sendToStore', () => {
+    it('posts to the target with its secret, the channel header and the protocol version', async () => {
+        const received: Array<{ url?: string; headers: http.IncomingHttpHeaders; body: string }> = [];
+        const server = http.createServer((req, res) => {
+            let body = '';
+            req.on('data', chunk => (body += String(chunk)));
+            req.on('end', () => {
+                received.push({ url: req.url, headers: req.headers, body });
+                res.setHeader('content-type', 'application/json');
+                res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { tools: [] } }));
+            });
+        });
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+        const { port } = server.address() as AddressInfo;
+        try {
+            const message = { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} };
+            const response = await sendToStore(
+                { url: `http://127.0.0.1:${port}/mcp/admin`, secret: 'run-secret' },
+                message,
+                { 'vendure-token': 'eu' },
+                signal(),
+            );
+            expect(response).toEqual({ status: 200, body: { jsonrpc: '2.0', id: 1, result: { tools: [] } } });
+            expect(received).toHaveLength(1);
+            expect(received[0].url).toBe('/mcp/admin');
+            expect(received[0].headers.authorization).toBe('Bearer run-secret');
+            expect(received[0].headers['vendure-token']).toBe('eu');
+            expect(received[0].headers['mcp-protocol-version']).toBeDefined();
+            expect(JSON.parse(received[0].body)).toEqual(message);
+        } finally {
+            await new Promise(resolve => server.close(resolve));
+        }
     });
 });

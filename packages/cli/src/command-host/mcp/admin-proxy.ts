@@ -16,6 +16,7 @@ import {
 import {
     checkReadyState,
     localAdminApiErrorList,
+    localAdminApiErrors,
     LocalAdminTarget,
     sendToLocalAdminTarget,
     toLocalAdminTarget,
@@ -79,7 +80,7 @@ export interface StoreResponse {
 /**
  * Sends one JSON-RPC message to the Store MCP's admin endpoint of the project's running dev
  * server, with the run's local-trust secret as the bearer token and the given extra headers.
- * Returns a coded error when no ready run serves the project or it cannot be reached.
+ * Returns `devserver.unreachable` when the server at the target cannot be reached.
  */
 export type SendToStore = (
     target: LocalAdminTarget,
@@ -351,8 +352,8 @@ export class AdminProxy {
             };
         }
         if (isErrorResult(response)) {
-            // The run stopped since the state was read, or the server cannot be reached. A dev
-            // server that crashed leaves its state file behind, so look again.
+            // The server at the target cannot be reached. A dev server that crashed leaves its state
+            // file behind, so look again.
             this.checkForChange();
             return { ok: false, error: envelopeOf(response) };
         }
@@ -422,18 +423,21 @@ export class AdminProxy {
         } catch {
             state = undefined;
         }
-        // The checks of the local Admin API helper, on the state read here, which also gives the key
-        // that tells one run, and one restart of it, from another.
+        // The local Admin API helper checks the state. This method reads the state itself, because
+        // the key that tells one run, and one restart of it, from another also comes from it.
         const ready = checkReadyState(state, this.isAlive);
         if (isErrorResult(ready)) {
             const key = state ? `${state.status}:${state.startedAt}:${state.restarts}` : 'stopped';
-            return unavailable(ready.code === 'devserver.not-running' ? 'stopped' : key, envelopeOf(ready));
+            return unavailable(
+                ready.code === localAdminApiErrors.notRunning.code ? 'stopped' : key,
+                envelopeOf(ready),
+            );
         }
         const target = toLocalAdminTarget(ready, 'mcp-admin');
         if (isErrorResult(target)) {
             // The plugin logs its endpoint only when local trust is on, so a missing one names that fix.
             const error =
-                target.code === 'devserver.endpoint-unknown'
+                target.code === localAdminApiErrors.endpointUnknown.code
                     ? errorEnvelope(adminToolsErrors.storeMcpMissing, {})
                     : envelopeOf(target);
             return unavailable(`no-mcp:${ready.startedAt}:${ready.restarts}`, error);
@@ -456,10 +460,10 @@ function errorEnvelope<Details>(error: CommandErrorDefinition<Details>, details:
 
 /** Errors after which a write is known not to have run. */
 const NOT_SENT_CODES = new Set([
-    'devserver.not-running',
-    'devserver.not-ready',
-    'devserver.endpoint-unknown',
-    'devserver.endpoint-not-local',
+    localAdminApiErrors.notRunning.code,
+    localAdminApiErrors.notReady.code,
+    localAdminApiErrors.endpointUnknown.code,
+    localAdminApiErrors.endpointNotLocal.code,
     'mcp.admin-tools.store-mcp-missing',
     'mcp.admin-tools.channel-refused',
     'mcp.admin-tools.store-timed-out',
