@@ -13,10 +13,14 @@ the workspace root.
 - `.env`, `.env.*` and other files that hold environment values
 - Credential and key files, and the CLI login file `auth.json`
   (`~/.config/vendure` or `VENDURE_CLI_CONFIG_DIR`)
-- Files in `.vendure/` other than `project.json`
+- Files in `.vendure/` other than `project.json`. The one exception is
+  `logs/devserver.log`, which you may read when `vendure devserver start`
+  fails.
 - Database contents. Do not run queries.
-- Logs and stack traces, unless the user gives them to you. Remove host
-  names, user names, tokens and connection strings before you send them.
+- Logs and stack traces, other than through `vendure devserver logs` and
+  `vendure explain`, or when the user gives them to you.
+- Logs and stack traces that still hold host names, user names, tokens or
+  connection strings. Remove them before you send any log or stack.
 - Values from `vendure-config.ts`. You can read the file to find plugin class
   names, but do not copy option values. The file can contain inline secrets.
 
