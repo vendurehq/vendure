@@ -207,6 +207,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         ],
         queryFn: () => api.query(previewRefundLineTotalDocument, { orderId: order.id, lines: quotedLines }),
         enabled: needsQuote,
+        // A quote for the previous selection must not be submitted while the new one is pending.
+        placeholderData: undefined,
     });
     const quotedAmount = needsQuote ? quote.data?.previewRefundLineTotal : 0;
     const calculatedTotal =
