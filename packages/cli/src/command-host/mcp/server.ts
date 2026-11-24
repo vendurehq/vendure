@@ -3,7 +3,7 @@ import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import readline from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 
-import { ADMIN_TOOL_PREFIX, AdminProxy, toolResult, withDeveloperMcpCall } from './admin-proxy.js';
+import { ADMIN_TOOL_PREFIX, AdminProxy, AdminTool, toolResult, withDeveloperMcpCall } from './admin-proxy.js';
 import { runToolInChild } from './run-tool-in-child.js';
 
 const SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
@@ -214,7 +214,7 @@ export class McpServer {
 
     private async listTools(): Promise<object[]> {
         if (this.options.mode === 'direct') {
-            const adminTools = (await this.options.adminTools?.tools()) ?? [];
+            const adminTools = await this.listAdminTools();
             return [
                 ...this.commands.map(command => ({
                     name: toolName(command),
@@ -269,7 +269,7 @@ export class McpServer {
 
     private async search(query: string, limit: number): Promise<object[]> {
         const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-        const adminTools = (await this.options.adminTools?.tools()) ?? [];
+        const adminTools = await this.listAdminTools();
         const entries: SearchEntry[] = [
             ...this.commands.map(command => ({
                 name: toolName(command),
@@ -409,6 +409,12 @@ export class McpServer {
         }
     }
 
+    /** The admin tools of the dev server, without those whose name a command already has. */
+    private async listAdminTools(): Promise<AdminTool[]> {
+        const tools = (await this.options.adminTools?.tools()) ?? [];
+        return tools.filter(tool => !this.byName.has(tool.name));
+    }
+
     /** Whether a tool name is a proxied admin tool. A command of the same name wins. */
     private isAdminToolName(name: unknown): boolean {
         return (
@@ -455,7 +461,8 @@ export class McpServer {
                 );
                 return;
             }
-            const execute = () => proxy.call(name, input, controller.signal);
+            const execute = () =>
+                proxy.call(name, input, controller.signal, { readonly: tool.behavior === 'readonly' });
             const result = await (tool.behavior === 'readonly' ? execute() : this.writes.run(execute));
             if (!controller.signal.aborted) {
                 this.reply(

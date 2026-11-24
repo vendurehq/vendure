@@ -17,10 +17,9 @@ export const adminToolsErrors = {
         code: 'mcp.admin-tools.store-mcp-missing',
         exit: 1,
         message: () =>
-            'The dev server does not serve the Store MCP to the Developer MCP. Add ' +
-            "McpPlugin.init({ oauth: {}, shopAccess: 'anonymous' }) from @vendure/mcp-plugin to the " +
-            'plugins in vendure-config.ts, and leave its localTrust option on. The tool list updates ' +
-            'when the dev server restarts.',
+            'The dev server does not serve the Store MCP to the Developer MCP. Add McpPlugin.init() from ' +
+            '@vendure/mcp-plugin to the plugins in vendure-config.ts, and do not set its localTrust option ' +
+            'to false. The tool list updates when the dev server restarts.',
     }),
     storeUnreachable: defineError<{ reason: string }>({
         code: 'mcp.admin-tools.store-unreachable',

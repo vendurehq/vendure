@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DevServerState } from '../../commands/dev/state-file.js';
+import { DevServerState, getDevServerStateFilePath } from '../../commands/dev/state-file.js';
 import { localAdminApiErrors } from '../../shared/local-admin-api.js';
 
 import {
@@ -248,7 +248,8 @@ describe('AdminProxy', () => {
         expect(await proxy.tools()).toEqual([]);
         const error = proxy.unavailable()?.error;
         expect(error?.code).toBe('mcp.admin-tools.store-mcp-missing');
-        expect(error?.message).toContain('McpPlugin');
+        expect(error?.message).toContain('McpPlugin.init()');
+        expect(error?.message).not.toContain('oauth');
     });
 
     it('reports the tools as unavailable outside a project', () => {
@@ -320,6 +321,45 @@ describe('AdminProxy', () => {
         const result: any = await proxy.call('admin_create_zone', {}, signal());
         expect(result.structuredContent.error.code).toBe('mcp.admin-tools.store-timed-out');
         expect(result.structuredContent.error.message).toContain('may still have run');
+    });
+
+    it('warns that a write may have run when the connection dropped', async () => {
+        const proxy = proxyWith(async () =>
+            fail(localAdminApiErrors.unreachable, {
+                url: 'http://localhost:3000/mcp/admin',
+                message: 'ECONNRESET',
+            }),
+        );
+        const write: any = await proxy.call('admin_create_zone', {}, signal());
+        expect(write.structuredContent.notices[0].message).toContain('may still have run');
+        const read: any = await proxy.call('admin_list_channels', {}, signal(), { readonly: true });
+        expect(read.structuredContent.notices).toEqual([]);
+    });
+
+    it('does not warn when the dev server refused the connection', async () => {
+        const proxy = proxyWith(async () =>
+            fail(localAdminApiErrors.unreachable, {
+                url: 'http://localhost:3000/mcp/admin',
+                message: 'ECONNREFUSED',
+            }),
+        );
+        const write: any = await proxy.call('admin_create_zone', {}, signal());
+        expect(write.structuredContent.notices).toEqual([]);
+    });
+
+    it('reads the tool list with a short timeout, and calls tools with a long one', async () => {
+        const timeouts: Array<[string, number | undefined]> = [];
+        const store = fakeStore();
+        const proxy = proxyWith(async (dir, message: any, headers, sig, timeoutMs) => {
+            timeouts.push([message.method, timeoutMs]);
+            return store.send(dir, message, headers, sig);
+        });
+        await proxy.tools();
+        await proxy.call('admin_list_channels', {}, signal());
+        expect(timeouts).toEqual([
+            ['tools/list', 5000],
+            ['tools/call', 60000],
+        ]);
     });
 
     it('tells listeners when the tool list can be read after it failed', async () => {
@@ -397,8 +437,8 @@ describe('AdminProxy', () => {
             proxy.onListChanged(() => changes++);
             proxy.watch();
             try {
-                const stateFile = path.join(projectDir, '.vendure', 'devserver.json');
-                fs.mkdirSync(path.dirname(stateFile));
+                const stateFile = getDevServerStateFilePath(projectDir);
+                fs.mkdirSync(path.dirname(stateFile), { recursive: true });
                 fs.writeFileSync(stateFile, JSON.stringify(state()), { mode: 0o600 });
                 await waitFor(() => changes === 1);
                 expect(proxy.unavailable()).toBeUndefined();
@@ -479,7 +519,9 @@ describe('withDeveloperMcpCall', () => {
 
     it('names the executor in discovery mode', () => {
         const result: any = withDeveloperMcpCall(incomplete, 'admin_delete_zone', 'execute_destructive');
-        expect(result.content[1].text).toContain('call execute_destructive with "tool": "admin_delete_zone"');
+        expect(result.content[1].text).toContain(
+            'call execute_destructive with "tool": "admin_delete_zone" and "input": the same input plus "confirm"',
+        );
     });
 
     it('leaves other results alone', () => {

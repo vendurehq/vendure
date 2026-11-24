@@ -367,6 +367,18 @@ describe('Local trust on a dev server the CLI started', () => {
             await postMcp(baseUrl, 'admin', callTool('list_channels', {}, 2), asLocal);
             expect(String(await channelOfLastCall())).not.toBe(String(secondChannelId));
         });
+
+        // The Developer MCP clears its active channel when the server refuses the token with this
+        // message (packages/cli/src/command-host/mcp/admin-proxy.ts), so a reword must change both.
+        // With one channel, core falls back to it for any token; the test above adds a second.
+        it('refuses an unknown channel token with a 400 that names the sales channel', async () => {
+            const refused = await postMcp(baseUrl, 'admin', callTool('list_channels'), {
+                ...asLocal,
+                headers: { 'vendure-token': 'no-such-channel-token' },
+            });
+            expect(refused.status).toBe(400);
+            expect(refused.body.message).toMatch(/sales channel/);
+        });
     });
 
     describe('the tool-call log', () => {

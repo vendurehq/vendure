@@ -43,8 +43,11 @@ const ALIVE_CHECK_TTL_MS = 1000;
 /** How often the state file is checked for a start or stop of the dev server. */
 const WATCH_INTERVAL_MS = 1000;
 
-/** How long one call to the Store MCP may take. */
+/** How long one tool call to the Store MCP may take. */
 const REQUEST_TIMEOUT_MS = 60_000;
+
+/** How long reading the tool list may take. The CLI's own tools are listed only after it. */
+const LIST_TIMEOUT_MS = 5_000;
 
 /** The protocol version sent on each stateless request to the Store MCP. */
 const STORE_PROTOCOL_VERSION = '2025-11-25';
@@ -81,6 +84,7 @@ export type SendToStore = (
     message: object,
     headers: Record<string, string>,
     signal: AbortSignal,
+    timeoutMs?: number,
 ) => Promise<StoreResponse | ErrorResult>;
 
 export interface AdminProxyOptions {
@@ -268,7 +272,12 @@ export class AdminProxy {
      * Calls a tool of the Store MCP by its `admin_*` name and returns the MCP tool result as the
      * Store MCP sent it. When the call cannot be made, the result is a coded error with fixes.
      */
-    async call(name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<object> {
+    async call(
+        name: string,
+        args: Record<string, unknown>,
+        signal: AbortSignal,
+        options: { readonly?: boolean } = {},
+    ): Promise<object> {
         const availability = this.availability();
         if (!availability.available) {
             return toolResult(availability.error);
@@ -281,7 +290,7 @@ export class AdminProxy {
             signal,
         );
         if (!response.ok) {
-            return toolResult(response.error);
+            return toolResult(options.readonly ? response.error : withMayHaveRun(response.error));
         }
         const result = response.result as { structuredContent?: any; isError?: boolean } | undefined;
         this.rememberChannel(storeName, result);
@@ -317,9 +326,10 @@ export class AdminProxy {
             headers[this.channelHeader] = this.channelToken;
         }
         const message = { jsonrpc: '2.0', id: 1, method, params };
+        const timeoutMs = method === 'tools/list' ? LIST_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
         let response: StoreResponse | ErrorResult;
         try {
-            response = await this.send(projectDir, message, headers, signal);
+            response = await this.send(projectDir, message, headers, signal, timeoutMs);
         } catch (e) {
             if (signal.aborted) {
                 throw e;
@@ -329,7 +339,7 @@ export class AdminProxy {
                 return {
                     ok: false,
                     error: errorEnvelope(adminToolsErrors.storeTimedOut, {
-                        seconds: REQUEST_TIMEOUT_MS / 1000,
+                        seconds: timeoutMs / 1000,
                     }),
                 };
             }
@@ -379,11 +389,20 @@ export class AdminProxy {
                 }),
             };
         }
-        if (response.status < 200 || response.status >= 300 || !response.body) {
+        if (response.status < 200 || response.status >= 300) {
             return {
                 ok: false,
                 error: errorEnvelope(adminToolsErrors.storeRefused, {
                     message: `HTTP ${response.status}`,
+                }),
+            };
+        }
+        if (!response.body) {
+            // The server answered, so the call may have run.
+            return {
+                ok: false,
+                error: errorEnvelope(adminToolsErrors.storeUnreachable, {
+                    reason: 'its answer could not be read',
                 }),
             };
         }
@@ -439,6 +458,40 @@ function errorEnvelope<Details>(error: CommandErrorDefinition<Details>, details:
     return errorResult(error, details).envelope;
 }
 
+/** Errors after which a write is known not to have run. */
+const NOT_SENT_CODES = new Set([
+    'devserver.not-running',
+    'devserver.not-ready',
+    'devserver.endpoint-unknown',
+    'devserver.endpoint-not-local',
+    'mcp.admin-tools.store-mcp-missing',
+    'mcp.admin-tools.channel-refused',
+    'mcp.admin-tools.store-timed-out',
+]);
+
+/**
+ * Adds a warning to the error of a write that may have reached the server, such as a connection
+ * that dropped during a restart, so the agent checks before it calls again.
+ */
+function withMayHaveRun(envelope: CommandEnvelope): CommandEnvelope {
+    const code = envelope.error?.code ?? '';
+    const refused = /ECONNREFUSED/.test(envelope.error?.message ?? '');
+    if (NOT_SENT_CODES.has(code) || refused || code === 'mcp.admin-tools.store-refused') {
+        return envelope;
+    }
+    return {
+        ...envelope,
+        notices: [
+            ...envelope.notices,
+            {
+                level: 'warning',
+                message:
+                    'The call may still have run. Check its effect with a read-only tool before you call it again.',
+            },
+        ],
+    };
+}
+
 /** The envelope of a coded error from the local Admin API helper. */
 function envelopeOf(result: ErrorResult): CommandEnvelope {
     const definition = localAdminApiErrorList.find(error => error.code === result.code) as
@@ -489,10 +542,16 @@ export function behaviorOf(annotations: Record<string, unknown>): AdminTool['beh
  * Posts one JSON-RPC message to the Store MCP's admin endpoint through the local Admin API helper,
  * which sends the run's secret. The endpoint is stateless, so no `initialize` comes first.
  */
-export const sendToStore: SendToStore = async (projectDir, message, headers, signal) => {
+export const sendToStore: SendToStore = async (
+    projectDir,
+    message,
+    headers,
+    signal,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+) => {
     const response = await sendLocalAdminRequest(projectDir, 'mcp-admin', message, {
         headers: { ...headers, 'mcp-protocol-version': STORE_PROTOCOL_VERSION },
-        signal: AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
     });
     if (isErrorResult(response)) {
         return response;
@@ -538,7 +597,7 @@ export function withDeveloperMcpCall(result: any, toolName: string, executor: st
     }
     const field = JSON.stringify(String(consent.consent ?? 'confirm'));
     const call = executor
-        ? `call ${executor} with "tool": "${toolName}" and the same "input" plus ${field}: "<digest>"`
+        ? `call ${executor} with "tool": "${toolName}" and "input": the same input plus ${field}: "<digest>"`
         : `call ${toolName} again with the same arguments plus ${field}: "<digest>"`;
     const note = `In the Developer MCP, to give this consent, ${call}, with the digest from "needs".`;
     return {

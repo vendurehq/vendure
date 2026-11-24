@@ -612,4 +612,15 @@ describe('McpServer with the admin tools of the dev server', () => {
         expect(calls).toEqual([['admin_sync']]);
         await client.close();
     });
+
+    it('lists a command rather than an admin tool of the same name', async () => {
+        const commands = [...COMMANDS, command(['admin_list_zones'])];
+        const client = start(async () => ok(), 'direct', commands, adminProxy());
+        client.send({ id: 1, method: 'tools/list' });
+        const { result } = await client.next();
+        const names = result.tools.map((t: any) => t.name);
+        expect(names.filter((n: string) => n === 'admin_list_zones')).toHaveLength(1);
+        expect(names).toContain('admin_delete_zone');
+        await client.close();
+    });
 });
