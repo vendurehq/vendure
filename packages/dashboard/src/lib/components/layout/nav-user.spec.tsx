@@ -53,7 +53,9 @@ vi.mock('@/vdb/hooks/use-auth.js', () => ({
 }));
 const permissions = vi.hoisted(() => ({ granted: true }));
 vi.mock('@/vdb/hooks/use-permissions.js', () => ({
-    usePermissions: () => ({ hasPermissions: () => permissions.granted }),
+    usePermissions: () => ({
+        hasPermissions: (required: string[]) => permissions.granted && required.includes('ReadSettings'),
+    }),
 }));
 vi.mock('@/vdb/hooks/use-display-locale.js', () => ({
     useDisplayLocale: () => ({ humanReadableLanguage: 'English' }),
@@ -93,7 +95,7 @@ describe('NavUser', () => {
                     <NavUser />
                 </I18nProvider>,
             );
-            expect(markup.includes('Setup')).toBe(shown);
+            expect(/>Setup</.test(markup)).toBe(shown);
         } finally {
             permissions.granted = true;
         }

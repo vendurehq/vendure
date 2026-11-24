@@ -1,5 +1,8 @@
 import { expect, Page, test } from '@playwright/test';
 
+import { LoginPage } from '../../page-objects/login-page.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
+
 test.describe('Dashboard Insights', () => {
     test('should display the insights page', async ({ page }) => {
         await page.goto('/');
@@ -139,5 +142,63 @@ test.describe('Setup checklist', () => {
         // The e2e suite signs in as the superadmin with the default password.
         await expect(checklist.locator('[data-code="store.auth.default-superadmin-password"]')).toBeVisible();
         await expect(checklist).not.toContainText('This server cannot check the store setup.');
+    });
+
+    // #5945 — the storeReadiness query needs ReadSettings, so an administrator without it gets
+    // no card, not even when it is opened from the URL, and no "Setup" item in the user menu
+    test('stays hidden for an administrator without ReadSettings', async ({ page, browser }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const suffix = `${Date.now()}-${Math.round(Math.random() * 1000)}`;
+        const password = 'test-password';
+        const emailAddress = `no-read-settings-${suffix}@test.com`;
+        const { activeChannel } = await client.gql(`query { activeChannel { id } }`);
+        const { createRole } = await client.gql(
+            `mutation ($input: CreateRoleInput!) { createRole(input: $input) { id } }`,
+            {
+                input: {
+                    code: `no-read-settings-${suffix}`,
+                    description: 'Role without ReadSettings',
+                    permissions: ['ReadCatalog', 'ReadOrder'],
+                },
+            },
+        );
+        const { createAdministrator } = await client.gql(
+            `mutation ($input: CreateAdministratorInput!) { createAdministrator(input: $input) { id } }`,
+            {
+                input: {
+                    firstName: 'No',
+                    lastName: 'Settings',
+                    emailAddress,
+                    password,
+                    roleAssignments: [{ roleId: createRole.id, channelId: activeChannel.id }],
+                },
+            },
+        );
+        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        try {
+            const limitedPage = await context.newPage();
+            const loginPage = new LoginPage(limitedPage);
+            await loginPage.goto();
+            await loginPage.login(emailAddress, password);
+            await expect(limitedPage).not.toHaveURL(/\/login/);
+
+            await limitedPage.goto('/?setup=true');
+            await expect(limitedPage.getByTestId('page-heading')).toBeVisible();
+            await limitedPage.waitForLoadState('networkidle');
+            await expect(limitedPage.getByTestId('setup-checklist')).toHaveCount(0);
+
+            await limitedPage.locator('[data-sidebar="footer"] [data-sidebar="menu-button"]').click();
+            await expect(limitedPage.getByRole('menuitem', { name: 'Profile' })).toBeVisible();
+            await expect(limitedPage.getByRole('menuitem', { name: 'Setup' })).toHaveCount(0);
+        } finally {
+            await context.close();
+            await client.gql(`mutation ($ids: [ID!]!) { deleteAdministrators(ids: $ids) { result } }`, {
+                ids: [createAdministrator.id],
+            });
+            await client.gql(`mutation ($ids: [ID!]!) { deleteRoles(ids: $ids) { result } }`, {
+                ids: [createRole.id],
+            });
+        }
     });
 });
