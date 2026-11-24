@@ -1,4 +1,3 @@
-import { getLineRefundAmount } from '@vendure/common/lib/shared-utils';
 import type { ComponentType } from 'react';
 
 import { Order, Payment } from './order-types.js';
@@ -25,6 +24,30 @@ export function getRefundablePayments(payments: Payment[] | undefined | null): R
             refundableAmount,
         };
     });
+}
+
+// Match the server's allocation across cancelled units and the remaining order line.
+function getLineRefundAmount(line: Order['lines'][number], quantity: number, alreadyRefunded: number): number {
+    if (!line.refundPriceParts.length) {
+        return line.proratedUnitPriceWithTax * quantity;
+    }
+    let amount = 0;
+    for (const part of line.refundPriceParts) {
+        if (quantity === 0) break;
+        const skip = Math.min(part.quantity, alreadyRefunded);
+        alreadyRefunded -= skip;
+        const remaining = part.quantity - skip;
+        const take = Math.min(remaining, quantity);
+        if (take > 0) {
+            // Keep the product exact even when the stored amount is near Number.MAX_SAFE_INTEGER.
+            const divisor = BigInt(part.quantity);
+            const priceForQuantity = (count: number) =>
+                Number((BigInt(part.priceWithTax) * BigInt(count) + divisor / BigInt(2)) / divisor);
+            amount += priceForQuantity(remaining) - priceForQuantity(remaining - take);
+            quantity -= take;
+        }
+    }
+    return amount;
 }
 
 /**

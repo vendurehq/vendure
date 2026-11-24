@@ -38,6 +38,24 @@ describe('calculateRefundTotal', () => {
         } as Parameters<typeof calculateRefundTotal>[0];
         expect(calculateRefundTotal(order, { L1: { quantity: 10, cancel: false } }, [])).toBe(9595);
     });
+
+    it('uses the new price of the remaining units after a refund and a promotion', () => {
+        const order = {
+            lines: [
+                {
+                    id: 'L1',
+                    proratedUnitPriceWithTax: 912,
+                    refundPriceParts: [
+                        { priceWithTax: 960, quantity: 1 },
+                        { priceWithTax: 9115, quantity: 10 },
+                    ],
+                },
+            ],
+            payments: [{ refunds: [{ state: 'Settled', lines: [{ orderLineId: 'L1', quantity: 1 }] }] }],
+            shippingLines: [],
+        } as Parameters<typeof calculateRefundTotal>[0];
+        expect(calculateRefundTotal(order, { L1: { quantity: 10, cancel: false } }, [])).toBe(9115);
+    });
 });
 
 describe('mergeRefundTargets', () => {

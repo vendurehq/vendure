@@ -55,11 +55,6 @@ export function viteConfigPlugin({
                 config.build = {
                     ...buildConfig,
                     outDir: normalizedOutDir,
-                    commonjsOptions: {
-                        // Workspace links resolve to packages/common/lib, outside Vite's default filter.
-                        include: [/node_modules/, /\/packages\/common\/lib\//],
-                        ...buildConfig.commonjsOptions,
-                    },
                 };
             }
 
