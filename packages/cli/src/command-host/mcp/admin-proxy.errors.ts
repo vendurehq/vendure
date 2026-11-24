@@ -22,8 +22,8 @@ export const adminToolsErrors = {
             'plugins in vendure-config.ts, and leave its localTrust option on. The tool list updates ' +
             'when the dev server restarts.',
     }),
-    storeRefused: defineError<{ reason: string }>({
-        code: 'mcp.admin-tools.store-refused',
+    storeUnreachable: defineError<{ reason: string }>({
+        code: 'mcp.admin-tools.store-unreachable',
         exit: 1,
         message: ({ reason }) => `The Store MCP of the dev server could not be called: ${reason}.`,
         fix: () => [
@@ -34,12 +34,19 @@ export const adminToolsErrors = {
             },
         ],
     }),
-    storeError: defineError<{ message: string }>({
-        code: 'mcp.admin-tools.store-error',
+    storeTimedOut: defineError<{ seconds: number }>({
+        code: 'mcp.admin-tools.store-timed-out',
         exit: 1,
-        message: ({ message }) => `The Store MCP refused the request: ${message}`,
+        message: ({ seconds }) =>
+            `The Store MCP of the dev server did not answer within ${seconds} seconds. The call may ` +
+            'still have run, so check its effect with a read-only tool before you call it again.',
     }),
-    channelGone: defineError<{ message: string }>({
+    storeRefused: defineError<{ message: string }>({
+        code: 'mcp.admin-tools.store-refused',
+        exit: 1,
+        message: ({ message }) => `The Store MCP of the dev server refused the request: ${message}`,
+    }),
+    channelRefused: defineError<{ message: string }>({
         code: 'mcp.admin-tools.channel-refused',
         exit: 1,
         message: ({ message }) =>

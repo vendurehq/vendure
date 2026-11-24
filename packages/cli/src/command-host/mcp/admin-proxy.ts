@@ -4,7 +4,7 @@ import type {
     ErrorResult,
     ToolBehavior,
 } from '@vendure/common/lib/command';
-import { COMMAND_ENVELOPE_SCHEMA_VERSION, isErrorResult } from '@vendure/common/lib/command';
+import { isErrorResult } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 
 import {
@@ -18,6 +18,7 @@ import {
     localAdminApiErrors,
     sendLocalAdminRequest,
 } from '../../shared/local-admin-api.js';
+import { errorResult } from '../host.js';
 
 import { adminToolsErrors } from './admin-proxy.errors.js';
 
@@ -30,8 +31,14 @@ export const ADMIN_TOOL_PREFIX = 'admin_';
  */
 export const STORE_TOOL_KEYWORDS_META_KEY = 'vendure.io/keywords';
 
-/** The header that selects the channel of an Admin API or Store MCP call. */
+/**
+ * The header that selects the channel of a Store MCP call, until `set_active_channel` names the
+ * one the server reads (`apiOptions.channelTokenKey`).
+ */
 export const CHANNEL_TOKEN_HEADER = 'vendure-token';
+
+/** How long a check that the dev server's process is alive is reused. It runs `ps`. */
+const ALIVE_CHECK_TTL_MS = 1000;
 
 /** How often the state file is checked for a start or stop of the dev server. */
 const WATCH_INTERVAL_MS = 1000;
@@ -102,9 +109,9 @@ type Availability =
  * - The tool list comes from `tools/list` on the Store MCP. A local-trust caller sees every tool
  *   there, whatever the plugin's `toolExposure`.
  * - Results are passed through unchanged, including the `incomplete` result of a destructive tool.
- * - The active channel is kept for this connection and sent as the `vendure-token` header.
- *   `set_active_channel` returns the channel's token under local trust, and the server keeps no
- *   state.
+ * - The active channel is kept for this connection and sent in the channel token header.
+ *   `set_active_channel` returns the channel's token and the header's name under local trust, and
+ *   the server keeps no state.
  * - When the state file appears or disappears, or a call fails, listeners are told that the tool
  *   list changed.
  */
@@ -116,6 +123,8 @@ export class AdminProxy {
     private cached: { key: string; tools: AdminTool[] } | undefined;
     private lastKey: string | undefined;
     private channelToken: string | undefined;
+    private channelHeader = CHANNEL_TOKEN_HEADER;
+    private aliveCheck: { key: string; until: number; alive: boolean } | undefined;
     /** Why the last `tools/list` failed while the dev server was running. */
     private listError: CommandEnvelope | undefined;
     private watchedPath: string | undefined;
@@ -125,7 +134,16 @@ export class AdminProxy {
         const projectDir = options.projectDir;
         this.readState =
             options.readState ?? (() => (projectDir ? readDevServerState(projectDir) : undefined));
-        this.isAlive = options.isAlive ?? isDevRunAlive;
+        const isAlive = options.isAlive ?? isDevRunAlive;
+        // Each list and call checks the state, so the `ps` behind the check is reused briefly.
+        this.isAlive = state => {
+            const key = `${state.pid}:${state.startedAt}`;
+            const now = Date.now();
+            if (this.aliveCheck?.key !== key || this.aliveCheck.until < now) {
+                this.aliveCheck = { key, until: now + ALIVE_CHECK_TTL_MS, alive: isAlive(state) };
+            }
+            return this.aliveCheck.alive;
+        };
     }
 
     /** Calls the listener when the admin tools may have changed. */
@@ -171,6 +189,8 @@ export class AdminProxy {
      * called after a failed call, since a dev server that crashed leaves its state file behind.
      */
     checkForChange(): void {
+        // A failed call or a changed file may mean the run has gone, so check its process again.
+        this.aliveCheck = undefined;
         const key = this.availability().key;
         if (key === this.lastKey) {
             return;
@@ -178,6 +198,10 @@ export class AdminProxy {
         this.lastKey = key;
         this.cached = undefined;
         this.listError = undefined;
+        this.notify();
+    }
+
+    private notify(): void {
         for (const listener of this.listeners) {
             listener();
         }
@@ -224,7 +248,11 @@ export class AdminProxy {
             cursor = typeof result?.nextCursor === 'string' ? result.nextCursor : undefined;
         } while (cursor);
         this.cached = { key: availability.key, tools };
-        this.listError = undefined;
+        if (this.listError) {
+            // The list failed before, so a client may have listed no admin tools.
+            this.listError = undefined;
+            this.notify();
+        }
         return tools;
     }
 
@@ -269,9 +297,12 @@ export class AdminProxy {
         storeName: string,
         result: { structuredContent?: any; isError?: boolean } | undefined,
     ) {
-        const token = result?.structuredContent?.channelToken;
-        if (storeName === 'set_active_channel' && !result?.isError && typeof token === 'string') {
-            this.channelToken = token;
+        const { channelToken, channelTokenHeader } = result?.structuredContent ?? {};
+        if (storeName === 'set_active_channel' && !result?.isError && typeof channelToken === 'string') {
+            this.channelToken = channelToken;
+            if (typeof channelTokenHeader === 'string' && channelTokenHeader) {
+                this.channelHeader = channelTokenHeader;
+            }
         }
     }
 
@@ -283,7 +314,7 @@ export class AdminProxy {
     ): Promise<{ ok: true; result: unknown } | { ok: false; error: CommandEnvelope }> {
         const headers: Record<string, string> = {};
         if (this.channelToken) {
-            headers[CHANNEL_TOKEN_HEADER] = this.channelToken;
+            headers[this.channelHeader] = this.channelToken;
         }
         const message = { jsonrpc: '2.0', id: 1, method, params };
         let response: StoreResponse | ErrorResult;
@@ -293,11 +324,18 @@ export class AdminProxy {
             if (signal.aborted) {
                 throw e;
             }
-            // For example the request timed out.
             this.checkForChange();
+            if ((e as Error).name === 'TimeoutError') {
+                return {
+                    ok: false,
+                    error: errorEnvelope(adminToolsErrors.storeTimedOut, {
+                        seconds: REQUEST_TIMEOUT_MS / 1000,
+                    }),
+                };
+            }
             return {
                 ok: false,
-                error: errorEnvelope(adminToolsErrors.storeRefused, { reason: (e as Error).message }),
+                error: errorEnvelope(adminToolsErrors.storeUnreachable, { reason: (e as Error).message }),
             };
         }
         if (isErrorResult(response)) {
@@ -313,17 +351,21 @@ export class AdminProxy {
             return {
                 ok: false,
                 error: errorEnvelope(adminToolsErrors.storeRefused, {
-                    reason: 'the dev server refused the local-trust secret of this run',
+                    message: 'it refused the local-trust secret of this run',
                 }),
             };
         }
-        if (response.status === 400 && this.channelToken && !response.body?.jsonrpc) {
+        if (
+            response.status === 400 &&
+            this.channelToken &&
+            /sales channel/.test(String(response.body?.message ?? ''))
+        ) {
             // The server refuses an unknown channel token before the tool runs. The channel was
             // deleted or its token changed, so later calls go to the default channel.
             this.channelToken = undefined;
             return {
                 ok: false,
-                error: errorEnvelope(adminToolsErrors.channelGone, {
+                error: errorEnvelope(adminToolsErrors.channelRefused, {
                     message: String(response.body?.message ?? 'the channel token was refused'),
                 }),
             };
@@ -332,7 +374,7 @@ export class AdminProxy {
             const { code, message: text } = response.body.error as { code?: number; message?: string };
             return {
                 ok: false,
-                error: errorEnvelope(adminToolsErrors.storeError, {
+                error: errorEnvelope(adminToolsErrors.storeRefused, {
                     message: text ?? `JSON-RPC error ${String(code)}`,
                 }),
             };
@@ -341,7 +383,7 @@ export class AdminProxy {
             return {
                 ok: false,
                 error: errorEnvelope(adminToolsErrors.storeRefused, {
-                    reason: `the dev server answered with HTTP ${response.status}`,
+                    message: `HTTP ${response.status}`,
                 }),
             };
         }
@@ -394,18 +436,7 @@ function unavailable<Details>(
 }
 
 function errorEnvelope<Details>(error: CommandErrorDefinition<Details>, details: Details): CommandEnvelope {
-    const fixes = error.fix?.(details) ?? [];
-    return {
-        schemaVersion: COMMAND_ENVELOPE_SCHEMA_VERSION,
-        status: 'error',
-        error: {
-            code: error.code,
-            exit: error.exit,
-            message: error.message(details),
-            ...(fixes.length ? { fixes } : {}),
-        },
-        notices: [],
-    };
+    return errorResult(error, details).envelope;
 }
 
 /** The envelope of a coded error from the local Admin API helper. */
@@ -414,7 +445,7 @@ function envelopeOf(result: ErrorResult): CommandEnvelope {
         | CommandErrorDefinition
         | undefined;
     if (!definition) {
-        return errorEnvelope(adminToolsErrors.storeRefused, { reason: result.code });
+        return errorEnvelope(adminToolsErrors.storeRefused, { message: result.code });
     }
     return errorEnvelope(definition, result.details);
 }
@@ -493,4 +524,25 @@ export function parseStoreBody(text: string, contentType: string): any {
     } catch {
         return undefined;
     }
+}
+
+/**
+ * Adds a note to an `incomplete` result of a Store MCP tool. The Store MCP names its own tool in
+ * the result, which the Developer MCP lists as `admin_*`, behind an executor in discovery mode.
+ * The result itself is passed through unchanged.
+ */
+export function withDeveloperMcpCall(result: any, toolName: string, executor: string | undefined): object {
+    const consent = result?.structuredContent?.needs?.find((need: any) => need?.kind === 'consent');
+    if (result?.structuredContent?.status !== 'incomplete' || !consent) {
+        return result;
+    }
+    const field = JSON.stringify(String(consent.consent ?? 'confirm'));
+    const call = executor
+        ? `call ${executor} with "tool": "${toolName}" and the same "input" plus ${field}: "<digest>"`
+        : `call ${toolName} again with the same arguments plus ${field}: "<digest>"`;
+    const note = `In the Developer MCP, to give this consent, ${call}, with the digest from "needs".`;
+    return {
+        ...result,
+        content: [...(Array.isArray(result.content) ? result.content : []), { type: 'text', text: note }],
+    };
 }

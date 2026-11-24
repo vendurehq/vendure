@@ -3,7 +3,7 @@ import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import readline from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 
-import { ADMIN_TOOL_PREFIX, AdminProxy, toolResult } from './admin-proxy.js';
+import { ADMIN_TOOL_PREFIX, AdminProxy, toolResult, withDeveloperMcpCall } from './admin-proxy.js';
 import { runToolInChild } from './run-tool-in-child.js';
 
 const SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
@@ -409,8 +409,14 @@ export class McpServer {
         }
     }
 
+    /** Whether a tool name is a proxied admin tool. A command of the same name wins. */
     private isAdminToolName(name: unknown): boolean {
-        return !!this.options.adminTools && typeof name === 'string' && name.startsWith(ADMIN_TOOL_PREFIX);
+        return (
+            !!this.options.adminTools &&
+            typeof name === 'string' &&
+            name.startsWith(ADMIN_TOOL_PREFIX) &&
+            !this.byName.has(name)
+        );
     }
 
     /**
@@ -452,7 +458,10 @@ export class McpServer {
             const execute = () => proxy.call(name, input, controller.signal);
             const result = await (tool.behavior === 'readonly' ? execute() : this.writes.run(execute));
             if (!controller.signal.aborted) {
-                this.reply(id, result);
+                this.reply(
+                    id,
+                    withDeveloperMcpCall(result, name, executorBehavior && `execute_${executorBehavior}`),
+                );
             }
         } catch (e) {
             if (!controller.signal.aborted) {

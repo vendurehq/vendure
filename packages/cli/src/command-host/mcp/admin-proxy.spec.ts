@@ -1,15 +1,20 @@
+import { fail } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { DevServerState } from '../../commands/dev/state-file.js';
-
-import { fail } from '@vendure/common/lib/command';
-
 import { localAdminApiErrors } from '../../shared/local-admin-api.js';
 
-import { AdminProxy, behaviorOf, parseStoreBody, SendToStore, StoreResponse } from './admin-proxy.js';
+import {
+    AdminProxy,
+    behaviorOf,
+    parseStoreBody,
+    SendToStore,
+    StoreResponse,
+    withDeveloperMcpCall,
+} from './admin-proxy.js';
 
 const MCP_URL = 'http://localhost:3000/mcp/admin';
 
@@ -178,7 +183,15 @@ describe('AdminProxy', () => {
                 return rpcResult({ structuredContent: { channelToken: 'gone' } });
             }
             return refuse
-                ? { status: 400, body: { statusCode: 400, message: 'No such channel', error: 'Bad Request' } }
+                ? {
+                      status: 400,
+                      body: {
+                          statusCode: 400,
+                          message:
+                              'The vendure-token query parameter or header does not name a sales channel of this server.',
+                          error: 'Bad Request',
+                      },
+                  }
                 : rpcResult({ content: [] });
         });
         const proxy = proxyWith(store.send);
@@ -219,7 +232,7 @@ describe('AdminProxy', () => {
         expect(error?.fixes?.[0].path).toEqual(['devserver', 'wait']);
     });
 
-    it('reports a failed dev server with its last error', () => {
+    it('reports a failed dev server with a fix that shows why it failed', () => {
         const proxy = proxyWith(fakeStore().send, () =>
             state({ status: 'failed', lastError: { process: 'server', message: 'Port 3000 is in use' } }),
         );
@@ -265,7 +278,7 @@ describe('AdminProxy', () => {
 
     it('tells listeners when a failed call shows that the dev server is gone', async () => {
         let alive = true;
-        const send: SendToStore = async message => {
+        const send: SendToStore = async (_dir, message) => {
             if ((message as any).method === 'tools/list') {
                 return rpcResult({ tools: STORE_TOOLS });
             }
@@ -287,7 +300,7 @@ describe('AdminProxy', () => {
 
     it('does not report a change for a failed call while the run is unchanged', async () => {
         const proxy = proxyWith(async () => {
-            throw new Error('The operation was aborted due to timeout');
+            throw new Error('socket hang up');
         });
         let changes = 0;
         proxy.onListChanged(() => changes++);
@@ -295,7 +308,72 @@ describe('AdminProxy', () => {
         changes = 0;
         const result: any = await proxy.call('admin_list_channels', {}, signal());
         expect(changes).toBe(0);
+        expect(result.structuredContent.error.code).toBe('mcp.admin-tools.store-unreachable');
+    });
+
+    it('says that a call that timed out may still have run', async () => {
+        const proxy = proxyWith(async () => {
+            const error = new Error('The operation was aborted due to timeout');
+            error.name = 'TimeoutError';
+            throw error;
+        });
+        const result: any = await proxy.call('admin_create_zone', {}, signal());
+        expect(result.structuredContent.error.code).toBe('mcp.admin-tools.store-timed-out');
+        expect(result.structuredContent.error.message).toContain('may still have run');
+    });
+
+    it('tells listeners when the tool list can be read after it failed', async () => {
+        let failing = true;
+        const send: SendToStore = async (dir, message) =>
+            failing
+                ? fail(localAdminApiErrors.unreachable, {
+                      url: 'http://localhost:3000/mcp/admin',
+                      message: 'x',
+                  })
+                : fakeStore().send(dir, message, {}, signal());
+        const proxy = proxyWith(send);
+        let changes = 0;
+        proxy.onListChanged(() => changes++);
+        proxy.checkForChange();
+        changes = 0;
+        expect(await proxy.tools()).toEqual([]);
+        expect(changes).toBe(0);
+        failing = false;
+        expect(await proxy.tools()).toHaveLength(3);
+        expect(changes).toBe(1);
+        expect(proxy.unavailable()).toBeUndefined();
+    });
+
+    it('sends the channel in the header the server names', async () => {
+        const store = fakeStore(message =>
+            message.params.name === 'set_active_channel'
+                ? rpcResult({
+                      structuredContent: { channelToken: 'eu', channelTokenHeader: 'x-shop-channel' },
+                  })
+                : rpcResult({ content: [] }),
+        );
+        const proxy = proxyWith(store.send);
+        await proxy.call('admin_set_active_channel', { channelToken: 'eu' }, signal());
+        await proxy.call('admin_list_channels', {}, signal());
+        expect(store.sent.at(-1)?.headers).toEqual({ 'x-shop-channel': 'eu' });
+    });
+
+    it('keeps the channel when a 400 is not about the channel token', async () => {
+        let bad = false;
+        const store = fakeStore(message => {
+            if (message.params.name === 'set_active_channel') {
+                return rpcResult({ structuredContent: { channelToken: 'eu' } });
+            }
+            return bad
+                ? { status: 400, body: { statusCode: 400, message: 'Unexpected token in JSON' } }
+                : rpcResult({ content: [] });
+        });
+        const proxy = proxyWith(store.send);
+        await proxy.call('admin_set_active_channel', { channelToken: 'eu' }, signal());
+        bad = true;
+        const result: any = await proxy.call('admin_list_channels', {}, signal());
         expect(result.structuredContent.error.code).toBe('mcp.admin-tools.store-refused');
+        expect(proxy.activeChannelToken).toBe('eu');
     });
 
     describe('watching the state file', () => {
@@ -380,3 +458,32 @@ async function waitFor(condition: () => boolean, timeoutMs = 10_000): Promise<vo
         await new Promise(resolve => setTimeout(resolve, 10));
     }
 }
+
+describe('withDeveloperMcpCall', () => {
+    const incomplete = {
+        content: [{ type: 'text', text: 'Call "delete_zone" again with "confirm".' }],
+        structuredContent: {
+            status: 'incomplete',
+            needs: [{ kind: 'consent', consent: 'confirm', description: 'Delete', digest: 'abc' }],
+        },
+    };
+
+    it('names the direct call of the admin tool, and keeps the result', () => {
+        const result: any = withDeveloperMcpCall(incomplete, 'admin_delete_zone', undefined);
+        expect(result.structuredContent).toBe(incomplete.structuredContent);
+        expect(result.content[0]).toEqual(incomplete.content[0]);
+        expect(result.content[1].text).toContain(
+            'call admin_delete_zone again with the same arguments plus "confirm"',
+        );
+    });
+
+    it('names the executor in discovery mode', () => {
+        const result: any = withDeveloperMcpCall(incomplete, 'admin_delete_zone', 'execute_destructive');
+        expect(result.content[1].text).toContain('call execute_destructive with "tool": "admin_delete_zone"');
+    });
+
+    it('leaves other results alone', () => {
+        const ok = { content: [], structuredContent: { result: 'DELETED' } };
+        expect(withDeveloperMcpCall(ok, 'admin_delete_zone', undefined)).toBe(ok);
+    });
+});

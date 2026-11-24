@@ -497,7 +497,8 @@ describe('McpServer with the admin tools of the dev server', () => {
             },
         });
         const { result } = await client.next();
-        expect(result).toEqual(incomplete);
+        expect(result.structuredContent).toEqual(incomplete.structuredContent);
+        expect(result.content.at(-1).text).toContain('execute_destructive');
         expect(calls).toEqual([{ name: 'delete_zone', arguments: { id: '2' } }]);
         await client.close();
     });
@@ -557,6 +558,58 @@ describe('McpServer with the admin tools of the dev server', () => {
         running = false;
         proxy.checkForChange();
         expect(await client.next()).toEqual({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' });
+        await client.close();
+    });
+
+    it('queues a mutating admin call behind the running writes of the project', async () => {
+        const order: string[] = [];
+        let finishCommand: () => void = () => undefined;
+        const runTool: RunTool = path =>
+            new Promise(resolve => {
+                order.push(`start ${path.join(' ')}`);
+                finishCommand = () => {
+                    order.push(`end ${path.join(' ')}`);
+                    resolve(ok());
+                };
+            });
+        const proxy = adminProxy();
+        const original = proxy.call.bind(proxy);
+        proxy.call = (name, args, signal) => {
+            order.push(`call ${name}`);
+            return original(name, args, signal);
+        };
+        const client = start(runTool, 'direct', COMMANDS, proxy);
+        client.send({ id: 1, method: 'tools/call', params: { name: 'add_codegen', arguments: {} } });
+        await tick();
+        client.send({
+            id: 2,
+            method: 'tools/call',
+            params: { name: 'admin_delete_zone', arguments: { id: '2' } },
+        });
+        await tick();
+        expect(order).toEqual(['start add codegen']);
+        finishCommand();
+        await client.next();
+        await client.next();
+        expect(order).toEqual(['start add codegen', 'end add codegen', 'call admin_delete_zone']);
+        await client.close();
+    });
+
+    it('runs a command whose name starts with admin_ as a command', async () => {
+        const calls: string[][] = [];
+        const commands = [...COMMANDS, command(['admin_sync'])];
+        const client = start(
+            async path => {
+                calls.push(path);
+                return ok();
+            },
+            'direct',
+            commands,
+            adminProxy(),
+        );
+        client.send({ id: 1, method: 'tools/call', params: { name: 'admin_sync', arguments: {} } });
+        await client.next();
+        expect(calls).toEqual([['admin_sync']]);
         await client.close();
     });
 });

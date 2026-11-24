@@ -321,6 +321,7 @@ describe('Local trust on a dev server the CLI started', () => {
             expect(switched.body.result.structuredContent).toEqual({
                 channel: { id: channel.id, code: channel.code, token: channel.token },
                 channelToken: channel.token,
+                channelTokenHeader: 'vendure-token',
             });
         });
 
