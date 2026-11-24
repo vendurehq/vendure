@@ -410,6 +410,7 @@ describe('checkTaxInclusiveRates', () => {
             taxCategoryId: 'tc2',
             dashboardUrl: '/tax-rates',
             fixes: [
+                { path: ['admin_update_channel'], input: { id: 1, input: {} } },
                 {
                     path: ['admin_create_tax_rate'],
                     input: {
@@ -441,6 +442,19 @@ describe('checkTaxInclusiveRates', () => {
         });
         expect(finding.fixes.map(f => f.path[0])).toEqual(['admin_update_channel', 'admin_create_tax_rate']);
         expect(finding.fixes[0].input).toEqual({ id: 1, input: { taxCountryCode: 'FR' } });
+    });
+
+    it('leaves the tax country to the merchant when several countries of the zone have a rate', async () => {
+        const [finding] = await checkTaxInclusiveRates(inclusiveInput(), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([], ['BE', 'FR']),
+            taxZoneStrategy: byAddress,
+        });
+        expect(finding.fixes[0]).toMatchObject({
+            path: ['admin_update_channel'],
+            input: { id: 1, input: {} },
+        });
+        expect(finding.fixes[0].description).toContain('normally your own');
     });
 
     it('reports nothing when the tax country has a country rate, with no zone rate', async () => {
@@ -579,6 +593,25 @@ describe('checkChannelTaxCountry', () => {
             dashboardUrl: '/channels',
             fixes: [{ path: ['admin_update_zone'], input: { id: 'eu' } }],
         });
+    });
+
+    it('leaves a channel whose default tax zone is missing to the default-zones check', async () => {
+        const missingZone = input({
+            channel: channel({ defaultTaxZone: { id: 'gone' }, taxCountryCode: 'CH' }),
+            allZones: [europe],
+        });
+        expect(await checkChannelTaxCountry(missingZone, connection(['CH']))).toEqual([]);
+    });
+
+    it('describes the effect for prices that include tax, or not', async () => {
+        const [net] = await checkChannelTaxCountry(taxCountryInput('CH'), connection(['CH']));
+        expect(net.message).toContain('orders with no address are taxed at the zone rate');
+        const inclusive = input({
+            channel: channel({ defaultTaxZone: { id: 'eu' }, taxCountryCode: 'CH', pricesIncludeTax: true }),
+            allZones: [europe],
+        });
+        const [gross] = await checkChannelTaxCountry(inclusive, connection(['CH']));
+        expect(gross.message).toContain('the entered prices are split at the zone rate');
     });
 
     it('reports a tax country that is not the code of a country', async () => {

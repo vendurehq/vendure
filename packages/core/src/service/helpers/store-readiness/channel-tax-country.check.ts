@@ -29,7 +29,10 @@ export const taxCountryUnknown = defineError<TaxCountryDetails>({
     exit: COMMAND_EXIT_CODES.failed,
     message: ({ channel, taxCountryCode }) =>
         `Channel "${channel.code}" has the tax country "${taxCountryCode}", which is not the code of a ` +
-        `country, so its tax-inclusive prices are split at the default tax zone's zone rate.`,
+        `country, so no country rate applies to orders with no address` +
+        (channel.pricesIncludeTax
+            ? `, and its tax-inclusive prices are split at the default tax zone's zone rate.`
+            : '.'),
     fix: ({ channel }) => [
         {
             path: adminToolPath('update_channel'),
@@ -46,8 +49,10 @@ export const taxCountryOutsideDefaultZone = defineError<TaxCountryOutsideZoneDet
     exit: COMMAND_EXIT_CODES.failed,
     message: ({ channel, taxCountryCode, zone }) =>
         `The tax country ${taxCountryCode} of channel "${channel.code}" is not in its default tax zone ` +
-        `"${zone.name}". When ${taxCountryCode} has no country rate, the entered prices are split at the ` +
-        `zone rate of "${zone.name}", which is not a rate of ${taxCountryCode}.`,
+        `"${zone.name}". When ${taxCountryCode} has no country rate, ` +
+        (channel.pricesIncludeTax
+            ? `the entered prices are split at the zone rate of "${zone.name}", which is not a rate of ${taxCountryCode}.`
+            : `orders with no address are taxed at the zone rate of "${zone.name}", which is not a rate of ${taxCountryCode}.`),
     fix: ({ zone, taxCountryCode }) => [
         {
             path: adminToolPath('update_zone'),

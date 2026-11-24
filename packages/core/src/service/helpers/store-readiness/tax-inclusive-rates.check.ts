@@ -72,18 +72,24 @@ export const inclusiveRateUnknown = defineError<InclusiveRateUnknownDetails>({
                           `that the entered prices include as "value".`,
                   },
               ]
-            : candidateTaxCountryCode
-              ? [
-                    {
-                        path: adminToolPath('update_channel'),
-                        input: { id: channel.id, input: { taxCountryCode: candidateTaxCountryCode } },
-                        description:
-                            `Set the tax country to the country whose rate the entered prices include, ` +
-                            `normally your own. ${candidateTaxCountryCode} is in the zone "${zone.name}" ` +
-                            `and has a country rate for "${taxCategory.name}".`,
-                    },
-                ]
-              : []),
+            : [
+                  {
+                      path: adminToolPath('update_channel'),
+                      // A country is only filled in when it is the one country of the zone with a
+                      // rate: otherwise the merchant chooses, as the rate splits every price.
+                      input: {
+                          id: channel.id,
+                          input: candidateTaxCountryCode ? { taxCountryCode: candidateTaxCountryCode } : {},
+                      },
+                      description: candidateTaxCountryCode
+                          ? `Set the tax country to ${candidateTaxCountryCode}, the only country of the zone ` +
+                            `"${zone.name}" with a rate for "${taxCategory.name}", if the entered prices ` +
+                            `include its rate.`
+                          : `Set "taxCountryCode" to the country whose rate the entered prices include, ` +
+                            `normally your own. It should be in the zone "${zone.name}" and have a country ` +
+                            `rate for "${taxCategory.name}".`,
+                  },
+              ]),
         {
             path: adminToolPath('create_tax_rate'),
             input: {
@@ -159,12 +165,9 @@ export async function checkTaxInclusiveRates(
                 untaxedCountryCodes.push(countryCode);
             }
         }
-        const candidateTaxCountryCode = await findCandidateTaxCountry(
-            input,
-            services.taxRateService,
-            zone,
-            taxCategory,
-        );
+        const candidateTaxCountryCode = channel.taxCountryCode
+            ? undefined
+            : await findCandidateTaxCountry(input, services.taxRateService, zone, taxCategory);
         findings.push(
             toFinding(
                 inclusiveRateUnknown,
@@ -190,22 +193,28 @@ export async function checkTaxInclusiveRates(
     return findings;
 }
 
-/** The first enabled country of the default tax zone with a country rate for the tax category. */
+/**
+ * The one enabled country of the default tax zone with a rate for the tax category, or `undefined`
+ * when there are none or several. The default zone has no zone rate here, so every rate found is a
+ * country rate.
+ */
 async function findCandidateTaxCountry(
     { ctx }: ChannelReadinessInput,
     taxRateService: TaxRateService,
     zone: Zone,
     taxCategory: TaxCategory,
 ): Promise<string | undefined> {
+    const withRate: string[] = [];
     for (const member of countryMembers(zone).filter(m => m.enabled)) {
-        const rate = await taxRateService.findApplicableTaxRate(
-            ctx,
-            { countryCode: member.code, zone },
-            taxCategory.id,
-        );
-        if (rate?.regionId != null) {
-            return member.code;
+        if (
+            await taxRateService.findApplicableTaxRate(
+                ctx,
+                { countryCode: member.code, zone },
+                taxCategory.id,
+            )
+        ) {
+            withRate.push(member.code);
         }
     }
-    return undefined;
+    return withRate.length === 1 ? withRate[0] : undefined;
 }
