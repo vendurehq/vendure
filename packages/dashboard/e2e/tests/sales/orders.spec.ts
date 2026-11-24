@@ -676,6 +676,86 @@ test.describe('Orders', () => {
         await expect(page.getByText('99 Inline Road')).toBeVisible({ timeout: 10_000 });
     });
 
+    // #3439 — picking one of the customer's saved addresses must keep its custom fields
+    test('should keep address custom fields when selecting a saved customer address', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        // The address is not a default, so it is only set when picked in the selector
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Sasha',
+                    lastName: 'Saved',
+                    emailAddress: `sasha.saved.${Date.now()}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: 'Sasha Saved',
+                    streetLine1: '3 Saved Street',
+                    city: 'Savedham',
+                    postalCode: 'S3 3SS',
+                    countryCode: 'GB',
+                    customFields: { deliveryNote: 'Ring the bell twice' },
+                },
+            },
+        );
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+        const orderId = page.url().split('/').pop();
+
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('sasha');
+        const sashaOption = page.getByRole('option').filter({ hasText: 'Sasha Saved' });
+        await expect(sashaOption.first()).toBeVisible({ timeout: 5_000 });
+        await sashaOption.first().click();
+
+        await page
+            .getByRole('button', { name: /Select address/i })
+            .first()
+            .click();
+        await page.getByText('3 Saved Street').click();
+
+        await expect
+            .poll(
+                async () => {
+                    const { order } = await client.gql(
+                        `query ($id: ID!) {
+                            order(id: $id) {
+                                shippingAddress { streetLine1 customFields { deliveryNote } }
+                            }
+                        }`,
+                        { id: orderId },
+                    );
+                    return order.shippingAddress;
+                },
+                { timeout: 10_000 },
+            )
+            .toEqual({
+                streetLine1: '3 Saved Street',
+                customFields: { deliveryNote: 'Ring the bell twice' },
+            });
+    });
+
     // #4393 — custom order history entry types should be displayed with key-value data
     test('should display custom order history entry types', async ({ page }) => {
         test.setTimeout(60_000);
