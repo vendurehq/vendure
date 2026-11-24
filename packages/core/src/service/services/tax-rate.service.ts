@@ -18,6 +18,7 @@ import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import { Channel } from '../../entity/channel/channel.entity';
 import { CustomerGroup } from '../../entity/customer-group/customer-group.entity';
 import { Region } from '../../entity/region/region.entity';
 import { TaxCategory } from '../../entity/tax-category/tax-category.entity';
@@ -309,6 +310,27 @@ export class TaxRateService {
             ? byCountry.get(`${target.countryCode}:${categoryId}`)
             : undefined;
         return countryRate ?? byZone.get(`${String(this.idOf(target.zone))}:${categoryId}`);
+    }
+
+    /**
+     * @description
+     * Returns the TaxRate that a tax-inclusive price in the Channel includes: the country rate of the
+     * Channel's `taxCountryCode` when it is set, otherwise the zone rate of its default tax Zone.
+     * With a tax country but no country rate for it, the default tax Zone's zone rate is used.
+     * Returns `undefined` when neither exists.
+     *
+     * @since 4.0.0
+     */
+    async findIncludedTaxRate(
+        ctx: RequestContext,
+        channel: Channel,
+        taxCategory: TaxCategory | ID,
+    ): Promise<TaxRate | undefined> {
+        return this.findApplicableTaxRate(
+            ctx,
+            { countryCode: channel.taxCountryCode ?? undefined, zone: channel.defaultTaxZone },
+            taxCategory,
+        );
     }
 
     /**

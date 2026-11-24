@@ -61,9 +61,9 @@ Only enabled rates are considered. A rate that targets a Zone works as before, s
 
 Some things to know:
 
-* By default, the country comes from the shipping address. When there is no Order, for example when a product page or the search index shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, also create a zone rate for the Channel's default tax Zone, normally the rate of your own country. Without one, those prices show 0% tax.
+* By default, the country comes from the shipping address. When there is no Order, for example when a product page or the search index shows a price, there is no shipping address, so only the zone rate applies. If you use country rates, either set the Channel's [tax country](#the-channels-tax-country), or create a zone rate for the Channel's default tax Zone, normally the rate of your own country. Without either, those prices show 0% tax.
 * A country rate for the tax country applies whatever Zone the [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/) returns. A custom strategy which returns a special Zone, for example a 0% Zone for business customers under the reverse-charge rule, must also return no tax country for those customers. See [Choosing the tax country](#choosing-the-tax-country).
-* When the Channel's prices include tax, an entered price includes the rate of the default tax Zone. A country rate works as the rate of another Zone would: the net price is taken out at the default Zone's rate, and the country rate is added to it. With a 20% default Zone rate, a price entered as 120.00 costs 119.00 in a country with a 19% rate, as it would if that country had its own Zone. A country rate with the same value as the default Zone's rate, such as the rate of your own country, keeps the entered price. This needs a zone rate on the default tax Zone. Without one, the entered price is the gross price in every country of the default Zone, and a country in another Zone gets its rate added to the whole entered price.
+* When the Channel's prices include tax and it has no [tax country](#the-channels-tax-country), an entered price includes the rate of the default tax Zone. A country rate works as the rate of another Zone would: the net price is taken out at the default Zone's rate, and the country rate is added to it. With a 20% default Zone rate, a price entered as 120.00 costs 119.00 in a country with a 19% rate, as it would if that country had its own Zone. A country rate with the same value as the default Zone's rate, such as the rate of your own country, keeps the entered price. This needs a zone rate on the default tax Zone. Without one, the entered price is the gross price in every country of the default Zone, and a country in another Zone gets its rate added to the whole entered price.
 * When the tax Zone or the tax country of an Order changes, all its lines are taxed again, and in a Channel whose prices include tax, priced again. Changing a TaxRate does not by itself change the taxes of lines already in an Order.
 * A country rate must target a country. Other types of region, such as provinces, are rejected.
 * If two Zones contain the same country, [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy) uses the first Zone it finds, so the result depends on the order of the Zones. Put the rates in country rates instead of overlapping Zones.
@@ -101,6 +101,25 @@ mutation {
 ```
 
 This example assumes a seller in Germany. An Order with a shipping address in Germany is taxed at 19%, and one in France at 20%. A member state with no country rate uses the rate of the `eu` Zone, 19%. Product pages and search results, which have no shipping address, also show prices with the `eu` Zone rate.
+
+With the Channel's tax country set to `DE`, the `eu` Zone needs no zone rate. Product pages, search results and carts before an address is set show the DE rate, and when the prices include tax, they are split at the DE rate. A member state with no country rate then gets 0%, so add a country rate for each member state you sell to.
+
+## The Channel's tax country
+
+A Channel can record the country whose tax rate its prices include, normally the seller's own country, in `taxCountryCode`. Set it in the Dashboard's channel form ("Tax country"), or with `taxCountryCode` on `CreateChannelInput` and `UpdateChannelInput`. Setting it to `null` clears it. A code that is not a country is refused.
+
+When it is set:
+
+* **Prices that include tax are split at its rate.** The included rate is the country rate of the tax country, or the zone rate of the default tax Zone when there is no country rate for it. See `TaxRateService.findIncludedTaxRate()`. An Order taxed at the included rate keeps the entered gross price. Elsewhere the net price is taken out at the included rate, and the applicable rate is added to it. With a tax country of DE at 19%, a price entered as 119.00 costs 120.00 in France at 20%. A rate with the same value as the included rate keeps the entered price, when either rate is a country rate.
+* **It is the tax country of prices with no shipping country,** such as product pages, the search index and carts before an address is set, when the active tax Zone is the Channel's default tax Zone. A custom `determineTaxZone()` that returns another Zone keeps that Zone's rate. A strategy that implements `determineTaxCountryCode()` decides for itself, and can call `defaultTaxCountryCode()`, which applies this rule.
+
+Some things to know:
+
+* Make the tax country a member of the default tax Zone. Otherwise, when it has no country rate, the included rate falls back to the zone rate of a Zone it is not in.
+* A Country that is the tax country of a Channel cannot be deleted. When its code changes, the Channels follow.
+* Changing the tax country, or a rate that targets it or the default tax Zone, updates the search index of every Channel it affects.
+* Channels that leave it unset work as described in [Tax rate resolution](#tax-rate-resolution).
+* In a multi-vendor setup that prices the aggregate Order in the default Channel, such as the multivendor example plugin, the default Channel's tax country splits every line, whoever sells it. A split per seller needs a custom `OrderItemPriceCalculationStrategy`.
 
 ## Choosing the tax country
 

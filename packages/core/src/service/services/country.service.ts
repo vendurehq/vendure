@@ -17,10 +17,12 @@ import { assertFound } from '../../common/utils';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Address } from '../../entity';
+import { Channel } from '../../entity/channel/channel.entity';
 import { Country } from '../../entity/region/country.entity';
 import { RegionTranslation } from '../../entity/region/region-translation.entity';
 import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
 import { EventBus } from '../../event-bus';
+import { ChannelEvent } from '../../event-bus/events/channel-event';
 import { CountryEvent } from '../../event-bus/events/country-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
@@ -112,15 +114,42 @@ export class CountryService {
         return assertFound(this.findOne(ctx, country.id));
     }
 
+    /**
+     * @description
+     * Updates a Country. When its code changes, every Channel that uses the old code as its
+     * `taxCountryCode` is updated to the new one.
+     */
     async update(ctx: RequestContext, input: UpdateCountryInput): Promise<Translated<Country>> {
+        const previousCode = input.code
+            ? (await this.connection.getEntityOrThrow(ctx, Country, input.id)).code
+            : undefined;
         const country = await this.translatableSaver.update({
             ctx,
             input,
             entityType: Country,
             translationType: RegionTranslation,
         });
+        if (previousCode && previousCode !== country.code) {
+            await this.updateChannelTaxCountryCodes(ctx, previousCode, country.code);
+        }
         await this.eventBus.publish(new CountryEvent(ctx, country, 'updated', input));
         return assertFound(this.findOne(ctx, country.id));
+    }
+
+    /**
+     * The Channel's `taxCountryCode` has no foreign key, so it follows a code change here. Each
+     * Channel gets a ChannelEvent, which clears the cached Channels.
+     */
+    private async updateChannelTaxCountryCodes(ctx: RequestContext, previousCode: string, code: string) {
+        const repository = this.connection.getRepository(ctx, Channel);
+        const channels = await repository.find({ where: { taxCountryCode: previousCode } });
+        for (const channel of channels) {
+            channel.taxCountryCode = code;
+            await repository.update(channel.id, { taxCountryCode: code });
+            await this.eventBus.publish(
+                new ChannelEvent(ctx, channel, 'updated', { id: channel.id, taxCountryCode: code }),
+            );
+        }
     }
 
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
@@ -148,6 +177,17 @@ export class CountryService {
                 result: DeletionResult.NOT_DELETED,
                 message: ctx.translate('message.country-used-in-tax-rates', {
                     taxRateNames: taxRatesUsingCountry.map(t => t.name).join(', '),
+                }),
+            };
+        }
+        const channelsUsingCountry = await this.connection
+            .getRepository(ctx, Channel)
+            .find({ where: { taxCountryCode: country.code }, order: { id: 'ASC' } });
+        if (0 < channelsUsingCountry.length) {
+            return {
+                result: DeletionResult.NOT_DELETED,
+                message: ctx.translate('message.country-used-as-channel-tax-country', {
+                    channelCodes: channelsUsingCountry.map(c => c.code).join(', '),
                 }),
             };
         } else {

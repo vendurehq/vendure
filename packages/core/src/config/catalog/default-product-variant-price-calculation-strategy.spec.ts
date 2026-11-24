@@ -269,4 +269,50 @@ describe('DefaultProductVariantPriceCalculationStrategy', () => {
             });
         });
     });
+
+    // The Channel's tax country XC has a 19% country rate. The default zone rate is 20%.
+    describe('with prices which include tax and a tax country', () => {
+        function ctxWithTaxCountry(taxCountryCode: string) {
+            const ctx = createRequestContext({ pricesIncludeTax: true });
+            ctx.channel.taxCountryCode = taxCountryCode;
+            return ctx;
+        }
+        const args = (ctx: ReturnType<typeof createRequestContext>, taxRate: TaxRate) => ({
+            inputPrice,
+            taxCategory: taxCategoryStandard,
+            activeTaxZone: zoneDefault,
+            ctx,
+            productVariant,
+            taxRate,
+        });
+
+        it('the tax country rate keeps the price as gross', async () => {
+            const result = await strategy.calculate(args(ctxWithTaxCountry('XC'), taxRateCountryStandard));
+            expect(result).toEqual({ price: inputPrice, priceIncludesTax: true });
+        });
+
+        it('another rate takes the net price out at the tax country rate', async () => {
+            const result = await strategy.calculate(args(ctxWithTaxCountry('XC'), taxRateDefaultStandard));
+            expect(result).toEqual({
+                price: roundMoney(taxRateCountryStandard.netPriceOf(inputPrice)),
+                priceIncludesTax: false,
+            });
+        });
+
+        it('a zone rate with the tax country rate value keeps the price as gross', async () => {
+            const sameValue = new TaxRate({ ...taxRateDefaultStandard, id: 'sameValue', value: 19 });
+            const result = await strategy.calculate(args(ctxWithTaxCountry('XC'), sameValue));
+            expect(result).toEqual({ price: inputPrice, priceIncludesTax: true });
+        });
+
+        it('a tax country with no country rate uses the default zone rate', async () => {
+            const withCountry = await strategy.calculate(
+                args(ctxWithTaxCountry('YY'), taxRateCountryStandard),
+            );
+            const without = await strategy.calculate(
+                args(createRequestContext({ pricesIncludeTax: true }), taxRateCountryStandard),
+            );
+            expect(withCountry).toEqual(without);
+        });
+    });
 });

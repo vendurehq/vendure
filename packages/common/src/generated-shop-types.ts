@@ -201,6 +201,8 @@ export type Channel = Node & {
   outOfStockThreshold?: Maybe<Scalars['Int']['output']>;
   pricesIncludeTax: Scalars['Boolean']['output'];
   seller?: Maybe<Seller>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: Maybe<Scalars['String']['output']>;
   token: Scalars['String']['output'];
   /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: Maybe<Scalars['Boolean']['output']>;

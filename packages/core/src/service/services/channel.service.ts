@@ -37,6 +37,7 @@ import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Country } from '../../entity/region/country.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -47,6 +48,7 @@ import {
     ChannelStockSetting,
     ChannelStockSettingsEvent,
 } from '../../event-bus/events/channel-stock-settings-event';
+import { ChannelTaxCountryEvent } from '../../event-bus/events/channel-tax-country-event';
 import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
@@ -420,6 +422,7 @@ export class ChannelService {
         input: CreateChannelInput,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
         this.assertStockSettingsNotNull(input);
+        await this.assertValidTaxCountryCode(ctx, input.taxCountryCode);
         const { defaultCurrencyCode } = input;
         const channel = new Channel({
             ...input,
@@ -479,6 +482,8 @@ export class ChannelService {
         const originalIdentityScope = await this.identityScopeService.getScopeForLoadedChannel(channel);
         const originalTrackInventory = channel.trackInventory;
         const originalOutOfStockThreshold = channel.outOfStockThreshold;
+        const originalTaxCountryCode = channel.taxCountryCode ?? null;
+        await this.assertValidTaxCountryCode(ctx, input.taxCountryCode);
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
             return defaultLanguageValidationResult;
@@ -542,7 +547,28 @@ export class ChannelService {
                 new ChannelStockSettingsEvent(ctx, updatedChannel, changedStockSettings),
             );
         }
+        if ((updatedChannel.taxCountryCode ?? null) !== originalTaxCountryCode) {
+            await this.eventBus.publish(
+                new ChannelTaxCountryEvent(ctx, updatedChannel, originalTaxCountryCode),
+            );
+        }
         return assertFound(this.findOne(ctx, channel.id));
+    }
+
+    /**
+     * The tax country is stored as a code, with no foreign key, so it is checked to be the code of
+     * a country Region. `null` clears it and `undefined` leaves it unchanged.
+     */
+    private async assertValidTaxCountryCode(ctx: RequestContext, taxCountryCode?: string | null) {
+        if (taxCountryCode == null) {
+            return;
+        }
+        const country = await this.connection
+            .getRepository(ctx, Country)
+            .findOne({ where: { code: taxCountryCode } });
+        if (!country) {
+            throw new UserInputError('error.tax-country-code-not-valid', { countryCode: taxCountryCode });
+        }
     }
 
     /**

@@ -1780,6 +1780,11 @@ msgstr "Status comandă schimbat"
 msgid "is before"
 msgstr "este înainte"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr ""
+
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "This option combination is already used by \"{0}\""
@@ -2298,6 +2303,7 @@ msgstr "Ultimele 30 de zile"
 msgid "No facet values"
 msgstr "Fără valori atribut"
 
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
 #: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "None"
 msgstr ""
@@ -4310,6 +4316,7 @@ msgstr "Rolul a fost actualizat cu succes"
 msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 msgstr ""
 
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
 #: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
@@ -7450,6 +7457,10 @@ msgstr "Adaugă resursă"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Client adăugat la grup"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"

@@ -18,10 +18,11 @@ type UpdateChannelToolInput = z.infer<typeof updateChannelInput>;
     name: 'update_channel',
     toolset: 'admin',
     description:
-        "Update a channel's languages, currencies, tax-inclusive pricing or default tax and shipping zones. Only the fields given change.",
+        "Update a channel's languages, currencies, tax-inclusive pricing, tax country or default tax and shipping zones. Only the fields given change.",
     keywords: [
         'add a currency to the store',
         'change the default tax zone',
+        'set the tax country of the prices',
         'switch to tax-inclusive prices',
         'set the default shipping zone',
         'add a language to a channel',

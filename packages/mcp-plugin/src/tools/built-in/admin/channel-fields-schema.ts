@@ -1,7 +1,7 @@
 import { idSchema, int32Schema, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { currencyCodeSchema, languageCodeSchema } from './setup-schemas';
+import { countryCodeSchema, currencyCodeSchema, languageCodeSchema } from './setup-schemas';
 
 /** Fields shared by create_channel and update_channel. Update makes them all optional. */
 export const channelFieldsSchema = z.strictObject({
@@ -28,6 +28,13 @@ export const channelFieldsSchema = z.strictObject({
         .describe('Whether the prices entered for this channel already include tax.'),
     defaultTaxZoneId: idSchema.describe('Zone used to calculate tax when an order has no address yet.'),
     defaultShippingZoneId: idSchema.describe('Zone used for shipping when an order has no address yet.'),
+    taxCountryCode: countryCodeSchema
+        .nullable()
+        .describe(
+            'Code of the country whose tax rate the entered prices include, e.g. "DE". Prices that ' +
+                'include tax are split into net and tax at its rate. Null clears it.',
+        )
+        .optional(),
     trackInventory: z.boolean().describe('Whether stock levels are tracked by default.').optional(),
     outOfStockThreshold: int32Schema
         .describe('Stock level at or below which a variant counts as out of stock.')
