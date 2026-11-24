@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ManualPaymentInput, RefundOrderInput } from '@vendure/common/lib/generated-types';
+import { ManualPaymentInput, OrderLineInput, RefundOrderInput } from '@vendure/common/lib/generated-types';
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { DeepPartial, ID, JsonCompatible } from '@vendure/common/lib/shared-types';
-import { summate } from '@vendure/common/lib/shared-utils';
-import { In } from 'typeorm';
+import { getLineRefundAmount, summate } from '@vendure/common/lib/shared-utils';
+import { In, Not } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { InternalServerError, UserInputError } from '../../common/error/errors';
@@ -736,6 +736,40 @@ export class PaymentService {
         return summate(nonFailedRefunds, 'total');
     }
 
+    /** @internal */
+    async getRefundLineTotal(
+        ctx: RequestContext,
+        inputs: OrderLineInput[],
+        includeUnplacedLines = false,
+    ): Promise<number> {
+        const quantities = new Map<string, number>();
+        for (const input of inputs) {
+            const id = String(input.orderLineId);
+            quantities.set(id, (quantities.get(id) ?? 0) + input.quantity);
+        }
+        const lines = await this.connection.getRepository(ctx, OrderLine).find({
+            where: { id: In(inputs.map(input => input.orderLineId)) },
+        });
+        const quotedIds = lines.filter(line => line.quotedLinePrice != null).map(line => line.id);
+        const previousRefunds = quotedIds.length
+            ? await this.connection.getRepository(ctx, RefundLine).find({
+                  where: { orderLineId: In(quotedIds), refund: { state: Not('Failed') } },
+              })
+            : [];
+        let total = 0;
+        for (const line of lines) {
+            if (includeUnplacedLines || line.orderPlacedQuantity > 0 || line.quotedLinePrice != null) {
+                const refunded = previousRefunds.filter(refund => idsAreEqual(refund.orderLineId, line.id));
+                total += getLineRefundAmount(
+                    line,
+                    quantities.get(String(line.id)) ?? 0,
+                    summate(refunded, 'quantity'),
+                );
+            }
+        }
+        return total;
+    }
+
     private async getRefundAmount(
         ctx: RequestContext,
         input: RefundOrderInput,
@@ -752,17 +786,7 @@ export class PaymentService {
         // control over refund amounts, especially when multiple payment methods
         // are involved.
         // It is deprecated and will be removed in a future version.
-        let refundOrderLinesTotal = 0;
-        const inputLines = input.lines || [];
-        const orderLines = await this.connection
-            .getRepository(ctx, OrderLine)
-            .find({ where: { id: In(inputLines.map(l => l.orderLineId)) } });
-        for (const line of inputLines) {
-            const orderLine = orderLines.find(l => idsAreEqual(l.id, line.orderLineId));
-            if (orderLine && 0 < orderLine.orderPlacedQuantity) {
-                refundOrderLinesTotal += line.quantity * orderLine.proratedUnitPriceWithTax;
-            }
-        }
+        const refundOrderLinesTotal = await this.getRefundLineTotal(ctx, input.lines ?? []);
         const total = refundOrderLinesTotal + (input.shipping ?? 0) + (input.adjustment ?? 0);
         return { orderLinesTotal: refundOrderLinesTotal, total };
     }

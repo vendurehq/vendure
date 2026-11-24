@@ -188,8 +188,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
     );
 
     const recalculateRefundTotal = useCallback(() => {
-        return calculateRefundTotal(order.lines, lineSelections, order.shippingLines, refundShippingLineIds);
-    }, [order.lines, order.shippingLines, lineSelections, refundShippingLineIds]);
+        return calculateRefundTotal(order, lineSelections, refundShippingLineIds);
+    }, [order, lineSelections, refundShippingLineIds]);
 
     const allocateToTargets = useCallback(
         (total: number) => {

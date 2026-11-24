@@ -92,13 +92,7 @@ export interface MoneyStrategy extends InjectableStrategy {
      * return Math.round(value * quantity);
      * ```
      *
-     * However, it may be desirable to instead round the unit amount _before_
-     * multiplying (this was the default prior to v3.1). In this case you can
-     * define a custom strategy with logic like this:
-     *
-     * ```ts
-     * return Math.round(value) * quantity;
-     * ```
+     * Use {@link RoundPerUnitMoneyStrategy} to round each unit before multiplying by quantity.
      */
     round(value: number, quantity?: number): number;
 }

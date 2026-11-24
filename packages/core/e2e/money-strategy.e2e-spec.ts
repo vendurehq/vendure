@@ -1,5 +1,12 @@
 import { LanguageCode, SortOrder } from '@vendure/common/lib/generated-types';
-import { Logger, mergeConfig, MoneyStrategy, VendurePlugin } from '@vendure/core';
+import {
+    Logger,
+    mergeConfig,
+    MoneyStrategy,
+    OrderLine,
+    TransactionalConnection,
+    VendurePlugin,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { ColumnOptions } from 'typeorm';
@@ -81,6 +88,14 @@ describe('Custom MoneyStrategy', () => {
 
     afterAll(async () => {
         await server.destroy();
+    });
+
+    it('uses the existing order line schema when the price strategy has no line hook', () => {
+        const db = server.app.get(TransactionalConnection).rawConnection;
+        const columns = db.getMetadata(OrderLine).columns.map(column => column.propertyName);
+        expect(columns).not.toContain('quotedLinePrice');
+        expect(columns).not.toContain('quotedQuantity');
+        expect(columns).not.toContain('quotedRefundTotal');
     });
 
     it('check initial prices', async () => {

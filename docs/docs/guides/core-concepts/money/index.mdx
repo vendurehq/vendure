@@ -238,3 +238,21 @@ export function formatCurrency(value: number, currencyCode: string, locale?: str
     }
 }
 ```
+
+
+#### Rounding units and lines
+
+`DefaultMoneyStrategy` multiplies a fractional unit amount by the quantity and rounds the line total.
+Use `entityOptions.moneyStrategy: new RoundPerUnitMoneyStrategy()` if your accounting system rounds
+each unit first. Both strategies store integers and default to two decimal places.
+
+If an ERP supplies a price for the whole line, implement the optional `calculateLinePrice` method on
+your `OrderItemPriceCalculationStrategy`. Return the total in the configured monetary units and set
+`priceIncludesTax` to match the quote. At precision 2, a quote of `2470` for 20 units of €1.235
+gives a line price of €24.70 and a displayed unit price of €1.24. At precision 3, a quote of `19190`
+for 20 units of €1.01 with a 5% discount gives €19.190. Further Vendure promotions apply to that price.
+
+Vendure calls the hook again when it reprices a line, including after a quantity change. Return
+`undefined` to use `calculateUnitPrice` for that line. Generate and apply a database migration with
+the hook configured before deploying it. Existing order lines continue to use their stored unit prices
+until repriced. Keep the hook configured to read orders that contain stored quotes.

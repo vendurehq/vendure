@@ -1,3 +1,13 @@
+type RefundPriceBasis {
+    priceWithTax: Money!
+    quantity: Int!
+}
+
+extend type OrderLine {
+    "Total and quantity to use when allocating partial refunds for a quoted line."
+    refundPriceBasis: RefundPriceBasis
+}
+
 type Query {
     order(id: ID!): Order
     orders(options: OrderListOptions): OrderList!

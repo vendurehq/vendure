@@ -106,3 +106,25 @@ export function getGraphQlInputName(config: { name: string; type: string; list?:
         return config.name;
     }
 }
+
+/** Allocate a quoted line total across successive refunds, including the rounding remainder. */
+export function getLineRefundAmount(
+    line: {
+        proratedUnitPriceWithTax: number;
+        refundPriceBasis?: { priceWithTax: number; quantity: number } | null;
+    },
+    quantity: number,
+    alreadyRefunded: number,
+): number {
+    const basis = line.refundPriceBasis;
+    if (!basis) {
+        return line.proratedUnitPriceWithTax * quantity;
+    }
+    const remaining = Math.max(0, basis.quantity - alreadyRefunded);
+    const priceForQuantity = (count: number) => {
+        // Keep the multiplication exact even when a bigint money column holds a large safe integer.
+        const divisor = BigInt(basis.quantity);
+        return Number((BigInt(basis.priceWithTax) * BigInt(count) + divisor / BigInt(2)) / divisor);
+    };
+    return priceForQuantity(remaining) - priceForQuantity(Math.max(0, remaining - quantity));
+}

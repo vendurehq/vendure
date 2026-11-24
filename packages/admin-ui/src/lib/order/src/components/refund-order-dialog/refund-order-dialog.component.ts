@@ -11,7 +11,7 @@ import {
     PaymentWithRefundsFragment,
     RefundOrderInput,
 } from '@vendure/admin-ui/core';
-import { summate } from '@vendure/common/lib/shared-utils';
+import { getLineRefundAmount, summate } from '@vendure/common/lib/shared-utils';
 import { getRefundablePayments, RefundablePayment } from '../../common/get-refundable-payments';
 
 type SelectionLine = { quantity: number; cancel: boolean };
@@ -55,7 +55,12 @@ export class RefundOrderDialogComponent
     }
 
     lineCanBeRefundedOrCancelled(line: OrderDetailFragment['lines'][number]): boolean {
-        const refundedCount =
+        const refundableQuantity = Math.max(line.orderPlacedQuantity, line.refundPriceBasis?.quantity ?? 0);
+        return this.getRefundedQuantity(line) < refundableQuantity;
+    }
+
+    private getRefundedQuantity(line: OrderDetailFragment['lines'][number]): number {
+        return (
             this.order.payments
                 ?.reduce(
                     (all, payment) => [...all, ...payment.refunds],
@@ -67,9 +72,8 @@ export class RefundOrderDialogComponent
                     [] as Array<{ orderLineId: string; quantity: number }>,
                 )
                 .filter(refundLine => refundLine.orderLineId === line.id)
-                .reduce((sum, refundLine) => sum + refundLine.quantity, 0) ?? 0;
-
-        return refundedCount < line.orderPlacedQuantity;
+                .reduce((sum, refundLine) => sum + refundLine.quantity, 0) ?? 0
+        );
     }
 
     ngOnInit() {
@@ -92,7 +96,7 @@ export class RefundOrderDialogComponent
             const itemTotal = this.order.lines.reduce((total, line) => {
                 const lineRef = this.lineQuantities[line.id];
                 const refundCount = lineRef.quantity || 0;
-                return total + line.proratedUnitPriceWithTax * refundCount;
+                return total + getLineRefundAmount(line, refundCount, this.getRefundedQuantity(line));
             }, 0);
             const shippingTotal = this.order.shippingLines.reduce((total, line) => {
                 if (this.refundShippingLineIds.includes(line.id)) {

@@ -69,6 +69,7 @@ import { TranslatorService } from '../translator/translator.service';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
+import { setOrderLinePrice } from '../utils/set-order-line-price';
 
 import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
@@ -362,6 +363,9 @@ export class OrderModifier {
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
                     quantity: orderLine.quantity,
                     adjustments: orderLine.adjustments,
+                    ...(orderLine.quotedRefundTotal != null && {
+                        quotedRefundTotal: orderLine.quotedRefundTotal,
+                    }),
                 });
 
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, orderLine, 'cancelled'));
@@ -661,15 +665,7 @@ export class OrderModifier {
                 ctx,
                 order,
             );
-            const priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                ctx,
-                variant,
-                orderLine.customFields || {},
-                order,
-                orderLine.quantity,
-            );
-            orderLine.listPrice = priceResult.price;
-            orderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
+            await setOrderLinePrice(ctx, orderItemPriceCalculationStrategy, variant, order, orderLine);
         }
 
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
@@ -826,11 +822,7 @@ export class OrderModifier {
     ): Promise<number> {
         const existingAdjustment = refundInput.adjustment ?? 0;
 
-        let itemAmount = 0; // TODO: figure out what this should be
-        for (const lineInput of refundInput.lines ?? []) {
-            const orderLine = await this.connection.getEntityOrThrow(ctx, OrderLine, lineInput.orderLineId);
-            itemAmount += orderLine.proratedUnitPriceWithTax * lineInput.quantity;
-        }
+        const itemAmount = await this.paymentService.getRefundLineTotal(ctx, refundInput.lines ?? [], true);
         const calculatedDelta = itemAmount + (refundInput.shipping ?? 0) + existingAdjustment;
         const absDelta = Math.abs(delta);
         return absDelta !== calculatedDelta ? absDelta - calculatedDelta : 0;

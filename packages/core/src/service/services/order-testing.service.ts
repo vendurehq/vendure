@@ -24,6 +24,7 @@ import { OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
 import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
+import { setOrderLinePrice } from '../helpers/utils/set-order-line-price';
 
 /**
  * @description
@@ -136,16 +137,13 @@ export class OrderTestingService {
             });
             mockOrder.lines.push(orderLine);
 
-            const { price, priceIncludesTax } = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+            await setOrderLinePrice(
                 ctx,
+                orderItemPriceCalculationStrategy,
                 productVariant,
-                orderLine.customFields || {},
                 mockOrder,
-                orderLine.quantity,
+                orderLine,
             );
-            const taxRate = productVariant.taxRateApplied;
-            orderLine.listPrice = price;
-            orderLine.listPriceIncludesTax = priceIncludesTax;
         }
         mockOrder.shippingLines = [
             new ShippingLine({

@@ -239,7 +239,10 @@ export class OrderCalculator {
                     const state = typeof applicableOrState === 'object' ? applicableOrState : undefined;
                     const adjustment = await promotion.apply(ctx, { orderLine: line }, state);
                     if (adjustment) {
-                        line.addAdjustment(adjustment);
+                        line.addAdjustment({
+                            ...adjustment,
+                            amount: line.getAdjustmentAmount(adjustment.amount, ctx.channel.pricesIncludeTax),
+                        });
                         this.calculateOrderTotals(order);
                     }
                     this.addPromotion(order, promotion);
@@ -290,7 +293,10 @@ export class OrderCalculator {
                         );
                         const distribution = prorate(weights, amount);
                         order.lines.forEach((line, i) => {
-                            const shareOfAmount = distribution[i];
+                            const shareOfAmount = line.getAdjustmentAmount(
+                                distribution[i],
+                                ctx.channel.pricesIncludeTax,
+                            );
                             const itemWeights = Array.from({
                                 length: line.quantity,
                             }).map(() => line.unitPrice);

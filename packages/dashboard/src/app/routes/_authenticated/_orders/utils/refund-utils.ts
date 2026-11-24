@@ -1,6 +1,8 @@
+import { getLineRefundAmount } from '@vendure/common/lib/shared-utils';
 import type { ComponentType } from 'react';
 
 import { Order, Payment } from './order-types.js';
+import { getRefundedQuantity } from './order-utils.js';
 
 export type RefundablePayment = Payment & {
     refundableAmount: number;
@@ -29,18 +31,17 @@ export function getRefundablePayments(payments: Payment[] | undefined | null): R
  * Calculate total refund amount from line selections and shipping
  */
 export function calculateRefundTotal(
-    lines: Order['lines'],
+    order: Order,
     lineSelections: Record<string, LineSelection>,
-    shippingLines: Order['shippingLines'],
     refundShippingLineIds: string[],
 ): number {
-    const itemTotal = lines.reduce((total, line) => {
+    const itemTotal = order.lines.reduce((total, line) => {
         const selection = lineSelections[line.id];
         const refundCount = selection?.quantity || 0;
-        return total + line.proratedUnitPriceWithTax * refundCount;
+        return total + getLineRefundAmount(line, refundCount, getRefundedQuantity(order, line.id));
     }, 0);
 
-    const shippingTotal = shippingLines.reduce((total, line) => {
+    const shippingTotal = order.shippingLines.reduce((total, line) => {
         if (refundShippingLineIds.includes(line.id)) {
             return total + line.discountedPriceWithTax;
         }

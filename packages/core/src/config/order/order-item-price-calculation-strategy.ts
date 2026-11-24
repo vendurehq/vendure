@@ -77,4 +77,22 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
         order: Order,
         quantity: number,
     ): PriceCalculationResult | Promise<PriceCalculationResult>;
+
+    /**
+     * @description
+     * Returns the price for the entire quantity as an integer at the configured money precision.
+     * For example, at precision 3, a quote of 19190 for 20 units totals 19.190, with a displayed
+     * unit price of 0.960. Vendure applies tax and promotions to the line price.
+     * Return undefined to use calculateUnitPrice for this line.
+     *
+     * Adding this method enables nullable OrderLine columns. Generate and apply a migration
+     * before enabling it in production. Keep the method configured while stored quotes are in use.
+     */
+    calculateLinePrice?(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        orderLineCustomFields: { [key: string]: any },
+        order: Order,
+        quantity: number,
+    ): PriceCalculationResult | undefined | Promise<PriceCalculationResult | undefined>;
 }

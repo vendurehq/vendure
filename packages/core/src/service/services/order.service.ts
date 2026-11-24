@@ -135,6 +135,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { setOrderLinePrice } from '../helpers/utils/set-order-line-price';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -2665,28 +2666,14 @@ export class OrderService implements OnApplicationBootstrap {
                     ctx,
                     order,
                 );
-                let priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+                await setOrderLinePrice(
                     ctx,
+                    orderItemPriceCalculationStrategy,
                     variant,
-                    updatedOrderLine.customFields || {},
                     order,
-                    updatedOrderLine.quantity,
+                    updatedOrderLine,
+                    changedPriceHandlingStrategy,
                 );
-                const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
-                if (initialListPrice !== priceResult.price) {
-                    priceResult = await changedPriceHandlingStrategy.handlePriceChange(
-                        ctx,
-                        priceResult,
-                        updatedOrderLine,
-                        order,
-                    );
-                }
-
-                if (updatedOrderLine.initialListPrice == null) {
-                    updatedOrderLine.initialListPrice = initialListPrice;
-                }
-                updatedOrderLine.listPrice = priceResult.price;
-                updatedOrderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
             }
         }
 

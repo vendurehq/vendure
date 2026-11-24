@@ -151,6 +151,10 @@ export const orderLineFragment = graphql(
             unitPriceWithTax
             proratedUnitPrice
             proratedUnitPriceWithTax
+            refundPriceBasis {
+                priceWithTax
+                quantity
+            }
             quantity
             orderPlacedQuantity
             linePrice
