@@ -16,7 +16,11 @@ import { Kbd } from '@/vdb/components/ui/kbd.js';
 import { SearchTrigger } from '@/vdb/components/ui/search-trigger.js';
 import { getCommandPaletteItems } from '@/vdb/framework/command-palette/command-palette-extensions.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
-import { getNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
+import {
+    getNavMenuConfig,
+    NavMenuItem,
+    NavMenuSection,
+} from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import { getLockedCapability } from '@/vdb/framework/platform-promotion/locked-capabilities.js';
 import { getLockedNavItemCapability } from '@/vdb/framework/platform-promotion/register-locked-navigation.js';
 import { usePermissions } from '@/vdb/hooks/use-permissions.js';
@@ -36,6 +40,9 @@ function isPaletteShortcut(event: KeyboardEvent) {
         event.key.toLowerCase() === 'k'
     );
 }
+
+// A stable empty list, so the memos below do not rerun on every render before extensions load.
+const NO_SECTIONS: Array<NavMenuSection | NavMenuItem> = [];
 
 const CommandPaletteContext = React.createContext<(() => void) | null>(null);
 
@@ -152,10 +159,7 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
     const { t, i18n } = useLingui();
     const navigate = useNavigate();
     const { extensionsLoaded } = useDashboardExtensions();
-    const sections = React.useMemo(
-        () => (extensionsLoaded ? getNavMenuConfig().sections : []),
-        [extensionsLoaded],
-    );
+    const sections = extensionsLoaded ? getNavMenuConfig().sections : NO_SECTIONS;
     const resolved = useResolvedNavMenu(sections);
     const { hasPermissions } = usePermissions();
     const groups = React.useMemo(
