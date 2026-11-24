@@ -1,9 +1,11 @@
 import type {
     CommandDefinition,
     CommandErrorDefinition,
+    CommandFix,
     CommandNeed,
     ErrorResult,
     FailedResult,
+    Fix,
     IncompleteResult,
 } from './types';
 
@@ -90,4 +92,19 @@ export function isErrorResult(value: unknown): value is ErrorResult {
 
 function isMarked(value: unknown, kind: string): boolean {
     return typeof value === 'object' && value !== null && (value as any).vendureResult === kind;
+}
+
+/**
+ * @description
+ * Whether a {@link Fix} is a command that a host can run: it names a `path` and an `input`.
+ */
+export function isCommandFix(fix: Fix): fix is CommandFix {
+    return (
+        Array.isArray(fix.path) &&
+        fix.path.length > 0 &&
+        fix.path.every(segment => typeof segment === 'string') &&
+        typeof fix.input === 'object' &&
+        fix.input !== null &&
+        !Array.isArray(fix.input)
+    );
 }
