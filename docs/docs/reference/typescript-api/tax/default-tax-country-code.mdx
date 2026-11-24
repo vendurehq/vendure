@@ -1,0 +1,41 @@
+---
+title: "DefaultTaxCountryCode"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/tax/default-tax-country-code.ts" sourceLine="25" packageName="@vendure/core" since="4.0.0" />
+
+The default rule for the country whose country [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate)s apply. It is used when the
+configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy) does not implement `determineTaxCountryCode()`, and a strategy
+that does can call it to keep the default for some cases.
+
+It returns the country of the Order's shipping address, or `undefined` when there is no Order or
+no shipping country.
+
+*Example*
+
+```ts
+determineTaxCountryCode(ctx: RequestContext, channel: Channel, activeTaxZone: Zone, order?: Order) {
+    if (isBusinessCustomer(order)) {
+        return undefined;
+    }
+    return defaultTaxCountryCode(channel, activeTaxZone, order);
+}
+```
+
+```ts title="Signature"
+function defaultTaxCountryCode(channel: Channel, activeTaxZone: Zone, order?: Order): string | undefined
+```
+Parameters
+
+### channel
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`} />
+
+### activeTaxZone
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>`} />
+
+### order
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`} />
+
