@@ -1,8 +1,9 @@
-import { CommandDefinition, CommandEvent } from '@vendure/common/lib/command';
+import { CommandDefinition, CommandEvent, isIncompleteResult } from '@vendure/common/lib/command';
 import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
+import { requireCredential } from '../auth/credential.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
@@ -11,6 +12,7 @@ import { errorResult, executeCommand, HostEnvironment, HostResult } from './host
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
+import { writeSecretFile } from './secret-file.js';
 import { createSpawn } from './spawn.js';
 import { JsonOutput, redirectStdoutToStderr } from './stdio.js';
 
@@ -298,6 +300,18 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             wholeLines: !!out,
         }),
         findProjectRoot: () => findVendureProjectRoot(),
+        writeSecret: (command, field, value) => writeSecretFile(command, field, value),
+        requireCredential: async (_kind, ctx) => {
+            const result = await requireCredential({
+                signal: ctx.signal,
+                mayPrompt: ctx.ask !== undefined,
+                signIn: async () => {
+                    const { signInWithDevice } = await import('../commands/auth/sign-in.js');
+                    await signInWithDevice(ctx);
+                },
+            });
+            return isIncompleteResult(result) ? result.needs : undefined;
+        },
     };
 }
 
@@ -376,6 +390,10 @@ export async function findMismatch(
     }
     if ((def.plan !== undefined) !== manifestCommand.hasPlan) {
         return 'it differs in having a plan()';
+    }
+    const secrets = (list: string[] | undefined) => [...(list ?? [])].sort(compareCodeUnits).join(',');
+    if (secrets(def.secretOutputs) !== secrets(manifestCommand.secretOutputs)) {
+        return 'its secret outputs differ';
     }
     // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
     // in place, so a field that was added, renamed or removed is caught here.

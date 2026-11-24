@@ -723,6 +723,8 @@ input BooleanOperators {
   """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: NumberOperators
   pricesIncludeTax: BooleanOperators
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"""
+  taxCountryCode: StringOperators
   _and: [ChannelFilterParameter!]
   _or: [ChannelFilterParameter!]
 }`}
@@ -775,6 +777,8 @@ input BooleanOperators {
   token: SortOrder
   """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: SortOrder
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"""
+  taxCountryCode: SortOrder
 }`}
 </GraphQLDoc>
 
@@ -1192,6 +1196,8 @@ input CreateApiKeyInput {
   outOfStockThreshold: Int
   defaultTaxZoneId: ID!
   defaultShippingZoneId: ID!
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"""
+  taxCountryCode: String
   sellerId: ID
   customFields: JSON
 }`}
@@ -5044,6 +5050,8 @@ input UpdateAddressInput {
   outOfStockThreshold: Int
   defaultTaxZoneId: ID
   defaultShippingZoneId: ID
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Set it to null to clear it. Since 4.0.0"""
+  taxCountryCode: String
   sellerId: ID
   customFields: JSON
 }`}

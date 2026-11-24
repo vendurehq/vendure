@@ -386,6 +386,17 @@ export interface CommandCliMetadata {
 
 /**
  * @description
+ * What a field of {@link CommandDefinition.secretOutputs} holds in the output when the host wrote
+ * the secret to a file: the absolute path of a file that only the user can read.
+ *
+ * @since 4.0.0
+ */
+export interface SecretFileReference {
+    secretFile: string;
+}
+
+/**
+ * @description
  * A command declared as plain data. Declaring it loads no implementation and no schema library.
  */
 export interface CommandDefinition {
@@ -397,6 +408,20 @@ export interface CommandDefinition {
     requires?: {
         /** The host refuses to run the command outside a Vendure project. */
         project?: boolean;
+        /**
+         * The command needs a Vendure Cloud credential. Before anything else runs, the host looks
+         * for one: the stored login, then `VENDURE_CLOUD_TOKEN`, then a device login when a person
+         * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
+         * secret `token` field, whose fix is `vendure auth login --json`.
+         *
+         * `run()` then reads the credential with `requireCredential` from `@vendure/cli`, with
+         * `mayPrompt: false`, and returns an `incomplete` result from it unchanged. That can happen
+         * when the command needs a login for one organization, because the host only checks that
+         * some credential exists.
+         *
+         * @since 4.0.0
+         */
+        auth?: 'cloud';
     };
     /** Named consents, each with a description. */
     consents?: Record<string, string>;
@@ -405,6 +430,17 @@ export interface CommandDefinition {
     errors?: CommandErrorDefinition[];
     examples?: string[];
     expose?: { mcp?: boolean };
+    /**
+     * Top-level output fields that hold a secret, such as a key. A person at the terminal sees
+     * them once, through `render()`. Under `--json`, as an MCP tool, or when the host may not
+     * prompt, the host writes each value to a file that only the user can read, and the output
+     * holds a {@link SecretFileReference} in its place. The value never reaches stdout or a model.
+     * That includes a run whose output a person reads without a terminal, such as one piped or
+     * in CI, so `render()` must check each of these fields with `isSecretFileReference`.
+     *
+     * @since 4.0.0
+     */
+    secretOutputs?: string[];
     run: () => Promise<{ run: CommandRunFn }>;
     plan?: () => Promise<{ plan: CommandPlanFn }>;
     render?: () => Promise<{ render: CommandRenderFn }>;

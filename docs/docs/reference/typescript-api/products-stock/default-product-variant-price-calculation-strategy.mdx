@@ -2,19 +2,22 @@
 title: "DefaultProductVariantPriceCalculationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/catalog/default-product-variant-price-calculation-strategy.ts" sourceLine="29" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/default-product-variant-price-calculation-strategy.ts" sourceLine="32" packageName="@vendure/core" />
 
 A default ProductVariant price calculation function.
 
-When the Channel's prices include tax, an entered price includes the tax rate of the Channel's
-default tax Zone. It is kept as the gross price where that rate applies. Elsewhere the net price is
-taken out at the default Zone's rate, and the applicable rate is then added to it. With
-[ProductVariantPriceCalculationArgs](/reference/typescript-api/products-stock/product-variant-price-calculation-strategy#productvariantpricecalculationargs) `taxRate`, a country rate is treated like the rate of
-another Zone, as if the country had its own Zone. A country rate with the same value as the
-default Zone's rate keeps the entered price as gross.
+When the Channel's prices include tax, an entered price includes the rate that
+[TaxRateService](/reference/typescript-api/services/tax-rate-service#taxrateservice) `findIncludedTaxRate()` returns: the country rate of the Channel's
+`taxCountryCode` when it is set, otherwise the zone rate of its default tax Zone. The price is kept
+as the gross price where that rate applies. Elsewhere the net price is taken out at the included
+rate, and the applicable rate is then added to it. When the applicable rate and the included rate
+have the same value and either one is a country rate, the entered price is kept as gross too, so
+that rounding cannot move it by one unit. Two different zone rates with the same value are
+treated as different rates: the net is taken out at the included rate and the applicable rate is
+added again, so rounding can change the price by one unit, as in v3.
 
-If the default tax Zone has no zone rate for the TaxCategory, the price is kept as gross in the
-default Zone, and no tax is taken out elsewhere.
+If there is no included rate for the TaxCategory, the price is kept as gross in the default tax
+Zone, and no tax is taken out elsewhere.
 
 ```ts title="Signature"
 class DefaultProductVariantPriceCalculationStrategy implements ProductVariantPriceCalculationStrategy {

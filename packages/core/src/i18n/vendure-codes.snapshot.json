@@ -173,6 +173,7 @@
         "core.super-admin-role-not-found",
         "core.superadmin-must-have-superadmin-role",
         "core.target-customer-not-assigned-to-order-channels",
+        "core.tax-country-code-not-valid",
         "core.tax-rate-region-must-be-country",
         "core.tax-rate-requires-exactly-one-target",
         "core.unauthorized",

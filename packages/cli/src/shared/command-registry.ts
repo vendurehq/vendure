@@ -414,6 +414,9 @@ function declareOption(
 function addOption(command: Command, option: CliCommandOption, helpGroup?: string): void {
     const created = command.createOption(buildOptionFlags(option), option.description);
     created.default(option.defaultValue);
+    if (option.hidden) {
+        created.hideHelp();
+    }
     if (helpGroup !== undefined) {
         created.helpGroup(helpGroup);
     }

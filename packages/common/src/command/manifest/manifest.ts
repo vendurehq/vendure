@@ -20,7 +20,7 @@ export interface ManifestCommand {
     description: string;
     keywords: string[];
     behavior: CommandBehavior;
-    requires: { project?: boolean };
+    requires: { project?: boolean; auth?: 'cloud' };
     consents: Record<string, string>;
     /** JSON Schema of the input, with one string property for each consent. */
     input: JsonSchema;
@@ -35,6 +35,8 @@ export interface ManifestCommand {
     examples: string[];
     expose: { mcp: boolean };
     hasPlan: boolean;
+    /** The output fields that hold a secret, written to a file instead of the output. */
+    secretOutputs?: string[];
 }
 
 export interface CommandManifest {

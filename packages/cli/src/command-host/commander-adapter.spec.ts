@@ -2,7 +2,10 @@ import { defineCommand } from '@vendure/common/lib/command';
 import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { Command } from 'commander';
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { runCommandInHarness } from './__tests__/command-harness.js';
@@ -10,10 +13,12 @@ import {
     CancellationSource,
     collectFlagInput,
     createCancellation,
+    createHostEnvironment,
     findMismatch,
     jsonRequested,
     registerManifestCommands,
 } from './commander-adapter.js';
+import { executeCommand } from './host.js';
 
 const demo = defineCommand({
     path: ['add', 'thing'],
@@ -281,5 +286,96 @@ describe('findMismatch', () => {
             schemas: async () => ({ input: z.object({ name: z.string(), colour: z.string().optional() }) }),
         });
         expect(await findMismatch(changed, built)).toBe('its input fields differ');
+    });
+    it('reports secret outputs that the manifest does not list', async () => {
+        const [built] = mergeManifests([await buildCommandManifest('@test/pkg', '1.0.0', [demo])]);
+        expect(await findMismatch({ ...demo, secretOutputs: ['key'] }, built)).toBe(
+            'its secret outputs differ',
+        );
+    });
+});
+
+describe('the credential check of createHostEnvironment', () => {
+    const ctx = {
+        cwd: process.cwd(),
+        signal: new AbortController().signal,
+        mcp: false,
+        notice: () => undefined,
+        progress: () => undefined,
+        event: () => undefined,
+        spawn: () => Promise.reject(new Error('no processes in tests')),
+    };
+    let configDir: string;
+
+    beforeEach(() => {
+        configDir = mkdtempSync(path.join(tmpdir(), 'vendure-host-credential-'));
+        vi.stubEnv('VENDURE_CLI_CONFIG_DIR', configDir);
+        vi.stubEnv('VENDURE_CONSOLE_API_URL', '');
+        vi.stubEnv('VENDURE_CLOUD_TOKEN', '');
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        rmSync(configDir, { recursive: true, force: true });
+    });
+
+    it('returns the token need, and starts no device flow, without a person', async () => {
+        const fetch = vi.fn();
+        vi.stubGlobal('fetch', fetch);
+        try {
+            const env = createHostEnvironment(new AbortController());
+
+            const needs = await env.requireCredential?.('cloud', ctx);
+
+            expect(needs).toEqual([
+                expect.objectContaining({
+                    kind: 'input',
+                    field: 'token',
+                    secret: true,
+                    fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
+                }),
+            ]);
+            expect(fetch).not.toHaveBeenCalled();
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('stops a requires.auth command run through the real host without a terminal', async () => {
+        const fetch = vi.fn();
+        vi.stubGlobal('fetch', fetch);
+        const run = vi.fn();
+        const def = defineCommand({
+            path: ['test', 'cloud'],
+            description: 'A test command that needs a login',
+            behavior: 'readonly',
+            requires: { auth: 'cloud' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({ run }),
+        });
+        try {
+            const { envelope, exitCode } = await executeCommand(
+                def,
+                {},
+                createHostEnvironment(new AbortController()),
+            );
+
+            expect(exitCode).toBe(3);
+            expect(envelope).toMatchObject({
+                status: 'incomplete',
+                needs: [{ kind: 'input', field: 'token' }],
+            });
+            expect(run).not.toHaveBeenCalled();
+            expect(fetch).not.toHaveBeenCalled();
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('accepts VENDURE_CLOUD_TOKEN', async () => {
+        vi.stubEnv('VENDURE_CLOUD_TOKEN', 'vcdk_agent_key');
+        const env = createHostEnvironment(new AbortController());
+
+        await expect(env.requireCredential?.('cloud', ctx)).resolves.toBeUndefined();
     });
 });

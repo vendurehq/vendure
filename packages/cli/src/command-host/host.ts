@@ -58,6 +58,17 @@ export interface HostEnvironment {
     emit(event: CommandEvent): void;
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
     findProjectRoot(): string | undefined;
+    /**
+     * Finds the credential a command with `requires.auth` needs, signing a person in only when
+     * `ctx.ask` is set. Resolves to the needs that stop the run, or `undefined` when there is a
+     * credential.
+     */
+    requireCredential?(kind: 'cloud', ctx: CommandContext): Promise<CommandNeed[] | undefined>;
+    /**
+     * Writes a secret output value to a file that only the user can read, and returns its
+     * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
+     */
+    writeSecret?(command: string[], field: string, value: string): string;
 }
 
 export interface HostResult {
@@ -241,6 +252,73 @@ async function inputNeeds(
 }
 
 /**
+ * Moves the command's secret output fields out of the output when no person sees it: each value
+ * goes to a file only the user can read, and the output holds `{ secretFile }` instead. A person
+ * at the terminal sees the value once, through `render()`.
+ */
+function protectSecrets(
+    def: CommandDefinition,
+    output: unknown,
+    env: HostEnvironment,
+    notices: CommandNotice[],
+): { output: unknown } | { error: HostResult } {
+    const fields = def.secretOutputs ?? [];
+    if (fields.length === 0 || personSeesOutput(env) || output === null || typeof output !== 'object') {
+        return { output };
+    }
+    const copy: Record<string, unknown> = { ...(output as Record<string, unknown>) };
+    const written: string[] = [];
+    for (const field of fields) {
+        const value = copy[field];
+        if (value === undefined || value === null) {
+            continue;
+        }
+        let secretFile: string;
+        try {
+            // executeCommand refuses before run() without a writer; this keeps the function safe alone.
+            if (!env.writeSecret) {
+                throw new Error('this host cannot write secret files');
+            }
+            secretFile = env.writeSecret(
+                def.path,
+                field,
+                typeof value === 'string' ? value : JSON.stringify(value),
+            );
+        } catch (e) {
+            // The files already written hold secrets too, so the error names them.
+            const already = written.length
+                ? ` The secrets already written are in ${written.join(', ')}.`
+                : '';
+            return {
+                error: errorResult(
+                    hostErrors.internal,
+                    {
+                        message: `Could not keep the secret "${field}" out of the output: ${
+                            e instanceof Error ? e.message : String(e)
+                        }.${already}`,
+                    },
+                    notices,
+                ),
+            };
+        }
+        written.push(secretFile);
+        copy[field] = { secretFile };
+        notices.push({
+            level: 'info',
+            message:
+                `${field} is in ${secretFile}, which only you can read. It is not in this output. ` +
+                'Delete the file once you have stored the value.',
+        });
+    }
+    return { output: copy };
+}
+
+/** Whether a person sees the output, through `render()`: only at a terminal, never over MCP. */
+function personSeesOutput(env: HostEnvironment): boolean {
+    return env.prompter !== undefined && !env.mcp;
+}
+
+/**
  * How many times the host runs a command whose `run()` returns input needs, asking a person for
  * them between runs, before it returns the needs instead.
  */
@@ -280,6 +358,33 @@ export async function executeCommand(
             return errorResult(hostErrors.projectRequired, { command: commandName }, notices);
         }
         const ctx = createContext(env, notices);
+        if (def.requires?.auth) {
+            if (!env.requireCredential) {
+                return errorResult(
+                    hostErrors.internal,
+                    { message: `"${commandName}" needs a credential, which this host cannot provide` },
+                    notices,
+                );
+            }
+            let needs: CommandNeed[] | undefined;
+            try {
+                needs = await env.requireCredential(def.requires.auth, ctx);
+            } catch (e) {
+                // A renewal without a network, or a denied or expired sign-in, is an ordinary
+                // outcome with a fix, not an internal error.
+                if (env.signal.aborted) {
+                    return errorResult(hostErrors.cancelled, {}, notices);
+                }
+                return errorResult(
+                    hostErrors.credentialFailed,
+                    { message: e instanceof Error ? e.message : String(e) },
+                    notices,
+                );
+            }
+            if (needs?.length) {
+                return incompleteResult(needs, notices);
+            }
+        }
         const schemas = await def.schemas();
         const consentNames = Object.keys(def.consents ?? {});
         const input: Record<string, unknown> = { ...rawInput };
@@ -381,6 +486,15 @@ export async function executeCommand(
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);
         }
+        // A command with secret outputs may create the secret, such as a minted key, so a host
+        // that could not keep it out of the output refuses before anything is created.
+        if (def.secretOutputs?.length && !personSeesOutput(env) && !env.writeSecret) {
+            return errorResult(
+                hostErrors.internal,
+                { message: 'This host cannot keep the secret outputs of this command out of its output' },
+                notices,
+            );
+        }
         const { run } = await def.run();
         const result = await run(parsed, ctx);
         if (isIncompleteResult(result)) {
@@ -424,18 +538,33 @@ export async function executeCommand(
                 retried.envelope.notices = [...notices, ...retried.envelope.notices];
                 return retried;
             }
-            return incompleteResult(result.needs, notices, result.output);
+            if (result.output === undefined) {
+                return incompleteResult(result.needs, notices);
+            }
+            const protectedPartial = protectSecrets(def, result.output, env, notices);
+            if ('error' in protectedPartial) {
+                return protectedPartial.error;
+            }
+            return incompleteResult(result.needs, notices, protectedPartial.output);
         }
         if (isErrorResult(result)) {
             return declaredError(def, result, notices);
         }
+        const output = isFailedResult(result) ? result.output : result;
+        const protectedOutput = protectSecrets(def, output, env, notices);
+        if ('error' in protectedOutput) {
+            return protectedOutput.error;
+        }
         if (isFailedResult(result)) {
             return {
-                envelope: envelope('failed', notices, { output: result.output }),
+                envelope: envelope('failed', notices, { output: protectedOutput.output }),
                 exitCode: COMMAND_EXIT_CODES.failed,
             };
         }
-        return { envelope: envelope('ok', notices, { output: result }), exitCode: COMMAND_EXIT_CODES.ok };
+        return {
+            envelope: envelope('ok', notices, { output: protectedOutput.output }),
+            exitCode: COMMAND_EXIT_CODES.ok,
+        };
     } catch (e) {
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);

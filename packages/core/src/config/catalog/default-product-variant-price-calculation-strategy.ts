@@ -14,15 +14,18 @@ import {
  * @description
  * A default ProductVariant price calculation function.
  *
- * When the Channel's prices include tax, an entered price includes the tax rate of the Channel's
- * default tax Zone. It is kept as the gross price where that rate applies. Elsewhere the net price is
- * taken out at the default Zone's rate, and the applicable rate is then added to it. With
- * {@link ProductVariantPriceCalculationArgs} `taxRate`, a country rate is treated like the rate of
- * another Zone, as if the country had its own Zone. A country rate with the same value as the
- * default Zone's rate keeps the entered price as gross.
+ * When the Channel's prices include tax, an entered price includes the rate that
+ * {@link TaxRateService} `findIncludedTaxRate()` returns: the country rate of the Channel's
+ * `taxCountryCode` when it is set, otherwise the zone rate of its default tax Zone. The price is kept
+ * as the gross price where that rate applies. Elsewhere the net price is taken out at the included
+ * rate, and the applicable rate is then added to it. When the applicable rate and the included rate
+ * have the same value and either one is a country rate, the entered price is kept as gross too, so
+ * that rounding cannot move it by one unit. Two different zone rates with the same value are
+ * treated as different rates: the net is taken out at the included rate and the applicable rate is
+ * added again, so rounding can change the price by one unit, as in v3.
  *
- * If the default tax Zone has no zone rate for the TaxCategory, the price is kept as gross in the
- * default Zone, and no tax is taken out elsewhere.
+ * If there is no included rate for the TaxCategory, the price is kept as gross in the default tax
+ * Zone, and no tax is taken out elsewhere.
  *
  * @docsCategory products & stock
  */
@@ -39,21 +42,15 @@ export class DefaultProductVariantPriceCalculationStrategy implements ProductVar
         let priceIncludesTax = false;
 
         if (ctx.channel.pricesIncludeTax) {
-            // Looked up by Zone only, so this is the default Zone's own zone rate, or the 0% default.
-            const taxRateForDefaultZone = await this.taxRateService.getApplicableTaxRate(
-                ctx,
-                ctx.channel.defaultTaxZone,
-                taxCategory,
-            );
-            const defaultZoneHasZoneRate = taxRateForDefaultZone.zoneId != null;
+            const includedRate = await this.taxRateService.findIncludedTaxRate(ctx, ctx.channel, taxCategory);
             const keepsGrossPrice =
-                taxRate && defaultZoneHasZoneRate
-                    ? this.isSameTax(taxRate, taxRateForDefaultZone)
+                taxRate && includedRate
+                    ? this.isSameTax(taxRate, includedRate)
                     : idsAreEqual(activeTaxZone.id, ctx.channel.defaultTaxZone.id);
             if (keepsGrossPrice) {
                 priceIncludesTax = true;
-            } else {
-                price = roundMoney(taxRateForDefaultZone.netPriceOf(inputPrice));
+            } else if (includedRate) {
+                price = roundMoney(includedRate.netPriceOf(inputPrice));
             }
         }
 
@@ -64,14 +61,15 @@ export class DefaultProductVariantPriceCalculationStrategy implements ProductVar
     }
 
     /**
-     * A country rate with the default Zone's value is the same tax, so the entered price is already
-     * the right gross price. Taking the net out and adding the same rate again could change it by one
-     * unit through rounding.
+     * The applied rate is the included rate, or a rate of the same value where either one is a
+     * country rate. The entered price is then already the right gross price, and taking the net out
+     * and adding the same rate again could change it by one unit through rounding.
      */
-    private isSameTax(taxRate: TaxRate, taxRateForDefaultZone: TaxRate): boolean {
+    private isSameTax(taxRate: TaxRate, includedRate: TaxRate): boolean {
         return (
-            idsAreEqual(taxRate.id, taxRateForDefaultZone.id) ||
-            (taxRate.regionId != null && taxRate.value === taxRateForDefaultZone.value)
+            idsAreEqual(taxRate.id, includedRate.id) ||
+            ((taxRate.regionId != null || includedRate.regionId != null) &&
+                taxRate.value === includedRate.value)
         );
     }
 }

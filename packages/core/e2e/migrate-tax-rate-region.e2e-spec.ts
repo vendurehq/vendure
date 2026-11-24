@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
  * Tests the v4.0 schema change for country tax rates on a database rolled back to the v3 schema:
- * `tax_rate` without the `regionId` column and `order` without `taxCountryCode`. `zoneId` was
+ * `tax_rate` without the `regionId` column, and `order` and `channel` without `taxCountryCode`. `zoneId` was
  * already nullable in v3, so the generated migration only adds the columns, an index and a foreign
  * key, and existing zone rates are unchanged.
  *
@@ -32,6 +32,25 @@ describe('v4.0 TaxRate region migration', () => {
     let ratesBefore: TaxRateRow[];
 
     type TaxRateRow = { id: string; zoneId: string | null; value: number; enabled: boolean };
+
+    /**
+     * SQLite rebuilds a table to change a column, which would cascade-delete the rows that refer to
+     * it, such as the sessions and role assignments of a Channel. Migrations run with the foreign
+     * keys off on SQLite, so this does the same.
+     */
+    const withoutSqliteForeignKeys = async (work: () => Promise<void>) => {
+        const isSqlite = ['sqlite', 'sqljs', 'better-sqlite3'].includes(rawConnection.options.type);
+        if (isSqlite) {
+            await queryRunner.query('PRAGMA foreign_keys = OFF');
+        }
+        try {
+            await work();
+        } finally {
+            if (isSqlite) {
+                await queryRunner.query('PRAGMA foreign_keys = ON');
+            }
+        }
+    };
 
     const taxRateRows = async (): Promise<TaxRateRow[]> => {
         const rows: any[] = await queryRunner.query(
@@ -66,8 +85,11 @@ describe('v4.0 TaxRate region migration', () => {
             await queryRunner.dropIndex(table, index);
         }
         await queryRunner.dropColumn(table, 'regionId');
-        // ...and order without taxCountryCode.
-        await queryRunner.dropColumn('order', 'taxCountryCode');
+        // ...and order and channel without taxCountryCode.
+        await withoutSqliteForeignKeys(async () => {
+            await queryRunner.dropColumn('order', 'taxCountryCode');
+            await queryRunner.dropColumn('channel', 'taxCountryCode');
+        });
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -79,14 +101,20 @@ describe('v4.0 TaxRate region migration', () => {
         const log = await rawConnection.driver.createSchemaBuilder().log();
         const sql = log.upQueries.map(q => q.query).join('\n');
         expect(sql).toContain('regionId');
-        expect(sql).toContain('taxCountryCode');
+        const taxCountryCodeQueries = log.upQueries
+            .map(q => q.query)
+            .filter(q => q.includes('taxCountryCode'));
+        expect(taxCountryCodeQueries.some(q => q.includes('order'))).toBe(true);
+        expect(taxCountryCodeQueries.some(q => q.includes('channel'))).toBe(true);
     });
 
     it('the generated schema migration applies and leaves no further diff', async () => {
         const log = await rawConnection.driver.createSchemaBuilder().log();
-        for (const q of log.upQueries) {
-            await queryRunner.query(q.query, q.parameters);
-        }
+        await withoutSqliteForeignKeys(async () => {
+            for (const q of log.upQueries) {
+                await queryRunner.query(q.query, q.parameters);
+            }
+        });
         const after = await rawConnection.driver.createSchemaBuilder().log();
         expect(after.upQueries.map(q => q.query)).toEqual([]);
     });
@@ -99,6 +127,12 @@ describe('v4.0 TaxRate region migration', () => {
             `SELECT ${esc('regionId')} FROM ${esc('tax_rate')} WHERE ${esc('regionId')} IS NOT NULL`,
         );
         expect(regionIds).toEqual([]);
+    });
+
+    it('existing channels have no tax country', async () => {
+        const rows: any[] = await queryRunner.query(`SELECT ${esc('taxCountryCode')} FROM ${esc('channel')}`);
+        expect(rows.length).toBeGreaterThan(0);
+        expect(rows.every(r => r.taxCountryCode == null)).toBe(true);
     });
 
     it('an existing zone rate still resolves for an order', async () => {

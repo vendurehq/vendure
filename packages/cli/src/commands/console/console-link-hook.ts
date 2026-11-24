@@ -29,10 +29,17 @@ export type ConsoleLinkOutcome = 'linked' | 'repaired';
  *   of the user's own Projects, an administrator of that account adds the user, or the user runs
  *   `vendure auth login` with another Vendure Console login that is a member. The CLI has said so.
  * - `'sign-in-failed'`: the sign-in failed. The CLI has reported why.
+ * - `'environment-credential'`: the run uses `VENDURE_CLOUD_TOKEN`, such as an agent's delegated key,
+ *   which is never given to a hook. Do not fall back to `getAccessToken()`: a stored login, if any,
+ *   is not the credential this run uses. Since 4.0.0.
  *
  * @since 3.8.2
  */
-export type ConsoleSessionUnavailableReason = 'not-signed-in' | 'account-inaccessible' | 'sign-in-failed';
+export type ConsoleSessionUnavailableReason =
+    | 'not-signed-in'
+    | 'account-inaccessible'
+    | 'sign-in-failed'
+    | 'environment-credential';
 
 /** Values supplied to an {@link ConsoleLinkHook}. @since 3.8.0 */
 export interface ConsoleLinkContext {
@@ -56,8 +63,9 @@ export interface ConsoleLinkContext {
     session?: ConsoleSession;
     /**
      * Set when this hook requested a session and has none. With
-     * `'account-inaccessible'`, do not fall back to `getAccessToken()`: a stored
-     * login belongs to another account. @since 3.8.2
+     * `'account-inaccessible'` or `'environment-credential'`, do not fall back to
+     * `getAccessToken()`: a stored login belongs to another account, or is not
+     * the credential this run uses. @since 3.8.2
      */
     sessionUnavailable?: ConsoleSessionUnavailableReason;
     /** Aborts on SIGINT or SIGTERM. */
