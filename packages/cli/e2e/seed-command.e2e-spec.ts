@@ -1,10 +1,11 @@
 /**
  * E2E tests for `vendure seed`. Each runs through the command host against a project with a
- * SQLite database, the way the CLI runs it.
+ * SQLite database, the way the CLI runs it. Two tests run the built CLI (`dist/cli.js`).
  */
-import type { CommandDefinition } from '@vendure/common/lib/command';
+import type { CommandEnvelope } from '@vendure/common/lib/command';
 import { CREATE_RECORD_PATH } from '@vendure/common/lib/create-record';
 import * as fs from 'fs-extra';
+import { spawnSync } from 'node:child_process';
 import * as path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -17,6 +18,21 @@ const PROJECT_DIR = path.join(import.meta.dirname, 'fixtures', 'seed-project');
 const DB_PATH = path.join(PROJECT_DIR, 'seed.db');
 const PRISTINE_DB_PATH = path.join(PROJECT_DIR, 'seed.pristine.db');
 const RECORD_PATH = path.join(PROJECT_DIR, CREATE_RECORD_PATH);
+const BROKEN_CONFIG = './src/vendure-config-broken.ts';
+
+/**
+ * Runs `vendure seed --json` with the built CLI in a new process. Vendure keeps the plugins of its
+ * first bootstrap for the life of a process, so a test about whether a run starts Vendure, with a
+ * config whose plugin fails, needs a process of its own.
+ */
+function seedInProcess(args: string[]): CommandEnvelope {
+    const cliPath = path.join(import.meta.dirname, '..', 'dist', 'cli.js');
+    const result = spawnSync(process.execPath, [cliPath, 'seed', ...args, '--json'], {
+        cwd: PROJECT_DIR,
+        encoding: 'utf-8',
+    });
+    return JSON.parse(result.stdout) as CommandEnvelope;
+}
 
 function seed(input: Record<string, unknown>) {
     return runCommandInHarness(seedDefinition, input, { projectRoot: PROJECT_DIR });
@@ -157,14 +173,12 @@ describe('Seed command E2E', { timeout: 120_000 }, () => {
                 scenario: { status: 'skipped' },
             });
 
-            const started = Date.now();
-            const second = await seed({ firstRun: true });
-            const elapsed = Date.now() - started;
-            expect(second.envelope.output).toMatchObject({
+            // A config whose bootstrap fails proves that the second run does not start Vendure.
+            const second = seedInProcess(['--first-run', '--config', BROKEN_CONFIG]);
+            expect(second.status).toBe('ok');
+            expect(second.output).toMatchObject({
                 preset: { status: 'already-applied', name: 'single-country' },
             });
-            // eslint-disable-next-line no-console
-            console.info(`seed --first-run on a seeded database took ${elapsed} ms`);
             const zones = await query('SELECT name FROM zone');
             expect(zones).toEqual([{ name: 'NZ' }]);
         });
@@ -217,6 +231,26 @@ describe('Seed command E2E', { timeout: 120_000 }, () => {
             expect(
                 await query("SELECT key FROM settings_store_entry WHERE key LIKE 'vendure.seed.%'"),
             ).toEqual([]);
+        });
+
+        it('fails the pending steps when Vendure cannot start', async () => {
+            await writeRecord({
+                preset: { name: 'uk', options: {} },
+                scenario: { name: 'demo', package: './scenario-pack', version: '1.0.0' },
+            });
+
+            const result = seedInProcess(['--first-run', '--config', BROKEN_CONFIG]);
+
+            expect(result.status).toBe('failed');
+            expect(result.output).toMatchObject({
+                preset: {
+                    status: 'failed',
+                    name: 'uk',
+                    error: { code: 'seed.failed', message: expect.stringContaining('broken plugin') },
+                },
+                scenario: { status: 'skipped' },
+            });
+            expect(await query('SELECT name FROM zone')).toEqual([]);
         });
 
         it('ignores a record with a newer version, with a notice', async () => {

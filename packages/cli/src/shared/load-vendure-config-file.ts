@@ -132,17 +132,20 @@ export async function loadVendureConfigFile(
 
 /**
  * Loads the Vendure config from a known file, without parsing the project with ts-morph, which
- * takes seconds. The config is the first export that has `dbConnectionOptions`. Returns
- * `undefined` when the file has no such export, so the caller can fall back to
- * {@link loadVendureConfigFile}.
+ * takes seconds. The config is the export named `config`, or else the only export that has
+ * `dbConnectionOptions`. Returns `undefined` when that does not identify one export, so the caller
+ * can fall back to {@link loadVendureConfigFile}.
  */
 export async function loadVendureConfigFromPath(configFilePath: string): Promise<VendureConfig | undefined> {
     await prepareToRequireConfig(configFilePath);
     const configModule = createRequire(import.meta.url)(configFilePath) as Record<string, unknown>;
-    return Object.values(configModule).find(
-        (value): value is VendureConfig =>
-            typeof value === 'object' && value !== null && 'dbConnectionOptions' in value,
-    );
+    const isConfig = (value: unknown): value is VendureConfig =>
+        typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
+    if (isConfig(configModule.config)) {
+        return configModule.config;
+    }
+    const configs = Object.values(configModule).filter(isConfig);
+    return configs.length === 1 ? configs[0] : undefined;
 }
 
 /**

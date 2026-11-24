@@ -7,6 +7,8 @@ import {
     failed,
     incomplete,
     IncompleteResult,
+    isErrorResult,
+    isIncompleteResult,
 } from '@vendure/common/lib/command';
 import {
     CREATE_RECORD_PATH,
@@ -28,6 +30,7 @@ import { readSeedState, SeedState } from './seed-state.js';
 import {
     seedConfigUnreadable,
     seedConflictingOptions,
+    seedCoreUnsupported,
     seedCreateRecordInvalid,
     seedDatabaseUnreadable,
     seedErrorsByCode,
@@ -48,6 +51,10 @@ export async function run(input: SeedInput, ctx: CommandContext): Promise<Comman
         return runFirstRun(input, ctx);
     }
     const core = requireProjectCore(ctx.cwd);
+    const unsupported = checkCoreSupportsSeeding(core);
+    if (unsupported) {
+        return unsupported;
+    }
     if (!input.preset) {
         return { presets: core.listPresets() };
     }
@@ -58,7 +65,7 @@ export async function run(input: SeedInput, ctx: CommandContext): Promise<Comman
         return seedErrorResult(e, core);
     }
     const config = await loadConfig(ctx.cwd, input.config);
-    if (isError(config)) {
+    if (isErrorResult(config)) {
         return config;
     }
     ctx.progress(`Applying the ${input.preset} preset`);
@@ -77,7 +84,7 @@ export async function run(input: SeedInput, ctx: CommandContext): Promise<Comman
 async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<CommandRunResult<SeedOutput>> {
     const projectRoot = findVendureProjectRoot(ctx.cwd) ?? ctx.cwd;
     const record = await readCreateRecord(projectRoot, ctx);
-    if (isError(record)) {
+    if (isErrorResult(record)) {
         return record;
     }
     if (!record || (!record.preset && !record.scenario)) {
@@ -87,7 +94,7 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
         return { preset: { status: 'skipped', reason }, scenario: { status: 'skipped', reason } };
     }
     const config = await loadConfig(ctx.cwd, input.config);
-    if (isError(config)) {
+    if (isErrorResult(config)) {
         return config;
     }
     let state: SeedState;
@@ -104,8 +111,12 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
     }
 
     const core = requireProjectCore(ctx.cwd);
+    const unsupported = checkCoreSupportsSeeding(core);
+    if (unsupported) {
+        return unsupported;
+    }
     let anyFailed = false;
-    await withApp(core, config, async app => {
+    const outcome = await withApp(core, config, async app => {
         if (presetStep.status === 'pending' && record.preset) {
             ctx.progress(`Applying the ${record.preset.name} preset`);
             try {
@@ -134,6 +145,20 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
         }
         return {};
     });
+    if (isErrorResult(outcome) || isIncompleteResult(outcome)) {
+        // Vendure did not start, or failed outside a seed: every step that was still to run failed.
+        const code = isErrorResult(outcome) ? outcome.code : seedFailed.code;
+        const message =
+            (isErrorResult(outcome) && (outcome.details as { message?: string } | undefined)?.message) ||
+            'Vendure could not be started to seed the database';
+        const failPending = (step: PlannedStep): PlannedStep =>
+            step.status === 'pending'
+                ? { status: 'failed', name: step.name, reason: message, error: { code, message } }
+                : step;
+        presetStep = failPending(presetStep);
+        scenarioStep = failPending(scenarioStep);
+        anyFailed = true;
+    }
     const output = { preset: presetStep as SeedStep, scenario: scenarioStep as SeedStep };
     return anyFailed ? failed(output) : output;
 }
@@ -141,7 +166,7 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
 const DEFAULT_CONFIG_FILES = ['src/vendure-config.ts', 'vendure-config.ts'];
 
 const NOT_EMPTY_REASON =
-    'The database has setup data and no seed record, so it was set up another way. It is never seeded.';
+    'The database has setup data and no vendure.seed.preset sentinel, so it was set up another way. It is never seeded.';
 
 type PlannedStep = SeedStep | { status: 'pending'; name: string };
 
@@ -301,8 +326,12 @@ function seedErrorResult(e: unknown, core: ProjectCore): ErrorResult | Incomplet
                 },
             ]);
         }
-        const definition: CommandErrorDefinition = seedErrorsByCode[e.vendureCode];
-        return fail(definition, { ...e.details, message: e.message });
+        // The project's core can be newer than this CLI, and throw a code the CLI does not know.
+        const definition: CommandErrorDefinition | undefined =
+            seedErrorsByCode[e.vendureCode as keyof typeof seedErrorsByCode];
+        return definition
+            ? fail(definition, { ...e.details, message: e.message })
+            : fail(seedFailed, { message: e.message });
     }
     return fail(seedFailed, { message: errorMessage(e) });
 }
@@ -325,8 +354,19 @@ function presetOptions(input: SeedInput): Record<string, string> {
     return options;
 }
 
-function isError(value: unknown): value is ErrorResult {
-    return typeof value === 'object' && value !== null && (value as ErrorResult).vendureResult === 'error';
+/**
+ * The CLI loads the project's `@vendure/core`, which has the presets API from version 4.
+ */
+function checkCoreSupportsSeeding(core: ProjectCore): ErrorResult | undefined {
+    const api = core as Partial<ProjectCore>;
+    if (
+        typeof api.applyPreset !== 'function' ||
+        typeof api.seedScenario !== 'function' ||
+        typeof api.isSeedError !== 'function'
+    ) {
+        return fail(seedCoreUnsupported, { version: core.VENDURE_VERSION ?? 'unknown' });
+    }
+    return undefined;
 }
 
 function errorMessage(e: unknown): string {

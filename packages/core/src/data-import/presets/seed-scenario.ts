@@ -1,3 +1,4 @@
+import type { CreateRecordScenario } from '@vendure/common/lib/create-record';
 import { INestApplicationContext } from '@nestjs/common';
 import { createRequire } from 'module';
 import path from 'path';
@@ -40,11 +41,7 @@ export interface ScenarioPack {
  * @docsPage Scenarios
  * @since 4.0.0
  */
-export interface ScenarioReference {
-    name: string;
-    package: string;
-    version: string;
-}
+export type ScenarioReference = CreateRecordScenario;
 
 /**
  * @description

@@ -68,6 +68,13 @@ export const seedConflictingOptions = defineError<{ message: string }>({
     message: ({ message }) => message,
 });
 
+export const seedCoreUnsupported = defineError<{ version: string }>({
+    code: 'seed.core-unsupported',
+    exit: 1,
+    message: ({ version }) =>
+        `The project's @vendure/core (${version}) has no base-data presets. They need Vendure 4 or later.`,
+});
+
 export const seedConfigUnreadable = defineError<{ message: string }>({
     code: 'seed.config-unreadable',
     exit: 1,
@@ -102,6 +109,7 @@ export const seedFailed = defineError<{ message: string }>({
 export const allSeedErrors = [
     ...Object.values(seedErrorsByCode),
     seedConflictingOptions,
+    seedCoreUnsupported,
     seedConfigUnreadable,
     seedDatabaseUnreadable,
     seedCreateRecordInvalid,
