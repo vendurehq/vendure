@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup } from '../../utils/base-ui-popups.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 test.describe('Product List', () => {
     const listPage = (page: import('@playwright/test').Page) =>
@@ -497,5 +499,99 @@ test.describe('Product List', () => {
             await page.getByRole('button', { name: 'Clear all' }).click();
             await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
         });
+    });
+
+    // #5950 — the price conversion factor must accept values typed after clearing the field
+    test('should assign products to a channel with a typed price conversion factor', async ({ page }) => {
+        const suffix = Date.now();
+        const channelCode = `e2e-price-factor-${suffix}`;
+        const productName = `Price Factor ${suffix}`;
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const zones = await client.gql(`query { zones(options: { take: 1 }) { items { id } } }`);
+        const zoneId = zones.zones.items[0].id as string;
+        const { createChannel } = await client.gql(
+            `mutation ($input: CreateChannelInput!) { createChannel(input: $input) { ... on Channel { id } } }`,
+            {
+                input: {
+                    code: channelCode,
+                    token: channelCode,
+                    defaultLanguageCode: 'en',
+                    pricesIncludeTax: false,
+                    defaultCurrencyCode: 'USD',
+                    defaultTaxZoneId: zoneId,
+                    defaultShippingZoneId: zoneId,
+                },
+            },
+        );
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: productName,
+                            slug: `price-factor-${suffix}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) { createProductVariants(input: $input) { id } }`,
+            {
+                input: [
+                    {
+                        productId: createProduct.id,
+                        sku: `PF-${suffix}`,
+                        price: 1000,
+                        translations: [{ languageCode: 'en', name: productName }],
+                    },
+                ],
+            },
+        );
+
+        try {
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+            await lp.search(productName);
+            const row = lp.getRows().filter({ hasText: productName });
+            await row.getByRole('checkbox').click();
+            await page.getByRole('button', { name: /Actions/i }).click();
+            await page.getByRole('menuitem', { name: 'Assign to channel' }).click();
+
+            const dialog = page.getByRole('dialog');
+            const channels = dialog.getByRole('combobox');
+            await channels.click();
+            await page.getByRole('option', { name: channelCode }).click();
+            await closePopup(channels);
+
+            const factor = dialog.getByRole('spinbutton');
+            await expect(factor).toHaveValue('1');
+            await factor.clear();
+            await expect(factor).toHaveValue('');
+            await factor.pressSequentially('0.5');
+            await expect(factor).toHaveValue('0.5');
+
+            await dialog.getByRole('button', { name: 'Assign' }).click();
+            await lp.expectSuccessToast();
+
+            const result = await client.gql(
+                `query ($id: ID!) { product(id: $id) { variants { price } } }`,
+                { id: createProduct.id },
+                { 'vendure-token': channelCode },
+            );
+            expect(result.product.variants[0].price).toBe(500);
+        } finally {
+            await client
+                .gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: createProduct.id })
+                .catch(() => undefined);
+            await client
+                .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, { id: createChannel.id })
+                .catch(() => undefined);
+        }
     });
 });
