@@ -4625,6 +4625,12 @@
               "lastModified": "2026-11-24T16:46:30+01:00"
             },
             {
+              "title": "vendure api",
+              "slug": "api",
+              "file": "docs/reference/cli/api.mdx",
+              "lastModified": "2026-11-24T15:48:18Z"
+            },
+            {
               "title": "vendure commands",
               "slug": "commands",
               "file": "docs/reference/cli/commands.mdx",
@@ -4643,6 +4649,18 @@
               "lastModified": "2026-11-24T16:46:30+01:00"
             },
             {
+              "title": "vendure explain",
+              "slug": "explain",
+              "file": "docs/reference/cli/explain.mdx",
+              "lastModified": "2026-11-24T15:48:18Z"
+            },
+            {
+              "title": "vendure guide",
+              "slug": "guide",
+              "file": "docs/reference/cli/guide.mdx",
+              "lastModified": "2026-11-24T15:48:18Z"
+            },
+            {
               "title": "vendure mcp",
               "slug": "mcp",
               "file": "docs/reference/cli/mcp.mdx",
@@ -4655,7 +4673,7 @@
               "lastModified": "2026-11-24T16:46:30+01:00"
             }
           ],
-          "lastModified": "2026-11-24T16:46:30+01:00"
+          "lastModified": "2026-11-24T15:48:18Z"
         },
         {
           "title": "GraphQL API",
