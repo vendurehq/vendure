@@ -30,8 +30,9 @@ know the cause.
 
 1. **`vendure devserver status`.** Is the dev server running and ready? When
    it stopped on an error, the status shows the error's code and its fixes.
-   Note the `restarts` count for step 6. If the server is not running, ask the
-   user to start it.
+   If the server is not running, ask the user whether to start it. With their
+   agreement, run `vendure devserver start`, which starts it in the
+   background and waits until it is ready.
 2. **`vendure devserver logs --min-severity warn`.** Read the recent warnings
    and errors. Note the request ID of each failed request.
 3. **`vendure explain <requestId>`.** Collect the error for one request: its
@@ -43,15 +44,22 @@ know the cause.
    Check the project itself: versions, config and the schema. Leave out the
    `database` check, as `context.md` says. When the cause is still unclear,
    collect the context in `context.md` and match a support case below. The
-   case files were written for Vendure 3.x. Their checks of versions, config,
-   migrations, assets and email still apply to 4.x.
+   case files were written for Vendure 3.x. Use their checks where they fit
+   the project's version.
 5. **Fix the cause.** Use the fixes that the error, the check or the support
    case names. Ask the user before a fix changes files, dependencies or the
-   database. If no fix fits, say so. Do not invent one.
-6. **`vendure devserver wait --until ready --after-restarts <n>`**, where `<n>`
-   is the `restarts` count from step 1 plus 1. This waits for the restart that
-   the fix causes. Without it, `wait` returns at once when the server was
-   already ready.
+   database. If no fix fits, say so. Do not invent one. Just before a fix
+   that edits a `.ts` or `.env` file, read the `restarts` count from
+   `vendure devserver status`.
+6. **Wait until the server runs the fix.**
+   - After an edit of a `.ts` or `.env` file, run
+     `vendure devserver wait --until ready --after-restarts <n>`, where `<n>`
+     is the `restarts` count from step 5 plus 1. The edit restarts the server,
+     and without the flag `wait` returns at once when the server was already
+     ready.
+   - Any other fix, such as a migration or a dependency change, does not
+     restart the server. If the fix needs a restart, ask the user to restart
+     `vendure dev`. Then run `vendure devserver wait --until ready`.
 7. **Replay.** Prove the fix:
    - run a failed query again with `vendure api admin '<query>'` or
      `vendure api shop '<query>'`. A mutation changes data again when it is
@@ -72,7 +80,7 @@ know the cause.
 | `@vendure/*` versions differ, or a plugin is not compatible          | `cases/version-mismatch.md` |
 | Asset upload, preview or URL problems, local or S3 storage           | `cases/assets.md`           |
 | Emails are not sent, not received or render wrongly                  | `cases/email.md`            |
-| Something broke after an upgrade to the next minor                   | `cases/upgrade.md`          |
+| Something broke after an upgrade to the next 3.x minor               | `cases/upgrade.md`          |
 
 ## Docs MCP
 
@@ -122,7 +130,8 @@ when you need the full text.
    version from the files, write "unknown" and the reason. Do not guess.
 5. **Do not start long-running processes to check something.** `vendure dev`
    and `vendure start` run until stopped. Ask the user to start them, or to
-   give you the startup output.
+   give you the startup output. The one exception is
+   `vendure devserver start` in step 1, after the user agrees.
 6. **Platform packages are optional.** This skill has no guidance for
    commercial Vendure Platform packages. List them in the context like other
    packages. A customer with Platform access can get their gated docs through
