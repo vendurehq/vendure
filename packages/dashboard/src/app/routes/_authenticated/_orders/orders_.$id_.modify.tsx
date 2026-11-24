@@ -48,7 +48,7 @@ function ModifyOrderPage() {
     const { form, submitHandler, entity } = useDetailPage({
         pageId,
         queryDocument: addCustomFields(orderDetailDocument, {
-            includeNestedFragments: ['OrderLine', 'Fulfillment'],
+            includeNestedFragments: ['OrderLine', 'Fulfillment', 'OrderAddress'],
         }),
         setValuesForUpdate: entity => {
             return {
