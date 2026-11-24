@@ -9,20 +9,21 @@ async function loadDefaultConfig() {
 
 describe('defaultConfig.apiOptions.includeStackInErrors', () => {
     afterEach(() => {
-        delete process.env[INCLUDE_STACK_IN_ERRORS_ENV_VAR];
+        vi.unstubAllEnvs();
     });
 
     it('is off by default', async () => {
+        vi.stubEnv(INCLUDE_STACK_IN_ERRORS_ENV_VAR, undefined);
         expect((await loadDefaultConfig()).apiOptions.includeStackInErrors).toBe(false);
     });
 
     it('is on when vendure dev sets the environment variable', async () => {
-        process.env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] = 'true';
+        vi.stubEnv(INCLUDE_STACK_IN_ERRORS_ENV_VAR, 'true');
         expect((await loadDefaultConfig()).apiOptions.includeStackInErrors).toBe(true);
     });
 
     it('stays off for any other value of the variable', async () => {
-        process.env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] = '1';
+        vi.stubEnv(INCLUDE_STACK_IN_ERRORS_ENV_VAR, '1');
         expect((await loadDefaultConfig()).apiOptions.includeStackInErrors).toBe(false);
     });
 });

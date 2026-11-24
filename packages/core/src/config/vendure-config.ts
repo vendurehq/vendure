@@ -298,9 +298,10 @@ export interface ApiOptions {
      * response carries a stack, whatever `NODE_ENV` is set to.
      *
      * When the config does not set it, it is on only if the `VENDURE_INCLUDE_STACK_IN_ERRORS`
-     * environment variable is `true` when Vendure is loaded. `vendure dev` sets that variable for the
-     * server it starts, so stacks show in local development without a config change. A value in the
-     * config, `true` or `false`, always wins over the variable.
+     * environment variable is `true` when `@vendure/core` is first imported. `vendure dev` sets that
+     * variable for the server it starts, so stacks show in local development without a config change.
+     * The variable must be set before the process starts: a `.env` file loaded by `dotenv` after the
+     * import does not count. A value in the config, `true` or `false`, always wins over the variable.
      *
      * @example
      * ```ts
