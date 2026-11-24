@@ -6,7 +6,7 @@ generated: true
 
 The reference of the `vendure` commands that `@vendure/cli` declares with `defineCommand`. It is generated from the command manifest of the CLI, `vendure-commands.json`.
 
-Run `vendure commands --json` in a project for the commands it really has, including those that plugins add.
+Run `vendure commands --json` in a project for the commands it really has, including those that plugins add, and `vendure guide` for how an agent works with the CLI.
 
 ## Every command
 
@@ -19,6 +19,7 @@ Run `vendure commands --json` in a project for the commands it really has, inclu
 | [`vendure add job-queue`](/reference/cli/add#add-job-queue) | mutating | Add a job queue to a service of a plugin |
 | [`vendure add plugin`](/reference/cli/add#add-plugin) | mutating | Create a new Vendure plugin and add it to the Vendure config |
 | [`vendure add service`](/reference/cli/add#add-service) | mutating | Add a new service to a plugin |
+| [`vendure api`](/reference/cli/api#api) | mutating | Run a GraphQL operation on the local dev server: on the Admin API as the superadmin, or on the Shop API anonymously, each call a new session |
 | [`vendure commands`](/reference/cli/commands#commands) | readonly | List the commands of this project with their input and output schemas |
 | [`vendure devserver logs`](/reference/cli/devserver#devserver-logs) | readonly | Read the logs of the vendure dev run, filtered by time, request ID or severity |
 | [`vendure devserver start`](/reference/cli/devserver#devserver-start) | mutating | Start vendure dev in the background for this project |
@@ -26,6 +27,8 @@ Run `vendure commands --json` in a project for the commands it really has, inclu
 | [`vendure devserver stop`](/reference/cli/devserver#devserver-stop) | mutating | Stop the vendure dev run serving this project |
 | [`vendure devserver wait`](/reference/cli/devserver#devserver-wait) | readonly | Wait until the vendure dev run is ready. Returns at once when it failed |
 | [`vendure doctor`](/reference/cli/doctor#doctor) | readonly | Run diagnostic checks on your Vendure project |
+| [`vendure explain`](/reference/cli/explain#explain) | readonly | Collect the error of one request to the local dev server, with its stack and the log lines of that request |
+| [`vendure guide`](/reference/cli/guide#guide) | readonly | Show how an agent works with this CLI, the Developer MCP and the Store MCP |
 | [`vendure mcp install`](/reference/cli/mcp#mcp-install) | mutating | Add the Developer MCP server to an MCP client's project config |
 | [`vendure migrate generate`](/reference/cli/migrate#migrate-generate) | mutating | Generate a database migration from the changes to your entities |
 | [`vendure migrate revert`](/reference/cli/migrate#migrate-revert) | destructive | Revert the last applied database migration |
