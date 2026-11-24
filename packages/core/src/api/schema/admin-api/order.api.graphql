@@ -20,6 +20,8 @@ type Query {
     any custom destinations registered via RefundDestinationStrategy.
     """
     refundDestinations(orderId: ID!): [RefundDestination!]!
+    "Returns the tax-inclusive refund for the selected units, excluding shipping and adjustments."
+    previewRefundLineTotal(orderId: ID!, lines: [OrderLineInput!]!): Money!
 }
 
 type Mutation {

@@ -11,8 +11,14 @@ import { toast } from 'sonner';
 // can't extract named exports from CJS modules at runtime.
 const DEFAULT_REFUND_DESTINATION_CODE = 'default';
 
-import { cancelOrderDocument, refundDestinationsDocument, refundOrderDocument } from '../orders.graphql.js';
+import {
+    cancelOrderDocument,
+    previewRefundLineTotalDocument,
+    refundDestinationsDocument,
+    refundOrderDocument,
+} from '../orders.graphql.js';
 import { Order } from '../utils/order-types.js';
+import { getRefundedQuantity } from '../utils/order-utils.js';
 import {
     allocateRefundTotal,
     calculateRefundTotal,
@@ -44,6 +50,7 @@ export interface UseRefundOrderReturn {
     paymentOptions: Array<{ id: string; label: string; refundableAmount: number }>;
     validationErrors: string[];
     canSubmit: boolean;
+    isCalculating: boolean;
     isCancelling: boolean;
 
     // Callbacks
@@ -58,7 +65,6 @@ export interface UseRefundOrderReturn {
     setSelectedReason: (reason: string) => void;
     setCustomReason: (reason: string) => void;
     setManuallySetRefundTotal: (value: boolean) => void;
-    recalculateRefundTotal: () => number;
 
     // Actions
     handleSubmit: () => Promise<void>;
@@ -187,9 +193,26 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         [refundTargets],
     );
 
-    const recalculateRefundTotal = useCallback(() => {
-        return calculateRefundTotal(order, lineSelections, refundShippingLineIds);
-    }, [order, lineSelections, refundShippingLineIds]);
+    const quotedLines = order.lines
+        .filter(line => line.refundPriceParts.length && lineSelections[line.id]?.quantity > 0)
+        .map(line => ({ orderLineId: line.id, quantity: lineSelections[line.id].quantity }));
+    const needsQuote = quotedLines.length > 0 && !manuallySetRefundTotal;
+    const quote = useQuery({
+        queryKey: [
+            'previewRefundLineTotal',
+            order.id,
+            order.updatedAt,
+            quotedLines,
+            quotedLines.map(line => getRefundedQuantity(order, line.orderLineId)),
+        ],
+        queryFn: () => api.query(previewRefundLineTotalDocument, { orderId: order.id, lines: quotedLines }),
+        enabled: needsQuote,
+    });
+    const quotedAmount = needsQuote ? quote.data?.previewRefundLineTotal : 0;
+    const calculatedTotal =
+        quotedAmount == null
+            ? undefined
+            : calculateRefundTotal(order, lineSelections, refundShippingLineIds, quotedAmount);
 
     const allocateToTargets = useCallback(
         (total: number) => {
@@ -198,11 +221,10 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         [paymentCapacity],
     );
 
-    const updateRefundTotal = useCallback(() => {
-        if (manuallySetRefundTotal) {
+    useEffect(() => {
+        if (manuallySetRefundTotal || calculatedTotal == null) {
             return;
         }
-        const calculatedTotal = recalculateRefundTotal();
         // An order refetch gives this callback new dependencies without changing the total. Allocating
         // again at that point would overwrite the amounts the administrator has typed. When a refetch
         // makes the allocation invalid, `reconcileRefundTargets` allocates the total again instead.
@@ -211,11 +233,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         }
         setRefundTotal(calculatedTotal);
         allocateToTargets(calculatedTotal);
-    }, [manuallySetRefundTotal, recalculateRefundTotal, allocateToTargets, refundTotal]);
-
-    useEffect(() => {
-        updateRefundTotal();
-    }, [updateRefundTotal]);
+    }, [manuallySetRefundTotal, calculatedTotal, allocateToTargets, refundTotal]);
 
     const onRefundQuantityChange = useCallback((lineId: string, quantity: number) => {
         setManuallySetRefundTotal(false);
@@ -311,6 +329,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
 
     const validationErrors = useMemo(() => {
         const errors: string[] = [];
+        if (needsQuote && quote.error) errors.push(quote.error.message);
 
         if (refundTotal < 0) {
             errors.push(t`Refund total cannot be negative`);
@@ -357,6 +376,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
 
         return errors;
     }, [
+        needsQuote,
+        quote.error,
         refundTotal,
         totalRefundableAmount,
         amountToRefundTotal,
@@ -369,12 +390,14 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         t,
     ]);
 
-    const canSubmit = useMemo(() => {
-        if (refundTotal <= 0 || !reason || validationErrors.length > 0) {
-            return false;
-        }
-        return amountToRefundTotal === refundTotal;
-    }, [refundTotal, amountToRefundTotal, reason, validationErrors]);
+    const isCalculating = needsQuote && quote.isFetching;
+    const canSubmit =
+        refundTotal > 0 &&
+        !!reason &&
+        validationErrors.length === 0 &&
+        amountToRefundTotal === refundTotal &&
+        !isCalculating &&
+        (manuallySetRefundTotal || calculatedTotal === refundTotal);
 
     const isCancelling = useMemo(() => {
         return Object.values(lineSelections).some(line => line.quantity > 0 && line.cancel);
@@ -490,6 +513,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         paymentOptions,
         validationErrors,
         canSubmit,
+        isCalculating,
         isCancelling,
 
         // Callbacks
@@ -504,7 +528,6 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         setSelectedReason,
         setCustomReason,
         setManuallySetRefundTotal,
-        recalculateRefundTotal,
 
         // Actions
         handleSubmit,

@@ -2172,6 +2172,18 @@ export class OrderService implements OnApplicationBootstrap {
         return createdRefund;
     }
 
+    /** @internal */
+    async previewRefundLineTotal(ctx: RequestContext, orderId: ID, lines: OrderLineInput[]): Promise<number> {
+        const order = await this.getOrderOrThrow(ctx, orderId, ['lines']);
+        for (const line of lines) {
+            this.getOrderLineOrThrow(order, line.orderLineId);
+            if (line.quantity < 0) {
+                throw new UserInputError('errorResult.NEGATIVE_QUANTITY_ERROR');
+            }
+        }
+        return this.paymentService.getRefundLineTotal(ctx, lines);
+    }
+
     /**
      * @description
      * Returns the available refund destinations for the given order. Includes

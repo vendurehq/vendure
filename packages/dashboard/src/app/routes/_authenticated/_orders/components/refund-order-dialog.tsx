@@ -22,7 +22,7 @@ import {
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { uiConfig } from 'virtual:vendure-ui-config';
 
@@ -398,13 +398,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                 <div className="flex items-center gap-2">
                                     <Checkbox
                                         checked={refund.manuallySetRefundTotal}
-                                        onCheckedChange={checked => {
-                                            refund.setManuallySetRefundTotal(!!checked);
-                                            if (!checked) {
-                                                const calculated = refund.recalculateRefundTotal();
-                                                refund.onManualRefundTotalChange(calculated);
-                                            }
-                                        }}
+                                        onCheckedChange={checked => refund.setManuallySetRefundTotal(!!checked)}
                                     />
                                     <Label className="font-normal text-sm text-muted-foreground">
                                         <Trans>Override</Trans>
@@ -425,6 +419,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                     disabled={!refund.manuallySetRefundTotal}
                                     className="w-32"
                                 />
+                                {refund.isCalculating && <Loader2 className="size-4 animate-spin" />}
                                 <span className="text-muted-foreground">{order.currencyCode}</span>
                                 <span className="text-muted-foreground text-sm">
                                     <Trans>(max: {formatCurrency(refund.totalRefundableAmount, order.currencyCode)})</Trans>

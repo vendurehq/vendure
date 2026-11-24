@@ -1,7 +1,6 @@
 import type { ComponentType } from 'react';
 
 import { Order, Payment } from './order-types.js';
-import { getRefundedQuantity } from './order-utils.js';
 
 export type RefundablePayment = Payment & {
     refundableAmount: number;
@@ -26,30 +25,6 @@ export function getRefundablePayments(payments: Payment[] | undefined | null): R
     });
 }
 
-// Match the server's allocation across cancelled units and the remaining order line.
-function getLineRefundAmount(line: Order['lines'][number], quantity: number, alreadyRefunded: number): number {
-    if (!line.refundPriceParts.length) {
-        return line.proratedUnitPriceWithTax * quantity;
-    }
-    let amount = 0;
-    for (const part of line.refundPriceParts) {
-        if (quantity === 0) break;
-        const skip = Math.min(part.quantity, alreadyRefunded);
-        alreadyRefunded -= skip;
-        const remaining = part.quantity - skip;
-        const take = Math.min(remaining, quantity);
-        if (take > 0) {
-            // Keep the product exact even when the stored amount is near Number.MAX_SAFE_INTEGER.
-            const divisor = BigInt(part.quantity);
-            const priceForQuantity = (count: number) =>
-                Number((BigInt(part.priceWithTax) * BigInt(count) + divisor / BigInt(2)) / divisor);
-            amount += priceForQuantity(remaining) - priceForQuantity(remaining - take);
-            quantity -= take;
-        }
-    }
-    return amount;
-}
-
 /**
  * Calculate total refund amount from line selections and shipping
  */
@@ -57,12 +32,12 @@ export function calculateRefundTotal(
     order: Order,
     lineSelections: Record<string, LineSelection>,
     refundShippingLineIds: string[],
+    quotedLineTotal: number,
 ): number {
     const itemTotal = order.lines.reduce((total, line) => {
-        const selection = lineSelections[line.id];
-        const refundCount = selection?.quantity || 0;
-        return total + getLineRefundAmount(line, refundCount, getRefundedQuantity(order, line.id));
-    }, 0);
+        if (line.refundPriceParts.length) return total;
+        return total + line.proratedUnitPriceWithTax * (lineSelections[line.id]?.quantity ?? 0);
+    }, quotedLineTotal);
 
     const shippingTotal = order.shippingLines.reduce((total, line) => {
         if (refundShippingLineIds.includes(line.id)) {

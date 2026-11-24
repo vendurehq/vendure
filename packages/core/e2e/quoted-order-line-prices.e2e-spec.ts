@@ -232,8 +232,18 @@ describe('quoted order line prices', () => {
                 { quantity: 1, priceWithTax: 960 },
                 { quantity: 10, priceWithTax: remaining },
             ]);
+            const selection = [{ orderLineId: lineId, quantity: 10 }];
+            const { previewRefundLineTotal } = await adminClient.query(
+                graphql(`
+                    query PreviewRemainingRefund($orderId: ID!, $lines: [OrderLineInput!]!) {
+                        previewRefundLineTotal(orderId: $orderId, lines: $lines)
+                    }
+                `),
+                { orderId: paid.id, lines: selection },
+            );
+            expect(previewRefundLineTotal).toBe(remaining);
             const last = await adminClient.query(refundOrderDocument, {
-                input: { paymentId: payment.id, lines: [{ orderLineId: lineId, quantity: 10 }] },
+                input: { paymentId: payment.id, lines: selection },
             });
             expect(last.refundOrder).toMatchObject({ total: remaining });
         },

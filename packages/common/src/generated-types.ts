@@ -5652,6 +5652,8 @@ export type Query = {
   pendingSearchIndexUpdates: Scalars['Int']['output'];
   /** Used for real-time previews of the contents of a Collection */
   previewCollectionVariants: ProductVariantList;
+  /** Returns the tax-inclusive refund for the selected units, excluding shipping and adjustments. */
+  previewRefundLineTotal: Scalars['Money']['output'];
   /** Get a Product either by id or slug. If neither id nor slug is specified, an error will result. */
   product?: Maybe<Product>;
   productOption?: Maybe<ProductOption>;
@@ -5869,6 +5871,12 @@ export type QueryPaymentMethodsArgs = {
 export type QueryPreviewCollectionVariantsArgs = {
   input: PreviewCollectionVariantsInput;
   options?: InputMaybe<ProductVariantListOptions>;
+};
+
+
+export type QueryPreviewRefundLineTotalArgs = {
+  lines: Array<OrderLineInput>;
+  orderId: Scalars['ID']['input'];
 };
 
 

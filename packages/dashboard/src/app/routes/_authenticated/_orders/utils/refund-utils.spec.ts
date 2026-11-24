@@ -24,37 +24,16 @@ function target(overrides: Partial<RefundTarget> & { id: string }): RefundTarget
 }
 
 describe('calculateRefundTotal', () => {
-    it('allocates the remaining quoted price after a partial refund', () => {
+    it('adds the server quote, ordinary items, and selected shipping once', () => {
         const order = {
             lines: [
-                {
-                    id: 'L1',
-                    proratedUnitPriceWithTax: 960,
-                    refundPriceParts: [{ priceWithTax: 10555, quantity: 11 }],
-                },
+                { id: 'quoted', proratedUnitPriceWithTax: 960, refundPriceParts: [{ quantity: 11 }] },
+                { id: 'regular', proratedUnitPriceWithTax: 500, refundPriceParts: [] },
             ],
-            payments: [{ refunds: [{ state: 'Settled', lines: [{ orderLineId: 'L1', quantity: 1 }] }] }],
-            shippingLines: [],
+            shippingLines: [{ id: 'shipping', discountedPriceWithTax: 200 }],
         } as Parameters<typeof calculateRefundTotal>[0];
-        expect(calculateRefundTotal(order, { L1: { quantity: 10, cancel: false } }, [])).toBe(9595);
-    });
-
-    it('uses the new price of the remaining units after a refund and a promotion', () => {
-        const order = {
-            lines: [
-                {
-                    id: 'L1',
-                    proratedUnitPriceWithTax: 912,
-                    refundPriceParts: [
-                        { priceWithTax: 960, quantity: 1 },
-                        { priceWithTax: 9115, quantity: 10 },
-                    ],
-                },
-            ],
-            payments: [{ refunds: [{ state: 'Settled', lines: [{ orderLineId: 'L1', quantity: 1 }] }] }],
-            shippingLines: [],
-        } as Parameters<typeof calculateRefundTotal>[0];
-        expect(calculateRefundTotal(order, { L1: { quantity: 10, cancel: false } }, [])).toBe(9115);
+        const selection = { quoted: { quantity: 10, cancel: true }, regular: { quantity: 2, cancel: false } };
+        expect(calculateRefundTotal(order, selection, ['shipping'], 9595)).toBe(10795);
     });
 });
 
