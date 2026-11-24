@@ -55,19 +55,18 @@ describe('command contract helpers', () => {
 
 describe('isValidErrorCode', () => {
     it('accepts a namespace followed by dot-separated kebab-case parts', () => {
-        for (const code of [
+        const codes = [
             'devserver.not-running',
             'core.config.invalid-custom-fields',
             'cli.dev.port-in-use',
             'api.v2',
             'cli.ts-2322',
-        ]) {
-            expect(isValidErrorCode(code)).toBe(true);
-        }
+        ];
+        expect(codes.filter(code => !isValidErrorCode(code))).toEqual([]);
     });
 
     it('refuses a code without a namespace, with upper case, underscores, empty parts or stray hyphens', () => {
-        for (const code of [
+        const codes = [
             'not-running',
             'Devserver.not-running',
             'auth.token_expired',
@@ -78,9 +77,8 @@ describe('isValidErrorCode', () => {
             'core.x-',
             'core.a--b',
             'core.x.-',
-        ]) {
-            expect(isValidErrorCode(code)).toBe(false);
-        }
+        ];
+        expect(codes.filter(code => isValidErrorCode(code))).toEqual([]);
     });
 });
 
