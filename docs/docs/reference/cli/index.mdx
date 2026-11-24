@@ -20,6 +20,10 @@ Run `vendure commands --json` in a project for the commands it really has, inclu
 | [`vendure add plugin`](/reference/cli/add#add-plugin) | mutating | Create a new Vendure plugin and add it to the Vendure config |
 | [`vendure add service`](/reference/cli/add#add-service) | mutating | Add a new service to a plugin |
 | [`vendure api`](/reference/cli/api#api) | mutating | Run a GraphQL operation on the local dev server: on the Admin API as the superadmin, or on the Shop API anonymously, each call a new session |
+| [`vendure auth login`](/reference/cli/auth#auth-login) | mutating | Sign in to your Vendure account. Without a terminal, or with --json, returns the URL and code to approve at once; `auth wait` finishes the login |
+| [`vendure auth logout`](/reference/cli/auth#auth-logout) | mutating | End the session and remove the login from this machine |
+| [`vendure auth status`](/reference/cli/auth#auth-status) | readonly | Show who is signed in, after checking that the login can still be renewed. Never shows a token |
+| [`vendure auth wait`](/reference/cli/auth#auth-wait) | mutating | Wait until the login that `auth login --json` started is approved. Returns the pending login again when the timeout passes first |
 | [`vendure commands`](/reference/cli/commands#commands) | readonly | List the commands of this project with their input and output schemas |
 | [`vendure devserver logs`](/reference/cli/devserver#devserver-logs) | readonly | Read the logs of the vendure dev run, filtered by time, request ID or severity |
 | [`vendure devserver start`](/reference/cli/devserver#devserver-start) | mutating | Start vendure dev in the background for this project |
@@ -57,6 +61,5 @@ These commands are not declared with `defineCommand` yet, so they have no genera
 - `vendure codemod`: Run codemods to update your Vendure project code.
 - `vendure schema`: Generate a schema file from your GraphQL APIs.
 - `vendure console`: Link this Vendure project to Vendure Console.
-- `vendure auth`: Sign in to your Vendure account.
 - `vendure plugins`: List, enable, or disable CLI plugins.
 - `vendure mcp`: Run the Developer MCP server over stdio. Its subcommands are on the [`vendure mcp`](/reference/cli/mcp) page.
