@@ -26,9 +26,6 @@ export const storeReadinessDocument = graphql(`
                 code
                 severity
                 message
-                fixes {
-                    description
-                }
                 dashboardUrl
             }
         }
@@ -138,7 +135,8 @@ export function useSetupChecklist(open: boolean, onClose?: () => void): SetupChe
 /**
  * @description
  * Lists what stops the active Channel from taking an order, with a link to the page that fixes each
- * finding. The home page renders it when {@link useSetupChecklist} says that it is visible.
+ * finding. The fixes of a finding are MCP admin tool calls, written for an agent, so the card
+ * leaves them out. The home page renders it when {@link useSetupChecklist} says that it is visible.
  */
 export function SetupChecklist({ state }: Readonly<{ state: SetupChecklistState }>) {
     const { report, isPending, isError, dismiss } = state;
@@ -203,11 +201,6 @@ function SetupChecklistItem({ finding }: Readonly<{ finding: Finding }>) {
             <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${isError ? 'text-destructive' : 'text-warning'}`} />
             <div className="flex min-w-0 flex-col gap-1 text-sm">
                 <span>{finding.message}</span>
-                {finding.fixes.map((fix, index) => (
-                    <span key={index} className="text-muted-foreground">
-                        {fix.description}
-                    </span>
-                ))}
                 {finding.dashboardUrl ? (
                     <Link to={finding.dashboardUrl} className="text-primary w-fit hover:underline">
                         <Trans>Open</Trans>

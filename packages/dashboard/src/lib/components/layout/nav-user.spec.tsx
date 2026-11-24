@@ -51,8 +51,9 @@ vi.mock('@/vdb/hooks/use-auth.js', () => ({
         logout: vi.fn(),
     }),
 }));
+const permissions = vi.hoisted(() => ({ granted: true }));
 vi.mock('@/vdb/hooks/use-permissions.js', () => ({
-    usePermissions: () => ({ hasPermissions: () => true }),
+    usePermissions: () => ({ hasPermissions: () => permissions.granted }),
 }));
 vi.mock('@/vdb/hooks/use-display-locale.js', () => ({
     useDisplayLocale: () => ({ humanReadableLanguage: 'English' }),
@@ -79,5 +80,22 @@ describe('NavUser', () => {
         );
         expect(markup).toContain('aria-label="Plans"');
         expect(markup).toContain('href="https://vendure.io/pricing?utm_source=vendure-dashboard"');
+    });
+
+    it.each([
+        [true, true],
+        [false, false],
+    ])('shows the "Setup" entry only with ReadSettings (granted: %s)', (granted, shown) => {
+        permissions.granted = granted;
+        try {
+            const markup = renderToStaticMarkup(
+                <I18nProvider i18n={i18n}>
+                    <NavUser />
+                </I18nProvider>,
+            );
+            expect(markup.includes('Setup')).toBe(shown);
+        } finally {
+            permissions.granted = true;
+        }
     });
 });

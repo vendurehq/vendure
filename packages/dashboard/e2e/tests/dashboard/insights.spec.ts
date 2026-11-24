@@ -40,7 +40,6 @@ test.describe('Setup checklist', () => {
         code,
         severity,
         message,
-        fixes: [{ description: `Fix for ${code}` }],
         dashboardUrl: '/tax-rates',
     });
 
@@ -89,7 +88,6 @@ test.describe('Setup checklist', () => {
         await expect(checklist).toBeVisible();
         await expect(checklist.getByTestId('setup-checklist-item')).toHaveCount(2);
         await expect(checklist.getByText('No zone rate on the default tax zone')).toBeVisible();
-        await expect(checklist.getByText('Fix for store.tax.inclusive-rate-unknown')).toBeVisible();
         await expect(checklist.getByRole('link', { name: 'Open' }).first()).toHaveAttribute(
             'href',
             /\/tax-rates$/,
@@ -125,6 +123,7 @@ test.describe('Setup checklist', () => {
         await page.goto('/');
         await answered;
         await expect(page.getByTestId('page-heading')).toBeVisible();
+        await page.waitForLoadState('networkidle');
         await expect(page.getByTestId('setup-checklist')).toBeHidden();
 
         // Opened on purpose, it says that the server cannot check the setup.
@@ -137,13 +136,8 @@ test.describe('Setup checklist', () => {
     test('shows the report of the server when opened', async ({ page }) => {
         await page.goto('/?setup=true');
         const checklist = page.getByTestId('setup-checklist');
-        // The e2e server has findings (at least the default superadmin password), or none.
-        await expect(
-            checklist
-                .getByTestId('setup-checklist-item')
-                .first()
-                .or(checklist.getByText('No setup gaps found.')),
-        ).toBeVisible();
+        // The e2e suite signs in as the superadmin with the default password.
+        await expect(checklist.locator('[data-code="store.auth.default-superadmin-password"]')).toBeVisible();
         await expect(checklist).not.toContainText('This server cannot check the store setup.');
     });
 });
