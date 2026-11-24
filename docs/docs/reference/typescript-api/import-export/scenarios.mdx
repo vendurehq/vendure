@@ -1,0 +1,154 @@
+---
+title: "Scenarios"
+generated: true
+---
+## ScenarioPack
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="27" packageName="@vendure/core" since="4.0.0" />
+
+A scenario pack: demo data that builds on a base-data preset. A package exports it as `scenario`
+or as its default export.
+
+`seed` writes the transactional data. It runs in the transaction that also writes the
+`vendure.seed.scenario` sentinel, so a failure leaves neither, and the scenario is tried again on
+the next run. Work for the job queue, such as assets and the search index, goes in `afterCommit`,
+which runs after the commit and must be safe to run twice.
+
+```ts title="Signature"
+interface ScenarioPack {
+    name: string;
+    preset: string;
+    seed(ctx: RequestContext, app: INestApplicationContext): Promise<void>;
+    afterCommit?(ctx: RequestContext, app: INestApplicationContext): Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### preset
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### seed
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, app: INestApplicationContext) => Promise<void>`}   />
+
+
+### afterCommit
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, app: INestApplicationContext) => Promise<void>`}   />
+
+
+
+
+</div>
+## ScenarioReference
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="43" packageName="@vendure/core" since="4.0.0" />
+
+Where a scenario comes from, as `.vendure/create.json` records it.
+
+```ts title="Signature"
+interface ScenarioReference {
+    name: string;
+    package: string;
+    version: string;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### package
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### version
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>
+## validateScenarioPack
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="58" packageName="@vendure/core" since="4.0.0" />
+
+Checks that `value` is a [ScenarioPack](/reference/typescript-api/import-export/scenarios#scenariopack) whose `preset` is a known preset. Throws a
+[SeedError](/reference/typescript-api/import-export/presets#seederror) with the code `core.scenario-invalid` otherwise.
+
+```ts title="Signature"
+function validateScenarioPack(value: unknown, packageName: string): ScenarioPack
+```
+Parameters
+
+### value
+
+<MemberInfo kind="parameter" type={`unknown`} />
+
+### packageName
+
+<MemberInfo kind="parameter" type={`string`} />
+
+## loadScenarioPack
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="86" packageName="@vendure/core" since="4.0.0" />
+
+Loads the scenario pack of a [ScenarioReference](/reference/typescript-api/import-export/scenarios#scenarioreference), resolving the package from `projectDir`.
+
+```ts title="Signature"
+function loadScenarioPack(reference: ScenarioReference, projectDir: string = process.cwd()): ScenarioPack
+```
+Parameters
+
+### reference
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/import-export/scenarios#scenarioreference'>ScenarioReference</a>`} />
+
+### projectDir
+
+<MemberInfo kind="parameter" type={`string`} />
+
+## seedScenario
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="119" packageName="@vendure/core" since="4.0.0" />
+
+Seeds a scenario pack into a database that was seeded with the pack's preset. It never applies
+the preset itself.
+
+The pack's data and the `vendure.seed.scenario` sentinel are written in one transaction. Then the
+pack's `afterCommit` runs. It refuses with a [SeedError](/reference/typescript-api/import-export/presets#seederror):
+
+- `core.scenario-preset-mismatch` when the `vendure.seed.preset` sentinel is absent or names
+  another preset;
+- `core.scenario-already-seeded` when the `vendure.seed.scenario` sentinel exists.
+
+```ts title="Signature"
+function seedScenario(app: INestApplicationContext, reference: ScenarioReference, pack: ScenarioPack): Promise<{ scenario: string; preset: string }>
+```
+Parameters
+
+### app
+
+<MemberInfo kind="parameter" type={`INestApplicationContext`} />
+
+### reference
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/import-export/scenarios#scenarioreference'>ScenarioReference</a>`} />
+
+### pack
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/import-export/scenarios#scenariopack'>ScenarioPack</a>`} />
+
