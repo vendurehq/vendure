@@ -35,6 +35,8 @@ export interface ManifestCommand {
     examples: string[];
     expose: { mcp: boolean };
     hasPlan: boolean;
+    /** The output fields that hold a secret, written to a file instead of the output. */
+    secretOutputs?: string[];
 }
 
 export interface CommandManifest {

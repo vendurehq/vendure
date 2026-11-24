@@ -48,6 +48,87 @@ function makeCommand(
 }
 
 describe('executeCommand', () => {
+    describe('secretOutputs', () => {
+        const keyCommand = makeCommand(async () => ({ key: 'vcdk_secret_value', agent: 'builder' }), {
+            secretOutputs: ['key'],
+        });
+        const person = { ...noAsk, askInput: async () => undefined, askConsent: async () => true };
+
+        it('writes the secret to a file and leaves only its path in the output without a person', async () => {
+            const writeSecret = vi.fn(() => '/home/me/.config/vendure/secrets/test-run-key');
+            const result = await runCommandInHarness(keyCommand, { name: 'a' }, { writeSecret });
+            expect(writeSecret).toHaveBeenCalledWith(['test', 'run'], 'key', 'vcdk_secret_value');
+            expect(result.envelope.output).toEqual({
+                key: { secretFile: '/home/me/.config/vendure/secrets/test-run-key' },
+                agent: 'builder',
+            });
+            expect(JSON.stringify(result.envelope)).not.toContain('vcdk_secret_value');
+            expect(result.envelope.notices[0]?.message).toContain('only you can read');
+        });
+
+        it('writes the secret to a file for an MCP tool call', async () => {
+            const writeSecret = vi.fn(() => '/tmp/secret');
+            const result = await runCommandInHarness(
+                keyCommand,
+                { name: 'a' },
+                { writeSecret, prompter: person, mcp: true },
+            );
+            expect(result.envelope.output).toMatchObject({ key: { secretFile: '/tmp/secret' } });
+            expect(JSON.stringify(result.envelope)).not.toContain('vcdk_secret_value');
+        });
+
+        it('leaves the secret for render() when a person is at the terminal', async () => {
+            const writeSecret = vi.fn();
+            const result = await runCommandInHarness(
+                keyCommand,
+                { name: 'a' },
+                { writeSecret, prompter: person },
+            );
+            expect(writeSecret).not.toHaveBeenCalled();
+            expect(result.envelope.output).toMatchObject({ key: 'vcdk_secret_value' });
+        });
+
+        it('keeps the secret out of a failed output and an incomplete one', async () => {
+            const writeSecret = vi.fn(() => '/tmp/secret');
+            const failing = makeCommand(async () => failed({ key: 'vcdk_secret_value' }), {
+                secretOutputs: ['key'],
+            });
+            const stopping = makeCommand(
+                async () =>
+                    incomplete(
+                        [{ kind: 'person', action: 'production-request', summary: 'Ask', url: 'https://x' }],
+                        { key: 'vcdk_secret_value' },
+                    ),
+                { secretOutputs: ['key'] },
+            );
+            for (const def of [failing, stopping]) {
+                const result = await runCommandInHarness(def, { name: 'a' }, { writeSecret });
+                expect(JSON.stringify(result.envelope)).not.toContain('vcdk_secret_value');
+                expect(result.envelope.output).toEqual({ key: { secretFile: '/tmp/secret' } });
+            }
+        });
+
+        it('writes nothing for a secret field that is empty', async () => {
+            const writeSecret = vi.fn(() => '/tmp/secret');
+            const def = makeCommand(async () => ({ key: null }), { secretOutputs: ['key'] });
+            const result = await runCommandInHarness(def, { name: 'a' }, { writeSecret });
+            expect(writeSecret).not.toHaveBeenCalled();
+            expect(result.envelope.output).toEqual({ key: null });
+        });
+
+        it('refuses before running on a host that cannot write the secret to a file', async () => {
+            const run = vi.fn(async () => ({ key: 'vcdk_secret_value' }));
+            const result = await runCommandInHarness(makeCommand(run, { secretOutputs: ['key'] }), {
+                name: 'a',
+            });
+            expect(result.envelope.error).toMatchObject({
+                code: 'cli.internal',
+                message: 'This host cannot keep the secret outputs of this command out of its output',
+            });
+            expect(run).not.toHaveBeenCalled();
+        });
+    });
+
     describe('requires.auth', () => {
         const tokenNeed = {
             kind: 'input' as const,

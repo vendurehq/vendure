@@ -87,6 +87,42 @@ describe('buildCommandManifest', () => {
         expect(wipe.cli.fields?.name).toMatchObject({ hasChoices: true });
     });
 
+    it('lists the secret output fields, and leaves the field out when there are none', async () => {
+        const { command } = wipeCommand();
+        const built = await buildCommandManifest('@vendure/cli', '1.0.0', [
+            command,
+            { ...command, path: ['demo', 'key'], secretOutputs: ['wiped'] },
+        ]);
+        expect(built.commands[0]).not.toHaveProperty('secretOutputs');
+        expect(built.commands[1].secretOutputs).toEqual(['wiped']);
+    });
+
+    it('fails the build for a secret output that is not a field of the output', async () => {
+        const { command } = wipeCommand();
+        await expect(
+            buildCommandManifest('@vendure/cli', '1.0.0', [{ ...command, secretOutputs: ['apiKey'] }]),
+        ).rejects.toThrow('not top-level fields of its output schema: apiKey');
+    });
+
+    it('fails the build for secret outputs on a command without an output schema', async () => {
+        const { command, input } = wipeCommand();
+        await expect(
+            buildCommandManifest('@vendure/cli', '1.0.0', [
+                { ...command, secretOutputs: ['key'], schemas: () => Promise.resolve({ input }) },
+            ]),
+        ).rejects.toThrow('not top-level fields');
+    });
+
+    it('describes a secret output field as the value or the file it was written to', async () => {
+        const { command } = wipeCommand();
+        const built = await buildCommandManifest('@vendure/cli', '1.0.0', [
+            { ...command, secretOutputs: ['wiped'] },
+        ]);
+        const wiped = (built.commands[0].output as any).properties.wiped;
+        expect(wiped.anyOf[0].type).toBe('boolean');
+        expect(wiped.anyOf[1]).toMatchObject({ type: 'object', required: ['secretFile'] });
+    });
+
     // A caller sends the input, and receives the output and the events.
     it('converts the input side of the input schema, and the output side of the others', async () => {
         const { command, input, output, events } = wipeCommand();
