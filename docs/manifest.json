@@ -133,7 +133,7 @@
           "title": "Taxes",
           "slug": "taxes",
           "file": "docs/guides/core-concepts/taxes/index.mdx",
-          "lastModified": "2026-11-20T17:56:50+01:00"
+          "lastModified": "2026-11-24T20:40:07+01:00"
         },
         {
           "title": "User Management",
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-20T17:56:50+01:00"
+              "lastModified": "2026-11-24T20:40:07+01:00"
             },
             {
               "title": "Storefront Migration",
