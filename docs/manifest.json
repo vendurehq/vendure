@@ -3072,7 +3072,7 @@
                   "title": "PluginCommonModule",
                   "slug": "plugin-common-module",
                   "file": "docs/reference/typescript-api/plugin/plugin-common-module.mdx",
-                  "lastModified": "2026-11-17T10:15:18Z"
+                  "lastModified": "2026-11-24T09:31:18Z"
                 },
                 {
                   "title": "VendurePlugin",
@@ -3235,6 +3235,12 @@
                   "slug": "deserialized-cached-session",
                   "file": "docs/reference/typescript-api/request/deserialized-cached-session.mdx",
                   "lastModified": "2026-11-20T16:12:11Z"
+                },
+                {
+                  "title": "IdArgumentDecoder",
+                  "slug": "id-argument-decoder",
+                  "file": "docs/reference/typescript-api/request/id-argument-decoder.mdx",
+                  "lastModified": "2026-11-24T09:31:18Z"
                 },
                 {
                   "title": "Relations Decorator",
