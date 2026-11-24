@@ -42,10 +42,10 @@ jobs:
             pull-requests: write
         steps:
             - name: Checkout repository
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              uses: actions/checkout@v7.0.1
 
             - name: Setup environment
-              uses: ./.github/actions/setup
+              uses: $/.github/actions/setup
 
             - name: Install Vercel CLI
               run: npm i --ignore-scripts -g vercel@latest
@@ -71,7 +71,7 @@ jobs:
 
             - name: Deploy to Vercel
               id: deploy_vercel
-              uses: ./.github/actions/deploy-vercel
+              uses: $/.github/actions/deploy-vercel
               with:
                   vercel-token: ${{ secrets.VERCEL_TOKEN }}
                   vercel-project-name: admin-dashboard
@@ -84,7 +84,7 @@ jobs:
 
             - name: Find Comment
               if: github.event_name == 'pull_request'
-              uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4
+              uses: peter-evans/find-comment@v4.0.0
               id: fc
               with:
                   issue-number: ${{ github.event.pull_request.number }}
@@ -93,7 +93,7 @@ jobs:
 
             - name: Comment preview URL on PR
               if: github.event_name == 'pull_request'
-              uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
+              uses: peter-evans/create-or-update-comment@v5.0.0
               with:
                   comment-id: ${{ steps.fc.outputs.comment-id }}
                   issue-number: ${{ github.event.pull_request.number }}

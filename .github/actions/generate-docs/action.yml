@@ -3,7 +3,7 @@ description: 'Regenerate the TypeScript and GraphQL reference docs from source, 
 runs:
     using: 'composite'
     steps:
-        - uses: ./.github/actions/setup
+        - uses: $/.github/actions/setup
 
         - name: Generate TypeScript docs
           shell: bash

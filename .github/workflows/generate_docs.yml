@@ -47,10 +47,10 @@ jobs:
             contents: read
         steps:
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              uses: actions/checkout@v7.0.1
 
             - name: Generate and validate docs
-              uses: ./.github/actions/generate-docs
+              uses: $/.github/actions/generate-docs
 
     commit:
         name: Generate & commit docs
@@ -62,7 +62,7 @@ jobs:
         steps:
             - name: Generate CI Bot Token
               id: app-token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@v3.2.0
               with:
                   app-id: ${{ secrets.CI_BOT_APP_ID }}
                   private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
@@ -70,7 +70,7 @@ jobs:
                   permission-contents: write
 
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              uses: actions/checkout@v7.0.1
               with:
                   token: ${{ steps.app-token.outputs.token }}
                   # Check out the branch by name rather than the pushed SHA so the
@@ -79,7 +79,7 @@ jobs:
                   fetch-depth: 0
 
             - name: Generate and validate docs
-              uses: ./.github/actions/generate-docs
+              uses: $/.github/actions/generate-docs
 
             - name: Check for changes
               id: diff
@@ -103,7 +103,7 @@ jobs:
               if: steps.diff.outputs.changed == 'true'
               id: ai-message
               continue-on-error: true
-              uses: actions/ai-inference@2c43c91ae16266ca159d311430343c67a5ffa222 # v3
+              uses: actions/ai-inference@v3
               with:
                   model: openai/gpt-4o-mini
                   max-tokens: 100
@@ -120,7 +120,7 @@ jobs:
 
             - name: Commit and push generated docs
               if: steps.diff.outputs.changed == 'true'
-              uses: ./.github/actions/commit-and-push
+              uses: $/.github/actions/commit-and-push
               with:
                   token: ${{ steps.app-token.outputs.token }}
                   app-slug: ${{ steps.app-token.outputs.app-slug }}
