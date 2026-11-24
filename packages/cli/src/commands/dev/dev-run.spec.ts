@@ -274,6 +274,16 @@ describe('DevRun readiness and URLs', () => {
         expect(print).not.toHaveBeenCalled();
     });
 
+    it('marks the worker ready on its log line at once when its core writes no ready event', () => {
+        const { run, projectDir } = createRun({ targets: ['worker'] });
+        const monitor = run.monitor('worker');
+        monitor.onSpawn(false);
+
+        monitor.onOutput('stdout', json({ msg: 'Vendure Worker is ready' }));
+
+        expect(readDevServerState(projectDir)?.status).toBe('ready');
+    });
+
     it('marks the worker ready on its ready event', () => {
         const { run, projectDir } = createRun({ targets: ['worker'] });
         const monitor = run.monitor('worker');

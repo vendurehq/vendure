@@ -18,7 +18,6 @@ import {
     DevRunAlreadyRunningError,
     DevServerError,
     DevServerStateFile,
-    DevServerUrls,
     generateLocalTrustSecret,
 } from './state-file.js';
 import { DevSupervisor, DevSupervisorSnapshot } from './supervisor.js';
@@ -26,8 +25,8 @@ import { DevSupervisor, DevSupervisorSnapshot } from './supervisor.js';
 /** How many lines of a process's output are kept to read compile errors from. */
 const MAX_BUFFERED_OUTPUT_LINES = 500;
 /**
- * How long after its "now running" or "ready" log line the server or the worker counts as ready
- * when it writes no ready event, as a `@vendure/core` from before the event does.
+ * How long after its "now running" log line the server counts as ready when it writes no ready
+ * event, as a `@vendure/core` from before the event does.
  */
 const READY_EVENT_TIMEOUT_MS = 1000;
 
@@ -246,7 +245,7 @@ class ChildMonitor implements DevChildMonitor {
             // event of this monitor's target counts.
             if (read.event.process === this.target) {
                 this.writesReadyEvent = true;
-                this.supervisor.addUrls(this.readUrls(read.line, readyEventUrls(read.event)));
+                this.supervisor.addUrls(readyEventUrls(read.event));
                 this.markReady();
             }
             return;
@@ -259,12 +258,13 @@ class ChildMonitor implements DevChildMonitor {
         if (!isReadyLine(this.target, read.line)) {
             return;
         }
-        if (this.target === 'dashboard') {
+        if (this.target !== 'server') {
+            // The worker and the Dashboard print no URLs that readiness has to wait for.
             this.markReady();
         } else if (!this.writesReadyEvent) {
-            // A core that writes the ready event writes it straight after this line, and the event
-            // marks the process ready. A core from before the event never writes it, and the
-            // process counts as ready once its welcome message has had time to print its URLs.
+            // A core that writes the ready event writes it straight after the welcome message, and
+            // the event marks the server ready. A core from before the event never writes it, and
+            // the server counts as ready once its welcome message has had time to print its URLs.
             this.cancelFallbackTimer();
             this.fallbackTimer = setTimeout(() => this.markReady(), READY_EVENT_TIMEOUT_MS);
             this.fallbackTimer.unref?.();
@@ -282,11 +282,11 @@ class ChildMonitor implements DevChildMonitor {
      * The URLs a line names. When the run includes the server, the Dashboard URL comes from the
      * server's welcome message only, so it does not depend on which process printed last.
      */
-    private readUrls(line: LogLine, urls: DevServerUrls = readUrls(this.target, line)) {
+    private readUrls(line: LogLine) {
         if (this.target === 'dashboard' && this.options.targets.includes('server')) {
             return {};
         }
-        return urls;
+        return readUrls(this.target, line);
     }
 
     hasStartupError(): boolean {

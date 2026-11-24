@@ -22,8 +22,9 @@ export type ChildOutputLine =
 /**
  * Reads one line of a child's output. A JSON log line written by the `json` format of the
  * `DefaultLogger` is kept as it is. A startup-error event becomes an error line with the event's
- * code, and a ready event an info line. Any other line is wrapped as a log line, `info` from stdout and `error` from stderr, so the
- * dev log is always valid JSONL. ANSI colours are removed from the wrapped text.
+ * code. A ready event becomes an info line. Any other line is wrapped as a log line, `info` from
+ * stdout and `error` from stderr, so the dev log is always valid JSONL. ANSI colours are removed
+ * from the wrapped text.
  */
 export function readChildOutputLine(
     raw: string,
@@ -138,7 +139,7 @@ export function readyEventUrls(event: ReadyEvent): DevServerUrls {
         if (
             typeof route?.label === 'string' &&
             typeof route.url === 'string' &&
-            route.label.trim().toLowerCase().startsWith('dashboard')
+            isDashboardLabel(route.label)
         ) {
             urls.dashboard ??= route.url;
         }
@@ -266,10 +267,18 @@ export function readUrls(target: string, line: LogLine): DevServerUrls {
     if (label === 'admin api') {
         return { admin: url };
     }
-    if (label.startsWith('dashboard')) {
+    if (isDashboardLabel(label)) {
         return { dashboard: url };
     }
     return {};
+}
+
+/**
+ * Whether a route label of the server's welcome message, such as `Dashboard UI`, names the
+ * Dashboard.
+ */
+function isDashboardLabel(label: string): boolean {
+    return label.trim().toLowerCase().startsWith('dashboard');
 }
 
 function escapeRegExp(text: string): string {

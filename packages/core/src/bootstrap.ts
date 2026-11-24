@@ -221,7 +221,10 @@ export interface BootstrapWorkerOptions {
  * ```
  *
  * If the server fails to start, `bootstrap` writes one line of JSON to stderr which names the error's code
- * and fixes, then rethrows the error. See {@link VendureStartupError}.
+ * and fixes, then rethrows the error. See {@link VendureStartupError}. Once the server listens, it writes
+ * one line of JSON to stderr, `{"vendure":"event","event":"ready","process":"server",...}`, with the
+ * API URLs and the routes plugins register, so that a supervising process such as `vendure dev` can
+ * tell that it is ready. It writes this line on every start.
  *
  * @docsCategory common
  * @docsPage bootstrap
@@ -312,7 +315,8 @@ async function startServer(
  * ```
  *
  * If the worker fails to start, `bootstrapWorker` writes one line of JSON to stderr which names the error's
- * code and fixes, then rethrows the error. See {@link VendureStartupError}.
+ * code and fixes, then rethrows the error. See {@link VendureStartupError}. Once the worker is ready, it
+ * writes `{"vendure":"event","event":"ready","process":"worker"}` to stderr, on every start.
  *
  * @docsCategory worker
  * @docsPage bootstrapWorker
