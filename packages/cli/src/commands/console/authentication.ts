@@ -38,7 +38,13 @@ export class ConsoleTokenGrantError extends Error {
     }
 }
 
-/** Sign in without starting a Project Link flow. @since 3.8.0 */
+/**
+ * Sign in without starting a Project Link flow.
+ *
+ * @deprecated No command uses this PKCE browser login since the CLI signs in with the device flow.
+ * Use `loginWithDevice` to sign in and `getAccessToken` for a token. It is removed in a later major.
+ * @since 3.8.0
+ */
 export async function loginWithBrowser(options: ConsoleBrowserLoginOptions): Promise<ConsoleSession> {
     const origins = trustedConsoleOrigins({
         appOrigin: options.appOrigin ?? DEFAULT_CONSOLE_URL,
@@ -102,7 +108,13 @@ export async function loginWithBrowser(options: ConsoleBrowserLoginOptions): Pro
     }
 }
 
-/** Refresh a session and retain the old refresh token if Console does not rotate it. @since 3.8.0 */
+/**
+ * Refresh a session and retain the old refresh token if Console does not rotate it.
+ *
+ * @deprecated Belongs to the PKCE browser login that no command uses. Use `getAccessToken`, which
+ * renews the CLI login, or `refreshAccessToken`. It is removed in a later major.
+ * @since 3.8.0
+ */
 export async function refreshSession(
     refreshToken: string,
     options: ConsoleRefreshOptions = {},
