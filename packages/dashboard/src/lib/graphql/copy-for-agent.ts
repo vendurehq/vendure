@@ -5,8 +5,8 @@ import { uiConfig } from 'virtual:vendure-ui-config';
 
 /**
  * @description
- * What "Copy for agent" puts on the clipboard, as JSON. The code says what failed, and the request ID
- * finds the request's log lines.
+ * What "Copy for agent" puts on the clipboard, as JSON, followed by the `vendure explain` command for
+ * the request. The code says what failed, and the request ID finds the request's log lines.
  */
 export interface AgentErrorReport {
     code: string;
@@ -53,8 +53,12 @@ export function toAgentErrorReport(error: unknown, document: string): AgentError
     };
 }
 
+/**
+ * The report as JSON, then the command that collects the request's error, stack and log lines from
+ * the local dev server.
+ */
 export function formatAgentErrorReport(report: AgentErrorReport): string {
-    return JSON.stringify(report, null, 2);
+    return `${JSON.stringify(report, null, 2)}\n\nvendure explain ${report.requestId}\n`;
 }
 
 /**

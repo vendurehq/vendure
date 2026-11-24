@@ -64,9 +64,12 @@ describe('copy for agent', () => {
         ).toBeUndefined();
     });
 
-    it('copies the report as JSON', () => {
+    it('copies the report as JSON, followed by the vendure explain command', () => {
         const report = toAgentErrorReport(requestError(extensions), UPDATE_PRODUCT_DOCUMENT)!;
-        expect(JSON.parse(formatAgentErrorReport(report))).toEqual(report);
+        const [json, command] = formatAgentErrorReport(report).split('\n\n');
+
+        expect(JSON.parse(json)).toEqual(report);
+        expect(command).toBe(`vendure explain ${report.requestId}\n`);
     });
 
     it('offers a recorded error only to a toast that shows its message, once, while it is recent', () => {
