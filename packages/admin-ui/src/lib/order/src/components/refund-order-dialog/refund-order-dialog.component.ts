@@ -190,9 +190,10 @@ export class RefundOrderDialogComponent
         this.resolveWith({
             refunds: this.refundablePayments
                 .filter(rp => rp.selected && 0 < rp.amountToRefundControl.value)
-                .map(payment => {
+                .map((payment, index) => {
                     return {
-                        lines: refundLines,
+                        // Each refund records its lines as refunded, so only the first one carries them.
+                        lines: index === 0 ? refundLines : [],
                         reason: this.reason,
                         paymentId: payment.id,
                         amount: payment.amountToRefundControl.value,
