@@ -1,5 +1,5 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
-import { LOCAL_TRUST_SECRET_ENV_VAR, LOCAL_TRUST_STATE_FILE } from '@vendure/common/lib/local-trust';
+import { LOCAL_TRUST_SECRET_ENV_VAR, localTrustStatePath } from '@vendure/common/lib/local-trust';
 import { ConfigService, getConfigurationFunction, I18nService, Logger, ProcessContext } from '@vendure/core';
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -462,7 +462,7 @@ describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation'
         McpPlugin.localTrustState.processRead = LOCAL_TRUST_OFF;
         McpPlugin.localTrustState.activation = LOCAL_TRUST_OFF;
         projectDir = mkdtempSync(path.join(tmpdir(), 'mcp-plugin-spec-'));
-        const file = path.join(projectDir, LOCAL_TRUST_STATE_FILE);
+        const file = localTrustStatePath(projectDir);
         mkdirSync(path.dirname(file));
         writeFileSync(file, JSON.stringify({ secret }));
         chmodSync(file, 0o600);

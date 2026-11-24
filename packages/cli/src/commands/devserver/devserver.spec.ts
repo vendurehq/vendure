@@ -143,6 +143,33 @@ describe('devserver status', () => {
 
         expect(result.envelope.error?.code).toBe('devserver.project-not-found');
     });
+
+    // Reporting `stopped` here would let `start` launch a second run next to a live one, and `stop`
+    // leave it running, so the command refuses. Faking the platform is safe, because the state
+    // file has no path, so nothing touches the file system.
+    it.each([
+        ['status', devServerStatusDefinition],
+        ['stop', devServerStopDefinition],
+    ])('refuses %s with a coded error on Windows without LOCALAPPDATA', async (_name, definition) => {
+        const projectDir = createProject();
+        const platform = Object.getOwnPropertyDescriptor(process, 'platform');
+        const localAppData = process.env.LOCALAPPDATA;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+        delete process.env.LOCALAPPDATA;
+        try {
+            const result = await runInProject(projectDir, definition, {});
+
+            expect(result.envelope.error?.code).toBe('devserver.state-file-unavailable');
+            expect(result.envelope.error?.message).toContain('LOCALAPPDATA is not set');
+        } finally {
+            if (platform) {
+                Object.defineProperty(process, 'platform', platform);
+            }
+            if (localAppData !== undefined) {
+                process.env.LOCALAPPDATA = localAppData;
+            }
+        }
+    });
 });
 
 describe('devserver wait', () => {

@@ -377,8 +377,14 @@ export interface McpPluginOptions {
      * - the server process received a per-run secret from the CLI in the
      *   `VENDURE_LOCAL_TRUST_SECRET` environment variable. The plugin deletes it from the
      *   environment once it has read it;
-     * - the CLI's state file `.vendure/devserver.json` exists in the project directory, has mode
-     *   0600, is owned by the user the server runs as, and holds the same secret.
+     * - the CLI's state file holds the same secret. On macOS and Linux it is
+     *   `.vendure/devserver.json` in the project directory, and must have mode 0600 and be owned by
+     *   the user the server runs as. On Windows it is
+     *   `%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in the user profile, and its real path must
+     *   be under the current user's `%LOCALAPPDATA%`. Without `LOCALAPPDATA`, local trust stays
+     *   off on Windows. Windows has no file modes, so the file is protected only by the permissions
+     *   of the `%LOCALAPPDATA%` directory, which by default only the user, SYSTEM and administrators
+     *   can read. The server does not check those permissions.
      *
      * The server then logs a warning that local trust is on. A request presenting the secret as
      * `Authorization: Bearer <secret>` is accepted only from a loopback socket address, with a

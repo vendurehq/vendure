@@ -82,10 +82,18 @@ const distImportBan = {
     message: 'Import from the public entry point of the package, not from its dist folder.',
 };
 
-/** `readManifestFile` and `writeCommandManifest` use `node:fs`, so only Node code imports this entry point. */
+/**
+ * `@vendure/common/lib/command/manifest` and `@vendure/common/lib/local-trust` use Node built-ins,
+ * so only Node code imports them.
+ */
 const nodeOnlyMessage =
     '`@vendure/common/lib/command/manifest` uses `node:fs` and runs only in Node. Import the command contract from `@vendure/common/lib/command`.';
-const nodeOnlyImportBan = { name: '@vendure/common/lib/command/manifest', message: nodeOnlyMessage };
+const localTrustNodeOnlyMessage =
+    '`@vendure/common/lib/local-trust` uses Node built-ins and runs only in Node, in the server and the CLI.';
+const nodeOnlyImportBans = [
+    { name: '@vendure/common/lib/command/manifest', message: nodeOnlyMessage },
+    { name: '@vendure/common/lib/local-trust', message: localTrustNodeOnlyMessage },
+];
 const nodeOnlyPatternBan = { group: ['@vendure/common/lib/command/manifest/*'], message: nodeOnlyMessage };
 
 const moduleBoundaries = (allow = []) => ['error', { allow, depConstraints }];
@@ -117,7 +125,7 @@ const overrides = [
         rules: {
             'no-restricted-imports': [
                 'error',
-                { paths: [nodeOnlyImportBan], patterns: [nodeOnlyPatternBan] },
+                { paths: nodeOnlyImportBans, patterns: [nodeOnlyPatternBan] },
             ],
         },
     },
@@ -128,7 +136,7 @@ const overrides = [
         rules: {
             'no-restricted-imports': [
                 'error',
-                { paths: [nodeOnlyImportBan], patterns: [nodeOnlyPatternBan, distImportBan] },
+                { paths: nodeOnlyImportBans, patterns: [nodeOnlyPatternBan, distImportBan] },
             ],
         },
     },

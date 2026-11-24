@@ -1,5 +1,5 @@
-import { LOCAL_TRUST_SECRET_ENV_VAR, LOCAL_TRUST_STATE_FILE } from '@vendure/common/lib/local-trust';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { LOCAL_APP_DATA_ENV_VAR, LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -8,6 +8,8 @@ import { readLocalTrustActivation } from './local-trust-activation';
 
 const SECRET = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LW9mLTMyLWJ5dGVz';
 const uid = process.getuid?.();
+/** The state file of a project on macOS and Linux. */
+const STATE_FILE = path.join('.vendure', 'devserver.json');
 
 describe.skipIf(uid === undefined)('readLocalTrustActivation', () => {
     let projectDir: string;
@@ -21,7 +23,7 @@ describe.skipIf(uid === undefined)('readLocalTrustActivation', () => {
     });
 
     function writeStateFile(contents: unknown, mode = 0o600): string {
-        const file = path.join(projectDir, LOCAL_TRUST_STATE_FILE);
+        const file = path.join(projectDir, STATE_FILE);
         mkdirSync(path.dirname(file), { recursive: true });
         writeFileSync(file, typeof contents === 'string' ? contents : JSON.stringify(contents), { mode });
         // writeFileSync's mode is masked by the umask, so it is set again explicitly.
@@ -35,6 +37,7 @@ describe.skipIf(uid === undefined)('readLocalTrustActivation', () => {
             env,
             projectDir,
             uid: options.uid ?? uid,
+            platform: 'linux',
         });
     }
 
@@ -125,7 +128,7 @@ describe.skipIf(uid === undefined)('readLocalTrustActivation', () => {
         writeFileSync(target, JSON.stringify({ secret: SECRET }), { mode: 0o600 });
         chmodSync(target, 0o600);
         mkdirSync(path.join(projectDir, '.vendure'));
-        symlinkSync(target, path.join(projectDir, LOCAL_TRUST_STATE_FILE));
+        symlinkSync(target, path.join(projectDir, STATE_FILE));
         expect(read({ [LOCAL_TRUST_SECRET_ENV_VAR]: SECRET })).toMatchObject({ enabled: false });
     });
 
@@ -136,10 +139,149 @@ describe.skipIf(uid === undefined)('readLocalTrustActivation', () => {
             env: { [LOCAL_TRUST_SECRET_ENV_VAR]: SECRET },
             projectDir,
             uid: undefined,
+            platform: 'linux',
         });
         expect(activation).toMatchObject({
             enabled: false,
             refusedReason: expect.stringMatching(/platform/),
+        });
+    });
+});
+
+/**
+ * The Windows guard, run on the file system of the test machine. The state file stands in a
+ * directory that plays `%LOCALAPPDATA%`, and links play the part of Windows junctions.
+ */
+describe('readLocalTrustActivation on Windows', () => {
+    let root: string;
+    let localAppData: string;
+    let stateFile: string;
+
+    beforeEach(() => {
+        root = realpathSync(mkdtempSync(path.join(tmpdir(), 'mcp-local-trust-win-')));
+        localAppData = path.join(root, 'AppData', 'Local');
+        stateFile = path.join(localAppData, 'Vendure', 'devserver', '0123456789abcdef.json');
+        mkdirSync(path.dirname(stateFile), { recursive: true });
+    });
+
+    afterEach(() => {
+        rmSync(root, { recursive: true, force: true });
+    });
+
+    function read(env: NodeJS.ProcessEnv, file = stateFile) {
+        return readLocalTrustActivation({
+            localTrust: true,
+            env: { [LOCAL_TRUST_SECRET_ENV_VAR]: SECRET, ...env },
+            projectDir: path.join(root, 'shop'),
+            uid: undefined,
+            platform: 'win32',
+            statePath: () => file,
+        });
+    }
+
+    function writeSecret(file: string, secret = SECRET) {
+        mkdirSync(path.dirname(file), { recursive: true });
+        writeFileSync(file, JSON.stringify({ secret }));
+    }
+
+    it('turns local trust on for a state file under %LOCALAPPDATA% with the same secret', () => {
+        writeSecret(stateFile);
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData })).toMatchObject({
+            enabled: true,
+            stateFile,
+        });
+    });
+
+    // Windows has no file modes, so the mode is not checked.
+    it('does not check the mode of the file', () => {
+        writeSecret(stateFile);
+        chmodSync(stateFile, 0o644);
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData })).toMatchObject({ enabled: true });
+    });
+
+    it('stays off when LOCALAPPDATA is not set', () => {
+        writeSecret(stateFile);
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: undefined })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/LOCALAPPDATA is not set/),
+        });
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: '' })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/LOCALAPPDATA is not set/),
+        });
+    });
+
+    it('stays off for a state file outside %LOCALAPPDATA%', () => {
+        const outside = path.join(root, 'shop', '.vendure', 'devserver.json');
+        writeSecret(outside);
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData }, outside)).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/is not under the current user's LOCALAPPDATA/),
+        });
+    });
+
+    it('stays off when the file is a link to a file outside %LOCALAPPDATA%', () => {
+        const outside = path.join(root, 'elsewhere.json');
+        writeSecret(outside);
+        symlinkSync(outside, stateFile);
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/is not under the current user's LOCALAPPDATA/),
+        });
+    });
+
+    it('stays off when a directory on the way is a junction out of %LOCALAPPDATA%', () => {
+        const outsideDir = path.join(root, 'elsewhere');
+        writeSecret(path.join(outsideDir, path.basename(stateFile)));
+        rmSync(path.dirname(stateFile), { recursive: true });
+        symlinkSync(outsideDir, path.dirname(stateFile), 'junction');
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/is not under the current user's LOCALAPPDATA/),
+        });
+    });
+
+    it('stays off when %LOCALAPPDATA% names another directory than the one the file is in', () => {
+        writeSecret(stateFile);
+        const otherProfile = path.join(root, 'OtherUser', 'AppData', 'Local');
+        mkdirSync(otherProfile, { recursive: true });
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: otherProfile })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/is not under/),
+        });
+    });
+
+    it('stays off when the state file does not exist', () => {
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/does not exist/),
+        });
+    });
+
+    it('stays off for a state file with another secret', () => {
+        writeSecret(stateFile, `${SECRET}-older-run`);
+        expect(read({ [LOCAL_APP_DATA_ENV_VAR]: localAppData })).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(/different secret/),
+        });
+    });
+
+    it('finds the state file with localTrustStatePath by default', () => {
+        const activation = readLocalTrustActivation({
+            localTrust: true,
+            env: {
+                [LOCAL_TRUST_SECRET_ENV_VAR]: SECRET,
+                [LOCAL_APP_DATA_ENV_VAR]: 'C:\\Users\\dev\\AppData\\Local',
+            },
+            projectDir: 'C:\\work\\shop',
+            uid: undefined,
+            platform: 'win32',
+        });
+        expect(activation).toMatchObject({
+            enabled: false,
+            refusedReason: expect.stringMatching(
+                /C:\\Users\\dev\\AppData\\Local\\Vendure\\devserver\\[0-9a-f]{16}\.json does not exist/,
+            ),
         });
     });
 });

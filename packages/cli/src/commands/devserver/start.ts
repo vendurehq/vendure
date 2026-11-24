@@ -16,9 +16,10 @@ import {
     defaultTimeoutSeconds,
     devServerErrors,
     POLL_INTERVAL_MS,
+    projectResolutionFailure,
     readLiveDevServerState,
     renderStatusReport,
-    resolveDevServerProject,
+    resolveDevServerStateProject,
     sleep,
     waitForDevServer,
 } from './devserver.js';
@@ -75,9 +76,9 @@ export function getCliEntryPath(): string {
 export async function run(input: StartInput, ctx: CommandContext, cliEntryPath = getCliEntryPath()) {
     let projectDir: string;
     try {
-        projectDir = resolveDevServerProject(ctx);
+        projectDir = resolveDevServerStateProject(ctx);
     } catch (e) {
-        return fail(devServerErrors.projectNotFound, { message: (e as Error).message });
+        return projectResolutionFailure(e);
     }
     const running = readLiveDevServerState(projectDir);
     if (running) {
