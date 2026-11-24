@@ -37,6 +37,7 @@ import {
     ZoneService,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -526,6 +527,65 @@ describe('Base-data presets', () => {
                 });
                 expect(await repo(Country).count()).toBe(0);
                 expect(await sentinelValue(SEED_PRESET_KEY)).toBeUndefined();
+            },
+            TEST_SETUP_TIMEOUT_MS,
+        );
+    });
+
+    // A store a preset seeds passes the store check once it has a product to sell. The
+    // tax-inclusive presets put a zone rate on the default tax zone, so the check knows the rate
+    // entered prices include.
+    describe('store readiness', () => {
+        const STORE_READINESS = gql`
+            query StoreReadiness {
+                storeReadiness {
+                    ready
+                    findings {
+                        code
+                        severity
+                    }
+                }
+            }
+        `;
+
+        async function addProduct() {
+            const standard = (await repo(TaxCategory).find()).find(c => c.name === 'Standard')!;
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        { languageCode: LanguageCode.en, name: 'Mug', slug: 'mug', description: '' },
+                    ],
+                },
+            });
+            await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: createProduct.id,
+                        sku: 'MUG',
+                        price: 1000,
+                        taxCategoryId: String(standard.id),
+                        translations: [{ languageCode: LanguageCode.en, name: 'Mug' }],
+                        stockOnHand: 100,
+                    },
+                ],
+            });
+        }
+
+        it.each(['uk', 'au', 'us'])(
+            'a store seeded with the %s preset is ready',
+            async preset => {
+                await resetToEmptyDatabase();
+                await applyPreset(server.app, preset);
+                await adminClient.asSuperAdmin();
+                await addProduct();
+
+                const { storeReadiness } = await adminClient.query(STORE_READINESS);
+
+                expect(storeReadiness.findings.filter((f: any) => f.severity === 'ERROR')).toEqual([]);
+                expect(storeReadiness.findings.map((f: any) => f.code)).not.toContain(
+                    'store.tax.inclusive-rate-unknown',
+                );
+                expect(storeReadiness.ready).toBe(true);
             },
             TEST_SETUP_TIMEOUT_MS,
         );
