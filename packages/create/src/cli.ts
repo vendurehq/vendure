@@ -46,6 +46,8 @@ export async function main(argv: string[], context: MainContext): Promise<number
         });
 
     let logLevel: CliLogLevel = 'info';
+    // Set once the flags are parsed, so an error is shown the same way as the progress was.
+    let interactive = false;
     try {
         try {
             program.parse(argv);
@@ -68,7 +70,7 @@ export async function main(argv: string[], context: MainContext): Promise<number
         checkNodeVersion(process.version, stderr);
 
         const presets = readPresetCatalog(context.assetsDir);
-        const interactive = isInteractive(flags);
+        interactive = isInteractive(flags);
         if (interactive) {
             intro(`Let's create a ${pc.blue(pc.bold('Vendure App'))} ✨ ${pc.dim(`v${context.version}`)}`);
             ({ projectDirectory, flags } = await promptForMissing(projectDirectory, flags, presets));
@@ -101,7 +103,7 @@ export async function main(argv: string[], context: MainContext): Promise<number
             stdout.write(JSON.stringify(error.toJSON(), null, 2) + '\n');
         } else {
             const lines = [pc.red(`${error.message} (${error.code})`), ...(error.fix ? [error.fix] : [])];
-            if (isInteractive({}) && logLevel !== 'silent') {
+            if (interactive && logLevel !== 'silent') {
                 cancel(lines.join('\n'));
             } else {
                 stderr.write(lines.join('\n') + '\n');

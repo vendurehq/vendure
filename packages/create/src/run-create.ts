@@ -200,14 +200,17 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
         try {
             await installDependencies(options.packageManager, root, context.logLevel);
         } catch (e) {
-            if (e instanceof CreateError && options.git) {
+            if (e instanceof CreateError) {
+                const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
                 throw new CreateError(
                     e.code,
                     e.message,
                     [
                         e.fix,
-                        `Your choices are kept in ${CREATE_RECORD_PATH}.`,
-                        'Then run `git init`, `git add -A` and `git commit` to make the initial commit.',
+                        `Your choices are kept in ${recordPath.split(path.sep).join('/')}.`,
+                        options.git
+                            ? 'Then run `git init`, `git add -A` and `git commit` to make the initial commit.'
+                            : undefined,
                     ]
                         .filter(Boolean)
                         .join(' '),

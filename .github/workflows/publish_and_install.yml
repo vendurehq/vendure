@@ -443,6 +443,7 @@ jobs:
                   node "$GITHUB_WORKSPACE/.github/workflows/scripts/install-test-app.js" "$GITHUB_WORKSPACE" test-app "$VENDURE_VERSION"
                   cd test-app
                   npm install --loglevel error
+                  npm run schema
             - name: Dev server smoke test from a path containing a space
               timeout-minutes: 15
               run: |

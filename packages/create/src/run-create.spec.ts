@@ -133,6 +133,7 @@ describe('runCreate() when the install fails', () => {
         expect(error).toBeInstanceOf(CreateError);
         expect(error?.code).toBe('create.install-failed');
         expect(error?.fix).toContain('git init');
+        expect(error?.fix).toContain('Your choices are kept in .vendure/create.json.');
         expect(readJson(path.join(options.projectDir, CREATE_RECORD_PATH))).toMatchObject({
             preset: { name: 'uk', options: {} },
         });

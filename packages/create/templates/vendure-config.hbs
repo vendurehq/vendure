@@ -23,11 +23,13 @@ export const config = defineCloudConfig({
         // server, so no sign-in is needed while you develop.
         McpPlugin.init({
             oauth: {
-                // Issued OAuth tokens are hashed with this secret. The fallback is for local
-                // development only: production refuses to start without MCP_TOKEN_SECRET.
+                // Production refuses to start without both of these. MCP_TOKEN_SECRET hashes the
+                // OAuth tokens the plugin issues, and its fallback is for local development only.
+                // MCP_ISSUER is the server's public https origin; locally it defaults to localhost.
                 tokenSecret:
                     process.env.MCP_TOKEN_SECRET ??
                     (process.env.NODE_ENV === 'production' ? '' : '{{ mcpDevTokenSecret }}'),
+                issuer: process.env.MCP_ISSUER,
             },
             shopAccess: 'anonymous',
         }),

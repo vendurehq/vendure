@@ -11,7 +11,7 @@ This is a guide to the recommended configuration for a production Vendure applic
 
 Keep sensitive information or context-dependent settings in environment variables. In local development you can store the values in a `.env` file. For production, you should use the mechanism provided by your hosting platform to set the values for production.
 
-The default `@vendure/create` project scaffold makes use of environment variables already. For example:
+For example, a configuration can switch behaviour on an environment variable:
 
 ```ts
 const IS_DEV = process.env.APP_ENV === 'dev';

@@ -48,20 +48,31 @@ function codeOf(fn: () => unknown): string | undefined {
 }
 
 describe('option table', () => {
-    it('gives every flag that replaces a prompt a row', () => {
-        const keys = CREATE_OPTIONS.map(option => option.key);
-        for (const key of [
-            'storefront',
-            'preset',
-            'scenario',
-            'features',
-            'packageManager',
-            'agents',
-            'yes',
-            'json',
-        ]) {
-            expect(keys).toContain(key);
-        }
+    it('parses every flag in the table into its key', () => {
+        const program = buildProgram('0.0.0');
+        program.parse(
+            [
+                'node',
+                'create',
+                'dir',
+                '--storefront=nextjs',
+                '--preset=uk',
+                '--country=GB',
+                '--currency=GBP',
+                '--scenario=none',
+                '--features=none',
+                '--package-manager=pnpm',
+                '--agents=claude',
+                '--yes',
+                '--json',
+                '--no-install',
+                '--no-git',
+                '--log-level=silent',
+                '--verbose',
+            ],
+            { from: 'node' },
+        );
+        expect(Object.keys(program.opts()).sort()).toEqual(CREATE_OPTIONS.map(option => option.key).sort());
     });
 
     it('has no --ci, --use-npm or database flags', () => {

@@ -1,41 +1,34 @@
-# {{ name }}
+#
+{{name}}
 
-A [Vendure](https://www.vendure.io/) store{{#if storefront}} with a [{{ storefront.frameworkName }}]({{ storefront.documentationUrl }}) storefront{{/if}}, created with `@vendure/create`.
-
-## Develop
-
-`vendure dev` needs Docker or Podman. It starts a local PostgreSQL and Redis, and then the server, the worker and the Dashboard:
-
-```bash
-{{ dev }}
-```
-
-The first run writes the initial database migration into `{{#if serverDir}}{{ serverDir }}/{{/if}}src/migrations` and seeds the data recorded in `{{#if serverDir}}{{ serverDir }}/{{/if}}.vendure/create.json`. Commit the migration.
-
-- Dashboard: http://localhost:{{ serverPort }}/dashboard
-- Shop API: http://localhost:{{ serverPort }}/shop-api
-- Admin API: http://localhost:{{ serverPort }}/admin-api
+A [Vendure](https://www.vendure.io/) store{{#if storefront}}
+    with a [{{storefront.frameworkName}}]({{storefront.documentationUrl}}) storefront{{/if}}, created with
+`@vendure/create`. ## Develop `vendure dev` needs Docker or Podman. It starts a local PostgreSQL and Redis,
+and then the server, the worker and the Dashboard: ```bash
+{{dev}}
+``` The first run writes the initial database migration into `{{#if
+    serverDir
+}}{{serverDir}}/{{/if}}src/migrations` and seeds the data recorded in `{{#if
+    serverDir
+}}{{serverDir}}/{{/if}}.vendure/create.json`. Commit the migration. - Dashboard: http://localhost:{{serverPort}}/dashboard
+- Shop API: http://localhost:{{serverPort}}/shop-api - Admin API: http://localhost:{{serverPort}}/admin-api
 {{#if storefront}}
-- Storefront: http://localhost:{{ storefrontPort }}
+    - Storefront: http://localhost:{{storefrontPort}}
 {{/if}}
 
 ## Project structure
 
 {{#if serverDir}}
-- `{{ serverDir }}/src/vendure-config.ts`: the Vendure configuration, a Cloud Config.
-- `{{ serverDir }}/src/migrations/`: the database migrations.
-- `apps/storefront/`: the {{ storefront.frameworkName }} storefront.
+    - `{{serverDir}}/src/vendure-config.ts`: the Vendure configuration, a Cloud Config. - `{{serverDir}}/src/migrations/`:
+    the database migrations. - `apps/storefront/`: the
+    {{storefront.frameworkName}}
+    storefront.
 {{else}}
-- `src/vendure-config.ts`: the Vendure configuration, a Cloud Config.
-- `src/migrations/`: the database migrations.
+    - `src/vendure-config.ts`: the Vendure configuration, a Cloud Config. - `src/migrations/`: the database
+    migrations.
 {{/if}}
 
-## Scripts
-
-- `{{ dev }}`: start the local development environment.
-- `{{ build }}`: compile the project.
-- `{{ typecheck }}`: check the types.
-
-## Deploy
-
-Deploy to Vendure Cloud with `vendure cloud deploy`. To run Vendure on your own infrastructure instead, see [Self-hosting]({{ selfHostingGuideUrl }}).
+## Scripts - `{{dev}}`: start the local development environment. - `{{build}}`: compile the project. - `{{typecheck}}`:
+check the types. ## Deploy Deploy to Vendure Cloud with `vendure cloud deploy`. Production needs two variables
+for the MCP plugin: `MCP_TOKEN_SECRET`, a long random secret, and `MCP_ISSUER`, the server's public https
+origin. To run Vendure on your own infrastructure instead, see [Self-hosting]({{selfHostingGuideUrl}}).

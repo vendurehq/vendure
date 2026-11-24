@@ -108,12 +108,13 @@ describe('renderVendureConfig()', () => {
         );
     });
 
-    it('declares the MCP plugin, with a development-only token secret fallback', () => {
+    it('declares the MCP plugin, with its production settings from the environment', () => {
         expect(source).toContain("import { McpPlugin } from '@vendure/mcp-plugin';");
         expect(source).toContain("shopAccess: 'anonymous'");
-        expect(source).toContain(
-            "process.env.MCP_TOKEN_SECRET ??\n                    (process.env.NODE_ENV === 'production' ? '' : 'dev-secret')",
-        );
+        // The secret: the env var, then the development fallback, and nothing in production.
+        expect(source).toMatch(/tokenSecret:\s*process\.env\.MCP_TOKEN_SECRET \?\?/);
+        expect(source).toMatch(/process\.env\.NODE_ENV === 'production' \? '' : 'dev-secret'/);
+        expect(source).toMatch(/issuer: process\.env\.MCP_ISSUER/);
     });
 
     it('sets nothing the Cloud runtime owns', () => {

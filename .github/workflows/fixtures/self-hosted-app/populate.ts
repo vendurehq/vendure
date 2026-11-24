@@ -19,6 +19,7 @@ populate(
     async () => {
         const app = await bootstrap({
             ...config,
+            dbConnectionOptions: { ...config.dbConnectionOptions, synchronize: true },
             logger: new DefaultLogger({ level: LogLevel.Warn }),
             importExportOptions: { importAssetsDir: path.join(mockDataDir, 'assets') },
         });

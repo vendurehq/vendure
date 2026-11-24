@@ -23,10 +23,16 @@ export const config: VendureConfig = {
     },
     dbConnectionOptions: {
         type: 'better-sqlite3',
-        // A test app with no migrations: the schema follows the configuration.
-        synchronize: true,
+        // A test app with no migrations. `npm run populate` creates the schema. The server and the
+        // worker do not synchronize, because two processes synchronizing one SQLite file at boot
+        // lock each other out.
+        synchronize: false,
         logging: false,
         database: path.join(__dirname, '../vendure.sqlite'),
+        // The server and the worker share this file. WAL lets one read while the other writes,
+        // and the timeout makes a write wait for the lock instead of failing at once.
+        enableWAL: true,
+        timeout: 10_000,
     },
     paymentOptions: {
         paymentMethodHandlers: [dummyPaymentHandler],

@@ -4,7 +4,8 @@
     "private": true,
     "scripts": {
         "dev": "vendure dev all",
-        "populate": "ts-node populate.ts"
+        "populate": "ts-node populate.ts",
+        "schema": "ts-node create-schema.ts"
     },
     "dependencies": {
         "@vendure/asset-server-plugin": "__VENDURE_VERSION__",
