@@ -4689,9 +4689,15 @@
               "slug": "migrate",
               "file": "docs/reference/cli/migrate.mdx",
               "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure store",
+              "slug": "store",
+              "file": "docs/reference/cli/store.mdx",
+              "lastModified": "2026-11-24T17:24:04Z"
             }
           ],
-          "lastModified": "2026-11-24T15:48:18Z"
+          "lastModified": "2026-11-24T17:24:04Z"
         },
         {
           "title": "GraphQL API",
