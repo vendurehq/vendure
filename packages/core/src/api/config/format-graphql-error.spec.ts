@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { ForbiddenError } from '../../common/error/errors';
 import { runWithRequestId } from '../common/request-id';
 
-import { createFormatGraphQLError } from './format-graphql-error';
+import { createFormatGraphQLError, shouldIncludeStackInErrors } from './format-graphql-error';
 
 describe('createFormatGraphQLError()', () => {
     const cwd = path.resolve('/app');
@@ -83,5 +83,18 @@ describe('createFormatGraphQLError()', () => {
         const result = runWithRequestId(undefined, () => format(formatted, wrap(new ForbiddenError())));
 
         expect(result.extensions).not.toHaveProperty('requestId');
+    });
+});
+
+describe('shouldIncludeStackInErrors()', () => {
+    it('is on when the option is on or vendure dev set the variable', () => {
+        expect(shouldIncludeStackInErrors(true, {})).toBe(true);
+        expect(shouldIncludeStackInErrors(false, { VENDURE_INCLUDE_STACK_IN_ERRORS: 'true' })).toBe(true);
+        expect(shouldIncludeStackInErrors(undefined, { VENDURE_INCLUDE_STACK_IN_ERRORS: 'true' })).toBe(true);
+    });
+
+    it('is off otherwise', () => {
+        expect(shouldIncludeStackInErrors(false, {})).toBe(false);
+        expect(shouldIncludeStackInErrors(undefined, { VENDURE_INCLUDE_STACK_IN_ERRORS: '1' })).toBe(false);
     });
 });

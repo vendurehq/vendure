@@ -5,6 +5,23 @@ import { I18nError } from '../../i18n/i18n-error';
 import { UNEXPECTED_VENDURE_CODE } from '../../i18n/vendure-code';
 import { getRequestId } from '../common/request-id';
 
+/**
+ * When this environment variable is `true`, the APIs add stacks to their errors as with
+ * `apiOptions.includeStackInErrors`. `vendure dev` sets it for the server it starts.
+ */
+export const INCLUDE_STACK_IN_ERRORS_ENV_VAR = 'VENDURE_INCLUDE_STACK_IN_ERRORS';
+
+/**
+ * Whether the APIs add stacks to their errors: when `apiOptions.includeStackInErrors` is true, or
+ * when {@link INCLUDE_STACK_IN_ERRORS_ENV_VAR} is `true`.
+ */
+export function shouldIncludeStackInErrors(
+    includeStackInErrors: boolean | undefined,
+    env: Record<string, string | undefined> = process.env,
+): boolean {
+    return includeStackInErrors === true || env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] === 'true';
+}
+
 export interface FormatGraphQLErrorOptions {
     /**
      * Adds `extensions.stack`, the frames of the error's stack under `cwd`. Set by the

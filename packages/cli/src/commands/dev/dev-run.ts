@@ -133,7 +133,8 @@ export class DevRun {
 
     /**
      * The environment of a process of the run. Every process gets `VENDURE_PROCESS`, the server
-     * and the worker log in the `json` format, and only the server gets the local-trust secret.
+     * and the worker log in the `json` format, and only the server gets the local-trust secret and
+     * stacks in its GraphQL errors.
      */
     childEnv(target: string, baseEnv: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
         const env: NodeJS.ProcessEnv = {
@@ -143,6 +144,11 @@ export class DevRun {
         delete env[DEVSERVER_DETACHED_ENV_VAR];
         if (target === 'server' || target === 'worker') {
             env.VENDURE_LOG_FORMAT = 'json';
+        }
+        if (target === 'server') {
+            // GraphQL errors carry their stack, trimmed to the project's frames, as with
+            // `apiOptions.includeStackInErrors` in @vendure/core.
+            env.VENDURE_INCLUDE_STACK_IN_ERRORS = 'true';
         }
         if (target === 'server' && this.stateFile) {
             env[LOCAL_TRUST_SECRET_ENV_VAR] = this.secret;

@@ -297,6 +297,9 @@ export interface ApiOptions {
      * server which untrusted callers can reach, including staging servers. When it is off, no error
      * response carries a stack, whatever `NODE_ENV` is set to.
      *
+     * The `VENDURE_INCLUDE_STACK_IN_ERRORS=true` environment variable also turns it on. `vendure dev`
+     * sets it for the server it starts, so stacks show in local development without a config change.
+     *
      * @example
      * ```ts
      * {
