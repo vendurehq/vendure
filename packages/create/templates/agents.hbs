@@ -22,8 +22,8 @@ The package manager is {{ packageManager }}.{{#if serverPath}} Run the `vendure`
 ## Agent tools
 
 - The `vendure` MCP server runs the project's own CLI (`vendure mcp`). The `vendure-docs` MCP server searches the Vendure documentation.
-- Skills in `.agents/skills/`: `vendure-cli` for the CLI, `vendure-store-setup` for setting up the store's data, and `vendure-troubleshooting` for errors.
+- Skills in `.agents/skills/`:{{#each skills}} `{{ this }}`{{#unless @last}},{{/unless}}{{/each}}. Each skill's `SKILL.md` says when to use it.
 
 ## Deploying
 
-`vendure cloud deploy` deploys to Vendure Cloud. Production needs `MCP_TOKEN_SECRET` and `MCP_ISSUER`. To run Vendure on your own infrastructure, see {{ selfHostingGuideUrl }}.
+`{{ exec }} vendure cloud deploy` deploys to Vendure Cloud. Production needs `MCP_TOKEN_SECRET` and `MCP_ISSUER`. To run Vendure on your own infrastructure, see {{ selfHostingGuideUrl }}.

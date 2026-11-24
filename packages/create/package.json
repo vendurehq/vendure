@@ -74,7 +74,8 @@
                     {
                         "runtime": "node --version"
                     },
-                    "{workspaceRoot}/skills/**/*"
+                    "{workspaceRoot}/skills/**/*",
+                    "{workspaceRoot}/packages/cli/src/commands/mcp/install/client-config.ts"
                 ]
             }
         }

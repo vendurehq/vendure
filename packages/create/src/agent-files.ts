@@ -68,6 +68,8 @@ export function claudeSettings(): string {
 
 export interface AgentsMdInput {
     name: string;
+    /** The skills copied into `.agents/skills/`. */
+    skills?: readonly string[];
     pmInfo: PackageManagerInfo;
     storefront: StorefrontStarter | undefined;
 }
@@ -83,6 +85,7 @@ export function renderAgentsMd(template: string, input: AgentsMdInput): string {
         storefront: input.storefront,
         serverDir: input.storefront ? SERVER_WORKSPACE_DIR : undefined,
         serverPath: input.storefront ? `${SERVER_WORKSPACE_DIR}/` : '',
+        skills: input.skills ?? [],
         selfHostingGuideUrl: SELF_HOSTING_GUIDE_URL,
     });
 }
@@ -114,12 +117,10 @@ export interface AgentFileFailure {
 export interface AgentFilesResult {
     written: string[];
     failed: AgentFileFailure[];
-    /** The clients whose files were all written, which the create record names. */
-    agents: AgentClient[];
 }
 
 export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<AgentFilesResult> {
-    const result: AgentFilesResult = { written: [], failed: [], agents: [] };
+    const result: AgentFilesResult = { written: [], failed: [] };
     if (!input.agents.length) {
         return result;
     }
@@ -128,12 +129,16 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
         result.written.push(file);
     };
 
+    const skillsDir = path.join(input.assetsDir, 'skills');
+    const skills = fs.readdirSync(skillsDir).sort();
     write(
         'AGENTS.md',
-        renderAgentsMd(fs.readFileSync(path.join(input.assetsDir, 'agents.hbs'), 'utf-8'), input),
+        renderAgentsMd(fs.readFileSync(path.join(input.assetsDir, 'agents.hbs'), 'utf-8'), {
+            ...input,
+            skills,
+        }),
     );
-    const skillsDir = path.join(input.assetsDir, 'skills');
-    for (const skill of fs.readdirSync(skillsDir).sort()) {
+    for (const skill of skills) {
         const target = `.agents/skills/${skill}`;
         fs.copySync(path.join(skillsDir, skill), path.join(input.root, target));
         result.written.push(`${target}/`);
@@ -151,17 +156,25 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
             write(file, docsServerConfig(client));
         }
         const installed = input.mcpInstallUnavailable ?? (await installVendureServer(client, input));
-        if ('reason' in installed) {
-            if (client === 'cursor') {
-                write(file, docsServerConfig(client));
-            }
-            result.failed.push({ client, ...installed });
+        if (client === 'cursor' && !('reason' in installed) && installed.printed) {
+            write(file, cursorConfig(installed.printed));
             continue;
         }
-        if (client === 'cursor') {
-            write(file, cursorConfig(installed.printed ?? '{}'));
+        if (client !== 'cursor') {
+            if ('reason' in installed) {
+                result.failed.push({ client, ...installed });
+            }
+            continue;
         }
-        result.agents.push(client);
+        // `vendure mcp install` only prints Cursor's entry, so running it again cannot complete the
+        // file. The reason says how to.
+        write(file, docsServerConfig(client));
+        const why = 'reason' in installed ? installed.reason : '`vendure mcp install` printed no entry';
+        result.failed.push({
+            client,
+            reason: `${why}. Run \`vendure mcp install --client cursor\` and add the entry it prints to ${file}`,
+            retryable: false,
+        });
     }
     return result;
 }

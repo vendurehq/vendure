@@ -123,7 +123,6 @@ describe('writeAgentFiles()', () => {
             mcpInstallUnavailable: undefined,
         });
 
-        expect(result.agents).toEqual(['claude', 'cursor', 'codex']);
         expect(result.failed).toEqual([]);
         expect(fs.readFileSync(path.join(dir, 'calls.log'), 'utf-8').trim().split('\n')).toEqual([
             'mcp install --client claude --json',
@@ -164,7 +163,6 @@ describe('writeAgentFiles()', () => {
             mcpInstallUnavailable: undefined,
         });
 
-        expect(result.agents).toEqual([]);
         expect(result.failed).toEqual([{ client: 'vscode', reason, retryable: false }]);
         expect(result.written).toContain('.vscode/mcp.json');
     });
@@ -181,7 +179,6 @@ describe('writeAgentFiles()', () => {
                 serverDir: dir,
                 mcpInstallUnavailable: undefined,
             });
-            expect(result.agents).toEqual([]);
             expect(result.failed).toEqual([
                 {
                     client: 'codex',
@@ -204,12 +201,51 @@ describe('writeAgentFiles()', () => {
             serverDir: dir,
             mcpInstallUnavailable: unavailable,
         });
-        expect(result.failed).toEqual([{ client: 'cursor', ...unavailable }]);
+        // Running `vendure mcp install` again only prints Cursor's entry, so it is not retryable.
+        expect(result.failed).toEqual([
+            {
+                client: 'cursor',
+                reason: 'not installed. Run `vendure mcp install --client cursor` and add the entry it prints to .cursor/mcp.json',
+                retryable: false,
+            },
+        ]);
         expect(JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf-8')).mcpServers).toEqual({
             'vendure-docs': { url: DOCS_MCP_URL },
         });
         expect(fs.existsSync(path.join(dir, 'CLAUDE.md'))).toBe(false);
         expect(fs.existsSync(path.join(dir, '.claude'))).toBe(false);
+    });
+
+    it('reports Cursor when vendure mcp install printed no entry', async () => {
+        const dir = projectWithFakeCli('no-entry', { status: 'ok', output: { action: 'printed' } });
+        const result = await writeAgentFiles({
+            ...base,
+            agents: ['cursor'],
+            root: dir,
+            serverDir: dir,
+            mcpInstallUnavailable: undefined,
+        });
+        expect(result.failed).toEqual([
+            {
+                client: 'cursor',
+                reason: expect.stringMatching(/^`vendure mcp install` printed no entry\. /),
+                retryable: false,
+            },
+        ]);
+    });
+
+    it('lists the copied skills in AGENTS.md', async () => {
+        const dir = path.join(workDir, 'skills-listed');
+        await writeAgentFiles({
+            ...base,
+            agents: ['codex'],
+            root: dir,
+            serverDir: dir,
+            mcpInstallUnavailable: { reason: 'x', retryable: true },
+        });
+        expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
+            '- Skills in `.agents/skills/`: `vendure-cli`, `vendure-store-setup`, `vendure-troubleshooting`.',
+        );
     });
 
     it('writes nothing with no clients', async () => {

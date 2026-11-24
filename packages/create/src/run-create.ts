@@ -242,10 +242,11 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
             ? `Wrote the agent files, except: ${agentFiles.failed.map(f => `${f.client} (${f.reason})`).join('; ')}`
             : 'Wrote the agent files',
     );
-    // Rewritten with the clients whose files were written, which the record's contract names.
+    // Rewritten with the clients create wrote files for, as the record's contract says. A client
+    // whose MCP config is incomplete is still one, and `agentFiles.failed` says what is missing.
     writeJson(
         path.join(serverDir, CREATE_RECORD_PATH),
-        buildCreateRecord(options, context.createVersion, { agents: agentFiles.agents }),
+        buildCreateRecord(options, context.createVersion, { agents: options.agents }),
     );
 
     let git: GitResult = gitInit.status === 'initialised' ? { status: 'committed' } : gitInit;

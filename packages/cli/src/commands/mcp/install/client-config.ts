@@ -223,7 +223,6 @@ function headerKeys(line: string): string[] {
     return keys;
 }
 
-/** Whether a line uses `vendure` as a key, as in `vendure = ...` or `mcp_servers.vendure.command = ...`. */
 /**
  * The line without its comment, and with every string that is a value blanked, so a value such as
  * `"https://docs.vendure.io/mcp"` or an array item is not read as a `vendure.` key. A quoted key,
@@ -254,6 +253,7 @@ function keysOnly(line: string): string {
     return out;
 }
 
+/** Whether a line uses `vendure` as a key, as in `vendure = ...` or `mcp_servers.vendure.command = ...`. */
 function namesServerKey(line: string): boolean {
     const text = keysOnly(line);
     for (let at = text.indexOf(SERVER_NAME); at !== -1; at = text.indexOf(SERVER_NAME, at + 1)) {
