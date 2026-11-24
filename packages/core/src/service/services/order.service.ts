@@ -42,7 +42,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError, Not } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -95,6 +95,7 @@ import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
 import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
@@ -2189,14 +2190,34 @@ export class OrderService implements OnApplicationBootstrap {
 
     /** @internal */
     async previewRefundLineTotal(ctx: RequestContext, orderId: ID, lines: OrderLineInput[]): Promise<number> {
-        const order = await this.getOrderOrThrow(ctx, orderId, ['lines']);
-        for (const line of lines) {
-            this.getOrderLineOrThrow(order, line.orderLineId);
-            if (line.quantity < 0) {
+        const order = await this.getOrderOrThrow(ctx, orderId, ['lines', 'lines.quotedCancellations']);
+        const refundLines = await this.connection.getRepository(ctx, RefundLine).find({
+            where: { orderLineId: In(lines.map(line => line.orderLineId)), refund: { state: Not('Failed') } },
+        });
+        for (const input of lines) {
+            const line = this.getOrderLineOrThrow(order, input.orderLineId);
+            if (input.quantity < 0) {
                 throw new UserInputError('errorResult.NEGATIVE_QUANTITY_ERROR');
             }
+            // The same refundable quantity as the Dashboard refund dialog uses.
+            const cancelled =
+                line.orderPlacedQuantity > 0 ? summate(line.quotedCancellations, 'quantity') : 0;
+            const refundable =
+                Math.max(line.orderPlacedQuantity, line.quantity, cancelled + line.quantity) -
+                summate(
+                    refundLines.filter(refundLine => idsAreEqual(refundLine.orderLineId, line.id)),
+                    'quantity',
+                );
+            const requested = summate(
+                lines.filter(other => idsAreEqual(other.orderLineId, line.id)),
+                'quantity',
+            );
+            if (refundable < requested) {
+                throw new UserInputError('errorResult.QUANTITY_TOO_GREAT_ERROR');
+            }
         }
-        return this.paymentService.getRefundLineTotal(ctx, lines);
+        // The Dashboard refunds by amount, so lines that an order modification added are included.
+        return this.paymentService.getRefundLineTotal(ctx, lines, true);
     }
 
     /**

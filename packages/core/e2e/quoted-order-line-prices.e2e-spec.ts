@@ -161,7 +161,7 @@ describe('quoted order line prices', () => {
         await proceedToArrangingPayment(shopClient, 0);
         const beforePayment = (await shopClient.query(getActiveOrderWithPriceDataDocument)).activeOrder;
         if (!beforePayment) throw new Error('Expected an active order');
-        expect(beforePayment.lines.find(item => item.id === line.id)?.linePriceWithTax).toBe(10555);
+        expect(beforePayment.lines.find(item => item.id === line.id)?.linePriceWithTax).toBe(10655);
         const paid = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
         const payment = paid.payments?.[0];
         if (!payment) throw new Error('Expected a payment');
@@ -171,8 +171,8 @@ describe('quoted order line prices', () => {
         });
         expect(cancelOrder).toMatchObject({ id: paid.id });
         for (const [quantity, total] of [
-            [1, 960],
-            [10, 9595],
+            [1, 969],
+            [10, 9686],
         ]) {
             const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: { lines: [{ orderLineId: line.id, quantity }], paymentId: payment.id },
@@ -201,7 +201,7 @@ describe('quoted order line prices', () => {
             const first = await adminClient.query(refundOrderDocument, {
                 input: { paymentId: payment.id, lines },
             });
-            expect(first.refundOrder).toMatchObject({ total: 960 });
+            expect(first.refundOrder).toMatchObject({ total: 969 });
             await adminClient.query(adminTransitionToStateDocument, { id: paid.id, state: 'Modifying' });
             const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
                 input: {
@@ -209,10 +209,10 @@ describe('quoted order line prices', () => {
                     dryRun: false,
                     ...(change === 'reprice'
                         ? { adjustOrderLines: [{ orderLineId: lineId, quantity: 10 }] }
-                        : { couponCodes: ['EXTRA-FIVE'], refunds: [{ paymentId: payment.id, amount: 480 }] }),
+                        : { couponCodes: ['EXTRA-FIVE'], refunds: [{ paymentId: payment.id, amount: 484 }] }),
                 },
             });
-            const remaining = change === 'reprice' ? 9595 : 9115;
+            const remaining = change === 'reprice' ? 9695 : 9202;
             expect(modifyOrder).toMatchObject({ id: paid.id, subTotalWithTax: remaining });
             const { order } = await adminClient.query(
                 graphql(`
@@ -230,7 +230,7 @@ describe('quoted order line prices', () => {
                 { id: paid.id },
             );
             expect(order?.lines[0].refundPriceParts).toEqual([
-                { quantity: 1, priceWithTax: 960 },
+                { quantity: 1, priceWithTax: 969 },
                 { quantity: 10, priceWithTax: remaining },
             ]);
             const selection = [{ orderLineId: lineId, quantity: 10 }];
@@ -284,6 +284,19 @@ describe('quoted order line prices', () => {
             input: { paymentId: payment.id, lines },
         });
         expect(rejected.refundOrder).toMatchObject({ errorCode: 'QUANTITY_TOO_GREAT_ERROR' });
+        const previewDocument = graphql(`
+            query PreviewQuotedRefund($orderId: ID!, $lines: [OrderLineInput!]!) {
+                previewRefundLineTotal(orderId: $orderId, lines: $lines)
+            }
+        `);
+        const preview = await adminClient.query(previewDocument, { orderId: paid.id, lines });
+        expect(preview.previewRefundLineTotal).toBe(addedLine.proratedLinePriceWithTax);
+        await expect(
+            adminClient.query(previewDocument, {
+                orderId: paid.id,
+                lines: [{ orderLineId: addedLine.id, quantity: 11 }],
+            }),
+        ).rejects.toThrow('The specified quantity is greater than the available OrderItems');
         const getRefundLines = graphql(`
             query QuotedRefundLines($id: ID!) {
                 order(id: $id) {

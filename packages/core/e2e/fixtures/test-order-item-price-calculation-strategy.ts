@@ -41,7 +41,9 @@ export class TestQuotedLinePriceStrategy extends TestOrderItemPriceCalculationSt
         quantity: number,
     ): PriceCalculationResult | undefined {
         if (customFields.giftWrap && quantity >= 10) {
-            return { price: Math.round((1010 * 95 * quantity) / 100), priceIncludesTax: true };
+            // Lines below 20 units pay a fixed fee, so a new quote differs from a scaled one.
+            const fee = quantity < 20 ? 100 : 0;
+            return { price: Math.round((1010 * 95 * quantity) / 100) + fee, priceIncludesTax: true };
         }
     }
 }
