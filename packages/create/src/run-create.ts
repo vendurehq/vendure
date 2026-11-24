@@ -33,6 +33,8 @@ import { CliLogLevel, CreateOptions, CreateResult, GitResult } from './types.js'
 export interface Reporter {
     start(message: string): void;
     stop(message: string): void;
+    /** Stops the running step, if any, as failed. Called before the error is reported. */
+    fail(message: string): void;
     warn(message: string): void;
 }
 
@@ -89,6 +91,15 @@ export function checkProjectDirectory(projectDir: string): void {
  * recorded in `.vendure/create.json`.
  */
 export async function runCreate(options: CreateOptions, context: RunCreateContext): Promise<CreateResult> {
+    try {
+        return await runSteps(options, context);
+    } catch (e) {
+        context.reporter.fail('Create stopped');
+        throw e;
+    }
+}
+
+async function runSteps(options: CreateOptions, context: RunCreateContext): Promise<CreateResult> {
     const { reporter } = context;
     checkProjectDirectory(options.projectDir);
     const features = findFeatureSets(options.features);
@@ -146,6 +157,12 @@ export async function runCreate(options: CreateOptions, context: RunCreateContex
         path.join(root, 'README.md'),
         renderReadme(template('readme.hbs'), { name: options.name, pmInfo, storefront }),
     );
+    // Written before the install, so the choices survive a failed install. No agent files are
+    // written yet, so the record names no agent client.
+    writeJson(
+        path.join(serverDir, CREATE_RECORD_PATH),
+        buildCreateRecord(options, context.createVersion, { agents: [] }),
+    );
     reporter.stop('Wrote the project files');
 
     if (storefront) {
@@ -180,12 +197,26 @@ export async function runCreate(options: CreateOptions, context: RunCreateContex
 
     if (options.install) {
         reporter.start(`Installing dependencies with ${pmInfo.name}`);
-        await installDependencies(options.packageManager, root, context.logLevel);
+        try {
+            await installDependencies(options.packageManager, root, context.logLevel);
+        } catch (e) {
+            if (e instanceof CreateError && options.git) {
+                throw new CreateError(
+                    e.code,
+                    e.message,
+                    [
+                        e.fix,
+                        `Your choices are kept in ${CREATE_RECORD_PATH}.`,
+                        'Then run `git init`, `git add -A` and `git commit` to make the initial commit.',
+                    ]
+                        .filter(Boolean)
+                        .join(' '),
+                );
+            }
+            throw e;
+        }
         reporter.stop('Installed dependencies');
     }
-
-    // Written last, so a project whose record exists is complete.
-    writeJson(path.join(serverDir, CREATE_RECORD_PATH), buildCreateRecord(options, context.createVersion));
 
     let git: GitResult = { status: 'skipped', reason: '--no-git was given' };
     if (options.git) {

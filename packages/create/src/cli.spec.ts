@@ -148,7 +148,8 @@ describe('create --yes --json', () => {
                 scenario: null,
                 features: [],
                 storefront: null,
-                agents: ['claude', 'cursor', 'vscode', 'codex'],
+                // No agent files are written yet, so no client is recorded.
+                agents: [],
             },
         });
     });
@@ -189,11 +190,11 @@ describe('create choices', () => {
             packageManager: 'bun',
             preset: { name: 'uk', options: {} },
             scenario: { name: 'demo', package: '@example/scenario-demo', version: '1.0.0' },
-            agents: ['claude'],
+            agents: [],
         });
         const pkg = JSON.parse(fs.readFileSync(path.join(workDir, 'with-scenario/package.json'), 'utf-8'));
         expect(pkg.devDependencies['@example/scenario-demo']).toBe('1.0.0');
-        expect(pkg.trustedDependencies).toBeDefined();
+        expect(pkg.trustedDependencies).toEqual(['bcrypt', 'esbuild', 'sharp']);
     });
 
     it('refuses a preset that conflicts with the scenario, before writing anything', async () => {

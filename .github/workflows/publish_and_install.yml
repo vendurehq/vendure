@@ -91,6 +91,16 @@ jobs:
                   name: verdaccio-storage
                   path: ~/.config/verdaccio/verdaccio-storage.tar.gz
                   retention-days: 1
+            # The self-hosted test app seeds the e2e sample data. Its initial data is TypeScript
+            # that imports workspace packages, so it is converted here, where they are installed.
+            - name: Write the test app's initial data
+              run: bun .github/workflows/scripts/write-initial-data.ts $HOME/initial-data.json
+            - name: Upload the test app's initial data
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: test-app-initial-data
+                  path: ~/initial-data.json
+                  retention-days: 1
 
     # Job 2: Test installation on various OS/Node combinations
     test:
@@ -138,9 +148,11 @@ jobs:
                     'http://localhost:4873/-/user/org.couchdb.user:test')
                   TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
                   npm set //localhost:4873/:_authToken $TOKEN
-            - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+            - name: Download the test app's initial data
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
               with:
-                  bun-version: '1.4.4'
+                  name: test-app-initial-data
+                  path: ~/test-app-data
             # `@vendure/create` writes a Vendure Cloud app, which needs Docker and the Cloud
             # runtime to start. The smoke and Dashboard tests run against a self-hosted fixture
             # app instead, installed from the packages published to Verdaccio.
@@ -156,8 +168,7 @@ jobs:
                   node $GITHUB_WORKSPACE/.github/workflows/scripts/install-test-app.js "$GITHUB_WORKSPACE" test-app "$VENDURE_VERSION"
                   cd test-app
                   npm install --loglevel error
-                  # The sample data of the repository's e2e tests, whose initial data is TypeScript.
-                  bun "$GITHUB_WORKSPACE/.github/workflows/scripts/write-initial-data.ts" initial-data.json
+                  cp ~/test-app-data/initial-data.json initial-data.json
                   MOCK_DATA_DIR="$GITHUB_WORKSPACE/packages/core/mock-data" npm run populate
             - name: Create a project with @vendure/create
               env:
@@ -284,9 +295,10 @@ jobs:
     # Job 3: Verify `@vendure/create` works when invoked via bun, pnpm and yarn.
     # The package manager is detected from npm_config_user_agent (which bunx / pnpm dlx /
     # yarn dlx set), so the generated project must use that manager rather than
-    # hard-coding npm (#4390). pnpm and yarn are deliberately NOT pinned: their current
-    # releases are what users get, and policy changes in new majors (e.g. pnpm 11 ignoring
-    # the package.json pnpm field, yarn 4.14 disabling build scripts) must fail here (#4932).
+    # hard-coding npm (#4390). Each run checks the files, the create record and the initial
+    # commit. It does not install the project: a created project depends on @vendure/cloud, and
+    # no published release of it accepts Vendure 4 yet. Until one does, the build-script
+    # allowlists for pnpm 11 and yarn 4.14 (#4932) are not exercised against a real install.
     test_package_managers:
         needs: build_and_publish
         runs-on: ubuntu-latest

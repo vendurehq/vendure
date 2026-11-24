@@ -44,4 +44,4 @@ export const TYPES_NODE_VERSION = '^22.20.1';
 export const CONCURRENTLY_VERSION = '^9.0.0';
 export const DEFAULT_PROJECT_VERSION = '0.1.0';
 /** The docs page on running Vendure on your own infrastructure. */
-export const SELF_HOSTING_GUIDE_URL = 'https://docs.vendure.io/guides/deployment/self-hosting';
+export const SELF_HOSTING_GUIDE_URL = 'https://docs.vendure.io/current/framework/deployment/self-hosting';

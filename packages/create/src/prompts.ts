@@ -4,7 +4,6 @@ import { CREATE_OPTIONS, PRESET_OPTION_FLAGS, RawCreateFlags } from './options.j
 import { PresetDescription } from './presets.js';
 import { FEATURE_SETS, SCENARIOS } from './registries.js';
 import { STOREFRONT_STARTERS } from './storefront-starters.js';
-import { AGENT_CLIENTS } from './types.js';
 
 function answer<T>(value: T | symbol): T {
     if (isCancel(value)) {
@@ -101,18 +100,6 @@ export async function promptForMissing(
             }),
         );
         result.features = features.join(',');
-    }
-
-    if (result.agents === undefined) {
-        const agents = answer(
-            await multiselect({
-                message: 'Which AI agent clients should the project be set up for?',
-                options: AGENT_CLIENTS.map(client => ({ label: client, value: client })),
-                initialValues: [...AGENT_CLIENTS],
-                required: false,
-            }),
-        );
-        result.agents = agents.length ? agents.join(',') : 'none';
     }
 
     return { projectDirectory: directory, flags: result };

@@ -131,9 +131,23 @@ export function checkNodeVersion(currentVersion: string, stderr: NodeJS.Writable
 
 function clackReporter(): Reporter {
     const s = spinner();
+    // A running spinner holds an interval that keeps the process alive, so every exit path stops it.
+    let running = false;
     return {
-        start: message => s.start(message),
-        stop: message => s.stop(message),
+        start: message => {
+            running = true;
+            s.start(message);
+        },
+        stop: message => {
+            running = false;
+            s.stop(message);
+        },
+        fail: message => {
+            if (running) {
+                running = false;
+                s.stop(message, 1);
+            }
+        },
         warn: message => note(message, 'Warning'),
     };
 }
@@ -144,7 +158,7 @@ function streamReporter(stream: NodeJS.WritableStream, logLevel: CliLogLevel): R
             stream.write(`${message}\n`);
         }
     };
-    return { start: () => undefined, stop: write, warn: write };
+    return { start: () => undefined, stop: write, fail: () => undefined, warn: write };
 }
 
 export const defaultAssetsDir = (): string => path.join(import.meta.dirname, '../assets');

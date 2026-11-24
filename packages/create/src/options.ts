@@ -39,8 +39,8 @@ export interface RawCreateFlags {
 }
 
 /**
- * One row per flag. The prompts in `prompts.ts`, the flags and `--help` all read their
- * descriptions from here.
+ * One row per flag. The flags and `--help` are built from this table. Each prompt in
+ * `prompts.ts` fills one of these flags.
  */
 export interface CreateOption {
     key: keyof RawCreateFlags;

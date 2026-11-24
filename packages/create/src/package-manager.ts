@@ -12,9 +12,7 @@ export const PACKAGE_MANAGERS = CREATE_RECORD_PACKAGE_MANAGERS;
  * (and the pnpm/yarn equivalents) install with a package manager that is
  * actually on the PATH.
  */
-export function detectPackageManager(
-    userAgent: string | undefined = process.env.npm_config_user_agent,
-): PackageManager {
+export function detectPackageManager(userAgent: string | undefined): PackageManager {
     const name = userAgent?.split(' ')[0]?.split('/')[0];
     if (name === 'yarn' || name === 'pnpm' || name === 'bun') {
         return name;

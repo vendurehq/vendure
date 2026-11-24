@@ -203,7 +203,11 @@ export function renderReadme(template: string, input: ReadmeInput): string {
 }
 
 /** The record of what the project was created with, which `vendure dev` and `vendure seed` read. */
-export function buildCreateRecord(options: CreateOptions, createdWith: string): CreateRecord {
+export function buildCreateRecord(
+    options: CreateOptions,
+    createdWith: string,
+    written: { agents: CreateOptions['agents'] },
+): CreateRecord {
     return {
         version: CREATE_RECORD_VERSION,
         createdWith,
@@ -212,7 +216,8 @@ export function buildCreateRecord(options: CreateOptions, createdWith: string): 
         scenario: options.scenario,
         features: [...options.features],
         storefront: options.storefront,
-        agents: [...options.agents],
+        // Only the clients whose files were written, as the record's contract says.
+        agents: [...written.agents],
     };
 }
 

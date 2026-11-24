@@ -123,7 +123,7 @@ describe('renderVendureConfig()', () => {
 
 describe('buildCreateRecord()', () => {
     it('writes a record that parseCreateRecord accepts unchanged', () => {
-        const record = buildCreateRecord(options, '4.0.0');
+        const record = buildCreateRecord(options, '4.0.0', { agents: ['claude', 'codex'] });
         expect(parseCreateRecord(JSON.parse(JSON.stringify(record)))).toEqual({ result: 'ok', record });
         expect(record).toMatchObject({
             version: 1,
