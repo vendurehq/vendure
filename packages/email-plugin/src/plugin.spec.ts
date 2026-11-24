@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
+    DefaultMoneyStrategy,
     EntityHydrator,
     EventBus,
     Injector,
@@ -16,6 +17,8 @@ import {
     PluginCommonModule,
     ProcessContext,
     RequestContext,
+    resetConfig,
+    setConfig,
     VendureEvent,
 } from '@vendure/core';
 import { ensureConfigLoaded } from '@vendure/core/dist/config/config-helpers';
@@ -23,7 +26,7 @@ import { TestingLogger } from '@vendure/testing';
 import { createReadStream, readFileSync } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, onTestFinished, vi } from 'vitest';
 
 import { EmailProcessor } from './email-processor';
 import { EmailEventListener } from './event-listener';
@@ -472,21 +475,31 @@ describe('EmailPlugin', () => {
             expect(onSend.mock.calls[0][0].body).toContain('Date: Wed Jan 01 2020 10:00:00');
         });
 
-        it('formatMoney', async () => {
+        it.each([
+            [2, 123, '1.23', '1.23'],
+            [4, 9595, '0.9595', '0.96'],
+            [0, 1, '1', '1.00'],
+        ] as const)('formats money at precision %i', async (precision, myPrice, decimal, currency) => {
+            class TestMoneyStrategy extends DefaultMoneyStrategy {
+                readonly precision = precision;
+            }
+            await setConfig({ entityOptions: { moneyStrategy: new TestMoneyStrategy() } });
+            onTestFinished(resetConfig);
             const handler = new EmailEventListener('test-helpers')
                 .on(MockEvent)
                 .setFrom('"test from" <noreply@test.com>')
                 .setRecipient(() => 'test@test.com')
                 .setSubject('Hello')
-                .setTemplateVars(event => ({ myDate: new Date(), myPrice: 123 }));
+                .setTemplateVars(event => ({ myDate: new Date(), myPrice }));
 
             await initPluginWithHandlers([handler]);
 
             await eventBus.publish(new MockEvent(ctx, true));
             await pause();
-            expect(onSend.mock.calls[0][0].body).toContain('Price: 1.23');
-            expect(onSend.mock.calls[0][0].body).toContain('Price: €1.23');
-            expect(onSend.mock.calls[0][0].body).toContain('Price: £1.23');
+            const body = onSend.mock.calls[0][0].body;
+            expect(body).toContain(`Price: ${decimal}<`);
+            expect(body).toContain(`Price: €${currency}<`);
+            expect(body).toContain(`Price: £${currency}<`);
         });
     });
 

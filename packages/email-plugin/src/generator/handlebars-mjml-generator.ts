@@ -1,3 +1,4 @@
+import { getConfig } from '@vendure/core';
 import dateFormat from 'dateformat';
 import Handlebars from 'handlebars';
 import mjml2html from 'mjml';
@@ -50,6 +51,8 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
             return dateFormat(date, format);
         });
 
+        const precision = getConfig().entityOptions.moneyStrategy.precision ?? 2;
+        const factor = 10 ** precision;
         Handlebars.registerHelper(
             'formatMoney',
             (amount?: number, currencyCode?: string, locale?: string) => {
@@ -62,13 +65,14 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
                 if (!currencyCode || typeof currencyCode === 'object') {
                     return new Intl.NumberFormat(typeof locale === 'object' ? undefined : locale, {
                         style: 'decimal',
-                    }).format(amount / 100);
+                        maximumFractionDigits: precision,
+                    }).format(amount / factor);
                 }
                 // Same reasoning for `locale` as for `currencyCode` here.
                 return new Intl.NumberFormat(typeof locale === 'object' ? undefined : locale, {
                     style: 'currency',
                     currency: currencyCode,
-                }).format(amount / 100);
+                }).format(amount / factor);
             },
         );
     }

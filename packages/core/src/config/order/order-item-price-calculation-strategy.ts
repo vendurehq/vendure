@@ -61,7 +61,8 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
     /**
      * @description
      * Receives the ProductVariant to be added to the Order as well as any OrderLine custom fields and returns
-     * the price for a single unit.
+     * the price for a single unit as an integer at the configured {@link MoneyStrategy} precision.
+     * For example, at precision 4, return `9595` for a unit price of 0.9595.
      *
      * Note: if you have any `relation` type custom fields defined on the OrderLine entity, they will only be
      * passed in to this method if they are set to `eager: true`. Otherwise, you can use the {@link EntityHydrator}

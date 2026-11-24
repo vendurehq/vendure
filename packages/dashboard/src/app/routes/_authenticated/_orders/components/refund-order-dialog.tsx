@@ -93,7 +93,7 @@ function RefundTargetRow({
                     </Label>
                     <Input
                         type="number"
-                        step="0.01"
+                        step={toMajorUnits(1)}
                         data-testid="refund-target-amount"
                         value={target.amountToRefund ? toMajorUnits(target.amountToRefund) : ''}
                         placeholder="0"
@@ -414,7 +414,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                             <div className="flex items-center gap-2">
                                 <Input
                                     type="number"
-                                    step="0.01"
+                                    step={toMajorUnits(1)}
                                     value={refund.refundTotal ? toMajorUnits(refund.refundTotal) : ''}
                                     placeholder="0"
                                     onChange={e =>

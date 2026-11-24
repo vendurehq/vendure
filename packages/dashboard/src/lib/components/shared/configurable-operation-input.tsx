@@ -1,4 +1,5 @@
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
+import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react/macro';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
@@ -46,6 +47,7 @@ export function ConfigurableOperationInput({
     onValidityChange,
 }: Readonly<ConfigurableOperationInputProps>) {
     const { t } = useLingui();
+    const precision = useServerConfig()?.moneyStrategyPrecision ?? 2;
     const [expanded, setExpanded] = useState(false);
     // Check validity of required fields and notify parent.
     // List args are exempt from required validation (matching legacy Angular admin-ui behavior)
@@ -150,7 +152,7 @@ export function ConfigurableOperationInput({
                         <div className="flex-1 min-w-0">
                             {!hideDescription && (
                                 <div className="font-medium text-sm text-foreground leading-relaxed">
-                                    {interpolateDescription(operationDefinition, value.arguments)}
+                                    {interpolateDescription(operationDefinition, value.arguments, precision)}
                                 </div>
                             )}
 
