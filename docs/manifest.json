@@ -4655,6 +4655,12 @@
               "lastModified": "2026-11-24T15:48:18Z"
             },
             {
+              "title": "vendure auth",
+              "slug": "auth",
+              "file": "docs/reference/cli/auth.mdx",
+              "lastModified": "2026-11-24T20:26:08Z"
+            },
+            {
               "title": "vendure commands",
               "slug": "commands",
               "file": "docs/reference/cli/commands.mdx",
@@ -4709,7 +4715,7 @@
               "lastModified": "2026-11-24T17:24:04Z"
             }
           ],
-          "lastModified": "2026-11-24T20:22:57Z"
+          "lastModified": "2026-11-24T20:26:08Z"
         },
         {
           "title": "GraphQL API",
