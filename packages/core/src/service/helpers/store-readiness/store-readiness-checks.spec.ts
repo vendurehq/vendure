@@ -288,7 +288,8 @@ describe('checkTaxRates', () => {
 });
 
 describe('checkTaxInclusiveRates', () => {
-    const europe = zone('eu', [country('DE'), country('FR')]);
+    const europe = zone('eu', [country('DE'), country('FR'), country('BE'), country('NL', false)]);
+    const pacific = zone('pacific', [country('NZ')]);
 
     function connection(categoryIds: string[]) {
         return {
@@ -300,17 +301,30 @@ describe('checkTaxInclusiveRates', () => {
         } as any;
     }
 
-    /** Zone rates exist for the given tax category IDs, on any zone. */
-    function taxRateService(categoriesWithZoneRate: string[]) {
+    /**
+     * Zone rates exist for the given tax category IDs, on any zone, and country rates for the given
+     * country codes, for any tax category.
+     */
+    function taxRateService(categoriesWithZoneRate: string[], countriesWithRate: string[] = []) {
         return {
-            findApplicableTaxRate: vi.fn((_ctx: unknown, _zone: unknown, categoryId: string) =>
-                Promise.resolve(categoriesWithZoneRate.includes(categoryId) ? { id: 'rate' } : undefined),
+            findApplicableTaxRate: vi.fn(
+                (_ctx: unknown, target: { countryCode?: string }, categoryId: string) =>
+                    Promise.resolve(
+                        (target.countryCode && countriesWithRate.includes(target.countryCode)) ||
+                            (!target.countryCode && categoriesWithZoneRate.includes(categoryId))
+                            ? { id: 'rate' }
+                            : undefined,
+                    ),
             ),
         } as any;
     }
 
-    function inclusiveInput(overrides: Record<string, unknown> = {}) {
-        return input({ channel: channel({ pricesIncludeTax: true, defaultTaxZone: europe, ...overrides }) });
+    function inclusiveInput(overrides: Record<string, unknown> = {}, shippingZones = [europe]) {
+        return input({
+            channel: channel({ pricesIncludeTax: true, defaultTaxZone: { id: 'eu' }, ...overrides }),
+            allZones: [europe, pacific],
+            shippingZones,
+        });
     }
 
     it('reports each tax category with no zone rate on the default tax zone, with a fix', async () => {
@@ -342,8 +356,34 @@ describe('checkTaxInclusiveRates', () => {
         });
         expect(findings[0].message).toContain('Channel "default"');
         expect(findings[0].message).toContain('"Category tc2"');
-        // The lookup is by the zone alone, so a country rate does not count.
+        // The zone-only lookup, as the price calculation makes it, so a country rate does not count.
         expect(service.findApplicableTaxRate).toHaveBeenCalledWith(ctx, europe, 'tc2');
+    });
+
+    it('names the orders in the default zone that are taxed at 0%', async () => {
+        const [finding] = await checkTaxInclusiveRates(inclusiveInput(), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([], ['DE']),
+        });
+        // DE has a country rate, and NL is disabled.
+        expect(finding.message).toContain(
+            'In "Zone eu", orders with no address yet and orders to BE, FR are taxed at 0%.',
+        );
+    });
+
+    it('names the effect outside the default zone only when the channel ships outside it', async () => {
+        const inside = await checkTaxInclusiveRates(inclusiveInput(), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([]),
+        });
+        expect(inside[0].message).not.toContain('on top of the full entered price');
+        const outside = await checkTaxInclusiveRates(inclusiveInput({}, [europe, pacific]), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([]),
+        });
+        expect(outside[0].message).toContain(
+            "Orders taxed in another zone pay that zone's tax on top of the full entered price.",
+        );
     });
 
     it('reports nothing for a channel whose prices exclude tax', async () => {

@@ -333,6 +333,8 @@ describe('storeReadiness', () => {
                 dashboardUrl: '/tax-rates',
             });
             expect(finding.message).toContain('"Inclusive test"');
+            expect(finding.message).toContain('orders with no address yet');
+            expect(finding.message).toContain('are taxed at 0%');
             expect(finding.fixes[0].path).toEqual(['admin_create_tax_rate']);
             const fixInput = finding.fixes[0].input.input;
             expect(`T_${String(fixInput.target.zoneId)}`).toBe(defaultTaxZone.id);

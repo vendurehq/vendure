@@ -1,6 +1,7 @@
 import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { In } from 'typeorm';
 
+import { idsAreEqual } from '../../../common/utils';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { TaxCategory } from '../../../entity/tax-category/tax-category.entity';
@@ -10,6 +11,7 @@ import { TaxRateService } from '../../services/tax-rate.service';
 import {
     adminToolPath,
     ChannelReadinessInput,
+    countryMembers,
     StoreReadinessFinding,
     StoreReadinessSeverity,
     toFinding,
@@ -20,16 +22,30 @@ interface InclusiveRateUnknownDetails {
     channel: Channel;
     zone: Zone;
     taxCategory: TaxCategory;
+    /** The countries of the default tax zone that have no country rate either. */
+    untaxedCountryCodes: string[];
+    /** Whether the Channel ships to a country outside the default tax zone. */
+    shipsOutsideZone: boolean;
 }
 
 export const inclusiveRateUnknown = defineError<InclusiveRateUnknownDetails>({
     code: 'store.tax.inclusive-rate-unknown',
     exit: COMMAND_EXIT_CODES.failed,
-    message: ({ channel, zone, taxCategory }) =>
-        `Channel "${channel.code}" has prices that include tax, but its default tax zone "${zone.name}" ` +
-        `has no enabled zone rate for tax category "${taxCategory.name}", so core cannot tell which ` +
-        `rate the entered prices include. Outside "${zone.name}", the full entered price is charged ` +
-        `as net, with tax added on top.`,
+    message: ({ channel, zone, taxCategory, untaxedCountryCodes, shipsOutsideZone }) => {
+        const untaxed = [
+            'orders with no address yet',
+            ...(untaxedCountryCodes.length ? [`orders to ${untaxedCountryCodes.join(', ')}`] : []),
+        ].join(' and ');
+        return (
+            `Channel "${channel.code}" has prices that include tax, but its default tax zone ` +
+            `"${zone.name}" has no enabled zone rate for tax category "${taxCategory.name}", so core ` +
+            `cannot tell which rate the entered prices include. In "${zone.name}", ${untaxed} are ` +
+            `taxed at 0%.` +
+            (shipsOutsideZone
+                ? ` Orders taxed in another zone pay that zone's tax on top of the full entered price.`
+                : '')
+        );
+    },
     fix: ({ zone, taxCategory }) => [
         {
             path: adminToolPath('create_tax_rate'),
@@ -42,7 +58,7 @@ export const inclusiveRateUnknown = defineError<InclusiveRateUnknownDetails>({
             },
             description:
                 `Add a rate for the zone "${zone.name}", with the percentage that the entered prices ` +
-                `include as "value". A country rate does not count here.`,
+                `include as "value". A country rate is not enough here.`,
         },
     ],
 });
@@ -55,17 +71,18 @@ export const inclusiveRateUnknown = defineError<InclusiveRateUnknownDetails>({
  * count.
  */
 export async function checkTaxInclusiveRates(
-    { ctx, channel }: ChannelReadinessInput,
+    { ctx, channel, allZones, shippingZones }: ChannelReadinessInput,
     services: {
         connection: TransactionalConnection;
         taxRateService: TaxRateService;
     },
 ): Promise<StoreReadinessFinding[]> {
-    const zone = channel.defaultTaxZone;
+    const defaultZoneId = channel.defaultTaxZone?.id;
     // With no default tax zone, the default-zones check reports the channel.
-    if (!channel.pricesIncludeTax || !zone) {
+    if (!channel.pricesIncludeTax || defaultZoneId == null) {
         return [];
     }
+    const zone = allZones.find(z => idsAreEqual(z.id, defaultZoneId)) ?? channel.defaultTaxZone;
     const categoryIds = await findChannelTaxCategoryIds(ctx, services.connection, channel.id);
     if (categoryIds.length === 0) {
         return [];
@@ -73,17 +90,33 @@ export async function checkTaxInclusiveRates(
     const categories = await services.connection
         .getRepository(ctx, TaxCategory)
         .find({ where: { id: In(categoryIds) }, order: { id: 'ASC' } });
+    // The Zone of the Channel itself may come without its members.
+    const zoneCountryCodes = zone.members ? enabledCountryCodes([zone]) : [];
+    const shipsOutsideZone = enabledCountryCodes(shippingZones).some(
+        code => !zoneCountryCodes.includes(code),
+    );
     const findings: StoreReadinessFinding[] = [];
     for (const taxCategory of categories) {
         const rate = await services.taxRateService.findApplicableTaxRate(ctx, zone, taxCategory.id);
         if (rate) {
             continue;
         }
+        const untaxedCountryCodes: string[] = [];
+        for (const countryCode of zoneCountryCodes) {
+            const countryRate = await services.taxRateService.findApplicableTaxRate(
+                ctx,
+                { countryCode, zone },
+                taxCategory.id,
+            );
+            if (!countryRate) {
+                untaxedCountryCodes.push(countryCode);
+            }
+        }
         findings.push(
             toFinding(
                 inclusiveRateUnknown,
                 StoreReadinessSeverity.ERROR,
-                { channel, zone, taxCategory },
+                { channel, zone, taxCategory, untaxedCountryCodes, shipsOutsideZone },
                 {
                     channelId: channel.id,
                     zoneId: zone.id,
@@ -94,4 +127,14 @@ export async function checkTaxInclusiveRates(
         );
     }
     return findings;
+}
+
+/** The enabled countries of the Zones, by code. */
+function enabledCountryCodes(zones: Zone[]): string[] {
+    const codes = zones.flatMap(z =>
+        countryMembers(z)
+            .filter(member => member.enabled)
+            .map(member => member.code),
+    );
+    return [...new Set(codes)].sort((a, b) => a.localeCompare(b));
 }

@@ -104,9 +104,10 @@ export async function checkTaxRates(
 }
 
 /**
- * A tax-inclusive Channel needs a zone rate on its default tax zone, and a country rate does not do.
- * `checkTaxInclusiveRates` reports that zone, so this check leaves it out rather than report it twice
- * with a fix that says a country rate would do.
+ * A tax-inclusive Channel needs a zone rate on its default tax zone, and a country rate is not
+ * enough. `checkTaxInclusiveRates` reports that zone, with the orders it leaves untaxed, so this
+ * check leaves it out rather than report it twice with a fix that says a country rate would be
+ * enough.
  */
 function isTaxInclusiveDefaultZone(channel: Channel, zone: Zone): boolean {
     return channel.pricesIncludeTax && idsAreEqual(channel.defaultTaxZone?.id, zone.id);
