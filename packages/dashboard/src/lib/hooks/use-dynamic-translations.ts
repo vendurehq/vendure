@@ -29,7 +29,7 @@ export function useDynamicTranslations() {
     const getTranslatedRefundReason = (reason: string) =>
         translateOrFallback(`refundReason.${reason}`, () => camelCaseToTitleCase(reason));
 
-    const getTranslatedPermissionText = (text: string) => translateOrFallback(text, () => text);
+    const getTranslatedText = (text: string) => translateOrFallback(text, () => text);
 
     return {
         getTranslatedFieldName,
@@ -38,6 +38,6 @@ export function useDynamicTranslations() {
         getTranslatedPaymentState,
         getTranslatedRefundState,
         getTranslatedRefundReason,
-        getTranslatedPermissionText,
+        getTranslatedText,
     };
 }

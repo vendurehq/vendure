@@ -29,7 +29,7 @@ interface RolePermissionsDisplayProps {
 }
 
 export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsDisplayProps>) {
-    const { getTranslatedPermissionText } = useDynamicTranslations();
+    const { getTranslatedText } = useDynamicTranslations();
     const groupedPermissions = useGroupedPermissions();
 
     const { data } = useQuery({
@@ -107,11 +107,11 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
                                                         />
                                                         <TooltipProvider>
                                                             <Tooltip>
-                                                                <TooltipTrigger render={<label className="text-sm cursor-default" aria-label={getTranslatedPermissionText(permission.name)} />}>
-                                                                    {getTranslatedPermissionText(permission.name)}
+                                                                <TooltipTrigger render={<label className="text-sm cursor-default" aria-label={getTranslatedText(permission.name)} />}>
+                                                                    {getTranslatedText(permission.name)}
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    <p>{getTranslatedPermissionText(permission.description)}</p>
+                                                                    <p>{getTranslatedText(permission.description)}</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
