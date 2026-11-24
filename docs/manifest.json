@@ -2374,7 +2374,25 @@
                   "title": "Populator",
                   "slug": "populator",
                   "file": "docs/reference/typescript-api/import-export/populator.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-24T17:19:26Z"
+                },
+                {
+                  "title": "Presets",
+                  "slug": "presets",
+                  "file": "docs/reference/typescript-api/import-export/presets.mdx",
+                  "lastModified": "2026-11-24T17:19:26Z"
+                },
+                {
+                  "title": "Scenarios",
+                  "slug": "scenarios",
+                  "file": "docs/reference/typescript-api/import-export/scenarios.mdx",
+                  "lastModified": "2026-11-24T17:19:26Z"
+                },
+                {
+                  "title": "Seed Sentinels",
+                  "slug": "seed-sentinels",
+                  "file": "docs/reference/typescript-api/import-export/seed-sentinels.mdx",
+                  "lastModified": "2026-11-24T17:19:26Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
