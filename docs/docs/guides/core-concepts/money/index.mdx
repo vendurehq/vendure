@@ -252,6 +252,11 @@ your `OrderItemPriceCalculationStrategy`. Return the total in the configured mon
 gives a line price of €24.70 and a displayed unit price of €1.24. At precision 3, a quote of `19190`
 for 20 units of €1.01 with a 5% discount gives €19.190. Further Vendure promotions apply to that price.
 
+A promotion action returns its amount in the tax basis of the Channel. If the quote uses the other
+tax basis, Vendure converts the amount to the basis of the quote. The discount then has the same
+effect as on a line priced by `calculateUnitPrice`. For quoted lines, Vendure rounds item discounts
+on the line total, not per unit. A 100% discount therefore removes the whole quote.
+
 Vendure calls the hook again when it reprices a line, including after a quantity change. Return
 `undefined` to use `calculateUnitPrice` for that line. Vendure reads placed orders from their
 stored prices even if you remove the hook. Generate and apply the schema migration on upgrade.
