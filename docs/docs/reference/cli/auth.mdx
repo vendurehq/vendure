@@ -95,6 +95,7 @@ vendure auth status
 | `accessTokenExpiresAt` (optional) | number | When the access token expires, as epoch milliseconds. It is renewed automatically. |
 | `renewable` (optional) | boolean | True when the login was renewed, false when it can no longer be renewed. Absent when the check could not finish. |
 | `renewalError` (optional) | object |  |
+| `credential` | `"stored-login"` or `"environment"` or `"none"` | The credential commands use: the stored login, VENDURE_CLOUD_TOKEN when no login is stored, or none. |
 | `otherConsoleLogin` (optional) | boolean | True when the stored login is for another Vendure Console. |
 
 ### Errors
