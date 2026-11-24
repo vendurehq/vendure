@@ -3,6 +3,7 @@ import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import readline from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 
+import { ADMIN_TOOL_PREFIX, AdminProxy, toolResult } from './admin-proxy.js';
 import { runToolInChild } from './run-tool-in-child.js';
 
 const SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
@@ -30,6 +31,8 @@ export interface McpServerOptions {
     cliBin?: string;
     /** The project directory the child processes start in. */
     cwd?: string;
+    /** The Store MCP's admin tools of the running dev server, offered as `admin_*`. */
+    adminTools?: AdminProxy;
 }
 
 interface JsonRpcMessage {
@@ -37,6 +40,14 @@ interface JsonRpcMessage {
     id?: string | number;
     method?: string;
     params?: any;
+}
+
+interface SearchEntry {
+    name: string;
+    description: string;
+    behavior: string;
+    keywords: string[];
+    inputSchema: unknown;
 }
 
 /** Runs one job at a time, in the order they arrive. */
@@ -97,6 +108,11 @@ export class McpServer {
 
     /** Reads messages until the input ends, then waits for the calls still running. */
     async serve(): Promise<void> {
+        const adminTools = this.options.adminTools;
+        adminTools?.onListChanged(() =>
+            this.send({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' }),
+        );
+        adminTools?.watch();
         const pending = new Set<Promise<void>>();
         const lines = readline.createInterface({ input: this.options.input });
         lines.on('line', line => {
@@ -124,6 +140,7 @@ export class McpServer {
             controller.abort();
         }
         await Promise.all(pending);
+        adminTools?.close();
     }
 
     private send(message: object): void {
@@ -151,13 +168,18 @@ export class McpServer {
                     protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requested ?? '')
                         ? requested
                         : SUPPORTED_PROTOCOL_VERSIONS[0],
-                    capabilities: { tools: { listChanged: false }, logging: {} },
+                    // The admin tools come and go with the dev server.
+                    capabilities: { tools: { listChanged: !!this.options.adminTools }, logging: {} },
                     serverInfo: { name: 'vendure-developer-mcp', version: this.options.version },
                     instructions:
                         'The Developer MCP runs the commands of the Vendure CLI for the current project. ' +
                         (this.options.mode === 'discovery'
                             ? 'Use search_tools to find a command, then run it with the executor that matches its behavior.'
-                            : 'Each command is a tool.'),
+                            : 'Each command is a tool.') +
+                        (this.options.adminTools
+                            ? ' Tools named admin_* are the Store MCP admin tools of the running dev server.' +
+                              ' They act on the store as the superadmin, and are listed while the dev server is running.'
+                            : ''),
                 });
                 return;
             }
@@ -175,7 +197,7 @@ export class McpServer {
                 return;
             }
             case 'tools/list':
-                this.reply(id, { tools: this.listTools() });
+                this.reply(id, { tools: await this.listTools() });
                 return;
             case 'tools/call':
                 await this.callTool(id, params);
@@ -190,17 +212,27 @@ export class McpServer {
         }
     }
 
-    private listTools(): object[] {
+    private async listTools(): Promise<object[]> {
         if (this.options.mode === 'direct') {
-            return this.commands.map(command => ({
-                name: toolName(command),
-                description: command.description,
-                inputSchema: command.input,
-                annotations: {
-                    readOnlyHint: command.behavior === 'readonly',
-                    destructiveHint: command.behavior === 'destructive',
-                },
-            }));
+            const adminTools = (await this.options.adminTools?.tools()) ?? [];
+            return [
+                ...this.commands.map(command => ({
+                    name: toolName(command),
+                    description: command.description,
+                    inputSchema: command.input,
+                    annotations: {
+                        readOnlyHint: command.behavior === 'readonly',
+                        destructiveHint: command.behavior === 'destructive',
+                    },
+                })),
+                ...adminTools.map(tool => ({
+                    name: tool.name,
+                    ...(tool.title ? { title: tool.title } : {}),
+                    description: tool.description,
+                    inputSchema: tool.inputSchema,
+                    annotations: tool.annotations,
+                })),
+            ];
         }
         const executorSchema = {
             type: 'object',
@@ -214,7 +246,8 @@ export class McpServer {
             {
                 name: 'search_tools',
                 description:
-                    'Search the commands of this project by name, description or keyword. Returns each match with its behavior and input schema.',
+                    'Search the commands of this project, and the admin_* tools of its running dev server, by name, ' +
+                    'description or keyword. Returns each match with its behavior and input schema.',
                 inputSchema: {
                     type: 'object',
                     properties: { query: { type: 'string' }, limit: { type: 'number' } },
@@ -234,23 +267,38 @@ export class McpServer {
         ];
     }
 
-    private search(query: string, limit: number): object[] {
+    private async search(query: string, limit: number): Promise<object[]> {
         const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-        const scored = this.commands
-            .map(command => {
-                const haystack = [toolName(command), command.description, ...command.keywords]
-                    .join(' ')
-                    .toLowerCase();
+        const adminTools = (await this.options.adminTools?.tools()) ?? [];
+        const entries: SearchEntry[] = [
+            ...this.commands.map(command => ({
+                name: toolName(command),
+                description: command.description,
+                behavior: command.behavior,
+                keywords: command.keywords,
+                inputSchema: command.input,
+            })),
+            ...adminTools.map(tool => ({
+                name: tool.name,
+                description: tool.description,
+                behavior: tool.behavior,
+                keywords: tool.keywords,
+                inputSchema: tool.inputSchema,
+            })),
+        ];
+        const scored = entries
+            .map(entry => {
+                const haystack = [entry.name, entry.description, ...entry.keywords].join(' ').toLowerCase();
                 const score = words.filter(word => haystack.includes(word)).length;
-                return { command, score };
+                return { entry, score };
             })
-            .filter(entry => words.length === 0 || entry.score > 0)
+            .filter(item => words.length === 0 || item.score > 0)
             .sort((a, b) => b.score - a.score);
-        return scored.slice(0, limit).map(({ command }) => ({
-            name: toolName(command),
-            description: command.description,
-            behavior: command.behavior,
-            inputSchema: command.input,
+        return scored.slice(0, limit).map(({ entry }) => ({
+            name: entry.name,
+            description: entry.description,
+            behavior: entry.behavior,
+            inputSchema: entry.inputSchema,
         }));
     }
 
@@ -268,10 +316,13 @@ export class McpServer {
         if (this.options.mode === 'discovery') {
             if (name === 'search_tools') {
                 const limit = typeof args.limit === 'number' ? args.limit : 10;
-                const matches = this.search(typeof args.query === 'string' ? args.query : '', limit);
+                const matches = await this.search(typeof args.query === 'string' ? args.query : '', limit);
+                // Tell the agent why no admin_* tool matched, and how to fix it.
+                const adminTools = this.options.adminTools?.unavailable();
+                const structuredContent = { tools: matches, ...(adminTools ? { adminTools } : {}) };
                 this.reply(id, {
-                    content: [{ type: 'text', text: JSON.stringify(matches) }],
-                    structuredContent: { tools: matches },
+                    content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+                    structuredContent,
                 });
                 return;
             }
@@ -280,8 +331,12 @@ export class McpServer {
                 this.reply(id, this.toolError(`Unknown tool "${name}"`));
                 return;
             }
-            command = this.byName.get(String(args.tool));
             input = (args.input ?? {}) as Record<string, unknown>;
+            if (this.isAdminToolName(args.tool)) {
+                await this.callAdminTool(id, String(args.tool), input, behavior);
+                return;
+            }
+            command = this.byName.get(String(args.tool));
             if (!command) {
                 this.reply(id, this.toolError(`Unknown tool "${String(args.tool)}". Use search_tools.`));
                 return;
@@ -296,6 +351,10 @@ export class McpServer {
                 return;
             }
         } else {
+            if (this.isAdminToolName(name)) {
+                await this.callAdminTool(id, name, input);
+                return;
+            }
             command = this.byName.get(name);
             if (!command) {
                 this.replyError(id, -32602, `Unknown tool "${name}"`);
@@ -343,6 +402,62 @@ export class McpServer {
                 // `incomplete` is a normal result: the caller supplies the needs and runs again.
                 isError: envelope.status === 'error' || envelope.status === 'failed',
             });
+        } finally {
+            if (id !== undefined) {
+                this.inFlight.delete(id);
+            }
+        }
+    }
+
+    private isAdminToolName(name: unknown): boolean {
+        return !!this.options.adminTools && typeof name === 'string' && name.startsWith(ADMIN_TOOL_PREFIX);
+    }
+
+    /**
+     * Calls a Store MCP admin tool and passes its result through unchanged. In discovery mode the
+     * executor must match the tool's behavior. Mutating and destructive calls wait for the other
+     * writes of this project, like commands.
+     */
+    private async callAdminTool(
+        id: string | number | undefined,
+        name: string,
+        input: Record<string, unknown>,
+        executorBehavior?: ToolBehavior,
+    ): Promise<void> {
+        const proxy = this.options.adminTools as AdminProxy;
+        const controller = new AbortController();
+        if (id !== undefined) {
+            this.inFlight.set(id, controller);
+        }
+        try {
+            const tool = await proxy.find(name, controller.signal);
+            if (!tool) {
+                // While the tools cannot be called, the call returns why, with a fix.
+                const reason = proxy.unavailable();
+                this.reply(
+                    id,
+                    reason ? toolResult(reason) : this.toolError(`Unknown tool "${name}". Use search_tools.`),
+                );
+                return;
+            }
+            if (executorBehavior && tool.behavior !== executorBehavior) {
+                this.reply(
+                    id,
+                    this.toolError(
+                        `"${tool.name}" is ${tool.behavior}. Run it with execute_${tool.behavior}.`,
+                    ),
+                );
+                return;
+            }
+            const execute = () => proxy.call(name, input, controller.signal);
+            const result = await (tool.behavior === 'readonly' ? execute() : this.writes.run(execute));
+            if (!controller.signal.aborted) {
+                this.reply(id, result);
+            }
+        } catch (e) {
+            if (!controller.signal.aborted) {
+                this.reply(id, this.toolError(`The admin tool "${name}" failed: ${(e as Error).message}`));
+            }
         } finally {
             if (id !== undefined) {
                 this.inFlight.delete(id);

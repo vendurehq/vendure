@@ -1,0 +1,382 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { DevServerState } from '../../commands/dev/state-file.js';
+
+import { fail } from '@vendure/common/lib/command';
+
+import { localAdminApiErrors } from '../../shared/local-admin-api.js';
+
+import { AdminProxy, behaviorOf, parseStoreBody, SendToStore, StoreResponse } from './admin-proxy.js';
+
+const MCP_URL = 'http://localhost:3000/mcp/admin';
+
+function state(overrides: Partial<DevServerState> = {}): DevServerState {
+    return {
+        status: 'ready',
+        urls: { admin: 'http://localhost:3000/admin-api', mcp: MCP_URL },
+        startedAt: '2026-11-24T08:00:00.000Z',
+        restarts: 0,
+        lastError: null,
+        pid: 4242,
+        secret: 'secret-1',
+        ...overrides,
+    };
+}
+
+const STORE_TOOLS = [
+    {
+        name: 'list_channels',
+        description: 'List channels',
+        inputSchema: { type: 'object', properties: {} },
+        annotations: { readOnlyHint: true, destructiveHint: false },
+        _meta: { 'vendure.io/keywords': ['stores'] },
+    },
+    {
+        name: 'create_zone',
+        description: 'Create a zone',
+        inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
+        annotations: { readOnlyHint: false, destructiveHint: false },
+    },
+    {
+        name: 'delete_zone',
+        description: 'Delete a zone',
+        inputSchema: { type: 'object', properties: { id: { type: 'string' } } },
+        annotations: { readOnlyHint: false, destructiveHint: true },
+    },
+];
+
+interface SentRequest {
+    projectDir: string;
+    message: any;
+    headers: Record<string, string>;
+}
+
+/** A Store MCP that answers tools/list with STORE_TOOLS and tools/call with `respond`. */
+function fakeStore(respond: (message: any) => StoreResponse = () => rpcResult({ content: [] })) {
+    const sent: SentRequest[] = [];
+    const send: SendToStore = async (projectDir, message, headers) => {
+        sent.push({ projectDir, message, headers });
+        if ((message as any).method === 'tools/list') {
+            return rpcResult({ tools: STORE_TOOLS });
+        }
+        return respond(message);
+    };
+    return { sent, send };
+}
+
+function rpcResult(result: unknown): StoreResponse {
+    return { status: 200, body: { jsonrpc: '2.0', id: 1, result } };
+}
+
+const signal = () => new AbortController().signal;
+
+function proxyWith(
+    send: SendToStore,
+    readState: () => DevServerState | undefined = () => state(),
+    isAlive: (s: DevServerState) => boolean = () => true,
+) {
+    return new AdminProxy({ projectDir: '/project', send, readState, isAlive });
+}
+
+describe('AdminProxy', () => {
+    it('lists the Store MCP tools as admin_* with their behavior and keywords', async () => {
+        const store = fakeStore();
+        const tools = await proxyWith(store.send).tools();
+        expect(tools.map(t => [t.name, t.storeName, t.behavior])).toEqual([
+            ['admin_list_channels', 'list_channels', 'readonly'],
+            ['admin_create_zone', 'create_zone', 'mutating'],
+            ['admin_delete_zone', 'delete_zone', 'destructive'],
+        ]);
+        expect(tools[0].keywords).toEqual(['stores']);
+        expect(store.sent[0].message).toMatchObject({ method: 'tools/list' });
+    });
+
+    it('reads the tool list once while the dev server run stays the same', async () => {
+        const store = fakeStore();
+        const proxy = proxyWith(store.send);
+        await proxy.tools();
+        await proxy.tools();
+        expect(store.sent.filter(r => r.message.method === 'tools/list')).toHaveLength(1);
+    });
+
+    it('follows the cursor of a paged tool list', async () => {
+        const send: SendToStore = async (_s, message: any) =>
+            message.params.cursor
+                ? rpcResult({ tools: [STORE_TOOLS[1]] })
+                : rpcResult({ tools: [STORE_TOOLS[0]], nextCursor: 'page-2' });
+        const tools = await proxyWith(send).tools();
+        expect(tools.map(t => t.name)).toEqual(['admin_list_channels', 'admin_create_zone']);
+    });
+
+    it('reads the tool list again after the dev server restarts', async () => {
+        const store = fakeStore();
+        let current = state();
+        const proxy = proxyWith(store.send, () => current);
+        await proxy.tools();
+        current = state({ restarts: 1 });
+        await proxy.tools();
+        current = state({ secret: 'secret-2', startedAt: '2026-11-24T09:00:00.000Z' });
+        await proxy.tools();
+        expect(store.sent.filter(r => r.message.method === 'tools/list')).toHaveLength(3);
+        expect(store.sent[0].projectDir).toBe('/project');
+    });
+
+    it('calls the Store MCP tool by its own name', async () => {
+        const store = fakeStore();
+        await proxyWith(store.send).call('admin_list_channels', { take: 5 }, signal());
+        expect(store.sent[0].message).toMatchObject({
+            method: 'tools/call',
+            params: { name: 'list_channels', arguments: { take: 5 } },
+        });
+    });
+
+    it('passes a result through unchanged, including an incomplete result', async () => {
+        const incomplete = {
+            content: [{ type: 'text', text: '{}' }],
+            structuredContent: {
+                status: 'incomplete',
+                preview: 'Delete zone Europe (id 2).',
+                needs: [{ kind: 'consent', consent: 'confirm', description: 'Delete', digest: 'abc' }],
+            },
+        };
+        const store = fakeStore(() => rpcResult(incomplete));
+        const result = await proxyWith(store.send).call('admin_delete_zone', { id: '2' }, signal());
+        expect(result).toEqual(incomplete);
+    });
+
+    it('sends the channel that set_active_channel returned as the vendure-token header', async () => {
+        const store = fakeStore(message =>
+            message.params.name === 'set_active_channel'
+                ? rpcResult({ structuredContent: { channel: { code: 'eu' }, channelToken: 'eu-token' } })
+                : rpcResult({ content: [] }),
+        );
+        const proxy = proxyWith(store.send);
+        await proxy.call('admin_list_channels', {}, signal());
+        await proxy.call('admin_set_active_channel', { channelToken: 'eu-token', confirm: 'd' }, signal());
+        await proxy.call('admin_list_channels', {}, signal());
+        const calls = store.sent.filter(r => r.message.method === 'tools/call');
+        expect(calls.map(r => r.headers['vendure-token'])).toEqual([undefined, undefined, 'eu-token']);
+        expect(proxy.activeChannelToken).toBe('eu-token');
+    });
+
+    it('keeps the channel when set_active_channel only asks for consent', async () => {
+        const store = fakeStore(() =>
+            rpcResult({ structuredContent: { status: 'incomplete', needs: [{ kind: 'consent' }] } }),
+        );
+        const proxy = proxyWith(store.send);
+        await proxy.call('admin_set_active_channel', { channelToken: 'eu-token' }, signal());
+        expect(proxy.activeChannelToken).toBeUndefined();
+    });
+
+    it('clears a channel token the server refuses', async () => {
+        let refuse = false;
+        const store = fakeStore(message => {
+            if (message.params.name === 'set_active_channel') {
+                return rpcResult({ structuredContent: { channelToken: 'gone' } });
+            }
+            return refuse
+                ? { status: 400, body: { statusCode: 400, message: 'No such channel', error: 'Bad Request' } }
+                : rpcResult({ content: [] });
+        });
+        const proxy = proxyWith(store.send);
+        await proxy.call('admin_set_active_channel', { channelToken: 'gone' }, signal());
+        refuse = true;
+        const result: any = await proxy.call('admin_list_channels', {}, signal());
+        expect(result.isError).toBe(true);
+        expect(result.structuredContent.error.code).toBe('mcp.admin-tools.channel-refused');
+        expect(proxy.activeChannelToken).toBeUndefined();
+    });
+
+    it('reports a stopped dev server with a fix that starts it', async () => {
+        const store = fakeStore();
+        const proxy = proxyWith(store.send, () => undefined);
+        expect(await proxy.tools()).toEqual([]);
+        const result: any = await proxy.call('admin_list_channels', {}, signal());
+        expect(result.isError).toBe(true);
+        expect(result.structuredContent.error.code).toBe('devserver.not-running');
+        expect(result.structuredContent.error.fixes).toEqual([
+            { path: ['devserver', 'start'], input: {}, description: expect.any(String) },
+        ]);
+        expect(store.sent).toEqual([]);
+    });
+
+    it('treats a state file whose run is gone as stopped', async () => {
+        const proxy = proxyWith(
+            fakeStore().send,
+            () => state(),
+            () => false,
+        );
+        expect(proxy.unavailable()?.error?.code).toBe('devserver.not-running');
+    });
+
+    it('reports a starting dev server with a fix that waits for it', () => {
+        const proxy = proxyWith(fakeStore().send, () => state({ status: 'starting' }));
+        const error = proxy.unavailable()?.error;
+        expect(error?.code).toBe('devserver.not-ready');
+        expect(error?.fixes?.[0].path).toEqual(['devserver', 'wait']);
+    });
+
+    it('reports a failed dev server with its last error', () => {
+        const proxy = proxyWith(fakeStore().send, () =>
+            state({ status: 'failed', lastError: { process: 'server', message: 'Port 3000 is in use' } }),
+        );
+        const error = proxy.unavailable()?.error;
+        expect(error?.code).toBe('devserver.not-ready');
+        expect(error?.fixes?.[0].path).toEqual(['devserver', 'status']);
+    });
+
+    it('reports a dev server without the Store MCP as a missing plugin', async () => {
+        const proxy = proxyWith(fakeStore().send, () =>
+            state({ urls: { admin: 'http://localhost:3000/admin-api' } }),
+        );
+        expect(await proxy.tools()).toEqual([]);
+        const error = proxy.unavailable()?.error;
+        expect(error?.code).toBe('mcp.admin-tools.store-mcp-missing');
+        expect(error?.message).toContain('McpPlugin');
+    });
+
+    it('reports the tools as unavailable outside a project', () => {
+        const proxy = new AdminProxy({ projectDir: undefined, send: fakeStore().send });
+        expect(proxy.unavailable()?.error?.code).toBe('mcp.admin-tools.no-project');
+    });
+
+    it('reports a dev server it cannot reach with a fix, and the list as unavailable', async () => {
+        const send: SendToStore = async () =>
+            fail(localAdminApiErrors.unreachable, {
+                url: 'http://localhost:3000/mcp/admin',
+                message: 'ECONNREFUSED',
+            });
+        const proxy = proxyWith(send);
+        expect(await proxy.tools()).toEqual([]);
+        const error = proxy.unavailable()?.error;
+        expect(error?.code).toBe('devserver.unreachable');
+        expect(error?.message).toContain('ECONNREFUSED');
+        expect(error?.fixes?.[0].path).toEqual(['devserver', 'status']);
+    });
+
+    it('reports a refused secret', async () => {
+        const proxy = proxyWith(async () => ({ status: 401, body: { message: 'Unauthorized' } }));
+        const result: any = await proxy.call('admin_list_channels', {}, signal());
+        expect(result.structuredContent.error.message).toContain('refused the local-trust secret');
+    });
+
+    it('tells listeners when a failed call shows that the dev server is gone', async () => {
+        let alive = true;
+        const send: SendToStore = async message => {
+            if ((message as any).method === 'tools/list') {
+                return rpcResult({ tools: STORE_TOOLS });
+            }
+            alive = false;
+            return fail(localAdminApiErrors.notRunning, {});
+        };
+        const proxy = proxyWith(
+            send,
+            () => state(),
+            () => alive,
+        );
+        let changes = 0;
+        proxy.onListChanged(() => changes++);
+        await proxy.tools();
+        await proxy.call('admin_list_channels', {}, signal());
+        expect(changes).toBe(1);
+        expect(proxy.unavailable()?.error?.code).toBe('devserver.not-running');
+    });
+
+    it('does not report a change for a failed call while the run is unchanged', async () => {
+        const proxy = proxyWith(async () => {
+            throw new Error('The operation was aborted due to timeout');
+        });
+        let changes = 0;
+        proxy.onListChanged(() => changes++);
+        proxy.checkForChange();
+        changes = 0;
+        const result: any = await proxy.call('admin_list_channels', {}, signal());
+        expect(changes).toBe(0);
+        expect(result.structuredContent.error.code).toBe('mcp.admin-tools.store-refused');
+    });
+
+    describe('watching the state file', () => {
+        let projectDir: string | undefined;
+
+        afterEach(() => {
+            if (projectDir) {
+                fs.rmSync(projectDir, { recursive: true, force: true });
+            }
+        });
+
+        it('tells listeners when the state file appears and disappears', async () => {
+            projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-admin-proxy-'));
+            const proxy = new AdminProxy({
+                projectDir,
+                send: fakeStore().send,
+                isAlive: () => true,
+                watchIntervalMs: 10,
+            });
+            let changes = 0;
+            proxy.onListChanged(() => changes++);
+            proxy.watch();
+            try {
+                const stateFile = path.join(projectDir, '.vendure', 'devserver.json');
+                fs.mkdirSync(path.dirname(stateFile));
+                fs.writeFileSync(stateFile, JSON.stringify(state()), { mode: 0o600 });
+                await waitFor(() => changes === 1);
+                expect(proxy.unavailable()).toBeUndefined();
+
+                fs.rmSync(stateFile);
+                await waitFor(() => changes === 2);
+                expect(proxy.unavailable()?.error?.code).toBe('devserver.not-running');
+            } finally {
+                proxy.close();
+            }
+        });
+    });
+});
+
+describe('behaviorOf', () => {
+    it('reads the behavior from the annotations', () => {
+        expect(behaviorOf({ readOnlyHint: true })).toBe('readonly');
+        expect(behaviorOf({ readOnlyHint: false, destructiveHint: false })).toBe('mutating');
+        expect(behaviorOf({ destructiveHint: true })).toBe('destructive');
+        // MCP treats a tool without destructiveHint as destructive.
+        expect(behaviorOf({})).toBe('destructive');
+    });
+});
+
+describe('parseStoreBody', () => {
+    it('reads a JSON body', () => {
+        expect(parseStoreBody('{"jsonrpc":"2.0","id":1,"result":{}}', 'application/json')).toEqual({
+            jsonrpc: '2.0',
+            id: 1,
+            result: {},
+        });
+    });
+
+    it('reads the response frame of an event stream that also holds notifications', () => {
+        const body =
+            'event: message\ndata: {"jsonrpc":"2.0","method":"notifications/message","params":{}}\n\n' +
+            'event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"ok":true}}\n\n';
+        expect(parseStoreBody(body, 'text/event-stream')).toEqual({
+            jsonrpc: '2.0',
+            id: 1,
+            result: { ok: true },
+        });
+    });
+
+    it('returns undefined for an empty or broken body', () => {
+        expect(parseStoreBody('', 'application/json')).toBeUndefined();
+        expect(parseStoreBody('<html>', 'text/html')).toBeUndefined();
+    });
+});
+
+async function waitFor(condition: () => boolean, timeoutMs = 10_000): Promise<void> {
+    const until = Date.now() + timeoutMs;
+    while (!condition()) {
+        if (Date.now() > until) {
+            throw new Error('Timed out waiting for the condition');
+        }
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+}
