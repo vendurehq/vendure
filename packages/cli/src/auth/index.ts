@@ -34,4 +34,6 @@ export type {
 } from './auth-session.js';
 export type { AuthUser, StoredOrganization } from './auth-store.js';
 export type { AuthOrganization } from './console-api.js';
+export { CLOUD_TOKEN_ENV, credentialNeed, readCloudTokenEnv, requireCredential } from './credential.js';
+export type { CloudCredential, CredentialSource, RequireCredentialOptions } from './credential.js';
 export type { DeviceAuthorization, WorkosClient } from './workos-client.js';

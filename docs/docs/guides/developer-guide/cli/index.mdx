@@ -591,8 +591,17 @@ npx vendure auth logout
 the check cannot finish, for example without a network, it shows the login with a warning.
 
 `status --json` writes the user, organization, client and access token expiry, and `renewable` with the result of the
-check, as the `output` of the JSON result. It never includes a token. It exits with code 1, with the status `failed`,
-when nobody is signed in or the login can no longer be renewed.
+check, as the `output` of the JSON result. `credential` says which credential commands use: `stored-login`,
+`environment` for `VENDURE_CLOUD_TOKEN` when no login is stored, or `none`. It never includes a token. It exits with
+code 1, with the status `failed`, when there is no credential at all.
+
+### Credentials for agents and CI
+
+A command that needs your Vendure account uses the stored login first, then `VENDURE_CLOUD_TOKEN`. A sandbox or CI job
+cannot share your login, because each renewal spends its single-use refresh token. Give it its own credential, such
+as a delegated agent key, in `VENDURE_CLOUD_TOKEN`. Only a person at a terminal is signed in automatically. Every
+other run returns `incomplete` with an `input` need for the secret `token` field, whose fix is
+`vendure auth login --json`.
 
 When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
 asks before it is replaced. A login that can no longer be renewed is replaced without asking.
@@ -715,39 +724,43 @@ not have to link the Project themselves, and they do not need a plan or trial. I
 access, the assistant tells you to run `vendure console link` and names
 [console.vendure.io](https://console.vendure.io).
 
-The CLI prints these steps only in human output. With `--json` or `--non-interactive`, the output does not change.
+The CLI prints these steps only in human output. Without a person at a terminal, the output does not change.
 
-### Structured, non-interactive linking
+### Linking without a terminal
 
 For automation, run:
 
 ```bash
-npx vendure console link --json --non-interactive --project ./apps/server
+npx vendure console link --json --console-project parts-counter --project ./apps/server
 ```
 
-`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. To
-create a Project Link, pass the Project with `--console-project`. The command then uses the login stored by
-`vendure auth login`:
+A run never prompts, signs in or opens a browser without a person at a terminal: under `--json`, when `CI` or
+`VENDURE_CLI_NON_INTERACTIVE` is set, or when stdin or stdout is not a terminal. `--non-interactive` still works and
+means the same, but is no longer listed in `--help` and will be removed in a later release. An existing manifest is
+reused.
+
+To create a Project Link, the command needs a credential. It uses the login stored by `vendure auth login`, and
+otherwise `VENDURE_CLOUD_TOKEN`, for example a delegated agent key. Without either, the result is `incomplete`, with
+an `input` need for the secret `token` field whose fix is `vendure auth login --json`, and the command sends no
+request to Console. Sign in a person with [`vendure auth login --json` and `vendure auth wait`](#signing-in-without-a-terminal),
+or set `VENDURE_CLOUD_TOKEN`, then run the command again. `VENDURE_CLOUD_TOKEN` is never renewed and never given to
+plugin hooks that request a session.
 
 ```bash
-npx vendure console link --non-interactive --console-project parts-counter
-npx vendure console link --non-interactive --force --console-project parts-counter
+npx vendure console link --json --console-project parts-counter
+npx vendure console link --json --force --console-project parts-counter
 ```
 
-Without `--console-project`, a project with no manifest returns `incomplete` with exit code 1, names the flag and
-an interactive command, and sends no request to Console. Without a stored login, the command returns `incomplete`
-and names `vendure auth login`. `--force` still means a different Project Link, so without `--console-project` it
-requires an interactive run even with `--yes`. Neither flag authorizes a plugin to replace credentials or registry
-tokens.
+The command links the Project that `--console-project` names, or the organization's single Project. When there are
+more and no `--console-project`, or when `--console-project` names none of them, the result is `incomplete`: an
+`input` need for `consoleProject` lists the Projects' slugs as its `choices`, and `nextSteps` lists the Projects with
+their names. For a value that names none of them, `nextSteps` also points to `--organization`. When
+`--console-project` names another Project than the linked one, the need is for `force`. `--force` still means a
+different Project Link, so without `--console-project` it requires a terminal even with `--yes`. Neither flag
+authorizes a plugin to replace credentials or registry tokens.
 
-`--json` writes one result to stdout and disables terminal prompts. Reporter progress, including the sign-in code,
-goes to stderr. Sign-in remains available unless `--non-interactive` is set. Without a terminal, the command links
-the Project that `--console-project` names, or an organization's single Project. When there are more and no
-`--console-project`, or when `--console-project` names none of them, the result is `incomplete`: `missingInputs`
-names `--console-project`, and `nextSteps` lists the Projects with their slugs. For a value that names none of them,
-`nextSteps` also points to `--organization`. When `--console-project` names another Project than the linked one,
-`missingInputs` names `--force`. Human output remains the default.
-The result has this shape:
+`--json` writes one result to stdout. Reporter progress goes to stderr. Human output remains the default. The result
+has this shape:
 
 ```json
 {
@@ -758,13 +771,16 @@ The result has this shape:
         "link": { "outcome": "repaired", "manifestPath": "/checkout/apps/server/.vendure/project.json" },
         "plugins": {}
     },
-    "missingInputs": [],
+    "needs": [],
     "nextSteps": []
 }
 ```
 
-Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Missing inputs name the required input and may
-include `flag`, `command`, `argument`, or `environment` names. They never contain secret values. Plugin setup data
+`needs` uses the same shape as every other CLI command's `incomplete` result: `input` needs name a field, and say
+whether it is secret, its valid `choices` and the command that fixes it. They never contain secret values. `needs`
+replaces `missingInputs`.
+
+Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Plugin setup data
 is stored under the plugin ID in `data.plugins`. Incomplete or failed setup returns exit code 1 and keeps the
 linked manifest. Interrupts retain exit code 130 or 143. JSON results contain no tokens, parsed option values, or raw
 errors. Plugins must supply only safe setup metadata.
@@ -1434,7 +1450,13 @@ export default defineCliPlugin({
                 context.contributeResult({
                     outcome: 'incomplete',
                     data: { session: 'missing' },
-                    missingInputs: [{ input: 'consoleSession', command: 'vendure console link' }],
+                    needs: [
+                        {
+                            kind: 'input',
+                            field: 'consoleSession',
+                            description: 'A Console login: run vendure console link on this machine and sign in',
+                        },
+                    ],
                     nextSteps: ['Run vendure console link interactively on this machine and sign in.'],
                 });
                 return;
@@ -1460,7 +1482,8 @@ Do not replace the `console` command for post-link setup. Register the hook.
 - Hooks must be repeatable because a repair runs them again.
 
 Throw when setup fails, or call `context.contributeResult` with `outcome: 'incomplete'` or `'failed'`, safe `data`,
-and repair steps. Both stop later hooks and return non-zero. Use `outcome: 'configured'` for completed setup.
+`needs` and repair steps. `missingInputs` in a contribution still works but is deprecated: each entry becomes an
+`input` need. Both stop later hooks and return non-zero. Use `outcome: 'configured'` for completed setup.
 Core combines contributions into one result. Do not print a second JSON object or include credentials, tokens,
 raw errors, or parsed option values in a contribution. Use `context.reporter` for progress.
 

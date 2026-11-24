@@ -1,6 +1,7 @@
 import { CommandContext, failed } from '@vendure/common/lib/command';
 
 import { checkAuthStatus, hasLoginForOtherConsole } from '../../auth/auth-session.js';
+import { CLOUD_TOKEN_ENV, readCloudTokenEnv } from '../../auth/credential.js';
 
 import {
     AuthCommandDependencies,
@@ -14,7 +15,8 @@ import { StatusOutput } from './auth.schema.js';
 
 /**
  * Renews the stored login to check it, so a login the authentication service no longer renews
- * is reported instead of shown as logged in. A missing or ended login is a failed result. The
+ * is reported instead of shown as logged in. It also says which credential commands use: the
+ * stored login first, then `VENDURE_CLOUD_TOKEN`. Without either it is a failed result. The
  * output never holds a token.
  */
 export function run(_input: Record<string, never>, ctx: CommandContext) {
@@ -27,16 +29,26 @@ export async function runStatus(ctx: CommandContext, dependencies: AuthCommandDe
     if (invalid) {
         return invalid;
     }
-    const status: StatusOutput = await checkAuthStatus(options);
+    const login = await checkAuthStatus(options);
+    const credential = login.loggedIn ? 'stored-login' : readCloudTokenEnv(options) ? 'environment' : 'none';
+    const status: StatusOutput = { ...login, credential };
     if (!status.loggedIn && hasLoginForOtherConsole(options)) {
         status.otherConsoleLogin = true;
     }
-    return status.loggedIn ? status : failed(status);
+    return credential === 'none' ? failed(status) : status;
 }
 
 export function render(status: StatusOutput): string {
+    const environment =
+        status.credential === 'environment'
+            ? `Commands use ${CLOUD_TOKEN_ENV}, because no login is stored for ${status.consoleApiUrl}.`
+            : undefined;
     if (status.renewable === false) {
-        return describeRefusal(status, 'Run `vendure auth login` to sign in again.');
+        const refusal = describeRefusal(status, 'Run `vendure auth login` to sign in again.');
+        return environment ? `${refusal}\n${environment}` : refusal;
+    }
+    if (environment) {
+        return environment;
     }
     if (!status.loggedIn) {
         const notLoggedIn = ['Not logged in. Run `vendure auth login` to sign in.'];

@@ -1,4 +1,5 @@
 import { confirm, isCancel, log, select } from '@clack/prompts';
+import { InputNeed } from '@vendure/common/lib/command';
 
 import {
     NotLoggedInError,
@@ -16,7 +17,14 @@ import {
     scopeStoredLogin,
 } from '../../auth/auth-session.js';
 import { StoredOrganization } from '../../auth/auth-store.js';
-import { AuthOrganization, OrganizationNotFoundError, describeOrganizations } from '../../auth/console-api.js';
+import {
+    AuthOrganization,
+    OrganizationNotFoundError,
+    describeOrganizations,
+    fetchOrganizations,
+    resolveOrganization,
+} from '../../auth/console-api.js';
+import { CredentialSource, credentialNeed, readCloudTokenEnv } from '../../auth/credential.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
@@ -36,7 +44,7 @@ import {
     trustedConsoleOrigins,
 } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
-import { ConsoleCommandResult, ConsoleLinkResultContribution, ConsoleMissingInput } from './console-result.js';
+import { ConsoleCommandResult, ConsoleLinkResultContribution, missingInputToNeed } from './console-result.js';
 import { ensureProjectLinkGitignore } from './project-link-gitignore.js';
 import {
     ManifestReadResult,
@@ -67,6 +75,11 @@ const DOCS_MCP_URL = 'https://docs.vendure.io/mcp';
 
 export interface ConsoleCommandOptions {
     json?: boolean;
+    /**
+     * @deprecated Hidden alias, kept for one release. A run never prompts or signs in without a
+     * person at a terminal: under `--json`, with `CI` or `VENDURE_CLI_NON_INTERACTIVE` set, or
+     * when stdin or stdout is not a TTY.
+     */
     nonInteractive?: boolean;
     project?: string;
     force?: boolean;
@@ -117,12 +130,14 @@ interface ConsoleProject {
 interface ConsoleLogin {
     auth: AuthOptions;
     accessToken: string;
+    /** `environment` for `VENDURE_CLOUD_TOKEN`, which cannot be renewed or given to plugin hooks. */
+    source: CredentialSource;
 }
 
 /**
- * The stored CLI login a command can use. `login` is absent when none is
- * stored for the organization, and when the authentication service no longer
- * renews the stored one: `refusal` then says why.
+ * The credential a command can use without signing in: the stored CLI login,
+ * or else `VENDURE_CLOUD_TOKEN`. `login` is absent when neither is there, and
+ * `refusal` then says why the stored login could not be used, if there is one.
  */
 interface StoredLogin {
     login?: ConsoleLogin;
@@ -155,12 +170,32 @@ class CommandInterruptedError extends Error {
 class ConsoleInputError extends Error {
     constructor(
         message: string,
-        readonly missingInput: ConsoleMissingInput,
+        readonly need: InputNeed,
         readonly nextSteps: string[],
     ) {
         super(message);
         this.name = 'ConsoleInputError';
     }
+}
+
+/** The `input` need for `--console-project`, the Console Project to link. */
+function consoleProjectNeed(projects?: Array<{ id: string; slug?: string }>): InputNeed {
+    const choices = projects?.map(project => project.slug ?? project.id);
+    return {
+        kind: 'input',
+        field: 'consoleProject',
+        description: 'The Console Project to link, by its id or slug',
+        ...(choices?.length ? { choices } : {}),
+    };
+}
+
+/** The `input` need for `--force`, which replaces a different Project Link. */
+function forceNeed(): InputNeed {
+    return {
+        kind: 'input',
+        field: 'force',
+        description: 'Replace the current Project Link with the Project that --console-project names',
+    };
 }
 
 const defaultReporter: ConsoleReporter = {
@@ -245,7 +280,7 @@ export async function consoleCommand(
                     : 'console',
             outcome: 'failed',
             data: { plugins: Object.create(null) },
-            missingInputs: [],
+            needs: [],
             nextSteps: [],
         },
     };
@@ -292,7 +327,7 @@ function reportConsoleCommandError(
 ): number {
     if (error instanceof ConsoleInputError && interruptedExitCode === undefined) {
         state.result.outcome = 'incomplete';
-        state.result.missingInputs.push(error.missingInput);
+        state.result.needs.push(error.need);
         state.result.nextSteps.push(...error.nextSteps);
         reporter.error(error.message);
         error.nextSteps.forEach(step => reporter.info(step));
@@ -444,15 +479,13 @@ async function link(
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
             throw linked === 'different'
-                ? new ConsoleInputError(
-                      `This project is already linked to ${current}.`,
-                      { input: 'projectLinkReplacement', flag: '--force' },
-                      ['Add --force to replace the link with the Project that --console-project names.'],
-                  )
+                ? new ConsoleInputError(`This project is already linked to ${current}.`, forceNeed(), [
+                      'Add --force to replace the link with the Project that --console-project names.',
+                  ])
                 : new ConsoleInputError(
                       `This project is already linked to ${current}, and the CLI could not check whether ` +
                           `--console-project ${String(requestedProject)} names that Project.`,
-                      { input: 'consoleProject', flag: '--console-project' },
+                      consoleProjectNeed(),
                       [
                           `Pass the linked Project's id, ${existing.manifest.project.id}, to --console-project to keep the link.`,
                       ],
@@ -471,46 +504,29 @@ async function link(
         );
     }
     const replacementFlag = options.force ? ' --force' : '';
-    if (options.nonInteractive && !requestedProject) {
+    // Without a person nobody can sign in, so a missing credential is reported before anything
+    // changes.
+    const available = await storedLoginOrInterrupt(endpoints, options, dependencies, signal);
+    if (!available.login && dependencies.isNonInteractive()) {
         state.result.outcome = 'incomplete';
-        state.result.missingInputs.push({
-            input: 'projectLinkApproval',
-            flag: '--console-project',
-            command: 'vendure console link',
-        });
-        const nextStep =
-            'Rerun with --console-project <id|slug> to link that Project with the stored CLI login, or run ' +
-            `vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} interactively ` +
-            'to sign in and choose the Console Project.';
-        state.result.nextSteps.push(nextStep);
-        dependencies.reporter.error(
-            'Choosing the Console Project to link requires --console-project <id|slug> or an interactive run.',
-        );
-        dependencies.reporter.info(nextStep);
-        return 1;
-    }
-    // `--non-interactive` does not sign in, so it needs the stored login before anything changes.
-    const { login: nonInteractiveLogin, refusal } = options.nonInteractive
-        ? await nonInteractiveStoredLogin(endpoints, options, dependencies, signal)
-        : {};
-    if (options.nonInteractive && !nonInteractiveLogin) {
+        state.result.needs.push(credentialNeed());
         const requestedOrganization = options.organization?.trim();
-        const command = requestedOrganization
-            ? `vendure auth login --organization ${JSON.stringify(requestedOrganization)}`
-            : 'vendure auth login';
-        state.result.outcome = 'incomplete';
-        state.result.missingInputs.push({ input: 'consoleSession', command });
-        const nextStep = `Run ${command} in a terminal, then rerun this command.`;
-        state.result.nextSteps.push(nextStep);
         const subject = `${requestedOrganization ? `${requestedOrganization} for ` : ''}${endpoints.apiUrl}`;
         dependencies.reporter.error(
-            !refusal
-                ? `No CLI login${requestedOrganization ? ` for ${requestedOrganization}` : ''} for ${endpoints.apiUrl} is stored on this ` +
-                      'machine, and --non-interactive does not sign in.'
-                : refusal instanceof SessionRejectedError
-                  ? `${describeRefusal(refusal, subject)}, and --non-interactive does not sign in.`
-                  : `${describeRefusal(refusal, subject)}\n--non-interactive does not sign in.`,
+            !available.refusal
+                ? `No CLI login${requestedOrganization ? ` for ${requestedOrganization}` : ''} for ` +
+                      `${endpoints.apiUrl} is stored on this machine, and nobody is at a terminal to sign in.`
+                : `${describeRefusal(available.refusal, subject)}${
+                      available.refusal instanceof SessionRejectedError ? '.' : ''
+                  } Nobody is at a terminal to sign in.`,
         );
+        const loginStep = requestedOrganization
+            ? `vendure auth login --json --organization ${JSON.stringify(requestedOrganization)}`
+            : 'vendure auth login --json';
+        const nextStep =
+            `Run ${loginStep}, give the person the URL and code, and run vendure auth wait. ` +
+            `Or set VENDURE_CLOUD_TOKEN. Then run vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} again.`;
+        state.result.nextSteps.push(nextStep);
         dependencies.reporter.info(nextStep);
         return 1;
     }
@@ -534,7 +550,7 @@ async function link(
     }
 
     const login =
-        nonInteractiveLogin ?? (await signIn(endpoints, options.organization, dependencies, signal));
+        available.login ?? (await signIn(endpoints, options.organization, dependencies, signal, true));
     const stored = readAuthStatus(login.auth).organization;
     const organization = await resolveAccount(
         login,
@@ -657,6 +673,17 @@ async function signIn(
         if (login) {
             return login;
         }
+        if (dependencies.isNonInteractive()) {
+            // The one rule: no device flow without a person at a terminal.
+            throw new ConsoleInputError(
+                'No usable CLI login is stored on this machine, and nobody is at a terminal to sign in.',
+                credentialNeed(),
+                [
+                    'Run vendure auth login --json, give the person the URL and code, and run vendure auth wait. ' +
+                        'Or set VENDURE_CLOUD_TOKEN. Then run this command again.',
+                ],
+            );
+        }
         await loginWithDevice({
             ...auth,
             organization: wanted,
@@ -677,7 +704,7 @@ async function signIn(
         if (!accessToken) {
             throw new NotLoggedInError();
         }
-        return { auth, accessToken };
+        return { auth, accessToken, source: 'stored-login' };
     } catch (error) {
         if (signal.aborted) {
             throw new CommandInterruptedError();
@@ -746,8 +773,8 @@ function matchesManifestAccount(organization: string, manifest: ProjectLinkManif
     );
 }
 
-/** The stored login for a `--non-interactive` link, which does not sign in. */
-async function nonInteractiveStoredLogin(
+/** {@link storedLogin} for the `--organization` of a link, reporting an interrupt as one. */
+async function storedLoginOrInterrupt(
     endpoints: ConsoleEndpoints,
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
@@ -767,18 +794,29 @@ async function nonInteractiveStoredLogin(
 }
 
 /**
- * The stored login for `organization`, renewed first when it is about to
- * expire. A renewal that cannot finish, for example without a network, throws
+ * The credential for `organization` that needs no sign-in: the stored login,
+ * renewed first when it is about to expire, or else `VENDURE_CLOUD_TOKEN`. A
+ * renewal that cannot finish, for example without a network, throws
  * {@link SessionRefreshUnavailableError} and keeps the login.
  */
 async function storedLogin(auth: AuthOptions, organization: string | undefined): Promise<StoredLogin> {
+    const stored = await storedPersonLogin(auth, organization);
+    if (stored.login) {
+        return stored;
+    }
+    const token = readCloudTokenEnv(auth);
+    return token ? { login: { auth, accessToken: token, source: 'environment' } } : stored;
+}
+
+/** The login `vendure auth login` stored, for `organization`. */
+async function storedPersonLogin(auth: AuthOptions, organization: string | undefined): Promise<StoredLogin> {
     const stored = readAuthStatus(auth);
     if (!stored.loggedIn || (organization && !matchesOrganization(stored.organization, organization))) {
         return {};
     }
     try {
         const accessToken = await getAccessToken(auth);
-        return accessToken ? { login: { auth, accessToken } } : {};
+        return accessToken ? { login: { auth, accessToken, source: 'stored-login' } } : {};
     } catch (error) {
         if (error instanceof NotLoggedInError) {
             // Another command removed the login meanwhile.
@@ -828,6 +866,14 @@ async function resolveAccount(
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<StoredOrganization> {
+    if (login.source === 'environment') {
+        // VENDURE_CLOUD_TOKEN cannot be scoped to another account, so the account is one it can see.
+        const organizations = await fetchOrganizations(endpoints.apiUrl, login.accessToken, login.auth);
+        const wanted = requested?.trim();
+        return wanted
+            ? resolveOrganization(organizations, wanted)
+            : chooseOrganization(organizations, undefined, endpoints, dependencies);
+    }
     if (current && requested?.trim()) {
         return current;
     }
@@ -909,7 +955,11 @@ function describeOrganization(organization: StoredOrganization): string {
  * The refresh token stays in the login, because it is single-use and a copy
  * that a plugin spends ends the login for every other command.
  */
-function hookSession(login: ConsoleLogin): ConsoleSession {
+function hookSession(login: ConsoleLogin): ConsoleSession | undefined {
+    if (login.source === 'environment') {
+        // A plugin hook may store or reuse the session, so it gets a person's login only.
+        return undefined;
+    }
     const expiresAt = readAuthStatus(login.auth).accessTokenExpiresAt;
     return { accessToken: login.accessToken, expiresAt: expiresAt ?? (login.auth.now ?? Date.now)() };
 }
@@ -980,7 +1030,7 @@ async function chooseProject(
     if (dependencies.isNonInteractive()) {
         throw new ConsoleInputError(
             `${accountName} has ${projects.length} projects.`,
-            { input: 'consoleProject', flag: '--console-project' },
+            consoleProjectNeed(projects),
             [
                 'Choose one with vendure console link --console-project <id|slug>, or run vendure console link ' +
                     `in a terminal:\n${describeProjects(projects)}`,
@@ -1014,7 +1064,7 @@ function projectNotFound(
     return new ConsoleInputError(
         `--console-project ${requested} is not an active project of ${accountName}, the Customer Account ` +
             'this login uses.',
-        { input: 'consoleProject', flag: '--console-project' },
+        consoleProjectNeed(projects),
         [
             `Pass the id or slug of one of the projects of ${accountName} to --console-project:\n${describeProjects(projects)}`,
             'To link a project of another Customer Account, add --organization <Account identifier>.',
@@ -1102,6 +1152,12 @@ async function requestWithLogin(
         if (!(error instanceof ConsoleRequestError) || error.httpStatus !== 401) {
             throw error;
         }
+    }
+    if (login.source === 'environment') {
+        throw new Error(
+            'Vendure Console did not accept VENDURE_CLOUD_TOKEN. Check that the key is valid and has not ' +
+                'expired, or unset it to use the stored CLI login.',
+        );
     }
     login.accessToken = await refreshAccessToken(login.accessToken, login.auth);
     try {
@@ -1411,7 +1467,10 @@ async function runConsoleLinkHooks(
                     contribution => {
                         const snapshot = structuredClone(contribution);
                         state.result.data.plugins[pluginId] = snapshot.data;
-                        state.result.missingInputs.push(...(snapshot.missingInputs ?? []));
+                        state.result.needs.push(
+                            ...(snapshot.needs ?? []),
+                            ...(snapshot.missingInputs ?? []).map(missingInputToNeed),
+                        );
                         state.result.nextSteps.push(...(snapshot.nextSteps ?? []));
                         if (snapshot.outcome !== 'configured') {
                             if (!state.setupIncomplete || state.result.outcome !== 'failed') {

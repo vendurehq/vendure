@@ -79,6 +79,11 @@ export const status = {
                 'True when the login was renewed, false when it can no longer be renewed. Absent when the check could not finish',
             ),
         renewalError: renewalError.optional(),
+        credential: z
+            .enum(['stored-login', 'environment', 'none'])
+            .describe(
+                'The credential commands use: the stored login, VENDURE_CLOUD_TOKEN when no login is stored, or none',
+            ),
         otherConsoleLogin: z
             .boolean()
             .optional()

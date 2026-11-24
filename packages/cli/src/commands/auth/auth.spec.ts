@@ -390,6 +390,32 @@ describe('vendure auth status', () => {
         expect(renderStatus(result as any)).not.toMatch(/workos/i);
     });
 
+    it('reports VENDURE_CLOUD_TOKEN as the credential when no login is stored, without the token', async () => {
+        const result = await runStatus(makeContext().ctx, {
+            ...dependencies,
+            env: { ...dependencies.env, VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+        });
+
+        expect(isFailedResult(result)).toBe(false);
+        expect(result).toMatchObject({ loggedIn: false, credential: 'environment' });
+        expect(JSON.stringify(result)).not.toContain('vcdk_agent_key');
+        expect(renderStatus(result as any)).toBe(
+            'Commands use VENDURE_CLOUD_TOKEN, because no login is stored for https://api.vendure.io.',
+        );
+    });
+
+    it('reports the stored login as the credential even when VENDURE_CLOUD_TOKEN is set', async () => {
+        storeLogin();
+
+        const result = await runStatus(makeContext().ctx, {
+            ...dependencies,
+            env: { ...dependencies.env, VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            fetch: renewalAnswers(RENEWED),
+        });
+
+        expect(result).toMatchObject({ loggedIn: true, credential: 'stored-login' });
+    });
+
     it('refuses an unknown Console API', async () => {
         const result = await runStatus(makeContext().ctx, {
             ...dependencies,

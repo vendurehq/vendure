@@ -60,10 +60,15 @@ describe('EE-388 structured Console linking', () => {
         expect(stdout).toHaveBeenCalledTimes(1);
         const result = JSON.parse(String(stdout.mock.calls[0][0]));
         expect(result).toMatchObject({ schemaVersion: 1, operation: 'console.link', outcome: 'incomplete' });
-        expect(result.missingInputs).toEqual([
-            { input: 'projectLinkApproval', flag: '--console-project', command: 'vendure console link' },
+        expect(result.needs).toEqual([
+            expect.objectContaining({
+                kind: 'input',
+                field: 'token',
+                secret: true,
+                fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
+            }),
         ]);
-        expect(result.nextSteps.join(' ')).toContain('--console-project <id|slug>');
+        expect(result.nextSteps.join(' ')).toContain('vendure auth login --json');
         expect(result.nextSteps.join(' ')).toContain('vendure console link');
     });
 
@@ -153,7 +158,13 @@ describe('EE-388 structured Console linking', () => {
                     link: { outcome: 'repaired' },
                     plugins: { '@example/setup': { credential: 'missing' } },
                 },
-                missingInputs: [{ input: 'consoleSession', command: 'vendure console link' }],
+                needs: [
+                    {
+                        kind: 'input',
+                        field: 'consoleSession',
+                        description: 'consoleSession: run vendure console link',
+                    },
+                ],
                 nextSteps: ['Sign in interactively on this machine.'],
             });
             expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
@@ -200,7 +211,7 @@ describe('EE-388 structured Console linking', () => {
         expect(code).toBe(0);
         expect(JSON.parse(String(stdout.mock.calls[0][0]))).toMatchObject({
             outcome: 'repaired',
-            missingInputs: [],
+            needs: [],
             nextSteps: [],
         });
     });
@@ -334,7 +345,7 @@ describe('EE-388 structured Console linking', () => {
                 link: { outcome: 'linked', manifestPath: getProjectLinkManifestPath(root) },
                 plugins: {},
             },
-            missingInputs: [],
+            needs: [],
             nextSteps: [],
         });
         expect(stderr.mock.calls.join('\n')).toContain('Linked Storefront to Acme');

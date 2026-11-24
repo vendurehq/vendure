@@ -578,7 +578,9 @@ describe('console command', () => {
             ),
         ).toBe(0);
         for (const fn of [openUrl, prompt, select]) expect(fn).not.toHaveBeenCalled();
-        expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe(`Bearer ${STORED_ACCESS_TOKEN}`);
+        expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe(
+            `Bearer ${STORED_ACCESS_TOKEN}`,
+        );
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
@@ -706,8 +708,12 @@ describe('console command', () => {
 
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('incomplete');
-            expect(run.result.missingInputs).toEqual([
-                { input: 'consoleProject', flag: '--console-project' },
+            expect(run.result.needs).toEqual([
+                expect.objectContaining({
+                    kind: 'input',
+                    field: 'consoleProject',
+                    choices: ['storefront', 'wholesale'],
+                }),
             ]);
             const nextSteps = run.result.nextSteps.join('\n');
             expect(nextSteps).toContain(`Storefront (storefront, ${PROJECT_ID})`);
@@ -731,7 +737,13 @@ describe('console command', () => {
             expect(await consoleCommand('link', { json: true }, test.dependencies)).toBe(1);
             const result = JSON.parse(String(stdout.mock.calls[0][0])) as ConsoleCommandResult;
             expect(result.outcome).toBe('incomplete');
-            expect(result.missingInputs).toEqual([{ input: 'consoleProject', flag: '--console-project' }]);
+            expect(result.needs).toEqual([
+                expect.objectContaining({
+                    kind: 'input',
+                    field: 'consoleProject',
+                    choices: ['storefront', 'wholesale'],
+                }),
+            ]);
             const nextSteps = result.nextSteps.join('\n');
             expect(nextSteps).toContain('vendure console link --console-project <id|slug>');
             expect(nextSteps).toContain(`Storefront (storefront, ${PROJECT_ID})`);
@@ -745,7 +757,7 @@ describe('console command', () => {
 
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('incomplete');
-            expect(run.result.missingInputs).toEqual([{ input: 'projectLinkReplacement', flag: '--force' }]);
+            expect(run.result.needs).toEqual([expect.objectContaining({ kind: 'input', field: 'force' })]);
             expect(run.result.nextSteps).toEqual([
                 'Add --force to replace the link with the Project that --console-project names.',
             ]);
@@ -766,9 +778,10 @@ describe('console command', () => {
 
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('incomplete');
-            expect(run.result.missingInputs).toEqual([
-                { input: 'consoleProject', flag: '--console-project' },
+            expect(run.result.needs).toEqual([
+                expect.objectContaining({ kind: 'input', field: 'consoleProject' }),
             ]);
+            expect(run.result.needs[0]).not.toHaveProperty('choices');
             expect(run.result.nextSteps).toEqual([
                 `Pass the linked Project's id, ${PROJECT_ID}, to --console-project to keep the link.`,
             ]);
@@ -786,7 +799,7 @@ describe('console command', () => {
 
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('failed');
-            expect(run.result.missingInputs).toEqual([]);
+            expect(run.result.needs).toEqual([]);
             expect(run.stderr).toContain('The Console command failed.');
             expect(run.stderr).not.toContain('HTTP 503');
         });

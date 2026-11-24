@@ -58,6 +58,12 @@ export interface HostEnvironment {
     emit(event: CommandEvent): void;
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
     findProjectRoot(): string | undefined;
+    /**
+     * Finds the credential a command with `requires.auth` needs, signing a person in only when
+     * `ctx.ask` is set. Resolves to the needs that stop the run, or `undefined` when there is a
+     * credential.
+     */
+    requireCredential?(kind: 'cloud', ctx: CommandContext): Promise<CommandNeed[] | undefined>;
 }
 
 export interface HostResult {
@@ -280,6 +286,19 @@ export async function executeCommand(
             return errorResult(hostErrors.projectRequired, { command: commandName }, notices);
         }
         const ctx = createContext(env, notices);
+        if (def.requires?.auth) {
+            if (!env.requireCredential) {
+                return errorResult(
+                    hostErrors.internal,
+                    { message: `"${commandName}" needs a credential, which this host cannot provide` },
+                    notices,
+                );
+            }
+            const needs = await env.requireCredential(def.requires.auth, ctx);
+            if (needs?.length) {
+                return incompleteResult(needs, notices);
+            }
+        }
         const schemas = await def.schemas();
         const consentNames = Object.keys(def.consents ?? {});
         const input: Record<string, unknown> = { ...rawInput };

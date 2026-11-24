@@ -48,6 +48,65 @@ function makeCommand(
 }
 
 describe('executeCommand', () => {
+    describe('requires.auth', () => {
+        const tokenNeed = {
+            kind: 'input' as const,
+            field: 'token',
+            description: 'A Vendure Cloud credential',
+            secret: true,
+            fix: { path: ['auth', 'login'], input: { json: true }, description: 'Sign in' },
+        };
+
+        it('returns the credential need before the inputs, and never runs the command', async () => {
+            const run = vi.fn();
+            const requireCredential = vi.fn(async () => [tokenNeed]);
+            const result = await runCommandInHarness(
+                makeCommand(run, { requires: { auth: 'cloud' } }),
+                {},
+                { requireCredential },
+            );
+            expect(result.exitCode).toBe(3);
+            expect(result.envelope).toMatchObject({ status: 'incomplete', needs: [tokenNeed] });
+            expect(run).not.toHaveBeenCalled();
+        });
+
+        it('runs the command once there is a credential', async () => {
+            const result = await runCommandInHarness(
+                makeCommand(async i => ({ hello: i.name }), { requires: { auth: 'cloud' } }),
+                { name: 'a' },
+                { requireCredential: async () => undefined },
+            );
+            expect(result.envelope).toMatchObject({ status: 'ok', output: { hello: 'a' } });
+        });
+
+        it('gives the check ctx.ask only when a person may be asked', async () => {
+            const asked: boolean[] = [];
+            const requireCredential = async (_kind: 'cloud', ctx: { ask?: unknown }) => {
+                asked.push(ctx.ask !== undefined);
+                return undefined;
+            };
+            const def = makeCommand(async () => ({}), { requires: { auth: 'cloud' } });
+            await runCommandInHarness(def, { name: 'a' }, { requireCredential });
+            await runCommandInHarness(
+                def,
+                { name: 'a' },
+                {
+                    requireCredential,
+                    prompter: { ...noAsk, askInput: async () => undefined, askConsent: async () => true },
+                },
+            );
+            expect(asked).toEqual([false, true]);
+        });
+
+        it('is an internal error on a host that cannot provide a credential', async () => {
+            const result = await runCommandInHarness(
+                makeCommand(async () => ({}), { requires: { auth: 'cloud' } }),
+                { name: 'a' },
+            );
+            expect(result.envelope.error?.code).toBe('cli.internal');
+        });
+    });
+
     it('returns ok with the output', async () => {
         const result = await runCommandInHarness(
             makeCommand(async i => ({ hello: i.name })),

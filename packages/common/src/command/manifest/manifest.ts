@@ -20,7 +20,7 @@ export interface ManifestCommand {
     description: string;
     keywords: string[];
     behavior: CommandBehavior;
-    requires: { project?: boolean };
+    requires: { project?: boolean; auth?: 'cloud' };
     consents: Record<string, string>;
     /** JSON Schema of the input, with one string property for each consent. */
     input: JsonSchema;

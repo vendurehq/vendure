@@ -1,11 +1,6 @@
-import { CommandFix, defineError } from '@vendure/common/lib/command';
+import { defineError } from '@vendure/common/lib/command';
 
-/** The fix for every login that has to start again. Under `--json` it returns the code at once. */
-export const LOGIN_FIX: CommandFix = {
-    path: ['auth', 'login'],
-    input: { json: true },
-    description: 'Start a new login, and give the person the URL and code it returns',
-};
+import { LOGIN_FIX } from '../../auth/credential.js';
 
 export const authErrors = {
     consoleApiInvalid: defineError<{ message: string }>({
