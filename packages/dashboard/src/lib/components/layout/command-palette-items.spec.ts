@@ -1,6 +1,7 @@
-import { Settings2, Tags } from 'lucide-react';
+import { Settings2, Star, Tags } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DashboardCommandPaletteItemDefinition } from '@/vdb/framework/extension-api/types/command-palette.js';
 import {
     NavigationShortcut,
     NavMenuItem,
@@ -75,5 +76,106 @@ describe('buildCommandPaletteGroups', () => {
             },
         ]);
         expect(groups[0].items.map(i => i.shortcut)).toEqual(['p', undefined, undefined]);
+    });
+});
+
+describe('buildCommandPaletteGroups with extension entries', () => {
+    const catalog: NavMenuSection = {
+        id: 'catalog',
+        title: 'Catalog',
+        icon: Tags,
+        placement: 'top',
+        items: [item('products')],
+    };
+    const entry = (
+        id: string,
+        extra: Partial<DashboardCommandPaletteItemDefinition> = {},
+    ): DashboardCommandPaletteItemDefinition => ({ id, title: id, url: `/${id}`, ...extra });
+
+    it('lists an entry after the pages of the nav section its group names', () => {
+        const groups = buildCommandPaletteGroups([catalog], {
+            extensionItems: [entry('reviews', { group: 'catalog', icon: Star, keywords: ['ratings'] })],
+        });
+        expect(groups.map(g => g.id)).toEqual(['catalog']);
+        expect(groups[0].items.map(i => i.id)).toEqual(['products', 'extension:reviews']);
+        expect(groups[0].items[1]).toMatchObject({
+            title: 'reviews',
+            url: '/reviews',
+            icon: Star,
+            sectionTitle: 'Catalog',
+            keywords: ['ratings'],
+        });
+        expect(groups[0].items[1].source).toBeUndefined();
+    });
+
+    it('puts an entry without a group with the top-level pages, creating that group first', () => {
+        const withTop = buildCommandPaletteGroups([item('insights'), catalog], {
+            extensionItems: [entry('reindex')],
+        });
+        expect(withTop[0].id).toBe('top-level');
+        expect(withTop[0].items.map(i => i.id)).toEqual(['insights', 'extension:reindex']);
+
+        const withoutTop = buildCommandPaletteGroups([catalog], { extensionItems: [entry('reindex')] });
+        expect(withoutTop.map(g => g.id)).toEqual(['top-level', 'catalog']);
+        expect(withoutTop[0].title).toBeUndefined();
+    });
+
+    it('makes a group of its own, after the nav groups, for any other group', () => {
+        const groups = buildCommandPaletteGroups([catalog], {
+            extensionItems: [entry('a', { group: 'Tools' }), entry('b', { group: 'Tools' })],
+        });
+        expect(groups.map(g => g.id)).toEqual(['catalog', 'Tools']);
+        expect(groups[1].title).toBe('Tools');
+        expect(groups[1].items.map(i => i.id)).toEqual(['extension:a', 'extension:b']);
+        expect(groups[1].items[0].sectionTitle).toBe('Tools');
+    });
+
+    it('heads the group of a nav section the administrator cannot see with its title', () => {
+        const groups = buildCommandPaletteGroups([], {
+            extensionItems: [entry('stock', { group: 'catalog' })],
+            sectionTitles: new Map([['catalog', 'Catalog']]),
+        });
+        expect(groups).toEqual([
+            expect.objectContaining({ id: 'catalog', title: 'Catalog', items: [expect.anything()] }),
+        ]);
+    });
+
+    it('sorts entries by order, then by title', () => {
+        const groups = buildCommandPaletteGroups([], {
+            extensionItems: [entry('c'), entry('b', { order: 2 }), entry('a'), entry('d', { order: 1 })],
+        });
+        expect(groups[0].items.map(i => i.title)).toEqual(['d', 'b', 'a', 'c']);
+    });
+
+    it('keeps an action entry without a url', () => {
+        const onSelect = vi.fn();
+        const groups = buildCommandPaletteGroups([], {
+            extensionItems: [{ id: 'clear-cache', title: 'Clear cache', onSelect }],
+        });
+        expect(groups[0].items[0]).toMatchObject({ onSelect, url: undefined });
+    });
+
+    it('hides entries the administrator lacks ANY of the permissions for', () => {
+        const held = new Set(['ReadCatalog']);
+        const hasPermissions = (permissions: string[]) => permissions.some(p => held.has(p));
+        const groups = buildCommandPaletteGroups([], {
+            hasPermissions,
+            extensionItems: [
+                entry('open'),
+                entry('single', { requiresPermission: 'ReadCatalog' }),
+                entry('any', { requiresPermission: ['UpdateCatalog', 'ReadCatalog'] }),
+                entry('denied', { requiresPermission: 'SuperAdmin' }),
+            ],
+        });
+        expect(groups[0].items.map(i => i.title)).toEqual(['any', 'open', 'single']);
+    });
+
+    it('returns the nav groups unchanged when no entry is permitted', () => {
+        const groups = buildCommandPaletteGroups([catalog], {
+            hasPermissions: () => false,
+            extensionItems: [entry('denied', { requiresPermission: 'SuperAdmin' })],
+        });
+        expect(groups.map(g => g.id)).toEqual(['catalog']);
+        expect(groups[0].items).toHaveLength(1);
     });
 });

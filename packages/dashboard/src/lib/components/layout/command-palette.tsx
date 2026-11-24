@@ -14,10 +14,12 @@ import {
 } from '@/vdb/components/ui/command.js';
 import { Kbd } from '@/vdb/components/ui/kbd.js';
 import { SearchTrigger } from '@/vdb/components/ui/search-trigger.js';
+import { getCommandPaletteItems } from '@/vdb/framework/command-palette/command-palette-extensions.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { getNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import { getLockedCapability } from '@/vdb/framework/platform-promotion/locked-capabilities.js';
 import { getLockedNavItemCapability } from '@/vdb/framework/platform-promotion/register-locked-navigation.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { usePlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useNavigate } from '@tanstack/react-router';
@@ -38,9 +40,18 @@ function isPaletteShortcut(event: KeyboardEvent) {
 const CommandPaletteContext = React.createContext<(() => void) | null>(null);
 
 /**
- * Holds the command palette of the Dashboard: the dialog and the Mod+K shortcut. The shortcut
- * lives here, not in the top bar trigger, so it keeps working when an extension replaces the
+ * @description
+ * Holds the ⌘K command palette of the Dashboard: the dialog and the Mod+K shortcut. The
+ * Dashboard's app layout renders it, so an extension does not need to. The shortcut lives
+ * here, not in the top bar trigger, so it keeps working when an extension replaces the
  * `search` toolbar item.
+ *
+ * The palette lists the pages of the nav menu and the entries of
+ * `commandPaletteItems` in `defineDashboardExtension`.
+ *
+ * @docsCategory extensions-api
+ * @docsPage CommandPalette
+ * @since 4.0.0
  */
 export function CommandPaletteProvider({ children }: Readonly<{ children: React.ReactNode }>) {
     const { t } = useLingui();
@@ -90,9 +101,31 @@ export function CommandPaletteProvider({ children }: Readonly<{ children: React.
     );
 }
 
-/** The search field in the top bar. It opens the command palette. */
+/**
+ * @description
+ * Returns a function that opens the ⌘K command palette, or `null` outside a
+ * {@link CommandPaletteProvider}. Use it to open the palette from your own component, such
+ * as a toolbar item that replaces the built-in `search` item.
+ *
+ * @docsCategory extensions-api
+ * @docsPage CommandPalette
+ * @since 4.0.0
+ */
+export function useOpenCommandPalette() {
+    return React.useContext(CommandPaletteContext);
+}
+
+/**
+ * @description
+ * The search field of the top bar, which opens the ⌘K command palette. It renders nothing
+ * outside a {@link CommandPaletteProvider}.
+ *
+ * @docsCategory extensions-api
+ * @docsPage CommandPalette
+ * @since 4.0.0
+ */
 export function CommandPaletteTrigger() {
-    const openPalette = React.useContext(CommandPaletteContext);
+    const openPalette = useOpenCommandPalette();
     const { t } = useLingui();
     if (!openPalette) {
         return null;
@@ -106,7 +139,7 @@ export function CommandPaletteTrigger() {
  */
 function LockedDetail({ item }: Readonly<{ item: CommandPaletteItem }>) {
     const state = usePlatformPromotion();
-    const capability = getLockedNavItemCapability(item.source);
+    const capability = item.source ? getLockedNavItemCapability(item.source) : undefined;
     const promotion = capability ? getLockedCapability(state, capability) : undefined;
     return promotion ? (
         <CommandItemDetail>
@@ -119,8 +152,21 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
     const { t, i18n } = useLingui();
     const navigate = useNavigate();
     const { extensionsLoaded } = useDashboardExtensions();
-    const resolved = useResolvedNavMenu(extensionsLoaded ? getNavMenuConfig().sections : []);
-    const groups = React.useMemo(() => buildCommandPaletteGroups(resolved), [resolved]);
+    const sections = React.useMemo(
+        () => (extensionsLoaded ? getNavMenuConfig().sections : []),
+        [extensionsLoaded],
+    );
+    const resolved = useResolvedNavMenu(sections);
+    const { hasPermissions } = usePermissions();
+    const groups = React.useMemo(
+        () =>
+            buildCommandPaletteGroups(resolved, {
+                extensionItems: extensionsLoaded ? getCommandPaletteItems() : [],
+                hasPermissions,
+                sectionTitles: new Map(sections.map(section => [section.id, section.title])),
+            }),
+        [resolved, extensionsLoaded, hasPermissions, sections],
+    );
     const [search, setSearch] = React.useState('');
     const [value, setValue] = React.useState('');
     const rootRef = React.useRef<HTMLDivElement>(null);
@@ -145,7 +191,18 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
 
     const open = (item: CommandPaletteItem) => {
         onDone();
-        void navigate({ to: item.url });
+        if (item.onSelect) {
+            const { onSelect } = item;
+            // An extension's action must not break the palette: log what it throws.
+            Promise.resolve()
+                .then(() => onSelect({ navigate: url => void navigate({ to: url }) }))
+                .catch((error: unknown) => {
+                    // eslint-disable-next-line no-console
+                    console.error(`[Dashboard] The command palette entry "${item.id}" failed.`, error);
+                });
+        } else if (item.url) {
+            void navigate({ to: item.url });
+        }
     };
 
     return (
@@ -171,6 +228,7 @@ function CommandPaletteBody({ onDone }: Readonly<{ onDone: () => void }>) {
                                 keywords={[
                                     i18n.t(item.title),
                                     ...(item.sectionTitle ? [i18n.t(item.sectionTitle)] : []),
+                                    ...(item.keywords ?? []).map(keyword => i18n.t(keyword)),
                                 ]}
                                 onSelect={() => open(item)}
                             >
