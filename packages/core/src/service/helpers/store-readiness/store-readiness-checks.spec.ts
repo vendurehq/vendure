@@ -110,7 +110,7 @@ describe('store readiness codes', () => {
                 )
                 .map(value => (value as { code: string }).code),
         );
-        expect(codes.length).toBeGreaterThanOrEqual(15);
+        expect(codes.length).toBe(15);
         for (const code of codes) {
             expect(code).toMatch(/^store(\.[a-z0-9-]+)+$/);
         }
@@ -258,6 +258,22 @@ describe('checkTaxRates', () => {
         expect(findings.map(f => [f.zoneId, f.message.includes('orders to NZ')])).toEqual([
             ['pacific', true],
         ]);
+    });
+
+    it('leaves the default tax zone of a tax-inclusive channel to checkTaxInclusiveRates', async () => {
+        const findings = await checkTaxRates(
+            input({
+                channel: channel({ pricesIncludeTax: true, defaultTaxZone: europe }),
+                allZones: [europe, shippingOnly],
+                shippingZones: [europe, shippingOnly],
+            }),
+            {
+                connection: connection(['tc1']),
+                taxRateService: taxRateService([]),
+                taxZoneStrategy: byAddress,
+            },
+        );
+        expect(findings.map(f => f.zoneId)).toEqual(['pacific']);
     });
 
     it('reports nothing when the channel has no variants', async () => {

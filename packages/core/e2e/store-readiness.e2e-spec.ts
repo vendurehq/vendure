@@ -318,8 +318,14 @@ describe('storeReadiness', () => {
             await adminClient.query(UPDATE_CHANNEL, {
                 input: { id: activeChannel.id, pricesIncludeTax: true },
             });
-            const [finding, ...others] = await inclusiveFindings();
-            expect(others).toEqual([]);
+            const report = await check();
+            // The tax rate check leaves this zone to the tax-inclusive check, so the report has one
+            // finding and one fix for it, not two zone rates to create.
+            const forCategory = report.findings.filter(
+                f => f.taxCategoryId === createTaxCategory.id && f.zoneId === defaultTaxZone.id,
+            );
+            expect(forCategory.map(f => f.code)).toEqual(['store.tax.inclusive-rate-unknown']);
+            const [finding] = forCategory;
             expect(finding).toMatchObject({
                 severity: 'ERROR',
                 channelId: activeChannel.id,

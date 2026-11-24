@@ -2,6 +2,7 @@ import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { ID } from '@vendure/common/lib/shared-types';
 import { In } from 'typeorm';
 
+import { idsAreEqual } from '../../../common/utils';
 import { TaxZoneStrategy } from '../../../config/tax/tax-zone-strategy';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
@@ -88,7 +89,7 @@ export async function checkTaxRates(
     const findings: StoreReadinessFinding[] = [];
     for (const taxCategory of categories) {
         const missing = await findMissingRates(input, services.taxRateService, taxZones, taxCategory);
-        for (const details of missing) {
+        for (const details of missing.filter(d => !isTaxInclusiveDefaultZone(channel, d.zone))) {
             findings.push(
                 toFinding(noApplicableTaxRate, StoreReadinessSeverity.ERROR, details, {
                     channelId: channel.id,
@@ -100,6 +101,15 @@ export async function checkTaxRates(
         }
     }
     return findings;
+}
+
+/**
+ * A tax-inclusive Channel needs a zone rate on its default tax zone, and a country rate does not do.
+ * `checkTaxInclusiveRates` reports that zone, so this check leaves it out rather than report it twice
+ * with a fix that says a country rate would do.
+ */
+function isTaxInclusiveDefaultZone(channel: Channel, zone: Zone): boolean {
+    return channel.pricesIncludeTax && idsAreEqual(channel.defaultTaxZone?.id, zone.id);
 }
 
 /** The enabled countries the Channel ships to, by code. */
