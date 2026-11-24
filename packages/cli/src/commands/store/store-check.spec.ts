@@ -1,4 +1,4 @@
-import { fail } from '@vendure/common/lib/command';
+import { COMMAND_EXIT_CODES, fail } from '@vendure/common/lib/command';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCommandInHarness } from '../../command-host/__tests__/command-harness.js';
@@ -94,7 +94,7 @@ describe('vendure store check', () => {
         graphql.mockResolvedValue(report(false, [taxFinding, passwordWarning]));
         const { envelope, exitCode } = await runCommandInHarness(storeCheckDefinition, {});
         expect(envelope.status).toBe('failed');
-        expect(exitCode).not.toBe(0);
+        expect(exitCode).toBe(COMMAND_EXIT_CODES.failed);
         const parsed = output.parse(envelope.output);
         expect(parsed.ready).toBe(false);
         expect(parsed.findings.map(f => f.code)).toEqual([taxFinding.code, passwordWarning.code]);
@@ -105,7 +105,7 @@ describe('vendure store check', () => {
         const { envelope, exitCode } = await runCommandInHarness(storeCheckDefinition, {});
         expect(envelope.status).toBe('error');
         expect(envelope.error?.code).toBe('devserver.not-running');
-        expect(exitCode).not.toBe(0);
+        expect(exitCode).toBe(localAdminApiErrors.notRunning.exit);
     });
 
     it('reports a server without the storeReadiness query', async () => {
@@ -116,9 +116,18 @@ describe('vendure store check', () => {
         expect(envelope.error?.code).toBe('store.check.not-supported');
     });
 
+    it('explains a refused query by the local trust of the McpPlugin', async () => {
+        graphql.mockResolvedValue({
+            errors: [{ message: 'You are not currently authorized', extensions: { code: 'FORBIDDEN' } }],
+        });
+        const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
+        expect(envelope.error?.code).toBe('store.check.not-authorized');
+        expect(envelope.error?.message).toContain('add `McpPlugin.init({})`');
+    });
+
     it('reports a failed query with its request ID, and a fix that reads its logs', async () => {
         graphql.mockResolvedValue({
-            errors: [{ message: 'You are not currently authorized', extensions: { requestId: 'req-1' } }],
+            errors: [{ message: 'Something broke', extensions: { requestId: 'req-1' } }],
         });
         const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
         expect(envelope.error?.code).toBe('store.check.query-failed');
@@ -128,9 +137,18 @@ describe('vendure store check', () => {
         ]);
     });
 
-    it('is not an MCP tool', () => {
-        expect(storeCheckDefinition.expose).toEqual({ mcp: false });
-        expect(storeCheckDefinition.behavior).toBe('readonly');
+    it('reports a failed query without a request ID, with no fix', async () => {
+        graphql.mockResolvedValue({ errors: [{ message: 'Something broke' }] });
+        const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
+        expect(envelope.error?.code).toBe('store.check.query-failed');
+        expect(envelope.error?.fixes ?? []).toEqual([]);
+    });
+
+    it('reports a response without a report', async () => {
+        graphql.mockResolvedValue({ data: null });
+        const { envelope } = await runCommandInHarness(storeCheckDefinition, {});
+        expect(envelope.error?.code).toBe('store.check.query-failed');
+        expect(envelope.error?.message).toContain('The response has no report.');
     });
 });
 

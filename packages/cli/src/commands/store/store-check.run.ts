@@ -59,6 +59,11 @@ export async function run(_input: Record<string, never>, ctx: CommandContext) {
         if (error && /Cannot query field "storeReadiness"/.test(error.message)) {
             return fail(storeCheckErrors.notSupported, {});
         }
+        // Only the McpPlugin's local trust accepts the per-run secret. Without it, the request runs
+        // as an anonymous user, whom the query refuses.
+        if (error?.extensions?.code === 'FORBIDDEN') {
+            return fail(storeCheckErrors.notAuthorized, {});
+        }
         const requestId = error?.extensions?.requestId;
         return fail(storeCheckErrors.queryFailed, {
             message: error?.message ?? 'The response has no report.',

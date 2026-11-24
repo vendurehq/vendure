@@ -17,6 +17,7 @@ export const storeCheckDefinition = defineCommand({
         devServerErrors.projectNotFound,
         devServerErrors.stateFileUnavailable,
         ...localAdminApiErrorList,
+        storeCheckErrors.notAuthorized,
         storeCheckErrors.notSupported,
         storeCheckErrors.queryFailed,
     ],
