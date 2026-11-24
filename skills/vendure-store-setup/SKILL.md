@@ -17,17 +17,23 @@ shipping method, a payment method and a stock location.
 
 There are two ways to get it:
 
-- **A preset**, once, on an empty database. Presets are typical starting points.
+- **A preset**, once, on an empty database.
 - **The MCP admin tools** (or the Dashboard) for everything after that. A preset
   never changes a store that is already set up.
 
 ## Presets
 
-List them with `vendure seed`. Each preset sets the default channel's currency
-and languages and `pricesIncludeTax`, and creates every country, one zone used as
-the default tax and shipping zone, tax categories and rates, a `Flat rate`
-shipping method (5.00, to change), a `Test payment` method outside production
-(when `dummyPaymentHandler` is configured), and reuses the default stock location.
+List them with `vendure seed`. Each preset:
+
+- sets the default channel's currency, languages and `pricesIncludeTax`;
+- creates every country, enabled;
+- creates one zone, used as the default tax and shipping zone;
+- creates tax categories and their rates;
+- creates a `Flat rate` shipping method at 5.00 in the channel currency, which
+  the merchant sets with `admin_update_shipping_method`;
+- creates a `Test payment` method, outside production and only when
+  `dummyPaymentHandler` is configured;
+- reuses the default stock location.
 
 | Preset | Currency | Prices | Tax |
 | --- | --- | --- | --- |
@@ -42,9 +48,9 @@ shipping method (5.00, to change), a `Test payment` method outside production
 
 ### Applying a preset
 
-- New project: `@vendure/create --preset <name>` records the choice in
-  `.vendure/create.json`. The first `vendure dev` runs
-  `vendure seed --first-run`, which applies it to that database.
+- Recorded: `vendure seed --first-run` applies the preset and scenario that
+  `.vendure/create.json` records, once per database. It is safe to run on every
+  start: an already seeded database returns at once.
 - On demand: `vendure seed --preset <name> [--country XX] [--currency XXX]`.
 
 Rules that matter when something looks wrong:
@@ -54,8 +60,9 @@ Rules that matter when something looks wrong:
   channel, it fails with `core.preset-database-not-empty`. Never empty a database
   to make a preset run; change the store with the tools below.
 - Each database records what it was seeded with in the settings store
-  (`vendure.seed.preset`, `vendure.seed.scenario`, SuperAdmin only). Every
-  worktree and clone has its own database and is seeded once.
+  (`vendure.seed.preset`, `vendure.seed.scenario`, SuperAdmin only; read them with
+  `admin_get_setting`). So each database is seeded once, and checkouts that share
+  a database share the record.
 - `vendure seed --first-run --json` reports each step as `applied`,
   `already-applied`, `skipped` (with a reason) or `failed`. A database that was
   set up by hand is `skipped` and never written to. A failed scenario is retried
@@ -72,17 +79,17 @@ store taking an order, and each finding names the tool call that fixes it.
 | Currency, languages, prices include tax, default zones | `admin_get_channel`, `admin_update_channel` |
 | Countries | `admin_list_countries`, `admin_enable_countries` |
 | Zones | `admin_list_zones`, `admin_create_zone`, `admin_update_zone`, `admin_delete_zone` |
-| Tax categories | `admin_list_tax_categories`, `admin_create_tax_category`, `admin_update_tax_category` |
+| Tax categories | `admin_list_tax_categories`, `admin_create_tax_category`, `admin_update_tax_category`, `admin_delete_tax_category` |
 | Tax rates | `admin_list_tax_rates`, `admin_create_tax_rate`, `admin_update_tax_rate`, `admin_delete_tax_rate` |
-| Shipping | `admin_list_shipping_methods`, `admin_create_shipping_method`, `admin_update_shipping_method` |
-| Payment | `admin_list_payment_methods`, `admin_create_payment_method`, `admin_update_payment_method` |
-| Stock locations | `admin_list_stock_locations`, `admin_create_stock_location`, `admin_update_stock_location` |
+| Shipping | `admin_list_shipping_methods`, `admin_create_shipping_method`, `admin_update_shipping_method`, `admin_delete_shipping_method` |
+| Payment | `admin_list_payment_methods`, `admin_create_payment_method`, `admin_update_payment_method`, `admin_delete_payment_method` |
+| Stock locations | `admin_list_stock_locations`, `admin_create_stock_location`, `admin_update_stock_location`, `admin_delete_stock_location` |
 
 A tax rate targets either a country (`target: {countryCode}`) or a zone
 (`target: {zoneId}`). For a buyer's country, a country rate wins over a zone
 rate. In a store whose prices include tax, the default tax zone needs a zone
-rate per tax category: it is the rate the entered prices include, and the store
-check reports `store.tax.inclusive-rate-unknown` without it.
+rate per tax category: it is the rate the entered prices include, and
+`admin_check_store` reports a tax-inclusive channel whose default zone lacks one.
 
 ## Regional guidance
 
@@ -103,7 +110,9 @@ accountant or tax authority.
   preset's 0 rate only lets orders calculate until then. Prices exclude tax.
 - **AU GST.** Prices include GST at 10. GST-free goods (most basic food, some
   health and education) use the zero category.
-- **CA GST and PST/HST.** GST is federal (5); PST, QST or HST depend on the
-  province and add up. Provinces and additive rates are not yet available in
-  Vendure 4.0, so use `single-country --country CA --currency CAD` and a tax
-  provider, or one rate per category as an interim measure.
+- **CA GST, PST, QST and HST.** GST is 5. Some provinces add PST or QST on top
+  of GST. Others charge HST, which replaces both. In Vendure 4.0 a tax rate can
+  target a country or a zone, not a province, and one tax category gives one rate
+  per address, so use a tax provider. Start from
+  `single-country --country CA --currency CAD`, then set `pricesIncludeTax` to
+  false with `admin_update_channel`: Canadian prices are shown before tax.
