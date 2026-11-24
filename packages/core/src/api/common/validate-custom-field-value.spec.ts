@@ -310,5 +310,40 @@ describe('validateCustomFieldValue()', () => {
             await expect(validate({ code: '123' })()).resolves.toBeUndefined();
             await assertThrowsError(validate({ code: 'abc' }), 'error.field-invalid-string-pattern');
         });
+
+        it('rejects null for a non-nullable struct', async () => {
+            await assertThrowsError(
+                () =>
+                    validateCustomFieldValue(
+                        {
+                            name: 'test',
+                            type: 'struct',
+                            nullable: false,
+                            fields: [{ name: 'code', type: 'string' }],
+                        },
+                        null,
+                        injector,
+                        ctx,
+                    ),
+                'error.field-invalid-non-nullable',
+            );
+        });
+
+        it('accepts null for a nullable list struct', async () => {
+            await expect(
+                validateCustomFieldValue(
+                    {
+                        name: 'test',
+                        type: 'struct',
+                        list: true,
+                        nullable: true,
+                        fields: [{ name: 'code', type: 'string' }],
+                    },
+                    null,
+                    injector,
+                    ctx,
+                ),
+            ).resolves.toBeUndefined();
+        });
     });
 });
