@@ -11,6 +11,23 @@ import type {
 
 /**
  * @description
+ * The shape of an error code: a namespace of lower-case letters, then one or more dot-separated
+ * parts of lower-case letters and digits, with single hyphens between words. For example
+ * `devserver.not-running` or `core.config.invalid-custom-fields`. `mergeManifests` refuses a
+ * manifest that declares any other code.
+ */
+export const ERROR_CODE_PATTERN = /^[a-z]+(\.[a-z0-9]+(-[a-z0-9]+)*)+$/;
+
+/**
+ * @description
+ * Whether a code has the shape of {@link ERROR_CODE_PATTERN}.
+ */
+export function isValidErrorCode(code: string): boolean {
+    return ERROR_CODE_PATTERN.test(code);
+}
+
+/**
+ * @description
  * Declares a command. It returns its argument, so a command is plain data that does not depend on
  * which copy of this package is loaded.
  */

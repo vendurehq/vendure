@@ -231,6 +231,7 @@ export const COMMAND_EXIT_CODES = {
  * A coded error, made with `defineError`.
  */
 export interface CommandErrorDefinition<Details = any> {
+    /** Must match {@link ERROR_CODE_PATTERN}, for example `devserver.not-running`. */
     code: string;
     exit: number;
     message: (details: Details) => string;

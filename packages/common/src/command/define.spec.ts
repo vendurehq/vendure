@@ -10,6 +10,7 @@ import {
     isErrorResult,
     isFailedResult,
     isIncompleteResult,
+    isValidErrorCode,
 } from './define';
 
 describe('command contract helpers', () => {
@@ -49,6 +50,35 @@ describe('command contract helpers', () => {
         expect(isIncompleteResult(failed({}))).toBe(false);
         expect(isFailedResult({ status: 'failed' })).toBe(false);
         expect(isFailedResult(null)).toBe(false);
+    });
+});
+
+describe('isValidErrorCode', () => {
+    it('accepts a namespace followed by dot-separated kebab-case parts', () => {
+        const codes = [
+            'devserver.not-running',
+            'core.config.invalid-custom-fields',
+            'cli.dev.port-in-use',
+            'api.v2',
+            'cli.ts-2322',
+        ];
+        expect(codes.filter(code => !isValidErrorCode(code))).toEqual([]);
+    });
+
+    it('refuses a code without a namespace, with upper case, underscores, empty parts or stray hyphens', () => {
+        const codes = [
+            'not-running',
+            'Devserver.not-running',
+            'auth.token_expired',
+            'core..x',
+            'core.',
+            '1core.x',
+            'core.-x',
+            'core.x-',
+            'core.a--b',
+            'core.x.-',
+        ];
+        expect(codes.filter(code => isValidErrorCode(code))).toEqual([]);
     });
 });
 

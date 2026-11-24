@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import { isValidErrorCode } from '../define';
 import { CommandBehavior, JsonSchema } from '../types';
 
 /** The name of the manifest file a package ships. */
@@ -58,8 +59,9 @@ export function readManifestFile(file: string): CommandManifest {
 
 /**
  * Merges the manifests of the packages in a project. It refuses a command path that two packages
- * declare, a path that starts with a reserved word, a field that uses a reserved name, and two
- * fields of one command that share a short flag.
+ * declare, a path that starts with a reserved word, a field that uses a reserved name, two
+ * fields of one command that share a short flag, and an error code that is not
+ * `<namespace>.<kebab-name>`.
  */
 export function mergeManifests(manifests: CommandManifest[]): MergedManifestCommand[] {
     const merged: MergedManifestCommand[] = [];
@@ -88,6 +90,12 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
                 );
             }
             seen.set(key, manifest.package);
+            const badCode = (command.errors ?? []).find(error => !isValidErrorCode(error.code));
+            if (badCode) {
+                throw new Error(
+                    `${manifest.package} declares the command ${label} with the error code "${badCode.code}", which is not <namespace>.<kebab-name>`,
+                );
+            }
             const properties = Object.keys((command.input.properties as object | undefined) ?? {});
             for (const name of properties) {
                 if (RESERVED_FIELD_NAMES.includes(name)) {

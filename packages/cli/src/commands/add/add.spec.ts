@@ -186,7 +186,7 @@ describe('addCommand()', () => {
         vi.mocked(select).mockResolvedValueOnce('add-entity');
         vi.mocked(runCoreCommand).mockResolvedValueOnce({
             exitCode: 130,
-            envelope: { status: 'error', error: { code: 'cancelled' } },
+            envelope: { status: 'error', error: { code: 'cli.cancelled' } },
         } as any);
 
         await expect(addCommand({})).resolves.toBe(0);
