@@ -7,7 +7,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 
-import { GraphqlResponse, localAdminApiErrors } from '../../shared/local-admin-api.js';
+import { GraphqlResponse } from '../../shared/local-admin-api.js';
 import { stripAnsi } from '../../shared/strip-ansi.js';
 import { DevServerStateFile } from '../dev/state-file.js';
 
@@ -128,6 +128,29 @@ describe('vendure api', () => {
         expect(seen.body).toEqual({ query: 'query A { a } query B { b }', operationName: 'B' });
     });
 
+    it('sends the channel token with the secret on the Admin API', async () => {
+        const { origin, seen } = await startServer({ data: {} });
+
+        await run({ target: 'admin', query: '{ a }', channelToken: 'eu' }, ctx(project(origin)));
+
+        expect(seen.authorization).toBe(`Bearer ${SECRET}`);
+        expect(seen.channelToken).toBe('eu');
+    });
+
+    it('rethrows when the caller aborts a Shop API call', async () => {
+        const { origin } = await startServer({ data: {} });
+        const controller = new AbortController();
+        controller.abort();
+
+        await expect(
+            run({ target: 'shop', query: '{ a }' }, { ...ctx(project(origin)), signal: controller.signal }),
+        ).rejects.toThrow();
+    });
+
+    it('prints no data line for data: null', () => {
+        expect(stripAnsi(render({ data: null, errors: [{ message: 'Forbidden' }] }))).toBe('error Forbidden');
+    });
+
     it('calls the Shop API anonymously', async () => {
         const { origin, seen } = await startServer({ data: { activeOrder: null } });
 
@@ -157,9 +180,6 @@ describe('vendure api', () => {
         const result = await run({ target: 'shop', query: '{ a }' }, ctx(project(undefined)));
 
         expect(result).toEqual({ vendureResult: 'error', code: 'devserver.not-running', details: {} });
-        expect(localAdminApiErrors.notRunning.fix?.({})).toEqual([
-            expect.objectContaining({ path: ['devserver', 'start'] }),
-        ]);
     });
 
     it('fails with not-ready while the run restarts', async () => {

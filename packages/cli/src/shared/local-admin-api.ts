@@ -52,7 +52,7 @@ export const localAdminApiErrors = {
         message: ({ endpoint }) =>
             endpoint === 'mcp-admin'
                 ? 'The vendure dev run has not reported an MCP admin endpoint. The McpPlugin may not be installed.'
-                : `The vendure dev run has not reported the URL of its ${endpoint === 'shop-api' ? 'Shop' : 'Admin'} API.`,
+                : `The vendure dev run has not reported the URL of its ${apiName(endpoint)}.`,
         fix: () => [
             {
                 path: ['devserver', 'status'],
@@ -88,6 +88,10 @@ export const localAdminApiErrors = {
         ],
     }),
 };
+
+function apiName(endpoint: LocalAdminEndpoint | 'shop-api'): string {
+    return endpoint === 'shop-api' ? 'Shop API' : 'Admin API';
+}
 
 /** Every error in {@link localAdminApiErrors}, for a command's `errors`. */
 export const localAdminApiErrorList = Object.values(localAdminApiErrors);
@@ -156,7 +160,10 @@ function readReadyState(projectDir: string): DevServerState | ErrorResult {
 
 export interface LocalAdminRequestOptions {
     signal?: AbortSignal;
-    /** Extra headers, such as `vendure-token`. The helper always sets `Authorization` and `Content-Type`. */
+    /**
+     * Extra headers, such as `vendure-token`. The helper always sets `Content-Type`, and sets
+     * `Authorization` on the calls that carry the per-run secret.
+     */
     headers?: Record<string, string>;
     /** @default globalThis.fetch */
     fetch?: typeof fetch;
@@ -182,22 +189,34 @@ export async function sendLocalAdminRequest(
         return target;
     }
     const headers = new Headers(options.headers);
-    if (!headers.has('accept')) {
+    headers.set('authorization', `Bearer ${target.secret}`);
+    return postJson(target.url, body, headers, {
+        ...options,
         // Streamable HTTP MCP answers with JSON or an event stream, and needs both accepted.
-        headers.set(
-            'accept',
-            endpoint === 'mcp-admin' ? 'application/json, text/event-stream' : 'application/json',
-        );
+        accept: endpoint === 'mcp-admin' ? 'application/json, text/event-stream' : 'application/json',
+    });
+}
+
+/**
+ * POSTs a JSON body, and maps a connection that fails to `devserver.unreachable`. A request the
+ * caller aborted rethrows. Redirects are refused, so a credential in `headers` stays with `url`.
+ */
+async function postJson(
+    url: string,
+    body: unknown,
+    headers: Headers,
+    options: LocalAdminRequestOptions & { accept: string },
+): Promise<Response | ErrorResult> {
+    if (!headers.has('accept')) {
+        headers.set('accept', options.accept);
     }
     headers.set('content-type', 'application/json');
-    headers.set('authorization', `Bearer ${target.secret}`);
     const doFetch = options.fetch ?? globalThis.fetch;
     try {
-        return await doFetch(target.url, {
+        return await doFetch(url, {
             method: 'POST',
             headers,
             body: JSON.stringify(body),
-            // A redirect could carry the credential to another URL.
             redirect: 'error',
             signal: options.signal,
         });
@@ -205,7 +224,7 @@ export async function sendLocalAdminRequest(
         if (options.signal?.aborted) {
             throw e;
         }
-        return fail(localAdminApiErrors.unreachable, { url: target.url, message: describeFetchError(e) });
+        return fail(localAdminApiErrors.unreachable, { url, message: describeFetchError(e) });
     }
 }
 
@@ -247,23 +266,12 @@ export async function localShopGraphql<Data = Record<string, unknown>>(
     if (isErrorResult(url)) {
         return url;
     }
-    const headers = new Headers(options.headers);
-    headers.set('accept', 'application/json');
-    headers.set('content-type', 'application/json');
-    const doFetch = options.fetch ?? globalThis.fetch;
-    let response: Response;
-    try {
-        response = await doFetch(url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(operation),
-            signal: options.signal,
-        });
-    } catch (e: unknown) {
-        if (options.signal?.aborted) {
-            throw e;
-        }
-        return fail(localAdminApiErrors.unreachable, { url, message: describeFetchError(e) });
+    const response = await postJson(url, operation, new Headers(options.headers), {
+        ...options,
+        accept: 'application/json',
+    });
+    if (isErrorResult(response)) {
+        return response;
     }
     return readResponse<Data>(response, url, options.signal);
 }

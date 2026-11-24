@@ -68,7 +68,7 @@ function parseVariables(text: string | undefined): Record<string, unknown> | und
 
 export function render(output: GraphqlResponse): string {
     const lines: string[] = [];
-    if (output.data !== undefined) {
+    if (output.data !== undefined && output.data !== null) {
         lines.push(JSON.stringify(output.data, null, 2));
     }
     for (const error of output.errors ?? []) {

@@ -168,7 +168,8 @@ npx vendure api shop 'query ($id: ID!) { product(id: $id) { name } }' --variable
 ```
 
 `--operation-name` picks one operation from a document that holds several, and `--channel-token` sends the
-`vendure-token` header for another channel.
+`vendure-token` header for another channel. A project that sets `apiOptions.channelTokenKey` to another header
+name ignores `--channel-token`.
 
 | Command | Description |
 | --- | --- |
