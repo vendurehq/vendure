@@ -35,8 +35,9 @@ belongs to more than one organization, the CLI then asks which one to use.
 
 A person is at the terminal when stdin and stdout are both TTYs, the run is not
 under `--json` or `vendure mcp`, and neither `CI` nor
-`VENDURE_CLI_NON_INTERACTIVE` is set to a true value. Every command uses this
-rule.
+`VENDURE_CLI_NON_INTERACTIVE` is set to a true value. The command host
+(every command declared with `defineCommand`), `vendure auth login` and
+`vendure console link` use this rule to decide whether to ask or sign in.
 
 ## Signing in without a terminal
 
@@ -93,11 +94,19 @@ person's approval between them:
     `--timeout` it waits for the rest of the code lifetime, or 30 seconds as an
     MCP tool.
 
+Without a terminal nobody is asked which organization to use. The login keeps
+the organization chosen in the browser, and `auth wait` adds a notice when the
+person belongs to several. To choose one, pass `--organization` to
+`vendure auth login --json`: it is saved in `auth-pending.json` and applied
+when `auth wait` finishes the login.
+
 Over `vendure mcp` the two commands are the tools `auth_login` and `auth_wait`.
 
 Only one `auth wait` polls at a time, under `auth-pending.lock`. Another one
 waits for it, up to its own `--timeout`, and then reports the same outcome: the
-login, a denial, an expired code or a failure. When its timeout passes first,
+login, a denial, an expired code, or a failure after the code was approved. A
+failure before approval, such as a network error, ends nothing, and the queued
+wait then polls the code itself. When its timeout passes first,
 it returns the pending login. The outcome is kept in
 `auth-pending-outcome.json`, which records the device code by its hash.
 
@@ -127,8 +136,9 @@ A renewal that cannot finish, for example without a network, does not fall
 through to `VENDURE_CLOUD_TOKEN`: the command fails with
 `auth.credential-failed`, and the stored login is kept.
 
-Without a credential, no command starts a device flow. Under `--json` it
-returns an `incomplete` result with exit code 3 and one `input` need:
+Without a credential and without a person at the terminal, no command starts a
+device flow. It returns an `incomplete` result with exit code 3 and one `input`
+need:
 
 ```json
 {
@@ -206,7 +216,13 @@ import {
 ```
 
 - `loginWithDevice(options)` signs in and stores the login. It is
-  `startDeviceLogin` followed by `completeDeviceLogin`.
+  `startDeviceLogin`, then `onDeviceAuthorization(device)`, then
+  `completeDeviceLogin`. Pass `onDeviceAuthorization` to show the person
+  `device.verificationUriComplete` and `device.userCode`: without it, nobody
+  sees the code. `organization` (an Account identifier or a name) scopes the
+  session to that organization. Without it, `chooseOrganization(organizations,
+current)` is called when the person belongs to several, and resolves to the
+  one to use, or `undefined` to keep the browser's choice.
 - `startDeviceLogin(options)` returns the code to approve without waiting.
   `completeDeviceLogin(login, options)` waits for approval, scopes the session
   to the organization, and stores it. Its `until` option stops waiting at a
@@ -216,8 +232,36 @@ import {
   when it is about to expire. Send it as `Authorization: Bearer <token>`. When
   the server still answers 401, call `refreshAccessToken(failedToken)` and
   retry once.
-- `requireCredential({ mayPrompt, signIn? })` applies the order above and
-  returns `{ source, token }` or the `incomplete` result.
+- `readAuthStatus()` describes the stored login without tokens, and makes no
+  request. `checkAuthStatus()` does the same after renewing the login, so it
+  reports a login the authentication service no longer renews, and removes a
+  login whose refresh token it refused.
+- `listOrganizations()` lists the Console organizations the signed-in person
+  is an active member of.
+- `logout()` asks Console to end the session, then removes the login. Ending the
+  session is best effort, and the result says whether it happened.
+- `requireCredential({ mayPrompt, signIn?, organization? })` applies the order
+  above and returns `{ source, token }` or the `incomplete` result. With
+  `organization`, a stored login scoped to another organization is skipped.
+
+## Project-link sessions for plugins
+
+A CLI plugin that sets up something after `vendure console link` registers an
+`afterConsoleLink` hook. With `requiresSession: true`, the hook's context has
+`session`: the stored login's access token and its expiry, without the refresh
+token, which stays in the login because it is single-use. Do not store the
+token. Call `getAccessToken()` with `VENDURE_CONSOLE_API_URL` set to
+`context.endpoints.apiUrl` each time a token is needed, so the CLI renews it.
+
+When the hook gets no session, `context.sessionUnavailable` says why:
+
+- `not-signed-in`: no login for the linked account is stored, and this run
+  does not sign in.
+- `account-inaccessible`: the signed-in person is not a member of the linked
+  account. Do not fall back to `getAccessToken()`.
+- `sign-in-failed`: the sign-in failed, and the CLI has said why.
+- `environment-credential`: the run uses `VENDURE_CLOUD_TOKEN`, which is never
+  given to a hook. Do not fall back to `getAccessToken()`.
 
 ### Deprecated: the PKCE browser login
 

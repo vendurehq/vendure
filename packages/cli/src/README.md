@@ -431,7 +431,7 @@ Keep the lazy `import()` inside the action so heavy command modules are not load
 
 For how the CLI signs in, the credential rule, `VENDURE_CLOUD_TOKEN` and the login API, see
 [Console authentication](../CONSOLE_AUTH.md). Import these operations from `@vendure/cli`.
-Project-link setup continues to use `afterConsoleLink`.
+Project-link setup uses `afterConsoleLink`.
 
 External packages add commands, add to existing ones, or replace them by
 exporting a CLI plugin with `defineCliPlugin`.
