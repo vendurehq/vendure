@@ -98,7 +98,6 @@ export const devConfig: VendureConfig = {
     dbConnectionOptions: {
         synchronize: false,
         logging: false,
-        migrations: [path.join(__dirname, 'migrations/*.ts')],
         ...getDbConfig(),
     },
     paymentOptions: {
@@ -200,6 +199,9 @@ function getDbConfig(): DataSourceOptions {
             console.log('Using mysql connection');
             return {
                 synchronize: true,
+                // The files in ./migrations are generated for MySQL/MariaDB and use its syntax.
+                // The other database types are created with `synchronize`, so they load none.
+                migrations: [path.join(__dirname, 'migrations/*.ts')],
                 type: 'mariadb',
                 host: '127.0.0.1',
                 port: 3306,
