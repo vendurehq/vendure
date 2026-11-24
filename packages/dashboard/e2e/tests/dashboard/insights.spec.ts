@@ -59,6 +59,13 @@ test.describe('Setup checklist', () => {
         });
     }
 
+    const storeReadinessResponse = (page: Page) =>
+        page.waitForResponse(
+            response =>
+                response.url().includes('admin-api') &&
+                (response.request().postData() ?? '').includes('StoreReadinessForSetupChecklist'),
+        );
+
     test('lists the findings, keeps an error until the next visit, and reopens from the user menu', async ({
         page,
     }) => {
@@ -91,8 +98,17 @@ test.describe('Setup checklist', () => {
         // With an error, the button hides the card for this visit only.
         await checklist.getByRole('button', { name: 'Hide for now' }).click();
         await expect(checklist).toBeHidden();
+        // Hidden for the session, the card does not even run the check.
+        let queried = false;
+        page.on('request', request => {
+            if ((request.postData() ?? '').includes('StoreReadinessForSetupChecklist')) {
+                queried = true;
+            }
+        });
         await page.reload();
         await expect(page.getByTestId('page-heading')).toBeVisible();
+        await page.waitForLoadState('networkidle');
+        expect(queried).toBe(false);
         await expect(checklist).toBeHidden();
 
         await page.locator('[data-sidebar="footer"] [data-sidebar="menu-button"]').click();
@@ -105,7 +121,9 @@ test.describe('Setup checklist', () => {
         await mockStoreReadiness(page, {
             errors: [{ message: 'Cannot query field "storeReadiness" on type "Query".' }],
         });
+        const answered = storeReadinessResponse(page);
         await page.goto('/');
+        await answered;
         await expect(page.getByTestId('page-heading')).toBeVisible();
         await expect(page.getByTestId('setup-checklist')).toBeHidden();
 
@@ -119,8 +137,13 @@ test.describe('Setup checklist', () => {
     test('shows the report of the server when opened', async ({ page }) => {
         await page.goto('/?setup=true');
         const checklist = page.getByTestId('setup-checklist');
-        await expect(checklist).toBeVisible();
+        // The e2e server has findings (at least the default superadmin password), or none.
+        await expect(
+            checklist
+                .getByTestId('setup-checklist-item')
+                .first()
+                .or(checklist.getByText('No setup gaps found.')),
+        ).toBeVisible();
         await expect(checklist).not.toContainText('This server cannot check the store setup.');
-        await expect(checklist).not.toContainText('Checking the store setup');
     });
 });

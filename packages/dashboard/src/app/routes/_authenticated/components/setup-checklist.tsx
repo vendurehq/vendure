@@ -35,83 +35,115 @@ export const storeReadinessDocument = graphql(`
     }
 `);
 
-type Finding = ResultOf<typeof storeReadinessDocument>['storeReadiness']['findings'][number];
+type Report = ResultOf<typeof storeReadinessDocument>['storeReadiness'];
+type Finding = Report['findings'][number];
 
-/** Set for the browser session when the card is hidden while an error remains. */
-const HIDDEN_FOR_SESSION_KEY = 'vendure-setup-checklist-hidden';
+/**
+ * How long a report without errors stays fresh. The check is not cheap: it prices a sample order
+ * per zone. A report with errors is checked again on every visit, so a fix shows at once.
+ */
+const READY_REPORT_STALE_MS = 10 * 60_000;
 
-function isHiddenForSession(): boolean {
+/** The session flag set when the card is hidden while an error remains, per Channel. */
+function hiddenForSessionKey(channelId: string) {
+    return `vendure-setup-checklist-hidden:${channelId}`;
+}
+
+function isHiddenForSession(channelId: string | undefined): boolean {
+    if (!channelId) {
+        return false;
+    }
     try {
-        return sessionStorage.getItem(HIDDEN_FOR_SESSION_KEY) === 'true';
+        return sessionStorage.getItem(hiddenForSessionKey(channelId)) === 'true';
     } catch {
         return false;
     }
 }
 
-function hideForSession() {
+function hideForSession(channelId: string) {
     try {
-        sessionStorage.setItem(HIDDEN_FOR_SESSION_KEY, 'true');
+        sessionStorage.setItem(hiddenForSessionKey(channelId), 'true');
     } catch {
         // Storage can be unavailable, for example in a private window. The card then shows again
-        // on the next render that remounts it.
+        // the next time the home page mounts.
     }
 }
 
-export interface SetupChecklistProps {
-    /** Show the card even when it was dismissed or has nothing to report, as the "Setup" menu item does. */
-    open?: boolean;
-    /** Called when the person closes a card that `open` showed. */
-    onClose?: () => void;
+export interface SetupChecklistState {
+    /** Whether the home page shows the card. */
+    visible: boolean;
+    report: Report | undefined;
+    isPending: boolean;
+    /** The query failed, for example on a server without the `storeReadiness` query. */
+    isError: boolean;
+    dismiss: () => void;
 }
 
 /**
  * @description
- * Lists what stops the active Channel from taking an order, from the Admin API `storeReadiness`
- * query, with a link to the page that fixes each finding.
+ * The state of the store setup checklist for the active Channel, from the Admin API
+ * `storeReadiness` query.
  *
- * It shows on its own until the person dismisses it. "Dismiss" sets `hasSeenOnboarding`, which
- * hides a card with only warnings for good. While an error remains, the card shows again on the
- * next visit, so a store that cannot take orders does not go unnoticed. A server without the
- * `storeReadiness` query, or a person without `ReadSettings`, gets no card.
+ * The card shows on its own while the report has findings and `hasSeenOnboarding` is false.
+ * Dismissing it sets `hasSeenOnboarding`, which belongs to the administrator, not to a Channel, so
+ * a dismissed card with only warnings stays hidden on every Channel. While a Channel's report has
+ * an error, the card shows anyway, and dismissing it hides it for that Channel until the browser
+ * session ends. With `open`, as from the "Setup" item of the user menu, it always shows.
+ *
+ * A person without `ReadSettings`, which the query needs, gets no card. Neither does a server
+ * without the `storeReadiness` query, unless the card is opened on purpose.
  */
-export function SetupChecklist({ open = false, onClose }: Readonly<SetupChecklistProps>) {
+export function useSetupChecklist(open: boolean, onClose?: () => void): SetupChecklistState {
     const { activeChannel } = useChannel();
     const { hasPermissions } = usePermissions();
     const { settings, setHasSeenOnboarding } = useUserSettings();
-    const [hiddenForSession, setHiddenForSession] = useState(isHiddenForSession);
+    const channelId = activeChannel?.id;
+    const [hiddenChannels, setHiddenChannels] = useState<string[]>([]);
+    const hiddenForSession = channelId
+        ? hiddenChannels.includes(channelId) || isHiddenForSession(channelId)
+        : false;
     const canRead = hasPermissions(['ReadSettings']);
 
     const { data, isError, isPending } = useQuery({
-        queryKey: ['storeReadiness', activeChannel?.id],
-        queryFn: () => api.query(storeReadinessDocument, { channelIds: [activeChannel!.id] }),
-        enabled: canRead && !!activeChannel,
+        queryKey: ['storeReadiness', channelId],
+        queryFn: () => api.query(storeReadinessDocument, { channelIds: [channelId!] }),
+        // Hidden for the session, the card cannot show until the session ends, so there is no need
+        // to run the check.
+        enabled: canRead && !!channelId && (open || !hiddenForSession),
         // A server without the query answers with a validation error. Retrying does not help.
         retry: false,
-        staleTime: 60_000,
+        staleTime: query => (query.state.data?.storeReadiness.ready === false ? 0 : READY_REPORT_STALE_MS),
+        // Never show the report of the Channel that was active before.
+        placeholderData: undefined,
     });
 
-    if (!canRead || (isPending && !open)) {
-        return null;
-    }
-    const findings = data?.storeReadiness.findings ?? [];
-    const errors = findings.filter(finding => finding.severity === 'ERROR');
+    const report = data?.storeReadiness;
+    const hasFindings = !!report && report.findings.length > 0;
     const shownByItself =
-        !isError &&
-        findings.length > 0 &&
-        !hiddenForSession &&
-        (!settings.hasSeenOnboarding || errors.length > 0);
-    if (!open && !shownByItself) {
-        return null;
-    }
+        !!report && hasFindings && !hiddenForSession && (!settings.hasSeenOnboarding || !report.ready);
+    const visible = canRead && !!channelId && (open || shownByItself);
 
     const dismiss = () => {
         setHasSeenOnboarding(true);
-        if (errors.length > 0) {
-            hideForSession();
-            setHiddenForSession(true);
+        if (channelId && report && !report.ready) {
+            hideForSession(channelId);
+            setHiddenChannels(channels => [...channels, channelId]);
         }
         onClose?.();
     };
+
+    return { visible, report, isPending, isError, dismiss };
+}
+
+/**
+ * @description
+ * Lists what stops the active Channel from taking an order, with a link to the page that fixes each
+ * finding. The home page renders it when {@link useSetupChecklist} says that it is visible.
+ */
+export function SetupChecklist({ state }: Readonly<{ state: SetupChecklistState }>) {
+    const { report, isPending, isError, dismiss } = state;
+    const findings = report?.findings ?? [];
+    const hasErrors = report?.ready === false;
 
     return (
         <Card data-testid="setup-checklist">
@@ -122,9 +154,9 @@ export function SetupChecklist({ open = false, onClose }: Readonly<SetupChecklis
                 <CardDescription>
                     {isError ? (
                         <Trans>This server cannot check the store setup.</Trans>
-                    ) : isPending ? (
+                    ) : isPending || !report ? (
                         <Trans>Checking the store setup…</Trans>
-                    ) : errors.length > 0 ? (
+                    ) : hasErrors ? (
                         <Trans>Fix these before this channel can take orders.</Trans>
                     ) : findings.length > 0 ? (
                         <Trans>This channel can take orders. These items are worth a look.</Trans>
@@ -139,11 +171,11 @@ export function SetupChecklist({ open = false, onClose }: Readonly<SetupChecklis
                         onClick={dismiss}
                         data-testid="setup-checklist-dismiss"
                     >
-                        {errors.length > 0 ? <Trans>Hide for now</Trans> : <Trans>Dismiss</Trans>}
+                        {hasErrors ? <Trans>Hide for now</Trans> : <Trans>Dismiss</Trans>}
                     </Button>
                 </CardAction>
             </CardHeader>
-            {findings.length > 0 || (!isError && !isPending) ? (
+            {report ? (
                 <CardContent>
                     {findings.length > 0 ? (
                         <ul className="flex flex-col gap-3">

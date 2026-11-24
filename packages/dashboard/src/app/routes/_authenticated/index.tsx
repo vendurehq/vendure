@@ -47,7 +47,7 @@ import { useLingui as useLinguiRuntime } from '@lingui/react';
 import { z } from '@/vdb/lib/zod.js';
 import { PlusIcon, RefreshCw, Sparkles, SquarePen, XIcon } from 'lucide-react';
 
-import { SetupChecklist } from './components/setup-checklist.js';
+import { SetupChecklist, useSetupChecklist } from './components/setup-checklist.js';
 
 export const Route = createFileRoute('/_authenticated/')({
     // `?setup=true` opens the setup checklist, as the "Setup" item of the user menu does.
@@ -79,6 +79,7 @@ const applyGridLayouts = (
 function DashboardPage() {
     const search = Route.useSearch();
     const navigate = Route.useNavigate();
+    const setupChecklist = useSetupChecklist(search.setup === true, () => navigate({ to: '/', search: {} }));
     const [widgets, setWidgets] = useState<DashboardWidgetInstance[]>([]);
     // Hidden widgets keep their layout so re-adding restores position/size.
     const [hiddenWidgets, setHiddenWidgets] = useState<DashboardWidgetInstance[]>([]);
@@ -455,12 +456,11 @@ function DashboardPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                <FullWidthPageBlock blockId="setup-checklist">
-                    <SetupChecklist
-                        open={search.setup === true}
-                        onClose={() => navigate({ to: '/', search: {} })}
-                    />
-                </FullWidthPageBlock>
+                {setupChecklist.visible && (
+                    <FullWidthPageBlock blockId="setup-checklist">
+                        <SetupChecklist state={setupChecklist} />
+                    </FullWidthPageBlock>
+                )}
                 <FullWidthPageBlock blockId="widgets">
                     <div className="w-full">
                         {!isInitialized ? null : widgets.length > 0 ? (
