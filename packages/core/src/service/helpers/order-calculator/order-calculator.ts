@@ -234,7 +234,9 @@ export class OrderCalculator {
      * tax Zone or country turns a tax-inclusive price into a net price, or back. The net price is
      * taken out at the rate that the Channel's prices include, as
      * {@link DefaultProductVariantPriceCalculationStrategy} does. A gross price which nets out to
-     * the recorded net price is unchanged, so rounding does not count as a price change.
+     * the recorded net price is unchanged, so rounding does not count as a price change. When the
+     * merchant has changed the price, converting a net price back to gross can differ from the
+     * gross price the line was added at by one unit of rounding.
      *
      * A custom {@link ProductVariantPriceCalculationStrategy} that takes the net out at another
      * rate makes the converted price differ from the new one, so the

@@ -11,8 +11,9 @@ import { Zone } from '../../../entity/zone/zone.entity';
  * An empty string counts as no country.
  *
  * This is internal so that a strategy cannot call it for the default and recurse into itself.
- * The result is not cached: a strategy can read data that changes outside the Order mutations,
- * such as the customer's groups, and a strategy with expensive work caches it itself.
+ * The result is not cached on the request, so a strategy with expensive work caches it itself.
+ * The active tax Zone it receives is cached per Order, and cleared when the Order's addresses or
+ * Customer change.
  */
 export async function resolveTaxCountryCode(
     strategy: TaxZoneStrategy,

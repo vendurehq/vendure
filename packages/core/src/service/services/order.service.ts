@@ -2608,6 +2608,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (!fullOrder.lines.length) {
             return order;
         }
+        // The tax Zone can depend on the Customer, as for a B2B reverse charge
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
     }
 

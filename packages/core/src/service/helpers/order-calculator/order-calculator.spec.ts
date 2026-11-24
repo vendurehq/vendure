@@ -146,6 +146,57 @@ describe('OrderCalculator', () => {
             expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(true);
         });
 
+        describe('convertInitialListPrice()', () => {
+            // The default Zone's standard rate is 20%: 9.99 gross is 8.33 net (8.325 rounded).
+            function lineAddedAt(initialListPrice: number, listPriceIncludesTax: boolean) {
+                const ctx = createRequestContext({ pricesIncludeTax: true });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: initialListPrice, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                const line = order.lines[0];
+                line.initialListPrice = initialListPrice;
+                line.listPriceIncludesTax = listPriceIncludesTax;
+                return { ctx, line };
+            }
+
+            it('converts a gross price to net', async () => {
+                const { ctx, line } = lineAddedAt(999, true);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 833,
+                    priceIncludesTax: false,
+                });
+                expect(line.initialListPrice).toBe(833);
+            });
+
+            it('converts an unchanged net price back to the exact gross price', async () => {
+                const { ctx, line } = lineAddedAt(833, false);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 999,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(999);
+            });
+
+            it('converts a net price to gross when the price changed, within one unit', async () => {
+                const { ctx, line } = lineAddedAt(833, false);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 1200,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(1000);
+            });
+
+            it('leaves a price in the same form unchanged', async () => {
+                const { ctx, line } = lineAddedAt(999, true);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 1200,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(999);
+            });
+        });
+
         describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
             const defaultTaxOptions = () => ({
                 taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
