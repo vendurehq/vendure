@@ -13,6 +13,8 @@ import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
 import { In, IsNull } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
+import { CacheKey } from '../../../common/constants';
 import { isGraphQlErrorResult, JustErrorResults } from '../../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../../common/error/errors';
 import {
@@ -135,6 +137,7 @@ export class OrderModifier {
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
         private channelService: ChannelService,
+        private requestCache: RequestContextCacheService,
     ) {}
 
     /**
@@ -647,6 +650,12 @@ export class OrderModifier {
             modification.billingAddressChange = input.updateBillingAddress;
         }
 
+        if (input.updateShippingAddress || input.updateBillingAddress) {
+            // The lines added above were priced with the tax Zone of the old addresses
+            this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+            this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
+        }
+
         if (input.couponCodes) {
             const canonicalCouponCodes: string[] = [];
             for (const couponCode of input.couponCodes) {
@@ -711,8 +720,13 @@ export class OrderModifier {
             }
             shippingMethodsSet = result;
         }
+        // In a Channel whose prices include tax, the net price of a line depends on the tax Zone and
+        // country, so when an address change moves either, every OrderLine is priced again.
+        const linesToPrice = (await this.orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order))
+            ? order.lines
+            : updatedOrderLines;
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
-        for (const orderLine of updatedOrderLines) {
+        for (const orderLine of linesToPrice) {
             const variant = await this.productVariantService.applyChannelPriceAndTax(
                 orderLine.productVariant,
                 ctx,

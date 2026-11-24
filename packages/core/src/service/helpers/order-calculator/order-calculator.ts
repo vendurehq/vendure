@@ -8,6 +8,7 @@ import { RequestContextCacheService } from '../../../cache/request-context-cache
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
+import { roundMoney } from '../../../common/round-money';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { ShippingCalculationResult } from '../../../config/shipping-method/shipping-calculator';
@@ -186,8 +187,10 @@ export class OrderCalculator {
     ): Promise<{ zone: Zone; countryCode: string | undefined }> {
         const { taxZoneStrategy } = this.configService.taxOptions;
         const zones = await this.zoneService.getAllWithMembers(ctx);
-        const zone = await this.requestContextCache.get(ctx, CacheKey.ActiveTaxZone(ctx.channelId), () =>
-            taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
+        const zone = await this.requestContextCache.get(
+            ctx,
+            CacheKey.ActiveTaxZone(ctx.channelId, order.id),
+            () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
         );
         if (!zone) {
             throw new InternalServerError('error.no-active-tax-zone');
@@ -209,6 +212,56 @@ export class OrderCalculator {
             return true;
         }
         return order.taxCountryCode != null && order.taxCountryCode !== (countryCode ?? '');
+    }
+
+    /**
+     * @description
+     * Whether the tax Zone or the tax country of an Order which has been calculated before has
+     * changed since then, so that every OrderLine must be priced again. An Order which has not been
+     * calculated yet, such as a new seller Order, keeps the prices of its lines.
+     *
+     * @internal
+     */
+    async taxTargetChangedSinceLastCalculation(ctx: RequestContext, order: Order): Promise<boolean> {
+        if (order.taxZoneId == null) {
+            return false;
+        }
+        const { zone, countryCode } = await this.determineTaxTarget(ctx, order);
+        return this.taxTargetChanged(order, zone, countryCode);
+    }
+
+    /**
+     * @description
+     * Converts the `initialListPrice` of a line to the form of its new price, when a change of the
+     * tax Zone or country turns a tax-inclusive price into a net price, or back. The net price is
+     * taken out at the rate that the Channel's prices include, as
+     * {@link DefaultProductVariantPriceCalculationStrategy} does. A gross price which nets out to
+     * the recorded net price is unchanged, so rounding does not count as a price change.
+     *
+     * @internal
+     */
+    async convertInitialListPrice(
+        ctx: RequestContext,
+        line: OrderLine,
+        newPrice: { price: number; priceIncludesTax: boolean },
+    ): Promise<void> {
+        const initialListPrice = line.initialListPrice;
+        if (initialListPrice == null || line.listPriceIncludesTax === newPrice.priceIncludesTax) {
+            return;
+        }
+        const includedRate = await this.taxRateService.getApplicableTaxRate(
+            ctx,
+            ctx.channel.defaultTaxZone,
+            line.taxCategoryId,
+        );
+        if (newPrice.priceIncludesTax) {
+            const unchanged = roundMoney(includedRate.netPriceOf(newPrice.price)) === initialListPrice;
+            line.initialListPrice = unchanged
+                ? newPrice.price
+                : roundMoney(includedRate.grossPriceOf(initialListPrice));
+        } else {
+            line.initialListPrice = roundMoney(includedRate.netPriceOf(initialListPrice));
+        }
     }
 
     /**

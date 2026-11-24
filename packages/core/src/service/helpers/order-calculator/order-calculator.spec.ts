@@ -133,6 +133,19 @@ describe('OrderCalculator', () => {
             expect(order.taxCountryCode).toBe('XC');
         });
 
+        it('reports no tax change for an Order not calculated yet, such as a new seller Order', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(false);
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(false);
+            order.shippingAddress = { countryCode: 'XC' };
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(true);
+        });
+
         describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
             const defaultTaxOptions = () => ({
                 taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),

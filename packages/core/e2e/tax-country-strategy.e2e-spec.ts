@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
+    ChangedPriceHandlingStrategy,
     Channel,
     Customer,
     defaultTaxCountryCode,
     Injector,
     mergeConfig,
     Order,
+    OrderLine,
+    PriceCalculationResult,
     RequestContext,
     TaxZoneStrategy,
     TransactionalConnection,
@@ -79,11 +82,21 @@ class TestTaxZoneStrategy implements TaxZoneStrategy {
     }
 }
 
+/** Keeps the price a line was added at when the merchant changes it. */
+class KeepInitialPriceStrategy implements ChangedPriceHandlingStrategy {
+    handlePriceChange(ctx: RequestContext, current: PriceCalculationResult, orderLine: OrderLine) {
+        return { price: orderLine.initialListPrice, priceIncludesTax: current.priceIncludesTax };
+    }
+}
+
 // The eu Zone holds DE and FR, with country rates DE 19% and FR 20%, and a 19% zone rate. The
 // b2b Zone has a 0% zone rate.
 describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
-        mergeConfig(testConfig(), { taxOptions: { taxZoneStrategy: new TestTaxZoneStrategy() } }),
+        mergeConfig(testConfig(), {
+            taxOptions: { taxZoneStrategy: new TestTaxZoneStrategy() },
+            orderOptions: { changedPriceHandlingStrategy: new KeepInitialPriceStrategy() },
+        }),
     );
     const standardTaxCategoryId = 'T_1';
     const countryIds: Record<string, string> = {};
@@ -256,6 +269,27 @@ describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
             await shopClient.query(setShippingAddressDocument, { input: address('DE') });
             const consumerLine = { unitPrice: 10000, unitPriceWithTax: 11900, taxRate: 19 };
             expect(await activeOrderLines()).toEqual([consumerLine, consumerLine]);
+        });
+
+        it('a price the merchant changed still goes to the ChangedPriceHandlingStrategy', async () => {
+            // The first line was added at 119.00. The merchant raises it to 130.90, which nets out to
+            // 110.00, and the strategy keeps the price the line was added at: a net 100.00 once the
+            // customer is a business customer. The second line's price did not change.
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [{ id: variantIds[0], price: 13090 }],
+            });
+            try {
+                await setB2B(true);
+                const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
+                await shopClient.query(adjustItemQuantityDocument, {
+                    orderLineId: activeOrder!.lines[1].id,
+                    quantity: 2,
+                });
+                const businessLine = { unitPrice: 10000, unitPriceWithTax: 10000, taxRate: 0 };
+                expect(await activeOrderLines()).toEqual([businessLine, businessLine]);
+            } finally {
+                await updateVariantPrices(11900);
+            }
         });
     });
 

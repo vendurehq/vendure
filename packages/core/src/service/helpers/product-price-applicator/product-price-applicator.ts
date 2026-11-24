@@ -93,7 +93,7 @@ export class ProductPriceApplicator {
         );
         const activeTaxZone = await this.requestCache.get(
             ctx,
-            CacheKey.ActiveTaxZone_PPA(ctx.channelId),
+            CacheKey.ActiveTaxZone_PPA(ctx.channelId, order?.id),
             () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
         );
         if (!activeTaxZone) {
