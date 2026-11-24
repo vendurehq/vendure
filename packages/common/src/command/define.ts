@@ -9,9 +9,10 @@ import type {
 
 /**
  * @description
- * The shape of an error code: a lower-case namespace, then one or more dot-separated parts of
- * lower-case letters, digits and hyphens, for example `devserver.not-running` or
- * `core.config.invalid-custom-fields`.
+ * The shape of an error code: a namespace of lower-case letters, then one or more dot-separated
+ * parts of lower-case letters and digits, with single hyphens between words. For example
+ * `devserver.not-running` or `core.config.invalid-custom-fields`. `mergeManifests` refuses a
+ * manifest that declares any other code.
  */
 export const ERROR_CODE_PATTERN = /^[a-z]+(\.[a-z0-9]+(-[a-z0-9]+)*)+$/;
 

@@ -109,10 +109,7 @@ describe('store readiness codes', () => {
                 .map(value => (value as { code: string }).code),
         );
         expect(codes.length).toBeGreaterThanOrEqual(14);
-        for (const code of codes) {
-            expect(code.startsWith('store.')).toBe(true);
-            expect(isValidErrorCode(code)).toBe(true);
-        }
+        expect(codes.filter(code => !code.startsWith('store.') || !isValidErrorCode(code))).toEqual([]);
         expect(new Set(codes).size).toBe(codes.length);
     });
 });

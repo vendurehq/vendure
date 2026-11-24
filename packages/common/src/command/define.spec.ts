@@ -59,6 +59,7 @@ describe('isValidErrorCode', () => {
             'core.config.invalid-custom-fields',
             'cli.dev.port-in-use',
             'api.v2',
+            'cli.ts-2322',
         ]) {
             expect(isValidErrorCode(code)).toBe(true);
         }
@@ -72,6 +73,10 @@ describe('isValidErrorCode', () => {
             'core..x',
             'core.',
             '1core.x',
+            'core.-x',
+            'core.x-',
+            'core.a--b',
+            'core.x.-',
         ]) {
             expect(isValidErrorCode(code)).toBe(false);
         }

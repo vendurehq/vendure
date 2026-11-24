@@ -7,11 +7,10 @@ import { hostErrors } from './host-errors.js';
 import { kebab } from './naming.js';
 
 describe('core command definitions', () => {
-    it('declare only error codes of the shape namespace.kebab-case', () => {
-        const codes = [
-            ...coreCommandDefinitions.flatMap(def => (def.errors ?? []).map(error => error.code)),
-            ...Object.values(hostErrors).map(error => error.code),
-        ];
+    // The codes of the commands are checked when their manifest merges, below. Host errors are in
+    // no manifest.
+    it('use host error codes of the shape namespace.kebab-name', () => {
+        const codes = Object.values(hostErrors).map(error => error.code);
         expect(codes.filter(code => !isValidErrorCode(code))).toEqual([]);
     });
 
