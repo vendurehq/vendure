@@ -8,8 +8,9 @@ export const AGENT_GUIDE = `# Working with the Vendure CLI as an agent
 
 The Vendure CLI (\`vendure\`, from \`@vendure/cli\`) runs, builds, migrates and scaffolds a Vendure
 project. Run it from the project directory with the runner of the project's package manager, so
-you get the project's own CLI version: \`bunx vendure\` with \`bun.lock\`, \`pnpm exec vendure\` with
-\`pnpm-lock.yaml\`, \`yarn vendure\` with \`yarn.lock\`, and \`npx vendure\` with \`package-lock.json\`.
+you get the project's own CLI version: \`bunx vendure\` with \`bun.lock\` or \`bun.lockb\`,
+\`pnpm exec vendure\` with \`pnpm-lock.yaml\`, \`yarn vendure\` with \`yarn.lock\`, and \`npx vendure\` with
+\`package-lock.json\` or with no lockfile.
 
 ## Find the commands
 
@@ -42,7 +43,9 @@ exactly one JSON document to stdout:
 \`incomplete\` means the command needs something before it can finish. Supply every item in
 \`needs\`, then run the same command again:
 
-- \`input\`: a missing input field. \`choices\` lists the valid values when there are any.
+- \`input\`: a missing input field. \`choices\` lists the valid values when there are any. When
+  the need has \`secret: true\`, the value must not pass through you: ask the person you work for
+  to supply it.
 - \`consent\`: a named consent for a risky step. Show the \`preview\` to the person you work for,
   and pass the \`digest\` as the value of the field named by \`consent\`, for example
   \`--revert-migration <digest>\`. A digest only answers the preview it came with.

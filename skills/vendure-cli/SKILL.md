@@ -17,8 +17,9 @@ version. Run it from the project directory before you use the CLI:
 ```
 
 Use the runner of the project's package manager, so you get the project's own
-CLI version: `bunx` with `bun.lock`, `pnpm exec` with `pnpm-lock.yaml`, `yarn`
-with `yarn.lock`, and `npx` with `package-lock.json`.
+CLI version: `bunx` with `bun.lock` or `bun.lockb`, `pnpm exec` with
+`pnpm-lock.yaml`, `yarn` with `yarn.lock`, and `npx` with `package-lock.json` or
+with no lockfile.
 
 The guide covers running commands with `--json`, answering `incomplete`
 results, fixing errors, the dev server, and when to use the Developer MCP
