@@ -6,7 +6,11 @@ import { AddressInfo } from 'node:net';
 import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, trustedConsoleOrigins } from './console-origins.js';
 import { nonEmptyString, objectValue } from './project-link-validation.js';
 
-/** Options for standalone Console login. Core does not store the returned session. */
+/**
+ * Options for standalone Console login. Core does not store the returned session.
+ *
+ * @deprecated Deprecated in 4.0.0 with {@link loginWithBrowser}. Removed in a later major.
+ */
 export interface ConsoleBrowserLoginOptions {
     client: 'cli' | 'create';
     appOrigin?: string;
@@ -20,6 +24,7 @@ export interface ConsoleBrowserLoginOptions {
     now?: () => number;
 }
 
+/** @deprecated Deprecated in 4.0.0 with {@link refreshSession}. Removed in a later major. */
 export interface ConsoleRefreshOptions {
     apiOrigin?: string;
     signal?: AbortSignal;
@@ -27,7 +32,12 @@ export interface ConsoleRefreshOptions {
     now?: () => number;
 }
 
-/** A failed grant. Only a definitive Console grant rejection sets refused. */
+/**
+ * A failed grant. Only a definitive Console grant rejection sets refused.
+ *
+ * @deprecated Deprecated in 4.0.0 with {@link loginWithBrowser} and {@link refreshSession}. Removed
+ * in a later major.
+ */
 export class ConsoleTokenGrantError extends Error {
     constructor(
         message: string,
@@ -41,8 +51,8 @@ export class ConsoleTokenGrantError extends Error {
 /**
  * Sign in without starting a Project Link flow.
  *
- * @deprecated No command uses this PKCE browser login since the CLI signs in with the device flow.
- * Use `loginWithDevice` to sign in and `getAccessToken` for a token. It is removed in a later major.
+ * @deprecated Deprecated in 4.0.0: no command uses this PKCE browser login. Use `loginWithDevice`
+ * to sign in and `getAccessToken` for a token. Removed in a later major.
  * @since 3.8.0
  */
 export async function loginWithBrowser(options: ConsoleBrowserLoginOptions): Promise<ConsoleSession> {
@@ -111,8 +121,8 @@ export async function loginWithBrowser(options: ConsoleBrowserLoginOptions): Pro
 /**
  * Refresh a session and retain the old refresh token if Console does not rotate it.
  *
- * @deprecated Belongs to the PKCE browser login that no command uses. Use `getAccessToken`, which
- * renews the CLI login, or `refreshAccessToken`. It is removed in a later major.
+ * @deprecated Deprecated in 4.0.0 with the PKCE browser login, which no command uses. Use
+ * `getAccessToken`, which renews the CLI login, or `refreshAccessToken`. Removed in a later major.
  * @since 3.8.0
  */
 export async function refreshSession(
