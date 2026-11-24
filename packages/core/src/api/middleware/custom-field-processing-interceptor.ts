@@ -29,9 +29,11 @@ import {
     CustomFieldConfig,
     CustomFields,
 } from '../../config/custom-field/custom-field-types';
+import { getDatabaseType } from '../../connection/database-type';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { isColumnDefaultSupported } from '../../entity/register-custom-entity-fields';
 import { parseContext } from '../common/parse-context';
 import { internal_getRequestContext, RequestContext } from '../common/request-context';
 import { userHasPermissionsOnCustomField } from '../common/user-has-permissions-on-custom-field';
@@ -39,6 +41,13 @@ import { validateCustomFieldValue } from '../common/validate-custom-field-value'
 import { ORDER_LINE_ADD_INPUT_TYPES, ORDER_LINE_ADJUST_INPUT_TYPES } from '../config/graphql-custom-fields';
 
 const ORDER_LINE_CUSTOM_FIELDS_INPUT = 'OrderLineCustomFieldsInput';
+
+/**
+ * The Shop API queries that price an order line which is not saved. Their OrderLine custom fields get the
+ * same processing as the `addItemToOrder` input, so that the price equals the price of the cart line.
+ */
+const ORDER_LINE_PRICE_QUERIES = ['buyerPrice', 'buyerPrices'];
+const ORDER_LINE_PRICE_INPUT = 'BuyerPriceInput';
 
 type InputParent = { name: string; value: any };
 
@@ -53,13 +62,13 @@ type InputParent = { name: string; value: any };
  */
 function getOrderLinePosition(mutationName: string, parent: InputParent): 'add' | 'adjust' | undefined {
     if (parent.name === mutationName) {
-        // The value is a direct argument of the mutation.
-        if (mutationName === 'addItemToOrder') {
+        // The value is a direct argument of the mutation or query.
+        if (mutationName === 'addItemToOrder' || mutationName === 'buyerPrice') {
             return 'add';
         }
         return mutationName === 'adjustOrderLine' ? 'adjust' : undefined;
     }
-    if (ORDER_LINE_ADD_INPUT_TYPES.includes(parent.name)) {
+    if (ORDER_LINE_ADD_INPUT_TYPES.includes(parent.name) || parent.name === ORDER_LINE_PRICE_INPUT) {
         return 'add';
     }
     if (parent.name === 'OrderLineInput') {
@@ -74,6 +83,9 @@ function getOrderLinePosition(mutationName: string, parent: InputParent): 'add' 
  *
  * 1. Applying default values when fields are explicitly set to null (create operations only)
  * 2. Validating custom field values according to their constraints
+ *
+ * It also processes the OrderLine custom fields of the `buyerPrice` and `buyerPrices` queries (see
+ * {@link ORDER_LINE_PRICE_QUERIES}). No other query is processed.
  *
  * Scoped to the field being resolved via info.fieldName, ensuring correct type
  * resolution even when a single document contains multiple mutation fields.
@@ -113,6 +125,8 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         const { operation, schema, fieldName } = parsedContext.info;
         if (operation.operation === 'mutation') {
             await this.processMutationCustomFields(context, schema, fieldName);
+        } else if (operation.operation === 'query' && ORDER_LINE_PRICE_QUERIES.includes(fieldName)) {
+            await this.processOrderLinePriceQuery(context, schema, fieldName);
         }
 
         return next.handle();
@@ -143,6 +157,53 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             }
         }
         await this.processOrderLineCustomFields(fieldDef, args, ctx, injector);
+    }
+
+    /**
+     * Processes the OrderLine custom fields of a query which prices an order line that is not saved. They
+     * get the processing of the `addItemToOrder` input. Then each field which the input leaves out gets its
+     * default value, if the database stores a column default for the field. When `addItemToOrder` leaves
+     * out a field, the column default gives the saved line the same value. Readonly, internal and
+     * non-public fields also get their defaults, and are not validated, because the client did not send
+     * them. The defaults are added also when the Shop API has no OrderLine custom fields input.
+     */
+    private async processOrderLinePriceQuery(
+        context: ExecutionContext,
+        schema: GraphQLSchema,
+        fieldName: string,
+    ) {
+        const fieldDef = schema.getQueryType()?.getFields()[fieldName];
+        if (!fieldDef) {
+            return;
+        }
+        const args = GqlExecutionContext.create(context).getArgs();
+        // `buyerPrice` takes the custom fields of one line as arguments. `buyerPrices` takes a list of lines.
+        const lineInputs: Array<Record<string, any>> =
+            fieldName === 'buyerPrice' ? [args] : Array.isArray(args.input) ? args.input : [];
+        // The same limit as in the resolver, checked before the custom fields are validated
+        const limit = this.configService.apiOptions.shopListQueryLimit;
+        if (fieldName === 'buyerPrices' && lineInputs.length > limit) {
+            throw new UserInputError('error.list-query-limit-exceeded', { limit });
+        }
+        const ctx = internal_getRequestContext(parseContext(context).req);
+        const injector = new Injector(this.moduleRef);
+
+        this.stripSecretPlaceholders(fieldDef, schema, args);
+        await this.processOrderLineCustomFields(fieldDef, args, ctx, injector);
+
+        const dbEngine = getDatabaseType(this.configService.dbConnectionOptions);
+        const defaults: Record<string, any> = {};
+        for (const config of this.configService.customFields.OrderLine ?? []) {
+            if (config.defaultValue !== undefined && isColumnDefaultSupported(config, dbEngine)) {
+                defaults[getGraphQlInputName(config)] = config.defaultValue;
+            }
+        }
+        if (Object.keys(defaults).length === 0) {
+            return;
+        }
+        for (const lineInput of lineInputs) {
+            lineInput.customFields = { ...defaults, ...lineInput.customFields };
+        }
     }
 
     /**

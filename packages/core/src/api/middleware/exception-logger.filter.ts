@@ -3,6 +3,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 import { ConfigService, Logger, LogLevel } from '../../config';
 import { HEALTH_CHECK_ROUTE } from '../../health-check/constants';
 import { I18nError } from '../../i18n/i18n-error';
+import { UNEXPECTED_VENDURE_CODE } from '../../i18n/vendure-code';
 import { parseContext } from '../common/parse-context';
 
 /**
@@ -20,13 +21,15 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
         let message = '';
         let statusCode = 500;
         if (exception instanceof I18nError) {
-            const { code, message: msg, logLevel } = exception;
+            const { code, message: msg, logLevel, vendureCode } = exception;
             message = `${code || 'Error'}: ${msg}`;
             statusCode = this.errorCodeToStatusCode(code);
-            const meta = code ? { code } : undefined;
+            // The log line carries the namespaced code, the same as `extensions.vendureCode`.
+            const meta = { code: vendureCode };
 
             switch (logLevel) {
                 case LogLevel.Error:
+                    // `vendure explain` reads the message and the variables back from this JSON.
                     Logger.error(
                         JSON.stringify({ message, variables: exception.variables }, null, 2),
                         undefined,
@@ -48,7 +51,8 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
                     break;
             }
             if (exception.stack) {
-                Logger.debug(exception.stack);
+                // With the code, `vendure explain` takes this line as the stack of the error.
+                Logger.debug(exception.stack, undefined, meta);
             }
             if (isGraphQL) {
                 return exception;
@@ -60,10 +64,11 @@ export class ExceptionLoggerFilter implements ExceptionFilter {
             if (statusCode === 404) {
                 Logger.verbose(exception.message);
             } else {
-                Logger.error(message, undefined, exception.stack);
+                // The GraphQL error of an HttpException also has this code in `extensions.vendureCode`.
+                Logger.error(message, undefined, exception.stack, { code: UNEXPECTED_VENDURE_CODE });
             }
         } else {
-            Logger.error(exception.message, undefined, exception.stack);
+            Logger.error(exception.message, undefined, exception.stack, { code: UNEXPECTED_VENDURE_CODE });
         }
 
         if (exception instanceof HttpException && req.path.startsWith('/' + HEALTH_CHECK_ROUTE)) {

@@ -11,6 +11,7 @@ import { ServiceModule } from '../service/service.module';
 
 import { ConfigurableOperationCodec } from './common/configurable-operation-codec';
 import { CustomFieldRelationResolverService } from './common/custom-field-relation-resolver.service';
+import { IdArgumentDecoder } from './common/id-argument-decoder';
 import { IdCodecService } from './common/id-codec.service';
 import { AdministratorResolver } from './resolvers/admin/administrator.resolver';
 import { ApiKeyResolver } from './resolvers/admin/api-key.resolver';
@@ -199,9 +200,15 @@ export const adminEntityResolvers = [
  */
 @Module({
     imports: [ConfigModule, ServiceModule, CacheModule, ConnectionModule.forRoot()],
-    providers: [IdCodecService, ConfigurableOperationCodec, CustomFieldRelationResolverService],
+    providers: [
+        IdCodecService,
+        IdArgumentDecoder,
+        ConfigurableOperationCodec,
+        CustomFieldRelationResolverService,
+    ],
     exports: [
         IdCodecService,
+        IdArgumentDecoder,
         CacheModule,
         ConfigModule,
         ConfigurableOperationCodec,

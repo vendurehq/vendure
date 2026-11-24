@@ -1,0 +1,67 @@
+---
+title: "IdArgumentDecoder"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/api/common/id-argument-decoder.ts" sourceLine="64" packageName="@vendure/core" since="4.0.0" />
+
+Decodes the ID values in the arguments of a GraphQL field as per the configured
+[EntityIdStrategy](/reference/typescript-api/configuration/entity-id-strategy#entityidstrategy). It finds the ID values by the argument types of the field: values of
+type `ID` and the operators of `IDOperators` inputs.
+
+The `IdInterceptor` decodes the arguments of queries and mutations, but it does not run for field
+resolvers. A field resolver, for example in a plugin, that has arguments with ID values must
+inject the IdArgumentDecoder and call `decode(info, args)` itself.
+
+*Example*
+
+```ts
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Ctx, IdArgumentDecoder, Product, RequestContext } from '@vendure/core';
+import { GraphQLResolveInfo } from 'graphql';
+
+@Resolver('Product')
+export class ProductReviewsResolver {
+    constructor(
+        private idArgumentDecoder: IdArgumentDecoder,
+        private reviewService: ReviewService,
+    ) {}
+
+    @ResolveField()
+    reviews(
+        @Ctx() ctx: RequestContext,
+        @Parent() product: Product,
+        @Args() args: { options: ReviewListOptions },
+        @Info() info: GraphQLResolveInfo,
+    ) {
+        const { options } = this.idArgumentDecoder.decode(info, args);
+        return this.reviewService.findByProductId(ctx, product.id, options);
+    }
+}
+```
+
+```ts title="Signature"
+class IdArgumentDecoder {
+    constructor(idCodecService: IdCodecService)
+    decode(info: GraphQLResolveInfo, args: T) => T;
+    decodeInPlace(info: GraphQLResolveInfo, args: Record<string, any> = {}) => void;
+}
+```
+
+<div className="members-wrapper">
+
+### decode
+
+<MemberInfo kind="method" type={`(info: GraphQLResolveInfo, args: T) => T`}   />
+
+Returns a copy of `args` with the ID values decoded. Use it in field resolvers.
+### decodeInPlace
+
+<MemberInfo kind="method" type={`(info: GraphQLResolveInfo, args: Record<string, any> = {}) => void`}   />
+
+Decodes the ID values in `args` and assigns the decoded arguments to the keys of `args`. It does
+not change the objects in the argument values. graphql-js gives the same variable values to
+each field that uses the variable, so a change to them would decode them again in the next
+field. The `IdInterceptor` uses this method for the arguments of queries and mutations.
+
+
+</div>

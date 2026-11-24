@@ -1,6 +1,7 @@
 import type { CommandDefinition, CommandNeed } from '@vendure/common/lib/command';
 
-import { formatFix, HostResult } from './host.js';
+import { describeFix, formatFix } from './format-fix.js';
+import { HostResult } from './host.js';
 import { kebab } from './naming.js';
 
 function describeNeed(need: CommandNeed): string[] {
@@ -66,7 +67,7 @@ export async function presentForPeople(
     } else if (envelope.error) {
         process.stderr.write(`${envelope.error.message}\n`);
         for (const fix of envelope.error.fixes ?? []) {
-            process.stderr.write(`  ${fix.description}: ${formatFix(fix)}\n`);
+            process.stderr.write(`  ${describeFix(fix)}\n`);
         }
     }
 }
