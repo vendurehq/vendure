@@ -27,6 +27,7 @@ describe('core command definitions', () => {
             'migrate generate',
             'migrate revert',
             'migrate run',
+            'store check',
         ]);
     });
 

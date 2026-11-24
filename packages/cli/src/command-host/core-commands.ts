@@ -14,6 +14,7 @@ import { mcpInstallDefinition } from '../commands/mcp/install/mcp-install.comman
 import { generateMigrationDefinition } from '../commands/migrate/generate-migration/generate-migration.command.js';
 import { revertMigrationDefinition } from '../commands/migrate/revert-migration/revert-migration.command.js';
 import { runMigrationDefinition } from '../commands/migrate/run-migration/run-migration.command.js';
+import { storeCheckDefinition } from '../commands/store/store-check.command.js';
 
 /**
  * The commands of `@vendure/cli` that are declared with `defineCommand`. The manifest build
@@ -34,4 +35,5 @@ export const coreCommandDefinitions: CommandDefinition[] = [
     generateMigrationDefinition,
     revertMigrationDefinition,
     runMigrationDefinition,
+    storeCheckDefinition,
 ];
