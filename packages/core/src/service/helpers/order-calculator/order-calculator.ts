@@ -204,10 +204,8 @@ export class OrderCalculator {
      * Whether the tax Zone or the tax country differs from the one the Order was last calculated
      * with. An Order whose `taxCountryCode` is still `null` was calculated before the field existed,
      * so only its Zone is compared.
-     *
-     * @internal
      */
-    taxTargetChanged(order: Order, zone: Zone, countryCode: string | undefined): boolean {
+    private taxTargetChanged(order: Order, zone: Zone, countryCode: string | undefined): boolean {
         if (!order.taxZoneId || !idsAreEqual(order.taxZoneId, zone.id)) {
             return true;
         }
@@ -237,6 +235,10 @@ export class OrderCalculator {
      * taken out at the rate that the Channel's prices include, as
      * {@link DefaultProductVariantPriceCalculationStrategy} does. A gross price which nets out to
      * the recorded net price is unchanged, so rounding does not count as a price change.
+     *
+     * A custom {@link ProductVariantPriceCalculationStrategy} that takes the net out at another
+     * rate makes the converted price differ from the new one, so the
+     * {@link ChangedPriceHandlingStrategy} is called for the line as for a price change.
      *
      * @internal
      */

@@ -720,13 +720,11 @@ export class OrderModifier {
             }
             shippingMethodsSet = result;
         }
-        // In a Channel whose prices include tax, the net price of a line depends on the tax Zone and
-        // country, so when an address change moves either, every OrderLine is priced again.
-        const linesToPrice = (await this.orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order))
-            ? order.lines
-            : updatedOrderLines;
+        // Unlike an active Order, the lines a modification does not touch keep the prices the Order
+        // was placed with, even when an address change moves the tax Zone or country. They are only
+        // taxed again.
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
-        for (const orderLine of linesToPrice) {
+        for (const orderLine of updatedOrderLines) {
             const variant = await this.productVariantService.applyChannelPriceAndTax(
                 orderLine.productVariant,
                 ctx,

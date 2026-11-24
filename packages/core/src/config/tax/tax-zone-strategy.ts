@@ -54,8 +54,7 @@ export interface TaxZoneStrategy extends InjectableStrategy {
      *
      * As with `determineTaxZone()`, `order` is undefined when a price is calculated outside an
      * Order, for example on a product page or in the search index. The result is recorded on the
-     * Order as `Order.taxCountryCode`, and when it changes, every OrderLine is priced and taxed
-     * again.
+     * Order as `Order.taxCountryCode`, and when it changes, every OrderLine is taxed again.
      *
      * Like `determineTaxZone()`, this method is called very often, and its result is not cached.
      * A strategy that does expensive work should cache it itself.

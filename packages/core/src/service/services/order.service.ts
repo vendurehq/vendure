@@ -2751,7 +2751,9 @@ export class OrderService implements OnApplicationBootstrap {
         }
         // In a Channel whose prices include tax, the net price of a line depends on the tax Zone and
         // country, so when either changes, every OrderLine is priced again, not only the edited ones.
-        const taxTargetChanged = await this.orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order);
+        const taxTargetChanged =
+            ctx.channel.pricesIncludeTax &&
+            (await this.orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order));
         if (taxTargetChanged) {
             updatedOrderLines = order.lines;
         }

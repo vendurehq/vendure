@@ -33,6 +33,7 @@ import {
     removeCustomersFromGroupDocument,
     updateChannelDocument,
     updateProductVariantsDocument,
+    updateTaxRateDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
@@ -89,7 +90,7 @@ class KeepInitialPriceStrategy implements ChangedPriceHandlingStrategy {
     }
 }
 
-// The eu Zone holds DE and FR, with country rates DE 19% and FR 20%, and a 19% zone rate. The
+// The eu Zone holds DE and FR, with country rates DE 19% and FR 20%, and a 22% zone rate. The
 // b2b Zone has a 0% zone rate.
 describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
@@ -104,6 +105,7 @@ describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
     let customerId: string;
     let customerEmail: string;
     let b2bGroupId: string;
+    let euRateId: string;
 
     const address = (countryCode: string) => ({
         countryCode,
@@ -172,14 +174,18 @@ describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
             input: { id: 'T_1', defaultTaxZoneId: euZone.id },
         });
         for (const input of [
-            { name: 'eu', zoneId: euZone.id, value: 19 },
+            // 22% so that a missing DE country rate shows. The tax-inclusive tests set it to 19%.
+            { name: 'eu', zoneId: euZone.id, value: 22 },
             { name: 'b2b', zoneId: b2bZone.id, value: 0 },
             { name: 'DE', regionId: countryIds.DE, value: 19 },
             { name: 'FR', regionId: countryIds.FR, value: 20 },
         ]) {
-            await adminClient.query(createTaxRateDocument, {
+            const { createTaxRate } = await adminClient.query(createTaxRateDocument, {
                 input: { ...input, categoryId: standardTaxCategoryId, enabled: true },
             });
+            if (input.name === 'eu') {
+                euRateId = createTaxRate.id;
+            }
         }
 
         const { products } = await adminClient.query(getProductsWithVariantPricesDocument);
@@ -239,6 +245,8 @@ describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
     describe('reverse charge, prices include tax', () => {
         beforeAll(async () => {
             await adminClient.query(updateChannelDocument, { input: { id: 'T_1', pricesIncludeTax: true } });
+            // The entered prices include 19%, the eu zone rate and the DE country rate.
+            await adminClient.query(updateTaxRateDocument, { input: { id: euRateId, value: 19 } });
             await updateVariantPrices(11900);
         });
 
