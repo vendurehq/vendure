@@ -4,7 +4,7 @@ generated: true
 ---
 ## ScenarioPack
 
-<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="27" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="28" packageName="@vendure/core" since="4.0.0" />
 
 A scenario pack: demo data that builds on a base-data preset. A package exports it as `scenario`
 or as its default export.
@@ -50,41 +50,18 @@ interface ScenarioPack {
 </div>
 ## ScenarioReference
 
-<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="43" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="46" packageName="@vendure/core" since="4.0.0" />
 
-Where a scenario comes from, as `.vendure/create.json` records it.
+Where a scenario comes from, as `.vendure/create.json` records it: the
+`CreateRecordScenario` type of `@vendure/common/lib/create-record`, with `name`, `package` and
+`version`.
 
 ```ts title="Signature"
-interface ScenarioReference {
-    name: string;
-    package: string;
-    version: string;
-}
+type ScenarioReference = CreateRecordScenario
 ```
-
-<div className="members-wrapper">
-
-### name
-
-<MemberInfo kind="property" type={`string`}   />
-
-
-### package
-
-<MemberInfo kind="property" type={`string`}   />
-
-
-### version
-
-<MemberInfo kind="property" type={`string`}   />
-
-
-
-
-</div>
 ## validateScenarioPack
 
-<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="58" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="57" packageName="@vendure/core" since="4.0.0" />
 
 Checks that `value` is a [ScenarioPack](/reference/typescript-api/import-export/scenarios#scenariopack) whose `preset` is a known preset. Throws a
 [SeedError](/reference/typescript-api/import-export/presets#seederror) with the code `core.scenario-invalid` otherwise.
@@ -104,7 +81,7 @@ Parameters
 
 ## loadScenarioPack
 
-<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="86" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="85" packageName="@vendure/core" since="4.0.0" />
 
 Loads the scenario pack of a [ScenarioReference](/reference/typescript-api/import-export/scenarios#scenarioreference), resolving the package from `projectDir`.
 
@@ -123,7 +100,7 @@ Parameters
 
 ## seedScenario
 
-<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="119" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-scenario.ts" sourceLine="118" packageName="@vendure/core" since="4.0.0" />
 
 Seeds a scenario pack into a database that was seeded with the pack's preset. It never applies
 the preset itself.
