@@ -286,4 +286,64 @@ describe('validateCustomFieldValue()', () => {
             await assertThrowsError(validate(['bad input', 'valid']), 'invalid');
         });
     });
+
+    // #3698 — the Admin UI sends null for an untouched nullable struct field
+    describe('struct', () => {
+        const validate = (value: any) => () =>
+            validateCustomFieldValue(
+                {
+                    name: 'test',
+                    type: 'struct',
+                    nullable: true,
+                    fields: [{ name: 'code', type: 'string', pattern: '^[0-9]+$' }],
+                },
+                value,
+                injector,
+                ctx,
+            );
+
+        it('accepts null for a nullable struct', async () => {
+            await expect(validate(null)()).resolves.toBeUndefined();
+        });
+
+        it('still validates members of a populated struct', async () => {
+            await expect(validate({ code: '123' })()).resolves.toBeUndefined();
+            await assertThrowsError(validate({ code: 'abc' }), 'error.field-invalid-string-pattern');
+        });
+
+        it('rejects null for a non-nullable struct', async () => {
+            await assertThrowsError(
+                () =>
+                    validateCustomFieldValue(
+                        {
+                            name: 'test',
+                            type: 'struct',
+                            nullable: false,
+                            fields: [{ name: 'code', type: 'string' }],
+                        },
+                        null,
+                        injector,
+                        ctx,
+                    ),
+                'error.field-invalid-non-nullable',
+            );
+        });
+
+        it('accepts null for a nullable list struct', async () => {
+            await expect(
+                validateCustomFieldValue(
+                    {
+                        name: 'test',
+                        type: 'struct',
+                        list: true,
+                        nullable: true,
+                        fields: [{ name: 'code', type: 'string' }],
+                    },
+                    null,
+                    injector,
+                    ctx,
+                ),
+            ).resolves.toBeUndefined();
+        });
+    });
 });

@@ -7,6 +7,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/vdb/components/ui/sheet.js';
+import { FullWidthPageBlock } from '@/vdb/framework/layout-engine/page-layout.js';
 import { Trans } from '@lingui/react/macro';
 import { PanelLeftOpen } from 'lucide-react';
 import { CollectionContentsTable } from './collection-contents-table.js';
@@ -40,7 +41,9 @@ export function CollectionContentsSheet({
                     </SheetDescription>
                 </SheetHeader>
                 <div className="px-4">
-                    <CollectionContentsTable collectionId={collectionId} />
+                    <FullWidthPageBlock blockId="collection-contents-sheet-table">
+                        <CollectionContentsTable collectionId={collectionId} />
+                    </FullWidthPageBlock>
                 </div>
             </SheetContent>
         </Sheet>

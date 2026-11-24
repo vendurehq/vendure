@@ -125,6 +125,31 @@ export function toCustomFieldsInput(
 }
 
 /**
+ * Converts Address custom field values, as returned by the address queries, to the shape of
+ * the Address custom fields input used when setting an Order address. Readonly fields are not
+ * part of the input type, so only the writable fields are kept, and relation fields are
+ * converted by {@link toCustomFieldsInput}.
+ */
+export function toAddressCustomFieldsInput(
+    customFields: Record<string, any> | null | undefined,
+    customFieldConfigs: Array<CustomFieldInputConfig & { readonly?: boolean | null }>,
+): Record<string, any> | undefined {
+    if (!customFields) {
+        return undefined;
+    }
+    const writableConfigs = customFieldConfigs.filter(config => !config.readonly);
+    const writable: Record<string, any> = {};
+    for (const config of writableConfigs) {
+        for (const key of [config.name, getGraphQlInputName(config)]) {
+            if (key in customFields) {
+                writable[key] = customFields[key];
+            }
+        }
+    }
+    return toCustomFieldsInput(writable, writableConfigs);
+}
+
+/**
  * Applies {@link toCustomFieldsInput} to the custom fields of each added and adjusted line.
  */
 export function toModifyOrderInput(

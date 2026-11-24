@@ -18,7 +18,9 @@ async function ensureOrderWithIdExists(
     }
 
     const { extendedQuery } = extendDetailFormQuery(
-        addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        addCustomFields(orderDetailDocument, {
+            includeNestedFragments: ['OrderLine', 'Fulfillment', 'OrderAddress'],
+        }),
         pageId,
     );
 
@@ -112,7 +114,9 @@ export async function loadSellerOrder(
     }
 
     const { extendedQuery } = extendDetailFormQuery(
-        addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        addCustomFields(orderDetailDocument, {
+            includeNestedFragments: ['OrderLine', 'Fulfillment', 'OrderAddress'],
+        }),
         'seller-order-detail',
     );
 

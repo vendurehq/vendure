@@ -2,9 +2,10 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { Table, TableBody, TableCell, TableRow } from '@/vdb/components/ui/table.js';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useGroupedPermissions } from '@/vdb/hooks/use-grouped-permissions.js';
 import { ServerConfig } from '@/vdb/providers/server-config.js';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Trans } from '@lingui/react/macro';
 import { InfoIcon } from 'lucide-react';
 
 interface PermissionsTableGridProps {
@@ -18,7 +19,7 @@ export function PermissionsTableGrid({
     onChange,
     readonly = false,
 }: Readonly<PermissionsTableGridProps>) {
-    const { i18n } = useLingui();
+    const { getTranslatedText } = useDynamicTranslations();
     const groupedPermissions = useGroupedPermissions();
 
     const setPermission = (permission: string, checked: boolean) => {
@@ -55,7 +56,7 @@ export function PermissionsTableGrid({
         }
 
         // Fallback to full name if not a CRUD operation
-        return i18n.t(name);
+        return getTranslatedText(name);
     };
 
     return (
@@ -70,14 +71,14 @@ export function PermissionsTableGrid({
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2">
                                             <span className="font-semibold text-sm">
-                                                {i18n.t(section.label)}
+                                                {getTranslatedText(section.label)}
                                             </span>
                                             <TooltipProvider>
                                                 <Tooltip>
                                                     <TooltipTrigger render={<InfoIcon className="h-3 w-3 text-muted-foreground" />} />
                                                     <TooltipContent side="right" className="max-w-[250px]">
                                                         <p className="text-xs">
-                                                            {i18n.t(section.description)}
+                                                            {getTranslatedText(section.description)}
                                                         </p>
                                                     </TooltipContent>
                                                 </Tooltip>
@@ -123,10 +124,10 @@ export function PermissionsTableGrid({
                                                 <TooltipContent side="top" className="max-w-[250px]">
                                                     <div className="text-xs">
                                                         <div className="font-medium">
-                                                            {i18n.t(permission.name)}
+                                                            {getTranslatedText(permission.name)}
                                                         </div>
                                                         <div className="text-accent-foreground/70 mt-1">
-                                                            {i18n.t(permission.description)}
+                                                            {getTranslatedText(permission.description)}
                                                         </div>
                                                     </div>
                                                 </TooltipContent>
@@ -154,12 +155,12 @@ export function PermissionsTableGrid({
                     <div key={index} className="border rounded-lg p-4 bg-card">
                         <div className="mb-3">
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="font-semibold text-sm">{i18n.t(section.label)}</span>
+                                <span className="font-semibold text-sm">{getTranslatedText(section.label)}</span>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger render={<InfoIcon className="h-3 w-3 text-muted-foreground" />} />
                                         <TooltipContent side="right" className="max-w-[250px]">
-                                            <p className="text-xs">{i18n.t(section.description)}</p>
+                                            <p className="text-xs">{getTranslatedText(section.description)}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -193,17 +194,17 @@ export function PermissionsTableGrid({
                                                 <TooltipTrigger render={<label
                                                         htmlFor={`mobile-${section.id}-${permission.name}`}
                                                         className="text-xs cursor-pointer block truncate"
-                                                        aria-label={i18n.t(permission.name)}
+                                                        aria-label={getTranslatedText(permission.name)}
                                                     />}>
                                                         {getPermissionLabel(permission, section.label)}
                                                 </TooltipTrigger>
                                                 <TooltipContent side="top" className="max-w-[250px]">
                                                     <div className="text-xs">
                                                         <div className="font-medium">
-                                                            {i18n.t(permission.name)}
+                                                            {getTranslatedText(permission.name)}
                                                         </div>
                                                         <div className="text-muted-foreground mt-1">
-                                                            {i18n.t(permission.description)}
+                                                            {getTranslatedText(permission.description)}
                                                         </div>
                                                     </div>
                                                 </TooltipContent>

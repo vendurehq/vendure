@@ -499,6 +499,100 @@ test.describe('Orders', () => {
         await expect(page.getByRole('button', { name: /Select address/i })).toHaveCount(2);
     });
 
+    // #3439 — the custom fields of the customer's default address must be kept on the draft order
+    test('should keep address custom fields when setting draft order addresses', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Cora',
+                    lastName: 'Customfields',
+                    emailAddress: `cora.customfields.${Date.now()}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: 'Cora Customfields',
+                    streetLine1: '7 Custom Close',
+                    city: 'Fieldton',
+                    postalCode: 'C7 7CF',
+                    countryCode: 'GB',
+                    defaultShippingAddress: true,
+                    defaultBillingAddress: true,
+                    customFields: { deliveryNote: 'Leave at the side door' },
+                },
+            },
+        );
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+        const orderId = page.url().split('/').pop();
+
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('cora');
+        const coraOption = page.getByRole('option').filter({ hasText: 'Cora Customfields' });
+        await expect(coraOption.first()).toBeVisible({ timeout: 5_000 });
+        await coraOption.first().click();
+        await expect(page.getByText('7 Custom Close')).toHaveCount(2, { timeout: 10_000 });
+
+        const getOrderAddresses = async () => {
+            const { order } = await client.gql(
+                `query ($id: ID!) {
+                    order(id: $id) {
+                        shippingAddress { streetLine1 customFields { deliveryNote } }
+                        billingAddress { streetLine1 customFields { deliveryNote } }
+                    }
+                }`,
+                { id: orderId },
+            );
+            return order;
+        };
+
+        // The default addresses are copied with their custom fields
+        await expect
+            .poll(async () => (await getOrderAddresses()).billingAddress.customFields?.deliveryNote, {
+                timeout: 10_000,
+            })
+            .toBe('Leave at the side door');
+        expect((await getOrderAddresses()).shippingAddress.customFields?.deliveryNote).toBe(
+            'Leave at the side door',
+        );
+
+        // Editing the shipping address keeps the custom field rather than clearing it
+        await page
+            .getByRole('button', { name: /Select address/i })
+            .first()
+            .click();
+        await page.getByRole('tab', { name: /New address/i }).click();
+        await page.getByLabel('Street Address').fill('8 Custom Close');
+        await page.getByRole('button', { name: /^Okay$/ }).click();
+        await expect
+            .poll(async () => (await getOrderAddresses()).shippingAddress.streetLine1, { timeout: 10_000 })
+            .toBe('8 Custom Close');
+        expect((await getOrderAddresses()).shippingAddress.customFields?.deliveryNote).toBe(
+            'Leave at the side door',
+        );
+    });
+
     // #4951 — parity with the Angular admin-ui: a draft order should allow creating a
     // new customer inline (not just selecting an existing one).
     test('should create a new customer inline on a draft order', async ({ page }) => {
@@ -580,6 +674,86 @@ test.describe('Orders', () => {
         // The new address is applied to the order
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
         await expect(page.getByText('99 Inline Road')).toBeVisible({ timeout: 10_000 });
+    });
+
+    // #3439 — picking one of the customer's saved addresses must keep its custom fields
+    test('should keep address custom fields when selecting a saved customer address', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        // The address is not a default, so it is only set when picked in the selector
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Sasha',
+                    lastName: 'Saved',
+                    emailAddress: `sasha.saved.${Date.now()}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: 'Sasha Saved',
+                    streetLine1: '3 Saved Street',
+                    city: 'Savedham',
+                    postalCode: 'S3 3SS',
+                    countryCode: 'GB',
+                    customFields: { deliveryNote: 'Ring the bell twice' },
+                },
+            },
+        );
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+        const orderId = page.url().split('/').pop();
+
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('sasha');
+        const sashaOption = page.getByRole('option').filter({ hasText: 'Sasha Saved' });
+        await expect(sashaOption.first()).toBeVisible({ timeout: 5_000 });
+        await sashaOption.first().click();
+
+        await page
+            .getByRole('button', { name: /Select address/i })
+            .first()
+            .click();
+        await page.getByText('3 Saved Street').click();
+
+        await expect
+            .poll(
+                async () => {
+                    const { order } = await client.gql(
+                        `query ($id: ID!) {
+                            order(id: $id) {
+                                shippingAddress { streetLine1 customFields { deliveryNote } }
+                            }
+                        }`,
+                        { id: orderId },
+                    );
+                    return order.shippingAddress;
+                },
+                { timeout: 10_000 },
+            )
+            .toEqual({
+                streetLine1: '3 Saved Street',
+                customFields: { deliveryNote: 'Ring the bell twice' },
+            });
     });
 
     // #4393 — custom order history entry types should be displayed with key-value data
