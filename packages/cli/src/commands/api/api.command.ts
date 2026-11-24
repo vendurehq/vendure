@@ -10,7 +10,7 @@ import { apiErrors } from './api.errors.js';
 export const apiDefinition = defineCommand({
     path: ['api'],
     description:
-        'Run a GraphQL operation on the local dev server: on the Admin API as the superadmin, or on the Shop API anonymously',
+        'Run a GraphQL operation on the local dev server: on the Admin API as the superadmin, or on the Shop API anonymously, each call a new session',
     keywords: ['graphql', 'query', 'mutation', 'admin', 'shop', 'replay', 'request', 'debug'],
     behavior: 'mutating',
     schemas: () => import('./api.schema.js'),

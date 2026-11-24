@@ -1,13 +1,8 @@
 import { CommandContext, ErrorResult, fail, failed, isErrorResult } from '@vendure/common/lib/command';
+import { DEFAULT_CHANNEL_TOKEN_KEY } from '@vendure/common/lib/shared-constants';
 import pc from 'picocolors';
 
-import {
-    GraphqlResponse,
-    localAdminApiErrors,
-    localAdminGraphql,
-    readGraphqlResponse,
-    resolveLocalShopApiUrl,
-} from '../../shared/local-admin-api.js';
+import { GraphqlResponse, localAdminGraphql, localShopGraphql } from '../../shared/local-admin-api.js';
 import { projectResolutionFailure, resolveDevServerStateProject } from '../devserver/devserver.js';
 
 import { apiErrors } from './api.errors.js';
@@ -16,6 +11,8 @@ export interface ApiInput {
     target: 'admin' | 'shop';
     query: string;
     variables?: string;
+    operationName?: string;
+    channelToken?: string;
 }
 
 /**
@@ -34,11 +31,19 @@ export async function run(input: ApiInput, ctx: CommandContext) {
     if (isErrorResult(variables)) {
         return variables;
     }
-    const operation = { query: input.query, ...(variables ? { variables } : {}) };
+    const operation = {
+        query: input.query,
+        ...(variables ? { variables } : {}),
+        ...(input.operationName ? { operationName: input.operationName } : {}),
+    };
+    const options = {
+        signal: ctx.signal,
+        ...(input.channelToken ? { headers: { [DEFAULT_CHANNEL_TOKEN_KEY]: input.channelToken } } : {}),
+    };
     const response =
         input.target === 'admin'
-            ? await localAdminGraphql(projectDir, operation, { signal: ctx.signal })
-            : await runShopOperation(projectDir, operation, ctx.signal);
+            ? await localAdminGraphql(projectDir, operation, options)
+            : await localShopGraphql(projectDir, operation, options);
     if (isErrorResult(response)) {
         return response;
     }
@@ -59,37 +64,6 @@ function parseVariables(text: string | undefined): Record<string, unknown> | und
         return fail(apiErrors.invalidVariables, { message: 'it is not an object' });
     }
     return parsed as Record<string, unknown>;
-}
-
-/** Calls the Shop API with no credential, the same as a storefront. */
-async function runShopOperation(
-    projectDir: string,
-    operation: { query: string; variables?: Record<string, unknown> },
-    signal: AbortSignal,
-): Promise<GraphqlResponse | ErrorResult> {
-    const url = resolveLocalShopApiUrl(projectDir);
-    if (isErrorResult(url)) {
-        return url;
-    }
-    let response: Response;
-    try {
-        response = await fetch(url, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
-            body: JSON.stringify(operation),
-            signal,
-        });
-        return await readGraphqlResponse(response);
-    } catch (e: unknown) {
-        if (signal.aborted) {
-            throw e;
-        }
-        const cause = (e as { cause?: { code?: string } })?.cause;
-        return fail(localAdminApiErrors.unreachable, {
-            url,
-            message: cause?.code ?? (e instanceof Error ? e.message : String(e)),
-        });
-    }
 }
 
 export function render(output: GraphqlResponse): string {

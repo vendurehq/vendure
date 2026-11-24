@@ -8,6 +8,16 @@ export const input = z.object({
         ),
     query: z.string().min(1).describe('The GraphQL document'),
     variables: z.string().optional().describe('The variables of the operation, as a JSON object'),
+    operationName: z
+        .string()
+        .optional()
+        .describe('Which operation to run, when the document holds more than one'),
+    channelToken: z
+        .string()
+        .optional()
+        .describe(
+            'The token of the channel to run it in, sent as the vendure-token header (default: the default channel)',
+        ),
 });
 
 const graphqlError = z.object({

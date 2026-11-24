@@ -157,6 +157,19 @@ npx vendure devserver logs --request <request-id> --json
 npx vendure devserver stop
 ```
 
+To run a GraphQL operation on the running dev server, use `vendure api`. `admin` runs it on the Admin API as the
+superadmin, with no credentials needed. `shop` runs it on the Shop API anonymously, like a storefront, and each call
+is a new session. A response with errors exits with code 1, and each error keeps its `extensions`, including the
+`requestId`:
+
+```bash
+npx vendure api admin '{ products(options: { take: 5 }) { items { id name } } }' --json
+npx vendure api shop 'query ($id: ID!) { product(id: $id) { name } }' --variables '{"id":"1"}' --json
+```
+
+`--operation-name` picks one operation from a document that holds several, and `--channel-token` sends the
+`vendure-token` header for another channel.
+
 | Command | Description |
 | --- | --- |
 | `devserver start [target]` | Start `vendure dev` in the background, for the target `all` (the default) or `server`. It waits until the run is ready or failed, except under `vendure mcp`. `--no-wait` returns once the run has started. It refuses to start while another run serves the project. |

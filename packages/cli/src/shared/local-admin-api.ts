@@ -14,8 +14,9 @@ import {
 export type LocalAdminEndpoint = 'admin-api' | 'mcp-admin';
 
 /**
- * The errors of {@link resolveLocalAdminTarget} and {@link sendLocalAdminRequest}. A command that
- * uses them lists {@link localAdminApiErrorList} in its `errors`.
+ * The errors of the functions in this module that reach the local dev server: the Admin API and
+ * MCP calls with the per-run secret, and the anonymous Shop API call. A command that uses them lists
+ * {@link localAdminApiErrorList} in its `errors`.
  */
 export const localAdminApiErrors = {
     notRunning: defineError<Record<string, never>>({
@@ -125,8 +126,9 @@ export function resolveLocalAdminTarget(
 }
 
 /**
- * The Shop API URL of the `vendure dev` run serving the project, with the same checks as
- * {@link resolveLocalAdminTarget}. A Shop API call carries no credential, so it is the URL alone.
+ * The Shop API URL of the `vendure dev` run serving the project, with the run checks of
+ * {@link resolveLocalAdminTarget}. A Shop API call carries no credential, so a URL that is not on a
+ * loopback address is used as it is; only a wildcard bind is mapped to loopback.
  */
 export function resolveLocalShopApiUrl(projectDir: string): string | ErrorResult {
     const state = readReadyState(projectDir);
@@ -221,22 +223,72 @@ export interface GraphqlResponse<Data = Record<string, unknown>> {
  */
 export async function localAdminGraphql<Data = Record<string, unknown>>(
     projectDir: string,
-    operation: { query: string; variables?: Record<string, unknown>; operationName?: string },
+    operation: GraphqlOperation,
     options: LocalAdminRequestOptions = {},
 ): Promise<GraphqlResponse<Data> | ErrorResult> {
     const response = await sendLocalAdminRequest(projectDir, 'admin-api', operation, options);
     if (isErrorResult(response)) {
         return response;
     }
+    return readResponse<Data>(response, 'the Admin API', options.signal);
+}
+
+/**
+ * Runs a GraphQL operation on the Shop API of the local `vendure dev` run with no credential, the
+ * same as a storefront. Each call is a new anonymous session. The result is the same as for
+ * {@link localAdminGraphql}.
+ */
+export async function localShopGraphql<Data = Record<string, unknown>>(
+    projectDir: string,
+    operation: GraphqlOperation,
+    options: LocalAdminRequestOptions = {},
+): Promise<GraphqlResponse<Data> | ErrorResult> {
+    const url = resolveLocalShopApiUrl(projectDir);
+    if (isErrorResult(url)) {
+        return url;
+    }
+    const headers = new Headers(options.headers);
+    headers.set('accept', 'application/json');
+    headers.set('content-type', 'application/json');
+    const doFetch = options.fetch ?? globalThis.fetch;
+    let response: Response;
+    try {
+        response = await doFetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(operation),
+            signal: options.signal,
+        });
+    } catch (e: unknown) {
+        if (options.signal?.aborted) {
+            throw e;
+        }
+        return fail(localAdminApiErrors.unreachable, { url, message: describeFetchError(e) });
+    }
+    return readResponse<Data>(response, url, options.signal);
+}
+
+/** A GraphQL operation as it is posted. */
+export interface GraphqlOperation {
+    query: string;
+    variables?: Record<string, unknown>;
+    operationName?: string;
+}
+
+async function readResponse<Data>(
+    response: Response,
+    fallbackUrl: string,
+    signal: AbortSignal | undefined,
+): Promise<GraphqlResponse<Data> | ErrorResult> {
     try {
         return await readGraphqlResponse<Data>(response);
     } catch (e: unknown) {
         // The connection can fail while the body arrives, after `fetch` resolved.
-        if (options.signal?.aborted) {
+        if (signal?.aborted) {
             throw e;
         }
         return fail(localAdminApiErrors.unreachable, {
-            url: response.url || 'the Admin API',
+            url: response.url || fallbackUrl,
             message: describeFetchError(e),
         });
     }
