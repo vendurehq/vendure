@@ -46,6 +46,18 @@ const updateChannelTaxCountryDocument = adminGraphql(`
     }
 `);
 
+const storeReadinessDocument = adminGraphql(`
+    query TaxCountryStoreReadiness {
+        storeReadiness {
+            findings {
+                code
+                severity
+                channelId
+            }
+        }
+    }
+`);
+
 const productVariantPricesDocument = shopGraphql(`
     query ProductVariantPrices($id: ID!) {
         product(id: $id) {
@@ -282,6 +294,50 @@ describe('Channel.taxCountryCode', () => {
                 await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
             }
             expect(await indexedPrices()).toEqual({ price: 10000, priceWithTax: 11900 });
+        });
+    });
+
+    describe('store check', () => {
+        async function taxFindings() {
+            const { storeReadiness } = await adminClient.query(storeReadinessDocument);
+            return storeReadiness.findings
+                .filter(f => /^store\.(tax\.inclusive|channel\.tax-country)/.test(f.code))
+                .map(f => `${f.severity} ${f.code}`);
+        }
+
+        it('reports no included-rate gap with the tax country DE', async () => {
+            await setTaxCountry('DE');
+            expect(await taxFindings()).toEqual([]);
+        });
+
+        it('reports an unknown included rate with no tax country', async () => {
+            await setTaxCountry(null);
+            try {
+                expect(await taxFindings()).toEqual(['ERROR store.tax.inclusive-rate-unknown']);
+            } finally {
+                await setTaxCountry('DE');
+            }
+        });
+
+        it('warns about a tax country outside the default tax zone', async () => {
+            const { createCountry } = await adminClient.query(createCountryDocument, {
+                input: {
+                    code: 'CH',
+                    enabled: true,
+                    translations: [{ languageCode: LanguageCode.en, name: 'Switzerland' }],
+                },
+            });
+            await setTaxCountry('CH');
+            try {
+                expect(await taxFindings()).toEqual([
+                    'WARNING store.channel.tax-country-outside-default-zone',
+                    // CH has no country rate and the eu zone no zone rate
+                    'ERROR store.tax.inclusive-rate-unknown',
+                ]);
+            } finally {
+                await setTaxCountry('DE');
+                await adminClient.query(deleteCountryDocument, { id: createCountry.id });
+            }
         });
     });
 

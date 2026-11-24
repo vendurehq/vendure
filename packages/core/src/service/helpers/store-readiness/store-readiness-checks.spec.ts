@@ -7,6 +7,8 @@ import { AddressBasedTaxZoneStrategy } from '../../../config/tax/address-based-t
 import { DefaultTaxZoneStrategy } from '../../../config/tax/default-tax-zone-strategy';
 import { checkFailed } from '../../services/store-readiness.service';
 
+import * as channelTaxCountryModule from './channel-tax-country.check';
+import { checkChannelTaxCountry } from './channel-tax-country.check';
 import * as defaultZonesModule from './default-zones.check';
 import { checkDefaultZones } from './default-zones.check';
 import * as paymentMethodsModule from './payment-methods.check';
@@ -90,6 +92,7 @@ describe('store readiness codes', () => {
     it('are namespaced, lower-case and unique, in every module that defines them', () => {
         // Every coded error exported by a check module, and the service's own, so a new one is covered.
         const modules = [
+            channelTaxCountryModule,
             defaultZonesModule,
             paymentMethodsModule,
             pricesModule,
@@ -111,7 +114,7 @@ describe('store readiness codes', () => {
                 )
                 .map(value => (value as { code: string }).code),
         );
-        expect(codes.length).toBe(15);
+        expect(codes.length).toBe(17);
         expect(codes.filter(code => !code.startsWith('store.') || !isValidErrorCode(code))).toEqual([]);
         expect(new Set(codes).size).toBe(codes.length);
     });
@@ -198,15 +201,19 @@ describe('checkTaxRates', () => {
 
     /** A rate exists only where `rates` says, keyed by "<zone id>" or "<country code>". */
     function taxRateService(rates: string[]) {
+        const find = (target: { countryCode?: string; zone: { id: string } }) =>
+            (target.countryCode && rates.includes(target.countryCode)) || rates.includes(target.zone.id)
+                ? { id: 'rate' }
+                : undefined;
         return {
             findApplicableTaxRate: vi.fn(
                 (_ctx: unknown, target: { countryCode?: string; zone: { id: string } }) =>
-                    Promise.resolve(
-                        (target.countryCode && rates.includes(target.countryCode)) ||
-                            rates.includes(target.zone.id)
-                            ? { id: 'rate' }
-                            : undefined,
-                    ),
+                    Promise.resolve(find(target)),
+            ),
+            findIncludedTaxRate: vi.fn((_ctx: unknown, ch: any) =>
+                Promise.resolve(
+                    find({ countryCode: ch.taxCountryCode ?? undefined, zone: ch.defaultTaxZone }),
+                ),
             ),
         } as any;
     }
@@ -275,6 +282,63 @@ describe('checkTaxRates', () => {
         expect(findings.map(f => f.zoneId)).toEqual(['pacific']);
     });
 
+    it('looks the rate up for the tax country, as checkout does', async () => {
+        // No order to FR gets the DE rate: the tax country only applies with no shipping country.
+        const service = taxRateService(['DE']);
+        const findings = await checkTaxRates(
+            input({
+                channel: channel({ defaultTaxZone: europe, taxCountryCode: 'DE' }),
+                allZones: [europe],
+                shippingZones: [europe],
+            }),
+            { connection: connection(['tc1']), taxRateService: service, taxZoneStrategy: byAddress },
+        );
+        expect(findings[0].message).toContain('orders to BE, FR');
+        expect(findings[0].message).not.toContain('orders with no address yet');
+    });
+
+    it('applies no country rate where a reverse-charge strategy returns no tax country', async () => {
+        const reverseCharge = { ...byAddress, determineTaxCountryCode: () => undefined };
+        const findings = await checkTaxRates(taxInput(europe, [europe]), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService(['DE', 'FR', 'BE']),
+            taxZoneStrategy: reverseCharge,
+        });
+        expect(findings).toHaveLength(1);
+        expect(findings[0].message).toContain('orders to BE, DE, FR and orders with no address yet');
+    });
+
+    it('gives a billing-address strategy sample orders with a billing address', async () => {
+        const byBilling = {
+            ...byAddress,
+            determineTaxCountryCode: (_ctx: unknown, _ch: unknown, _zone: unknown, order?: any) =>
+                order && order.billingAddress.countryCode,
+        };
+        const findings = await checkTaxRates(taxInput(europe, [europe]), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService(['DE']),
+            taxZoneStrategy: byBilling,
+        });
+        // The sample orders have no billing country, so no country rate applies to them.
+        expect(findings[0].message).toContain('orders to BE, DE, FR and orders with no address yet');
+    });
+
+    it('reports the default tax zone of a tax-inclusive channel whose included rate is known', async () => {
+        const findings = await checkTaxRates(
+            input({
+                channel: channel({ pricesIncludeTax: true, defaultTaxZone: europe, taxCountryCode: 'DE' }),
+                allZones: [europe],
+                shippingZones: [europe],
+            }),
+            {
+                connection: connection(['tc1']),
+                taxRateService: taxRateService(['DE']),
+                taxZoneStrategy: byAddress,
+            },
+        );
+        expect(findings.map(f => f.zoneId)).toEqual(['eu']);
+    });
+
     it('reports nothing when the channel has no variants', async () => {
         expect(
             await checkTaxRates(input(), {
@@ -305,15 +369,19 @@ describe('checkTaxInclusiveRates', () => {
      * country codes, for any tax category.
      */
     function taxRateService(categoriesWithZoneRate: string[], countriesWithRate: string[] = []) {
+        const find = (countryCode: string | undefined, categoryId: string) =>
+            countryCode && countriesWithRate.includes(countryCode)
+                ? { id: 'country-rate', regionId: `country-${countryCode}` }
+                : categoriesWithZoneRate.includes(categoryId)
+                  ? { id: 'zone-rate', regionId: null }
+                  : undefined;
         return {
             findApplicableTaxRate: vi.fn(
                 (_ctx: unknown, target: { countryCode?: string }, categoryId: string) =>
-                    Promise.resolve(
-                        (target.countryCode && countriesWithRate.includes(target.countryCode)) ||
-                            (!target.countryCode && categoriesWithZoneRate.includes(categoryId))
-                            ? { id: 'rate' }
-                            : undefined,
-                    ),
+                    Promise.resolve(find(target.countryCode, categoryId)),
+            ),
+            findIncludedTaxRate: vi.fn((_ctx: unknown, ch: any, categoryId: string) =>
+                Promise.resolve(find(ch.taxCountryCode ?? undefined, categoryId)),
             ),
         } as any;
     }
@@ -356,8 +424,48 @@ describe('checkTaxInclusiveRates', () => {
         });
         expect(findings[0].message).toContain('Channel "default"');
         expect(findings[0].message).toContain('"Category tc2"');
-        // The zone-only lookup, as the price calculation makes it, so a country rate does not count.
-        expect(service.findApplicableTaxRate).toHaveBeenCalledWith(ctx, europe, 'tc2');
+        expect(findings[0].message).toContain('it has no tax country');
+        // The lookup the price calculation makes
+        expect(service.findIncludedTaxRate).toHaveBeenCalledWith(
+            ctx,
+            expect.objectContaining({ id: 1 }),
+            'tc2',
+        );
+    });
+
+    it('suggests a country of the default zone with a country rate as the tax country', async () => {
+        const [finding] = await checkTaxInclusiveRates(inclusiveInput(), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([], ['FR']),
+            taxZoneStrategy: byAddress,
+        });
+        expect(finding.fixes.map(f => f.path[0])).toEqual(['admin_update_channel', 'admin_create_tax_rate']);
+        expect(finding.fixes[0].input).toEqual({ id: 1, input: { taxCountryCode: 'FR' } });
+    });
+
+    it('reports nothing when the tax country has a country rate, with no zone rate', async () => {
+        expect(
+            await checkTaxInclusiveRates(inclusiveInput({ taxCountryCode: 'DE' }), {
+                connection: connection(['tc1']),
+                taxRateService: taxRateService([], ['DE']),
+                taxZoneStrategy: byAddress,
+            }),
+        ).toEqual([]);
+    });
+
+    it('offers a country rate for a tax country that has none', async () => {
+        const [finding] = await checkTaxInclusiveRates(inclusiveInput({ taxCountryCode: 'BE' }), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([], ['DE']),
+            taxZoneStrategy: byAddress,
+        });
+        expect(finding.message).toContain('its tax country BE has no enabled country rate for it');
+        expect(finding.fixes[0]).toMatchObject({
+            path: ['admin_create_tax_rate'],
+            input: { input: { taxCategoryId: 'tc1', target: { countryCode: 'BE' } } },
+        });
+        // Orders with no address get BE as tax country, which has no rate.
+        expect(finding.message).toContain('orders with no address yet and orders to BE, FR are taxed at 0%');
     });
 
     it('names the orders in the default zone that are taxed at 0%', async () => {
@@ -412,7 +520,7 @@ describe('checkTaxInclusiveRates', () => {
                 taxZoneStrategy: byAddress,
             }),
         ).toEqual([]);
-        expect(service.findApplicableTaxRate).not.toHaveBeenCalled();
+        expect(service.findIncludedTaxRate).not.toHaveBeenCalled();
     });
 
     it('leaves a channel with no default tax zone to the default-zones check', async () => {
@@ -433,6 +541,54 @@ describe('checkTaxInclusiveRates', () => {
                 taxZoneStrategy: byAddress,
             }),
         ).toEqual([]);
+    });
+});
+
+describe('checkChannelTaxCountry', () => {
+    const europe = zone('eu', [country('DE'), country('FR')]);
+
+    function connection(countryCodes: string[]) {
+        return {
+            getRepository: () => ({
+                findOne: ({ where }: { where: { code: string } }) =>
+                    Promise.resolve(countryCodes.includes(where.code) ? country(where.code) : null),
+            }),
+        } as any;
+    }
+
+    function taxCountryInput(taxCountryCode: string | null) {
+        return input({
+            channel: channel({ defaultTaxZone: { id: 'eu' }, taxCountryCode }),
+            allZones: [europe],
+        });
+    }
+
+    it('reports nothing for a tax country in the default tax zone, or none', async () => {
+        expect(await checkChannelTaxCountry(taxCountryInput('DE'), connection(['DE']))).toEqual([]);
+        expect(await checkChannelTaxCountry(taxCountryInput(null), connection([]))).toEqual([]);
+    });
+
+    it('warns about a tax country outside the default tax zone', async () => {
+        const findings = await checkChannelTaxCountry(taxCountryInput('CH'), connection(['CH']));
+        expect(findings).toHaveLength(1);
+        expect(findings[0]).toMatchObject({
+            code: 'store.channel.tax-country-outside-default-zone',
+            severity: 'WARNING',
+            channelId: 1,
+            zoneId: 'eu',
+            dashboardUrl: '/channels',
+            fixes: [{ path: ['admin_update_zone'], input: { id: 'eu' } }],
+        });
+    });
+
+    it('reports a tax country that is not the code of a country', async () => {
+        const findings = await checkChannelTaxCountry(taxCountryInput('XX'), connection(['DE']));
+        expect(findings).toHaveLength(1);
+        expect(findings[0]).toMatchObject({
+            code: 'store.channel.tax-country-unknown',
+            severity: 'ERROR',
+            fixes: [{ path: ['admin_update_channel'], input: { id: 1, input: { taxCountryCode: null } } }],
+        });
     });
 });
 
