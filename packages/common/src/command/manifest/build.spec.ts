@@ -91,10 +91,26 @@ describe('buildCommandManifest', () => {
         const { command } = wipeCommand();
         const built = await buildCommandManifest('@vendure/cli', '1.0.0', [
             command,
-            { ...command, path: ['demo', 'key'], secretOutputs: ['key'] },
+            { ...command, path: ['demo', 'key'], secretOutputs: ['wiped'] },
         ]);
         expect(built.commands[0]).not.toHaveProperty('secretOutputs');
-        expect(built.commands[1].secretOutputs).toEqual(['key']);
+        expect(built.commands[1].secretOutputs).toEqual(['wiped']);
+    });
+
+    it('fails the build for a secret output that is not a field of the output', async () => {
+        const { command } = wipeCommand();
+        await expect(
+            buildCommandManifest('@vendure/cli', '1.0.0', [{ ...command, secretOutputs: ['apiKey'] }]),
+        ).rejects.toThrow('not top-level fields of its output schema: apiKey');
+    });
+
+    it('fails the build for secret outputs on a command without an output schema', async () => {
+        const { command, input } = wipeCommand();
+        await expect(
+            buildCommandManifest('@vendure/cli', '1.0.0', [
+                { ...command, secretOutputs: ['key'], schemas: () => Promise.resolve({ input }) },
+            ]),
+        ).rejects.toThrow('not top-level fields');
     });
 
     it('describes a secret output field as the value or the file it was written to', async () => {

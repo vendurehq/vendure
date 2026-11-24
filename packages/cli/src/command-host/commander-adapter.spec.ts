@@ -287,6 +287,12 @@ describe('findMismatch', () => {
         });
         expect(await findMismatch(changed, built)).toBe('its input fields differ');
     });
+    it('reports secret outputs that the manifest does not list', async () => {
+        const [built] = mergeManifests([await buildCommandManifest('@test/pkg', '1.0.0', [demo])]);
+        expect(await findMismatch({ ...demo, secretOutputs: ['key'] }, built)).toBe(
+            'its secret outputs differ',
+        );
+    });
 });
 
 describe('the credential check of createHostEnvironment', () => {

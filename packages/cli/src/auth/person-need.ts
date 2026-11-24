@@ -43,7 +43,8 @@ export function personNeedFromApiError(error: unknown, context: PersonNeedContex
     if (!body) {
         return undefined;
     }
-    const url = new URL(context.path ?? '/', context.consoleUrl).toString();
+    // Joined as strings, so a Console served under a path keeps it.
+    const url = `${context.consoleUrl.replace(/\/+$/, '')}/${(context.path ?? '').replace(/^\/+/, '')}`;
     return {
         kind: 'person',
         action: body.action,

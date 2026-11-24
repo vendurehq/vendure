@@ -391,6 +391,10 @@ export async function findMismatch(
     if ((def.plan !== undefined) !== manifestCommand.hasPlan) {
         return 'it differs in having a plan()';
     }
+    const secrets = (list: string[] | undefined) => [...(list ?? [])].sort(compareCodeUnits).join(',');
+    if (secrets(def.secretOutputs) !== secrets(manifestCommand.secretOutputs)) {
+        return 'its secret outputs differ';
+    }
     // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
     // in place, so a field that was added, renamed or removed is caught here.
     const declared = Object.keys(

@@ -37,6 +37,7 @@ export async function buildCommandManifest(
             consents: def.consents ?? {},
             input: { ...input, properties },
             output: withSecretFileFields(
+                def.path,
                 schemas.output?.['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }),
                 def.secretOutputs ?? [],
             ),
@@ -68,10 +69,22 @@ export async function buildCommandManifest(
  * The output schema as a caller receives it: a secret output field holds either the value, for a
  * person at a terminal, or the path of the file the host wrote it to.
  */
-function withSecretFileFields(output: JsonSchema | undefined, fields: string[]): JsonSchema | undefined {
-    const properties = output?.properties as Record<string, JsonSchema> | undefined;
-    if (!output || !properties || fields.length === 0) {
+function withSecretFileFields(
+    command: string[],
+    output: JsonSchema | undefined,
+    fields: string[],
+): JsonSchema | undefined {
+    if (fields.length === 0) {
         return output;
+    }
+    // A name that matches no field would leave the real secret in the output, so it fails the build.
+    const properties = output?.properties as Record<string, JsonSchema> | undefined;
+    const unknown = fields.filter(field => !properties || !(field in properties));
+    if (!output || !properties || unknown.length > 0) {
+        throw new Error(
+            `"${command.join(' ')}" lists secret outputs that are not top-level fields of its output schema: ` +
+                unknown.join(', '),
+        );
     }
     const secretFile: JsonSchema = {
         type: 'object',

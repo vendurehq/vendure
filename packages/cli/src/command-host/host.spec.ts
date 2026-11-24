@@ -74,6 +74,7 @@ describe('executeCommand', () => {
                 { writeSecret, prompter: person, mcp: true },
             );
             expect(result.envelope.output).toMatchObject({ key: { secretFile: '/tmp/secret' } });
+            expect(JSON.stringify(result.envelope)).not.toContain('vcdk_secret_value');
         });
 
         it('leaves the secret for render() when a person is at the terminal', async () => {
@@ -120,7 +121,10 @@ describe('executeCommand', () => {
             const result = await runCommandInHarness(makeCommand(run, { secretOutputs: ['key'] }), {
                 name: 'a',
             });
-            expect(result.envelope.status).toBe('error');
+            expect(result.envelope.error).toMatchObject({
+                code: 'cli.internal',
+                message: 'This host cannot keep the secret outputs of this command out of its output',
+            });
             expect(run).not.toHaveBeenCalled();
         });
     });

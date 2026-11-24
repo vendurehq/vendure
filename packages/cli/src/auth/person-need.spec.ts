@@ -25,6 +25,15 @@ describe('personNeedFromApiError', () => {
         });
     });
 
+    it('keeps a path in the Console URL', () => {
+        expect(
+            personNeedFromApiError(refusal, {
+                consoleUrl: 'https://example.com/console/',
+                path: '/projects/p1',
+            })?.url,
+        ).toBe('https://example.com/console/projects/p1');
+    });
+
     it('reads the refusal from the error an HTTP client throws', () => {
         const need = personNeedFromApiError(
             Object.assign(new Error('403'), { response: { body: refusal } }),
