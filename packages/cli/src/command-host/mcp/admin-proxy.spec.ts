@@ -1,17 +1,21 @@
 import { fail } from '@vendure/common/lib/command';
 import fs from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { DevServerState, getDevServerStateFilePath } from '../../commands/dev/state-file.js';
-import { localAdminApiErrors } from '../../shared/local-admin-api.js';
+import { localAdminApiErrors, LocalAdminTarget } from '../../shared/local-admin-api.js';
 
 import {
     AdminProxy,
     behaviorOf,
     parseStoreBody,
     SendToStore,
+    sendToStore,
+    STORE_PROTOCOL_VERSION,
     StoreResponse,
     withDeveloperMcpCall,
 } from './admin-proxy.js';
@@ -54,7 +58,7 @@ const STORE_TOOLS = [
 ];
 
 interface SentRequest {
-    projectDir: string;
+    target: LocalAdminTarget;
     message: any;
     headers: Record<string, string>;
 }
@@ -62,8 +66,8 @@ interface SentRequest {
 /** A Store MCP that answers tools/list with STORE_TOOLS and tools/call with `respond`. */
 function fakeStore(respond: (message: any) => StoreResponse = () => rpcResult({ content: [] })) {
     const sent: SentRequest[] = [];
-    const send: SendToStore = async (projectDir, message, headers) => {
-        sent.push({ projectDir, message, headers });
+    const send: SendToStore = async (target, message, headers) => {
+        sent.push({ target, message, headers });
         if ((message as any).method === 'tools/list') {
             return rpcResult({ tools: STORE_TOOLS });
         }
@@ -126,7 +130,7 @@ describe('AdminProxy', () => {
         current = state({ secret: 'secret-2', startedAt: '2026-11-24T09:00:00.000Z' });
         await proxy.tools();
         expect(store.sent.filter(r => r.message.method === 'tools/list')).toHaveLength(3);
-        expect(store.sent[0].projectDir).toBe('/project');
+        expect(store.sent[0].target).toEqual({ url: MCP_URL, secret: 'secret-1' });
     });
 
     it('calls the Store MCP tool by its own name', async () => {
@@ -250,6 +254,23 @@ describe('AdminProxy', () => {
         expect(error?.code).toBe('mcp.admin-tools.store-mcp-missing');
         expect(error?.message).toContain('McpPlugin.init()');
         expect(error?.message).not.toContain('oauth');
+    });
+
+    it('refuses a Store MCP endpoint that is not on a loopback address', async () => {
+        const store = fakeStore();
+        const proxy = proxyWith(store.send, () =>
+            state({ urls: { mcp: 'http://shop.example.com:3000/mcp/admin' } }),
+        );
+        expect(await proxy.tools()).toEqual([]);
+        expect(proxy.unavailable()?.error?.code).toBe('devserver.endpoint-not-local');
+        expect(store.sent).toEqual([]);
+    });
+
+    it('sends a call to the target it resolved from the state', async () => {
+        const store = fakeStore();
+        const proxy = proxyWith(store.send);
+        await proxy.call('admin_list_channels', {}, signal());
+        expect(store.sent.map(r => r.target)).toEqual([{ url: MCP_URL, secret: 'secret-1' }]);
     });
 
     it('reports the tools as unavailable outside a project', () => {
@@ -527,5 +548,40 @@ describe('withDeveloperMcpCall', () => {
     it('leaves other results alone', () => {
         const ok = { content: [], structuredContent: { result: 'DELETED' } };
         expect(withDeveloperMcpCall(ok, 'admin_delete_zone', undefined)).toBe(ok);
+    });
+});
+
+describe('sendToStore', () => {
+    it('posts to the target with its secret, the channel header and the protocol version', async () => {
+        const received: Array<{ url?: string; headers: http.IncomingHttpHeaders; body: string }> = [];
+        const server = http.createServer((req, res) => {
+            let body = '';
+            req.on('data', chunk => (body += String(chunk)));
+            req.on('end', () => {
+                received.push({ url: req.url, headers: req.headers, body });
+                res.setHeader('content-type', 'application/json');
+                res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { tools: [] } }));
+            });
+        });
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+        const { port } = server.address() as AddressInfo;
+        try {
+            const message = { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} };
+            const response = await sendToStore(
+                { url: `http://127.0.0.1:${port}/mcp/admin`, secret: 'run-secret' },
+                message,
+                { 'vendure-token': 'eu' },
+                signal(),
+            );
+            expect(response).toEqual({ status: 200, body: { jsonrpc: '2.0', id: 1, result: { tools: [] } } });
+            expect(received).toHaveLength(1);
+            expect(received[0].url).toBe('/mcp/admin');
+            expect(received[0].headers.authorization).toBe('Bearer run-secret');
+            expect(received[0].headers['vendure-token']).toBe('eu');
+            expect(received[0].headers['mcp-protocol-version']).toBe(STORE_PROTOCOL_VERSION);
+            expect(JSON.parse(received[0].body)).toEqual(message);
+        } finally {
+            await new Promise(resolve => server.close(resolve));
+        }
     });
 });

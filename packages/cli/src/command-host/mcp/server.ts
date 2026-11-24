@@ -178,7 +178,7 @@ export class McpServer {
                             : 'Each command is a tool.') +
                         (this.options.adminTools
                             ? ' Tools named admin_* are the Store MCP admin tools of the running dev server.' +
-                              ' They act on the store as the superadmin, and are listed while the dev server is running.'
+                              ' They act on the store as the superadmin, and are listed while the dev server is ready.'
                             : ''),
                 });
                 return;

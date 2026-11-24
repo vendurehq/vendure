@@ -14,9 +14,12 @@ import {
     readDevServerState,
 } from '../../commands/dev/state-file.js';
 import {
+    checkReadyState,
     localAdminApiErrorList,
     localAdminApiErrors,
-    sendLocalAdminRequest,
+    LocalAdminTarget,
+    sendToLocalAdminTarget,
+    toLocalAdminTarget,
 } from '../../shared/local-admin-api.js';
 import { errorResult } from '../host.js';
 
@@ -50,7 +53,7 @@ const REQUEST_TIMEOUT_MS = 60_000;
 const LIST_TIMEOUT_MS = 5_000;
 
 /** The protocol version sent on each stateless request to the Store MCP. */
-const STORE_PROTOCOL_VERSION = '2025-11-25';
+export const STORE_PROTOCOL_VERSION = '2025-11-25';
 
 /** A tool of the Store MCP, as the Developer MCP offers it. */
 export interface AdminTool {
@@ -77,10 +80,10 @@ export interface StoreResponse {
 /**
  * Sends one JSON-RPC message to the Store MCP's admin endpoint of the project's running dev
  * server, with the run's local-trust secret as the bearer token and the given extra headers.
- * Returns a coded error when no ready run serves the project or it cannot be reached.
+ * Returns `devserver.unreachable` when the server at the target cannot be reached.
  */
 export type SendToStore = (
-    projectDir: string,
+    target: LocalAdminTarget,
     message: object,
     headers: Record<string, string>,
     signal: AbortSignal,
@@ -100,7 +103,7 @@ export interface AdminProxyOptions {
 
 /** Whether the admin tools can be called, and why not. */
 type Availability =
-    | { available: true; key: string; projectDir: string }
+    | { available: true; key: string; target: LocalAdminTarget }
     | { available: false; key: string; error: CommandEnvelope };
 
 /**
@@ -236,7 +239,7 @@ export class AdminProxy {
         let cursor: string | undefined;
         do {
             const response = await this.request(
-                availability.projectDir,
+                availability.target,
                 'tools/list',
                 cursor ? { cursor } : {},
                 signal,
@@ -284,7 +287,7 @@ export class AdminProxy {
         }
         const storeName = name.slice(ADMIN_TOOL_PREFIX.length);
         const response = await this.request(
-            availability.projectDir,
+            availability.target,
             'tools/call',
             { name: storeName, arguments: args },
             signal,
@@ -316,7 +319,7 @@ export class AdminProxy {
     }
 
     private async request(
-        projectDir: string,
+        target: LocalAdminTarget,
         method: string,
         params: object,
         signal: AbortSignal,
@@ -329,7 +332,7 @@ export class AdminProxy {
         const timeoutMs = method === 'tools/list' ? LIST_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
         let response: StoreResponse | ErrorResult;
         try {
-            response = await this.send(projectDir, message, headers, signal, timeoutMs);
+            response = await this.send(target, message, headers, signal, timeoutMs);
         } catch (e) {
             if (signal.aborted) {
                 throw e;
@@ -349,8 +352,8 @@ export class AdminProxy {
             };
         }
         if (isErrorResult(response)) {
-            // The run stopped since the state was read, or the server cannot be reached. A dev
-            // server that crashed leaves its state file behind, so look again.
+            // The server at the target cannot be reached. A dev server that crashed leaves its state
+            // file behind, so look again.
             this.checkForChange();
             return { ok: false, error: envelopeOf(response) };
         }
@@ -412,46 +415,43 @@ export class AdminProxy {
     private availability(): Availability {
         const projectDir = this.options.projectDir;
         if (!projectDir) {
-            return unavailable('no-project', adminToolsErrors.noProject, {});
+            return unavailable('no-project', errorEnvelope(adminToolsErrors.noProject, {}));
         }
-        // The same checks as `resolveLocalAdminTarget`, which each request makes again. The state
-        // also gives the key that tells one run, and one restart of it, from another.
         let state: DevServerState | undefined;
         try {
             state = this.readState();
         } catch {
             state = undefined;
         }
-        if (!state || state.status === 'stopped' || !this.isAlive(state)) {
-            return unavailable('stopped', localAdminApiErrors.notRunning, {});
-        }
-        if (state.status !== 'ready') {
+        // The local Admin API helper checks the state. This method reads the state itself, because
+        // the key that tells one run, and one restart of it, from another also comes from it.
+        const ready = checkReadyState(state, this.isAlive);
+        if (isErrorResult(ready)) {
+            const key = state ? `${state.status}:${state.startedAt}:${state.restarts}` : 'stopped';
             return unavailable(
-                `${state.status}:${state.startedAt}:${state.restarts}`,
-                localAdminApiErrors.notReady,
-                {
-                    status: state.status,
-                },
+                ready.code === localAdminApiErrors.notRunning.code ? 'stopped' : key,
+                envelopeOf(ready),
             );
         }
-        if (!state.urls.mcp) {
-            // The plugin logs its endpoint only when local trust is on, so this names the fix.
-            return unavailable(`no-mcp:${state.startedAt}`, adminToolsErrors.storeMcpMissing, {});
+        const target = toLocalAdminTarget(ready, 'mcp-admin');
+        if (isErrorResult(target)) {
+            // The plugin logs its endpoint only when local trust is on, so a missing one names that fix.
+            const error =
+                target.code === localAdminApiErrors.endpointUnknown.code
+                    ? errorEnvelope(adminToolsErrors.storeMcpMissing, {})
+                    : envelopeOf(target);
+            return unavailable(`${target.code}:${ready.startedAt}:${ready.restarts}`, error);
         }
         return {
             available: true,
-            key: `ready:${state.startedAt}:${state.restarts}:${state.urls.mcp}`,
-            projectDir,
+            key: `ready:${ready.startedAt}:${ready.restarts}:${target.url}`,
+            target,
         };
     }
 }
 
-function unavailable<Details>(
-    key: string,
-    error: CommandErrorDefinition<Details>,
-    details: Details,
-): Availability {
-    return { available: false, key: `unavailable:${key}`, error: errorEnvelope(error, details) };
+function unavailable(key: string, error: CommandEnvelope): Availability {
+    return { available: false, key: `unavailable:${key}`, error };
 }
 
 function errorEnvelope<Details>(error: CommandErrorDefinition<Details>, details: Details): CommandEnvelope {
@@ -460,13 +460,13 @@ function errorEnvelope<Details>(error: CommandErrorDefinition<Details>, details:
 
 /** Errors after which a write is known not to have run. */
 const NOT_SENT_CODES = new Set([
-    'devserver.not-running',
-    'devserver.not-ready',
-    'devserver.endpoint-unknown',
-    'devserver.endpoint-not-local',
-    'mcp.admin-tools.store-mcp-missing',
-    'mcp.admin-tools.channel-refused',
-    'mcp.admin-tools.store-timed-out',
+    localAdminApiErrors.notRunning.code,
+    localAdminApiErrors.notReady.code,
+    localAdminApiErrors.endpointUnknown.code,
+    localAdminApiErrors.endpointNotLocal.code,
+    adminToolsErrors.storeMcpMissing.code,
+    adminToolsErrors.channelRefused.code,
+    adminToolsErrors.storeTimedOut.code,
 ]);
 
 /**
@@ -476,7 +476,7 @@ const NOT_SENT_CODES = new Set([
 function withMayHaveRun(envelope: CommandEnvelope): CommandEnvelope {
     const code = envelope.error?.code ?? '';
     const refused = /ECONNREFUSED/.test(envelope.error?.message ?? '');
-    if (NOT_SENT_CODES.has(code) || refused || code === 'mcp.admin-tools.store-refused') {
+    if (NOT_SENT_CODES.has(code) || refused || code === adminToolsErrors.storeRefused.code) {
         return envelope;
     }
     return {
@@ -543,13 +543,13 @@ export function behaviorOf(annotations: Record<string, unknown>): AdminTool['beh
  * which sends the run's secret. The endpoint is stateless, so no `initialize` comes first.
  */
 export const sendToStore: SendToStore = async (
-    projectDir,
+    target,
     message,
     headers,
     signal,
     timeoutMs = REQUEST_TIMEOUT_MS,
 ) => {
-    const response = await sendLocalAdminRequest(projectDir, 'mcp-admin', message, {
+    const response = await sendToLocalAdminTarget(target, 'mcp-admin', message, {
         headers: { ...headers, 'mcp-protocol-version': STORE_PROTOCOL_VERSION },
         signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
     });
