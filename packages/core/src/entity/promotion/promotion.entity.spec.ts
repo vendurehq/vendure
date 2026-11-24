@@ -14,7 +14,10 @@ describe('Promotion', () => {
         await setConfig({ entityOptions: { moneyStrategy: new RoundPerUnitMoneyStrategy() } });
     });
 
-    async function discountQuotedLine(discount: number) {
+    async function discountQuotedLine(
+        discount: number,
+        quote: { price: number; quantity: number; taxRate: number; pricesIncludeTax: boolean },
+    ) {
         const promotion = new Promotion({
             id: 1,
             name: `${discount}% off`,
@@ -31,20 +34,27 @@ describe('Promotion', () => {
         });
         const orderLine = new OrderLine({
             productVariant: new ProductVariant({ id: 1 }),
-            quotedLinePrice: 2470,
-            quotedQuantity: 20,
-            quantity: 20,
-            listPrice: 124,
+            quotedLinePrice: quote.price,
+            quotedQuantity: quote.quantity,
+            quantity: quote.quantity,
+            listPrice: Math.round(quote.price / quote.quantity),
             listPriceIncludesTax: true,
-            taxLines: [],
+            taxLines: [{ description: 'VAT', taxRate: quote.taxRate }],
             adjustments: [],
         });
-        const ctx = createRequestContext({ pricesIncludeTax: true });
-        return (await promotion.apply(ctx, { orderLine }))?.amount;
+        const ctx = createRequestContext({ pricesIncludeTax: quote.pricesIncludeTax });
+        const adjustment = await promotion.apply(ctx, { orderLine });
+        return orderLine.getAdjustmentAmount(adjustment?.amount ?? 0, quote.pricesIncludeTax);
     }
 
     it('rounds an item discount on a quoted line on the line total', async () => {
-        expect(await discountQuotedLine(100)).toBe(-2470);
-        expect(await discountQuotedLine(10)).toBe(-247);
+        const quote = { price: 2470, quantity: 20, taxRate: 0, pricesIncludeTax: true };
+        expect(await discountQuotedLine(100, quote)).toBe(-2470);
+        expect(await discountQuotedLine(10, quote)).toBe(-247);
+    });
+
+    it('rounds an item discount on a quoted line after the tax basis conversion', async () => {
+        const quote = { price: 99, quantity: 1, taxRate: 20, pricesIncludeTax: false };
+        expect(await discountQuotedLine(100, quote)).toBe(-99);
     });
 });

@@ -382,8 +382,11 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     /** Convert a promotion amount in the channel's tax basis to the stored quote's tax basis. */
     getAdjustmentAmount(amount: number, includesTax: boolean): number {
         // Existing unit-price strategies keep their historical promotion tax treatment.
-        if (this.quotedLinePrice == null || includesTax === this.listPriceIncludesTax) {
+        if (this.quotedLinePrice == null) {
             return amount;
+        }
+        if (includesTax === this.listPriceIncludesTax) {
+            return roundMoney(amount);
         }
         return roundMoney(
             includesTax ? netPriceOf(amount, this.taxRate) : grossPriceOf(amount, this.taxRate),
