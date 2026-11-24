@@ -1,6 +1,7 @@
-import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { HistoryEntryListOptions, QueryOrdersArgs, SortOrder } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { Address } from '../../../entity/address/address.entity';
@@ -12,6 +13,7 @@ import { CustomerService } from '../../../service/services/customer.service';
 import { HistoryService } from '../../../service/services/history.service';
 import { OrderService } from '../../../service/services/order.service';
 import { ApiType } from '../../common/get-api-type';
+import { IdArgumentDecoder } from '../../common/id-argument-decoder';
 import { RequestContext } from '../../common/request-context';
 import { Api } from '../../decorators/api.decorator';
 import { RelationPaths, Relations } from '../../decorators/relations.decorator';
@@ -22,6 +24,7 @@ export class CustomerEntityResolver {
     constructor(
         private customerService: CustomerService,
         private orderService: OrderService,
+        private idArgumentDecoder: IdArgumentDecoder,
     ) {}
     @ResolveField()
     async addresses(
@@ -41,6 +44,7 @@ export class CustomerEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() customer: Customer,
         @Args() args: QueryOrdersArgs,
+        @Info() info: GraphQLResolveInfo,
         @Api() apiType: ApiType,
         @Relations(Order) relations: RelationPaths<Order>,
     ): Promise<PaginatedList<Order>> {
@@ -48,7 +52,8 @@ export class CustomerEntityResolver {
             // Guest customers should not be able to see this data
             return { items: [], totalItems: 0 };
         }
-        return this.orderService.findByCustomerId(ctx, customer.id, args.options || undefined, relations);
+        const { options } = this.idArgumentDecoder.decode(info, args);
+        return this.orderService.findByCustomerId(ctx, customer.id, options || undefined, relations);
     }
 
     @ResolveField()
@@ -70,6 +75,7 @@ export class CustomerAdminEntityResolver {
         private historyService: HistoryService,
         private identityScopeService: IdentityScopeService,
         private requestContextCache: RequestContextCacheService,
+        private idArgumentDecoder: IdArgumentDecoder,
     ) {}
 
     @ResolveField()
@@ -105,9 +111,10 @@ export class CustomerAdminEntityResolver {
         @Api() apiType: ApiType,
         @Parent() order: Order,
         @Args() args: any,
+        @Info() info: GraphQLResolveInfo,
     ) {
         const publicOnly = apiType === 'shop';
-        const options: HistoryEntryListOptions = { ...args.options };
+        const options: HistoryEntryListOptions = { ...this.idArgumentDecoder.decode(info, args).options };
         if (!options.sort) {
             options.sort = { createdAt: SortOrder.ASC };
         }
