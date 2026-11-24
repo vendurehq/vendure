@@ -1,4 +1,3 @@
-import { INCLUDE_STACK_IN_ERRORS_ENV_VAR } from '@vendure/common/lib/shared-constants';
 import { GraphQLError } from 'graphql';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -6,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { ForbiddenError } from '../../common/error/errors';
 import { runWithRequestId } from '../common/request-id';
 
-import { createFormatGraphQLError, shouldIncludeStackInErrors } from './format-graphql-error';
+import { createFormatGraphQLError } from './format-graphql-error';
 
 describe('createFormatGraphQLError()', () => {
     const cwd = path.resolve('/app');
@@ -84,23 +83,5 @@ describe('createFormatGraphQLError()', () => {
         const result = runWithRequestId(undefined, () => format(formatted, wrap(new ForbiddenError())));
 
         expect(result.extensions).not.toHaveProperty('requestId');
-    });
-});
-
-describe('shouldIncludeStackInErrors()', () => {
-    it('is on when the option is on, or is not set and vendure dev set the variable', () => {
-        expect(shouldIncludeStackInErrors(true, {})).toBe(true);
-        expect(shouldIncludeStackInErrors(undefined, { [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: 'true' })).toBe(
-            true,
-        );
-    });
-
-    it('lets an explicit false win over the variable', () => {
-        expect(shouldIncludeStackInErrors(false, { [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: 'true' })).toBe(false);
-    });
-
-    it('is off otherwise', () => {
-        expect(shouldIncludeStackInErrors(undefined, {})).toBe(false);
-        expect(shouldIncludeStackInErrors(undefined, { [INCLUDE_STACK_IN_ERRORS_ENV_VAR]: '1' })).toBe(false);
     });
 });

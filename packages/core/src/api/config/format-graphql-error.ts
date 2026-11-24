@@ -1,21 +1,9 @@
-import { INCLUDE_STACK_IN_ERRORS_ENV_VAR } from '@vendure/common/lib/shared-constants';
 import { GraphQLError, GraphQLFormattedError } from 'graphql';
 
 import { trimStack } from '../../common/error/trim-stack';
 import { I18nError } from '../../i18n/i18n-error';
 import { UNEXPECTED_VENDURE_CODE } from '../../i18n/vendure-code';
 import { getRequestId } from '../common/request-id';
-
-/**
- * Whether the APIs add stacks to their errors: `apiOptions.includeStackInErrors` when it is set,
- * and otherwise whether the `VENDURE_INCLUDE_STACK_IN_ERRORS` environment variable is `true`.
- */
-export function shouldIncludeStackInErrors(
-    includeStackInErrors: boolean | undefined,
-    env: Record<string, string | undefined> = process.env,
-): boolean {
-    return includeStackInErrors ?? env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] === 'true';
-}
 
 export interface FormatGraphQLErrorOptions {
     /**

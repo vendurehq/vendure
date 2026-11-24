@@ -16,7 +16,7 @@ import { AssetInterceptorPlugin } from '../middleware/asset-interceptor-plugin';
 import { IdCodecPlugin } from '../middleware/id-codec-plugin';
 import { TranslateErrorsPlugin } from '../middleware/translate-errors-plugin';
 
-import { createFormatGraphQLError, shouldIncludeStackInErrors } from './format-graphql-error';
+import { createFormatGraphQLError } from './format-graphql-error';
 import { generateResolvers } from './generate-resolvers';
 import { getFinalVendureSchema, isUsingDefaultEntityIdStrategy } from './get-final-vendure-schema';
 
@@ -114,7 +114,7 @@ async function createGraphQLOptions(
         csrfPrevention: configService.apiOptions.csrfPrevention ?? true,
         // Adds Vendure's fields to the extensions of every error. See `createFormatGraphQLError` for the list.
         formatError: createFormatGraphQLError({
-            includeStack: shouldIncludeStackInErrors(configService.apiOptions.includeStackInErrors),
+            includeStack: configService.apiOptions.includeStackInErrors === true,
             cwd: process.cwd(),
         }),
         // Apollo Server includes stack traces in error responses unless NODE_ENV is "production"

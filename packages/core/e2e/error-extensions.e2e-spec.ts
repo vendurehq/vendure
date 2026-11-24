@@ -1,5 +1,4 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
-import { INCLUDE_STACK_IN_ERRORS_ENV_VAR } from '@vendure/common/lib/shared-constants';
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { spawnSync } from 'child_process';
@@ -182,48 +181,6 @@ describe('apiOptions.includeStackInErrors: true', () => {
         expect(error.extensions?.stacktrace).toBeUndefined();
     });
 });
-
-/**
- * The variable is read when the GraphQL options are built, so it is set before `server.init()`.
- */
-function describeWithStackVariable(
-    title: string,
-    includeStackInErrors: boolean | undefined,
-    expectStack: boolean,
-) {
-    describe(title, () => {
-        const { server, shopClient } = createTestEnvironment(
-            mergeConfig(testConfig(), { apiOptions: { includeStackInErrors } }),
-        );
-
-        beforeAll(async () => {
-            process.env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] = 'true';
-            await server.init({
-                initialData,
-                productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
-                customerCount: 0,
-            });
-        }, TEST_SETUP_TIMEOUT_MS);
-
-        afterAll(async () => {
-            delete process.env[INCLUDE_STACK_IN_ERRORS_ENV_VAR];
-            await server.destroy();
-        });
-
-        it(expectStack ? 'adds the stack frames' : 'adds no stack', async () => {
-            const [error] = await getErrors(shopClient.query(GET_ME));
-
-            if (expectStack) {
-                expect(error.extensions?.stack?.length).toBeGreaterThan(0);
-            } else {
-                expect(error.extensions?.stack).toBeUndefined();
-            }
-        });
-    });
-}
-
-describeWithStackVariable('VENDURE_INCLUDE_STACK_IN_ERRORS=true, option not set', undefined, true);
-describeWithStackVariable('VENDURE_INCLUDE_STACK_IN_ERRORS=true, option false', false, false);
 
 describe('startup errors', () => {
     /**
