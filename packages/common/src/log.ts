@@ -59,6 +59,28 @@ export interface StartupErrorEvent {
 }
 
 /**
+ * The line which `bootstrap()` and `bootstrapWorker()` of `@vendure/core` write to stderr, as one
+ * line of JSON, once the server is listening or the worker is ready. A supervising process such as
+ * `vendure dev` reads readiness and the API URLs from it, so it does not depend on the log level.
+ */
+export interface ReadyEvent {
+    vendure: 'event';
+    event: 'ready';
+    /** Which process is ready. */
+    process: 'server' | 'worker';
+    /** The URLs the server serves. The worker's line has none. */
+    urls?: {
+        admin: string;
+        shop: string;
+    };
+    /**
+     * The routes that plugins register, as the server's welcome message names them, for example
+     * `{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }`.
+     */
+    routes?: Array<{ label: string; url: string }>;
+}
+
+/**
  * The start of the line which the McpPlugin logs when the server starts, followed by the URL of
  * its admin endpoint, for example `Store MCP admin endpoint: http://localhost:3000/mcp/admin`.
  * `vendure dev` reads the URL from this line.
