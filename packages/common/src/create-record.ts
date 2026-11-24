@@ -51,9 +51,17 @@ export interface CreateRecord {
     preset: CreateRecordPreset | null;
     /** `null` for `--scenario none`. */
     scenario: CreateRecordScenario | null;
+    /**
+     * The feature sets create's `--features` option added, for example `b2b`. A reader ignores a
+     * value it does not recognise.
+     */
     features: string[];
     /** For example `nextjs` or `tanstack`. `null` for no storefront. */
     storefront: string | null;
+    /**
+     * The agent clients create's `--agents` option wrote files for, for example `claude`, `cursor`,
+     * `vscode` or `codex`. A reader ignores a value it does not recognise.
+     */
     agents: string[];
 }
 

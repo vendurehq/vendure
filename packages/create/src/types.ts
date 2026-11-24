@@ -1,4 +1,5 @@
 import type { StorefrontId } from './storefront-starters.js';
+import type { CreateRecordPackageManager } from '@vendure/common/lib/create-record';
 
 export type DbType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite';
 
@@ -25,6 +26,7 @@ export interface UserResponses extends FileSources {
     storefrontPort: number;
 }
 
-export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
+/** The package managers create supports. It is the list `.vendure/create.json` can record. */
+export type PackageManager = CreateRecordPackageManager;
 
 export type CliLogLevel = 'silent' | 'info' | 'verbose';
