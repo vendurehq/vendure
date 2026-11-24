@@ -120,7 +120,7 @@ describe('Request IDs', () => {
         // An anonymous administrators query fails with a FORBIDDEN error, logged at the verbose level.
         await queryAdministrators({ 'x-request-id': 'e2e-graphql-error' });
 
-        const line = logLines().find(l => l.code === 'FORBIDDEN');
+        const line = logLines().find(l => l.code === 'core.forbidden');
         expect(line).toMatchObject({ level: 'verbose', requestId: 'e2e-graphql-error' });
     });
 
