@@ -2,6 +2,9 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import {
     AUTH_LOGIN_COMMAND,
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
     ReauthenticationRequiredError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
@@ -45,6 +48,12 @@ export interface WorkosAuthentication {
 /** Test seam for the poll interval. */
 export interface PollOptions extends AuthOptions {
     sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+    /**
+     * Stop polling at this time, as epoch milliseconds, and throw
+     * {@link DeviceLoginPendingError}. The code stays valid, so a later poll can
+     * finish the login. Without it, polling goes on until the code expires.
+     */
+    until?: number;
 }
 
 /**
@@ -128,6 +137,12 @@ export async function pollDeviceAuthorization(
     const deadline = now() + device.expiresIn * 1000;
     let interval = device.interval;
     while (now() < deadline) {
+        // Stopping between polls, never during one, so an approval WorkOS has
+        // already answered is never dropped.
+        if (options.until !== undefined && options.until - now() < interval * 1000) {
+            await wait(Math.max(0, options.until - now()), options.signal);
+            throw new DeviceLoginPendingError();
+        }
         await wait(interval * 1000, options.signal);
         const response = await workosRequest(
             client,
@@ -155,7 +170,7 @@ export async function pollDeviceAuthorization(
             continue;
         }
         if (code === 'access_denied') {
-            throw new Error('The login was denied in the browser.');
+            throw new DeviceLoginDeniedError();
         }
         if (code === 'expired_token') {
             break;
@@ -165,7 +180,7 @@ export async function pollDeviceAuthorization(
             `The login failed: the authentication service answered ${describeFailure(response, code)}.${advice}`,
         );
     }
-    throw new Error('The login code expired before it was approved. Run the login again.');
+    throw new DeviceLoginExpiredError();
 }
 
 /**

@@ -1,298 +1,115 @@
-import { confirm, isCancel, log, select } from '@clack/prompts';
+import { CommandContext, ErrorResult, fail } from '@vendure/common/lib/command';
 
+import { DeviceLoginDeniedError, DeviceLoginExpiredError } from '../../auth/auth-errors.js';
 import { AuthOptions, resolveConsoleApiUrl } from '../../auth/auth-options.js';
-import { hasLoginForOtherConsole } from '../../auth/auth-session.js';
+import { AuthStatus, RenewalError } from '../../auth/auth-session.js';
 import { StoredOrganization } from '../../auth/auth-store.js';
 import { AuthOrganization } from '../../auth/console-api.js';
-import {
-    AuthStatus,
-    DeviceLoginOptions,
-    LogoutResult,
-    RenewalError,
-    checkAuthStatus,
-    loginWithDevice,
-    logout,
-    readAuthStatus,
-} from '../../auth/index.js';
+import { NoPendingLoginError } from '../../auth/pending-login.js';
 import { TOKEN_TOO_BIG, TOKEN_TOO_BIG_ADVICE } from '../../auth/workos-client.js';
-import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils.js';
-import { openConsoleBrowser } from '../console/authentication.js';
+import { hostErrors } from '../../command-host/host-errors.js';
 
-const ORGANIZATION_LOGIN_COMMAND = 'vendure auth login --organization <Account identifier or name>';
+import { authErrors } from './auth.errors.js';
+import { LoggedInOutput } from './auth.schema.js';
 
-/** The organization prompt was cancelled, as the replace-login prompt can be. */
-class LoginCancelledError extends Error {
+export const ORGANIZATION_LOGIN_COMMAND = 'vendure auth login --organization <Account identifier or name>';
+
+/** Seams for the `vendure auth` commands. Every field defaults to the real process. */
+export interface AuthCommandDependencies extends AuthOptions {
+    openUrl?: (url: string) => Promise<void>;
+}
+
+/** The organization prompt was cancelled. */
+export class LoginCancelledError extends Error {
     constructor() {
         super('Login cancelled.');
         this.name = 'LoginCancelledError';
     }
 }
 
-export interface AuthCommandReporter {
-    error(message: string): void;
-    info(message: string): void;
-    success(message: string): void;
-    warn(message: string): void;
+/** A misconfigured `VENDURE_CONSOLE_API_URL` as a coded error, or `undefined` when it is valid. */
+export function invalidConsoleApi(options: AuthOptions): ErrorResult | undefined {
+    try {
+        resolveConsoleApiUrl(options);
+        return undefined;
+    } catch (error) {
+        return fail(authErrors.consoleApiInvalid, { message: errorMessage(error) });
+    }
 }
 
-export interface AuthCommandDependencies extends AuthOptions {
-    reporter: AuthCommandReporter;
-    /** Resolves `undefined` when the prompt was cancelled. */
-    confirm(message: string): Promise<boolean | undefined>;
-    /** Resolves `undefined` when the prompt was cancelled. */
-    selectOrganization(
+/** A failed login as the coded error that says what to do next. */
+export function loginError(error: unknown): ErrorResult {
+    if (error instanceof LoginCancelledError) {
+        return fail(hostErrors.cancelled, {});
+    }
+    if (error instanceof DeviceLoginDeniedError) {
+        return fail(authErrors.loginDenied, {});
+    }
+    if (error instanceof DeviceLoginExpiredError) {
+        return fail(authErrors.loginExpired, {});
+    }
+    if (error instanceof NoPendingLoginError) {
+        return fail(authErrors.noPendingLogin, { reason: error.reason });
+    }
+    return fail(authErrors.loginFailed, { message: errorMessage(error, 'The login failed.') });
+}
+
+/**
+ * Chooses the organization after sign-in when the user has more than one. A person is asked,
+ * with the browser's choice first so Enter keeps it. Without one, the browser's choice stands
+ * and a notice says how to pick another.
+ */
+export function organizationChooser(ctx: CommandContext, onKept: () => void) {
+    return async (
         organizations: AuthOrganization[],
         current: AuthOrganization | undefined,
-    ): Promise<AuthOrganization | undefined>;
-    isNonInteractive(): boolean;
-    openUrl(url: string): Promise<void>;
-    writeStdout(value: string): void;
-}
-
-function createDefaultDependencies(): AuthCommandDependencies {
-    return {
-        reporter: {
-            error: message => log.error(message),
-            info: message => log.info(message),
-            success: message => log.success(message),
-            warn: message => log.warn(message),
-        },
-        confirm: async message => {
-            const result = await withInteractiveTimeout(() => confirm({ message, initialValue: false }), {
-                examples: ['vendure auth logout', 'vendure auth login'],
-                helpCommands: ['vendure auth --help'],
-            });
-            return isCancel(result) ? undefined : result;
-        },
-        selectOrganization: async (organizations, current) => {
-            // Worded and ordered as `vendure console link` asks: the browser's choice first, so Enter keeps it.
-            const isCurrent = (org: AuthOrganization) =>
-                org.workosOrganizationId === current?.workosOrganizationId;
-            const ordered = [
-                ...organizations.filter(isCurrent),
-                ...organizations.filter(org => !isCurrent(org)),
-            ];
-            const result = await withInteractiveTimeout(
-                () =>
-                    select({
-                        message: 'Which Vendure Console account do you want to use?',
-                        options: ordered.map(org => ({
-                            value: org.workosOrganizationId,
-                            label: `${org.name} (${org.customerAccountId})`,
-                        })),
-                    }),
-                {
-                    examples: [ORGANIZATION_LOGIN_COMMAND],
-                    helpCommands: ['vendure auth login --help'],
-                },
-            );
-            return isCancel(result) ? undefined : ordered.find(org => org.workosOrganizationId === result);
-        },
-        isNonInteractive: () => isNonInteractiveEnvironment(),
-        openUrl: openConsoleBrowser,
-        writeStdout: value => process.stdout.write(value),
-    };
-}
-
-function resolveDependencies(dependencies: Partial<AuthCommandDependencies>): AuthCommandDependencies {
-    return { ...createDefaultDependencies(), ...dependencies };
-}
-
-export async function authLoginCommand(
-    options: { organization?: string } = {},
-    dependencies: Partial<AuthCommandDependencies> = {},
-): Promise<number> {
-    const deps = resolveDependencies(dependencies);
-    const organization = options.organization?.trim() || undefined;
-    if (!hasValidEnvironment(deps)) {
-        return 1;
-    }
-    if (!(await confirmReplacingStoredLogin(deps))) {
-        deps.reporter.info('Login cancelled.');
-        return 0;
-    }
-
-    // Without a terminal the browser's choice stands, and the result says how to pick another.
-    let keptBrowserChoice = false;
-    const abortController = new AbortController();
-    const onSignal = () => abortController.abort();
-    process.once('SIGINT', onSignal);
-    process.once('SIGTERM', onSignal);
-    const loginOptions: DeviceLoginOptions = {
-        ...deps,
-        signal: abortController.signal,
-        organization,
-        chooseOrganization: async (organizations, current) => {
-            if (deps.isNonInteractive()) {
-                keptBrowserChoice = true;
-                return undefined;
-            }
-            const chosen = await deps.selectOrganization(organizations, current);
-            if (!chosen) {
-                throw new LoginCancelledError();
-            }
-            return chosen;
-        },
-        onDeviceAuthorization: async device => {
-            deps.reporter.info(
-                `Confirm this code in your browser: ${device.userCode}\n` +
-                    `If the browser does not open, visit ${device.verificationUriComplete}`,
-            );
-            try {
-                await deps.openUrl(device.verificationUriComplete);
-            } catch {
-                // The URL is already on screen.
-            }
-            deps.reporter.info('Waiting for approval...');
-        },
-    };
-    try {
-        const status = await loginWithDevice(loginOptions);
-        const scope = status.organization ? ` to ${describeOrganization(status.organization)}` : '';
-        deps.reporter.success(`Logged in as ${describeLogin(status)}${scope}.`);
-        if (keptBrowserChoice) {
-            const used = status.organization ? describeOrganization(status.organization) : 'none of them';
-            deps.reporter.info(
-                `You belong to more than one organization, and this login uses ${used}. ` +
-                    `To use another, run \`${ORGANIZATION_LOGIN_COMMAND}\`.`,
-            );
+    ): Promise<AuthOrganization | undefined> => {
+        if (!ctx.ask) {
+            onKept();
+            return undefined;
         }
-        return 0;
-    } catch (error) {
-        if (error instanceof LoginCancelledError) {
-            deps.reporter.info('Login cancelled. Nothing was stored.');
-            return 0;
-        }
-        if (abortController.signal.aborted) {
-            deps.reporter.warn('Login interrupted.');
-            return 130;
-        }
-        deps.reporter.error(error instanceof Error ? error.message : 'The login failed.');
-        return 1;
-    } finally {
-        process.removeListener('SIGINT', onSignal);
-        process.removeListener('SIGTERM', onSignal);
-    }
-}
-
-/**
- * Renews the stored login to check it, so a login the authentication service
- * no longer renews is reported instead of shown as logged in.
- */
-export async function authStatusCommand(
-    options: { json?: boolean } = {},
-    dependencies: Partial<AuthCommandDependencies> = {},
-): Promise<number> {
-    const deps = resolveDependencies(dependencies);
-    if (!hasValidEnvironment(deps)) {
-        return 1;
-    }
-    const status = await checkAuthStatus(deps);
-    if (options.json) {
-        deps.writeStdout(`${JSON.stringify(status)}\n`);
-        return status.loggedIn ? 0 : 1;
-    }
-    if (status.renewable === false) {
-        deps.reporter.warn(describeRefusal(status, 'Run `vendure auth login` to sign in again.'));
-        return 1;
-    }
-    if (!status.loggedIn) {
-        deps.reporter.warn('Not logged in. Run `vendure auth login` to sign in.');
-        if (hasLoginForOtherConsole(deps)) {
-            deps.reporter.info(
-                `A login for another Vendure Console is stored in ${status.path}. ` +
-                    'Check VENDURE_CONSOLE_API_URL, or sign in again to replace it.',
-            );
-        }
-        return 1;
-    }
-    const lines = [`Logged in as ${describeLogin(status)}`];
-    if (status.organization) {
-        const unnamed = status.organization.name
-            ? ''
-            : ` (name unknown; run \`${ORGANIZATION_LOGIN_COMMAND}\` to choose it by name)`;
-        lines.push(`Organization: ${describeOrganization(status.organization)}${unnamed}`);
-    }
-    if (status.accessTokenExpiresAt !== undefined) {
-        lines.push(
-            `Access token expires: ${new Date(status.accessTokenExpiresAt).toISOString()} (renewed automatically)`,
+        const isCurrent = (org: AuthOrganization) =>
+            org.workosOrganizationId === current?.workosOrganizationId;
+        const ordered = [...organizations.filter(isCurrent), ...organizations.filter(org => !isCurrent(org))];
+        const chosen = await ctx.ask.select(
+            'Which Vendure Console account do you want to use?',
+            ordered.map(org => ({
+                value: org.workosOrganizationId,
+                label: `${org.name} (${org.customerAccountId})`,
+            })),
         );
-    }
-    lines.push(
-        `Vendure Console: ${status.consoleApiUrl}`,
-        `Authentication client: ${status.clientId ?? 'unknown'}`,
-        `Stored in: ${status.path}`,
+        const organization = ordered.find(org => org.workosOrganizationId === chosen);
+        if (!organization) {
+            throw new LoginCancelledError();
+        }
+        return organization;
+    };
+}
+
+/** The notice for a login that kept the browser's organization because nobody could be asked. */
+export function keptBrowserChoiceNotice(status: AuthStatus): string {
+    const used = status.organization ? describeOrganization(status.organization) : 'none of them';
+    return (
+        `You belong to more than one organization, and this login uses ${used}. ` +
+        `To use another, run \`${ORGANIZATION_LOGIN_COMMAND}\`.`
     );
-    deps.reporter.info(lines.join('\n'));
-    if (status.renewalError) {
-        deps.reporter.warn(`Could not check that the login can be renewed: ${status.renewalError.message}`);
-    }
-    return 0;
 }
 
-export async function authLogoutCommand(
-    dependencies: Partial<AuthCommandDependencies> = {},
-): Promise<number> {
-    const deps = resolveDependencies(dependencies);
-    let result: LogoutResult;
-    try {
-        result = await logout(deps);
-    } catch (error) {
-        deps.reporter.error(error instanceof Error ? error.message : 'The logout failed.');
-        return 1;
-    }
-    if (!result.removed) {
-        deps.reporter.info('Not logged in.');
-    } else if (result.sessionEnded) {
-        deps.reporter.success('Logged out. The session was ended and the login removed from this machine.');
-    } else {
-        deps.reporter.success('Logged out. The login was removed from this machine.');
-        deps.reporter.warn(
-            'Vendure Console could not end the session, so a copy of this login keeps working until it expires.',
-        );
-    }
-    return 0;
+export function toLoggedIn(status: AuthStatus): LoggedInOutput {
+    return {
+        loggedIn: true,
+        consoleApiUrl: status.consoleApiUrl,
+        user: status.user ?? { id: '', email: '', firstName: null, lastName: null },
+        organization: status.organization ?? null,
+    };
 }
 
-/**
- * Checks a stored login before the sign-in replaces it. A login that can still
- * be renewed is replaced only when the user confirms. Resolves `false` when the
- * user keeps it.
- */
-async function confirmReplacingStoredLogin(deps: AuthCommandDependencies): Promise<boolean> {
-    // Without a terminal the login is replaced without asking, so there is nothing to check.
-    if (deps.isNonInteractive() || !readAuthStatus(deps).loggedIn) {
-        return true;
-    }
-    const existing = await checkAuthStatus(deps);
-    if (existing.renewable === false) {
-        deps.reporter.warn(describeRefusal(existing, 'Signing in again.'));
-        return true;
-    }
-    if (!existing.loggedIn) {
-        return true;
-    }
-    if (existing.renewalError) {
-        deps.reporter.warn(
-            `Could not check that the stored login can be renewed: ${existing.renewalError.message}`,
-        );
-    }
-    const replace = await deps.confirm(`Already logged in as ${describeEmail(existing)}. Sign in again?`);
-    return replace === true;
+export function describeLoggedIn(output: LoggedInOutput): string {
+    const scope = output.organization ? ` to ${describeOrganization(output.organization)}` : '';
+    return `Logged in as ${describeUser(output.user)}${scope}.`;
 }
 
-/** Reports a misconfigured Console API rather than throwing it. */
-function hasValidEnvironment(deps: AuthCommandDependencies): boolean {
-    try {
-        resolveConsoleApiUrl(deps);
-        return true;
-    } catch (error) {
-        deps.reporter.error(error instanceof Error ? error.message : String(error));
-        return false;
-    }
-}
-
-function describeOrganization(organization: StoredOrganization): string {
+export function describeOrganization(organization: StoredOrganization): string {
     const { name, customerAccountId, workosOrganizationId } = organization;
     if (name && customerAccountId) {
         return `${name} (Account identifier ${customerAccountId})`;
@@ -300,17 +117,21 @@ function describeOrganization(organization: StoredOrganization): string {
     return workosOrganizationId;
 }
 
-function describeLogin(status: AuthStatus): string {
-    const name = [status.user?.firstName, status.user?.lastName].filter(Boolean).join(' ');
-    const email = describeEmail(status);
+export function describeLogin(status: Pick<AuthStatus, 'user'>): string {
+    return describeUser(status.user);
+}
+
+function describeUser(user: AuthStatus['user']): string {
+    const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+    const email = user?.email || 'an unknown user';
     return name ? `${name} <${email}>` : email;
 }
 
-function describeEmail(status: AuthStatus): string {
+export function describeEmail(status: Pick<AuthStatus, 'user'>): string {
     return status.user?.email ?? 'an unknown user';
 }
 
-function describeRefusal(status: AuthStatus, nextStep: string): string {
+export function describeRefusal(status: AuthStatus, nextStep: string): string {
     const error = status.renewalError;
     const advice = error?.code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
     return (
@@ -325,4 +146,11 @@ function describeAnswer(error: RenewalError | undefined): string {
         Boolean,
     );
     return parts.length ? ` (${parts.join(', ')})` : '';
+}
+
+export function errorMessage(error: unknown, fallback?: string): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return fallback ?? String(error);
 }

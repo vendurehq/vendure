@@ -157,3 +157,40 @@ export class SessionLockUnavailableError extends Error {
         this.name = 'SessionLockUnavailableError';
     }
 }
+
+/**
+ * The person refused the device login in the browser.
+ *
+ * @since 4.0.0
+ */
+export class DeviceLoginDeniedError extends Error {
+    constructor() {
+        super('The login was denied in the browser.');
+        this.name = 'DeviceLoginDeniedError';
+    }
+}
+
+/**
+ * The device login code expired before anyone approved it.
+ *
+ * @since 4.0.0
+ */
+export class DeviceLoginExpiredError extends Error {
+    constructor() {
+        super('The login code expired before it was approved. Run the login again.');
+        this.name = 'DeviceLoginExpiredError';
+    }
+}
+
+/**
+ * The wait for a device login ended before the person approved or denied it.
+ * The code is still valid, so a later wait can finish the login.
+ *
+ * @since 4.0.0
+ */
+export class DeviceLoginPendingError extends Error {
+    constructor() {
+        super('The login code has not been approved yet.');
+        this.name = 'DeviceLoginPendingError';
+    }
+}

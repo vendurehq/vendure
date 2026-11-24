@@ -26,6 +26,12 @@ const brokenError = defineError<{ what: string }>({
     fix: () => [{ path: ['auth', 'login'], input: { token: 'x' }, description: 'Sign in' }],
 });
 
+/** The `ctx.ask` part of a prompter, for tests that do not use it. */
+const noAsk = {
+    confirm: async () => undefined,
+    select: async () => undefined,
+};
+
 function makeCommand(
     run: (input: any, ctx: any) => Promise<unknown>,
     extra: Partial<CommandDefinition> = {},
@@ -340,7 +346,7 @@ describe('executeCommand with plan()', () => {
         const result = await runCommandInHarness(
             planned(),
             { name: 'a' },
-            { prompter: { askInput: async () => undefined, askConsent } },
+            { prompter: { ...noAsk, askInput: async () => undefined, askConsent } },
         );
         expect(askConsent).toHaveBeenCalledOnce();
         expect(result.envelope.status).toBe('ok');
@@ -350,7 +356,7 @@ describe('executeCommand with plan()', () => {
         const result = await runCommandInHarness(
             planned(),
             { name: 'a' },
-            { prompter: { askInput: async () => undefined, askConsent: async () => false } },
+            { prompter: { ...noAsk, askInput: async () => undefined, askConsent: async () => false } },
         );
         expect(result.envelope.error?.code).toBe('cli.cancelled');
     });
@@ -362,7 +368,7 @@ describe('executeCommand prompting', () => {
         const result = await runCommandInHarness(
             makeCommand(async i => ({ got: i.name })),
             {},
-            { prompter: { askInput, askConsent: async () => true } },
+            { prompter: { ...noAsk, askInput, askConsent: async () => true } },
         );
         expect(askInput).toHaveBeenCalledWith(
             { kind: 'input', field: 'name', description: 'The name' },
@@ -380,7 +386,7 @@ describe('executeCommand prompting', () => {
             command,
             { name: 'a' },
             {
-                prompter: { askInput, askConsent: async () => true },
+                prompter: { ...noAsk, askInput, askConsent: async () => true },
             },
         );
         expect(askInput).toHaveBeenCalledTimes(1);
@@ -419,7 +425,7 @@ describe('executeCommand prompting', () => {
         await runCommandInHarness(
             checked,
             {},
-            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+            { prompter: { ...noAsk, askInput, askConsent: () => Promise.resolve(true) } },
         );
 
         expect(checks.name('Not Valid')).toBe('Use lowercase letters');
@@ -437,7 +443,7 @@ describe('executeCommand prompting', () => {
             command,
             { name: 'a' },
             {
-                prompter: { askInput: async () => '3', askConsent: async () => true },
+                prompter: { ...noAsk, askInput: async () => '3', askConsent: async () => true },
             },
         );
         expect(result.envelope.output).toEqual({ got: { name: 'a', count: 3 } });
@@ -455,7 +461,7 @@ describe('executeCommand prompting', () => {
         const result = await runCommandInHarness(
             makeCommand(async () => ({})),
             {},
-            { prompter: { askInput: async () => undefined, askConsent: async () => true } },
+            { prompter: { ...noAsk, askInput: async () => undefined, askConsent: async () => true } },
         );
         expect(result.envelope.error?.code).toBe('cli.cancelled');
     });
@@ -504,7 +510,7 @@ describe('executeCommand dependent inputs', () => {
         const result = await runCommandInHarness(
             pick,
             {},
-            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+            { prompter: { ...noAsk, askInput, askConsent: () => Promise.resolve(true) } },
         );
 
         expect(askInput.mock.calls.map(([need]) => need)).toEqual([
@@ -564,7 +570,7 @@ describe('executeCommand needs found by run()', () => {
         const result = await runCommandInHarness(
             named,
             { kind: 'simple' },
-            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+            { prompter: { ...noAsk, askInput, askConsent: () => Promise.resolve(true) } },
         );
 
         expect(askInput).toHaveBeenCalledTimes(1);
@@ -581,7 +587,7 @@ describe('executeCommand needs found by run()', () => {
         const result = await runCommandInHarness(
             named,
             { kind: 'crud' },
-            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+            { prompter: { ...noAsk, askInput, askConsent: () => Promise.resolve(true) } },
         );
 
         expect(askInput).not.toHaveBeenCalled();
@@ -625,7 +631,7 @@ describe('executeCommand needs found by run()', () => {
         const result = await runCommandInHarness(
             either,
             {},
-            { prompter: { askInput, askConsent: () => Promise.resolve(true) } },
+            { prompter: { ...noAsk, askInput, askConsent: () => Promise.resolve(true) } },
         );
 
         expect(result.envelope).toMatchObject({ status: 'ok', output: { query: null, mutation: 'reset' } });

@@ -284,6 +284,28 @@ export interface SpawnOptions {
 
 /**
  * @description
+ * One choice of {@link CommandAsk.select}.
+ */
+export interface CommandChoice {
+    value: string;
+    label: string;
+}
+
+/**
+ * @description
+ * Asks a person at the terminal, for a question that only comes up while a command runs, such as
+ * which of the organizations a login returned to use. A field the caller can pass up front is an
+ * input instead, so that it works without a person too.
+ */
+export interface CommandAsk {
+    /** Resolves to `undefined` when the person cancels. */
+    confirm(message: string): Promise<boolean | undefined>;
+    /** Resolves to the chosen `value`, or `undefined` when the person cancels. */
+    select(message: string, choices: CommandChoice[]): Promise<string | undefined>;
+}
+
+/**
+ * @description
  * What the host gives to `run` and `plan`. A command never prints, prompts or starts a process
  * by other means.
  */
@@ -294,6 +316,13 @@ export interface CommandContext {
     signal: AbortSignal;
     /** True when the host is serving an MCP tool call. */
     mcp: boolean;
+    /**
+     * Asks a person. Present only when the host may prompt: stdin and stdout are TTYs, the run is
+     * not under `--json` or `vendure mcp`, and neither `CI` nor `VENDURE_CLI_NON_INTERACTIVE` is
+     * set. Without it, nobody may be there to answer, so a command never waits for a person: it
+     * keeps a default or returns a need.
+     */
+    ask?: CommandAsk;
     /** Reports a note the caller should see. It also goes into the envelope's `notices`. */
     notice(level: CommandNoticeLevel, message: string): void;
     /** Reports progress. */
