@@ -50,6 +50,7 @@ describe('loadMergedManifest', () => {
             'migrate generate',
             'migrate revert',
             'migrate run',
+            'seed',
             'store check',
         ]);
         expect(merged[0].source).toBe('@vendure/cli');

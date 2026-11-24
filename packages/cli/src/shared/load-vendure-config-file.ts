@@ -119,50 +119,74 @@ export async function loadVendureConfigFile(
     vendureConfig: VendureConfigRef,
     providedTsConfigPath?: string,
 ): Promise<VendureConfig> {
-    await import('dotenv/config');
-    if (!isRunningInTsNode()) {
-        // Find the nearest tsconfig to the actual VendureConfig file.
-        // This is important in monorepos where each package has its own tsconfig
-        // that may extend a base config with path mappings.
-        const configFilePath = vendureConfig.sourceFile.getFilePath();
-        const nearestTsConfig = findNearestTsConfig(configFilePath);
-
-        let tsConfigPath: string;
-        if (nearestTsConfig) {
-            // Prefer the nearest tsconfig (package-level config)
-            tsConfigPath = nearestTsConfig;
-        } else if (providedTsConfigPath) {
-            // Fall back to provided path
-            tsConfigPath = providedTsConfigPath;
-        } else {
-            // Last resort: select from cwd
-            const tsConfigFile = selectTsConfigFile();
-            tsConfigPath = path.join(process.cwd(), tsConfigFile);
-        }
-
-        const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
-        const compilerOptions = tsConfigJson.compilerOptions;
-
-        register({
-            compilerOptions: { ...compilerOptions, moduleResolution: 'NodeNext', module: 'NodeNext' },
-            transpileOnly: true,
-        });
-
-        if (compilerOptions.paths) {
-            const tsConfigPaths = await import('tsconfig-paths');
-            tsConfigPaths.register({
-                baseUrl: './',
-                paths: compilerOptions.paths,
-            });
-        }
-    }
+    const configFilePath = vendureConfig.sourceFile.getFilePath();
+    await prepareToRequireConfig(configFilePath, providedTsConfigPath);
     const exportedVarName = vendureConfig.getConfigObjectVariableName();
     if (!exportedVarName) {
         throw new Error('Could not find the exported variable name in the VendureConfig file');
     }
     // The ts-node hook registered above applies to `require` only, not to `import()`.
-    const configModule = createRequire(import.meta.url)(vendureConfig.sourceFile.getFilePath());
+    const configModule = createRequire(import.meta.url)(configFilePath);
     return configModule[exportedVarName];
+}
+
+/**
+ * Loads the Vendure config from a known file, without parsing the project with ts-morph, which
+ * takes seconds. The config is the first export that has `dbConnectionOptions`. Returns
+ * `undefined` when the file has no such export, so the caller can fall back to
+ * {@link loadVendureConfigFile}.
+ */
+export async function loadVendureConfigFromPath(configFilePath: string): Promise<VendureConfig | undefined> {
+    await prepareToRequireConfig(configFilePath);
+    const configModule = createRequire(import.meta.url)(configFilePath) as Record<string, unknown>;
+    return Object.values(configModule).find(
+        (value): value is VendureConfig =>
+            typeof value === 'object' && value !== null && 'dbConnectionOptions' in value,
+    );
+}
+
+/**
+ * Loads `.env`, and registers ts-node with the compiler options of the tsconfig nearest to the
+ * config file, so the config can be required.
+ */
+async function prepareToRequireConfig(configFilePath: string, providedTsConfigPath?: string) {
+    await import('dotenv/config');
+    if (isRunningInTsNode()) {
+        return;
+    }
+    // Find the nearest tsconfig to the actual VendureConfig file.
+    // This is important in monorepos where each package has its own tsconfig
+    // that may extend a base config with path mappings.
+    const nearestTsConfig = findNearestTsConfig(configFilePath);
+
+    let tsConfigPath: string;
+    if (nearestTsConfig) {
+        // Prefer the nearest tsconfig (package-level config)
+        tsConfigPath = nearestTsConfig;
+    } else if (providedTsConfigPath) {
+        // Fall back to provided path
+        tsConfigPath = providedTsConfigPath;
+    } else {
+        // Last resort: select from cwd
+        const tsConfigFile = selectTsConfigFile();
+        tsConfigPath = path.join(process.cwd(), tsConfigFile);
+    }
+
+    const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
+    const compilerOptions = tsConfigJson.compilerOptions;
+
+    register({
+        compilerOptions: { ...compilerOptions, moduleResolution: 'NodeNext', module: 'NodeNext' },
+        transpileOnly: true,
+    });
+
+    if (compilerOptions.paths) {
+        const tsConfigPaths = await import('tsconfig-paths');
+        tsConfigPaths.register({
+            baseUrl: './',
+            paths: compilerOptions.paths,
+        });
+    }
 }
 
 function getErrorMessage(error: unknown): string {
