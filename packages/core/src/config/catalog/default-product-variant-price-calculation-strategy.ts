@@ -20,8 +20,9 @@ import {
  * as the gross price where that rate applies. Elsewhere the net price is taken out at the included
  * rate, and the applicable rate is then added to it. When the applicable rate and the included rate
  * have the same value and either one is a country rate, the entered price is kept as gross too, so
- * that rounding cannot move it by one unit. Two zone rates with the same value follow the v3
- * behaviour.
+ * that rounding cannot move it by one unit. Two different zone rates with the same value are
+ * treated as different rates: the net is taken out at the included rate and the applicable rate is
+ * added again, so rounding can change the price by one unit, as in v3.
  *
  * If there is no included rate for the TaxCategory, the price is kept as gross in the default tax
  * Zone, and no tax is taken out elsewhere.

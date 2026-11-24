@@ -296,15 +296,18 @@ describe('Channel.taxCountryCode', () => {
             });
         });
 
-        it('changing the code of the tax country updates the Channel', async () => {
-            await adminClient.query(updateCountryDocument, { input: { id: countryIds.LU, code: 'XL' } });
+        it('changing the code of the tax country updates the Channel, and its rate still applies', async () => {
+            await setTaxCountry('DE');
+            await adminClient.query(updateCountryDocument, { input: { id: countryIds.DE, code: 'XD' } });
             try {
                 const { updateChannel } = await adminClient.query(updateChannelTaxCountryDocument, {
                     input: { id: 'T_1' },
                 });
-                expect(updateChannel).toEqual({ id: 'T_1', taxCountryCode: 'XL' });
+                expect(updateChannel).toEqual({ id: 'T_1', taxCountryCode: 'XD' });
+                // The DE country rate is found by the new code
+                expect(await productPagePrices()).toEqual({ price: 10000, priceWithTax: 11900 });
             } finally {
-                await adminClient.query(updateCountryDocument, { input: { id: countryIds.LU, code: 'LU' } });
+                await adminClient.query(updateCountryDocument, { input: { id: countryIds.DE, code: 'DE' } });
             }
             expect((await setTaxCountry(null)).taxCountryCode).toBeNull();
         });

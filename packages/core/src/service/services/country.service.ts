@@ -28,6 +28,8 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
 
+import { TaxRateService } from './tax-rate.service';
+
 /**
  * @description
  * Contains methods relating to {@link Country} entities.
@@ -43,6 +45,7 @@ export class CountryService {
         private translatableSaver: TranslatableSaver,
         private eventBus: EventBus,
         private translator: TranslatorService,
+        private taxRateService: TaxRateService,
     ) {}
 
     findAll(
@@ -131,6 +134,8 @@ export class CountryService {
         });
         if (previousCode && previousCode !== country.code) {
             await this.updateChannelTaxCountryCodes(ctx, previousCode, country.code);
+            // Country rates are cached by code, so they are found by the new code from now on
+            await this.taxRateService.refreshActiveTaxRates(ctx);
         }
         await this.eventBus.publish(new CountryEvent(ctx, country, 'updated', input));
         return assertFound(this.findOne(ctx, country.id));

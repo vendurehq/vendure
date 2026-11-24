@@ -124,6 +124,15 @@ export class TaxRateService {
         await this.ensureCacheExists();
     }
 
+    /**
+     * Reloads the cache of active TaxRates, which keys country rates by country code. Called when a
+     * country's code changes.
+     * @internal
+     */
+    async refreshActiveTaxRates(ctx: RequestContext) {
+        await this.updateActiveTaxRates(ctx);
+    }
+
     findAll(
         ctx: RequestContext,
         options?: ListQueryOptions<TaxRate>,

@@ -4386,7 +4386,6 @@ msgstr "역할이 업데이트되었습니다"
 msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
 #: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"

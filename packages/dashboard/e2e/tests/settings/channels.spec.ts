@@ -221,13 +221,6 @@ test.describe('Channels CRUD', () => {
         await page.reload();
         await page.waitForLoadState('networkidle');
         await expect(taxCountry()).toContainText('Austria', { timeout: 10_000 });
-        if (process.env.TAX_COUNTRY_SCREENSHOT_DIR) {
-            await dp.formItem('Tax country').scrollIntoViewIfNeeded();
-            await page.screenshot({
-                path: `${process.env.TAX_COUNTRY_SCREENSHOT_DIR}/5951-1-channel-tax-country-set.png`,
-                fullPage: true,
-            });
-        }
 
         await taxCountry().click();
         await page.getByRole('option', { name: 'None', exact: true }).click();
