@@ -22,7 +22,6 @@ import {
 
 import { consentDigest } from './digest.js';
 import { hostErrors } from './host-errors.js';
-import { kebab } from './naming.js';
 
 /** Asks a person. Only given to the host when a person is present. */
 export interface AskInputOptions {
@@ -435,17 +434,3 @@ export async function executeCommand(
     }
 }
 
-/** A fix as a command line, for a person at a terminal. */
-export function formatFix(fix: { path: string[]; input: Record<string, unknown> }): string {
-    // A boolean flag is a switch: `--<flag>` for true, `--no-<flag>` for false. Leaving it out
-    // lets the command choose, which is not the same as false.
-    const flags = Object.entries(fix.input)
-        .filter(([, value]) => value !== undefined && value !== null)
-        .map(([key, value]) => {
-            if (typeof value === 'boolean') {
-                return value ? `--${kebab(key)}` : `--no-${kebab(key)}`;
-            }
-            return `--${kebab(key)} ${JSON.stringify(value)}`;
-        });
-    return ['vendure', ...fix.path, ...flags].join(' ');
-}

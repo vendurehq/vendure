@@ -2,6 +2,7 @@ import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import { LogLine, StartupErrorEvent } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
+import { describeFix, readFixes } from '../../command-host/format-fix.js';
 import { withoutLocalTrustSecret } from '../../shared/local-trust-env.js';
 
 import {
@@ -319,8 +320,8 @@ class ChildMonitor implements DevChildMonitor {
 
 function formatStartupError(event: StartupErrorEvent): string {
     const lines = [`${pc.red('error')} ${pc.gray(`(${event.code})`)} ${pc.red(event.message)}`];
-    for (const fix of event.fix ?? []) {
-        lines.push(`  ${pc.green('fix:')} ${fix.description}`);
+    for (const fix of readFixes(event.fix)) {
+        lines.push(`  ${pc.green('fix:')} ${describeFix(fix)}`);
     }
     return lines.join('\n');
 }
