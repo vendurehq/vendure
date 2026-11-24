@@ -1,7 +1,7 @@
 import { CommandContext } from '@vendure/common/lib/command';
 
 import { checkAuthStatus, loginWithDevice, readAuthStatus } from '../../auth/auth-session.js';
-import { startPendingLogin } from '../../auth/pending-login.js';
+import { clearPendingLogin, startPendingLogin } from '../../auth/pending-login.js';
 import { openConsoleBrowser } from '../console/authentication.js';
 
 import {
@@ -102,6 +102,8 @@ export async function runLogin(
                 ctx.progress('Waiting for approval...');
             },
         });
+        // A later `auth wait` must not finish an older code and replace this login.
+        clearPendingLogin(options);
         if (keptBrowserChoice) {
             ctx.notice('info', keptBrowserChoiceNotice(status));
         }

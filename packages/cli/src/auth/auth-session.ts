@@ -313,7 +313,15 @@ export interface StartedDeviceLogin {
 
 /** @since 4.0.0 */
 export interface CompleteDeviceLoginOptions
-    extends Omit<DeviceLoginOptions, 'onDeviceAuthorization'>, Pick<PollOptions, 'until' | 'sleep'> {}
+    extends
+        Omit<DeviceLoginOptions, 'onDeviceAuthorization'>,
+        Pick<PollOptions, 'until' | 'sleep' | 'stillWanted'> {
+    /**
+     * Called once the code is approved and the tokens arrived. From then on the
+     * code is spent, even if scoping or storing the login fails.
+     */
+    onAuthorized?: () => void;
+}
 
 /**
  * Starts a device login and returns at once, without waiting for approval.
@@ -348,6 +356,7 @@ export async function completeDeviceLogin(
 ): Promise<AuthStatus> {
     const { consoleApiUrl, client, device } = login;
     let authentication = await pollDeviceAuthorization(client, device, options);
+    options.onAuthorized?.();
     const toSession = (scope: StoredOrganization | null): StoredAuth => ({
         version: 1,
         consoleApiUrl,

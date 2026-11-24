@@ -54,6 +54,8 @@ export const authStatusDefinition = defineCommand({
     description:
         'Show who is signed in, after checking that the login can still be renewed. Never shows a token',
     keywords: [...keywords, 'whoami'],
+    // It renews the login to check it, which rotates the stored tokens and drops a login the
+    // authentication service refused. Neither changes who is signed in, so it counts as reading.
     behavior: 'readonly',
     schemas: async () => (await import('./auth.schema.js')).status,
     errors: [authErrors.consoleApiInvalid],

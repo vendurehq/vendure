@@ -96,10 +96,13 @@ export function keptBrowserChoiceNotice(status: AuthStatus): string {
 }
 
 export function toLoggedIn(status: AuthStatus): LoggedInOutput {
+    if (!status.loggedIn || !status.user) {
+        throw new Error('The login was not stored.');
+    }
     return {
         loggedIn: true,
         consoleApiUrl: status.consoleApiUrl,
-        user: status.user ?? { id: '', email: '', firstName: null, lastName: null },
+        user: status.user,
         organization: status.organization ?? null,
     };
 }

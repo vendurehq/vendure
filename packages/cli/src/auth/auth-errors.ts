@@ -194,3 +194,16 @@ export class DeviceLoginPendingError extends Error {
         this.name = 'DeviceLoginPendingError';
     }
 }
+
+/**
+ * A new device login replaced the one being polled, so polling the old code
+ * stopped.
+ *
+ * @since 4.0.0
+ */
+export class DeviceLoginReplacedError extends Error {
+    constructor() {
+        super('A new login replaced the one being waited for.');
+        this.name = 'DeviceLoginReplacedError';
+    }
+}

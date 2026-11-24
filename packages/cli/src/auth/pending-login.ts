@@ -1,6 +1,12 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-import { DeviceLoginDeniedError, DeviceLoginExpiredError, DeviceLoginPendingError } from './auth-errors.js';
+import {
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
+} from './auth-errors.js';
 import {
     AuthOptions,
     getPendingLoginLockPath,
@@ -72,8 +78,18 @@ export class NoPendingLoginError extends Error {
  */
 const PENDING_LOCK_STALE_MS = 30 * 60_000;
 
-/** Writing or replacing the record is quick. */
-const PENDING_WRITE_WAIT_MS = 5_000;
+/**
+ * How a login that was pending ended, written over its record by the wait that
+ * finished it, so a wait queued behind that one reports the same outcome. It
+ * names the code by its hash only.
+ */
+interface FinishedLoginRecord {
+    version: 1;
+    consoleApiUrl: string;
+    deviceCodeHash: string;
+    outcome: 'completed' | 'denied' | 'expired' | 'failed';
+    message?: string;
+}
 
 /**
  * Starts a device login, saves it to `auth-pending.json` at mode 0600, and
@@ -100,20 +116,16 @@ export async function startPendingLogin(
         expiresAt: now + login.device.expiresIn * 1000,
         ...(options.organization ? { organization: options.organization } : {}),
     };
-    // A wait that holds the lock is polling the login this replaces. It finds
-    // the record gone or replaced when it stops.
-    await withFileLock(
-        getPendingLoginLockPath(options),
-        { staleMs: PENDING_LOCK_STALE_MS, waitMs: PENDING_WRITE_WAIT_MS },
-        () => {
-            writePrivateFile(getPendingLoginPath(options), JSON.stringify(record, null, 2));
-            return Promise.resolve();
-        },
-    );
+    // Not under the wait lock: the write is an atomic rename, and a wait that is
+    // polling the login this replaces stops at its next poll.
+    writePrivateFile(getPendingLoginPath(options), JSON.stringify(record, null, 2));
     return toPendingLogin(record);
 }
 
-export interface WaitForPendingLoginOptions extends Omit<CompleteDeviceLoginOptions, 'organization'> {
+export interface WaitForPendingLoginOptions extends Omit<
+    CompleteDeviceLoginOptions,
+    'organization' | 'onAuthorized' | 'stillWanted'
+> {
     /** How long to wait for approval, in milliseconds. */
     timeoutMs: number;
 }
@@ -121,14 +133,15 @@ export interface WaitForPendingLoginOptions extends Omit<CompleteDeviceLoginOpti
 /**
  * Finishes the login that {@link startPendingLogin} saved. Returns the stored
  * login once the code is approved, or the pending login again when `timeoutMs`
- * passes first, keeping it for a later wait.
+ * passes first, keeping it for a later wait. A wait whose login is replaced by
+ * a new `auth login --json` returns the new pending login.
  *
  * Only one wait polls at a time. Another one waits for it, up to its own
- * timeout, and then reports the login that one stored.
+ * timeout, and then reports how that one ended.
  *
- * @throws NoPendingLoginError when no login is pending, or it expired. An expired one is removed.
- * @throws DeviceLoginDeniedError when the code was denied in the browser. The pending login is removed.
- * @throws DeviceLoginExpiredError when the code expired while waiting. The pending login is removed.
+ * @throws NoPendingLoginError when no login is pending, or it expired.
+ * @throws DeviceLoginDeniedError when the code was denied in the browser.
+ * @throws DeviceLoginExpiredError when the code expired while waiting.
  * @since 4.0.0
  */
 export async function waitForPendingLogin(
@@ -155,31 +168,47 @@ export async function waitForPendingLogin(
             throw new NoPendingLoginError('missing');
         }
         if (!record) {
-            // The wait ahead of us finished the login we were waiting for.
-            const status = readAuthStatus(options);
-            if (status.loggedIn && isLoginFrom(before, status)) {
-                return status;
-            }
-            throw new NoPendingLoginError('missing');
+            return reportFinishedLogin(before, options);
         }
         if (record.expiresAt <= now()) {
-            removePendingRecord(options, record);
+            finishPendingLogin(options, record, 'expired');
             throw new NoPendingLoginError('expired');
         }
+        // Once WorkOS has answered with tokens the code is spent, so any later
+        // failure ends this pending login too.
+        let authorized = false;
         try {
             const status = await completeDeviceLogin(toStartedLogin(record, now()), {
                 ...options,
                 organization: record.organization,
                 until,
+                onAuthorized: () => (authorized = true),
+                stillWanted: () => readPendingRecord(options)?.deviceCode === record.deviceCode,
             });
-            removePendingRecord(options, record);
+            finishPendingLogin(options, record, 'completed');
             return status;
         } catch (error) {
             if (error instanceof DeviceLoginPendingError) {
                 return toPendingLogin(record);
             }
-            if (error instanceof DeviceLoginDeniedError || error instanceof DeviceLoginExpiredError) {
-                removePendingRecord(options, record);
+            if (error instanceof DeviceLoginReplacedError) {
+                const replacement = readPendingRecord(options);
+                if (replacement) {
+                    return toPendingLogin(replacement);
+                }
+                throw new NoPendingLoginError('missing');
+            }
+            if (error instanceof DeviceLoginDeniedError) {
+                finishPendingLogin(options, record, 'denied');
+            } else if (error instanceof DeviceLoginExpiredError) {
+                finishPendingLogin(options, record, 'expired');
+            } else if (authorized) {
+                finishPendingLogin(
+                    options,
+                    record,
+                    'failed',
+                    error instanceof Error ? error.message : undefined,
+                );
             }
             throw error;
         }
@@ -193,19 +222,53 @@ export function readPendingLogin(options: AuthOptions = {}): PendingLogin | unde
 }
 
 /**
- * The wait ahead of us stored a login for the same Console. Another `auth
- * login` could have stored it instead, but either way it is the login the
- * caller now has.
+ * The wait ahead of us finished the login we were waiting for. It reports the
+ * same outcome, so a denied code is never read as the login already stored.
  */
-function isLoginFrom(record: PendingLoginRecord, status: AuthStatus): boolean {
-    return status.consoleApiUrl === record.consoleApiUrl && status.clientId === record.clientId;
+function reportFinishedLogin(before: PendingLoginRecord, options: AuthOptions): AuthStatus {
+    const finished = readFinishedRecord(options);
+    if (!finished || finished.deviceCodeHash !== hashDeviceCode(before.deviceCode)) {
+        throw new NoPendingLoginError('missing');
+    }
+    switch (finished.outcome) {
+        case 'completed': {
+            const status = readAuthStatus(options);
+            if (status.loggedIn) {
+                return status;
+            }
+            throw new NoPendingLoginError('missing');
+        }
+        case 'denied':
+            throw new DeviceLoginDeniedError();
+        case 'expired':
+            throw new DeviceLoginExpiredError();
+        case 'failed':
+            throw new Error(finished.message ?? 'The login failed.');
+    }
 }
 
-/** Removes the record, unless a newer `auth login --json` has replaced it meanwhile. */
-function removePendingRecord(options: AuthOptions, record: PendingLoginRecord): void {
-    if (readPendingRecord(options)?.deviceCode === record.deviceCode) {
-        removeFile(getPendingLoginPath(options));
+/** Replaces the record with how it ended, unless a newer `auth login --json` has replaced it meanwhile. */
+function finishPendingLogin(
+    options: AuthOptions,
+    record: PendingLoginRecord,
+    outcome: FinishedLoginRecord['outcome'],
+    message?: string,
+): void {
+    if (readPendingRecord(options)?.deviceCode !== record.deviceCode) {
+        return;
     }
+    const finished: FinishedLoginRecord = {
+        version: 1,
+        consoleApiUrl: record.consoleApiUrl,
+        deviceCodeHash: hashDeviceCode(record.deviceCode),
+        outcome,
+        ...(message ? { message } : {}),
+    };
+    writePrivateFile(getPendingLoginPath(options), JSON.stringify(finished, null, 2));
+}
+
+function hashDeviceCode(deviceCode: string): string {
+    return createHash('sha256').update(deviceCode).digest('hex');
 }
 
 function toStartedLogin(record: PendingLoginRecord, now: number): StartedDeviceLogin {
@@ -248,6 +311,30 @@ function readPendingRecord(options: AuthOptions): PendingLoginRecord | undefined
         return undefined;
     }
     return record.consoleApiUrl === resolveConsoleApiUrl(options) ? record : undefined;
+}
+
+function readFinishedRecord(options: AuthOptions): FinishedLoginRecord | undefined {
+    let value: unknown;
+    try {
+        value = JSON.parse(readFileSync(getPendingLoginPath(options), 'utf-8'));
+    } catch {
+        return undefined;
+    }
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+    }
+    const v = value as Record<string, unknown>;
+    const outcomes = ['completed', 'denied', 'expired', 'failed'];
+    if (
+        v.version !== 1 ||
+        typeof v.deviceCodeHash !== 'string' ||
+        typeof v.outcome !== 'string' ||
+        !outcomes.includes(v.outcome) ||
+        v.consoleApiUrl !== resolveConsoleApiUrl(options)
+    ) {
+        return undefined;
+    }
+    return value as FinishedLoginRecord;
 }
 
 function parsePendingRecord(value: unknown): PendingLoginRecord | undefined {

@@ -8,13 +8,14 @@ import {
     isFailedResult,
 } from '@vendure/common/lib/command';
 import fs from 'fs-extra';
-import { mkdtempSync, readFileSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getPendingLoginPath } from '../../auth/auth-options.js';
 import { readStoredAuth, writeStoredAuth } from '../../auth/auth-store.js';
+import { readPendingLogin } from '../../auth/pending-login.js';
 import { executeCommand, HostEnvironment } from '../../command-host/host.js';
 
 import { authLoginDefinition } from './auth.command.js';
@@ -317,6 +318,78 @@ describe('vendure auth status', () => {
         expect(renderStatus(result as any)).toContain('Could not check that the login can be renewed');
     });
 
+    it('says what to do when the renewed token would be too big', async () => {
+        storeLogin();
+
+        const result = await runStatus(makeContext().ctx, {
+            ...dependencies,
+            fetch: renewalAnswers({ status: 400, body: { error: 'token_too_big' } }),
+        });
+
+        expect(renderStatus((result as FailedResult<any>).output)).toBe(
+            'The stored login for dev@example.com can no longer be renewed (token_too_big, HTTP 400). ' +
+                'Your account holds too many roles in the organization for a sign-in token. ' +
+                'Ask an organization admin to remove the roles you do not need from your membership, then try again. ' +
+                'Run `vendure auth login` to sign in again.',
+        );
+        expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
+    });
+
+    it('keeps the login when the renewal is refused for another reason', async () => {
+        storeLogin();
+
+        const result = await runStatus(makeContext().ctx, {
+            ...dependencies,
+            fetch: renewalAnswers(INVALID_CLIENT),
+        });
+
+        expect((result as FailedResult<any>).output).toMatchObject({
+            renewable: false,
+            renewalError: { code: 'invalid_client', status: 400 },
+        });
+        expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
+    });
+
+    it('renews the login, rotating the stored refresh token', async () => {
+        storeLogin();
+
+        await runStatus(makeContext().ctx, { ...dependencies, fetch: renewalAnswers(RENEWED) });
+
+        expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_renewed');
+    });
+
+    it('says how to choose an organization by name when Console could not name it', async () => {
+        storeLogin();
+        const stored = readStoredAuth(dependencies);
+        if (!stored) {
+            throw new Error('The login was not stored');
+        }
+        writeStoredAuth(
+            {
+                ...stored,
+                organization: { workosOrganizationId: 'org_1', customerAccountId: null, name: null },
+            },
+            dependencies,
+        );
+
+        const result = await runStatus(makeContext().ctx, {
+            ...dependencies,
+            fetch: renewalAnswers(RENEWED),
+        });
+
+        expect(renderStatus(result as any)).toContain(
+            'Organization: org_1 (name unknown; run `vendure auth login --organization <Account identifier or name>` to choose it by name)',
+        );
+    });
+
+    it('does not name the identity provider', async () => {
+        storeLogin();
+
+        const result = await runStatus(makeContext().ctx, dependencies);
+
+        expect(renderStatus(result as any)).not.toMatch(/workos/i);
+    });
+
     it('refuses an unknown Console API', async () => {
         const result = await runStatus(makeContext().ctx, {
             ...dependencies,
@@ -348,7 +421,7 @@ describe('vendure auth login with a person at the terminal', () => {
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_renewed');
     });
 
-    // `vendure auth login` used to ask "Already logged in" for a login that could no longer be renewed.
+    // A login that can no longer be renewed is replaced without asking whether to replace it.
     it.each([
         ['invalid_grant', INVALID_GRANT],
         ['invalid_client', INVALID_CLIENT],
@@ -393,7 +466,34 @@ describe('vendure auth login with a person at the terminal', () => {
         expect(offered).toEqual([`Bromley Art Supplies (${ACCOUNT_1})`, `Example GmbH (${ACCOUNT_2})`]);
         expect(result).toMatchObject({ loggedIn: true, organization: { name: 'Example GmbH' } });
         expect(readStoredAuth(dependencies)?.organization?.name).toBe('Example GmbH');
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(readPendingLogin(dependencies)).toBeUndefined();
+    });
+
+    it('asks before replacing a login whose renewal cannot be checked, and says so', async () => {
+        storeLogin();
+        const confirm = vi.fn(() => Promise.resolve(false));
+        const { ctx, messages } = makeContext({ ask: { confirm } });
+
+        await runLogin({}, ctx, dependencies);
+
+        expect(confirm).toHaveBeenCalledOnce();
+        expect(messages()[0]).toBe(
+            'Could not check that the stored login can be renewed: ' +
+                'Could not reach the authentication service to renew your CLI session.',
+        );
+        expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
+    });
+
+    it('removes an older pending login once the person has signed in', async () => {
+        const device = deviceLoginAnswers();
+        await runLogin({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        await runLogin({}, makeContext({ ask: { select: () => Promise.resolve('org_1') } }).ctx, {
+            ...dependencies,
+            fetch: device.fetch,
+        });
+
+        expect(readPendingLogin(dependencies)).toBeUndefined();
     });
 
     it('stores nothing when the choice is cancelled', async () => {
@@ -446,7 +546,7 @@ describe('vendure auth login without a person', () => {
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_secret');
     });
 
-    it('returns pending through the host under --json, with no prompter', async () => {
+    it('returns pending through the host as an MCP tool call, with no prompter', async () => {
         vi.stubEnv('VENDURE_CLI_CONFIG_DIR', configDir);
         vi.stubEnv('VENDURE_CONSOLE_API_URL', '');
         vi.stubGlobal('fetch', deviceLoginAnswers().fetch);
@@ -492,7 +592,7 @@ describe('vendure auth wait', () => {
 
         expectError(result, 'auth.no-pending-login');
         expect((result as ErrorResult).details).toEqual({ reason: 'expired' });
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(readPendingLogin(dependencies)).toBeUndefined();
         expect(device.polls()).toBe(0);
     });
 
@@ -511,7 +611,7 @@ describe('vendure auth wait', () => {
         expect(result).toMatchObject({ status: 'pending', code: 'ABCD-EFGH' });
         expect(device.polls()).toBe(4);
         expect(messages().join('\n')).toContain('Run `vendure auth wait` again');
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(true);
+        expect(readPendingLogin(dependencies)).toMatchObject({ code: 'ABCD-EFGH' });
     });
 
     it('waits 30 seconds by default as an MCP tool', async () => {
@@ -548,7 +648,7 @@ describe('vendure auth wait', () => {
         });
         expect(JSON.stringify(result)).not.toMatch(/refresh_|e30\./);
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_2');
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(readPendingLogin(dependencies)).toBeUndefined();
     });
 
     it('keeps the browser choice without a person and says how to pick another', async () => {
@@ -565,6 +665,97 @@ describe('vendure auth wait', () => {
         );
     });
 
+    it('says the login has none of them when the browser chose no organization', async () => {
+        const device = deviceLoginAnswers({ browserOrganization: null });
+        await startPending(device);
+        const { ctx, messages } = makeContext();
+
+        await runWait({}, ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(messages()).toContain(
+            'You belong to more than one organization, and this login uses none of them. ' +
+                'To use another, run `vendure auth login --organization <Account identifier or name>`.',
+        );
+    });
+
+    it('reports a denial to a parallel wait instead of the login already stored', async () => {
+        storeLogin();
+        const device = deviceLoginAnswers({
+            pendingPolls: 20,
+            final: { status: 400, body: { error: 'access_denied' } },
+        });
+        await startPending(device);
+        const options = { ...dependencies, fetch: device.fetch };
+
+        const results = await Promise.all([
+            runWait({ timeout: 10 }, makeContext().ctx, options),
+            runWait({ timeout: 10 }, makeContext().ctx, options),
+        ]);
+
+        for (const result of results) {
+            expectError(result, 'auth.login-denied');
+        }
+    });
+
+    it('ends the pending login when the code was spent but the login failed', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device, 'No Such Organization');
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expectError(result, 'auth.login-failed');
+        expect(readPendingLogin(dependencies)).toBeUndefined();
+        const again = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+        expectError(again, 'auth.no-pending-login');
+    });
+
+    it('stops polling a code that a new login replaced, and returns the new one', async () => {
+        const device = deviceLoginAnswers({ pendingPolls: 1000, interval: 5 });
+        await startPending(device);
+        const clock = fakeClock();
+        let polls = 0;
+        const replacing: typeof globalThis.fetch = async (url, init) => {
+            const response = await device.fetch(url, init);
+            if (String(url) === AUTHENTICATE_URL && ++polls === 2) {
+                const file = getPendingLoginPath(dependencies);
+                const record = JSON.parse(readFileSync(file, 'utf-8'));
+                writeFileSync(
+                    file,
+                    JSON.stringify({ ...record, deviceCode: 'device_2', userCode: 'WXYZ-1234' }),
+                );
+            }
+            return response;
+        };
+
+        const result = await runWait({ timeout: 300 }, makeContext().ctx, {
+            ...dependencies,
+            fetch: replacing,
+            ...clock,
+        });
+
+        expect(result).toMatchObject({ status: 'pending', code: 'WXYZ-1234' });
+        expect(polls).toBe(2);
+    });
+
+    it('starts a new login at once while a wait holds the lock', async () => {
+        const device = deviceLoginAnswers({ pendingPolls: 1000 });
+        await startPending(device);
+        const controller = new AbortController();
+        const waiting = runWait(
+            { timeout: 5 },
+            { ...makeContext().ctx, signal: controller.signal },
+            { ...dependencies, fetch: device.fetch },
+        );
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const startedAt = Date.now();
+        await runLogin({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(Date.now() - startedAt).toBeLessThan(1000);
+        controller.abort();
+        await waiting.catch(() => undefined);
+    });
+
     it('reports a denied code and removes the pending login', async () => {
         const device = deviceLoginAnswers({ final: { status: 400, body: { error: 'access_denied' } } });
         await startPending(device);
@@ -572,7 +763,7 @@ describe('vendure auth wait', () => {
         const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
 
         expectError(result, 'auth.login-denied');
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(readPendingLogin(dependencies)).toBeUndefined();
         expect(readStoredAuth(dependencies)).toBeUndefined();
     });
 
@@ -583,7 +774,7 @@ describe('vendure auth wait', () => {
         const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
 
         expectError(result, 'auth.login-expired');
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(readPendingLogin(dependencies)).toBeUndefined();
     });
 
     it('lets only one of two parallel waits poll, and both report the login', async () => {
@@ -614,7 +805,7 @@ describe('vendure auth logout', () => {
         expect(result).toEqual({ removed: true, sessionEnded: true });
         expect(notices).toEqual([]);
         expect(readStoredAuth(dependencies)).toBeUndefined();
-        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(readPendingLogin(dependencies)).toBeUndefined();
     });
 
     it('warns that copies keep working when Console cannot end the session', async () => {

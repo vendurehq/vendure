@@ -1,7 +1,7 @@
 ---
 title: 'CLI'
-metaTitle: 'Vendure CLI - Automate Plugin, Entity, and API Scaffolding'
-metaDescription: 'Use the Vendure CLI to scaffold features, diagnose projects, and link a local project to Vendure Console.'
+metaTitle: "Vendure CLI - Automate Plugin, Entity, and API Scaffolding"
+metaDescription: "Use the Vendure CLI to scaffold features, diagnose projects, and link a local project to Vendure Console."
 ---
 
 The Vendure CLI is a command-line tool for boosting your productivity as a developer by automating common tasks
@@ -45,12 +45,12 @@ and the processes it starts, to stderr:
 
 `status` is one of:
 
-| Status       | Meaning                                                                                | Exit code |
-| ------------ | -------------------------------------------------------------------------------------- | --------- |
-| `ok`         | The command finished. `output` holds its result                                        | 0         |
-| `failed`     | The command finished, and its checks did not pass, for example a failed `doctor` check | 1         |
-| `incomplete` | The command needs something before it can run. `needs` lists it                        | 3         |
-| `error`      | The command could not run. `error` holds a `code`, a `message` and structured `fixes`  | 1 or more |
+| Status       | Meaning                                                                                       | Exit code |
+| ------------ | --------------------------------------------------------------------------------------------- | --------- |
+| `ok`         | The command finished. `output` holds its result                                               | 0         |
+| `failed`     | The command finished, and its checks did not pass, for example a failed `doctor` check        | 1         |
+| `incomplete` | The command needs something before it can run. `needs` lists it                               | 3         |
+| `error`      | The command could not run. `error` holds a `code`, a `message` and structured `fixes`         | 1 or more |
 
 A need is one of:
 
@@ -116,15 +116,16 @@ Workspace project discovery also selects the plugin allowlist for other CLI comm
 validation and actions keep their existing behavior. From a project subdirectory, plugin lookup walks up
 to the project directory.
 
-| Option                      | Description                                                 |
-| --------------------------- | ----------------------------------------------------------- |
-| `--project <dir>`           | Select the Vendure project directory before discovery.      |
-| `--server-entry <path>`     | Server entry file. Default: `./src/index.ts`.               |
-| `--worker-entry <path>`     | Worker entry file. Default: `./src/index-worker.ts`.        |
-| `--vite-config <path>`      | Dashboard Vite config file. Default: Vite config discovery. |
-| `--inspect [host:port]`     | Enable the Node.js inspector for the server and worker.     |
-| `--inspect-brk [host:port]` | Enable the inspector and pause before user code starts.     |
-| `--no-reload`               | Disable automatic server and worker restarts.               |
+
+| Option | Description |
+| --- | --- |
+| `--project <dir>` | Select the Vendure project directory before discovery. |
+| `--server-entry <path>` | Server entry file. Default: `./src/index.ts`. |
+| `--worker-entry <path>` | Worker entry file. Default: `./src/index-worker.ts`. |
+| `--vite-config <path>` | Dashboard Vite config file. Default: Vite config discovery. |
+| `--inspect [host:port]` | Enable the Node.js inspector for the server and worker. |
+| `--inspect-brk [host:port]` | Enable the inspector and pause before user code starts. |
+| `--no-reload` | Disable automatic server and worker restarts. |
 
 When a backend file changes, `vendure dev` restarts the server and the worker once. A compile error or a
 failed start does not end the run: it reports the error and restarts the process on the next save.
@@ -175,13 +176,13 @@ npx vendure api shop 'query ($id: ID!) { product(id: $id) { name } }' --variable
 `vendure-token` header for another channel. A project that sets `apiOptions.channelTokenKey` to another header
 name ignores `--channel-token`.
 
-| Command                    | Description                                                                                                                                                                                                                                                           |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command | Description |
+| --- | --- |
 | `devserver start [target]` | Start `vendure dev` in the background, for the target `all` (the default) or `server`. It waits until the run is ready or failed, except under `vendure mcp`. `--no-wait` returns once the run has started. It refuses to start while another run serves the project. |
-| `devserver status`         | Report `starting`, `ready`, `restarting`, `failed` or `stopped`, with the URLs, the start time, the restart count and the last error.                                                                                                                                 |
-| `devserver wait`           | Wait until the run is ready, and return at once when it failed or stopped. `--after-restarts <n>` waits for the restart an edit causes: pass the `restarts` that `status` reported before the edit, plus 1.                                                           |
-| `devserver logs`           | Read `.vendure/logs/dev.jsonl`, filtered with `--since` (a duration such as `15m`, or an ISO 8601 time), `--request <id>` and `--min-severity`. It returns the newest 1000 lines that match.                                                                          |
-| `devserver stop`           | Stop the run and wait until it has exited.                                                                                                                                                                                                                            |
+| `devserver status` | Report `starting`, `ready`, `restarting`, `failed` or `stopped`, with the URLs, the start time, the restart count and the last error. |
+| `devserver wait` | Wait until the run is ready, and return at once when it failed or stopped. `--after-restarts <n>` waits for the restart an edit causes: pass the `restarts` that `status` reported before the edit, plus 1. |
+| `devserver logs` | Read `.vendure/logs/dev.jsonl`, filtered with `--since` (a duration such as `15m`, or an ISO 8601 time), `--request <id>` and `--min-severity`. It returns the newest 1000 lines that match. |
+| `devserver stop` | Stop the run and wait until it has exited. |
 
 Each request has an ID, which the server returns in the `x-request-id` header and in the extensions of a
 GraphQL error. A job that a request adds carries the same ID, so `--request` finds the log lines of the
@@ -261,16 +262,16 @@ subcommands above.
 
 #### Older Add Command Flags
 
-| Flag | Long Form                  | Description                                | Example                                                                     |
-| ---- | -------------------------- | ------------------------------------------ | --------------------------------------------------------------------------- |
-|      | `--platform`               | Start the Platform trial flow              | `vendure add --platform`                                                    |
-| `-p` | `--plugin <n>`             | Create a new plugin                        | `vendure add -p MyPlugin`                                                   |
-| `-e` | `--entity <n>`             | Add a new entity to a plugin               | `vendure add -e MyEntity --selected-plugin MyPlugin`                        |
-| `-s` | `--service <n>`            | Add a new service to a plugin              | `vendure add -s MyService --selected-plugin MyPlugin`                       |
-| `-j` | `--job-queue [plugin]`     | Add job queue support                      | `vendure add -j MyPlugin --name job-name --selected-service ServiceName`    |
-| `-a` | `--api-extension [plugin]` | Add API extension scaffold                 | `vendure add -a MyPlugin --selected-service MyService --query-name getName` |
-| `-d` | `--dashboard [plugin]`     | Add Dashboard extensions setup             | `vendure add -d MyPlugin`                                                   |
-|      | `--config <path>`          | Custom Vendure config file, used with `-p` | `vendure add -p my-plugin --config ./custom-config.ts`                      |
+| Flag | Long Form                  | Description                        | Example                                                                  |
+| ---- | -------------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+|      | `--platform`               | Start the Platform trial flow      | `vendure add --platform`                                                 |
+| `-p` | `--plugin <n>`             | Create a new plugin                | `vendure add -p MyPlugin`                                                |
+| `-e` | `--entity <n>`             | Add a new entity to a plugin       | `vendure add -e MyEntity --selected-plugin MyPlugin`                     |
+| `-s` | `--service <n>`            | Add a new service to a plugin      | `vendure add -s MyService --selected-plugin MyPlugin`                    |
+| `-j` | `--job-queue [plugin]`     | Add job queue support              | `vendure add -j MyPlugin --name job-name --selected-service ServiceName` |
+| `-a` | `--api-extension [plugin]` | Add API extension scaffold         | `vendure add -a MyPlugin --selected-service MyService --query-name getName` |
+| `-d` | `--dashboard [plugin]`     | Add Dashboard extensions setup     | `vendure add -d MyPlugin`                                                |
+|      | `--config <path>`          | Custom Vendure config file, used with `-p` | `vendure add -p my-plugin --config ./custom-config.ts`          |
 
 #### Sub-options for specific commands
 
@@ -340,12 +341,12 @@ flags `-g <name>` and `-r` run the same commands as `generate` and `run`.
 
 #### Migrate Command Options
 
-| Flag | Long Form             | Description                                                                                                                                                                | Example                                           |
-| ---- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `-g` | `--generate <name>`   | Generate a new migration                                                                                                                                                   | `vendure migrate -g add-user-table`               |
-| `-r` | `--run`               | Run all pending migrations                                                                                                                                                 | `vendure migrate -r`                              |
-| `-o` | `--output-dir <path>` | Custom output directory for migrations                                                                                                                                     | `vendure migrate -g my-migration -o ./migrations` |
-|      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty`         |
+| Flag | Long Form             | Description                            | Example                                           |
+| ---- | --------------------- | -------------------------------------- | ------------------------------------------------- |
+| `-g` | `--generate <name>`   | Generate a new migration               | `vendure migrate -g add-user-table`               |
+| `-r` | `--run`               | Run all pending migrations             | `vendure migrate -r`                              |
+| `-o` | `--output-dir <path>` | Custom output directory for migrations | `vendure migrate -g my-migration -o ./migrations` |
+|      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty` |
 
 ### Reverting a Migration
 
@@ -426,13 +427,13 @@ npx vendure doctor
 
 By default, the following checks run in order:
 
-| Check            | What it verifies                                                                                                                                                                                         |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Project**      | Vendure project structure, config file discovery, package manager detection, lockfile consistency, and monorepo support.                                                                                 |
+| Check            | What it verifies                                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project**      | Vendure project structure, config file discovery, package manager detection, lockfile consistency, and monorepo support.                                       |
 | **Dependencies** | `@vendure/*` packages are on matching versions, no duplicate singleton dependencies (`graphql`, `typeorm`, `@nestjs/core`, `@nestjs/common`, `@apollo/server`), and that a database driver is installed. |
-| **Config**       | Your config loads and validates via `preBootstrapConfig()` (custom fields, entities), and that plugin compatibility ranges are satisfied.                                                                |
-| **Schema**       | The Admin API and Shop API GraphQL schemas build successfully, so all plugin extensions and custom field types compile.                                                                                  |
-| **Database**     | Database connectivity, using safe read-only overrides. Warns if `synchronize: true` is set.                                                                                                              |
+| **Config**       | Your config loads and validates via `preBootstrapConfig()` (custom fields, entities), and that plugin compatibility ranges are satisfied.                       |
+| **Schema**       | The Admin API and Shop API GraphQL schemas build successfully, so all plugin extensions and custom field types compile.                                         |
+| **Database**     | Database connectivity, using safe read-only overrides. Warns if `synchronize: true` is set.                                                                     |
 
 The **Production** check is not run by default - enable it with `--profile production` (see below).
 
@@ -512,14 +513,14 @@ With `--json`, the command writes one JSON document to stdout. The report is its
 
 #### Doctor Command Options
 
-| Long Form            | Description                                                                          | Example                                      |
-| -------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
-| `--config <path>`    | Specify the path to a custom Vendure config file                                     | `vendure doctor --config ./src/my-config.ts` |
-| `--check <names...>` | Run specific checks only (`project`, `dependencies`, `config`, `schema`, `database`) | `vendure doctor --check config schema`       |
-| `--profile <name>`   | Run profile-specific checks (`production`)                                           | `vendure doctor --profile production`        |
-| `--strict`           | Treat warnings as failures (useful for CI)                                           | `vendure doctor --strict`                    |
-| `--json`             | Write one JSON document to stdout. `--format json` is an alias                       | `vendure doctor --json`                      |
-| `--input <json\|->`  | Pass all options as one JSON document, or `-` to read it from stdin                  | `vendure doctor --input '{"strict":true}'`   |
+| Long Form           | Description                                                                            | Example                                       |
+| ------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `--config <path>`   | Specify the path to a custom Vendure config file                                       | `vendure doctor --config ./src/my-config.ts`  |
+| `--check <names...>` | Run specific checks only (`project`, `dependencies`, `config`, `schema`, `database`)  | `vendure doctor --check config schema`        |
+| `--profile <name>`  | Run profile-specific checks (`production`)                                              | `vendure doctor --profile production`         |
+| `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
+| `--json`            | Write one JSON document to stdout. `--format json` is an alias                        | `vendure doctor --json`                       |
+| `--input <json\|->` | Pass all options as one JSON document, or `-` to read it from stdin                   | `vendure doctor --input '{"strict":true}'`    |
 
 ## The Auth Command
 
@@ -947,12 +948,12 @@ walking up from there. In a monorepo it looks in the package folders from the ro
 `vendure mcp` only runs from the project's own `@vendure/cli`. When npx falls back to a global install, it
 stops and names the version the project installs.
 
-| Client      | `--client` | What `install` does                                                                                          |
-| ----------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| Claude Code | `claude`   | Writes `.mcp.json`                                                                                           |
-| VS Code     | `vscode`   | Writes `.vscode/mcp.json`                                                                                    |
-| Codex       | `codex`    | Writes `.codex/config.toml`. Codex reads it in a trusted project                                             |
-| Cursor      | `cursor`   | Prints the entry for `.cursor/mcp.json`, because Cursor does not document which folder it starts a server in |
+| Client         | `--client` | What `install` does                                                                  |
+| -------------- | ---------- | ------------------------------------------------------------------------------------ |
+| Claude Code    | `claude`   | Writes `.mcp.json`                                                                   |
+| VS Code        | `vscode`   | Writes `.vscode/mcp.json`                                                            |
+| Codex          | `codex`    | Writes `.codex/config.toml`. Codex reads it in a trusted project                     |
+| Cursor         | `cursor`   | Prints the entry for `.cursor/mcp.json`, because Cursor does not document which folder it starts a server in |
 
 Running `install` again changes only the `vendure` entry, and leaves the others alone. `--print` shows the
 entry without writing anything.
@@ -972,12 +973,12 @@ start it there, use `--scope local`, which runs Node with the absolute path to t
 
 By default, it offers four tools:
 
-| Tool                  | What it does                                                     |
-| --------------------- | ---------------------------------------------------------------- |
-| `search_tools`        | Finds commands by name, description or keyword, with their input |
-| `execute_readonly`    | Runs a command that only reads, such as `doctor`                 |
-| `execute_mutating`    | Runs a command that changes files or data, such as `add_codegen` |
-| `execute_destructive` | Runs a command that is hard to undo, such as `migrate_revert`    |
+| Tool                  | What it does                                                         |
+| --------------------- | -------------------------------------------------------------------- |
+| `search_tools`        | Finds commands by name, description or keyword, with their input     |
+| `execute_readonly`    | Runs a command that only reads, such as `doctor`                     |
+| `execute_mutating`    | Runs a command that changes files or data, such as `add_codegen`     |
+| `execute_destructive` | Runs a command that is hard to undo, such as `migrate_revert`        |
 
 A tool's name is its command path joined with `_`. Because there is one executor per kind of command, your
 MCP client can ask for approval before every destructive call and allow read-only calls. With
@@ -1007,10 +1008,10 @@ when it stops, and the server tells your client that its tool list changed.
 
 #### MCP Command Options
 
-| Long Form       | Description                                                                      | Example                       |
-| --------------- | -------------------------------------------------------------------------------- | ----------------------------- |
+| Long Form       | Description                                                                  | Example                          |
+| --------------- | ---------------------------------------------------------------------------- | -------------------------------- |
 | `--dir <path>`  | The project directory. Found by walking up from the current directory by default | `vendure mcp --dir ./my-shop` |
-| `--mode <mode>` | `discovery` (default) offers the four tools above, `direct` lists each command   | `vendure mcp --mode direct`   |
+| `--mode <mode>` | `discovery` (default) offers the four tools above, `direct` lists each command | `vendure mcp --mode direct`    |
 
 ## Working in Monorepos
 
@@ -1630,7 +1631,7 @@ argument is mandatory.
 - `subOptions` are registered on the same command as their parent, so every rule
   above applies to them too. They nest one level only; anything deeper is
   rejected, because the CLI would validate a flag it never registers.
-- A _command_ may declare an option with the same flag as a shared option — the
+- A *command* may declare an option with the same flag as a shared option — the
   built-in `vendure plugins --json` and a shared `--json` for example. The two
   then refer to the same value: whatever is supplied on the command line is
   visible both in the command's own options and in `inheritedOptions`. They must
@@ -1777,6 +1778,7 @@ An ambiguous workspace produces a plugin scope error and loads no member's plugi
 commands remain available. Run `dev --project <dir>` to select a member. For project plugin changes,
 run `vendure plugins add` or `remove` from inside the member directory. Explicit `--global` changes
 still use the global allowlist.
+
 
 A package that declares a plugin but is not listed is reported by a one-line
 hint on stderr rather than being loaded:

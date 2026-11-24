@@ -5,6 +5,7 @@ import {
     DeviceLoginDeniedError,
     DeviceLoginExpiredError,
     DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     ReauthenticationRequiredError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
@@ -54,6 +55,8 @@ export interface PollOptions extends AuthOptions {
      * finish the login. Without it, polling goes on until the code expires.
      */
     until?: number;
+    /** Checked before each poll. When it returns `false`, polling stops with {@link DeviceLoginReplacedError}. */
+    stillWanted?: () => boolean;
 }
 
 /**
@@ -137,6 +140,9 @@ export async function pollDeviceAuthorization(
     const deadline = now() + device.expiresIn * 1000;
     let interval = device.interval;
     while (now() < deadline) {
+        if (options.stillWanted && !options.stillWanted()) {
+            throw new DeviceLoginReplacedError();
+        }
         // Stopping between polls, never during one, so an approval WorkOS has
         // already answered is never dropped.
         if (options.until !== undefined && options.until - now() < interval * 1000) {
