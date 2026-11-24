@@ -99,7 +99,7 @@ export class ProductPriceApplicator {
         if (!activeTaxZone) {
             throw new InternalServerError('error.no-active-tax-zone');
         }
-        // Not cached on the request: with no Order, the country can differ from an Order's.
+        // Not cached on the request, see resolveTaxCountryCode().
         const countryCode = await resolveTaxCountryCode(
             taxZoneStrategy,
             ctx,
