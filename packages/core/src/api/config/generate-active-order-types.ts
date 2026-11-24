@@ -8,7 +8,7 @@ import {
 } from 'graphql';
 
 import { InternalServerError } from '../../common/error/errors';
-import { ACTIVE_ORDER_INPUT_FIELD_NAME, ActiveOrderStrategy } from '../../config/order/active-order-strategy';
+import { ActiveOrderStrategy, ACTIVE_ORDER_INPUT_FIELD_NAME } from '../../config/order/active-order-strategy';
 
 import { mergeTypesIntoSchema } from './merge-types-into-schema';
 
