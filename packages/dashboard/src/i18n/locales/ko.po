@@ -397,10 +397,15 @@ msgstr "이 변형을 삭제하시겠습니까?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, other {컬렉션 # 개를 선택한 컬렉션으로 이동 중}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "모든 리소스가 정상 작동 중입니다"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -467,6 +472,10 @@ msgstr "사용자 정의 필드가 변경되었습니다"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "재고 위치가 생성되었습니다"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr ""
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -1073,6 +1082,10 @@ msgstr "내 API 키"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "이 임시 저장 주문을 삭제하시겠습니까?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -4141,6 +4154,10 @@ msgstr "포함"
 msgid "Search roles..."
 msgstr "역할 검색..."
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr ""
@@ -4199,6 +4216,10 @@ msgstr ""
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "할당"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr ""
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
@@ -4852,6 +4873,10 @@ msgstr "상품"
 msgid "Address created"
 msgstr "주소가 생성되었습니다"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "API 키가 교체되었습니다"
@@ -4885,6 +4910,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "결제 취소 실패"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5347,6 +5376,10 @@ msgstr "배송됨"
 msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "모니터링 중인 리소스"
@@ -5552,6 +5585,10 @@ msgstr "{formattedDiff}의 환불이 필요합니다. 결제 금액을 선택하
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -5945,6 +5982,10 @@ msgstr "새 배송 방법"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Delete stock locations"
 msgstr "재고 위치 삭제"
+
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"

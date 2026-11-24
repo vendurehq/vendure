@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-24T08:10:22+01:00"
+          "lastModified": "2026-11-24T16:36:49+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -3660,7 +3660,7 @@
                   "title": "StoreReadinessService",
                   "slug": "store-readiness-service",
                   "file": "docs/reference/typescript-api/services/store-readiness-service.mdx",
-                  "lastModified": "2026-11-22T21:54:44Z"
+                  "lastModified": "2026-11-24T15:38:59Z"
                 },
                 {
                   "title": "TagService",
@@ -4612,6 +4612,68 @@
             }
           ],
           "lastModified": "2026-10-01T19:26:07+02:00"
+        },
+        {
+          "title": "CLI",
+          "slug": "cli",
+          "file": "docs/reference/cli/index.mdx",
+          "children": [
+            {
+              "title": "vendure add",
+              "slug": "add",
+              "file": "docs/reference/cli/add.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure api",
+              "slug": "api",
+              "file": "docs/reference/cli/api.mdx",
+              "lastModified": "2026-11-24T15:48:18Z"
+            },
+            {
+              "title": "vendure commands",
+              "slug": "commands",
+              "file": "docs/reference/cli/commands.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure devserver",
+              "slug": "devserver",
+              "file": "docs/reference/cli/devserver.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure doctor",
+              "slug": "doctor",
+              "file": "docs/reference/cli/doctor.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure explain",
+              "slug": "explain",
+              "file": "docs/reference/cli/explain.mdx",
+              "lastModified": "2026-11-24T15:48:18Z"
+            },
+            {
+              "title": "vendure guide",
+              "slug": "guide",
+              "file": "docs/reference/cli/guide.mdx",
+              "lastModified": "2026-11-24T15:48:18Z"
+            },
+            {
+              "title": "vendure mcp",
+              "slug": "mcp",
+              "file": "docs/reference/cli/mcp.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            },
+            {
+              "title": "vendure migrate",
+              "slug": "migrate",
+              "file": "docs/reference/cli/migrate.mdx",
+              "lastModified": "2026-11-24T16:46:30+01:00"
+            }
+          ],
+          "lastModified": "2026-11-24T15:48:18Z"
         },
         {
           "title": "GraphQL API",

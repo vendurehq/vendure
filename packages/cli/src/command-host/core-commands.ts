@@ -7,9 +7,12 @@ import { addEntityDefinition } from '../commands/add/entity/add-entity.command.j
 import { addJobQueueDefinition } from '../commands/add/job-queue/add-job-queue.command.js';
 import { addPluginDefinition } from '../commands/add/plugin/create-new-plugin.command.js';
 import { addServiceDefinition } from '../commands/add/service/add-service.command.js';
+import { apiDefinition } from '../commands/api/api.command.js';
 import { commandsDefinition } from '../commands/commands/commands.command.js';
 import { devServerDefinitions } from '../commands/devserver/devserver.command.js';
 import { doctorDefinition } from '../commands/doctor/doctor.command.js';
+import { explainDefinition } from '../commands/explain/explain.command.js';
+import { guideDefinition } from '../commands/guide/guide.command.js';
 import { mcpInstallDefinition } from '../commands/mcp/install/mcp-install.command.js';
 import { generateMigrationDefinition } from '../commands/migrate/generate-migration/generate-migration.command.js';
 import { revertMigrationDefinition } from '../commands/migrate/revert-migration/revert-migration.command.js';
@@ -27,9 +30,12 @@ export const coreCommandDefinitions: CommandDefinition[] = [
     addJobQueueDefinition,
     addPluginDefinition,
     addServiceDefinition,
+    apiDefinition,
     commandsDefinition,
     ...devServerDefinitions,
     doctorDefinition,
+    explainDefinition,
+    guideDefinition,
     mcpInstallDefinition,
     generateMigrationDefinition,
     revertMigrationDefinition,

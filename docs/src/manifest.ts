@@ -955,6 +955,14 @@ const manifestInput: DocsPackageManifestInput = {
                     }),
                 },
                 {
+                    title: 'CLI',
+                    slug: 'cli',
+                    file: file('docs/reference/cli/index.mdx'),
+                    children: createNestedNavigationFromFolder(folder('docs/reference/cli'), {
+                        filter: (info: FileInfo) => info.filename !== 'index.mdx',
+                    }),
+                },
+                {
                     title: 'GraphQL API',
                     slug: 'graphql-api',
                     children: [
