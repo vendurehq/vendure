@@ -12,6 +12,12 @@ export interface CliCommandOption {
     required?: boolean;
     defaultValue?: any;
     subOptions?: CliCommandOption[]; // Options that are only valid when this option is used
+    /**
+     * Leave the option out of `--help`, for example a deprecated alias that still works.
+     *
+     * @since 4.0.0
+     */
+    hidden?: boolean;
 }
 
 /**

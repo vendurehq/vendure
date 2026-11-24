@@ -1,8 +1,9 @@
-import { CommandDefinition, CommandEvent } from '@vendure/common/lib/command';
+import { CommandDefinition, CommandEvent, isIncompleteResult } from '@vendure/common/lib/command';
 import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
+import { requireCredential } from '../auth/credential.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
@@ -298,6 +299,17 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             wholeLines: !!out,
         }),
         findProjectRoot: () => findVendureProjectRoot(),
+        requireCredential: async (_kind, ctx) => {
+            const result = await requireCredential({
+                signal: ctx.signal,
+                mayPrompt: ctx.ask !== undefined,
+                signIn: async () => {
+                    const { signInWithDevice } = await import('../commands/auth/sign-in.js');
+                    await signInWithDevice(ctx);
+                },
+            });
+            return isIncompleteResult(result) ? result.needs : undefined;
+        },
     };
 }
 

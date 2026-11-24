@@ -1,5 +1,7 @@
 import { defineError } from '@vendure/common/lib/command';
 
+import { LOGIN_FIX } from '../auth/credential.js';
+
 /** Errors the host itself reports, as opposed to the errors a command declares. */
 export const hostErrors = {
     projectRequired: defineError<{ command: string }>({
@@ -43,6 +45,13 @@ export const hostErrors = {
         code: 'mcp.child-failed',
         exit: 1,
         message: ({ message }) => message,
+    }),
+    credentialFailed: defineError<{ message: string }>({
+        code: 'auth.credential-failed',
+        exit: 1,
+        message: ({ message }) =>
+            `The command needs a Vendure Cloud credential, and finding one failed: ${message}`,
+        fix: () => [LOGIN_FIX],
     }),
     inputUnreadable: defineError<{ reason: string }>({
         code: 'input.unreadable',

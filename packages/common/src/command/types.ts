@@ -397,6 +397,20 @@ export interface CommandDefinition {
     requires?: {
         /** The host refuses to run the command outside a Vendure project. */
         project?: boolean;
+        /**
+         * The command needs a Vendure Cloud credential. Before anything else runs, the host looks
+         * for one: the stored login, then `VENDURE_CLOUD_TOKEN`, then a device login when a person
+         * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
+         * secret `token` field, whose fix is `vendure auth login --json`.
+         *
+         * `run()` then reads the credential with `requireCredential` from `@vendure/cli`, with
+         * `mayPrompt: false`, and returns an `incomplete` result from it unchanged. That can happen
+         * when the command needs a login for one organization, because the host only checks that
+         * some credential exists.
+         *
+         * @since 4.0.0
+         */
+        auth?: 'cloud';
     };
     /** Named consents, each with a description. */
     consents?: Record<string, string>;
