@@ -4,12 +4,14 @@ generated: true
 ---
 ## DashboardCommandPaletteItemDefinition
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/command-palette.ts" sourceLine="52" packageName="@vendure/dashboard" since="4.0.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/command-palette.ts" sourceLine="153" packageName="@vendure/dashboard" since="4.0.0" />
 
 An entry of the ⌘K command palette, added by a Dashboard extension. The palette lists it
 next to the pages of the nav menu, and finds it by its title and keywords.
 
-An entry either opens a page (`url`) or runs an action (`onSelect`). Set exactly one of them.
+An entry either opens a page (`url`, see [DashboardCommandPaletteLinkItem](/reference/dashboard/extensions-api/command-palette#dashboardcommandpalettelinkitem)) or runs
+an action (`onSelect`, see [DashboardCommandPaletteActionItem](/reference/dashboard/extensions-api/command-palette#dashboardcommandpaletteactionitem)). The type accepts
+exactly one of them.
 
 *Example*
 
@@ -33,82 +35,12 @@ defineDashboardExtension({
 ```
 
 ```ts title="Signature"
-interface DashboardCommandPaletteItemDefinition {
-    id: string;
-    title: string;
-    icon?: LucideIcon;
-    keywords?: string[];
-    group?: string;
-    order?: number;
-    url?: string;
-    onSelect?: (context: CommandPaletteSelectContext) => void | Promise<void>;
-    requiresPermission?: string | string[];
-}
+type DashboardCommandPaletteItemDefinition = | DashboardCommandPaletteLinkItem
+    | DashboardCommandPaletteActionItem
 ```
-
-<div className="members-wrapper">
-
-### id
-
-<MemberInfo kind="property" type={`string`}   />
-
-A unique id for the entry. An entry registered later with the same id replaces it.
-### title
-
-<MemberInfo kind="property" type={`string`}   />
-
-The text of the entry. Like a nav menu item title, it is passed through the
-Dashboard's translations, so a message id of your extension's catalog works.
-### icon
-
-<MemberInfo kind="property" type={`LucideIcon`}   />
-
-An optional icon, imported from `lucide-react`.
-### keywords
-
-<MemberInfo kind="property" type={`string[]`}   />
-
-More words the search matches, besides the title and the group heading.
-### group
-
-<MemberInfo kind="property" type={`string`}   />
-
-The group of the palette to list the entry in. The palette has one group per nav menu
-section: use the id of a section (such as `'catalog'`, see `BUILT_IN_NAV_SECTION_IDS`,
-or the id of one of your `navSections`) to list the entry with the pages of that
-section. Any other value starts a group of its own, with the value as its heading.
-
-Without a group, the entry is listed with the top-level pages.
-### order
-
-<MemberInfo kind="property" type={`number`}   />
-
-The position of the entry among the extension entries of its group. A lower number
-comes first. Entries without an order come last, sorted by title. Extension entries
-always follow the pages of the nav menu.
-### url
-
-<MemberInfo kind="property" type={`string`}   />
-
-The page the entry opens, such as `'/products/new'` or `'/orders?state=PaymentSettled'`.
-### onSelect
-
-<MemberInfo kind="property" type={`(context: <a href='/reference/dashboard/extensions-api/command-palette#commandpaletteselectcontext'>CommandPaletteSelectContext</a>) => void | Promise<void>`}   />
-
-The action the entry runs. The palette closes first. An error it throws, or a promise
-it rejects, is logged to the console.
-### requiresPermission
-
-<MemberInfo kind="property" type={`string | string[]`}   />
-
-Restricts the entry to administrators with the given permission or permissions. The
-administrator needs ANY of them on the active channel, as for a nav menu item.
-
-
-</div>
 ## CommandPaletteProvider
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/layout/command-palette.tsx" sourceLine="56" packageName="@vendure/dashboard" since="4.0.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/layout/command-palette.tsx" sourceLine="63" packageName="@vendure/dashboard" since="4.0.0" />
 
 Holds the ⌘K command palette of the Dashboard: the dialog and the Mod+K shortcut. The
 Dashboard's app layout renders it, so an extension does not need to. The shortcut lives
@@ -129,7 +61,7 @@ Parameters
 
 ## useOpenCommandPalette
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/layout/command-palette.tsx" sourceLine="114" packageName="@vendure/dashboard" since="4.0.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/layout/command-palette.tsx" sourceLine="121" packageName="@vendure/dashboard" since="4.0.0" />
 
 Returns a function that opens the ⌘K command palette, or `null` outside a
 [CommandPaletteProvider](/reference/dashboard/extensions-api/command-palette#commandpaletteprovider). Use it to open the palette from your own component, such
@@ -140,7 +72,7 @@ function useOpenCommandPalette(): void
 ```
 ## CommandPaletteTrigger
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/layout/command-palette.tsx" sourceLine="127" packageName="@vendure/dashboard" since="4.0.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/layout/command-palette.tsx" sourceLine="134" packageName="@vendure/dashboard" since="4.0.0" />
 
 The search field of the top bar, which opens the ⌘K command palette. It renders nothing
 outside a [CommandPaletteProvider](/reference/dashboard/extensions-api/command-palette#commandpaletteprovider).
@@ -193,6 +125,137 @@ interface CommandPaletteSelectContext {
 <MemberInfo kind="property" type={`(url: string) => void`}   />
 
 Opens a Dashboard page, as a `url` entry does. Takes a path such as `'/products'`.
+
+
+</div>
+## DashboardCommandPaletteItemBase
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/command-palette.ts" sourceLine="29" packageName="@vendure/dashboard" since="4.0.0" />
+
+The fields every [DashboardCommandPaletteItemDefinition](/reference/dashboard/extensions-api/command-palette#dashboardcommandpaletteitemdefinition) has, whether it opens a page
+or runs an action.
+
+```ts title="Signature"
+interface DashboardCommandPaletteItemBase {
+    id: string;
+    title: string;
+    icon?: LucideIcon;
+    keywords?: string[];
+    group?: string;
+    order?: number;
+    requiresPermission?: string | string[];
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique id for the entry. An entry registered later with the same id replaces it.
+### title
+
+<MemberInfo kind="property" type={`string`}   />
+
+The text of the entry. Like a nav menu item title, it is passed through the
+Dashboard's translations, so a message id of your extension's catalog works.
+### icon
+
+<MemberInfo kind="property" type={`LucideIcon`}   />
+
+An optional icon, imported from `lucide-react`.
+### keywords
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+More words the search matches, besides the title and the group heading.
+### group
+
+<MemberInfo kind="property" type={`string`}   />
+
+The group of the palette to list the entry in. The palette has one group per nav menu
+section: use the id of a section (such as `'catalog'`, see `BUILT_IN_NAV_SECTION_IDS`,
+or the id of one of your `navSections`) to list the entry with the pages of that
+section. Any other value starts a group of its own, with the value as its heading.
+
+Without a group, the entry is listed with the top-level pages.
+### order
+
+<MemberInfo kind="property" type={`number`}   />
+
+The position of the entry among the extension entries of its group. A lower number
+comes first. Entries without an order come last, sorted by title. Extension entries
+always follow the pages of the nav menu.
+### requiresPermission
+
+<MemberInfo kind="property" type={`string | string[]`}   />
+
+Restricts the entry to administrators with the given permission or permissions. The
+administrator needs ANY of them on the active channel, as for a nav menu item.
+
+
+</div>
+## DashboardCommandPaletteLinkItem
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/command-palette.ts" sourceLine="84" packageName="@vendure/dashboard" since="4.0.0" />
+
+A command palette entry that opens a page.
+
+```ts title="Signature"
+interface DashboardCommandPaletteLinkItem extends DashboardCommandPaletteItemBase {
+    url: string;
+    onSelect?: never;
+}
+```
+* Extends: [`DashboardCommandPaletteItemBase`](/reference/dashboard/extensions-api/command-palette#dashboardcommandpaletteitembase)
+
+
+
+<div className="members-wrapper">
+
+### url
+
+<MemberInfo kind="property" type={`string`}   />
+
+The page the entry opens, such as `'/products/new'` or `'/orders?state=PaymentSettled'`.
+### onSelect
+
+<MemberInfo kind="property" type={`never`}   />
+
+Not allowed: an entry that opens a page runs no action.
+
+
+</div>
+## DashboardCommandPaletteActionItem
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/command-palette.ts" sourceLine="105" packageName="@vendure/dashboard" since="4.0.0" />
+
+A command palette entry that runs an action.
+
+```ts title="Signature"
+interface DashboardCommandPaletteActionItem extends DashboardCommandPaletteItemBase {
+    onSelect: (context: CommandPaletteSelectContext) => void | Promise<void>;
+    url?: never;
+}
+```
+* Extends: [`DashboardCommandPaletteItemBase`](/reference/dashboard/extensions-api/command-palette#dashboardcommandpaletteitembase)
+
+
+
+<div className="members-wrapper">
+
+### onSelect
+
+<MemberInfo kind="property" type={`(context: <a href='/reference/dashboard/extensions-api/command-palette#commandpaletteselectcontext'>CommandPaletteSelectContext</a>) => void | Promise<void>`}   />
+
+The action the entry runs. The palette closes first. An error it throws, or a promise
+it rejects, is logged to the console.
+### url
+
+<MemberInfo kind="property" type={`never`}   />
+
+Not allowed: an entry that runs an action opens no page.
 
 
 </div>
