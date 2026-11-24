@@ -2,6 +2,7 @@ import { COMMAND_EXIT_CODES, defineError } from '@vendure/common/lib/command';
 import { In } from 'typeorm';
 
 import { idsAreEqual } from '../../../common/utils';
+import { TaxZoneStrategy } from '../../../config/tax/tax-zone-strategy';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { TaxCategory } from '../../../entity/tax-category/tax-category.entity';
@@ -11,36 +12,38 @@ import { TaxRateService } from '../../services/tax-rate.service';
 import {
     adminToolPath,
     ChannelReadinessInput,
-    countryMembers,
     StoreReadinessFinding,
     StoreReadinessSeverity,
     toFinding,
 } from './store-readiness-types';
+import { resolveTaxZones } from './tax-rates.check';
 import { findChannelTaxCategoryIds } from './variant-queries';
 
 interface InclusiveRateUnknownDetails {
     channel: Channel;
     zone: Zone;
     taxCategory: TaxCategory;
-    /** The countries of the default tax zone that have no country rate either. */
+    /** The countries whose orders get the default tax zone and have no country rate either. */
     untaxedCountryCodes: string[];
-    /** Whether the Channel ships to a country outside the default tax zone. */
+    /** Whether an order with no address yet gets the default tax zone. */
+    withoutAddress: boolean;
+    /** Whether an order to a country the Channel ships to gets another tax zone. */
     shipsOutsideZone: boolean;
 }
 
 export const inclusiveRateUnknown = defineError<InclusiveRateUnknownDetails>({
     code: 'store.tax.inclusive-rate-unknown',
     exit: COMMAND_EXIT_CODES.failed,
-    message: ({ channel, zone, taxCategory, untaxedCountryCodes, shipsOutsideZone }) => {
+    message: ({ channel, zone, taxCategory, untaxedCountryCodes, withoutAddress, shipsOutsideZone }) => {
         const untaxed = [
-            'orders with no address yet',
+            ...(withoutAddress ? ['orders with no address yet'] : []),
             ...(untaxedCountryCodes.length ? [`orders to ${untaxedCountryCodes.join(', ')}`] : []),
         ].join(' and ');
         return (
             `Channel "${channel.code}" has prices that include tax, but its default tax zone ` +
             `"${zone.name}" has no enabled zone rate for tax category "${taxCategory.name}", so core ` +
-            `cannot tell which rate the entered prices include. In "${zone.name}", ${untaxed} are ` +
-            `taxed at 0%.` +
+            `cannot tell which rate the entered prices include.` +
+            (untaxed ? ` In "${zone.name}", ${untaxed} are taxed at 0%.` : '') +
             (shipsOutsideZone
                 ? ` Orders taxed in another zone pay that zone's tax on top of the full entered price.`
                 : '')
@@ -68,15 +71,18 @@ export const inclusiveRateUnknown = defineError<InclusiveRateUnknownDetails>({
  * rate on the Channel's default tax zone. That rate tells core how much tax the entered gross price
  * holds, so that it can take the tax out for orders taxed in another zone. The lookup is the one
  * that `DefaultProductVariantPriceCalculationStrategy` makes: by zone only, so country rates do not
- * count.
+ * count. The orders that get the default tax zone come from the configured {@link TaxZoneStrategy},
+ * as in `checkTaxRates`.
  */
 export async function checkTaxInclusiveRates(
-    { ctx, channel, allZones, shippingZones }: ChannelReadinessInput,
+    input: ChannelReadinessInput,
     services: {
         connection: TransactionalConnection;
         taxRateService: TaxRateService;
+        taxZoneStrategy: TaxZoneStrategy;
     },
 ): Promise<StoreReadinessFinding[]> {
+    const { ctx, channel, allZones } = input;
     const defaultZoneId = channel.defaultTaxZone?.id;
     // With no default tax zone, the default-zones check reports the channel.
     if (!channel.pricesIncludeTax || defaultZoneId == null) {
@@ -90,10 +96,13 @@ export async function checkTaxInclusiveRates(
     const categories = await services.connection
         .getRepository(ctx, TaxCategory)
         .find({ where: { id: In(categoryIds) }, order: { id: 'ASC' } });
-    // The Zone of the Channel itself may come without its members.
-    const zoneCountryCodes = zone.members ? enabledCountryCodes([zone]) : [];
-    const shipsOutsideZone = enabledCountryCodes(shippingZones).some(
-        code => !zoneCountryCodes.includes(code),
+    const taxZones = await resolveTaxZones(input, services.taxZoneStrategy);
+    const defaultZoneTargets = [...taxZones]
+        .filter(([, taxZone]) => idsAreEqual(taxZone.id, defaultZoneId))
+        .map(([target]) => target);
+    const withoutAddress = defaultZoneTargets.some(target => target.countryCode == null);
+    const shipsOutsideZone = [...taxZones].some(
+        ([target, taxZone]) => target.countryCode != null && !idsAreEqual(taxZone.id, defaultZoneId),
     );
     const findings: StoreReadinessFinding[] = [];
     for (const taxCategory of categories) {
@@ -102,7 +111,10 @@ export async function checkTaxInclusiveRates(
             continue;
         }
         const untaxedCountryCodes: string[] = [];
-        for (const countryCode of zoneCountryCodes) {
+        for (const { countryCode } of defaultZoneTargets) {
+            if (countryCode == null) {
+                continue;
+            }
             const countryRate = await services.taxRateService.findApplicableTaxRate(
                 ctx,
                 { countryCode, zone },
@@ -116,7 +128,7 @@ export async function checkTaxInclusiveRates(
             toFinding(
                 inclusiveRateUnknown,
                 StoreReadinessSeverity.ERROR,
-                { channel, zone, taxCategory, untaxedCountryCodes, shipsOutsideZone },
+                { channel, zone, taxCategory, untaxedCountryCodes, withoutAddress, shipsOutsideZone },
                 {
                     channelId: channel.id,
                     zoneId: zone.id,
@@ -127,14 +139,4 @@ export async function checkTaxInclusiveRates(
         );
     }
     return findings;
-}
-
-/** The enabled countries of the Zones, by code. */
-function enabledCountryCodes(zones: Zone[]): string[] {
-    const codes = zones.flatMap(z =>
-        countryMembers(z)
-            .filter(member => member.enabled)
-            .map(member => member.code),
-    );
-    return [...new Set(codes)].sort((a, b) => a.localeCompare(b));
 }

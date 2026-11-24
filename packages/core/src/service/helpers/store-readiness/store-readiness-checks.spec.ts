@@ -169,6 +169,17 @@ describe('findShippingZones', () => {
     });
 });
 
+/** Picks the zone that contains the country, like the address-based strategy. */
+const byAddress = {
+    determineTaxZone: (_ctx: unknown, zones: any[], ch: any, order?: any) =>
+        zones.find(z => z.members.some((m: any) => m.code === order?.shippingAddress?.countryCode)) ??
+        ch.defaultTaxZone,
+} as any;
+
+const defaultStrategy = {
+    determineTaxZone: (_ctx: unknown, _zones: unknown, ch: any) => ch.defaultTaxZone,
+} as any;
+
 describe('checkTaxRates', () => {
     const fr = country('FR');
     const de = country('DE');
@@ -200,17 +211,6 @@ describe('checkTaxRates', () => {
             ),
         } as any;
     }
-
-    /** Picks the zone that contains the country, like the address-based strategy. */
-    const byAddress = {
-        determineTaxZone: (_ctx: unknown, zones: any[], ch: any, order?: any) =>
-            zones.find(z => z.members.some((m: any) => m.code === order?.shippingAddress?.countryCode)) ??
-            ch.defaultTaxZone,
-    } as any;
-
-    const defaultStrategy = {
-        determineTaxZone: (_ctx: unknown, _zones: unknown, ch: any) => ch.defaultTaxZone,
-    } as any;
 
     function taxInput(defaultTaxZone: unknown, shippingZones: any[]) {
         return input({
@@ -332,6 +332,7 @@ describe('checkTaxInclusiveRates', () => {
         const findings = await checkTaxInclusiveRates(inclusiveInput(), {
             connection: connection(['tc1', 'tc2']),
             taxRateService: service,
+            taxZoneStrategy: byAddress,
         });
         expect(findings).toHaveLength(1);
         expect(findings[0]).toMatchObject({
@@ -364,6 +365,7 @@ describe('checkTaxInclusiveRates', () => {
         const [finding] = await checkTaxInclusiveRates(inclusiveInput(), {
             connection: connection(['tc1']),
             taxRateService: taxRateService([], ['DE']),
+            taxZoneStrategy: byAddress,
         });
         // DE has a country rate, and NL is disabled.
         expect(finding.message).toContain(
@@ -375,15 +377,31 @@ describe('checkTaxInclusiveRates', () => {
         const inside = await checkTaxInclusiveRates(inclusiveInput(), {
             connection: connection(['tc1']),
             taxRateService: taxRateService([]),
+            taxZoneStrategy: byAddress,
         });
         expect(inside[0].message).not.toContain('on top of the full entered price');
         const outside = await checkTaxInclusiveRates(inclusiveInput({}, [europe, pacific]), {
             connection: connection(['tc1']),
             taxRateService: taxRateService([]),
+            taxZoneStrategy: byAddress,
         });
         expect(outside[0].message).toContain(
             "Orders taxed in another zone pay that zone's tax on top of the full entered price.",
         );
+    });
+
+    it('names the shipping countries that the strategy taxes in the default zone', async () => {
+        const [finding] = await checkTaxInclusiveRates(inclusiveInput({}, [europe, pacific]), {
+            connection: connection(['tc1']),
+            taxRateService: taxRateService([], ['DE']),
+            taxZoneStrategy: defaultStrategy,
+        });
+        // Every order gets the default tax zone, so NZ is taxed at 0% there, and no order is taxed
+        // in another zone.
+        expect(finding.message).toContain(
+            'In "Zone eu", orders with no address yet and orders to BE, FR, NZ are taxed at 0%.',
+        );
+        expect(finding.message).not.toContain('on top of the full entered price');
     });
 
     it('reports nothing for a channel whose prices exclude tax', async () => {
@@ -392,6 +410,7 @@ describe('checkTaxInclusiveRates', () => {
             await checkTaxInclusiveRates(input({ channel: channel({ pricesIncludeTax: false }) }), {
                 connection: connection(['tc1']),
                 taxRateService: service,
+                taxZoneStrategy: byAddress,
             }),
         ).toEqual([]);
         expect(service.findApplicableTaxRate).not.toHaveBeenCalled();
@@ -402,6 +421,7 @@ describe('checkTaxInclusiveRates', () => {
             await checkTaxInclusiveRates(inclusiveInput({ defaultTaxZone: undefined }), {
                 connection: connection(['tc1']),
                 taxRateService: taxRateService([]),
+                taxZoneStrategy: byAddress,
             }),
         ).toEqual([]);
     });
@@ -411,6 +431,7 @@ describe('checkTaxInclusiveRates', () => {
             await checkTaxInclusiveRates(inclusiveInput(), {
                 connection: connection([]),
                 taxRateService: taxRateService([]),
+                taxZoneStrategy: byAddress,
             }),
         ).toEqual([]);
     });

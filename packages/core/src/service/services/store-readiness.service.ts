@@ -161,6 +161,7 @@ export class StoreReadinessService {
                     checkTaxInclusiveRates(input, {
                         connection: this.connection,
                         taxRateService: this.taxRateService,
+                        taxZoneStrategy,
                     }),
                 channel,
             );

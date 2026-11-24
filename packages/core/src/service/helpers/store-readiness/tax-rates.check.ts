@@ -60,7 +60,7 @@ export const noApplicableTaxRate = defineError<NoRateDetails>({
 });
 
 /** An order to one country, or with no address, as the tax zone strategy sees it. */
-interface TaxTarget {
+export interface TaxTarget {
     countryCode?: string;
 }
 
@@ -127,7 +127,7 @@ function shippingCountryCodes(shippingZones: Zone[]): string[] {
  * The tax zone of an order with no address yet, and of an order to each country the Channel ships
  * to, as the configured strategy picks it.
  */
-async function resolveTaxZones(
+export async function resolveTaxZones(
     { ctx, channel, allZones, shippingZones }: ChannelReadinessInput,
     taxZoneStrategy: TaxZoneStrategy,
 ): Promise<Map<TaxTarget, Zone>> {
