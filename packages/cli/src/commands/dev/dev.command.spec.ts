@@ -13,17 +13,6 @@ import type { DevIo, RunDevOptions } from './dev.js';
 const runDev = vi.hoisted(() => vi.fn());
 vi.mock('./dev.js', () => ({ runDev }));
 
-const fields = [
-    'target',
-    'dir',
-    'serverEntry',
-    'workerEntry',
-    'viteConfig',
-    'inspect',
-    'inspectBrk',
-    'reload',
-];
-
 async function commandLine() {
     const built = await buildCommandManifest('@vendure/cli', '0.0.0', [devDefinition]);
     const root = new Command('vendure').exitOverride();
@@ -35,6 +24,9 @@ async function commandLine() {
 
 async function parse(args: string[]) {
     const { root, dev } = await commandLine();
+    // Every field the manifest declares for `dev`, so a new one is parsed here too.
+    const manifest = await buildCommandManifest('@vendure/cli', '0.0.0', [devDefinition]);
+    const fields = Object.keys(manifest.commands[0].input.properties as object);
     let positional: Record<string, unknown> = {};
     dev.action((target: unknown) => {
         positional = { target };
@@ -59,6 +51,7 @@ describe('vendure dev on the command host', () => {
                 '--inspect-brk [host:port]',
                 '--reload',
                 '--no-reload',
+                '--reload-ignored-paths <reload-ignored-paths...>',
             ]),
         );
         expect(flags.some(flag => flag.includes('--project'))).toBe(false);
@@ -73,6 +66,9 @@ describe('vendure dev on the command host', () => {
         expect(await parse(['--inspect-brk', '0.0.0.0:9229', '--dir', 'apps/server'])).toEqual({
             inspectBrk: '0.0.0.0:9229',
             dir: 'apps/server',
+        });
+        expect(await parse(['--reload-ignored-paths', 'src/gql', 'generated'])).toEqual({
+            reloadIgnoredPaths: ['src/gql', 'generated'],
         });
     });
 

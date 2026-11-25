@@ -105,6 +105,8 @@ export interface LoadProjectCommandsOptions {
      */
     takenPaths?: TakenCommandPath[];
     coreManifestFile?: string;
+    /** The CLI's own manifest, when the caller has loaded it already. */
+    core?: CommandManifest;
 }
 
 /**
@@ -121,7 +123,7 @@ export interface LoadProjectCommandsOptions {
 export async function loadProjectCommands(
     options: LoadProjectCommandsOptions = {},
 ): Promise<ProjectCommands> {
-    const core = await loadCoreManifest(options.coreManifestFile);
+    const core = options.core ?? (await loadCoreManifest(options.coreManifestFile));
     if (options.plugins) {
         return mergeProjectManifests(
             core,

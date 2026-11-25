@@ -125,13 +125,17 @@ export class CommandRegistry {
     };
     /** Paths of the commands the CLI declares with `defineCommand`, which `extendCommands` cannot reach. */
     private hostCommands = new Set<string>();
+    /** The arguments of this run, so a skipped extension is reported only for the command it concerns. */
+    private runArgs: string[] = [];
 
     /**
      * Records the paths of the commands the CLI declares with `defineCommand`, such as `dev`, so an
-     * extension of one of them is refused with a reason that names it.
+     * extension of one of them is skipped, and the arguments of this run, so the warning about it
+     * appears only when that command runs.
      */
-    setHostDeclaredCommands(paths: string[][]): void {
+    setHostDeclaredCommands(paths: string[][], runArgs: string[] = []): void {
         this.hostCommands = new Set(paths.map(path => path.join(' ')));
+        this.runArgs = runArgs;
     }
 
     /**
@@ -190,7 +194,7 @@ export class CommandRegistry {
             draftCommand(draft, node, plugin.id, conflicts, notices);
         }
         for (const extension of plugin.extendCommands ?? []) {
-            draftExtension(draft, extension, plugin.id, conflicts, notices, this.hostCommands);
+            draftExtension(draft, extension, plugin.id, conflicts, notices, this.hostCommands, this.runArgs);
         }
         for (const { extensionPoint, extension } of getCliPluginExtensionEntries(plugin)) {
             const entries = draft.pluginExtensions.get(extensionPoint) ?? [];
@@ -407,6 +411,7 @@ function draftExtension(
     conflicts: string[],
     notices: string[],
     hostCommands: ReadonlySet<string> = new Set(),
+    runArgs: string[] = [],
 ): void {
     const before = conflicts.length;
     const path = normalizeCommandPath(extension.command);
@@ -421,6 +426,9 @@ function draftExtension(
     const target = entry && findNodeAtPath(entry.node, path.slice(1));
     // Only this extension is skipped: the plugin's other commands and extensions still apply.
     if (!target && hostCommands.has(label)) {
+        if (!path.every((segment, index) => runArgs[index] === segment)) {
+            return;
+        }
         notices.push(
             `Skipped the extension of "vendure ${label}" from ${source}: the command is declared with ` +
                 'defineCommand, which extendCommands cannot extend. The plugin can still replace it with ' +

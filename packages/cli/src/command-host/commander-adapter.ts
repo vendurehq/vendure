@@ -1,5 +1,5 @@
 import { CommandDefinition, CommandEvent, isIncompleteResult } from '@vendure/common/lib/command';
-import { MergedManifestCommand, takesOptionalValue } from '@vendure/common/lib/command/manifest';
+import { flagValueSyntax, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
@@ -106,17 +106,8 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const flag = `--${kebab(field)}`;
         const short = manifestCommand.cli.flags?.[field]?.short;
         const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-        const placeholder =
-            manifestCommand.cli.flags?.[field]?.placeholder ??
-            (field in manifestCommand.consents ? 'digest' : kebab(field));
-        // A field that is either a flag or a value, such as `--inspect [host:port]`.
-        const optionalValue = takesOptionalValue(schema);
-        const value = optionalValue
-            ? ` [${placeholder}]`
-            : type === 'array'
-              ? ` <${placeholder}...>`
-              : ` <${placeholder}>`;
-        const flags = `${short ? `${short}, ` : ''}${flag}${type === 'boolean' && !optionalValue ? '' : value}`;
+        const { value, negatable } = flagValueSyntax(manifestCommand, field, schema, kebab(field));
+        const flags = `${short ? `${short}, ` : ''}${flag}${value}`;
         const option = new Option(flags, (schema.description as string | undefined) ?? '');
         if (type === 'number' || type === 'integer') {
             option.argParser(raw => Number(raw));
@@ -125,7 +116,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
             option.choices(schema.enum as string[]);
         }
         command.addOption(option);
-        if (type === 'boolean' && !optionalValue) {
+        if (negatable) {
             // `--no-<flag>` sets the field to false. Defined after `--<flag>`, it leaves the value
             // undefined when neither is given, so the command's own default applies, for example
             // a `wait` field that is true for people and false under `vendure mcp`.

@@ -10,10 +10,10 @@
  */
 import { deleteGeneratedDocs } from '@vendure-io/docs-generator';
 import {
+    flagValueSyntax,
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
-    takesOptionalValue,
 } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -325,23 +325,13 @@ function renderExamples(command: MergedManifestCommand): string[] {
 
 function renderFlag(command: MergedManifestCommand, field: string, schema: JsonSchema, positional: string[]) {
     const short = command.cli.flags?.[field]?.short;
-    const type = primaryType(schema);
-    const placeholder = command.cli.flags?.[field]?.placeholder ?? rules.kebab(field);
-    // As the CLI registers it: a field that is a boolean or a string takes an optional value.
-    const optionalValue = takesOptionalValue(schema);
-    let value = ` <${placeholder}>`;
-    if (optionalValue) {
-        value = ` [${placeholder}]`;
-    } else if (type === 'boolean') {
-        value = '';
-    } else if (type === 'array') {
-        value = ` <${placeholder}...>`;
-    }
+    // The same syntax the CLI registers the flag with.
+    const { value, negatable } = flagValueSyntax(command, field, schema, rules.kebab(field));
     const flags = [`\`--${rules.kebab(field)}${escapeCode(value)}\``];
     if (short) {
         flags.unshift(`\`${short}\``);
     }
-    if (type === 'boolean' && !optionalValue) {
+    if (negatable) {
         flags.push(`\`--no-${rules.kebab(field)}\``);
     }
     if (positional.includes(field)) {

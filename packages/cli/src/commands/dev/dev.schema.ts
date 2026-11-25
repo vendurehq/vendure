@@ -58,5 +58,9 @@ export const output = z.object({
 export const events = z.object({
     type: z.literal('output'),
     stream: z.enum(['stdout', 'stderr']),
-    text: z.string().describe('Output of a process, or a status line, as it came'),
+    text: z
+        .string()
+        .describe(
+            'Output of a process, or a status line, as it came. It can hold ANSI colour codes, because the processes run with FORCE_COLOR',
+        ),
 });

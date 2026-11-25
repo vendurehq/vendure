@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
+import type { CommandManifest } from '@vendure/common/lib/command/manifest';
 import { registerManifestCommands } from './command-host/commander-adapter.js';
 import {
     CORE_SOURCE,
@@ -65,10 +66,17 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
+    // Loaded once: the registry needs its paths, and so does the merge below.
+    let coreManifest: CommandManifest | undefined;
     try {
-        registry.setHostDeclaredCommands((await loadCoreManifest()).commands.map(command => command.path));
+        coreManifest = await loadCoreManifest();
+        registry.setHostDeclaredCommands(
+            coreManifest.commands.map(command => command.path),
+            process.argv.slice(2),
+        );
     } catch {
-        // Without the manifest, an extension of a host command is refused with the general reason.
+        // Without the manifest, an extension of a host command is a registration conflict, which
+        // refuses the whole plugin.
     }
 
     // A broken plugin must not take down the CLI: built-ins (including the
@@ -136,7 +144,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // those of the enabled plugins. Their declarations load only when one of them runs.
     try {
         setCommanderPaths(commanderPaths(program));
-        const projectCommands = await loadProjectCommands({ plugins: manifests });
+        const projectCommands = await loadProjectCommands({ plugins: manifests, core: coreManifest });
         for (const { package: packageName, error } of projectCommands.refused) {
             unavailablePackages.set(packageName, 'register');
             const scope =
