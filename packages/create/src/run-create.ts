@@ -144,14 +144,20 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
             failed: agentFiles.failed.map(({ client, reason }) => ({ client, reason })),
         },
         git,
-        next: [
-            ...getNextCommands(options, context.projectDirArg),
+        next: withBeforeLast(
+            getNextCommands(options, context.projectDirArg),
             // Only where running it again completes the config. The reason says what else to do.
-            ...agentFiles.failed
+            // Before `run dev`, which keeps running in the foreground.
+            agentFiles.failed
                 .filter(failure => failure.retryable)
                 .map(({ client }) => `${project.pmInfo.exec} vendure mcp install --client ${client}`),
-        ],
+        ),
     };
+}
+
+/** The commands with `inserted` before the last one. */
+function withBeforeLast(commands: string[], inserted: string[]): string[] {
+    return [...commands.slice(0, -1), ...inserted, ...commands.slice(-1)];
 }
 
 function writeJson(file: string, value: unknown): void {
@@ -255,21 +261,32 @@ async function install(project: Project): Promise<void> {
             throw e;
         }
         context.reporter.fail('The install failed');
-        // None of the agent files needs the install except the `vendure` MCP entry, which the
-        // failure reports as retryable, so they are written before create stops.
-        await writeProjectAgentFiles(project, NOT_INSTALLED);
+        // None of the agent files needs the install except the `vendure` MCP entry, so they are
+        // written before create stops. Without git, the same checks as a finished run apply: a
+        // project inside another repository, or a workspace with no repository of its own.
+        const blocked = options.git
+            ? undefined
+            : await whyMcpInstallCannotRun({ ...options, install: true }, root);
+        await writeProjectAgentFiles(project, blocked ?? NOT_INSTALLED);
         const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
         const fix = [
             e.fix,
             `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
         ];
-        if (options.agents.length) {
-            fix.push(
-                `After the install, run \`${pmInfo.exec} vendure mcp install --client <client>\` for each agent client.`,
-            );
-        }
+        const mcpInstall = `\`${pmInfo.exec} vendure mcp install --client <client>\` for each agent client`;
         if (options.git) {
-            fix.push('Then run `git init`, `git add -A` and `git commit` to make the initial commit.');
+            // `vendure mcp install` writes at the git root, so the repository comes first.
+            fix.push(
+                options.agents.length
+                    ? `After the install, run \`git init\`, then ${mcpInstall}, then \`git add -A\` and \`git commit\`.`
+                    : 'After the install, run `git init`, `git add -A` and `git commit` to make the initial commit.',
+            );
+        } else if (options.agents.length) {
+            fix.push(
+                blocked
+                    ? `The agent configs need more: ${blocked.reason}.`
+                    : `After the install, run ${mcpInstall}.`,
+            );
         }
         throw new CreateError(e.code, e.message, fix.filter(Boolean).join(' '));
     }

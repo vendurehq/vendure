@@ -192,10 +192,11 @@ describe('toPackageName()', () => {
     });
 
     it('takes linear time on a long input of the characters a backtracking pattern trips on', () => {
-        const adversarial = 'a' + '-'.repeat(50_000) + '!';
+        // A run of dashes followed by an allowed character: `/-+$/` retries from every dash.
+        const adversarial = 'a' + '-'.repeat(50_000) + 'b';
         const start = performance.now();
-        expect(toPackageName(adversarial)).toBe('a');
+        expect(toPackageName(adversarial)).toBe(adversarial);
         expect(toPackageName('-'.repeat(50_000))).toBe('vendure-app');
-        expect(performance.now() - start).toBeLessThan(1000);
+        expect(performance.now() - start).toBeLessThan(500);
     });
 });

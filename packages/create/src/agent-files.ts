@@ -38,6 +38,10 @@ export const CLIENT_CONFIG_FILES: Record<AgentClient, string> = {
 /**
  * A client's config with the `vendure-docs` server added, keeping every other server and key of the
  * existing file. Throws when the existing file cannot be read as the client's format.
+ *
+ * Today only `.vscode/mcp.json` can already exist, because a project directory may hold `.vscode`
+ * but not the other clients' files. The other formats are handled the same way, so the function
+ * stays correct if that list grows.
  */
 export function withDocsServer(client: AgentClient, existing: string | undefined): string {
     if (existing === undefined || existing.trim() === '') {

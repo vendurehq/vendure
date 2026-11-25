@@ -169,6 +169,45 @@ describe('runCreate() when the install fails', () => {
         }
         expect(readJson(path.join(options.projectDir, CREATE_RECORD_PATH)).agents).toEqual(['claude']);
     });
+
+    it('names git init before vendure mcp install, which writes at the git root', async () => {
+        install.fail = true;
+        const options = optionsFor('failed-install-git', {
+            agents: ['claude'],
+            git: true,
+            storefront: 'nextjs',
+        });
+        const error = await runCreate(options, {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter: recordingReporter().reporter,
+            projectDirArg: 'x',
+        }).then(
+            () => undefined,
+            (e: unknown) => e as CreateError,
+        );
+        expect(error?.fix).toContain(
+            'After the install, run `git init`, then `npx vendure mcp install --client <client>` for each agent client, then `git add -A` and `git commit`.',
+        );
+        expect(fs.existsSync(path.join(options.projectDir, 'apps/server/.mcp.json'))).toBe(false);
+    });
+
+    it('says why the configs need more without git in a workspace', async () => {
+        install.fail = true;
+        const options = optionsFor('failed-install-no-git', { agents: ['claude'], storefront: 'nextjs' });
+        const error = await runCreate(options, {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter: recordingReporter().reporter,
+            projectDirArg: 'x',
+        }).then(
+            () => undefined,
+            (e: unknown) => e as CreateError,
+        );
+        expect(error?.fix).toContain('The agent configs need more: the project has no git repository');
+    });
 });
 
 describe('runCreate() when vendure mcp install cannot complete the configs', () => {

@@ -102,7 +102,8 @@ describe('MCP configs', () => {
             'utf-8',
         );
         for (const [client, file] of Object.entries(CLIENT_CONFIG_FILES)) {
-            expect(source).toMatch(new RegExp(`${client}: \\{ file: '${file.replace(/\./g, '\\.')}'`));
+            // Matches the path in the client's entry, whatever the object's layout or quotes.
+            expect(source).toMatch(new RegExp(`${client}: \\{[^}]*['"]${file.replace(/\./g, '\\.')}['"]`));
         }
     });
 });

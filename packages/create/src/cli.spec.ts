@@ -132,10 +132,11 @@ describe('create --yes --json', () => {
             next: [
                 'cd my-shop',
                 'pnpm install',
-                'pnpm run dev',
                 'pnpm exec vendure mcp install --client claude',
                 'pnpm exec vendure mcp install --client vscode',
                 'pnpm exec vendure mcp install --client codex',
+                // Last: it keeps running in the foreground.
+                'pnpm run dev',
             ],
         });
     });
