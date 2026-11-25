@@ -32,6 +32,9 @@ class LineWriter {
     }
 }
 
+/** How long a process that `timeoutMs` stopped has to exit after SIGTERM, before it is killed. */
+export const TIMEOUT_KILL_GRACE_MS = 2000;
+
 /**
  * Builds `ctx.spawn`. The process's stdout goes to `forwardStdout`, which the host points at
  * stderr under `--json`. Its stderr always goes to `process.stderr`. With `wholeLines`, both are
@@ -52,6 +55,7 @@ export function createSpawn(
                 env: { ...withoutLocalTrustSecret(process.env), ...options.env },
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
+            const quiet = options.quiet === true;
             const writeStderr = (text: string) => process.stderr.write(text);
             const out = wholeLines ? new LineWriter(forwardStdout) : undefined;
             const err = wholeLines ? new LineWriter(writeStderr) : undefined;
@@ -60,6 +64,9 @@ export function createSpawn(
             child.stdout?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
                 stdout += text;
+                if (quiet) {
+                    return;
+                }
                 if (out) {
                     out.push(text);
                 } else {
@@ -69,26 +76,69 @@ export function createSpawn(
             child.stderr?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
                 stderr += text;
+                if (quiet) {
+                    return;
+                }
                 if (err) {
                     err.push(text);
                 } else {
                     writeStderr(text);
                 }
             });
+            let timedOut = false;
+            let settled = false;
+            let killTimer: NodeJS.Timeout | undefined;
+            const finish = (exitCode: number | null) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearTimeout(timer);
+                clearTimeout(killTimer);
+                signal.removeEventListener('abort', onAbort);
+                if (timedOut) {
+                    // A grandchild can hold the pipes open after the kill. Nothing reads them now.
+                    child.stdout?.destroy();
+                    child.stderr?.destroy();
+                }
+                out?.flush();
+                err?.flush();
+                resolve({
+                    exitCode: timedOut ? null : exitCode,
+                    stdout,
+                    stderr,
+                    ...(timedOut ? { timedOut } : {}),
+                });
+            };
+            // A process that ignores SIGTERM, or a grandchild that keeps the pipes open, must not
+            // keep the caller waiting: after a grace period it is killed, and the result returned
+            // with the output so far.
+            const timer =
+                options.timeoutMs === undefined
+                    ? undefined
+                    : setTimeout(() => {
+                          timedOut = true;
+                          child.kill('SIGTERM');
+                          killTimer = setTimeout(() => {
+                              child.kill('SIGKILL');
+                              finish(null);
+                          }, TIMEOUT_KILL_GRACE_MS);
+                      }, options.timeoutMs);
             const onAbort = () => child.kill('SIGTERM');
             if (signal.aborted) {
                 onAbort();
             }
             signal.addEventListener('abort', onAbort, { once: true });
             child.on('error', error => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearTimeout(timer);
+                clearTimeout(killTimer);
                 signal.removeEventListener('abort', onAbort);
                 reject(error);
             });
-            child.on('close', exitCode => {
-                signal.removeEventListener('abort', onAbort);
-                out?.flush();
-                err?.flush();
-                resolve({ exitCode, stdout, stderr });
-            });
+            child.on('close', exitCode => finish(exitCode));
         });
 }

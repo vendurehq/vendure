@@ -2,15 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@clack/prompts', () => ({
     confirm: vi.fn(),
-    isCancel: () => false,
+    isCancel: vi.fn(() => false),
     password: vi.fn(async () => 'hidden'),
     select: vi.fn(async () => 'picked'),
     text: vi.fn(async () => 'typed'),
 }));
 
-import { confirm, password, select, text } from '@clack/prompts';
+import { confirm, isCancel, password, select, text } from '@clack/prompts';
 
-import { createClackPrompter } from './prompter.js';
+import { createClackPrompter, OTHER } from './prompter.js';
 
 const validate = (answer: string) => (answer ? undefined : 'Required');
 
@@ -71,5 +71,51 @@ describe('createClackPrompter', () => {
 
         expect(answer).toBe('true');
         expect(confirm).toHaveBeenCalledWith({ message: 'Translatable', initialValue: false });
+    });
+
+    it('asks for a line of text for ctx.ask', async () => {
+        vi.mocked(text).mockClear();
+        const answer = await createClackPrompter().text('Name the environment', { placeholder: 'staging' });
+        expect(answer).toBe('typed');
+        expect(text).toHaveBeenCalledWith({
+            message: 'Name the environment',
+            placeholder: 'staging',
+            initialValue: undefined,
+        });
+    });
+
+    it('lets a person type a value instead of a choice when select has other', async () => {
+        const prompter = createClackPrompter();
+        vi.mocked(select).mockClear();
+        vi.mocked(select).mockResolvedValueOnce(OTHER);
+        vi.mocked(text).mockClear();
+        const answer = await prompter.select('Environment', [{ value: 'prod', label: 'prod' }], {
+            other: 'Create a new environment',
+        });
+        expect(answer).toBe('typed');
+        expect(select).toHaveBeenCalledWith({
+            message: 'Environment',
+            options: [
+                { value: 'prod', label: 'prod' },
+                { value: OTHER, label: 'Create a new environment' },
+            ],
+        });
+        expect(text).toHaveBeenCalledWith({ message: 'Create a new environment' });
+
+        vi.mocked(select).mockResolvedValueOnce('prod');
+        expect(
+            await prompter.select('Environment', [{ value: 'prod', label: 'prod' }], { other: 'New' }),
+        ).toBe('prod');
+    });
+
+    it('returns an empty answer as an empty string, and a cancel as undefined', async () => {
+        const prompter = createClackPrompter();
+        vi.mocked(text).mockResolvedValueOnce(undefined as unknown as string);
+        expect(await prompter.text('Name it')).toBe('');
+
+        const cancelled = Symbol('cancel');
+        vi.mocked(text).mockResolvedValueOnce(cancelled);
+        vi.mocked(isCancel).mockImplementationOnce(value => value === cancelled);
+        expect(await prompter.text('Name it')).toBeUndefined();
     });
 });

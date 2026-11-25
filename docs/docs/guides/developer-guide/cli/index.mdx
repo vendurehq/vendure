@@ -1196,6 +1196,13 @@ export async function run(input: { dryRun: boolean }, ctx: CommandContext) {
 `run` never prints or prompts. It reports through `ctx`, and returns its output, or `incomplete()`,
 `failed()` or `fail()` from `@vendure/common/lib/command`.
 
+`ctx.spawn` starts a process, and passes its output on to the caller. Pass `quiet: true` to keep the
+output in the result only, for a process whose answer the command reads, such as `git status
+--porcelain`. Pass `timeoutMs` to stop a process that runs too long: the result then has
+`timedOut: true`. When a person is at the terminal, `ctx.ask` asks them with `confirm`, `select` and
+`text`. Give `select` an `other` label to let them type a value instead of picking one. `render(output,
+input)` receives the validated input too, for a flag that only changes how the output looks.
+
 At build time, write the package's command manifest with the builder in `@vendure/common`. The
 builder turns each command's schemas into JSON Schema, so the CLI and the Developer MCP know every
 command's input and output without loading its code:
