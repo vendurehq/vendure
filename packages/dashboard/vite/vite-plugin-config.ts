@@ -102,6 +102,13 @@ export function viteConfigPlugin({
                     'virtual:dashboard-extensions',
                     'virtual:plugin-translations',
                     'virtual:vendure-platform-promotion',
+                    // @vendure-io/ui ships source. Vite only pre-bundles its `.ts` subpaths
+                    // (`lib/*`, `hooks/*`) and serves the `.tsx` components as they are. A
+                    // pre-bundled `@vendure-io/ui/lib/base-ui` then carries its own copy of
+                    // @base-ui/react, so `ComboboxPrimitive.Trigger` cannot see the context of
+                    // the `Combobox` atom ("ComboboxRootContext is missing"). Serving every
+                    // subpath as source gives one @base-ui/react instance.
+                    '@vendure-io/ui',
                 ],
                 // We however do want to pre-bundle recharts, as it depends
                 // on lodash which is a CJS packages and _does_ require
