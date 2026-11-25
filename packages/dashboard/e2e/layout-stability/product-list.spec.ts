@@ -50,10 +50,11 @@ const pagination = (page: Page) => page.locator(`${TABLE} [data-slot="table-pagi
 const ROWS_BELOW_MAY_MOVE: AllowRule[] = [
     { anchor: /^row:first$/, props: ['height'] },
     { anchor: /^(row:last|body|footer|content)$/, props: ['y', 'height'] },
-    // Layout-shift entries of the footer and the body's rows (the source path ends in one).
+    // Layout-shift entries of the body's rows, the footer and its pagination
+    // (the source path ends in one of them).
     {
         anchor: /^$/,
-        node: /(^|> )(\w+\[data-slot="(card-footer|table-body|table-row|table-cell)"\]|t[rd](:nth-child\(\d+\))?)$/,
+        node: /(^|> )(\w+\[data-slot="(card-footer|table-body|table-row|table-cell|table-pagination[\w-]*)"\]|t[rd](:nth-child\(\d+\))?)$/,
     },
 ];
 
