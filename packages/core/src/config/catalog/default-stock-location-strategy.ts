@@ -12,6 +12,7 @@ import { ProductVariant } from '../../entity/product-variant/product-variant.ent
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
 import { Allocation } from '../../entity/stock-movement/allocation.entity';
+import { Release } from '../../entity/stock-movement/release.entity';
 
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
 
@@ -57,7 +58,7 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity);
+        return this.getLocationsBasedOnAllocations(ctx, stockLocations, orderLine, quantity, true);
     }
 
     async forSale(
@@ -144,20 +145,35 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
         stockLocations: StockLocation[],
         orderLine: OrderLine,
         quantity: number,
+        excludeReleased = false,
     ) {
         const allocations = await this.connection.getRepository(ctx, Allocation).find({
             where: {
                 orderLine: { id: orderLine.id },
             },
         });
+        const releasedByLocationId = excludeReleased
+            ? await this.getReleasedQuantityByLocationId(ctx, orderLine)
+            : new Map<ID, number>();
         let unallocated = quantity;
         const quantityByLocationId = new Map<ID, number>();
         for (const allocation of allocations) {
             if (unallocated <= 0) {
                 break;
             }
+            const released = Math.min(
+                allocation.quantity,
+                releasedByLocationId.get(allocation.stockLocationId) ?? 0,
+            );
+            releasedByLocationId.set(
+                allocation.stockLocationId,
+                (releasedByLocationId.get(allocation.stockLocationId) ?? 0) - released,
+            );
+            const qtyToAdd = Math.min(allocation.quantity - released, unallocated);
+            if (qtyToAdd <= 0) {
+                continue;
+            }
             const qtyAtLocation = quantityByLocationId.get(allocation.stockLocationId);
-            const qtyToAdd = Math.min(allocation.quantity, unallocated);
             if (qtyAtLocation != null) {
                 quantityByLocationId.set(allocation.stockLocationId, qtyAtLocation + qtyToAdd);
             } else {
@@ -170,6 +186,20 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
             location: stockLocations.find(l => idsAreEqual(l.id, locationId))!,
             quantity: qty,
         }));
+    }
+
+    private async getReleasedQuantityByLocationId(ctx: RequestContext, orderLine: OrderLine) {
+        const releases = await this.connection.getRepository(ctx, Release).find({
+            where: { orderLine: { id: orderLine.id } },
+        });
+        const releasedByLocationId = new Map<ID, number>();
+        for (const release of releases) {
+            releasedByLocationId.set(
+                release.stockLocationId,
+                (releasedByLocationId.get(release.stockLocationId) ?? 0) + release.quantity,
+            );
+        }
+        return releasedByLocationId;
     }
 }
 

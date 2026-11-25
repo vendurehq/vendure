@@ -3,9 +3,11 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Card } from '@/vdb/components/ui/card.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
+import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { api } from '@/vdb/graphql/api.js';
 import { type CreateAddressInput } from '@/vdb/graphql/common-operations.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +16,7 @@ import { useState } from 'react';
 
 import { addressFragment } from '../../_customers/customers.graphql.js';
 import { getCustomerAddressesDocument } from '../orders.graphql.js';
+import { toAddressCustomFieldsInput } from '../utils/order-utils.js';
 
 type CustomerAddressesQuery = ResultOf<typeof getCustomerAddressesDocument>;
 
@@ -28,7 +31,7 @@ type InitialAddressValues = Partial<
         | 'province' | 'postalCode' | 'countryCode' | 'phoneNumber',
         string | null
     >
->;
+> & { customFields?: Record<string, any> | null };
 
 interface CustomerAddressSelectorProps {
     customerId: string | undefined;
@@ -72,10 +75,15 @@ export function CustomerAddressSelector({
 }: Readonly<CustomerAddressSelectorProps>) {
     const [open, setOpen] = useState(defaultOpen);
     const [activeTab, setActiveTab] = useState<string>('existing');
+    const addressCustomFields = useCustomFieldConfig('Address');
 
     const { data, isLoading } = useQuery<CustomerAddressesQuery>({
         queryKey: ['customerAddresses', customerId],
-        queryFn: () => api.query(getCustomerAddressesDocument, { customerId: customerId ?? '' }),
+        queryFn: () =>
+            api.query(
+                addCustomFields(getCustomerAddressesDocument, { includeNestedFragments: ['Address'] }),
+                { customerId: customerId ?? '' },
+            ),
         enabled: !!customerId,
         placeholderData: undefined,
     });
@@ -185,7 +193,7 @@ export function CustomerAddressSelector({
                                         onCancel?.();
                                     }}
                                     onSubmit={async values => {
-                                        await onSubmitNew(mapFormValuesToInput(values));
+                                        await onSubmitNew(mapFormValuesToInput(values, addressCustomFields));
                                         setOpen(false);
                                     }}
                                 />
@@ -212,11 +220,14 @@ function mapOrderAddressToFormValues(address: InitialAddressValues | null | unde
         phoneNumber: address?.phoneNumber || '',
         defaultShippingAddress: false,
         defaultBillingAddress: false,
-        customFields: {},
+        customFields: address?.customFields ?? {},
     };
 }
 
-function mapFormValuesToInput(values: AddressFormValues): CreateAddressInput {
+function mapFormValuesToInput(
+    values: AddressFormValues,
+    addressCustomFields: Parameters<typeof toAddressCustomFieldsInput>[1],
+): CreateAddressInput {
     return {
         fullName: values.fullName,
         company: values.company,
@@ -227,6 +238,6 @@ function mapFormValuesToInput(values: AddressFormValues): CreateAddressInput {
         postalCode: values.postalCode,
         countryCode: values.countryCode,
         phoneNumber: values.phoneNumber,
-        customFields: values.customFields,
+        customFields: toAddressCustomFieldsInput(values.customFields, addressCustomFields),
     };
 }

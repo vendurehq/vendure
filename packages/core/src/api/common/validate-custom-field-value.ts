@@ -99,6 +99,10 @@ async function validateStructField(
     injector: Injector,
     ctx: RequestContext,
 ) {
+    // A null struct has no members to check; non-nullable structs are rejected or defaulted before this
+    if (value == null) {
+        return;
+    }
     for (const field of config.fields ?? []) {
         const fieldValue = value[field.name];
         if (fieldValue !== undefined) {

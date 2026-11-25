@@ -34,7 +34,8 @@ export class DraftOrderVariantSelectorComponent implements OnInit {
             }),
         );
         for (const customField of this.orderLineCustomFields) {
-            this.customFieldsFormGroup.addControl(customField.name, new UntypedFormControl(''));
+            // null, not '': '' fails GraphQL coercion for non-string fields (boolean, int, datetime…)
+            this.customFieldsFormGroup.addControl(customField.name, new UntypedFormControl());
         }
     }
 

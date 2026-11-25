@@ -88,7 +88,7 @@ export function OrderDetailShared({
     const { form, submitHandler, entity, refreshEntity } = useDetailPage({
         pageId,
         queryDocument: addCustomFields(orderDetailDocument, {
-            includeNestedFragments: ['OrderLine', 'Fulfillment'],
+            includeNestedFragments: ['OrderLine', 'Fulfillment', 'OrderAddress'],
         }),
         updateDocument: setOrderCustomFieldsDocument,
         setValuesForUpdate: (entity: any) => {

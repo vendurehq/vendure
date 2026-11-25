@@ -770,16 +770,22 @@ export class OrderModifier {
         }
         // remove any now-unused ShippingLines
         if (shippingMethodIds.length < order.shippingLines.length) {
-            const shippingLinesToDelete = order.shippingLines.splice(shippingMethodIds.length - 1);
+            const shippingLinesToDelete = order.shippingLines.splice(shippingMethodIds.length);
             await this.connection.getRepository(ctx, ShippingLine).remove(shippingLinesToDelete);
         }
-        // assign the ShippingLines to the OrderLines
+        // Detach every OrderLine, in the database and in memory, so that a line which the strategy
+        // does not assign below keeps no reference to a removed or changed ShippingLine
         await this.connection
             .getRepository(ctx, OrderLine)
             .createQueryBuilder('line')
-            .update({ shippingLine: undefined })
+            .update({ shippingLineId: () => 'NULL' })
             .whereInIds(order.lines.map(l => l.id))
             .execute();
+        for (const line of order.lines) {
+            line.shippingLine = undefined;
+            line.shippingLineId = undefined;
+        }
+        // assign the ShippingLines to the OrderLines
         const { shippingLineAssignmentStrategy } = this.configService.shippingOptions;
         for (const shippingLine of order.shippingLines) {
             const orderLinesForShippingLine =
@@ -790,9 +796,13 @@ export class OrderModifier {
                 .update({ shippingLineId: shippingLine.id })
                 .whereInIds(orderLinesForShippingLine.map(l => l.id))
                 .execute();
-            orderLinesForShippingLine.forEach(line => {
-                line.shippingLine = shippingLine;
-            });
+            // Match by id, because the strategy may return OrderLine instances other than those in order.lines
+            for (const line of order.lines) {
+                if (orderLinesForShippingLine.some(l => idsAreEqual(l.id, line.id))) {
+                    line.shippingLine = shippingLine;
+                    line.shippingLineId = shippingLine.id;
+                }
+            }
         }
         return order;
     }
@@ -857,6 +867,9 @@ export class OrderModifier {
             // of every property of an existing customFields object being null
             // or equal to the defaultValue
             for (const def of customFieldDefs) {
+                if (this.isServerSetCustomField(def)) {
+                    continue;
+                }
                 const key = def.name;
                 const existingValue = this.coerceValue(def, existingCustomFields);
                 if (existingValue != null && (!def.list || existingValue?.length !== 0)) {
@@ -892,6 +905,9 @@ export class OrderModifier {
             const key = def.name;
             const existingValue = this.coerceValue(def, existingCustomFields);
             if (def.type !== 'relation' && existingValue !== undefined) {
+                if (this.isServerSetCustomField(def) && inputCustomFields?.[key] === undefined) {
+                    continue;
+                }
                 const valuesMatch =
                     JSON.stringify(inputCustomFields?.[key]) === JSON.stringify(existingValue);
                 const undefinedMatchesNull = existingValue === null && inputCustomFields?.[key] === undefined;
@@ -919,6 +935,15 @@ export class OrderModifier {
             }
         }
         return true;
+    }
+
+    /**
+     * The API input cannot contain a readonly or an internal custom field. Only server-side code can set
+     * these fields, frequently after the OrderLine is created. When the input does not specify such a
+     * field, the field must not prevent a match with an existing OrderLine.
+     */
+    private isServerSetCustomField(def: CustomFieldConfig): boolean {
+        return def.readonly === true || def.internal === true;
     }
 
     /**

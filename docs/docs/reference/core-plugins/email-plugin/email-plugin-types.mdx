@@ -110,7 +110,7 @@ type LoadDataFn<Event extends EventWithContext, R> = (context: {
 <GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="380" packageName="@vendure/email-plugin" />
 
 An object defining a file attachment for an email. Based on the object described
-[here in the Nodemailer docs](https://nodemailer.com/message/attachments/), but
+[here in the Nodemailer docs](https://nodemailer.com/message/attachments), but
 only uses the `path` property to define a filesystem path or a URL pointing to
 the attachment file.
 
@@ -187,7 +187,7 @@ type SetPlainTextBodyFn<Event> = (
 <GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="506" packageName="@vendure/email-plugin" />
 
 A function used to define attachments to be sent with the email.
-See https://nodemailer.com/message/attachments/ for more information about
+See https://nodemailer.com/message/attachments for more information about
 how attachments work in Nodemailer.
 
 ```ts title="Signature"
