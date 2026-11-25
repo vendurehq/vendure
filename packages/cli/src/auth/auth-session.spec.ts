@@ -103,7 +103,7 @@ const DEVICE = {
 };
 
 /** Answers WorkOS requests from a queue, in order, and records what was sent. */
-type FakeResponse = { status?: number; body: unknown };
+type FakeResponse = { status?: number; body: unknown; headers?: Record<string, string> };
 
 /** A response, or a function that runs when the request arrives and returns one. */
 function fakeWorkos(responses: Array<FakeResponse | (() => FakeResponse)>) {
@@ -123,7 +123,7 @@ function fakeWorkos(responses: Array<FakeResponse | (() => FakeResponse)>) {
         const next = typeof queued === 'function' ? queued() : queued;
         const status = next.status ?? 200;
         const text = typeof next.body === 'string' ? next.body : JSON.stringify(next.body);
-        return Promise.resolve(new Response(status === 204 ? null : text, { status }));
+        return Promise.resolve(new Response(status === 204 ? null : text, { status, headers: next.headers }));
     }) as typeof globalThis.fetch;
     return { fetch, requests };
 }
@@ -457,6 +457,188 @@ describe('loginWithDevice', () => {
             loginWithDevice({ ...options, fetch: workos.fetch, organization: ACCOUNT_2 }),
         ).rejects.toThrow('did not scope');
         expect(readStoredAuth(options)).toBeUndefined();
+    });
+
+    // CLO-1525: a 429 on the first call after the device flow must not discard the approved login.
+    describe('when Vendure Console rate-limits the organization lookup', () => {
+        const THROTTLED = (retryAfter?: string): FakeResponse => ({
+            status: 429,
+            body: { statusCode: 429, message: 'ThrottlerException: Too Many Requests' },
+            ...(retryAfter === undefined ? {} : { headers: { 'Retry-After': retryAfter } }),
+        });
+
+        function recordSleeps() {
+            const waits: number[] = [];
+            const sleep = (ms: number) => {
+                waits.push(ms);
+                return Promise.resolve();
+            };
+            return { waits, sleep };
+        }
+
+        it('waits for Retry-After and asks once more', async () => {
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+                THROTTLED('7'),
+                viewer(),
+                authentication(accessToken(300, { org_id: 'org_2' }), 'refresh_2', 'org_2'),
+            ]);
+            const { waits, sleep } = recordSleeps();
+            const announced: number[] = [];
+
+            const status = await loginWithDevice({
+                ...options,
+                fetch: workos.fetch,
+                sleep,
+                organization: ACCOUNT_2,
+                onRateLimited: seconds => announced.push(seconds),
+            });
+
+            // The first wait is the device poll interval.
+            expect(waits.slice(1)).toEqual([7000]);
+            expect(announced).toEqual([7]);
+            expect(status.organization?.name).toBe('Example GmbH');
+            expect(readStoredAuth(options)?.refreshToken).toBe('refresh_2');
+        });
+
+        it('reads the longest of the named Retry-After headers and an HTTP date', async () => {
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+                {
+                    ...THROTTLED(new Date(NOW + 12_000).toUTCString()),
+                    headers: {
+                        'Retry-After': new Date(NOW + 12_000).toUTCString(),
+                        'Retry-After-auth': '30',
+                    },
+                },
+                viewer(),
+            ]);
+            const { waits, sleep } = recordSleeps();
+
+            await loginWithDevice({ ...options, fetch: workos.fetch, sleep, organization: ACCOUNT_1 });
+
+            expect(waits.slice(1)).toEqual([30_000]);
+        });
+
+        it('keeps the device-flow login when the retry is rate-limited too, and says when the limit resets', async () => {
+            const deviceToken = accessToken(300, { org_id: 'org_1' });
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(deviceToken, 'refresh_1', 'org_1'),
+                THROTTLED('5'),
+                THROTTLED('42'),
+            ]);
+            const { waits, sleep } = recordSleeps();
+
+            await expect(
+                loginWithDevice({ ...options, fetch: workos.fetch, sleep, organization: ACCOUNT_2 }),
+            ).rejects.toThrow(
+                `Signed in as dev@example.com, but the login could not be scoped to ${ACCOUNT_2}: ` +
+                    'Vendure Console is receiving too many requests (HTTP 429). The limit resets in 42 seconds. ' +
+                    'The login is stored, scoped to org_1.',
+            );
+            expect(waits.slice(1)).toEqual([5000]);
+            expect(workos.requests).toHaveLength(5);
+            expect(readStoredAuth(options)).toMatchObject({
+                accessToken: deviceToken,
+                refreshToken: 'refresh_1',
+                organization: { workosOrganizationId: 'org_1', customerAccountId: null, name: null },
+            });
+            const file = path.join(configDir, 'auth.json');
+            expect((fs.statSync(file).mode % 0o1000).toString(8)).toBe('600');
+        });
+
+        it('does not wait for a Retry-After longer than a minute, or without one', async () => {
+            for (const retryAfter of ['61', undefined]) {
+                const workos = fakeWorkos([
+                    serviceInfo(),
+                    DEVICE,
+                    authentication(accessToken(300), 'refresh_1'),
+                    THROTTLED(retryAfter),
+                ]);
+                const { waits, sleep } = recordSleeps();
+
+                await expect(
+                    loginWithDevice({ ...options, fetch: workos.fetch, sleep, organization: ACCOUNT_2 }),
+                ).rejects.toThrow(/HTTP 429[\s\S]*The login is stored without an organization\./);
+                expect(waits).toHaveLength(1);
+                expect(workos.requests).toHaveLength(4);
+                expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+            }
+        });
+
+        it('keeps the device-flow login when WorkOS rate-limits scoping it to the chosen organization', async () => {
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+                viewer(),
+                { status: 429, body: {} },
+            ]);
+
+            await expect(
+                loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Example GmbH' }),
+            ).rejects.toThrow(
+                'Signed in as dev@example.com, but the login could not be scoped to Example GmbH: ' +
+                    'the authentication service is receiving too many requests (HTTP 429). ' +
+                    'The login is stored, scoped to Bromley Art Supplies.',
+            );
+            expect(readStoredAuth(options)).toMatchObject({
+                refreshToken: 'refresh_1',
+                organization: { workosOrganizationId: 'org_1', name: 'Bromley Art Supplies' },
+            });
+        });
+
+        it('stores nothing when the login is interrupted during the wait', async () => {
+            writeStoredAuth(storedAuth({ refreshToken: 'previous' }), options);
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+                THROTTLED('30'),
+            ]);
+            const controller = new AbortController();
+            const sleep = (ms: number) => {
+                if (ms < 1000) return Promise.resolve();
+                controller.abort();
+                return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+            };
+
+            await expect(
+                loginWithDevice({ ...options, fetch: workos.fetch, sleep, signal: controller.signal }),
+            ).rejects.toThrow('aborted');
+            expect(readStoredAuth(options)?.refreshToken).toBe('previous');
+        });
+
+        it('waits for Retry-After when it lists the organizations to choose from', async () => {
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+                THROTTLED('3'),
+                viewer(),
+            ]);
+            const { waits, sleep } = recordSleeps();
+            const offered: string[][] = [];
+
+            await loginWithDevice({
+                ...options,
+                fetch: workos.fetch,
+                sleep,
+                chooseOrganization: organizations => {
+                    offered.push(organizations.map(org => org.name));
+                    return Promise.resolve(undefined);
+                },
+            });
+
+            expect(waits.slice(1)).toEqual([3000]);
+            expect(offered).toEqual([['Bromley Art Supplies', 'Example GmbH']]);
+        });
     });
 
     it('stops before the browser step when Console does not publish its sign-in settings', async () => {
