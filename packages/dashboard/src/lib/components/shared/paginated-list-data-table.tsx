@@ -14,6 +14,7 @@ import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { ColumnFiltersState, ColumnSort, SortingState, Table } from '@tanstack/react-table';
 import { ColumnDef, Row, TableOptions, VisibilityState } from '@tanstack/table-core';
+import type { DataTableColumnMeta } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import React from 'react';
 import { getColumnVisibility, getStandardizedDefaultColumnOrder } from '../data-table/data-table-utils.js';
 import { useGeneratedColumns } from '../data-table/use-generated-columns.js';
@@ -115,7 +116,7 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          *
          * @default 'start'
          */
-        align?: 'start' | 'end';
+        align?: DataTableColumnMeta['align'];
         /**
          * @description
          * The column's width: a number in px or a CSS length (`'8rem'`). The column
@@ -126,7 +127,7 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          *
          * @since 4.0.0
          */
-        width?: number | string;
+        width?: DataTableColumnMeta['width'];
         /**
          * @description
          * The narrowest the column gets, for the column without a `width`. It
@@ -134,7 +135,7 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          *
          * @since 4.0.0
          */
-        minWidth?: number | string;
+        minWidth?: DataTableColumnMeta['minWidth'];
     };
 };
 
@@ -292,6 +293,7 @@ export interface PaginatedListDataTableProps<
      * @description
      * The rows open a detail page. See the `rowLinks` prop of {@link DataTable}.
      *
+     * @default false
      * @since 4.0.0
      */
     rowLinks?: boolean;

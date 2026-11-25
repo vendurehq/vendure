@@ -207,9 +207,10 @@ interface DataTableProps<TData> {
      * @description
      * Remembers how many rows the table showed, in local storage under this key.
      * The next first load draws that many skeleton rows, so the table keeps its
-     * height when the rows arrive, also after a reload. Name the list and anything
-     * that scopes its rows, such as the channel. Without it the first load draws
-     * up to 10 skeleton rows.
+     * height when the rows arrive, also after a reload. The count is read once,
+     * when the table mounts, so the key must be known then: name the list, and
+     * leave out anything that loads later, such as the active channel. Without it
+     * the first load draws up to 10 skeleton rows.
      *
      * @since 4.0.0
      */
@@ -229,6 +230,7 @@ interface DataTableProps<TData> {
      * keeps the row link's slot after the last column while it loads and when it
      * is empty, so the columns do not move when the rows arrive.
      *
+     * @default false
      * @since 4.0.0
      */
     rowLinks?: boolean;

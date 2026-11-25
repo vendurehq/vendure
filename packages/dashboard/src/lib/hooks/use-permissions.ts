@@ -5,15 +5,42 @@ import { useChannel } from './use-channel.js';
 
 /**
  * @description
+ * The return value of {@link usePermissions}.
+ *
+ * @docsCategory hooks
+ * @docsPage usePermissions
+ * @since 4.0.0
+ */
+export interface UsePermissionsResult {
+    /**
+     * @description
+     * Whether the active user has any of the given permissions on the active channel.
+     * Answers `false` until the permissions have loaded.
+     */
+    hasPermissions: (permissions: string[]) => boolean;
+    /**
+     * @description
+     * `false` until the permissions of the active channel are known. Use it to tell a
+     * missing permission from one that has not loaded yet, e.g. to keep the place of a
+     * control that may appear.
+     *
+     * @since 4.0.0
+     */
+    permissionsLoaded: boolean;
+}
+
+/**
+ * @description
  * Returns a `hasPermissions` function that can be used to determine whether the active user
- * has the given permissions on the active channel. `permissionsLoaded` is false until the
- * permissions of the active channel are known (since 4.0.0).
+ * has the given permissions on the active channel, and whether those permissions have loaded.
  *
  * @example
  * ```tsx
- * const { hasPermissions } = usePermissions();
+ * const { hasPermissions, permissionsLoaded } = usePermissions();
  *
  * const canReadChannel = hasPermissions(['ReadChannel']);
+ * // false while loading, then the answer
+ * const showSkeleton = !permissionsLoaded;
  * ```
  *
  * @docsCategory hooks
@@ -21,7 +48,7 @@ import { useChannel } from './use-channel.js';
  * @docsWeight 0
  * @since 3.3.0
  */
-export function usePermissions() {
+export function usePermissions(): UsePermissionsResult {
     const { channels } = useAuth();
     const { activeChannel } = useChannel();
 

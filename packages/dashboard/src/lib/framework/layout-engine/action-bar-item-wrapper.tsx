@@ -120,6 +120,11 @@ export interface ActionBarItemProps {
      * @description
      * If provided, the logged-in user must have one or more of the specified
      * permissions in order for the item to render.
+     *
+     * While the permissions load, the item renders invisibly and inert, so the bar
+     * keeps its place. Its component mounts then even for a user without the
+     * permission: keep requests that need it out of the item, or check
+     * `usePermissions` inside.
      */
     requiresPermission?: string | string[];
 }
