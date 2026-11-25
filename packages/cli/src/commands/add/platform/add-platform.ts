@@ -2,6 +2,7 @@ import { cancel, confirm, isCancel, log } from '@clack/prompts';
 import spawn from 'cross-spawn';
 import pc from 'picocolors';
 
+import { authEnvironment } from '../../../auth/startup-environment.js';
 import { exitCliCommand } from '../../../shared/cli-command-exit.js';
 import { abortIfNonInteractive } from '../../../utilities/utils.js';
 import { openConsoleBrowser } from '../../console/open-browser.js';
@@ -54,7 +55,8 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     stopUnlessSucceeded(
         await deps.run(process.execPath, [process.argv[1], 'console', 'link'], {
             cwd: deps.cwd,
-            env: process.env,
+            // The auth variables as the CLI started with them, so the child records the same ones.
+            env: authEnvironment(),
         }),
         `Your project is unchanged. ${RETRY_HINT}`,
     );
@@ -91,7 +93,7 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     // to staging installs from staging.
     log.step('Step 3 of 3: Install the Vendure Platform packages');
     const env = {
-        ...process.env,
+        ...authEnvironment(),
         VENDURE_CONSOLE_APP_URL: origins.appOrigin,
         VENDURE_CONSOLE_API_URL: origins.apiOrigin,
     };

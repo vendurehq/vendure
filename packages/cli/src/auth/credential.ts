@@ -10,6 +10,7 @@ import { NotLoggedInError, isRenewalRefused } from './auth-errors.js';
 import { AuthOptions } from './auth-options.js';
 import { getAccessToken, readAuthStatus } from './auth-session.js';
 import { StoredOrganization } from './auth-store.js';
+import { authEnvironment } from './startup-environment.js';
 
 /** The environment variable that holds a Vendure Cloud credential, such as a delegated agent key. */
 export const CLOUD_TOKEN_ENV = 'VENDURE_CLOUD_TOKEN';
@@ -113,7 +114,7 @@ export async function requireCredential(
 
 /** The value of `VENDURE_CLOUD_TOKEN`, or `undefined` when it is unset or blank. */
 export function readCloudTokenEnv(options: AuthOptions = {}): string | undefined {
-    const value = (options.env ?? process.env)[CLOUD_TOKEN_ENV]?.trim();
+    const value = authEnvironment(options.env)[CLOUD_TOKEN_ENV]?.trim();
     return value ? value : undefined;
 }
 

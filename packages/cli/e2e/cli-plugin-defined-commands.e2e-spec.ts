@@ -207,6 +207,24 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
         });
     });
 
+    describe('a CLI plugin that is slow to load', () => {
+        it("lets vendure mcp start with the CLI's own tools, and say why", { timeout: 60_000 }, async () => {
+            const p = projectWith(['defined-commands-cli-plugin'], ['slow-cli-plugin']);
+            const mcp = startMcpServer(p.projectDir);
+            try {
+                const started = Date.now();
+                await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                // The listing gives up after 15 seconds; the plugin takes 20.
+                expect(Date.now() - started).toBeLessThan(19_000);
+                const search = await mcp.callTool('search_tools', { query: 'doctor' });
+                expect(search.result.structuredContent.tools.map((t: any) => t.name)).toContain('doctor');
+                expect(mcp.stderr()).toContain('[mcp.commands-listing-timed-out]');
+            } finally {
+                await mcp.close();
+            }
+        });
+    });
+
     describe('a plugin that is installed but not enabled', () => {
         it('stays out of vendure commands --json, and its commands do not run', async () => {
             const p = projectWith(['defined-commands-cli-plugin', { enable: false }]);

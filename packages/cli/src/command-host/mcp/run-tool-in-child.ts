@@ -2,6 +2,7 @@ import { COMMAND_ENVELOPE_SCHEMA_VERSION, CommandEnvelope, CommandEvent } from '
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 
+import { authEnvironment } from '../../auth/startup-environment.js';
 import { hostErrors } from '../host-errors.js';
 import { errorResult } from '../host.js';
 
@@ -55,7 +56,7 @@ export function runToolInChild(
             cwd: options.cwd,
             detached: posix,
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-            env: { ...process.env, VENDURE_CLI_MCP: '1' },
+            env: { ...authEnvironment(), VENDURE_CLI_MCP: '1' },
         });
 
         let stdout = '';

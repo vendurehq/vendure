@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
 import type { CommandManifest } from '@vendure/common/lib/command/manifest';
+import { recordStartupEnvironment } from './auth/startup-environment.js';
 import { registerManifestCommands } from './command-host/commander-adapter.js';
 import {
     CORE_SOURCE,
@@ -30,6 +31,8 @@ import {
 import { PluginFailureStep, unknownCommandHelp } from './shared/unknown-command-help.js';
 
 async function main(): Promise<void> {
+    // Before anything can load a project's `.env` file into the environment.
+    recordStartupEnvironment();
     const program = new Command();
 
     const version = createRequire(import.meta.url)('../package.json').version;
