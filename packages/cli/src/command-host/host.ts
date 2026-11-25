@@ -3,6 +3,7 @@ import {
     COMMAND_EXIT_CODES,
     CommandChoice,
     CommandContext,
+    CommandCredential,
     CommandDefinition,
     CommandEnvelope,
     CommandErrorBody,
@@ -60,10 +61,13 @@ export interface HostEnvironment {
     findProjectRoot(): string | undefined;
     /**
      * Finds the credential a command with `requires.auth` needs, signing a person in only when
-     * `ctx.ask` is set. Resolves to the needs that stop the run, or `undefined` when there is a
-     * credential.
+     * `ctx.ask` is set. Resolves to the credential, which `run()` receives as `ctx.credential`, or
+     * to the needs that stop the run.
      */
-    requireCredential?(kind: 'cloud', ctx: CommandContext): Promise<CommandNeed[] | undefined>;
+    requireCredential?(
+        kind: 'cloud',
+        ctx: CommandContext,
+    ): Promise<{ credential: CommandCredential } | { needs: CommandNeed[] }>;
     /**
      * Writes a secret output value to a file that only the user can read, and returns its
      * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
@@ -366,9 +370,9 @@ export async function executeCommand(
                     notices,
                 );
             }
-            let needs: CommandNeed[] | undefined;
+            let found: { credential: CommandCredential } | { needs: CommandNeed[] };
             try {
-                needs = await env.requireCredential(def.requires.auth, ctx);
+                found = await env.requireCredential(def.requires.auth, ctx);
             } catch (e) {
                 // A renewal without a network, or a denied or expired sign-in, is an ordinary
                 // outcome with a fix, not an internal error.
@@ -381,9 +385,10 @@ export async function executeCommand(
                     notices,
                 );
             }
-            if (needs?.length) {
-                return incompleteResult(needs, notices);
+            if ('needs' in found) {
+                return incompleteResult(found.needs, notices);
             }
+            ctx.credential = found.credential;
         }
         const schemas = await def.schemas();
         const consentNames = Object.keys(def.consents ?? {});

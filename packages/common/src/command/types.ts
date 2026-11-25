@@ -331,6 +331,25 @@ export interface CommandContext {
     event(type: string, data?: Record<string, unknown>): void;
     /** Starts a process. Under `--json` its stdout goes to stderr. */
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
+    /**
+     * The credential the host found for a command with `requires.auth`, before `run()` started.
+     * Present only for such a command.
+     *
+     * @since 4.0.0
+     */
+    credential?: CommandCredential;
+}
+
+/**
+ * @description
+ * A Vendure Cloud credential, as the host found it for a command with `requires.auth: 'cloud'`:
+ * the stored login of `vendure auth login`, or `VENDURE_CLOUD_TOKEN`.
+ *
+ * @since 4.0.0
+ */
+export interface CommandCredential {
+    source: 'stored-login' | 'environment';
+    token: string;
 }
 
 /** What `plan` returns. */
@@ -393,6 +412,30 @@ export interface CommandCliMetadata {
  */
 export interface SecretFileReference {
     secretFile: string;
+}
+
+/**
+ * @description
+ * A group of commands that share input fields, such as `cloud`, whose commands all take
+ * `--project` and `--environment`. Declared as plain data, like a command.
+ *
+ * The shared fields apply to every command of the same package whose path starts with the group's
+ * path. They are flags of each of those commands, part of each one's input in the manifest and of
+ * its MCP tool. `run()` receives one input object with the command's fields and the shared ones.
+ * Each part is validated with its own schema. A field that a group and one of its commands both
+ * declare fails the manifest build.
+ *
+ * @since 4.0.0
+ */
+export interface CommandGroupDefinition {
+    /** The path the group's commands start with, for example `['cloud']`. */
+    path: string[];
+    /** Shown for the group in help. */
+    description?: string;
+    /** The schemas module of the group. It exports `input`, the shared fields. */
+    schemas: () => Promise<{ input: StandardSchema }>;
+    /** CLI metadata for the shared fields, the same as a command's. */
+    cli?: Pick<CommandCliMetadata, 'flags' | 'fields'>;
 }
 
 /**

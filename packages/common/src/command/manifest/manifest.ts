@@ -8,9 +8,10 @@ export const MANIFEST_FILE_NAME = 'vendure-commands.json';
 
 /**
  * Field names a command may not use. The host adds `--json`, `--input` and `--format` to every
- * command. `--yes` and `--project` are reserved for host flags.
+ * command, and `--yes` is reserved for a host flag. `--project` is not reserved: it names the VC
+ * Project of Vendure Cloud's commands, and the project directory option is `--dir`.
  */
-export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes', 'project'];
+export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes'];
 
 /** Command paths that start with these words belong to the store's tools. */
 export const RESERVED_PATH_ROOTS = ['admin', 'shop'];
@@ -39,11 +40,24 @@ export interface ManifestCommand {
     secretOutputs?: string[];
 }
 
+/**
+ * A group of commands with shared input. Its fields are already part of the input of each command
+ * it holds, so the host and `vendure mcp` read them there. The group is listed for its help text.
+ */
+export interface ManifestGroup {
+    path: string[];
+    description?: string;
+    /** JSON Schema of the shared fields. */
+    input: JsonSchema;
+}
+
 export interface CommandManifest {
     manifestVersion: 1;
     package: string;
     version: string;
     commands: ManifestCommand[];
+    /** @since 4.0.0 */
+    groups?: ManifestGroup[];
 }
 
 export interface MergedManifestCommand extends ManifestCommand {

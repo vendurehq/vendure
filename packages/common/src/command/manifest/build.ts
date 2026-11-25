@@ -1,9 +1,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { CommandDefinition, JsonSchema } from '../types';
+import { applyCommandGroups } from '../groups';
+import { CommandDefinition, CommandGroupDefinition, JsonSchema } from '../types';
 
-import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest';
+import {
+    CommandManifest,
+    MANIFEST_FILE_NAME,
+    ManifestCommand,
+    ManifestGroup,
+    mergeManifests,
+} from './manifest';
+
+/** @since 4.0.0 */
+export interface BuildCommandManifestOptions {
+    /**
+     * Groups whose shared input applies to the commands they hold. The declarations module exports
+     * the same list as `groups`, so the host applies them when it runs a command.
+     */
+    groups?: CommandGroupDefinition[];
+}
 
 const JSON_SCHEMA_TARGET = 'draft-2020-12';
 
@@ -16,9 +32,10 @@ export async function buildCommandManifest(
     packageName: string,
     version: string,
     definitions: CommandDefinition[],
+    options: BuildCommandManifestOptions = {},
 ): Promise<CommandManifest> {
     const commands: ManifestCommand[] = [];
-    for (const def of definitions) {
+    for (const def of applyCommandGroups(definitions, options.groups)) {
         const schemas = await def.schemas();
         const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
         const properties = { ...((input.properties as Record<string, unknown> | undefined) ?? {}) };
@@ -59,7 +76,23 @@ export async function buildCommandManifest(
             ...(def.secretOutputs?.length ? { secretOutputs: [...def.secretOutputs] } : {}),
         });
     }
-    const manifest: CommandManifest = { manifestVersion: 1, package: packageName, version, commands };
+    const groups: ManifestGroup[] = [];
+    for (const group of options.groups ?? []) {
+        groups.push({
+            path: group.path,
+            ...(group.description ? { description: group.description } : {}),
+            input: (await group.schemas()).input['~standard'].jsonSchema.input({
+                target: JSON_SCHEMA_TARGET,
+            }),
+        });
+    }
+    const manifest: CommandManifest = {
+        manifestVersion: 1,
+        package: packageName,
+        version,
+        commands,
+        ...(groups.length ? { groups } : {}),
+    };
     // Fails the build on a clash, so a bad declaration never ships.
     mergeManifests([manifest]);
     return manifest;
@@ -108,8 +141,9 @@ export async function writeCommandManifest(
     packageName: string,
     version: string,
     definitions: CommandDefinition[],
+    options: BuildCommandManifestOptions = {},
 ): Promise<string> {
-    const manifest = await buildCommandManifest(packageName, version, definitions);
+    const manifest = await buildCommandManifest(packageName, version, definitions, options);
     const file = path.join(outDir, MANIFEST_FILE_NAME);
     fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n');
     return file;

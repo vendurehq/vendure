@@ -140,7 +140,7 @@ describe('executeCommand', () => {
 
         it('returns the credential need before the inputs, and never runs the command', async () => {
             const run = vi.fn();
-            const requireCredential = vi.fn(async () => [tokenNeed]);
+            const requireCredential = vi.fn(async () => ({ needs: [tokenNeed] }));
             const result = await runCommandInHarness(
                 makeCommand(run, { requires: { auth: 'cloud' } }),
                 {},
@@ -151,20 +151,39 @@ describe('executeCommand', () => {
             expect(run).not.toHaveBeenCalled();
         });
 
-        it('runs the command once there is a credential', async () => {
+        it('runs the command once there is a credential, and hands it the credential on ctx', async () => {
+            const credential = { source: 'environment' as const, token: 'vcdk_agent_key' };
             const result = await runCommandInHarness(
-                makeCommand(async i => ({ hello: i.name }), { requires: { auth: 'cloud' } }),
+                makeCommand(async (i, ctx) => ({ hello: i.name, token: ctx.credential?.token }), {
+                    requires: { auth: 'cloud' },
+                }),
                 { name: 'a' },
-                { requireCredential: async () => undefined },
+                { requireCredential: async () => ({ credential }) },
             );
-            expect(result.envelope).toMatchObject({ status: 'ok', output: { hello: 'a' } });
+            expect(result.envelope).toMatchObject({
+                status: 'ok',
+                output: { hello: 'a', token: 'vcdk_agent_key' },
+            });
+        });
+
+        it('gives a command without requires.auth no credential', async () => {
+            const result = await runCommandInHarness(
+                makeCommand(async (_i, ctx) => ({ hasCredential: ctx.credential !== undefined })),
+                { name: 'a' },
+                {
+                    requireCredential: async () => ({
+                        credential: { source: 'environment' as const, token: 'unused' },
+                    }),
+                },
+            );
+            expect(result.envelope.output).toEqual({ hasCredential: false });
         });
 
         it('gives the check ctx.ask only when a person may be asked', async () => {
             const asked: boolean[] = [];
             const requireCredential = async (_kind: 'cloud', ctx: { ask?: unknown }) => {
                 asked.push(ctx.ask !== undefined);
-                return undefined;
+                return { credential: { source: 'stored-login' as const, token: 't' } };
             };
             const def = makeCommand(async () => ({}), { requires: { auth: 'cloud' } });
             await runCommandInHarness(def, { name: 'a' }, { requireCredential });

@@ -310,7 +310,7 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
                     await signInWithDevice(ctx);
                 },
             });
-            return isIncompleteResult(result) ? result.needs : undefined;
+            return isIncompleteResult(result) ? { needs: result.needs } : { credential: result };
         },
     };
 }

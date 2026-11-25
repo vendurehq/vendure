@@ -325,16 +325,18 @@ describe('the credential check of createHostEnvironment', () => {
         try {
             const env = createHostEnvironment(new AbortController());
 
-            const needs = await env.requireCredential?.('cloud', ctx);
+            const found = await env.requireCredential?.('cloud', ctx);
 
-            expect(needs).toEqual([
-                expect.objectContaining({
-                    kind: 'input',
-                    field: 'token',
-                    secret: true,
-                    fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
-                }),
-            ]);
+            expect(found).toEqual({
+                needs: [
+                    expect.objectContaining({
+                        kind: 'input',
+                        field: 'token',
+                        secret: true,
+                        fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
+                    }),
+                ],
+            });
             expect(fetch).not.toHaveBeenCalled();
         } finally {
             vi.unstubAllGlobals();
@@ -376,6 +378,8 @@ describe('the credential check of createHostEnvironment', () => {
         vi.stubEnv('VENDURE_CLOUD_TOKEN', 'vcdk_agent_key');
         const env = createHostEnvironment(new AbortController());
 
-        await expect(env.requireCredential?.('cloud', ctx)).resolves.toBeUndefined();
+        await expect(env.requireCredential?.('cloud', ctx)).resolves.toEqual({
+            credential: { source: 'environment', token: 'vcdk_agent_key' },
+        });
     });
 });
