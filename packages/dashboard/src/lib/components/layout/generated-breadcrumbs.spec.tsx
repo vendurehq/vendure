@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setNavMenuConfig } from '../../framework/nav-menu/nav-menu-extensions.js';
 import { GeneratedBreadcrumbs } from './generated-breadcrumbs.js';
@@ -113,29 +113,60 @@ describe('GeneratedBreadcrumbs', () => {
         expect(markup).not.toContain('max-md:hidden');
     });
 
-    // OSS-1486 — while the next page loads, the breadcrumb dropped to the section crumb
-    it('keeps the crumbs of the resolved page while the next page loads', () => {
-        (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-        const container = document.createElement('div');
-        const root = createRoot(container);
-        const show = (status: 'success' | 'pending', pathname: string, breadcrumb?: unknown) => {
-            routerState.pathname = pathname;
+    describe('during a navigation', () => {
+        const actEnvironment = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+        let container: HTMLDivElement;
+        let root: ReturnType<typeof createRoot>;
+
+        beforeEach(() => {
+            actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+            container = document.createElement('div');
+            root = createRoot(container);
+        });
+
+        afterEach(() => {
+            act(() => root.unmount());
+            delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+        });
+
+        const show = (
+            status: 'success' | 'pending' | 'error',
+            pathname: string,
+            breadcrumb?: unknown,
+            location = pathname,
+        ) => {
+            routerState.pathname = location;
             routerState.matches = [{ pathname, status, loaderData: breadcrumb ? { breadcrumb } : undefined }];
             act(() => root.render(<GeneratedBreadcrumbs />));
             return crumbTexts(container.innerHTML);
         };
+        const products = [{ path: '/products', label: 'Products' }];
 
-        expect(show('success', '/products', [{ path: '/products', label: 'Products' }])).toEqual([
-            'Catalog',
-            'Products',
-        ]);
-        // The new match has no loader data yet
-        expect(show('pending', '/products/1')).toEqual(['Catalog', 'Products']);
-        expect(show('success', '/products/1', [{ path: '/products', label: 'Products' }, 'Laptop'])).toEqual([
-            'Catalog',
-            'Products',
-            'Laptop',
-        ]);
-        act(() => root.unmount());
+        // OSS-1486 — while the next page loads, the breadcrumb dropped to the section crumb
+        it('keeps the crumbs of the resolved page while the next page loads', () => {
+            expect(show('success', '/products', products)).toEqual(['Catalog', 'Products']);
+            // The new match has no loader data yet
+            expect(show('pending', '/products/1')).toEqual(['Catalog', 'Products']);
+            expect(show('success', '/products/1', [...products, 'Laptop'])).toEqual([
+                'Catalog',
+                'Products',
+                'Laptop',
+            ]);
+        });
+
+        // OSS-1486 — the section crumb of the next page joined the crumbs of the current one
+        it('keeps the section of the rendered page before the next page matches', () => {
+            expect(show('success', '/products', products)).toEqual(['Catalog', 'Products']);
+            // The location is the next page, the matches are still the current page
+            expect(show('success', '/products', products, '/customers/5')).toEqual(['Catalog', 'Products']);
+            expect(show('pending', '/customers/5')).toEqual(['Catalog', 'Products']);
+        });
+
+        it('drops the crumbs of the previous page when the next page fails to load', () => {
+            show('success', '/products', products);
+            show('pending', '/customers/5');
+
+            expect(show('error', '/customers/5')).toEqual(['Customers']);
+        });
     });
 });
