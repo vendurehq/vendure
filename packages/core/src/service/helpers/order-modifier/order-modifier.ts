@@ -773,13 +773,19 @@ export class OrderModifier {
             const shippingLinesToDelete = order.shippingLines.splice(shippingMethodIds.length);
             await this.connection.getRepository(ctx, ShippingLine).remove(shippingLinesToDelete);
         }
-        // assign the ShippingLines to the OrderLines
+        // Detach every OrderLine, in the database and in memory, so that a line which the strategy
+        // does not assign below keeps no reference to a removed or changed ShippingLine
         await this.connection
             .getRepository(ctx, OrderLine)
             .createQueryBuilder('line')
-            .update({ shippingLine: undefined })
+            .update({ shippingLineId: () => 'NULL' })
             .whereInIds(order.lines.map(l => l.id))
             .execute();
+        for (const line of order.lines) {
+            line.shippingLine = undefined;
+            line.shippingLineId = undefined;
+        }
+        // assign the ShippingLines to the OrderLines
         const { shippingLineAssignmentStrategy } = this.configService.shippingOptions;
         for (const shippingLine of order.shippingLines) {
             const orderLinesForShippingLine =
@@ -792,6 +798,7 @@ export class OrderModifier {
                 .execute();
             orderLinesForShippingLine.forEach(line => {
                 line.shippingLine = shippingLine;
+                line.shippingLineId = shippingLine.id;
             });
         }
         return order;
