@@ -16,24 +16,25 @@ export interface EuVatRate {
 }
 
 /**
- * The date the values below were last confirmed: the date of the review, when every row was
- * checked again. See {@link EU_VAT_RATES_SOURCE} for where they come from.
+ * The date the values below were last read from their sources. The review re-read every row, so
+ * it is the review date. See {@link EU_VAT_RATES_SOURCE} for the sources.
  */
 export const EU_VAT_RATES_SOURCE_DATE = '2026-11-24';
 
 /**
  * The page the values were first taken from, on 2026-07-13, when it printed "Last checked:
  * 13/07/2026". The European Commission's own PDF of the rates could not be read on the day. The
- * review on 2026-11-24 checked every row again. The rows for EE, PL, SE and SK were also checked
- * against national and secondary sources, which are named in their comments.
+ * review on 2026-11-24 checked every row again. The rows for PL, SE and SK were also checked
+ * against national and secondary sources, which are named in their comments, and the EE row notes
+ * its accommodation rate.
  */
 export const EU_VAT_RATES_SOURCE =
     'https://europa.eu/youreurope/business/taxation/vat/vat-rules-rates/index_en.htm';
 
 /**
- * The date a person checked every rate below against the source. `undefined` until that review is
- * done. While it is `undefined`, the `eu` preset is hidden: `listPresets()` leaves it out and
- * `applyPreset()` treats it as unknown.
+ * The date a person last checked every rate below against the sources. It releases the `eu`
+ * preset: set it to `undefined` to hide the preset again, for example while the table is being
+ * updated, and `listPresets()` leaves it out and `applyPreset()` treats it as unknown.
  */
 export const EU_VAT_RATES_REVIEWED_AT: string | undefined = '2026-11-24';
 

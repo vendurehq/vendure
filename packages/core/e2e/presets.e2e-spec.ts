@@ -36,7 +36,6 @@ import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
-import { euPreset } from '../src/data-import/presets/builtin-presets';
 import { ISO_COUNTRIES } from '../src/data-import/presets/iso-countries';
 
 import { graphql } from './graphql/graphql-admin';
@@ -352,24 +351,13 @@ describe('Base-data presets', () => {
     describe('eu', () => {
         beforeAll(resetToEmptyDatabase, TEST_SETUP_TIMEOUT_MS);
 
-        it('is released after its VAT review', async () => {
-            expect(listPresets().map(p => p.name)).toContain('eu');
-            // A released preset checks its options instead of being unknown
-            await expectSeedError(
-                applyPreset(server.app, 'eu', { country: 'GB' }),
-                'core.preset-invalid-option',
-            );
+        it('requires the seller country to be a member state', async () => {
+            for (const options of [{}, { country: 'GB' }] as Array<Record<string, string>>) {
+                await expectSeedError(applyPreset(server.app, 'eu', options), 'core.preset-invalid-option');
+            }
         });
 
         describe('applied', () => {
-            it('requires the seller country to be a member state', () => {
-                expect(euPreset.validate!({})).toEqual(expect.objectContaining({ option: 'country' }));
-                expect(euPreset.validate!({ country: 'GB' })).toEqual(
-                    expect.objectContaining({ option: 'country' }),
-                );
-                expect(euPreset.validate!({ country: 'DE' })).toBeUndefined();
-            });
-
             it(
                 'creates a standard and a reduced rate per member state, with the seller country as tax country',
                 async () => {
