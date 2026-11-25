@@ -397,10 +397,11 @@ describe('vendure console link', () => {
         );
     });
 
-    it('returns the link as failed, with the reason, when a hook fails after it', async () => {
+    it('returns the link as failed when a hook fails after it, without what the hook threw', async () => {
         const root = project();
+        const thrown = 'The registry refused vcli_hook-secret';
         const hook: ConsoleLinkHookRegistration = async () => {
-            throw new Error('The registry refused the token');
+            throw new Error(thrown);
         };
         setPluginExtensionAccessor(<T>(point: string) =>
             point === 'afterConsoleLink' ? [{ pluginId: '@example/setup', extension: hook as T }] : [],
@@ -417,12 +418,43 @@ describe('vendure console link', () => {
                 account: manifest.account,
             },
         });
-        expect(result.envelope.notices).toContainEqual(
-            expect.objectContaining({
-                level: 'warning',
-                message: expect.stringContaining('The registry refused the token'),
-            }),
+        expect(result.envelope.notices).toContainEqual({
+            level: 'warning',
+            message: 'The @example/setup plugin failed after linking: Setup did not finish.',
+        });
+        // Nobody reads this output in person, so what the hook threw is not in it anywhere.
+        expect(JSON.stringify(result.envelope)).not.toContain('vcli_hook-secret');
+        for (const notice of result.envelope.notices) {
+            expect(notice.message).not.toContain('vcli_hook-secret');
+        }
+        for (const event of result.events) {
+            expect(JSON.stringify(event)).not.toContain('vcli_hook-secret');
+        }
+    });
+
+    it('shows a person what a failed hook threw', async () => {
+        const root = project();
+        const hook: ConsoleLinkHookRegistration = async () => {
+            throw new Error('The registry refused the token');
+        };
+        setPluginExtensionAccessor(<T>(point: string) =>
+            point === 'afterConsoleLink' ? [{ pluginId: '@example/setup', extension: hook as T }] : [],
         );
+        const prompter: Prompter = {
+            askInput: vi.fn(async () => undefined),
+            askConsent: vi.fn(async () => true),
+            confirm: vi.fn(async () => true),
+            select: vi.fn(async () => undefined),
+            text: vi.fn(async () => undefined),
+        };
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root }, { prompter });
+
+        expect(result.envelope.status).toBe('failed');
+        expect(result.envelope.notices).toContainEqual({
+            level: 'warning',
+            message: 'The @example/setup plugin failed after linking: The registry refused the token',
+        });
     });
 
     it('tells a person why the link failed, then what it needs', async () => {

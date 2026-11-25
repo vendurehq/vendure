@@ -1,9 +1,16 @@
 import { InputNeed } from '@vendure/common/lib/command';
 
 import {
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     NotLoggedInError,
+    ReauthenticationRequiredError,
+    SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
+    SessionUnstorableError,
 } from '../../auth/auth-errors.js';
 import { AuthOptions } from '../../auth/auth-options.js';
 import {
@@ -30,6 +37,7 @@ import {
 } from '../../auth/credential.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 
+import { ConsoleCliError } from './console-cli-error.js';
 import {
     ConsoleLinkContext,
     ConsoleLinkOutcome,
@@ -46,7 +54,6 @@ import {
 } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { ConsoleCommandResult, ConsoleLinkResultContribution, missingInputToNeed } from './console-result.js';
-import { openConsoleBrowser } from './open-browser.js';
 import { ensureProjectLinkGitignore } from './project-link-gitignore.js';
 import {
     ManifestReadResult,
@@ -410,10 +417,12 @@ export async function previewConsoleChange(
 
 /**
  * How a run reports an error it caught outside the engine, such as a failed preview: an input it
- * can name as a need, a cancellation, or the error's own message.
+ * can name as a need, a cancellation, or a message: the error's own when the CLI wrote it or a
+ * person reads it, and otherwise a general one.
  */
 export function describeConsoleError(
     error: unknown,
+    outputMode: ConsoleCommandDependencies['outputMode'],
     signal?: AbortSignal,
 ):
     | { kind: 'need'; need: InputNeed; message: string; nextSteps: string[] }
@@ -425,11 +434,41 @@ export function describeConsoleError(
     if (error instanceof ConsoleInputError) {
         return { kind: 'need', need: error.need, message: error.message, nextSteps: error.nextSteps };
     }
-    const detail = error instanceof Error ? error.message : String(error);
-    return { kind: 'failed', message: detail };
+    return { kind: 'failed', message: reportableMessage(error, outputMode) };
 }
 
-/** Reports a failure, with the error's own message: the command returns it as a coded error. */
+/** The errors whose messages the CLI wrote, so they hold no response body or credential. */
+const CLI_ERRORS = [
+    ConsoleCliError,
+    ConsoleRequestError,
+    ConsoleInputError,
+    ConsoleTokenRefusedError,
+    OrganizationNotFoundError,
+    NotLoggedInError,
+    SessionRejectedError,
+    SessionRefreshUnavailableError,
+    SessionUnstorableError,
+    ReauthenticationRequiredError,
+    SessionLockUnavailableError,
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
+];
+
+/**
+ * The message to report for `error`: its own when the CLI wrote it, or when a person reads the
+ * output. Otherwise, such as for a library error without a person, a general one, as 3.x reported
+ * under `--json`.
+ */
+function reportableMessage(error: unknown, outputMode: ConsoleCommandDependencies['outputMode']): string {
+    if (outputMode === 'json' && !CLI_ERRORS.some(type => error instanceof type)) {
+        return 'The Console command failed.';
+    }
+    return error instanceof Error ? error.message : String(error);
+}
+
+/** Reports a failure, with a message from {@link reportableMessage}: the command returns it as a coded error. */
 function reportConsoleCommandError(
     error: unknown,
     interrupted: boolean,
@@ -459,7 +498,7 @@ function reportConsoleCommandError(
     if (error instanceof CliCommandExit) {
         return error.exitCode || 1;
     }
-    state.failure = error instanceof Error ? error.message : String(error);
+    state.failure = reportableMessage(error, dependencies.outputMode);
     reporter.error(state.failure);
     return 1;
 }
@@ -508,7 +547,7 @@ export function assertNoRemovedConsoleEnvironment(env: NodeJS.ProcessEnv): void 
         .filter(([removed]) => env[removed] !== undefined)
         .map(([removed, replacement]) => `${removed} is no longer supported. Use ${replacement} instead.`);
     if (messages.length > 0) {
-        throw new Error(messages.join('\n'));
+        throw new ConsoleCliError(messages.join('\n'));
     }
 }
 
@@ -519,7 +558,7 @@ export function resolveConsoleEndpoints(
     const consoleOverride = env.VENDURE_CONSOLE_APP_URL?.trim() || undefined;
     const apiOverride = env.VENDURE_CONSOLE_API_URL?.trim() || undefined;
     if (Boolean(consoleOverride) !== Boolean(apiOverride)) {
-        throw new Error(
+        throw new ConsoleCliError(
             'Set both VENDURE_CONSOLE_APP_URL and VENDURE_CONSOLE_API_URL, or unset both to use the linked Console or production default.',
         );
     }
@@ -536,7 +575,7 @@ export function resolveConsoleEndpoints(
         (configured.appOrigin !== manifestConsole.appOrigin ||
             configured.apiOrigin !== manifestConsole.apiOrigin)
     ) {
-        throw new Error(
+        throw new ConsoleCliError(
             [
                 'The configured Console conflicts with the Project Link Manifest.',
                 `Manifest Console: ${manifestConsole.appOrigin} (API: ${manifestConsole.apiOrigin})`,
@@ -587,7 +626,7 @@ async function link(
     if (existing.kind === 'valid' && (linked === 'same' || !options.force)) {
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
-            throw new Error(
+            throw new ConsoleCliError(
                 (linked === 'different'
                     ? `This project is already linked to ${current}.`
                     : `This project is already linked to ${current}, and the CLI could not check whether ` +
@@ -971,7 +1010,7 @@ async function resolveAccount(
             },
         );
         if (organizations.length !== 1) {
-            throw new Error(
+            throw new ConsoleCliError(
                 organizations.length === 0
                     ? 'VENDURE_CLOUD_TOKEN has no Customer Account in Vendure Console.'
                     : `VENDURE_CLOUD_TOKEN belongs to ${organizations.length} Customer Accounts, and the CLI ` +
@@ -982,7 +1021,7 @@ async function resolveAccount(
         const [organization] = organizations;
         const wanted = requested?.trim();
         if (wanted && !matchesOrganization(organization, wanted)) {
-            throw new Error(
+            throw new ConsoleCliError(
                 `VENDURE_CLOUD_TOKEN belongs to ${organization.name} (${organization.customerAccountId}), ` +
                     `not ${wanted}. Leave out --organization, or unset VENDURE_CLOUD_TOKEN and sign in.`,
             );
@@ -1027,7 +1066,7 @@ async function chooseOrganization(
     dependencies: ConsoleCommandDependencies,
 ): Promise<AuthOrganization> {
     if (organizations.length === 0) {
-        throw new Error(
+        throw new ConsoleCliError(
             `Your Vendure Console login has no Customer Account yet. Create one at ${endpoints.consoleUrl}/onboarding, ` +
                 'then run vendure console link again.',
         );
@@ -1044,7 +1083,7 @@ async function chooseOrganization(
         label: `${organization.name} (${organization.customerAccountId})`,
     }));
     if (dependencies.isNonInteractive()) {
-        throw new Error(
+        throw new ConsoleCliError(
             'Your Vendure Console login belongs to several Customer Accounts:\n' +
                 choices.map(choice => `  ${choice.label}`).join('\n') +
                 '\nRun vendure console link --organization <Account identifier> to choose one.',
@@ -1074,7 +1113,7 @@ function describeOrganization(organization: StoredOrganization): string {
  */
 function hookSession(login: ConsoleLogin): ConsoleSession {
     if (login.source !== 'stored-login') {
-        throw new Error('A plugin hook is never given VENDURE_CLOUD_TOKEN.');
+        throw new ConsoleCliError('A plugin hook is never given VENDURE_CLOUD_TOKEN.');
     }
     const expiresAt = readAuthStatus(login.auth).accessTokenExpiresAt;
     return { accessToken: login.accessToken, expiresAt: expiresAt ?? (login.auth.now ?? Date.now)() };
@@ -1098,12 +1137,12 @@ async function listProjects(
         );
     } catch (error) {
         if (error instanceof ConsoleRequestError && error.httpStatus === 403) {
-            throw new Error(`Your role in ${accountName} does not allow you to see its projects.`);
+            throw new ConsoleCliError(`Your role in ${accountName} does not allow you to see its projects.`);
         }
         throw error;
     }
     if (!Array.isArray(value)) {
-        throw new Error('Console returned a malformed project list.');
+        throw new ConsoleCliError('Console returned a malformed project list.');
     }
     return value
         .map(entry => objectValue(entry, 'Console returned a malformed project list.'))
@@ -1128,7 +1167,7 @@ async function chooseProject(
     dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleProject> {
     if (projects.length === 0) {
-        throw new Error(
+        throw new ConsoleCliError(
             `${accountName} has no active project. Create one in Vendure Console at ${endpoints.consoleUrl}. ` +
                 'You can create it without a plan or trial. Then run vendure console link again.',
         );
@@ -1224,16 +1263,18 @@ async function linkProject(
         );
     } catch (error) {
         if (error instanceof ConsoleRequestError && error.httpStatus === 403) {
-            throw new Error(`Your role in ${accountName} does not allow you to link ${project.name}.`);
+            throw new ConsoleCliError(
+                `Your role in ${accountName} does not allow you to link ${project.name}.`,
+            );
         }
         if (error instanceof ConsoleRequestError && error.httpStatus === 404) {
-            throw new Error(`${project.name} is no longer an active project in ${accountName}.`);
+            throw new ConsoleCliError(`${project.name} is no longer an active project in ${accountName}.`);
         }
         throw error;
     }
     const manifest = parseProjectLinkManifest(value);
     if (manifest.project.id !== project.id) {
-        throw new Error('Console returned a Project Link Manifest for a different project.');
+        throw new ConsoleCliError('Console returned a Project Link Manifest for a different project.');
     }
     return manifest;
 }
@@ -1273,14 +1314,14 @@ async function requestWithLogin(
         throw environmentTokenRefused();
     }
     if (login.noRenewal) {
-        throw new Error('Vendure Console did not accept the login for the replaced link.');
+        throw new ConsoleCliError('Vendure Console did not accept the login for the replaced link.');
     }
     login.accessToken = await refreshAccessToken(login.accessToken, login.auth);
     try {
         return await send();
     } catch (error) {
         if (error instanceof ConsoleRequestError && error.httpStatus === 401) {
-            throw new Error(
+            throw new ConsoleCliError(
                 'Vendure Console did not accept the CLI login. Run vendure auth login, then try again.',
             );
         }
@@ -1629,7 +1670,9 @@ async function runConsoleLinkHooks(
                 throw error;
             }
             const rawDetail = error instanceof Error ? error.message : String(error);
-            const detail = rawDetail;
+            // A hook's error is not the CLI's to repeat when no person reads it: it can hold
+            // whatever the plugin put in it.
+            const detail = dependencies.outputMode === 'json' ? 'Setup did not finish.' : rawDetail;
             state.result.outcome = 'failed';
             state.result.nextSteps.push(`Rerun vendure console link to finish setup for ${pluginId}.`);
             dependencies.reporter.error(`The ${pluginId} plugin failed after linking: ${detail}`);
@@ -1706,7 +1749,7 @@ function confirmForHook(
 ): Promise<boolean | undefined> {
     if (isNonInteractive) {
         return Promise.reject(
-            new Error(
+            new ConsoleCliError(
                 'Cannot ask for confirmation in a non-interactive environment. ' +
                     'Check context.isNonInteractive before calling context.confirm.',
             ),
@@ -1840,7 +1883,7 @@ async function detachTelemetry(
               ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), manifest.account.id)
               : { login: await signIn(endpoints, manifest.account.id, dependencies, signal) };
         if (!login) {
-            throw new Error(
+            throw new ConsoleCliError(
                 refusal
                     ? `${describeRefusal(refusal, manifest.account.name)}${refusal instanceof SessionRejectedError ? '.' : ''}`
                     : `No CLI login for ${manifest.account.name} is stored on this machine.`,

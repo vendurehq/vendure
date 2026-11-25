@@ -193,7 +193,7 @@ export async function previewForRun(
             { strict: true },
         );
     } catch (error) {
-        const described = describeConsoleError(error, ctx.signal);
+        const described = describeConsoleError(error, dependencies.outputMode, ctx.signal);
         if (described.kind === 'interrupted') {
             return { result: fail(hostErrors.cancelled, {}) };
         }

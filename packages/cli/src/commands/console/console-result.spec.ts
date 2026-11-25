@@ -139,7 +139,7 @@ describe('structured Console linking', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
-    it('reports reused links and the real reason a hook failed', async () => {
+    it('reports reused links, and keeps what a failed hook threw out of output no person reads', async () => {
         const root = linkedProject();
         const run = await linkWithoutPerson(
             { dir: root },
@@ -155,10 +155,14 @@ describe('structured Console linking', () => {
             },
         );
         expect(run.exitCode).toBe(1);
+        // A hook's error can hold anything the plugin put in it, so without a person it is reported
+        // in general terms, as in 3.x.
         expect(JSON.stringify(run.result)).not.toContain(SECRET);
-        // The reason goes into the coded error, the channel a program reads, also without a person.
-        expect(run.messages).toContain(SECRET);
-        expect(run.failure ?? run.messages).not.toContain('Setup did not finish');
+        expect(run.messages).not.toContain(SECRET);
+        expect(run.failure ?? '').not.toContain(SECRET);
+        expect(run.messages).toContain(
+            'The @example/setup plugin failed after linking: Setup did not finish.',
+        );
         expect(run.result).toMatchObject({ outcome: 'failed', data: { link: { outcome: 'repaired' } } });
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
