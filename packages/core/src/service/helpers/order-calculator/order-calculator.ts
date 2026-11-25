@@ -214,13 +214,13 @@ export class OrderCalculator {
     private orderLinesChanged(
         order: Order,
         updatedOrderLines: OrderLine[],
-        settled: Map<OrderLine, TaxLine[]>,
+        settled: ReadonlyMap<OrderLine, StoredTaxLine[]>,
     ): boolean {
         if (updatedOrderLines.length) {
             return true;
         }
         return order.lines.some(line => {
-            const stored = settled.get(line) as StoredTaxLine[] | undefined;
+            const stored = settled.get(line);
             return (
                 !!stored &&
                 (stored[0].taxBase !== line.getTaxableLineTotal() ||
