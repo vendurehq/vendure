@@ -210,8 +210,8 @@ describe('Multiple shipping orders', () => {
         expect(order?.shippingLines.length).toBe(2);
     });
 
-    // The unused ShippingLines used to be removed from index `shippingMethodIds.length - 1`, which also
-    // removed the last ShippingLine just assigned a method
+    // Setting fewer shipping methods than the Order has ShippingLines keeps the ShippingLines of the
+    // methods that were set
     it('keeps the remaining shipping line when fewer shipping methods are set', async () => {
         const { setOrderShippingMethod } = await shopClient.query(setShippingMethodDocument, {
             id: [lessThan100MethodId],
@@ -232,7 +232,10 @@ describe('Multiple shipping orders', () => {
             id: [lessThan100MethodId, greaterThan100MethodId],
         });
         orderResultGuard.assertSuccess(restored);
-        expect((await getInternalOrder(restored.id))?.shippingLines.length).toBe(2);
+        const restoredOrder = await getInternalOrder(restored.id);
+        expect(restoredOrder.shippingLines.length).toBe(2);
+        expect(restoredOrder.lines[0].shippingLine?.shippingMethod.code).toBe('greater-than-100');
+        expect(restoredOrder.lines[1].shippingLine?.shippingMethod.code).toBe('less-than-100');
     });
 
     it('removes shipping methods that are no longer applicable', async () => {
@@ -344,6 +347,30 @@ describe('Multiple shipping orders', () => {
         expect(modifyOrder.modifications[0].refund?.total).toBe(2000);
         const order = await getInternalOrder(orderId);
         expect(order.shippingLines.map(l => l.shippingMethod.code)).toEqual(['less-than-100']);
+    });
+
+    it('removes every shipping line when no shipping methods are set', async () => {
+        await shopClient.asAnonymousUser();
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_11', quantity: 1 });
+        await shopClient.query(setShippingAddressDocument, {
+            input: { streetLine1: '12 the street', postalCode: '123456', countryCode: 'US' },
+        });
+        const { setOrderShippingMethod: both } = await shopClient.query(setShippingMethodDocument, {
+            id: [lessThan100MethodId, greaterThan100MethodId],
+        });
+        orderResultGuard.assertSuccess(both);
+
+        const { setOrderShippingMethod: none } = await shopClient.query(setShippingMethodDocument, {
+            id: [],
+        });
+        orderResultGuard.assertSuccess(none);
+
+        expect(none.shippingLines).toEqual([]);
+        expect(none.shippingWithTax).toBe(0);
+        expect(none.totalWithTax).toBe(both.totalWithTax - 3000);
+        const order = await getInternalOrder(none.id);
+        expect(order.lines.map(l => l.shippingLineId ?? null)).toEqual([null, null]);
     });
 
     async function getInternalOrder(externalOrderId: string): Promise<Order> {
