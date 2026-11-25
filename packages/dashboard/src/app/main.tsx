@@ -105,6 +105,18 @@ function InnerApp() {
     }, [isRTL]);
 
     const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
+
+    useEffect(() => {
+        if (!isReady) {
+            return;
+        }
+        if (router.state.status === 'idle' && router.state.resolvedLocation) {
+            removeBootSplash();
+            return;
+        }
+        return router.subscribe('onResolved', removeBootSplash);
+    }, [isReady, router]);
+
     return (
         <>
             <DirectionProvider direction={isRTL ? 'rtl' : 'ltr'}>
@@ -120,9 +132,19 @@ function InnerApp() {
 }
 
 /**
+ * Removes the boot screen of `index.html` on the frame after the router has
+ * resolved the first page. It covers the cold load from the first paint, so the
+ * splashes below and the pending page of the first route stay hidden behind it,
+ * and the user sees one loading screen.
+ */
+function removeBootSplash() {
+    requestAnimationFrame(() => document.getElementById('boot-splash')?.remove());
+}
+
+/**
  * Lightweight full-screen splash shown while auth + server config are still
- * resolving on cold load. Without this we render an empty document, which
- * makes the dashboard feel laggy on first paint.
+ * resolving, e.g. after a sign-in. It looks like the boot screen of
+ * `index.html`, which covers it on a cold load.
  */
 function BootSplash() {
     return (
@@ -154,10 +176,9 @@ function App() {
     }, [extensionsLoaded]);
 
     if (!i18nLoaded || !extensionsRegistered) {
-        // Show a minimal full-screen splash so the user sees that the app is
-        // loading rather than a white screen while i18n catalogs and dashboard
-        // extensions resolve.
-        return <BootSplash />;
+        // The boot screen of index.html covers the app until the first page
+        // has rendered, while the i18n catalogs and dashboard extensions resolve.
+        return null;
     }
     return (
         <AppProviders>
