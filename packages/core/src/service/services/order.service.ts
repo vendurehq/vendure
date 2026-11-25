@@ -92,11 +92,11 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
 import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -137,6 +137,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { trackSurchargeTaxLines } from '../helpers/utils/save-surcharge-tax-lines';
 import { setOrderLinePrices } from '../helpers/utils/set-order-line-price';
 
 import { ChannelService } from './channel.service';
@@ -2737,6 +2738,7 @@ export class OrderService implements OnApplicationBootstrap {
         // Get the shipping line IDs before doing the order calculation
         // step, which can in some cases change the applied shipping lines.
         const shippingLineIdsPre = order.shippingLines.map(l => l.id);
+        const saveSurchargeTaxLines = trackSurchargeTaxLines(order.surcharges);
 
         const updatedOrder = await this.orderCalculator.applyPriceAdjustments(
             ctx,
@@ -2776,6 +2778,7 @@ export class OrderService implements OnApplicationBootstrap {
         await this.promotionService.runPromotionSideEffects(ctx, order, activePromotionsPre);
         await this.connection.getRepository(ctx, OrderLine).save(updatedOrder.lines, { reload: false });
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
+        await saveSurchargeTaxLines(ctx, this.connection);
 
         return assertFound(this.findOne(ctx, order.id, relations));
     }

@@ -1,5 +1,6 @@
 import {
     CalculateShippingLineTaxLinesArgs,
+    CalculateSurchargeTaxLinesArgs,
     CalculateTaxLinesArgs,
     mergeConfig,
     TaxLineCalculationStrategy,
@@ -14,7 +15,12 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { singleStageRefundablePaymentMethod } from './fixtures/test-payment-methods';
 import { graphql as adminGraphql } from './graphql/graphql-admin';
 import { graphql } from './graphql/graphql-shop';
-import { cancelOrderDocument, refundOrderDocument } from './graphql/shared-definitions';
+import {
+    adminTransitionToStateDocument,
+    cancelOrderDocument,
+    modifyOrderDocument,
+    refundOrderDocument,
+} from './graphql/shared-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 /**
@@ -33,6 +39,11 @@ class ErpTaxLineCalculationStrategy implements TaxLineCalculationStrategy {
                 amount: Math.round((lineTotal * applicableTaxRate.value) / 100) + 1,
             },
         ];
+    }
+
+    calculateSurchargeTaxLines({ surcharge, taxLines }: CalculateSurchargeTaxLinesArgs) {
+        const [rateTaxLine] = taxLines;
+        return [{ ...rateTaxLine, amount: Math.round((surcharge.price * rateTaxLine.taxRate) / 100) + 1 }];
     }
 
     calculateShippingLineTaxLines({ shippingLine, taxLines }: CalculateShippingLineTaxLinesArgs) {
@@ -95,6 +106,14 @@ const orderTaxesDocument = adminGraphql(`
             id
             subTotal
             subTotalWithTax
+            surcharges {
+                price
+                priceWithTax
+                taxLines {
+                    taxRate
+                    amount
+                }
+            }
             lines {
                 id
                 quantity
@@ -223,5 +242,37 @@ describe('OrderLine tax amounts from a TaxLineCalculationStrategy', () => {
         }
 
         expect(totals.reduce((sum, total) => sum + total, 0)).toBe(paidLineTotal);
+    });
+
+    it('stores the amount of a surcharge added by an order modification', async () => {
+        await adminClient.query(adminTransitionToStateDocument, { id: orderId, state: 'Modifying' });
+        await adminClient.query(modifyOrderDocument, {
+            input: {
+                orderId,
+                dryRun: false,
+                surcharges: [
+                    {
+                        description: 'Handling',
+                        sku: 'handling',
+                        price: 1000,
+                        priceIncludesTax: false,
+                        taxRate: 20,
+                        taxDescription: 'VAT',
+                    },
+                ],
+            },
+        });
+        // A fresh query reads the surcharge from the database.
+        const { order } = await adminClient.query(orderTaxesDocument, { id: orderId });
+        if (!order) throw new Error('Expected an order');
+        const [surcharge] = order.surcharges;
+        const [line] = order.lines;
+
+        // The rate would give 200.
+        expect(surcharge.taxLines[0].amount).toBe(201);
+        expect(surcharge.priceWithTax).toBe(1201);
+        expect(order.subTotalWithTax - order.subTotal).toBe(
+            line.proratedLinePriceWithTax - line.proratedLinePrice + 201,
+        );
     });
 });

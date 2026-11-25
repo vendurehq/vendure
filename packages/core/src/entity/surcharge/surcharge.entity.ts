@@ -5,7 +5,7 @@ import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { applyTaxShare, getTaxShare, grossPriceOf, netPriceOf } from '../../common/tax-utils';
+import { convertTaxBasis } from '../../common/tax-utils';
 import { VendureEntity } from '../base/base.entity';
 import { Money } from '../money.decorator';
 import { OrderModification } from '../order-modification/order-modification.entity';
@@ -80,16 +80,8 @@ export class Surcharge extends VendureEntity {
         return roundMoney(this.listPrice);
     }
 
-    /**
-     * Converts a value in the tax basis of `listPrice` to the other basis: from the absolute tax
-     * amounts when the TaxLines have them, otherwise from the rate.
-     */
     private fromListPriceBasis(value: number, withTax: boolean): number {
-        const taxShare = getTaxShare(this.taxLines);
-        if (taxShare != null) {
-            return applyTaxShare(roundMoney(value), taxShare, withTax, roundMoney);
-        }
-        return withTax ? grossPriceOf(value, this.taxRate) : netPriceOf(value, this.taxRate);
+        return convertTaxBasis(value, withTax, this.taxLines, this.taxRate);
     }
 
     @Calculated()

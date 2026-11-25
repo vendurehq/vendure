@@ -5,7 +5,7 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { applyTaxShare, getTaxShare, grossPriceOf, netPriceOf } from '../../common/tax-utils';
+import { convertTaxBasis } from '../../common/tax-utils';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
 import { CustomShippingLineFields } from '../custom-entity-fields';
@@ -137,15 +137,7 @@ export class ShippingLine extends VendureEntity implements HasCustomFields {
         return summate(this.adjustments, 'amount');
     }
 
-    /**
-     * Converts a value in the tax basis of `listPrice` to the other basis: from the absolute tax
-     * amounts when the TaxLines have them, otherwise from the rate.
-     */
     private fromListPriceBasis(value: number, withTax: boolean): number {
-        const taxShare = getTaxShare(this.taxLines);
-        if (taxShare != null) {
-            return applyTaxShare(roundMoney(value), taxShare, withTax, roundMoney);
-        }
-        return withTax ? grossPriceOf(value, this.taxRate) : netPriceOf(value, this.taxRate);
+        return convertTaxBasis(value, withTax, this.taxLines, this.taxRate);
     }
 }

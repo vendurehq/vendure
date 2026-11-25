@@ -206,9 +206,9 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
             selectedLines.map(line => getRefundedQuantity(order, line.orderLineId)),
         ],
         queryFn: () => api.query(previewRefundLineTotalDocument, { orderId: order.id, lines: selectedLines }),
+        // The key includes the selection, so a pending preview has no data, and the dialog cannot
+        // submit the previous selection's total.
         enabled: needsPreview,
-        // A preview for the previous selection must not be submitted while the new one is pending.
-        placeholderData: undefined,
     });
     const lineTotal = needsPreview ? preview.data?.previewRefundLineTotal : 0;
     const calculatedTotal =
@@ -292,8 +292,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
                 const allocatedToSamePayment = updated
                     .filter(rt => rt.id !== targetId && rt.selected && rt.paymentId === target.paymentId)
                     .reduce((sum, rt) => sum + rt.amountToRefund, 0);
-                const paymentRemaining =
-                    (paymentCapacity[target.paymentId] ?? 0) - allocatedToSamePayment;
+                const paymentRemaining = (paymentCapacity[target.paymentId] ?? 0) - allocatedToSamePayment;
                 const outstanding = refundTotal - otherAllocated;
                 const amountToRefund = Math.max(0, Math.min(outstanding, paymentRemaining));
                 return updated.map(rt => (rt.id === targetId ? { ...rt, amountToRefund } : rt));
@@ -466,7 +465,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
                     order.currencyCode,
                 );
                 const refundCount = refunds.length;
-                const failedTargetLabel = selectedTargets[failedTargetIndex]?.label ?? String(failedTargetIndex);
+                const failedTargetLabel =
+                    selectedTargets[failedTargetIndex]?.label ?? String(failedTargetIndex);
                 toast.warning(t`Refund only partially completed`, {
                     description: t`${refundedAmount} was refunded in ${refundCount} refund(s), but "${failedTargetLabel}" failed: ${failureReason}. Check the order's payments before trying again.`,
                     duration: Infinity,

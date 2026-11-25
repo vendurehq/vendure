@@ -2,14 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { filterAsync } from '@vendure/common/lib/filter-async';
 import { AdjustmentType, TaxLine } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
-import { summate } from '@vendure/common/lib/shared-utils';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
-import { hasTaxAmounts, withoutTaxAmounts } from '../../../common/tax-utils';
+import { hasTaxAmounts, StoredTaxLine, taxAmountsApply, withoutTaxAmounts } from '../../../common/tax-utils';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { OrderLine, TaxRate } from '../../../entity';
@@ -52,8 +51,9 @@ export interface ApplyPriceAdjustmentsOptions {
     recalculateShippingPromotions?: boolean;
     /**
      * @description
-     * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, and replaces the
-     * absolute tax amounts of a placed Order even where the line did not change. Use it when the
+     * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, ShippingLine and
+     * Surcharge, and replaces the absolute tax amounts of a placed Order even where the item did not
+     * change. Use it when the
      * tax may differ for an unchanged line, for example after a change of address. Defaults to
      * `false`, so a placed Order keeps the tax amounts that were paid.
      *
@@ -229,10 +229,7 @@ export class OrderCalculator {
             }
             const taxableTotal = line.getTaxableLineTotal();
             const applicable = candidates.find(
-                candidate =>
-                    candidate &&
-                    (candidate[0] as { taxBase?: number }).taxBase === taxableTotal &&
-                    summate(candidate, 'taxRate') === summate(line.taxLines, 'taxRate'),
+                candidate => candidate && taxAmountsApply(candidate, taxableTotal, line.taxLines),
             );
             if (applicable) {
                 line.taxLines = applicable;
@@ -242,10 +239,6 @@ export class OrderCalculator {
         }
     }
 
-    /**
-     * @description
-     * Applies the correct TaxRate to an OrderLine
-     */
     /**
      * Gives ShippingLines and Surcharges absolute tax amounts from the TaxLineCalculationStrategy,
      * if it implements the optional methods for them. An item keeps the amounts it had while its
@@ -263,11 +256,7 @@ export class OrderCalculator {
         ];
         for (const item of items) {
             const previous = settled.get(item);
-            if (
-                previous &&
-                (previous[0] as { taxBase?: number }).taxBase === item.getTaxableTotal() &&
-                summate(previous, 'taxRate') === summate(item.taxLines, 'taxRate')
-            ) {
+            if (previous && taxAmountsApply(previous, item.getTaxableTotal(), item.taxLines)) {
                 item.taxLines = previous;
                 continue;
             }
@@ -624,5 +613,5 @@ function withTaxBase(taxLines: TaxLine[], getTaxableTotal: () => number): TaxLin
         throw new InternalServerError('TaxLineCalculationStrategy must return integer tax amounts');
     }
     const taxBase = getTaxableTotal();
-    return taxLines.map(taxLine => ({ ...taxLine, taxBase }) as TaxLine);
+    return taxLines.map((taxLine): StoredTaxLine => ({ ...taxLine, taxBase }));
 }

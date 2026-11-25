@@ -70,6 +70,7 @@ import { TranslatorService } from '../translator/translator.service';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
+import { trackSurchargeTaxLines } from '../utils/save-surcharge-tax-lines';
 import { setOrderLinePrices } from '../utils/set-order-line-price';
 
 import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
@@ -683,6 +684,7 @@ export class OrderModifier {
         }
         await setOrderLinePrices(ctx, orderItemPriceCalculationStrategy, order, entries);
 
+        const saveSurchargeTaxLines = trackSurchargeTaxLines(order.surcharges);
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,
             recalculateTax: input.options?.recalculateTax ?? undefined,
@@ -742,6 +744,7 @@ export class OrderModifier {
             .save(modification);
         await this.connection.getRepository(ctx, Order).save(order);
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
+        await saveSurchargeTaxLines(ctx, this.connection);
         await this.eventBus.publish(new OrderEvent(ctx, order, 'updated', input));
         return { order, modification: createdModification };
     }

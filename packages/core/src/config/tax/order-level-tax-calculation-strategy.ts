@@ -1,6 +1,6 @@
 import { OrderTaxSummary, TaxLine } from '@vendure/common/lib/generated-types';
 
-import { hasTaxAmounts, taxPayableOn } from '../../common/tax-utils';
+import { hasTaxAmounts, sumTaxAmounts, taxPayableOn } from '../../common/tax-utils';
 import { Order } from '../../entity/order/order.entity';
 
 import { OrderTaxCalculationStrategy, OrderTotalsResult } from './order-tax-calculation-strategy';
@@ -148,9 +148,7 @@ export class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStra
             return;
         }
         const hasAmounts = lineTax != null && hasTaxAmounts(taxLines);
-        const amountTotal = hasAmounts
-            ? taxLines.reduce((sum, taxLine) => sum + (taxLine.amount ?? 0), 0)
-            : 0;
+        const amountTotal = hasAmounts ? sumTaxAmounts(taxLines) : 0;
         for (const taxLine of taxLines) {
             const key = `${taxLine.description}:${taxLine.taxRate}`;
             const fixedTax =

@@ -24,7 +24,7 @@ export async function setOrderLinePrices(
     changedPriceHandling?: ChangedPriceHandlingStrategy,
 ): Promise<void> {
     // A fully cancelled line keeps the price used for refunds.
-    const toPrice = entries.filter(({ line }) => !(line.quantity === 0 && line.quotedLinePrice != null));
+    const toPrice = entries.filter(({ line }) => !(line.quantity === 0 && line.isQuoted()));
     const quotable = toPrice.filter(({ line }) => line.quantity > 0);
     const quotes = new Map<OrderLine, PriceCalculationResult>();
     if (strategy.calculateLinePrices && quotable.length) {

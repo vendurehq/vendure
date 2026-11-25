@@ -2903,9 +2903,10 @@ export type ModifyOrderOptions = {
   freezePromotions?: InputMaybe<Scalars['Boolean']['input']>;
   recalculateShipping?: InputMaybe<Scalars['Boolean']['input']>;
   /**
-   * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, replacing the
-   * absolute tax amounts that were paid even on lines that did not change. Use it after a change of
-   * address when the tax may differ, and check the result with `dryRun` first. Defaults to false.
+   * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, ShippingLine and
+   * Surcharge, replacing the absolute tax amounts that were paid even on items that did not change.
+   * Use it after a change of address when the tax may differ, and check the result with `dryRun`
+   * first. Defaults to false.
    */
   recalculateTax?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -7084,9 +7085,10 @@ export type TaxCategorySortParameter = {
 export type TaxLine = {
   __typename?: 'TaxLine';
   /**
-   * The absolute tax of the whole OrderLine for this TaxLine, when the TaxLineCalculationStrategy
-   * provides it, for example from an ERP. The line's tax then equals this amount rather than being
-   * derived from the rate. Null when the tax is derived from the rate.
+   * The absolute tax of the whole item (OrderLine, ShippingLine or Surcharge) for this TaxLine, when
+   * the TaxLineCalculationStrategy provides it, for example from an ERP. The item's tax then equals
+   * this amount rather than being derived from the rate. After a partial cancellation it is the tax
+   * of the remaining units. Null when the tax is derived from the rate.
    */
   amount?: Maybe<Scalars['Money']['output']>;
   description: Scalars['String']['output'];

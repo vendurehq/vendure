@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker';
 import {
     CancelOrderInput,
@@ -32,7 +31,7 @@ export const PREVIEW_REFUND_LINE_TOTAL = gql`
     templateUrl: './refund-order-dialog.component.html',
     styleUrls: ['./refund-order-dialog.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    standalone: false,
 })
 export class RefundOrderDialogComponent
     implements OnInit, OnDestroy, Dialog<{ cancel: CancelOrderInput; refunds: RefundOrderInput[] }>
@@ -128,8 +127,9 @@ export class RefundOrderDialogComponent
                 takeUntil(this.destroy$),
             )
             .subscribe(lineTotal => {
-                // A failed preview keeps the dialog from submitting until the selection changes.
-                this.isCalculating = lineTotal == null;
+                // A failed preview keeps the dialog from submitting until the selection changes,
+                // unless the administrator has entered the total by hand.
+                this.isCalculating = lineTotal == null && !this.manuallySetRefundTotal;
                 if (lineTotal != null && !this.manuallySetRefundTotal) {
                     this.refundTotal = lineTotal + this.getShippingTotal();
                     this.allocateRefundTotal();
@@ -149,6 +149,8 @@ export class RefundOrderDialogComponent
             this.lineSelectionChange$.next(this.getOrderLineInput(() => true));
             return;
         }
+        // A manual total does not depend on the preview, so a failed or pending one must not block it.
+        this.isCalculating = false;
         this.allocateRefundTotal();
     }
 

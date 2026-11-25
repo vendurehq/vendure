@@ -5,7 +5,15 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { getTaxShare, grossPriceOf, hasTaxAmounts, netPriceOf } from '../../common/tax-utils';
+import {
+    applyTaxShare,
+    getTaxShare,
+    grossPriceOf,
+    hasTaxAmounts,
+    netPriceOf,
+    StoredTaxLine,
+    sumTaxAmounts,
+} from '../../common/tax-utils';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
@@ -22,12 +30,6 @@ import { Allocation } from '../stock-movement/allocation.entity';
 import { Cancellation } from '../stock-movement/cancellation.entity';
 import { Sale } from '../stock-movement/sale.entity';
 import { TaxCategory } from '../tax-category/tax-category.entity';
-
-/**
- * A TaxLine as stored on an OrderLine. When the TaxLineCalculationStrategy returns an absolute
- * `amount`, the OrderCalculator records the taxable line total that the amount applies to.
- */
-type StoredTaxLine = TaxLine & { taxBase?: number };
 
 /**
  * @description
@@ -389,7 +391,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * @internal
      */
     getRefundPriceParts(): Array<{ priceWithTax: number; quantity: number }> {
-        if (this.quotedLinePrice == null && !hasTaxAmounts(this.taxLines)) {
+        if (!this.isQuoted() && !hasTaxAmounts(this.taxLines)) {
             return [];
         }
         const parts = (this.cancellationLines ?? [])
@@ -420,7 +422,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     getAdjustmentAmount(amount: number, includesTax: boolean): number {
         // Existing unit-price strategies keep their historical promotion tax treatment.
-        if (this.quotedLinePrice == null) {
+        if (!this.isQuoted()) {
             return amount;
         }
         if (includesTax === this.listPriceIncludesTax) {
@@ -503,7 +505,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         if (newBase === oldBase) {
             return;
         }
-        const oldTotal = summate(taxLines as Array<Required<StoredTaxLine>>, 'amount');
+        const oldTotal = sumTaxAmounts(taxLines);
         // The same total that the price getters derive from the old amounts.
         const newTotal = oldBase ? roundMoney((newBase * oldTotal) / oldBase) : 0;
         let allocated = 0;
@@ -533,6 +535,17 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
 
     /**
      * @description
+     * Whether the line is priced from a quote returned by
+     * `OrderItemPriceCalculationStrategy.calculateLinePrices`, rather than from its unit price.
+     *
+     * @internal
+     */
+    isQuoted(): boolean {
+        return this.getQuote() != null;
+    }
+
+    /**
+     * @description
      * The unit price that a promotion should discount, in the requested tax basis. For a line priced
      * by `OrderItemPriceCalculationStrategy.calculateLinePrices` this is the quote divided by its
      * quantity, before rounding, so a percentage discount matches the quoted line total. For other
@@ -547,8 +560,9 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * @since 3.9.0
      */
     getUnitPriceForPromotion(withTax: boolean): number {
-        if (this.quotedLinePrice != null && this.quotedQuantity) {
-            return this.withTaxBasis(this.quotedLinePrice / this.quotedQuantity, withTax);
+        const quote = this.getQuote();
+        if (quote) {
+            return this.withTaxBasis(quote.price / quote.quantity, withTax);
         }
         return withTax ? this.unitPriceWithTax : this.unitPrice;
     }
@@ -558,9 +572,9 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         quantity: number,
         adjustments?: AdjustmentType.PROMOTION | 'all',
     ): number {
-        const { quotedLinePrice, quotedQuantity } = this;
-        const quoted = quotedLinePrice != null && quotedQuantity != null && quotedQuantity > 0;
-        const amount = quoted ? this.scaleAmount(quotedLinePrice, quantity, quotedQuantity) : this.listPrice;
+        const quote = this.getQuote();
+        const quoted = quote != null;
+        const amount = quote ? this.scaleAmount(quote.price, quantity, quote.quantity) : this.listPrice;
         let adjustmentTotal = 0;
         if (adjustments && this.quantity > 0) {
             for (const adjustment of this.adjustments ?? []) {
@@ -582,13 +596,18 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         }
         // With absolute tax amounts, the tax is that amount's share of this exact total, rounded
         // once. On the prorated line total it is exactly the stored amount.
-        const base = roundMoney(total, roundingQuantity);
-        const tax = roundMoney(base * taxShare);
-        return withTax ? base + tax : base - tax;
+        return applyTaxShare(roundMoney(total, roundingQuantity), taxShare, withTax);
     }
 
     private getTaxShare(): number | undefined {
         return getTaxShare(this.taxLines);
+    }
+
+    private getQuote(): { price: number; quantity: number } | undefined {
+        const { quotedLinePrice, quotedQuantity } = this;
+        return quotedLinePrice != null && quotedQuantity != null && quotedQuantity > 0
+            ? { price: quotedLinePrice, quantity: quotedQuantity }
+            : undefined;
     }
 
     private scaleAmount(amount: number, quantity: number, basis: number): number {

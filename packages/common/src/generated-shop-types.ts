@@ -3573,9 +3573,10 @@ export type TaxCategory = Node & {
 export type TaxLine = {
     __typename?: 'TaxLine';
     /**
-     * The absolute tax of the whole OrderLine for this TaxLine, when the TaxLineCalculationStrategy
-     * provides it, for example from an ERP. The line's tax then equals this amount rather than being
-     * derived from the rate. Null when the tax is derived from the rate.
+     * The absolute tax of the whole item (OrderLine, ShippingLine or Surcharge) for this TaxLine, when
+     * the TaxLineCalculationStrategy provides it, for example from an ERP. The item's tax then equals
+     * this amount rather than being derived from the rate. After a partial cancellation it is the tax
+     * of the remaining units. Null when the tax is derived from the rate.
      */
     amount?: Maybe<Scalars['Money']['output']>;
     description: Scalars['String']['output'];
