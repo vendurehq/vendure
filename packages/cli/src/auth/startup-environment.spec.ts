@@ -12,7 +12,7 @@ import { loadVendureConfigFromPath } from '../shared/load-vendure-config-file.js
 import { clearStartupRecord } from '../shared/startup-record.js';
 
 import { getAuthFilePath, resolveConsoleApiUrl } from './auth-options.js';
-import { readCloudTokenEnv, requireCredential } from './credential.js';
+import { describeAccount, readCloudTokenEnv, requireCredential } from './credential.js';
 import { authEnvironment, recordStartupEnvironment } from './startup-environment.js';
 
 const AUTH_VARIABLES = ['VENDURE_CLOUD_TOKEN', 'VENDURE_CONSOLE_API_URL', 'VENDURE_CLI_CONFIG_DIR'] as const;
@@ -148,6 +148,40 @@ describe('a project .env that moves the config directory it falls back to', () =
             expect(authEnvironment().VENDURE_CLI_CONFIG_DIR).toBe(startupDir);
         },
     );
+});
+
+describe('a project .env that sets the Console app', () => {
+    const CONSOLE_VARIABLES = ['VENDURE_CONSOLE_API_URL', 'VENDURE_CONSOLE_APP_URL'] as const;
+    const saved = Object.fromEntries(CONSOLE_VARIABLES.map(name => [name, process.env[name]]));
+
+    beforeEach(() => {
+        // The CLI started with a loopback Console API, and no Console app.
+        process.env.VENDURE_CONSOLE_API_URL = 'http://127.0.0.1:3000';
+        delete process.env.VENDURE_CONSOLE_APP_URL;
+        recordStartupEnvironment();
+    });
+
+    afterEach(() => {
+        clearStartupRecord();
+        for (const [name, value] of Object.entries(saved)) {
+            if (value === undefined) {
+                delete process.env[name];
+            } else {
+                process.env[name] = value;
+            }
+        }
+    });
+
+    it('does not change the Console app the account names', () => {
+        // What a repository's .env does once it is loaded.
+        process.env.VENDURE_CONSOLE_APP_URL = 'http://127.0.0.1:9999';
+
+        expect(authEnvironment().VENDURE_CONSOLE_APP_URL).toBeUndefined();
+        expect(describeAccount({ source: 'environment', token: 'vcdk' })).toEqual({
+            consoleUrl: 'http://127.0.0.1:3000',
+            apiUrl: 'http://127.0.0.1:3000',
+        });
+    });
 });
 
 describe('authEnvironment outside the CLI', () => {
