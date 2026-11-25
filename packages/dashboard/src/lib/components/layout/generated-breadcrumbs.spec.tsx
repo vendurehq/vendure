@@ -1,28 +1,34 @@
-import React from 'react';
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setNavMenuConfig } from '../../framework/nav-menu/nav-menu-extensions.js';
 import { GeneratedBreadcrumbs } from './generated-breadcrumbs.js';
 
 const routerState = vi.hoisted(() => ({
     pathname: '/',
-    matches: [] as Array<{ pathname: string; loaderData?: { breadcrumb?: unknown } }>,
+    matches: [] as Array<{ pathname: string; status: string; loaderData?: { breadcrumb?: unknown } }>,
 }));
 
 vi.mock('@tanstack/react-router', () => ({
     useRouterState: ({ select }: { select: (s: unknown) => unknown }) =>
-        select({ matches: routerState.matches, location: { pathname: routerState.pathname } }),
+        select({
+            matches: routerState.matches,
+            location: { pathname: routerState.pathname },
+        }),
     Link: ({ to, children }: { to: string; children?: React.ReactNode }) => <a href={to}>{children}</a>,
 }));
 
 vi.mock('@lingui/react', () => ({
     useLingui: () => ({ i18n: { t: (value: string) => value, messages: {} } }),
+    // The Trans macro compiles to this runtime Trans
+    Trans: ({ message, id }: { message?: string; id: string }) => <>{message ?? id}</>,
 }));
 
 function render(pathname: string, breadcrumb: unknown): string {
     routerState.pathname = pathname;
-    routerState.matches = [{ pathname, loaderData: { breadcrumb } }];
+    routerState.matches = [{ pathname, status: 'success', loaderData: { breadcrumb } }];
     return renderToStaticMarkup(<GeneratedBreadcrumbs />);
 }
 
@@ -107,5 +113,77 @@ describe('GeneratedBreadcrumbs', () => {
 
         expect(markup).not.toContain('breadcrumb-ellipsis');
         expect(markup).not.toContain('max-md:hidden');
+    });
+
+    describe('during a navigation', () => {
+        const actEnvironment = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+        let container: HTMLDivElement;
+        let root: ReturnType<typeof createRoot>;
+
+        beforeEach(() => {
+            actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+            container = document.createElement('div');
+            root = createRoot(container);
+        });
+
+        afterEach(() => {
+            act(() => root.unmount());
+            delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+        });
+
+        const show = (
+            status: 'success' | 'pending' | 'error',
+            pathname: string,
+            breadcrumb?: unknown,
+            location = pathname,
+        ) => {
+            routerState.pathname = location;
+            routerState.matches = [{ pathname, status, loaderData: breadcrumb ? { breadcrumb } : undefined }];
+            act(() => root.render(<GeneratedBreadcrumbs />));
+            return crumbTexts(container.innerHTML);
+        };
+        const products = [{ path: '/products', label: 'Products' }];
+        const showsLoadingCrumb = () => container.querySelector('[data-slot="skeleton"]') !== null;
+
+        // OSS-1486 — while the next page loads, the breadcrumb showed the previous page
+        it('shows the crumbs of the next list page while it loads', () => {
+            show('success', '/customers', [{ path: '/customers', label: 'Customers' }]);
+
+            expect(show('pending', '/products')).toEqual(['Catalog', 'Products']);
+            expect(showsLoadingCrumb()).toBe(false);
+        });
+
+        // OSS-1486 — the crumb that needs loader data is a skeleton until the data arrives
+        it('shows a loading crumb for the entity of the next detail page', () => {
+            show('success', '/products', products);
+
+            expect(show('pending', '/products/1')).toEqual(['Catalog', 'Products']);
+            expect(showsLoadingCrumb()).toBe(true);
+            expect(show('success', '/products/1', [...products, 'Laptop'])).toEqual([
+                'Catalog',
+                'Products',
+                'Laptop',
+            ]);
+            expect(showsLoadingCrumb()).toBe(false);
+        });
+
+        // OSS-1486 — the section crumb of the next page joined the crumbs of the current one
+        it('never mixes the crumbs of the current and the next page', () => {
+            show('success', '/products', products);
+
+            // The location is the next page, the matches are still the current page
+            const crumbs = show('success', '/products', products, '/customers/5');
+            expect(crumbs).toEqual(['Customers']);
+            expect(crumbs).not.toContain('Products');
+            expect(showsLoadingCrumb()).toBe(true);
+        });
+
+        it('shows the crumbs of the page when the next page fails to load', () => {
+            show('success', '/products', products);
+            show('pending', '/customers/5');
+
+            expect(show('error', '/customers/5')).toEqual(['Customers']);
+            expect(showsLoadingCrumb()).toBe(false);
+        });
     });
 });

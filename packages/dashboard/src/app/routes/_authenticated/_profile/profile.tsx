@@ -41,6 +41,7 @@ const pageId = 'profile';
 
 export const Route = createFileRoute('/_authenticated/_profile/profile')({
     component: ProfilePage,
+    staticData: { pendingSkeleton: 'detail' },
     loader: async ({ context }) => {
         const { extendedQuery } = extendDetailFormQuery(addCustomFields(activeAdministratorDocument), pageId);
         await context.queryClient.ensureQueryData(
