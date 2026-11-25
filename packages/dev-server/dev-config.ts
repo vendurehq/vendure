@@ -19,6 +19,7 @@ import {
 } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
+import { McpPlugin } from '@vendure/mcp-plugin';
 import 'dotenv/config';
 import { createRequire } from 'node:module';
 import path from 'path';
@@ -155,6 +156,12 @@ export const devConfig: VendureConfig = {
                 changeEmailAddressUrl: `${dashboardUrl}/change-email-address`,
                 adminPasswordResetUrl: `${dashboardUrl}/reset-password`,
             },
+        }),
+        // The Store MCP, which `vendure store check` and the MCP tools use. `vendure dev` trusts the
+        // local `vendure mcp` server. The secret is for this development server only.
+        McpPlugin.init({
+            oauth: { tokenSecret: process.env.MCP_TOKEN_SECRET ?? 'dev-server-mcp-token-secret' },
+            shopAccess: 'anonymous',
         }),
         ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
         SERVE_STATIC_DASHBOARD
