@@ -21,6 +21,8 @@ import { runCommand } from './steps.js';
 import { StorefrontStarter } from './storefront-starters.js';
 import { AgentClient } from './types.js';
 
+/** The server `vendure mcp install` adds. It must match `SERVER_NAME` in `@vendure/cli`, which a spec checks. */
+export const VENDURE_MCP_SERVER_NAME = 'vendure';
 export const DOCS_MCP_SERVER_NAME = 'vendure-docs';
 export const DOCS_MCP_URL = 'https://docs.vendure.io/mcp';
 
@@ -95,7 +97,7 @@ export function cursorConfig(printed: string): string {
 
 /** Enables both servers, so each person sees only Claude Code's one-time prompt to trust the folder. */
 export function claudeSettings(): string {
-    return json({ enabledMcpjsonServers: ['vendure', DOCS_MCP_SERVER_NAME] });
+    return json({ enabledMcpjsonServers: [VENDURE_MCP_SERVER_NAME, DOCS_MCP_SERVER_NAME] });
 }
 
 export interface AgentsMdInput {
@@ -237,12 +239,32 @@ async function writeCursorConfig(
         return undefined;
     }
     write(file, docsServerConfig('cursor'));
+    if ('reason' in installed && !installed.retryable) {
+        // Running it again fails the same way, and the reason says what to do instead.
+        return { client: 'cursor', reason: installed.reason, retryable: false };
+    }
     const why = 'reason' in installed ? installed.reason : '`vendure mcp install` printed no entry';
     return {
         client: 'cursor',
-        reason: `${why}. Run \`${input.pmInfo.exec} vendure mcp install --client cursor\` and add the entry it prints to ${file}`,
+        reason: `${why.replace(/\.$/, '')}. Run ${cursorInstallStep(input.pmInfo.exec)}`,
         retryable: false,
     };
+}
+
+/** How to complete Cursor's config, which `vendure mcp install` only prints. */
+export function cursorInstallStep(exec: string): string {
+    return `\`${exec} vendure mcp install --client cursor\` and add the entry it prints to ${CLIENT_CONFIG_FILES.cursor}`;
+}
+
+/** The commands that add the `vendure` server to each client's config, as one sentence fragment. */
+export function mcpInstallSteps(agents: readonly AgentClient[], exec: string): string {
+    return agents
+        .map(client =>
+            client === 'cursor'
+                ? cursorInstallStep(exec)
+                : `\`${exec} vendure mcp install --client ${client}\``,
+        )
+        .join(', ');
 }
 
 /**

@@ -10,6 +10,7 @@ import {
     DOCS_MCP_URL,
     docsServerConfig,
     renderAgentsMd,
+    VENDURE_MCP_SERVER_NAME,
     withDocsServer,
     writeAgentFiles,
 } from './agent-files.js';
@@ -101,6 +102,7 @@ describe('MCP configs', () => {
             path.join(import.meta.dirname, '../../cli/src/commands/mcp/install/client-config.ts'),
             'utf-8',
         );
+        expect(source).toContain(`export const SERVER_NAME = '${VENDURE_MCP_SERVER_NAME}';`);
         for (const [client, file] of Object.entries(CLIENT_CONFIG_FILES)) {
             // Matches the path in the client's entry, whatever the object's layout or quotes.
             expect(source).toMatch(new RegExp(`${client}: \\{[^}]*['"]${file.replace(/\./g, '\\.')}['"]`));
@@ -238,6 +240,20 @@ describe('writeAgentFiles()', () => {
         });
         expect(fs.existsSync(path.join(dir, 'CLAUDE.md'))).toBe(false);
         expect(fs.existsSync(path.join(dir, '.claude'))).toBe(false);
+    });
+
+    it('names no command for Cursor when running vendure mcp install again cannot help', async () => {
+        const dir = path.join(workDir, 'blocked');
+        const result = await writeAgentFiles({
+            ...base,
+            agents: ['cursor'],
+            root: dir,
+            serverDir: dir,
+            mcpInstallUnavailable: { reason: 'add the server by hand', retryable: false },
+        });
+        expect(result.failed).toEqual([
+            { client: 'cursor', reason: 'add the server by hand', retryable: false },
+        ]);
     });
 
     it('reports Cursor when vendure mcp install printed no entry', async () => {

@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
-import { AgentFilesResult, McpInstallUnavailable, writeAgentFiles } from './agent-files.js';
+import { AgentFilesResult, mcpInstallSteps, McpInstallUnavailable, writeAgentFiles } from './agent-files.js';
 import { SERVER_PORT, STOREFRONT_PORT } from './constants.js';
 import { CreateError } from './errors.js';
 import { getPackageManagerInfo, PackageManagerInfo } from './package-manager.js';
@@ -264,16 +264,14 @@ async function install(project: Project): Promise<void> {
         // None of the agent files needs the install except the `vendure` MCP entry, so they are
         // written before create stops. Without git, the same checks as a finished run apply: a
         // project inside another repository, or a workspace with no repository of its own.
-        const blocked = options.git
-            ? undefined
-            : await whyMcpInstallCannotRun({ ...options, install: true }, root);
+        const blocked = options.git ? undefined : await whyMcpInstallCannotRun(options, root);
         await writeProjectAgentFiles(project, blocked ?? NOT_INSTALLED);
         const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
         const fix = [
             e.fix,
             `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
         ];
-        const mcpInstall = `\`${pmInfo.exec} vendure mcp install --client <client>\` for each agent client`;
+        const mcpInstall = mcpInstallSteps(options.agents, pmInfo.exec);
         if (options.git) {
             // `vendure mcp install` writes at the git root, so the repository comes first.
             fix.push(
@@ -303,6 +301,10 @@ async function writeProjectAgentFiles(
     unavailable?: McpInstallUnavailable,
 ): Promise<AgentFilesResult> {
     const { options, context, root, serverDir } = project;
+    if (!options.agents.length) {
+        // The record written with the project files already names no client.
+        return { written: [], failed: [] };
+    }
     context.reporter.start('Writing the agent files');
     const agentFiles = await writeAgentFiles({
         agents: options.agents,
@@ -341,10 +343,11 @@ const INSIDE_ANOTHER_REPOSITORY = [
     "repository's root. Add the `vendure` server to the config by hand",
 ].join(' ');
 
-function noRepositoryInWorkspace(exec: string): string {
+function noRepositoryInWorkspace(options: CreateOptions): string {
+    const exec = getPackageManagerInfo(options.packageManager).exec;
     return [
         'the project has no git repository, so `vendure mcp install` would write into apps/server.',
-        `Run \`git init\`, then \`${exec} vendure mcp install\` in the project root`,
+        `Run \`git init\`, then in the project root ${mcpInstallSteps(options.agents, exec)}`,
     ].join(' ');
 }
 
@@ -365,7 +368,7 @@ async function whyMcpInstallCannotRun(
     }
     if (top.code !== 0 && options.storefront) {
         return {
-            reason: noRepositoryInWorkspace(getPackageManagerInfo(options.packageManager).exec),
+            reason: noRepositoryInWorkspace(options),
             retryable: false,
         };
     }

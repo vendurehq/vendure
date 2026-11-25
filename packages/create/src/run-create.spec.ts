@@ -163,7 +163,7 @@ describe('runCreate() when the install fails', () => {
             (e: unknown) => e as CreateError,
         );
 
-        expect(error?.fix).toContain('After the install, run `npx vendure mcp install --client <client>`');
+        expect(error?.fix).toContain('After the install, run `npx vendure mcp install --client claude`.');
         for (const file of ['AGENTS.md', 'CLAUDE.md', '.mcp.json', '.agents/skills/vendure-cli/SKILL.md']) {
             expect(fs.existsSync(path.join(options.projectDir, file))).toBe(true);
         }
@@ -188,9 +188,28 @@ describe('runCreate() when the install fails', () => {
             (e: unknown) => e as CreateError,
         );
         expect(error?.fix).toContain(
-            'After the install, run `git init`, then `npx vendure mcp install --client <client>` for each agent client, then `git add -A` and `git commit`.',
+            'After the install, run `git init`, then `npx vendure mcp install --client claude`, then `git add -A` and `git commit`.',
         );
         expect(fs.existsSync(path.join(options.projectDir, 'apps/server/.mcp.json'))).toBe(false);
+    });
+
+    it("names each client, and Cursor's printed entry, in the fix", async () => {
+        install.fail = true;
+        const options = optionsFor('failed-install-cursor', { agents: ['claude', 'cursor'] });
+        const error = await runCreate(options, {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter: recordingReporter().reporter,
+            projectDirArg: 'x',
+        }).then(
+            () => undefined,
+            (e: unknown) => e as CreateError,
+        );
+        expect(error?.fix).toContain(
+            'After the install, run `npx vendure mcp install --client claude`, ' +
+                '`npx vendure mcp install --client cursor` and add the entry it prints to .cursor/mcp.json.',
+        );
     });
 
     it('says why the configs need more without git in a workspace', async () => {
@@ -227,8 +246,25 @@ describe('runCreate() when vendure mcp install cannot complete the configs', () 
         expect(result.agentFiles.failed).toEqual([
             { client: 'claude', reason: expect.stringContaining('would write into apps/server') },
         ]);
+        expect(result.agentFiles.failed[0].reason).toContain('`npx vendure mcp install --client claude`');
         expect(result.next.some(line => line.includes('mcp install'))).toBe(false);
         expect(fs.existsSync(path.join(workDir, 'no-git-workspace/apps/server/.mcp.json'))).toBe(false);
+    });
+
+    // `vendure mcp install --client cursor` checks the outer root, which cannot resolve the project's CLI.
+    it('names no command for Cursor inside another repository', async () => {
+        const outer = path.join(workDir, 'outer-repo-cursor');
+        fs.mkdirSync(outer);
+        execFileSync('git', ['init', '--quiet', outer]);
+        const result = await run({
+            ...optionsFor('outer-repo-cursor/inner', { agents: ['cursor'], git: true }),
+            projectDir: path.join(outer, 'inner'),
+        });
+        expect(result.agentFiles.failed).toHaveLength(1);
+        expect(result.agentFiles.failed[0].reason).toContain(
+            'Add the `vendure` server to the config by hand',
+        );
+        expect(result.agentFiles.failed[0].reason).not.toContain('mcp install --client');
     });
 
     it('names no command for a project inside another repository', async () => {
@@ -247,6 +283,21 @@ describe('runCreate() when vendure mcp install cannot complete the configs', () 
             { client: 'claude', reason: expect.stringContaining('inside another git repository') },
         ]);
         expect(result.next.some(line => line.includes('mcp install'))).toBe(false);
+    });
+});
+
+describe('runCreate() with no agent clients', () => {
+    it('skips the agent files step', async () => {
+        const { events, reporter } = recordingReporter();
+        const result = await runCreate(optionsFor('no-agents', { install: false }), {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter,
+            projectDirArg: 'x',
+        });
+        expect(result.agentFiles).toEqual({ written: [], failed: [] });
+        expect(events.some(event => event.includes('agent files'))).toBe(false);
     });
 });
 
