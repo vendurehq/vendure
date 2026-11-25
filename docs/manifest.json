@@ -2328,7 +2328,7 @@
                   "title": "Importer",
                   "slug": "importer",
                   "file": "docs/reference/typescript-api/import-export/importer.mdx",
-                  "lastModified": "2026-03-13T15:04:56+01:00"
+                  "lastModified": "2026-11-25T14:55:44Z"
                 },
                 {
                   "title": "ImportExportOptions",
@@ -2570,13 +2570,25 @@
                   "title": "BigIntMoneyStrategy",
                   "slug": "big-int-money-strategy",
                   "file": "docs/reference/typescript-api/money/big-int-money-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-25T14:55:44Z"
+                },
+                {
+                  "title": "DEFAULT_MONEY_PRECISION",
+                  "slug": "default_money_precision",
+                  "file": "docs/reference/typescript-api/money/default_money_precision.mdx",
+                  "lastModified": "2026-11-25T14:55:44Z"
                 },
                 {
                   "title": "DefaultMoneyStrategy",
                   "slug": "default-money-strategy",
                   "file": "docs/reference/typescript-api/money/default-money-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-25T14:55:44Z"
+                },
+                {
+                  "title": "GetMoneyPrecision",
+                  "slug": "get-money-precision",
+                  "file": "docs/reference/typescript-api/money/get-money-precision.mdx",
+                  "lastModified": "2026-11-25T14:55:44Z"
                 },
                 {
                   "title": "Money Decorator",
@@ -2588,7 +2600,7 @@
                   "title": "MoneyStrategy",
                   "slug": "money-strategy",
                   "file": "docs/reference/typescript-api/money/money-strategy.mdx",
-                  "lastModified": "2026-07-23T09:48:28+02:00"
+                  "lastModified": "2026-11-25T14:55:44Z"
                 },
                 {
                   "title": "RoundMoney",
@@ -2692,7 +2704,7 @@
                   "title": "OrderItemPriceCalculationStrategy",
                   "slug": "order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-11-25T14:55:44Z"
                 },
                 {
                   "title": "OrderLineDiscountDistributionStrategy",
@@ -3890,7 +3902,7 @@
                   "title": "EmailGenerator",
                   "slug": "email-generator",
                   "file": "docs/reference/core-plugins/email-plugin/email-generator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-25T14:55:44Z"
                 },
                 {
                   "title": "EmailPluginOptions",
@@ -3923,7 +3935,7 @@
                   "lastModified": "2026-11-24T13:09:43Z"
                 }
               ],
-              "lastModified": "2026-10-21T08:21:29Z"
+              "lastModified": "2026-11-25T14:55:44Z"
             },
             {
               "title": "GraphiQLPlugin",
