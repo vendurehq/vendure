@@ -28,7 +28,10 @@ export const Route = createFileRoute('/_authenticated/_sellers/sellers_/$id')({
     staticData: {
         pendingSkeleton: {
             pageId,
-            blocks: [{ column: 'main', blockId: 'main-form' }],
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Seller' },
+            ],
         },
     },
     loader: detailPageRouteLoader({

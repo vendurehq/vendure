@@ -30,7 +30,15 @@ export const Route = createFileRoute('/_authenticated/_global-settings/global-se
     staticData: {
         pendingSkeleton: {
             pageId,
-            blocks: [{ column: 'main', blockId: 'main-form', rows: 2 }],
+            blocks: [
+                { column: 'main', blockId: 'main-form', rows: 2 },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'GlobalSettings',
+                },
+            ],
         },
     },
     loader: async ({ context }) => {

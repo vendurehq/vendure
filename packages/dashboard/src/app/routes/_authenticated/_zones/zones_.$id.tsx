@@ -30,6 +30,7 @@ export const Route = createFileRoute('/_authenticated/_zones/zones_/$id')({
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Zone' },
                 { column: 'main', blockId: 'countries', content: 'table' },
             ],
         },

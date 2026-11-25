@@ -34,6 +34,7 @@ export const Route = createFileRoute('/_authenticated/_tax-rates/tax-rates_/$id'
             blocks: [
                 { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
                 { column: 'main', blockId: 'main-form', rows: 2 },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'TaxRate' },
             ],
         },
     },

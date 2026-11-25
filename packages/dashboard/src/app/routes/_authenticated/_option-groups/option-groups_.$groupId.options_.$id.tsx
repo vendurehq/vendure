@@ -40,7 +40,15 @@ export const Route = createFileRoute('/_authenticated/_option-groups/option-grou
     staticData: {
         pendingSkeleton: {
             pageId,
-            blocks: [{ column: 'main', blockId: 'main-form' }],
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'ProductOption',
+                },
+            ],
         },
     },
     loader: async ({

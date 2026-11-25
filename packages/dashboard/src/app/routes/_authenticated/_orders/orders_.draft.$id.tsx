@@ -54,7 +54,7 @@ export const Route = createFileRoute('/_authenticated/_orders/orders_/draft/$id'
     component: DraftOrderPage,
     staticData: {
         pendingSkeleton: {
-            pageId: 'draft-order',
+            pageId: 'draft-order-detail',
             blocks: [
                 { column: 'side', blockId: 'draft-order-status', content: 'list', rows: 2, title: true },
                 { column: 'main', blockId: 'order-table', content: 'list', rows: 4 },

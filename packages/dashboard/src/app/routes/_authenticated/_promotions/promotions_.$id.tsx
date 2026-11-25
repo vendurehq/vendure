@@ -44,6 +44,12 @@ export const Route = createFileRoute('/_authenticated/_promotions/promotions_/$i
             blocks: [
                 { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
                 { column: 'main', blockId: 'main-form', rows: 3, editor: true },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'Promotion',
+                },
                 { column: 'main', blockId: 'conditions', content: 'list', rows: 2, title: true },
                 { column: 'main', blockId: 'actions', content: 'list', rows: 2, title: true },
             ],

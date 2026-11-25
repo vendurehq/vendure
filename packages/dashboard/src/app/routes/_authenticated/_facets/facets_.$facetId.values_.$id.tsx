@@ -36,7 +36,15 @@ export const Route = createFileRoute('/_authenticated/_facets/facets_/$facetId/v
     staticData: {
         pendingSkeleton: {
             pageId,
-            blocks: [{ column: 'main', blockId: 'main-form' }],
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'FacetValue',
+                },
+            ],
         },
     },
     loader: detailPageRouteLoader({

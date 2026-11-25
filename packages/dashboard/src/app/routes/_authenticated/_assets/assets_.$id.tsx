@@ -52,6 +52,7 @@ export const Route = createFileRoute('/_authenticated/_assets/assets_/$id')({
             pageId,
             blocks: [
                 { column: 'main', blockId: 'asset-preview', content: 'media' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Asset' },
                 { column: 'side', blockId: 'asset-name', content: 'list', rows: 4 },
                 { column: 'side', blockId: 'asset-properties', content: 'list', rows: 5 },
                 { column: 'side', blockId: 'asset-size', content: 'list', rows: 2 },

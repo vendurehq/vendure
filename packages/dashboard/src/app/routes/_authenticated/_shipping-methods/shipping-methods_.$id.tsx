@@ -42,6 +42,12 @@ export const Route = createFileRoute('/_authenticated/_shipping-methods/shipping
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form', rows: 2, editor: true },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'ShippingMethod',
+                },
                 { column: 'main', blockId: 'conditions', content: 'list', rows: 2, title: true },
                 { column: 'main', blockId: 'calculator', content: 'list', rows: 2, title: true },
             ],

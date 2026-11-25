@@ -46,6 +46,12 @@ export const Route = createFileRoute('/_authenticated/_profile/profile')({
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form', rows: 2 },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'Administrator',
+                },
                 { column: 'side', blockId: 'profile-picture', content: 'media', title: true },
                 { column: 'side', blockId: 'auth-methods', content: 'list', rows: 2, title: true },
             ],

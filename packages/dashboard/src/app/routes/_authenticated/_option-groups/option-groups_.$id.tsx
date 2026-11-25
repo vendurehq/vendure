@@ -49,6 +49,12 @@ export const Route = createFileRoute('/_authenticated/_option-groups/option-grou
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form' },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'ProductOptionGroup',
+                },
                 { column: 'main', blockId: 'product-options', content: 'table' },
                 { column: 'side', blockId: 'products', content: 'list', rows: 3, title: true },
             ],

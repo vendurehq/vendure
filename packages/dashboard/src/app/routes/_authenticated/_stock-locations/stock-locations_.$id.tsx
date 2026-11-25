@@ -31,7 +31,15 @@ export const Route = createFileRoute('/_authenticated/_stock-locations/stock-loc
     staticData: {
         pendingSkeleton: {
             pageId,
-            blocks: [{ column: 'main', blockId: 'main-form', editor: true }],
+            blocks: [
+                { column: 'main', blockId: 'main-form', editor: true },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'StockLocation',
+                },
+            ],
         },
     },
     loader: detailPageRouteLoader({

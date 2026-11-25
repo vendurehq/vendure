@@ -67,6 +67,7 @@ export const Route = createFileRoute('/_authenticated/_channels/channels_/$id')(
             blocks: [
                 { column: 'main', blockId: 'main-form', rows: 3 },
                 { column: 'main', blockId: 'channel-defaults', rows: 4, title: true },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Channel' },
                 { column: 'side', blockId: 'appearance', content: 'list', rows: 2, title: true },
             ],
         },

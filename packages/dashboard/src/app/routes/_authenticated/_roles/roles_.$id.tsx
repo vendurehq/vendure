@@ -32,6 +32,7 @@ export const Route = createFileRoute('/_authenticated/_roles/roles_/$id')({
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Role' },
                 { column: 'main', blockId: 'permissions', content: 'list', rows: 6 },
             ],
         },

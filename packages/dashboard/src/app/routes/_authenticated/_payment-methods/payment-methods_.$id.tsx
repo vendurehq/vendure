@@ -44,6 +44,12 @@ export const Route = createFileRoute('/_authenticated/_payment-methods/payment-m
                 { column: 'main', blockId: 'main-form', editor: true },
                 {
                     column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'PaymentMethod',
+                },
+                {
+                    column: 'main',
                     blockId: 'payment-eligibility-checker',
                     content: 'list',
                     rows: 1,

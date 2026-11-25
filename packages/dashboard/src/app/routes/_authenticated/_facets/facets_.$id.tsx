@@ -36,6 +36,7 @@ export const Route = createFileRoute('/_authenticated/_facets/facets_/$id')({
             blocks: [
                 { column: 'side', blockId: 'privacy', content: 'list', rows: 3 },
                 { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Facet' },
                 { column: 'main', blockId: 'facet-values', content: 'table' },
             ],
         },

@@ -11,7 +11,14 @@ import { describe, expect, it } from 'vitest';
 
 const ROUTES_DIR = path.join(import.meta.dirname, '_authenticated');
 
-type Block = { blockId: string; column: string; conditional: boolean };
+type Block = { blockId: string; column: string; conditional: boolean; entityType?: string };
+type SkeletonBlock = { blockId: string; column: string; entityType?: string };
+
+/** Components that render a `PageBlock` with a fixed `blockId` in the `column` they get. */
+const WRAPPER_BLOCKS: Record<string, string> = {
+    CustomFieldsPageBlock: 'custom-fields',
+    RolesPageBlock: 'roles',
+};
 
 function routeFiles(dir: string): string[] {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -46,38 +53,92 @@ function stringProperty(node: ts.ObjectLiteralExpression, name: string): string 
     return undefined;
 }
 
-/** The blocks of the `pendingSkeleton` object of a route, or undefined. */
-function skeletonBlocks(source: ts.SourceFile): Array<{ blockId: string; column: string }> | undefined {
-    let blocks: Array<{ blockId: string; column: string }> | undefined;
+/** The `pendingSkeleton` object of a route: its blocks and the `pageId` it names. */
+function skeletonOf(source: ts.SourceFile): { pageId?: string; blocks: SkeletonBlock[] } | undefined {
+    let skeleton: { pageId?: string; blocks: SkeletonBlock[] } | undefined;
     const visit = (node: ts.Node) => {
         if (
             ts.isPropertyAssignment(node) &&
             node.name.getText() === 'pendingSkeleton' &&
             ts.isObjectLiteralExpression(node.initializer)
         ) {
-            const list = node.initializer.properties.find(
+            const object = node.initializer;
+            const list = object.properties.find(
                 (p): p is ts.PropertyAssignment =>
                     ts.isPropertyAssignment(p) && p.name.getText() === 'blocks',
             );
-            if (list && ts.isArrayLiteralExpression(list.initializer)) {
-                blocks = list.initializer.elements.filter(ts.isObjectLiteralExpression).map(element => ({
-                    blockId: stringProperty(element, 'blockId') ?? '',
-                    column: stringProperty(element, 'column') ?? '',
-                }));
+            const pageIdProperty = object.properties.find(p => p.name?.getText() === 'pageId');
+            skeleton = {
+                pageId:
+                    pageIdProperty && ts.isShorthandPropertyAssignment(pageIdProperty)
+                        ? constString(source, 'pageId')
+                        : stringProperty(object, 'pageId'),
+                blocks:
+                    list && ts.isArrayLiteralExpression(list.initializer)
+                        ? list.initializer.elements.filter(ts.isObjectLiteralExpression).map(element => ({
+                              blockId: stringProperty(element, 'blockId') ?? '',
+                              column: stringProperty(element, 'column') ?? '',
+                              entityType: stringProperty(element, 'entityType'),
+                          }))
+                        : [],
+            };
+        }
+        ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return skeleton;
+}
+
+/** The value of a top-level `const name = '...'`. */
+function constString(source: ts.SourceFile, name: string): string | undefined {
+    for (const statement of source.statements) {
+        if (ts.isVariableStatement(statement)) {
+            for (const declaration of statement.declarationList.declarations) {
+                if (
+                    declaration.name.getText() === name &&
+                    declaration.initializer &&
+                    ts.isStringLiteral(declaration.initializer)
+                ) {
+                    return declaration.initializer.text;
+                }
+            }
+        }
+    }
+    return undefined;
+}
+
+/** The page ids a page passes to `Page`, `OrderDetailShared` and the like. */
+function pageIds(source: ts.SourceFile): string[] {
+    const ids: string[] = [];
+    const visit = (node: ts.Node) => {
+        if (ts.isJsxAttribute(node) && node.name.getText() === 'pageId' && node.initializer) {
+            if (ts.isStringLiteral(node.initializer)) {
+                ids.push(node.initializer.text);
+            } else if (
+                ts.isJsxExpression(node.initializer) &&
+                node.initializer.expression &&
+                ts.isIdentifier(node.initializer.expression)
+            ) {
+                const value = constString(source, node.initializer.expression.text);
+                if (value) {
+                    ids.push(value);
+                }
             }
         }
         ts.forEachChild(node, visit);
     };
     visit(source);
-    return blocks;
+    return ids;
 }
 
 function jsxAttribute(node: ts.JsxOpeningLikeElement, name: string): string | undefined {
     for (const attribute of node.attributes.properties) {
         if (ts.isJsxAttribute(attribute) && attribute.name.getText() === name) {
-            return attribute.initializer && ts.isStringLiteral(attribute.initializer)
-                ? attribute.initializer.text
-                : undefined;
+            const value =
+                attribute.initializer && ts.isJsxExpression(attribute.initializer)
+                    ? attribute.initializer.expression
+                    : attribute.initializer;
+            return value && ts.isStringLiteral(value) ? value.text : undefined;
         }
     }
     return undefined;
@@ -96,8 +157,9 @@ function pageBlocks(source: ts.SourceFile): Block[] {
             : ts.isJsxSelfClosingElement(node)
               ? node
               : undefined;
-        if (opening && /^(PageBlock|FullWidthPageBlock)$/.test(opening.tagName.getText())) {
-            const blockId = jsxAttribute(opening, 'blockId');
+        const tag = opening?.tagName.getText() ?? '';
+        if (opening && (/^(PageBlock|FullWidthPageBlock)$/.test(tag) || tag in WRAPPER_BLOCKS)) {
+            const blockId = WRAPPER_BLOCKS[tag] ?? jsxAttribute(opening, 'blockId');
             if (blockId) {
                 let parent = node.parent;
                 let conditional = false;
@@ -107,11 +169,13 @@ function pageBlocks(source: ts.SourceFile): Block[] {
                     }
                     parent = parent.parent;
                 }
-                const column =
-                    opening.tagName.getText() === 'FullWidthPageBlock'
-                        ? 'full'
-                        : jsxAttribute(opening, 'column');
-                blocks.push({ blockId, column: column ?? '', conditional });
+                const column = tag === 'FullWidthPageBlock' ? 'full' : jsxAttribute(opening, 'column');
+                blocks.push({
+                    blockId,
+                    column: column ?? '',
+                    conditional,
+                    entityType: jsxAttribute(opening, 'entityType'),
+                });
             }
         }
         ts.forEachChild(node, visit);
@@ -134,14 +198,17 @@ function pageSources(file: string, source: ts.SourceFile): ts.SourceFile[] {
 const routes = routeFiles(ROUTES_DIR)
     .map(file => {
         const source = parse(file);
-        const skeleton = skeletonBlocks(source);
-        return skeleton
-            ? {
-                  name: path.relative(ROUTES_DIR, file),
-                  skeleton,
-                  blocks: pageSources(file, source).flatMap(pageBlocks),
-              }
-            : undefined;
+        const skeleton = skeletonOf(source);
+        if (!skeleton) {
+            return undefined;
+        }
+        const sources = pageSources(file, source);
+        return {
+            name: path.relative(ROUTES_DIR, file),
+            skeleton,
+            pageIds: pageIds(source),
+            blocks: sources.flatMap(pageBlocks),
+        };
     })
     .filter(route => route !== undefined);
 
@@ -153,11 +220,17 @@ describe('detail page skeletons', () => {
 
     it.each(routes.map(route => [route.name, route] as const))(
         '%s lists blocks the page renders, in their columns and order',
-        (_name, { skeleton, blocks }) => {
+        (_name, { skeleton: { pageId, blocks: skeleton }, pageIds, blocks }) => {
             const columns = ['main', 'side', 'full'];
+            expect(pageIds, "the pageId of the skeleton is the page's").toContain(pageId);
             for (const block of skeleton) {
                 expect(
-                    blocks.some(b => b.blockId === block.blockId && b.column === block.column),
+                    blocks.some(
+                        b =>
+                            b.blockId === block.blockId &&
+                            b.column === block.column &&
+                            b.entityType === block.entityType,
+                    ),
                     `${block.blockId} (${block.column}) is not a block of the page`,
                 ).toBe(true);
             }

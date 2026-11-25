@@ -75,6 +75,12 @@ export const Route = createFileRoute('/_authenticated/_customers/customers_/$id'
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form', rows: 3 },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'Customer',
+                },
                 { column: 'main', blockId: 'addresses', content: 'list', rows: 7, title: true },
                 { column: 'main', blockId: 'orders', content: 'table' },
                 { column: 'main', blockId: 'history', content: 'list', rows: 4, title: true },

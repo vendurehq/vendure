@@ -36,6 +36,7 @@ export const Route = createFileRoute('/_authenticated/_countries/countries_/$id'
             blocks: [
                 { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
                 { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Country' },
             ],
         },
     },
