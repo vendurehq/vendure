@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { toast } from '@/vdb/components/ui/sonner.js';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
@@ -212,6 +212,11 @@ export function usePriceFactor() {
     // `validity.badInput` tells that apart from a cleared field. It is read in `onInput`,
     // because React skips `onChange` when the reported value does not change.
     const [badInput, setBadInput] = useState(false);
+    // The dialog unmounts the input when it closes, so a reopened input is empty even if the
+    // previous one held unparseable text. Re-read `badInput` from each newly mounted input.
+    const syncBadInput = useCallback((input: HTMLInputElement | null) => {
+        if (input) setBadInput(input.validity.badInput);
+    }, []);
     const parsed = Number.parseFloat(value);
     const isEmpty = value === '' && !badInput;
     const priceFactorValid =
@@ -224,6 +229,7 @@ export function usePriceFactor() {
                 <Trans>Price conversion factor</Trans>
             </label>
             <Input
+                ref={syncBadInput}
                 type="number"
                 min="0"
                 max={MAX_PRICE_FACTOR}

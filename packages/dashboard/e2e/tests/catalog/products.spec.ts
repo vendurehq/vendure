@@ -861,11 +861,19 @@ test.describe('Product detail assign to channel', () => {
         try {
             await page.goto(`/products/${fixture.productId}`);
             await page.getByRole('button', { name: 'Assign to channel' }).click();
-            const dialog = await selectAssignChannel(page, fixture.channelCode);
-            const assign = dialog.getByRole('button', { name: 'Assign' });
-
+            let dialog = await selectAssignChannel(page, fixture.channelCode);
             await typePriceFactor(dialog, '-1');
-            await expect(assign).toBeDisabled();
+            await expect(dialog.getByRole('button', { name: 'Assign' })).toBeDisabled();
+
+            // Unparseable text must not keep Assign disabled once the dialog is reopened empty
+            await typePriceFactor(dialog, '1e');
+            await dialog.getByRole('button', { name: 'Cancel' }).click();
+            await expect(dialog).toBeHidden();
+            await page.getByRole('button', { name: 'Assign to channel' }).click();
+            dialog = await selectAssignChannel(page, fixture.channelCode);
+            await expect(dialog.getByRole('spinbutton')).toHaveAttribute('aria-invalid', 'false');
+            const assign = dialog.getByRole('button', { name: 'Assign' });
+            await expect(assign).toBeEnabled();
 
             const factor = await typePriceFactor(dialog, '0.25');
             await expect(factor).toHaveValue('0.25');
