@@ -40,6 +40,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { freeShipping } from '../src/config/promotion/actions/free-shipping-action';
 import { orderFixedDiscount } from '../src/config/promotion/actions/order-fixed-discount-action';
 import { orderLineFixedDiscount } from '../src/config/promotion/actions/order-line-fixed-discount-action';
+import { InMemoryCacheStrategy } from '../src/config/system/in-memory-cache-strategy';
 
 import { TestMoneyStrategy } from './fixtures/test-money-strategy';
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
@@ -77,10 +78,29 @@ import {
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
+/**
+ * Counts reads of the FacetValueChecker entries in the shared cache. With a distributed
+ * cache strategy each of these reads is one database query or one network round trip.
+ */
+class FacetValueCacheReadCounter extends InMemoryCacheStrategy {
+    reads = 0;
+
+    get(key: string) {
+        if (key.startsWith('FacetValueChecker.')) {
+            this.reads++;
+        }
+        return super.get(key);
+    }
+}
+
 describe('Promotions applied to Orders', () => {
+    const facetValueCacheReadCounter = new FacetValueCacheReadCounter();
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             dbConnectionOptions: { logging: true },
+            systemOptions: {
+                cacheStrategy: facetValueCacheReadCounter,
+            },
             paymentOptions: {
                 paymentMethodHandlers: [testSuccessfulPaymentMethod],
             },
@@ -654,6 +674,75 @@ describe('Promotions applied to Orders', () => {
             orderResultGuard.assertSuccess(addItemToOrder);
             expect(addItemToOrder.discounts.length).toBe(0);
             await deletePromotion(promotion.id);
+        });
+
+        // #5867 — facet promotions should read each variant's facet values once per request
+        it('atLeastNWithFacets with discountOnItemWithFacets reads each variant once per request', async () => {
+            const { facets } = await adminClient.query(getFacetListDocument);
+            const saleFacetValue = facets.items[0].values[0];
+            const promotion = await createPromotion({
+                enabled: true,
+                name: '50% off sale items when ordering 2 sale items',
+                conditions: [
+                    {
+                        code: hasFacetValues.code,
+                        arguments: [
+                            { name: 'minimum', value: '2' },
+                            { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                        ],
+                    },
+                ],
+                actions: [
+                    {
+                        code: discountOnItemWithFacets.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                        ],
+                    },
+                ],
+            });
+            const slugs = ['item-100', 'item-1000', 'item-5000', 'item-sale-1000', 'item-sale-100'] as const;
+            let saleLineId = '';
+            for (const slug of slugs) {
+                const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                    productVariantId: getVariantBySlug(slug).id,
+                    quantity: 1,
+                });
+                orderResultGuard.assertSuccess(addItemToOrder);
+                saleLineId = addItemToOrder.lines.find(
+                    l => l.productVariant.id === getVariantBySlug('item-sale-100').id,
+                )?.id as string;
+            }
+
+            facetValueCacheReadCounter.reads = 0;
+            const { adjustOrderLine } = await shopClient.query(adjustItemQuantityDocument, {
+                orderLineId: saleLineId,
+                quantity: 2,
+            });
+            const reads = facetValueCacheReadCounter.reads;
+            await deletePromotion(promotion.id);
+
+            orderResultGuard.assertSuccess(adjustOrderLine);
+            const discountBySlug = Object.fromEntries(
+                slugs.map(slug => {
+                    const line = adjustOrderLine.lines.find(
+                        l => l.productVariant.id === getVariantBySlug(slug).id,
+                    );
+                    return [slug, line?.discounts.reduce((total, d) => total + d.amount, 0)];
+                }),
+            );
+            expect(discountBySlug).toEqual({
+                'item-100': 0,
+                'item-1000': 0,
+                'item-5000': 0,
+                'item-sale-1000': -500,
+                'item-sale-100': -100,
+            });
+            expect(adjustOrderLine.total).toBe(6700);
+            // One shared cache read per distinct variant in the order
+            expect(reads).toBeGreaterThan(0);
+            expect(reads).toBeLessThanOrEqual(slugs.length);
         });
 
         it('customerGroup', async () => {
