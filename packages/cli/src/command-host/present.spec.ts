@@ -35,11 +35,12 @@ async function stderrOf(result: HostResult): Promise<string> {
 describe('presentForPeople', () => {
     afterEach(() => vi.restoreAllMocks());
 
-    it('never shows a secret input as a flag, and shows its fix as a command line', async () => {
+    it('shows a secret input by name with stdin as the way to pass it, and its fix as a command line', async () => {
         const text = await stderrOf(incompleteWith([credentialNeed()]));
 
         expect(text).not.toContain('--token');
-        expect(text).toContain('token (secret, never a flag): A Vendure Cloud credential');
+        expect(text).toContain('token (secret): A Vendure Cloud credential');
+        expect(text).toContain('Pass it in the --input document on stdin.');
         expect(text).toContain('vendure auth login --json');
     });
 

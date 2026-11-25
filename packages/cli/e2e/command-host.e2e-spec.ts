@@ -206,6 +206,14 @@ describe('Command host E2E', () => {
             expect(text.stderr).toContain('vendure auth status --verbose');
             expect(text.stderr).not.toContain("unknown option '--verbose'");
         });
+
+        it('returns the usage envelope under --json when the arguments name no command', async () => {
+            fixtureDir = copyMigrateFixture();
+
+            const result = await runCli(fixtureDir, ['auth', '--json', 'nope']);
+            expect(result.exitCode).toBe(1);
+            expect(JSON.parse(result.stdout).error).toMatchObject({ code: 'cli.usage' });
+        });
     });
 
     // Each CLI run here loads the project's config, which takes several seconds on a busy runner.

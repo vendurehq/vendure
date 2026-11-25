@@ -81,38 +81,46 @@ export function commandLineWithOptionsLast(program: Command, args: readonly stri
 /**
  * A group of manifest commands, such as `cloud`, takes no options of its own, so Commander refuses
  * an option given before the subcommand. When the arguments after it name a command, the run
- * stops with a coded error whose fix is the same command line with the options at the end.
- * Anything else is reported by Commander as before.
+ * stops with a coded error that names the same command line with the options at the end. Under
+ * `--json`, any other error of the group is the `cli.usage` envelope, as for a command. Otherwise
+ * Commander's own text is written as before.
  */
 function reportOptionsBeforeSubcommand(group: Command): void {
     let root = group;
     while (root.parent) {
         root = root.parent;
     }
-    const correctedLine = () => commandLineWithOptionsLast(root, process.argv.slice(2));
-    group.configureOutput({
-        writeErr: text => {
-            // The coded error below replaces Commander's own message.
-            if (!(text.includes('unknown option') && correctedLine())) {
-                process.stderr.write(text);
-            }
-        },
-    });
+    // Commander writes its error text before it calls `exitOverride`. The text is held until the
+    // error is known, so that the coded error or the envelope can take its place.
+    let heldText = '';
+    group.configureOutput({ writeErr: text => (heldText += text) });
     group.exitOverride(error => {
-        const line = error.code === 'commander.unknownOption' ? correctedLine() : undefined;
-        if (!line) {
-            process.exit(error.exitCode);
+        const passThrough =
+            error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
+        const line =
+            error.code === 'commander.unknownOption'
+                ? commandLineWithOptionsLast(root, process.argv.slice(2))
+                : undefined;
+        const json = jsonRequested(process.argv);
+        if (line) {
+            const option = /'([^']+)'/.exec(error.message)?.[1] ?? 'An option';
+            const result = errorResult(hostErrors.optionBeforeCommand, { option, line });
+            if (json) {
+                fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+            } else {
+                process.stderr.write(
+                    `[${hostErrors.optionBeforeCommand.code}] ${result.envelope.error?.message ?? ''}\n`,
+                );
+            }
+            process.exit(result.exitCode);
         }
-        const option = /'([^']+)'/.exec(error.message)?.[1] ?? 'An option';
-        const result = errorResult(hostErrors.optionBeforeCommand, { option, line });
-        if (jsonRequested(process.argv)) {
+        if (json && !passThrough) {
+            const result = errorResult(hostErrors.usage, { message: error.message.replace(/^error: /, '') });
             fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
-        } else {
-            process.stderr.write(
-                `[${hostErrors.optionBeforeCommand.code}] ${result.envelope.error?.message ?? ''}\n`,
-            );
+            process.exit(result.exitCode);
         }
-        process.exit(result.exitCode);
+        process.stderr.write(heldText);
+        process.exit(error.exitCode);
     });
 }
 

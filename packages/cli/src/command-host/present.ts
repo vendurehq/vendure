@@ -5,9 +5,9 @@ import { HostResult } from './host.js';
 import { kebab } from './naming.js';
 
 /**
- * The lines that describe one need for a person. A secret input is never shown as a flag, because
- * a secret never comes from a flag: it is passed in the `--input` document on stdin, or comes from
- * the environment. A need's fix is shown as the command line that answers it.
+ * The lines that describe one need for a person. A secret input is shown by name with the safe way
+ * to pass it, the `--input` document on stdin, so that its value is not put on a command line. A
+ * need's fix is shown as the command line that answers it.
  */
 function describeNeed(need: CommandNeed): string[] {
     const lines = needLines(need);
@@ -22,7 +22,9 @@ function needLines(need: CommandNeed): string[] {
         case 'input': {
             const choices = need.choices?.length ? ` One of: ${need.choices.join(', ')}.` : '';
             return need.secret
-                ? [`  ${need.field} (secret, never a flag): ${need.description}.${choices}`]
+                ? [
+                      `  ${need.field} (secret): ${need.description}.${choices} Pass it in the --input document on stdin.`,
+                  ]
                 : [`  --${kebab(need.field)}: ${need.description}.${choices}`];
         }
         case 'consent': {
