@@ -405,9 +405,11 @@ export interface CommandContext {
     progress(message: string, current?: number, total?: number): void;
     /**
      * Passes text on to the caller as it comes, such as the lines of a log the command follows. A
-     * person sees it as it is, on `stream`, so end each line with a newline. Under `--json` each
-     * call is a {@link CommandOutputEvent} on stderr. It is not part of the envelope: what the
-     * caller needs once the run ends goes in the output `run` returns.
+     * person sees it on `stream`. The host adds no newline, so end each line with one. Under
+     * `--json` each call is a {@link CommandOutputEvent} on stderr, and through the Developer MCP
+     * an `info` log notification. It is not part of the envelope: what the caller needs once the
+     * run ends goes in the output `run` returns. Declare the event in the `events` schema, so the
+     * manifest lists it.
      *
      * @since 4.0.0
      */

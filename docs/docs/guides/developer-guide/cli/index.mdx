@@ -1204,9 +1204,11 @@ export async function run(input: { dryRun: boolean }, ctx: CommandContext) {
 `failed()` or `fail()` from `@vendure/common/lib/command`.
 
 `ctx.output(text, stream)` passes text on to the caller as it comes, such as the lines of a log the command
-follows. A person sees it as it is, on stdout unless `stream` is `'stderr'`, so end each line with a newline. Under
-`--json` each call is an `output` event on stderr, and stdout holds only the envelope. What the caller needs once the
-run ends belongs in the output `run` returns.
+follows. A person sees the text on stdout, or on stderr when `stream` is `'stderr'`. The host adds no newline, so end
+each line with one. Under `--json` each call is an `output` event on stderr, and stdout holds only the envelope.
+Through the Developer MCP each call is an `info` log notification. What the caller needs once the run ends belongs in
+the output `run` returns. Declare the event in the command's `events` schema, with `type: 'output'`, `stream` and
+`text`, so the manifest lists it.
 
 `ctx.spawn` starts a process, and passes its output on to the caller. Pass `quiet: true` to keep the
 output in the result only, for a process whose answer the command reads, such as `git status
