@@ -161,7 +161,7 @@ export function ConfigurableOperationMultiSelector({
         prevValueRef.current = value;
     }, [value, onValidityChange]);
 
-    const { data, isPending } = useQuery<QueryData>(
+    const { data, isLoading } = useQuery<QueryData>(
         queryOptions || {
             queryKey: [queryKey],
             queryFn: () => api.query(queryDocument),
@@ -222,28 +222,52 @@ export function ConfigurableOperationMultiSelector({
     };
 
     const hasOperations = value && value.length > 0;
-    // The saved operations are known before their definitions load. Until then each
-    // one shows as a skeleton row in its place, so the list does not read as empty
-    // and the rows below do not move when the definitions arrive.
-    const isLoadingDefinitions = isPending && !operations;
+    const isSentence = variant !== 'form';
+    // The saved operations are known before their definitions load. Until then each sentence
+    // row shows as a skeleton in its place, so the list does not read as empty and the rows
+    // below do not move when the definitions arrive. The AND/OR pill needs no definition, so
+    // it shows as it is. A form row is a card whose size depends on the definition, so the
+    // form variant keeps no placeholder.
+    const isLoadingDefinitions = isLoading && isSentence;
 
     return (
         <div className="space-y-4">
             {hasOperations && isLoadingDefinitions && (
-                <div className="space-y-0" data-slot="operations-skeleton" aria-hidden="true">
-                    {value.map((operation, index) => (
-                        <div key={index + operation.code}>
-                            {variant !== 'form' ? (
-                                index > 0 && <div className="border-t my-1.5" />
-                            ) : (
-                                <div className="h-4" />
-                            )}
-                            <div className="flex h-8 items-center justify-between gap-2">
-                                <Skeleton className="h-[0.8lh] w-64 max-w-full" />
-                                <Skeleton className="size-6" />
+                <div className="space-y-0" data-slot="operations-skeleton" aria-busy="true">
+                    <span className="sr-only">{t`Loading…`}</span>
+                    {value.map((operation, index) => {
+                        const combineWithAnd = operation.arguments.find(arg => arg.name === 'combineWithAnd');
+                        return (
+                            <div key={index + operation.code} data-slot="operation-skeleton">
+                                {index > 0 &&
+                                    (combineWithAnd ? (
+                                        <div className="my-1.5">
+                                            <CombinationModeInput
+                                                value={combineWithAnd.value ?? 'true'}
+                                                onChange={() => {}}
+                                                name={''}
+                                                ref={() => {}}
+                                                onBlur={() => {}}
+                                                position={index}
+                                                disabled
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="border-t my-1.5" />
+                                    ))}
+                                <div
+                                    className="flex h-8 items-center justify-between gap-2"
+                                    aria-hidden="true"
+                                >
+                                    <Skeleton className="h-[0.8lh] w-64 max-w-full" />
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        <Skeleton className="size-6" />
+                                        <Skeleton className="size-6" />
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
             {hasOperations && !isLoadingDefinitions && (
@@ -258,7 +282,6 @@ export function ConfigurableOperationMultiSelector({
                         const hasCombinationMode = operation.arguments.find(
                             arg => arg.name === 'combineWithAnd',
                         );
-                        const isSentence = variant !== 'form';
                         const combinationModePill = index > 0 && hasCombinationMode && (
                             <CombinationModeInput
                                 value={
