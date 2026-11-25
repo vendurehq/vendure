@@ -1,3 +1,4 @@
+import type { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -67,10 +68,20 @@ describe('ArgSummary of entity ids', () => {
         list: true,
         required: false,
         ui: { component: 'facet-value-form-input' },
-    } as const;
+    } as ConfigurableFieldDef;
 
-    function render(facetValues?: Array<{ id: string; name: string; facet: { name: string } }>) {
-        const queryClient = new QueryClient();
+    function render(
+        facetValues?: Array<{ id: string; name: string; facet: { name: string } }>,
+        failed = false,
+    ) {
+        // A failed query that has used its retries is not fetched again on mount
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retryOnMount: false } } });
+        if (failed) {
+            queryClient
+                .getQueryCache()
+                .build(queryClient, { queryKey: ['FacetValueSummary', ['1']] })
+                .setState({ status: 'error', error: new Error('failed'), fetchStatus: 'idle' });
+        }
         if (facetValues) {
             queryClient.setQueryData(['FacetValueSummary', ['1']], {
                 facetValues: { items: facetValues },
@@ -78,7 +89,7 @@ describe('ArgSummary of entity ids', () => {
         }
         return renderToStaticMarkup(
             <QueryClientProvider client={queryClient}>
-                <ArgSummary fieldDef={fieldDef as never} value='["1"]' />
+                <ArgSummary fieldDef={fieldDef} value='["1"]' />
             </QueryClientProvider>,
         );
     }
@@ -94,6 +105,13 @@ describe('ArgSummary of entity ids', () => {
         const markup = render([{ id: '1', name: 'Electronics', facet: { name: 'category' } }]);
 
         expect(markup).toContain('Electronics (category)');
+        expect(markup).not.toContain('data-slot="arg-summary-skeleton"');
+    });
+
+    it('shows the count when the names cannot load', () => {
+        const markup = render(undefined, true);
+
+        expect(markup).toContain('1 selected');
         expect(markup).not.toContain('data-slot="arg-summary-skeleton"');
     });
 });
