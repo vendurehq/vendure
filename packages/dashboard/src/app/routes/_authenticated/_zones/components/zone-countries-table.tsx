@@ -21,7 +21,7 @@ export function ZoneCountriesTable({
     canAddCountries = false,
     title,
 }: Readonly<ZoneCountriesTableProps>) {
-    const { data, refetch } = useQuery({
+    const { data, refetch, isFetching } = useQuery({
         queryKey: ['zone', zoneId],
         queryFn: () => api.query(zoneMembersQuery, { zoneId }),
     });
@@ -77,6 +77,7 @@ export function ZoneCountriesTable({
         <DataTable
             columns={columns as any}
             data={paginatedItems ?? []}
+            isLoading={isFetching}
             onPageChange={(table, page, itemsPerPage) => {
                 setPage(page);
                 setPageSize(itemsPerPage);

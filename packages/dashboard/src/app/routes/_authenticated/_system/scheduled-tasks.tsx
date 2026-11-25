@@ -93,7 +93,7 @@ function ScheduledTasksPage() {
     // The task whose last result is open in the dialog. The result opens from the row menu,
     // so the table needs no column for it and fits its card.
     const [resultTask, setResultTask] = useState<ScheduledTask>();
-    const { data } = useQuery({
+    const { data, isFetching } = useQuery({
         queryKey: ['scheduledTasks'],
         queryFn: () => api.query(getScheduledTasksDocument),
     });
@@ -262,6 +262,7 @@ function ScheduledTasksPage() {
                         onRefresh={refreshScheduledTasks}
                         columns={columns}
                         data={data?.scheduledTasks ?? []}
+                        isLoading={isFetching}
                         totalItems={data?.scheduledTasks?.length ?? 0}
                         defaultColumnVisibility={{
                             schedule: false,
