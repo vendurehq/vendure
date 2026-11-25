@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { filterAsync } from '@vendure/common/lib/filter-async';
-import { AdjustmentType } from '@vendure/common/lib/generated-types';
+import { AdjustmentType, TaxLine } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
@@ -169,12 +169,26 @@ export class OrderCalculator {
     ) {
         const applicableTaxRate = await getTaxRate(line.taxCategoryId);
         const { taxLineCalculationStrategy } = this.configService.taxOptions;
-        line.taxLines = await taxLineCalculationStrategy.calculate({
+        const taxLines = await taxLineCalculationStrategy.calculate({
             ctx,
             applicableTaxRate,
             order,
             orderLine: line,
         });
+        const amounts = taxLines.filter(taxLine => taxLine.amount != null).length;
+        if (amounts && amounts !== taxLines.length) {
+            throw new InternalServerError(
+                'TaxLineCalculationStrategy must set an amount on all or none of the TaxLines of an OrderLine',
+            );
+        }
+        if (amounts && taxLines.some(taxLine => !Number.isSafeInteger(taxLine.amount))) {
+            throw new InternalServerError('TaxLineCalculationStrategy must return integer tax amounts');
+        }
+        // Record the total that the amounts apply to, so that the OrderLine can derive the tax of
+        // any part of the line, such as the units that remain after a partial cancellation.
+        const taxBase = amounts ? line.getTaxableLineTotal() : undefined;
+        line.taxLines =
+            taxBase == null ? taxLines : taxLines.map(taxLine => ({ ...taxLine, taxBase }) as TaxLine);
     }
 
     /**

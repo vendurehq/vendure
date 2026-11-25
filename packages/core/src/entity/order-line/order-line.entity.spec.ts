@@ -44,9 +44,7 @@ describe('OrderLine entity', () => {
     it('refunds the difference between the paid and retained quantities at a rounding tie', () => {
         const line = new OrderLine({
             quotedLinePrice: 19190,
-            cancellationLines: [
-                { quantity: 1, price: 959, priceWithTax: 959, createdAt: new Date(0) },
-            ] as any,
+            cancellationLines: [{ quantity: 1, price: 959, priceWithTax: 959, createdAt: new Date(0) }],
             quotedQuantity: 20,
             quantity: 20,
             listPrice: 960,
@@ -192,6 +190,72 @@ describe('OrderLine entity', () => {
 
             expect(line.quantity).toBe(0);
             expect(line.adjustments[0].amount).toBe(-29750);
+        });
+    });
+
+    // OSS-1507: absolute tax amounts from a TaxLineCalculationStrategy
+    describe('absolute tax amounts', () => {
+        function lineWithTaxAmount(listPriceIncludesTax: boolean) {
+            return new OrderLine({
+                quantity: 3,
+                orderPlacedQuantity: 3,
+                listPrice: listPriceIncludesTax ? 1200 : 1000,
+                listPriceIncludesTax,
+                // The rate alone would give 600 (net) or 600 (gross) of tax.
+                taxLines: [
+                    {
+                        description: 'VAT',
+                        taxRate: 20,
+                        amount: listPriceIncludesTax ? 599 : 605,
+                        taxBase: 3600 - (listPriceIncludesTax ? 0 : 600),
+                    } as any,
+                ],
+                adjustments: [],
+            });
+        }
+
+        it('adds the amount to a net line total instead of deriving the tax from the rate', () => {
+            const line = lineWithTaxAmount(false);
+            expect(line.proratedLinePrice).toBe(3000);
+            expect(line.proratedLinePriceWithTax).toBe(3605);
+            expect(line.proratedLineTax).toBe(605);
+            expect(line.linePriceWithTax).toBe(3605);
+            expect(line.unitPriceWithTax).toBe(1202);
+            expect(line.taxRate).toBe(20);
+        });
+
+        it('subtracts the amount from a gross line total', () => {
+            const line = lineWithTaxAmount(true);
+            expect(line.proratedLinePriceWithTax).toBe(3600);
+            expect(line.proratedLinePrice).toBe(3001);
+            expect(line.proratedLineTax).toBe(599);
+        });
+
+        it('gives the remaining units their share of the amount after a partial cancellation', () => {
+            const line = lineWithTaxAmount(false);
+            line.setQuantityRescalingAdjustments(2);
+            expect(line.proratedLinePrice).toBe(2000);
+            // 605 * 2000 / 3000 = 403.33
+            expect(line.proratedLineTax).toBe(403);
+        });
+
+        it('converts discounts with the share of the amount', () => {
+            const line = lineWithTaxAmount(false);
+            line.adjustments = [{ ...itemPromotionAdjustment, amount: -300 }];
+            expect(line.discounts[0].amount).toBe(-300);
+            // -300 * (1 + 605 / 3000) = -360.5
+            expect(line.discounts[0].amountWithTax).toBe(-360);
+        });
+
+        it('derives the tax from the rate when the tax lines have no amount', () => {
+            const line = new OrderLine({
+                quantity: 3,
+                listPrice: 1000,
+                listPriceIncludesTax: false,
+                taxLines: [{ description: 'VAT', taxRate: 20 }],
+                adjustments: [],
+            });
+            expect(line.proratedLinePriceWithTax).toBe(3600);
         });
     });
 });

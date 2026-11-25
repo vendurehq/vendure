@@ -48,6 +48,34 @@ When a customer adds an item to the Order, the following logic takes place:
 4. The `TaxLineCalculationStrategy.calculate()` of the configured [TaxLineCalculationStrategy](/reference/typescript-api/tax/tax-line-calculation-strategy/) is called, which will return one or more [TaxLines](/reference/graphql-api/admin/object-types/#taxline).
 5. The final `priceWithTax` of the order line is calculated based on all the above.
 
+### Tax amounts from an external system
+
+By default, Vendure derives the tax of an order line from the rates of its TaxLines. An external system such as an ERP may calculate the tax with its own rounding, for example rounding a tax of 199.4875 to 199.50 rather than 199.49. If the tax in Vendure must match it exactly, return the external system's result as the `amount` of each TaxLine from your TaxLineCalculationStrategy:
+
+```ts
+import { CalculateTaxLinesArgs, TaxLineCalculationStrategy } from '@vendure/core';
+
+export class ErpTaxLineCalculationStrategy implements TaxLineCalculationStrategy {
+    async calculate({ orderLine, applicableTaxRate }: CalculateTaxLinesArgs) {
+        const lineTotal = orderLine.listPriceIncludesTax
+            ? orderLine.proratedLinePriceWithTax
+            : orderLine.proratedLinePrice;
+        const erpTax = await erpClient.getLineTax(orderLine.productVariant.sku, lineTotal);
+        return [
+            {
+                description: applicableTaxRate.name,
+                taxRate: applicableTaxRate.value,
+                amount: erpTax.amountInCents,
+            },
+        ];
+    }
+}
+```
+
+The `amount` is the tax of the whole line, as an integer in minor units. It applies to the line total in the tax basis of the line's price: the net total when prices exclude tax, and the gross total when they include it. Set it on all or none of a line's TaxLines.
+
+The line's tax, the Order totals and the tax summary then use the amount, with both the default `OrderTaxCalculationStrategy` and the `OrderLevelTaxCalculationStrategy`. The `taxRate` remains the rate that the line displays. After a partial cancellation, the remaining units get their share of the amount. The amount applies to order lines only. Shipping and surcharges derive their tax from the rate.
+
 ## Calculating tax on shipping
 
 The taxes on shipping is calculated by the [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator/) of the Order's selected [ShippingMethod](/reference/typescript-api/entities/shipping-method/).

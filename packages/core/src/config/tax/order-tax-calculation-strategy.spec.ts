@@ -159,6 +159,46 @@ describe('OrderTaxCalculationStrategy', () => {
             expect(totals.subTotalWithTax).toBe(600);
             expect(taxSummary).toEqual([{ description: 'zero-rate', taxRate: 0, taxBase: 600, taxTotal: 0 }]);
         });
+
+        // OSS-1507: an ERP returns the absolute tax, rounded its own way (199.4875 becomes 199.50).
+        it('uses the absolute tax amounts of the tax lines', () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            order.lines[0].taxLines = [
+                { taxRate: 5, description: 'VAT', amount: 19950, taxBase: 398975 } as any,
+            ];
+
+            const totals = strategy.calculateOrderTotals(order);
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            expect(totals.subTotal).toBe(398975);
+            expect(totals.subTotalWithTax).toBe(418925);
+            expect(taxSummary).toEqual([
+                { description: 'VAT', taxRate: 5, taxBase: 398975, taxTotal: 19950 },
+            ]);
+        });
+
+        it('splits the tax of a line between its tax lines by their amounts', () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 1000, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            order.lines[0].taxLines = [
+                { taxRate: 10, description: 'state', amount: 101, taxBase: 1000 } as any,
+                { taxRate: 10, description: 'city', amount: 99, taxBase: 1000 } as any,
+            ];
+
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            expect(taxSummary).toEqual([
+                { description: 'state', taxRate: 10, taxBase: 1000, taxTotal: 101 },
+                { description: 'city', taxRate: 10, taxBase: 1000, taxTotal: 99 },
+            ]);
+        });
     });
 
     describe('OrderLevelTaxCalculationStrategy', () => {
@@ -431,6 +471,32 @@ describe('OrderTaxCalculationStrategy', () => {
             const taxSummary = strategy.calculateTaxSummary(order);
             expect(totals.subTotal).toBe(100);
             expect(taxSummary).toEqual([]);
+        });
+
+        // OSS-1507
+        it('adds absolute tax amounts to the group without rounding them again', () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [
+                    { listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 },
+                    { listPrice: 102, taxCategory: taxCategoryStandard, quantity: 1 },
+                ],
+            });
+            order.lines[0].taxLines = [
+                { taxRate: 5, description: 'VAT', amount: 19950, taxBase: 398975 } as any,
+            ];
+            order.lines[1].taxLines = [{ taxRate: 5, description: 'VAT' }];
+
+            const totals = strategy.calculateOrderTotals(order);
+            const taxSummary = strategy.calculateTaxSummary(order);
+
+            // 19950 from the amount, plus 5% of 102 = 5.1, rounded once for the group.
+            expect(totals.subTotal).toBe(399077);
+            expect(totals.subTotalWithTax).toBe(399077 + 19955);
+            expect(taxSummary).toEqual([
+                { description: 'VAT', taxRate: 5, taxBase: 399077, taxTotal: 19955 },
+            ]);
         });
 
         it('returns zeroed totals and an empty summary when order relations are undefined', () => {

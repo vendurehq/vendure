@@ -56,10 +56,20 @@ export class DefaultOrderTaxCalculationStrategy implements OrderTaxCalculationSt
                 continue;
             }
             const taxRateTotal = summate(line.taxLines, 'taxRate');
+            // Absolute tax amounts, when the TaxLineCalculationStrategy provides them, split the
+            // line's tax between its TaxLines instead of the rates.
+            const hasAmounts = line.taxLines.every(taxLine => taxLine.amount != null);
+            const amountTotal = hasAmounts ? line.taxLines.reduce((sum, t) => sum + (t.amount ?? 0), 0) : 0;
             for (const taxLine of line.taxLines) {
                 const id = taxId(taxLine);
                 const row = taxRateMap.get(id);
-                const proportionOfTotalRate = 0 < taxLine.taxRate ? taxLine.taxRate / taxRateTotal : 0;
+                const proportionOfTotalRate = hasAmounts
+                    ? amountTotal !== 0
+                        ? (taxLine.amount ?? 0) / amountTotal
+                        : 0
+                    : 0 < taxLine.taxRate
+                      ? taxLine.taxRate / taxRateTotal
+                      : 0;
 
                 const lineBase =
                     line instanceof OrderLine

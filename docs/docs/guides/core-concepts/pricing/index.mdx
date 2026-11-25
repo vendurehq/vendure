@@ -57,6 +57,36 @@ The pricing pipeline is designed to be customized at each stage. The two most co
 
 Both strategies are configured at the server level and apply globally. For details on implementing custom strategies, see the [TypeScript API reference](/reference/typescript-api/orders/order-item-price-calculation-strategy/).
 
+### Prices from an external system
+
+An external system such as an ERP sometimes prices a line as a total that no unit price reproduces. For example, it can price 20 units at €1.235 each as €24.70. At two decimal places Vendure would store the unit price as €1.24, and 20 × €1.24 is €24.80.
+
+For these cases, implement the optional `calculateLinePrice()` method of your OrderItemPriceCalculationStrategy. It returns the price of the whole line for the requested quantity, such as `2470` for 20 units. Vendure then uses that total as the line price. The unit price that the line shows is the rounded €1.24, for display only. Return `undefined` to price a line with `calculateUnitPrice()` instead.
+
+```ts
+import { OrderItemPriceCalculationStrategy, PriceCalculationResult } from '@vendure/core';
+
+export class ErpPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
+    calculateUnitPrice(ctx, productVariant): PriceCalculationResult {
+        return { price: productVariant.listPrice, priceIncludesTax: productVariant.listPriceIncludesTax };
+    }
+
+    async calculateLinePrice(ctx, productVariant, orderLineCustomFields, order, quantity) {
+        const quote = await erpClient.getLinePrice(productVariant.sku, quantity);
+        return { price: quote.totalInCents, priceIncludesTax: quote.grossPrices };
+    }
+}
+```
+
+Vendure behaves as follows with a line price:
+
+- It asks for a new line price whenever it reprices the line, for example after a quantity change.
+- Promotions apply to the line price. Promotion actions should use `orderLine.getUnitPriceForPromotion()` as the unit price they discount, so that a percentage discount matches the line price exactly. The built-in actions do this.
+- A partial cancellation scales the line price to the remaining units without asking for a new one. Vendure records the value of the cancelled units, and refunds of those units use it.
+- Placed orders keep their line prices if you later remove `calculateLinePrice()`.
+
+If the external system also calculates the tax, return its tax amounts from your [TaxLineCalculationStrategy](/core-concepts/taxes/#tax-amounts-from-an-external-system).
+
 ## Related topics
 
 - [Money & Currency](/core-concepts/money/) — Integer-based monetary values and currency handling

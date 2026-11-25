@@ -31,6 +31,12 @@ type Adjustment {
 type TaxLine {
     description: String!
     taxRate: Float!
+    """
+    The absolute tax of the whole OrderLine for this TaxLine, when the TaxLineCalculationStrategy
+    provides it, for example from an ERP. The line's tax then equals this amount rather than being
+    derived from the rate. Null when the tax is derived from the rate.
+    """
+    amount: Money
 }
 
 type ConfigArg {

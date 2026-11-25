@@ -24,6 +24,12 @@ import { Sale } from '../stock-movement/sale.entity';
 import { TaxCategory } from '../tax-category/tax-category.entity';
 
 /**
+ * A TaxLine as stored on an OrderLine. When the TaxLineCalculationStrategy returns an absolute
+ * `amount`, the OrderCalculator records the taxable line total that the amount applies to.
+ */
+type StoredTaxLine = TaxLine & { taxBase?: number };
+
+/**
  * @description
  * A single line on an {@link Order} which contains information about the {@link ProductVariant} and
  * quantity ordered, as well as the price and tax information.
@@ -327,12 +333,8 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
                 this.quantity === 0
                     ? 0
                     : (adjustment.amount / this.quantityBasisFor(adjustment)) * this.quantity;
-            const amount = priceIncludesTax
-                ? netPriceOf(lineAdjustmentAmount, this.taxRate)
-                : lineAdjustmentAmount;
-            const amountWithTax = priceIncludesTax
-                ? lineAdjustmentAmount
-                : grossPriceOf(lineAdjustmentAmount, this.taxRate);
+            const amount = this.withTaxBasis(lineAdjustmentAmount, false);
+            const amountWithTax = this.withTaxBasis(lineAdjustmentAmount, true);
             if (discountGroup) {
                 discountGroup.amount += amount;
                 discountGroup.amountWithTax += amountWithTax;
@@ -423,9 +425,26 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         if (includesTax === this.listPriceIncludesTax) {
             return roundMoney(amount);
         }
+        const taxShare = this.getTaxShare();
+        if (taxShare != null) {
+            // The inverse of `withTaxBasis()`.
+            return roundMoney(includesTax ? amount / (1 + taxShare) : amount / (1 - taxShare));
+        }
         return roundMoney(
             includesTax ? netPriceOf(amount, this.taxRate) : grossPriceOf(amount, this.taxRate),
         );
+    }
+
+    /**
+     * @description
+     * The prorated line total in the tax basis of `listPrice`: the net total when `listPrice`
+     * excludes tax, and the gross total when it includes tax. This is the value that the `amount`
+     * of a {@link TaxLine} is a share of.
+     *
+     * @internal
+     */
+    getTaxableLineTotal(): number {
+        return this.getPrice(!!this.listPriceIncludesTax, this.quantity, 'all');
     }
 
     addAdjustment(adjustment: Adjustment) {
@@ -520,7 +539,35 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         }
         // Rescaled promotions are rounded to whole units, so they can exceed the scaled quote.
         const total = quoted ? Math.max(0, amount + adjustmentTotal) : amount + adjustmentTotal;
-        return roundMoney(this.withTaxBasis(total, withTax), quoted ? 1 : quantity);
+        const roundingQuantity = quoted ? 1 : quantity;
+        const listPriceBasis = !!this.listPriceIncludesTax;
+        const taxShare = withTax === listPriceBasis ? undefined : this.getTaxShare();
+        if (taxShare == null) {
+            return roundMoney(this.withTaxBasis(total, withTax), roundingQuantity);
+        }
+        // With absolute tax amounts, the tax is that amount's share of this exact total, rounded
+        // once. On the prorated line total it is exactly the stored amount.
+        const base = roundMoney(total, roundingQuantity);
+        const tax = roundMoney(base * taxShare);
+        return withTax ? base + tax : base - tax;
+    }
+
+    /**
+     * @description
+     * When every TaxLine has an absolute `amount`, returns their total as a share of the taxable
+     * line total it was calculated for, so the tax for any part of the line can be derived from it.
+     * Returns undefined when the tax is derived from the rates.
+     */
+    private getTaxShare(): number | undefined {
+        const taxLines = (this.taxLines ?? []) as StoredTaxLine[];
+        if (!taxLines.length || taxLines.some(taxLine => taxLine.amount == null)) {
+            return undefined;
+        }
+        const taxBase = taxLines[0].taxBase;
+        if (!taxBase) {
+            return 0;
+        }
+        return summate(taxLines as Array<Required<StoredTaxLine>>, 'amount') / taxBase;
     }
 
     private scaleAmount(amount: number, quantity: number, basis: number): number {
@@ -530,6 +577,10 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     private withTaxBasis(amount: number, withTax: boolean): number {
         if (!!this.listPriceIncludesTax === withTax) {
             return amount;
+        }
+        const taxShare = this.getTaxShare();
+        if (taxShare != null) {
+            return withTax ? amount * (1 + taxShare) : amount * (1 - taxShare);
         }
         return withTax ? grossPriceOf(amount, this.taxRate) : netPriceOf(amount, this.taxRate);
     }
