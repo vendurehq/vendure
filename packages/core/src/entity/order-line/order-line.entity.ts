@@ -5,7 +5,15 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
+import {
+    applyTaxShare,
+    getTaxShare,
+    grossPriceOf,
+    hasTaxAmounts,
+    netPriceOf,
+    StoredTaxLine,
+    sumTaxAmounts,
+} from '../../common/tax-utils';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
@@ -13,6 +21,7 @@ import { Channel } from '../channel/channel.entity';
 import { CustomOrderLineFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
+import type { CancellationLine } from '../order-line-reference/cancellation-line.entity';
 import { OrderLineReference } from '../order-line-reference/order-line-reference.entity';
 import { Order } from '../order/order.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
@@ -122,6 +131,36 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
 
     /**
      * @description
+     * The line total returned by `OrderItemPriceCalculationStrategy.calculateLinePrices`, in the
+     * same tax basis as `listPrice`. When set, the line prices derive from this total rather than
+     * from `listPrice`, which then holds the rounded unit price for display only.
+     *
+     * @internal
+     */
+    @Money({ nullable: true })
+    quotedLinePrice?: number | null;
+
+    /**
+     * @description
+     * The quantity that `quotedLinePrice` covers. It is kept when units are cancelled, so the
+     * quote can be scaled to the remaining quantity without requesting a new one.
+     *
+     * @internal
+     */
+    @Column({ type: 'int', nullable: true })
+    quotedQuantity?: number | null;
+
+    /**
+     * @description
+     * The value recorded for each cancellation of units from this line.
+     *
+     * @internal
+     */
+    @OneToMany('CancellationLine', 'orderLine', { persistence: false })
+    cancellationLines: CancellationLine[];
+
+    /**
+     * @description
      * Whether the listPrice includes tax, which depends on the settings of the current Channel.
      */
     @Column()
@@ -148,7 +187,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get unitPrice(): number {
-        return roundMoney(this._unitPrice());
+        return this.getPrice(false, 1);
     }
 
     /**
@@ -157,7 +196,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get unitPriceWithTax(): number {
-        return roundMoney(this._unitPriceWithTax());
+        return this.getPrice(true, 1);
     }
 
     /**
@@ -170,7 +209,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         const initialPrice = listPriceIncludesTax
             ? netPriceOf(initialListPrice, this.taxRate)
             : initialListPrice;
-        return roundMoney(this._unitPrice() - initialPrice);
+        return roundMoney(this.withTaxBasis(this.listPrice, false) - initialPrice);
     }
 
     /**
@@ -183,7 +222,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         const initialPriceWithTax = listPriceIncludesTax
             ? initialListPrice
             : grossPriceOf(initialListPrice, this.taxRate);
-        return roundMoney(this._unitPriceWithTax() - initialPriceWithTax);
+        return roundMoney(this.withTaxBasis(this.listPrice, true) - initialPriceWithTax);
     }
 
     /**
@@ -197,7 +236,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get discountedUnitPrice(): number {
-        return roundMoney(this._discountedUnitPrice());
+        return this.getPrice(false, 1, AdjustmentType.PROMOTION);
     }
 
     /**
@@ -206,7 +245,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get discountedUnitPriceWithTax(): number {
-        return roundMoney(this._discountedUnitPriceWithTax());
+        return this.getPrice(true, 1, AdjustmentType.PROMOTION);
     }
 
     /**
@@ -217,7 +256,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get proratedUnitPrice(): number {
-        return roundMoney(this._proratedUnitPrice());
+        return this.getPrice(false, 1, 'all');
     }
 
     /**
@@ -226,7 +265,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get proratedUnitPriceWithTax(): number {
-        return roundMoney(this._proratedUnitPriceWithTax());
+        return this.getPrice(true, 1, 'all');
     }
 
     @Calculated()
@@ -250,7 +289,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get linePrice(): number {
-        return roundMoney(this._unitPrice(), this.quantity);
+        return this.getPrice(false, this.quantity);
     }
 
     /**
@@ -259,7 +298,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get linePriceWithTax(): number {
-        return roundMoney(this._unitPriceWithTax(), this.quantity);
+        return this.getPrice(true, this.quantity);
     }
 
     /**
@@ -268,8 +307,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get discountedLinePrice(): number {
-        // return roundMoney(this.linePrice + this.getLineAdjustmentsTotal(false, AdjustmentType.PROMOTION));
-        return roundMoney(this._discountedUnitPrice(), this.quantity);
+        return this.getPrice(false, this.quantity, AdjustmentType.PROMOTION);
     }
 
     /**
@@ -278,7 +316,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get discountedLinePriceWithTax(): number {
-        return roundMoney(this._discountedUnitPriceWithTax(), this.quantity);
+        return this.getPrice(true, this.quantity, AdjustmentType.PROMOTION);
     }
 
     @Calculated()
@@ -287,7 +325,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         // Group discounts together, so that it does not list a new
         // discount row for each item in the line
         const groupedDiscounts = new Map<string, Discount>();
-        // See `getUnitAdjustmentsTotal()` for the quantity basis used per adjustment type. A
+        // See `quantityBasisFor()` for the quantity basis used per adjustment type. A
         // quantity of 0 (e.g. a fully-cancelled line added by an OrderModification, which keeps
         // `orderPlacedQuantity` at 0 too, per #5097) has no units left to hold a discount,
         // regardless of what the stored adjustment amount is.
@@ -297,12 +335,8 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
                 this.quantity === 0
                     ? 0
                     : (adjustment.amount / this.quantityBasisFor(adjustment)) * this.quantity;
-            const amount = priceIncludesTax
-                ? netPriceOf(lineAdjustmentAmount, this.taxRate)
-                : lineAdjustmentAmount;
-            const amountWithTax = priceIncludesTax
-                ? lineAdjustmentAmount
-                : grossPriceOf(lineAdjustmentAmount, this.taxRate);
+            const amount = this.withTaxBasis(lineAdjustmentAmount, false);
+            const amountWithTax = this.withTaxBasis(lineAdjustmentAmount, true);
             if (discountGroup) {
                 discountGroup.amount += amount;
                 discountGroup.amountWithTax += amountWithTax;
@@ -334,8 +368,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get proratedLinePrice(): number {
-        // return roundMoney(this.linePrice + this.getLineAdjustmentsTotal(false));
-        return roundMoney(this._proratedUnitPrice(), this.quantity);
+        return this.getPrice(false, this.quantity, 'all');
     }
 
     /**
@@ -344,13 +377,75 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     @Calculated()
     get proratedLinePriceWithTax(): number {
-        // return roundMoney(this.linePriceWithTax + this.getLineAdjustmentsTotal(true));
-        return roundMoney(this._proratedUnitPriceWithTax(), this.quantity);
+        return this.getPrice(true, this.quantity, 'all');
+    }
+
+    /**
+     * @description
+     * The tax-inclusive value of this line in refund order: each earlier cancellation at the value it
+     * was recorded with, followed by the remaining units at their current price. Refunds of these
+     * parts add up to exactly what was paid. Returns an empty array for lines that have neither a
+     * quote from `calculateLinePrices` nor absolute tax amounts, whose refunds use
+     * `proratedUnitPriceWithTax`. Requires the `cancellationLines` relation.
+     *
+     * @internal
+     */
+    getRefundPriceParts(): Array<{ priceWithTax: number; quantity: number }> {
+        if (!this.isQuoted() && !hasTaxAmounts(this.taxLines)) {
+            return [];
+        }
+        const parts = (this.cancellationLines ?? [])
+            .slice()
+            .sort(
+                (a, b) =>
+                    a.createdAt.getTime() - b.createdAt.getTime() || String(a.id).localeCompare(String(b.id)),
+            )
+            .map(({ priceWithTax, quantity }) => ({ priceWithTax, quantity }));
+        if (this.quantity > 0) {
+            parts.push({ priceWithTax: this.proratedLinePriceWithTax, quantity: this.quantity });
+        }
+        return parts;
     }
 
     @Calculated()
     get proratedLineTax(): number {
         return this.proratedLinePriceWithTax - this.proratedLinePrice;
+    }
+
+    /**
+     * @description
+     * Converts a promotion amount in the tax basis of the Channel to the tax basis of the quote from
+     * `calculateLinePrices`, rounded once on the line total. Lines without a quote return the amount
+     * unchanged.
+     *
+     * @internal
+     */
+    getAdjustmentAmount(amount: number, includesTax: boolean): number {
+        // A line without a quote stores the promotion amount as the action returned it, without
+        // converting its tax basis, as before 3.9.
+        if (!this.isQuoted()) {
+            return amount;
+        }
+        if (includesTax === this.listPriceIncludesTax) {
+            return roundMoney(amount);
+        }
+        // Promotions run while absolute tax amounts are detached (see OrderCalculator), so the
+        // conversion always uses the rate.
+        return roundMoney(
+            includesTax ? netPriceOf(amount, this.taxRate) : grossPriceOf(amount, this.taxRate),
+        );
+    }
+
+    /**
+     * @description
+     * The prorated line total in the tax basis of `listPrice`: the net total when `listPrice`
+     * excludes tax, and the gross total when it includes tax. This is the value that the `amount`
+     * of a {@link TaxLine} is a share of.
+     *
+     * @internal
+     */
+    getTaxableLineTotal(): number {
+        return this.getPrice(!!this.listPriceIncludesTax, this.quantity, 'all');
     }
 
     addAdjustment(adjustment: Adjustment) {
@@ -372,7 +467,8 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * Sets this line's quantity to `newQuantity`, rescaling its `PROMOTION`-type adjustments to
      * match. Used where a quantity reduction bypasses `OrderCalculator` recalculation (see
      * `OrderModifier.cancelOrderByOrderLines()`), to preserve the invariant that `PROMOTION`
-     * amounts are stored scaled to the current quantity.
+     * amounts are stored scaled to the current quantity. Absolute tax amounts from a
+     * TaxLineCalculationStrategy are rescaled to the new quantity in the same way.
      *
      * A `newQuantity` of 0 sets the quantity but leaves the adjustments untouched: the getters
      * short-circuit on an empty line either way, so scaling them to zero would only erase the
@@ -388,6 +484,39 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
             );
         }
         this.quantity = newQuantity;
+        this.rescaleTaxAmounts();
+    }
+
+    /**
+     * Absolute tax amounts apply to the taxable total they were calculated for. When that total
+     * changes without the TaxLineCalculationStrategy being called again, as in a partial
+     * cancellation, this gives each TaxLine its share of the new total, so that the stored amounts
+     * remain the tax of the line as it now is.
+     */
+    private rescaleTaxAmounts() {
+        const taxLines = this.taxLines as StoredTaxLine[] | undefined;
+        if (!taxLines || !hasTaxAmounts(taxLines)) {
+            return;
+        }
+        const oldBase = taxLines[0].taxBase ?? 0;
+        const newBase = this.getTaxableLineTotal();
+        if (newBase === oldBase) {
+            return;
+        }
+        const oldTotal = sumTaxAmounts(taxLines);
+        // The same total that the price getters derive from the old amounts.
+        const newTotal = oldBase ? roundMoney((newBase * oldTotal) / oldBase) : 0;
+        let allocated = 0;
+        this.taxLines = taxLines.map((taxLine, i) => {
+            const amount =
+                i === taxLines.length - 1
+                    ? newTotal - allocated
+                    : oldTotal
+                      ? roundMoney((newTotal * (taxLine.amount ?? 0)) / oldTotal)
+                      : 0;
+            allocated += amount;
+            return { ...taxLine, amount, taxBase: newBase };
+        });
     }
 
     /**
@@ -402,80 +531,96 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         }
     }
 
-    private _unitPrice(): number {
-        return this.listPriceIncludesTax ? netPriceOf(this.listPrice, this.taxRate) : this.listPrice;
-    }
-
-    private _unitPriceWithTax(): number {
-        return this.listPriceIncludesTax ? this.listPrice : grossPriceOf(this.listPrice, this.taxRate);
-    }
-
-    private _discountedUnitPrice(): number {
-        const result = this.listPrice + this.getUnitAdjustmentsTotal(AdjustmentType.PROMOTION);
-        return this.listPriceIncludesTax ? netPriceOf(result, this.taxRate) : result;
-    }
-
-    private _discountedUnitPriceWithTax(): number {
-        const result = this.listPrice + this.getUnitAdjustmentsTotal(AdjustmentType.PROMOTION);
-        return this.listPriceIncludesTax ? result : grossPriceOf(result, this.taxRate);
+    /**
+     * @description
+     * Whether the line is priced from a quote returned by
+     * `OrderItemPriceCalculationStrategy.calculateLinePrices`, rather than from its unit price.
+     *
+     * @internal
+     */
+    isQuoted(): boolean {
+        return this.getQuote() != null;
     }
 
     /**
      * @description
-     * Calculates the prorated unit price, excluding tax. This function performs no
-     * rounding, so before being exposed publicly via the GraphQL API, the returned value
-     * needs to be rounded to ensure it is an integer.
+     * The unit price that a promotion should discount, in the requested tax basis. For a line priced
+     * by `OrderItemPriceCalculationStrategy.calculateLinePrices` this is the quote divided by its
+     * quantity, before rounding, so a percentage discount matches the quoted line total. For other
+     * lines it is `unitPrice` or `unitPriceWithTax`.
+     *
+     * @example
+     * ```ts
+     * const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
+     * return -unitPrice * (args.discount / 100);
+     * ```
+     *
+     * @since 3.9.0
      */
-    private _proratedUnitPrice(): number {
-        const result = this.listPrice + this.getUnitAdjustmentsTotal();
-        return this.listPriceIncludesTax ? netPriceOf(result, this.taxRate) : result;
-    }
-
-    /**
-     * @description
-     * Calculates the prorated unit price, including tax. This function performs no
-     * rounding, so before being exposed publicly via the GraphQL API, the returned value
-     * needs to be rounded to ensure it is an integer.
-     */
-    private _proratedUnitPriceWithTax(): number {
-        const result = this.listPrice + this.getUnitAdjustmentsTotal();
-        return this.listPriceIncludesTax ? result : grossPriceOf(result, this.taxRate);
-    }
-
-    /**
-     * @description
-     * The total of all price adjustments, expressed per unit. Will typically be a negative
-     * number due to discounts. See `quantityBasisFor()` for the quantity basis used per
-     * adjustment, which differs by `AdjustmentType`.
-     */
-    private getUnitAdjustmentsTotal(type?: AdjustmentType): number {
-        if (!this.adjustments || this.quantity === 0) {
-            return 0;
+    getUnitPriceForPromotion(withTax: boolean): number {
+        const quote = this.getQuote();
+        if (quote) {
+            return this.withTaxBasis(quote.price / quote.quantity, withTax);
         }
-        return this.adjustments
-            .filter(adjustment => (type ? adjustment.type === type : true))
-            .map(adjustment => adjustment.amount / this.quantityBasisFor(adjustment))
-            .reduce((total, a) => total + a, 0);
+        return withTax ? this.unitPriceWithTax : this.unitPrice;
     }
 
-    /**
-     * @description
-     * The total of all price adjustments for the whole line. Will typically be a negative number
-     * due to discounts. See `quantityBasisFor()` for the quantity basis used per adjustment.
-     */
-    private getLineAdjustmentsTotal(withTax: boolean, type?: AdjustmentType): number {
-        if (!this.adjustments || this.quantity === 0) {
-            return 0;
+    private getPrice(
+        withTax: boolean,
+        quantity: number,
+        adjustments?: AdjustmentType.PROMOTION | 'all',
+    ): number {
+        const quote = this.getQuote();
+        const quoted = quote != null;
+        const amount = quote ? this.scaleAmount(quote.price, quantity, quote.quantity) : this.listPrice;
+        let adjustmentTotal = 0;
+        if (adjustments && this.quantity > 0) {
+            for (const adjustment of this.adjustments ?? []) {
+                if (adjustments === 'all' || adjustments === adjustment.type) {
+                    const basis = this.quantityBasisFor(adjustment);
+                    adjustmentTotal += quoted
+                        ? this.scaleAmount(adjustment.amount, quantity, basis)
+                        : adjustment.amount / basis;
+                }
+            }
         }
-        const sum = this.adjustments
-            .filter(adjustment => (type ? adjustment.type === type : true))
-            .map(adjustment => (adjustment.amount / this.quantityBasisFor(adjustment)) * this.quantity)
-            .reduce((total, a) => total + a, 0);
-        if (withTax) {
-            return this.listPriceIncludesTax ? sum : grossPriceOf(sum, this.taxRate);
-        } else {
-            return this.listPriceIncludesTax ? netPriceOf(sum, this.taxRate) : sum;
+        // Rescaled promotions are rounded to whole units, so they can exceed the scaled quote.
+        const total = quoted ? Math.max(0, amount + adjustmentTotal) : amount + adjustmentTotal;
+        const roundingQuantity = quoted ? 1 : quantity;
+        const listPriceBasis = !!this.listPriceIncludesTax;
+        const taxShare = withTax === listPriceBasis ? undefined : this.getTaxShare();
+        if (taxShare == null) {
+            return roundMoney(this.withTaxBasis(total, withTax), roundingQuantity);
         }
+        // With absolute tax amounts, the tax is that amount's share of this exact total, rounded
+        // once. On the prorated line total it is exactly the stored amount.
+        return applyTaxShare(roundMoney(total, roundingQuantity), taxShare, withTax);
+    }
+
+    private getTaxShare(): number | undefined {
+        return getTaxShare(this.taxLines);
+    }
+
+    private getQuote(): { price: number; quantity: number } | undefined {
+        const { quotedLinePrice, quotedQuantity } = this;
+        return quotedLinePrice != null && quotedQuantity != null && quotedQuantity > 0
+            ? { price: quotedLinePrice, quantity: quotedQuantity }
+            : undefined;
+    }
+
+    private scaleAmount(amount: number, quantity: number, basis: number): number {
+        return quantity === basis ? amount : (amount * quantity) / basis;
+    }
+
+    private withTaxBasis(amount: number, withTax: boolean): number {
+        if (!!this.listPriceIncludesTax === withTax) {
+            return amount;
+        }
+        const taxShare = this.getTaxShare();
+        if (taxShare != null) {
+            return withTax ? amount * (1 + taxShare) : amount * (1 - taxShare);
+        }
+        return withTax ? grossPriceOf(amount, this.taxRate) : netPriceOf(amount, this.taxRate);
     }
 
     /**

@@ -40,6 +40,7 @@ export interface UseModifyOrderReturn {
     addSurcharge: (surcharge: SurchargeInput) => void;
     setNote: (note: string) => void;
     setRecalculateShipping: (recalculate: boolean) => void;
+    setRecalculateTax: (recalculate: boolean) => void;
     hasModifications: boolean;
 }
 
@@ -339,6 +340,17 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
         }));
     }, []);
 
+    // Set whether to ask the tax strategy again for every line, replacing paid tax amounts
+    const setRecalculateTax = useCallback((recalculate: boolean) => {
+        setModifyOrderInput(prev => ({
+            ...prev,
+            options: {
+                ...prev.options,
+                recalculateTax: recalculate,
+            },
+        }));
+    }, []);
+
     // Check if there are modifications
     const hasModifications = useMemo(() => {
         return (
@@ -368,6 +380,7 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
         addSurcharge,
         setNote,
         setRecalculateShipping,
+        setRecalculateTax,
         hasModifications,
     };
 }

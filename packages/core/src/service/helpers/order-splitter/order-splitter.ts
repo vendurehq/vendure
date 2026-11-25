@@ -146,6 +146,8 @@ export class OrderSplitter {
                     'sellerChannel',
                     'sellerChannelId',
                     'initialListPrice',
+                    'quotedLinePrice',
+                    'quotedQuantity',
                     'listPrice',
                     'listPriceIncludesTax',
                     'adjustments',

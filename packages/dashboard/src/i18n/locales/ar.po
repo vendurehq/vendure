@@ -7036,6 +7036,10 @@ msgstr "المجموع الفرعي"
 msgid "is less than"
 msgstr "أصغر من"
 
+#: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
+msgid "Recalculate tax, replacing the tax that was paid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund ID"
 msgstr "معرف الاسترداد"

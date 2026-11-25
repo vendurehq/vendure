@@ -162,10 +162,12 @@ export function OrderTable({ order, pageId }: Readonly<OrderTableProps>) {
     ];
     const currencyCode = order.currencyCode;
 
+    // `orderDetailFragment` selects `lines.taxLines` to tell whether the order has tax amounts from
+    // a tax strategy. It is not a column of this table.
     const fields = getFieldsFromDocumentNode(
         addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine'] }),
         ['order', 'lines'],
-    );
+    ).filter(field => field.name !== 'taxLines');
 
     const customizeColumns = useMemo(() => createCustomizeColumns(currencyCode), [currencyCode]);
 

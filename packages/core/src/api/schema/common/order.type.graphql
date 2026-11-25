@@ -107,6 +107,7 @@ type ShippingLine {
     discountedPrice: Money!
     discountedPriceWithTax: Money!
     discounts: [Discount!]!
+    taxLines: [TaxLine!]!
 }
 
 type Discount {

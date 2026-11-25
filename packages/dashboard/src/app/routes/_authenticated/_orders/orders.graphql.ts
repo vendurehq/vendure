@@ -201,6 +201,9 @@ export const orderDetailFragment = graphql(
             }
             lines {
                 ...OrderLine
+                taxLines {
+                    amount
+                }
             }
             surcharges {
                 id
@@ -786,6 +789,12 @@ export const refundOrderDocument = graphql(
     `,
     [errorResultFragment],
 );
+
+export const previewRefundLineTotalDocument = graphql(`
+    query PreviewRefundLineTotal($orderId: ID!, $lines: [OrderLineInput!]!) {
+        previewRefundLineTotal(orderId: $orderId, lines: $lines)
+    }
+`);
 
 export const refundDestinationsDocument = graphql(`
     query RefundDestinations($orderId: ID!) {

@@ -22,6 +22,7 @@ import { GlobalSettings } from './global-settings/global-settings.entity';
 import { CustomerHistoryEntry } from './history-entry/customer-history-entry.entity';
 import { HistoryEntry } from './history-entry/history-entry.entity';
 import { OrderHistoryEntry } from './history-entry/order-history-entry.entity';
+import { CancellationLine } from './order-line-reference/cancellation-line.entity';
 import { FulfillmentLine } from './order-line-reference/fulfillment-line.entity';
 import { OrderLineReference } from './order-line-reference/order-line-reference.entity';
 import { OrderModificationLine } from './order-line-reference/order-modification-line.entity';
@@ -90,6 +91,7 @@ export const coreEntitiesMap = {
     AuthenticatedSession,
     AuthenticationMethod,
     Cancellation,
+    CancellationLine,
     Channel,
     Collection,
     CollectionAsset,

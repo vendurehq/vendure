@@ -24,6 +24,7 @@ import { OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
 import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
+import { setOrderLinePrices } from '../helpers/utils/set-order-line-price';
 
 /**
  * @description
@@ -118,6 +119,7 @@ export class OrderTestingService {
             modifications: [],
         });
         mockOrder.shippingAddress = shippingAddress;
+        const entries: Array<{ line: OrderLine; variant: ProductVariant }> = [];
         for (const line of lines) {
             const productVariant = await this.connection.getEntityOrThrow(
                 ctx,
@@ -135,18 +137,9 @@ export class OrderTestingService {
                 taxCategoryId: productVariant.taxCategoryId,
             });
             mockOrder.lines.push(orderLine);
-
-            const { price, priceIncludesTax } = await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                ctx,
-                productVariant,
-                orderLine.customFields || {},
-                mockOrder,
-                orderLine.quantity,
-            );
-            const taxRate = productVariant.taxRateApplied;
-            orderLine.listPrice = price;
-            orderLine.listPriceIncludesTax = priceIncludesTax;
+            entries.push({ line: orderLine, variant: productVariant });
         }
+        await setOrderLinePrices(ctx, orderItemPriceCalculationStrategy, mockOrder, entries);
         mockOrder.shippingLines = [
             new ShippingLine({
                 listPrice: 0,

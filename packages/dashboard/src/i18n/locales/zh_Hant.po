@@ -7036,6 +7036,10 @@ msgstr "小計"
 msgid "is less than"
 msgstr "小於"
 
+#: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
+msgid "Recalculate tax, replacing the tax that was paid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund ID"
 msgstr "退款 ID"

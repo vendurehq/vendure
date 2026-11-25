@@ -39,6 +39,7 @@ import { CustomFieldConfig } from '../../../config/custom-field/custom-field-typ
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
+import { CancellationLine } from '../../../entity/order-line-reference/cancellation-line.entity';
 import { FulfillmentLine } from '../../../entity/order-line-reference/fulfillment-line.entity';
 import { OrderModificationLine } from '../../../entity/order-line-reference/order-modification-line.entity';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
@@ -69,6 +70,8 @@ import { TranslatorService } from '../translator/translator.service';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
+import { trackSurchargeTaxLines } from '../utils/save-surcharge-tax-lines';
+import { setOrderLinePrices } from '../utils/set-order-line-price';
 
 import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
@@ -358,10 +361,25 @@ export class OrderModifier {
                 // A partial cancellation bypasses `OrderCalculator` recalculation entirely, so the
                 // `PROMOTION` adjustments are rescaled here to preserve the invariant that they are
                 // stored scaled to the current quantity.
+                const priceBefore = orderLine.proratedLinePrice;
+                const priceWithTaxBefore = orderLine.proratedLinePriceWithTax;
                 orderLine.setQuantityRescalingAdjustments(orderLine.quantity - line.quantity);
+                if (line.quantity > 0) {
+                    // Records what the cancelled units were worth, so that their refund does not
+                    // change if the remaining units are repriced later.
+                    await this.connection.getRepository(ctx, CancellationLine).save(
+                        new CancellationLine({
+                            orderLineId: orderLine.id,
+                            quantity: line.quantity,
+                            price: priceBefore - orderLine.proratedLinePrice,
+                            priceWithTax: priceWithTaxBefore - orderLine.proratedLinePriceWithTax,
+                        }),
+                    );
+                }
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
                     quantity: orderLine.quantity,
                     adjustments: orderLine.adjustments,
+                    taxLines: orderLine.taxLines,
                 });
 
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, orderLine, 'cancelled'));
@@ -655,25 +673,21 @@ export class OrderModifier {
             }
         }
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
+        const entries: Array<{ line: OrderLine; variant: ProductVariant }> = [];
         for (const orderLine of updatedOrderLines) {
             const variant = await this.productVariantService.applyChannelPriceAndTax(
                 orderLine.productVariant,
                 ctx,
                 order,
             );
-            const priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                ctx,
-                variant,
-                orderLine.customFields || {},
-                order,
-                orderLine.quantity,
-            );
-            orderLine.listPrice = priceResult.price;
-            orderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
+            entries.push({ line: orderLine, variant });
         }
+        await setOrderLinePrices(ctx, orderItemPriceCalculationStrategy, order, entries);
 
+        const saveSurchargeTaxLines = trackSurchargeTaxLines(order.surcharges);
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,
+            recalculateTax: input.options?.recalculateTax ?? undefined,
         });
         await this.promotionService.runPromotionSideEffects(ctx, order, activePromotionsPre);
         await this.connection.getRepository(ctx, OrderLine).save(order.lines, { reload: false });
@@ -730,6 +744,7 @@ export class OrderModifier {
             .save(modification);
         await this.connection.getRepository(ctx, Order).save(order);
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
+        await saveSurchargeTaxLines(ctx, this.connection);
         await this.eventBus.publish(new OrderEvent(ctx, order, 'updated', input));
         return { order, modification: createdModification };
     }
@@ -836,11 +851,7 @@ export class OrderModifier {
     ): Promise<number> {
         const existingAdjustment = refundInput.adjustment ?? 0;
 
-        let itemAmount = 0; // TODO: figure out what this should be
-        for (const lineInput of refundInput.lines ?? []) {
-            const orderLine = await this.connection.getEntityOrThrow(ctx, OrderLine, lineInput.orderLineId);
-            itemAmount += orderLine.proratedUnitPriceWithTax * lineInput.quantity;
-        }
+        const itemAmount = await this.paymentService.getRefundLineTotal(ctx, refundInput.lines ?? [], true);
         const calculatedDelta = itemAmount + (refundInput.shipping ?? 0) + existingAdjustment;
         const absDelta = Math.abs(delta);
         return absDelta !== calculatedDelta ? absDelta - calculatedDelta : 0;

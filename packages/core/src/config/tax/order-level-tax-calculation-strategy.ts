@@ -1,6 +1,6 @@
 import { OrderTaxSummary, TaxLine } from '@vendure/common/lib/generated-types';
 
-import { taxPayableOn } from '../../common/tax-utils';
+import { hasTaxAmounts, sumTaxAmounts, taxPayableOn } from '../../common/tax-utils';
 import { Order } from '../../entity/order/order.entity';
 
 import { OrderTaxCalculationStrategy, OrderTotalsResult } from './order-tax-calculation-strategy';
@@ -9,6 +9,10 @@ interface TaxGroup {
     rate: number;
     description: string;
     netBase: number;
+    /** The part of `netBase` whose tax is derived from the rate. */
+    rateBase: number;
+    /** Tax from absolute TaxLine amounts, which is not derived from the rate. */
+    fixedTax: number;
 }
 
 /**
@@ -45,12 +49,12 @@ export class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStra
 
         let subTotalTax = 0;
         for (const [, group] of subTotalGroups) {
-            subTotalTax += Math.round(taxPayableOn(group.netBase, group.rate));
+            subTotalTax += this.groupTax(group);
         }
 
         let shippingTax = 0;
         for (const [, group] of shippingGroups) {
-            shippingTax += Math.round(taxPayableOn(group.netBase, group.rate));
+            shippingTax += this.groupTax(group);
         }
 
         return {
@@ -67,7 +71,7 @@ export class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStra
         const merged = new Map<string, TaxGroup & { tax: number }>();
         for (const groups of [subTotalGroups, shippingGroups]) {
             for (const [key, group] of groups) {
-                const roundedTax = Math.round(taxPayableOn(group.netBase, group.rate));
+                const roundedTax = this.groupTax(group);
                 const existing = merged.get(key);
                 if (existing) {
                     existing.netBase += group.netBase;
@@ -97,38 +101,71 @@ export class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStra
 
         for (const line of order.lines ?? []) {
             subTotal += line.proratedLinePrice;
-            this.accumulateIntoGroups(subTotalGroups, line.taxLines, line.proratedLinePrice);
+            this.accumulateIntoGroups(
+                subTotalGroups,
+                line.taxLines,
+                line.proratedLinePrice,
+                line.proratedLineTax,
+            );
         }
         for (const surcharge of order.surcharges ?? []) {
             subTotal += surcharge.price;
-            this.accumulateIntoGroups(subTotalGroups, surcharge.taxLines, surcharge.price);
+            this.accumulateIntoGroups(
+                subTotalGroups,
+                surcharge.taxLines,
+                surcharge.price,
+                surcharge.priceWithTax - surcharge.price,
+            );
         }
         for (const shippingLine of order.shippingLines ?? []) {
             shipping += shippingLine.discountedPrice;
-            this.accumulateIntoGroups(shippingGroups, shippingLine.taxLines, shippingLine.discountedPrice);
+            this.accumulateIntoGroups(
+                shippingGroups,
+                shippingLine.taxLines,
+                shippingLine.discountedPrice,
+                shippingLine.discountedPriceWithTax - shippingLine.discountedPrice,
+            );
         }
 
         return { subTotal, subTotalGroups, shipping, shippingGroups };
     }
 
+    private groupTax(group: TaxGroup): number {
+        return Math.round(group.fixedTax + taxPayableOn(group.rateBase, group.rate));
+    }
+
+    /**
+     * When every TaxLine of a line has an absolute `amount`, that tax is added to the group as it is,
+     * split between the TaxLines by their amounts. Otherwise the line's base is taxed at the rate.
+     */
     private accumulateIntoGroups(
         groups: Map<string, TaxGroup>,
         taxLines: TaxLine[] | undefined,
         lineNetBase: number,
+        lineTax: number,
     ) {
         if (!taxLines?.length) {
             return;
         }
+        const hasAmounts = hasTaxAmounts(taxLines);
+        const amountTotal = hasAmounts ? sumTaxAmounts(taxLines) : 0;
         for (const taxLine of taxLines) {
             const key = `${taxLine.description}:${taxLine.taxRate}`;
+            const fixedTax =
+                hasAmounts && amountTotal !== 0 ? (lineTax * (taxLine.amount ?? 0)) / amountTotal : 0;
+            const rateBase = hasAmounts ? 0 : lineNetBase;
             const existing = groups.get(key);
             if (existing) {
                 existing.netBase += lineNetBase;
+                existing.rateBase += rateBase;
+                existing.fixedTax += fixedTax;
             } else {
                 groups.set(key, {
                     rate: taxLine.taxRate,
                     description: taxLine.description,
                     netBase: lineNetBase,
+                    rateBase,
+                    fixedTax,
                 });
             }
         }

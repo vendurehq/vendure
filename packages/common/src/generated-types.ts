@@ -2902,6 +2902,13 @@ export type ModifyOrderInput = {
 export type ModifyOrderOptions = {
   freezePromotions?: InputMaybe<Scalars['Boolean']['input']>;
   recalculateShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  /**
+   * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, ShippingLine and
+   * Surcharge, replacing the absolute tax amounts that were paid even on items that did not change.
+   * Use it after a change of address when the tax may differ, and check the result with `dryRun`
+   * first. Defaults to false.
+   */
+  recalculateTax?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type ModifyOrderResult = CouponCodeExpiredError | CouponCodeInvalidError | CouponCodeLimitError | IneligibleShippingMethodError | InsufficientStockError | NegativeQuantityError | NoChangesSpecifiedError | Order | OrderLimitError | OrderModificationStateError | PaymentMethodMissingError | RefundPaymentIdMissingError;
@@ -5673,6 +5680,13 @@ export type Query = {
   pendingSearchIndexUpdates: Scalars['Int']['output'];
   /** Used for real-time previews of the contents of a Collection */
   previewCollectionVariants: ProductVariantList;
+  /**
+   * Returns the tax-inclusive refund amount for the given units, excluding shipping. Units that were
+   * cancelled are valued at the price recorded when they were cancelled, for lines priced by
+   * `OrderItemPriceCalculationStrategy.calculateLinePrices`. Returns an error if more units are
+   * requested than the line can still refund.
+   */
+  previewRefundLineTotal: Scalars['Money']['output'];
   /** Get a Product either by id or slug. If neither id nor slug is specified, an error will result. */
   product?: Maybe<Product>;
   productOption?: Maybe<ProductOption>;
@@ -5890,6 +5904,12 @@ export type QueryPaymentMethodsArgs = {
 export type QueryPreviewCollectionVariantsArgs = {
   input: PreviewCollectionVariantsInput;
   options?: InputMaybe<ProductVariantListOptions>;
+};
+
+
+export type QueryPreviewRefundLineTotalArgs = {
+  lines: Array<OrderLineInput>;
+  orderId: Scalars['ID']['input'];
 };
 
 
@@ -6643,6 +6663,7 @@ export type ShippingLine = {
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
   shippingMethod: ShippingMethod;
+  taxLines: Array<TaxLine>;
 };
 
 export type ShippingMethod = Node & {
@@ -7063,6 +7084,13 @@ export type TaxCategorySortParameter = {
 
 export type TaxLine = {
   __typename?: 'TaxLine';
+  /**
+   * The absolute tax of the whole item (OrderLine, ShippingLine or Surcharge) for this TaxLine, when
+   * the TaxLineCalculationStrategy provides it, for example from an ERP. The item's tax then equals
+   * this amount rather than being derived from the rate. After a partial cancellation it is the tax
+   * of the remaining units. Null when the tax is derived from the rate.
+   */
+  amount?: Maybe<Scalars['Money']['output']>;
   description: Scalars['String']['output'];
   taxRate: Scalars['Float']['output'];
 };

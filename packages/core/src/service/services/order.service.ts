@@ -42,7 +42,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError, Not } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -91,10 +91,11 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -135,6 +136,8 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { trackSurchargeTaxLines } from '../helpers/utils/save-surcharge-tax-lines';
+import { setOrderLinePrices } from '../helpers/utils/set-order-line-price';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -2162,6 +2165,30 @@ export class OrderService implements OnApplicationBootstrap {
         ) {
             return new RefundOrderStateError({ orderState: order.state });
         }
+        // The deprecated line-based amount excludes lines that were not part of the placed order,
+        // such as lines that an order modification added. Recording RefundLines for them would mark
+        // unpaid units as refunded, so they are left out of the refund.
+        const legacyLineIds =
+            input.amount || input.targets?.length
+                ? []
+                : (input.lines ?? []).filter(line => 0 < line.quantity).map(line => line.orderLineId);
+        if (legacyLineIds.length) {
+            const unplacedLines = await this.connection.getRepository(ctx, OrderLine).find({
+                where: { id: In(legacyLineIds), orderPlacedQuantity: 0 },
+                select: { id: true },
+            });
+            if (unplacedLines.length) {
+                input = {
+                    ...input,
+                    lines: (input.lines ?? []).filter(
+                        line => !unplacedLines.some(unplaced => idsAreEqual(unplaced.id, line.orderLineId)),
+                    ),
+                };
+                if (!input.lines?.length && !input.shipping && !input.adjustment) {
+                    return new NothingToRefundError();
+                }
+            }
+        }
 
         const createdRefund = await this.paymentService.createRefund(ctx, input, order, payment);
 
@@ -2169,6 +2196,40 @@ export class OrderService implements OnApplicationBootstrap {
             await this.eventBus.publish(new RefundEvent(ctx, order, createdRefund, 'created'));
         }
         return createdRefund;
+    }
+
+    /** @internal */
+    async previewRefundLineTotal(ctx: RequestContext, orderId: ID, lines: OrderLineInput[]): Promise<number> {
+        const order = await this.getOrderOrThrow(ctx, orderId, ['lines', 'lines.cancellationLines']);
+        const refundLines = await this.connection.getRepository(ctx, RefundLine).find({
+            where: { orderLineId: In(lines.map(line => line.orderLineId)), refund: { state: Not('Failed') } },
+        });
+        for (const input of lines) {
+            const line = this.getOrderLineOrThrow(order, input.orderLineId);
+            if (input.quantity < 0) {
+                throw new UserInputError('errorResult.NEGATIVE_QUANTITY_ERROR');
+            }
+            // Cancelled units stay refundable, including units that an order modification added to
+            // a placed line. They do not count on a line that a modification added, which may not
+            // have been paid for.
+            const cancelled =
+                line.orderPlacedQuantity > 0 ? summate(line.cancellationLines ?? [], 'quantity') : 0;
+            const refundable =
+                Math.max(line.orderPlacedQuantity, line.quantity, cancelled + line.quantity) -
+                summate(
+                    refundLines.filter(refundLine => idsAreEqual(refundLine.orderLineId, line.id)),
+                    'quantity',
+                );
+            const requested = summate(
+                lines.filter(other => idsAreEqual(other.orderLineId, line.id)),
+                'quantity',
+            );
+            if (refundable < requested) {
+                throw new UserInputError('errorResult.QUANTITY_TOO_GREAT_ERROR');
+            }
+        }
+        // The Dashboard refunds by amount, so lines that an order modification added are included.
+        return this.paymentService.getRefundLineTotal(ctx, lines, true);
     }
 
     /**
@@ -2659,35 +2720,22 @@ export class OrderService implements OnApplicationBootstrap {
         if (updatedOrderLines?.length) {
             const { orderItemPriceCalculationStrategy, changedPriceHandlingStrategy } =
                 this.configService.orderOptions;
+            const entries: Array<{ line: OrderLine; variant: ProductVariant }> = [];
             for (const updatedOrderLine of updatedOrderLines) {
                 const variant = await this.productVariantService.applyChannelPriceAndTax(
                     updatedOrderLine.productVariant,
                     ctx,
                     order,
                 );
-                let priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
-                    ctx,
-                    variant,
-                    updatedOrderLine.customFields || {},
-                    order,
-                    updatedOrderLine.quantity,
-                );
-                const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
-                if (initialListPrice !== priceResult.price) {
-                    priceResult = await changedPriceHandlingStrategy.handlePriceChange(
-                        ctx,
-                        priceResult,
-                        updatedOrderLine,
-                        order,
-                    );
-                }
-
-                if (updatedOrderLine.initialListPrice == null) {
-                    updatedOrderLine.initialListPrice = initialListPrice;
-                }
-                updatedOrderLine.listPrice = priceResult.price;
-                updatedOrderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
+                entries.push({ line: updatedOrderLine, variant });
             }
+            await setOrderLinePrices(
+                ctx,
+                orderItemPriceCalculationStrategy,
+                order,
+                entries,
+                changedPriceHandlingStrategy,
+            );
         }
 
         // A blocking event handler or a concurrent request can add or remove a Surcharge after
@@ -2699,6 +2747,7 @@ export class OrderService implements OnApplicationBootstrap {
         // Get the shipping line IDs before doing the order calculation
         // step, which can in some cases change the applied shipping lines.
         const shippingLineIdsPre = order.shippingLines.map(l => l.id);
+        const saveSurchargeTaxLines = trackSurchargeTaxLines(order.surcharges);
 
         const updatedOrder = await this.orderCalculator.applyPriceAdjustments(
             ctx,
@@ -2738,6 +2787,7 @@ export class OrderService implements OnApplicationBootstrap {
         await this.promotionService.runPromotionSideEffects(ctx, order, activePromotionsPre);
         await this.connection.getRepository(ctx, OrderLine).save(updatedOrder.lines, { reload: false });
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
+        await saveSurchargeTaxLines(ctx, this.connection);
 
         return assertFound(this.findOne(ctx, order.id, relations));
     }

@@ -1,6 +1,7 @@
 import { OrderTaxSummary, TaxLine } from '@vendure/common/lib/generated-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 
+import { hasTaxAmounts, sumTaxAmounts } from '../../common/tax-utils';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { Order } from '../../entity/order/order.entity';
 import { Surcharge } from '../../entity/surcharge/surcharge.entity';
@@ -56,10 +57,20 @@ export class DefaultOrderTaxCalculationStrategy implements OrderTaxCalculationSt
                 continue;
             }
             const taxRateTotal = summate(line.taxLines, 'taxRate');
+            // Absolute tax amounts, when the TaxLineCalculationStrategy provides them, split the
+            // line's tax between its TaxLines instead of the rates.
+            const hasAmounts = hasTaxAmounts(line.taxLines);
+            const amountTotal = hasAmounts ? sumTaxAmounts(line.taxLines) : 0;
             for (const taxLine of line.taxLines) {
                 const id = taxId(taxLine);
                 const row = taxRateMap.get(id);
-                const proportionOfTotalRate = 0 < taxLine.taxRate ? taxLine.taxRate / taxRateTotal : 0;
+                const proportionOfTotalRate = hasAmounts
+                    ? amountTotal !== 0
+                        ? (taxLine.amount ?? 0) / amountTotal
+                        : 0
+                    : 0 < taxLine.taxRate
+                      ? taxLine.taxRate / taxRateTotal
+                      : 0;
 
                 const lineBase =
                     line instanceof OrderLine

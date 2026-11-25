@@ -345,6 +345,10 @@ export abstract class PromotionAction<
  * @description
  * Represents a PromotionAction which applies to individual {@link OrderLine}s.
  *
+ * Return the amount in the tax basis of the Channel, as set by `ctx.channel.pricesIncludeTax`.
+ * If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrices` in the
+ * other tax basis, Vendure converts the amount to the basis of that price.
+ *
  * @example
  * ```ts
  * // Applies a percentage discount to each OrderLine
@@ -352,7 +356,8 @@ export abstract class PromotionAction<
  *     code: 'item_percentage_discount',
  *     args: { discount: 'percentage' },
  *     execute(ctx, orderLine, args) {
- *         return -orderLine.unitPrice * (args.discount / 100);
+ *         const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
+ *         return -unitPrice * (args.discount / 100);
  *     },
  *     description: 'Discount every item by { discount }%',
  * });
@@ -401,6 +406,10 @@ export class PromotionItemAction<
  * Represents a PromotionAction which applies to individual {@link OrderLine}s.
  * The difference from PromotionItemAction is that it applies regardless of the Quantity of the OrderLine.
  *
+ * Return the amount in the tax basis of the Channel, as set by `ctx.channel.pricesIncludeTax`.
+ * If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrices` in the
+ * other tax basis, Vendure converts the amount to the basis of that price.
+ *
  * @example
  * ```ts
  * // Applies a percentage discount to each OrderLine
@@ -408,7 +417,8 @@ export class PromotionItemAction<
  *     code: 'line_percentage_discount',
  *     args: { discount: 'percentage' },
  *     execute(ctx, orderLine, args) {
- *         return -orderLine.linePrice * (args.discount / 100);
+ *         const linePrice = ctx.channel.pricesIncludeTax ? orderLine.linePriceWithTax : orderLine.linePrice;
+ *         return -linePrice * (args.discount / 100);
  *     },
  *     description: 'Discount every line by { discount }%',
  * });

@@ -54,8 +54,8 @@ export const buyXGetYFreeCondition = new PromotionCondition({
         const quantity = Math.floor(matches / args.amountX);
         if (!quantity || !freeItemCandidates.length) return false;
         const freeLines = freeItemCandidates.sort((a, b) => {
-            const unitPriceA = ctx.channel.pricesIncludeTax ? a.unitPriceWithTax : a.unitPrice;
-            const unitPriceB = ctx.channel.pricesIncludeTax ? b.unitPriceWithTax : b.unitPrice;
+            const unitPriceA = a.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
+            const unitPriceB = b.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
             if (unitPriceA < unitPriceB) return -1;
             if (unitPriceA > unitPriceB) return 1;
             return 0;

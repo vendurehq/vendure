@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
     allocateRefundTotal,
+    calculateRefundTotal,
     mergeRefundTargets,
     reconcileRefundTargets,
     RefundTarget,
@@ -21,6 +22,19 @@ function target(overrides: Partial<RefundTarget> & { id: string }): RefundTarget
         ...overrides,
     };
 }
+
+describe('calculateRefundTotal', () => {
+    it('adds the previewed line total and the selected shipping once', () => {
+        const order = {
+            shippingLines: [
+                { id: 'shipping', discountedPriceWithTax: 200 },
+                { id: 'other', discountedPriceWithTax: 300 },
+            ],
+        } as Parameters<typeof calculateRefundTotal>[0];
+        expect(calculateRefundTotal(order, ['shipping'], 10595)).toBe(10795);
+        expect(calculateRefundTotal(order, [], 0)).toBe(0);
+    });
+});
 
 describe('mergeRefundTargets', () => {
     it('returns the rebuilt targets with their defaults when the current list is empty', () => {

@@ -26,7 +26,7 @@ export const productsPercentageDiscount = new PromotionItemAction({
     },
     execute(ctx, orderLine, args) {
         if (lineContainsIds(args.productVariantIds, orderLine)) {
-            const unitPrice = ctx.channel.pricesIncludeTax ? orderLine.unitPriceWithTax : orderLine.unitPrice;
+            const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
             return -unitPrice * (args.discount / 100);
         }
         return 0;

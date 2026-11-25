@@ -60,11 +60,7 @@
                             <div class="line-promotion" *ngFor="let discount of discounts">
                                 {{ discount.description }}
                                 <div class="promotion-amount">
-                                    {{
-                                        discount.amount / 100 / line.quantity
-                                            | number : '1.0-2'
-                                            | currency : order.currencyCode
-                                    }}
+                                    {{ discount.amount / line.quantity | localeCurrency : order.currencyCode }}
                                 </div>
                             </div>
                         </vdr-dropdown-menu>

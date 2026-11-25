@@ -5,11 +5,11 @@ import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
+import { convertTaxBasis } from '../../common/tax-utils';
 import { VendureEntity } from '../base/base.entity';
 import { Money } from '../money.decorator';
-import { Order } from '../order/order.entity';
 import { OrderModification } from '../order-modification/order-modification.entity';
+import { Order } from '../order/order.entity';
 
 /**
  * @description
@@ -58,15 +58,30 @@ export class Surcharge extends VendureEntity {
     @Calculated()
     get price(): number {
         return roundMoney(
-            this.listPriceIncludesTax ? netPriceOf(this.listPrice, this.taxRate) : this.listPrice,
+            this.listPriceIncludesTax ? this.fromListPriceBasis(this.listPrice, false) : this.listPrice,
         );
     }
 
     @Calculated()
     get priceWithTax(): number {
         return roundMoney(
-            this.listPriceIncludesTax ? this.listPrice : grossPriceOf(this.listPrice, this.taxRate),
+            this.listPriceIncludesTax ? this.listPrice : this.fromListPriceBasis(this.listPrice, true),
         );
+    }
+
+    /**
+     * @description
+     * The price in the tax basis of `listPrice`. This is the value that the `amount` of a
+     * {@link TaxLine} is a share of.
+     *
+     * @internal
+     */
+    getTaxableTotal(): number {
+        return roundMoney(this.listPrice);
+    }
+
+    private fromListPriceBasis(value: number, withTax: boolean): number {
+        return convertTaxBasis(value, withTax, this.taxLines, this.taxRate);
     }
 
     @Calculated()

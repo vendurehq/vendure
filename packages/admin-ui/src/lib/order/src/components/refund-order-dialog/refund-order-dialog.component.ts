@@ -1,30 +1,40 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker';
 import {
     CancelOrderInput,
+    DataService,
     Dialog,
     getAppConfig,
     I18nService,
     OrderDetailFragment,
     OrderLineInput,
     PaymentWithRefundsFragment,
+    PreviewRefundLineTotalDocument,
     RefundOrderInput,
 } from '@vendure/admin-ui/core';
 import { summate } from '@vendure/common/lib/shared-utils';
+import { gql } from 'apollo-angular';
+import { of, Subject } from 'rxjs';
+import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
 import { getRefundablePayments, RefundablePayment } from '../../common/get-refundable-payments';
 
 type SelectionLine = { quantity: number; cancel: boolean };
+
+export const PREVIEW_REFUND_LINE_TOTAL = gql`
+    query PreviewRefundLineTotal($orderId: ID!, $lines: [OrderLineInput!]!) {
+        previewRefundLineTotal(orderId: $orderId, lines: $lines)
+    }
+`;
 
 @Component({
     selector: 'vdr-refund-order-dialog',
     templateUrl: './refund-order-dialog.component.html',
     styleUrls: ['./refund-order-dialog.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    standalone: false,
 })
 export class RefundOrderDialogComponent
-    implements OnInit, Dialog<{ cancel: CancelOrderInput; refunds: RefundOrderInput[] }>
+    implements OnInit, OnDestroy, Dialog<{ cancel: CancelOrderInput; refunds: RefundOrderInput[] }>
 {
     order: OrderDetailFragment;
     resolveWith: (result?: { cancel: CancelOrderInput; refunds: RefundOrderInput[] }) => void;
@@ -38,8 +48,15 @@ export class RefundOrderDialogComponent
     ];
     manuallySetRefundTotal = false;
     refundTotal = 0;
+    isCalculating = false;
+    private lineSelectionChange$ = new Subject<OrderLineInput[]>();
+    private destroy$ = new Subject<void>();
 
-    constructor(private i18nService: I18nService) {
+    constructor(
+        private i18nService: I18nService,
+        private dataService: DataService,
+        private changeDetector: ChangeDetectorRef,
+    ) {
         this.reasons = this.reasons.map(r => this.i18nService.translate(r));
     }
 
@@ -55,7 +72,11 @@ export class RefundOrderDialogComponent
     }
 
     lineCanBeRefundedOrCancelled(line: OrderDetailFragment['lines'][number]): boolean {
-        const refundedCount =
+        return this.getRefundedQuantity(line) < line.orderPlacedQuantity;
+    }
+
+    private getRefundedQuantity(line: OrderDetailFragment['lines'][number]): number {
+        return (
             this.order.payments
                 ?.reduce(
                     (all, payment) => [...all, ...payment.refunds],
@@ -67,9 +88,8 @@ export class RefundOrderDialogComponent
                     [] as Array<{ orderLineId: string; quantity: number }>,
                 )
                 .filter(refundLine => refundLine.orderLineId === line.id)
-                .reduce((sum, refundLine) => sum + refundLine.quantity, 0) ?? 0;
-
-        return refundedCount < line.orderPlacedQuantity;
+                .reduce((sum, refundLine) => sum + refundLine.quantity, 0) ?? 0
+        );
     }
 
     ngOnInit() {
@@ -85,26 +105,67 @@ export class RefundOrderDialogComponent
             {},
         );
         this.refundablePayments = getRefundablePayments(this.order.payments);
+        // The server calculates the line total, so that the refund matches what it records,
+        // including lines priced by `calculateLinePrices`. A newer selection cancels a pending one.
+        this.lineSelectionChange$
+            .pipe(
+                switchMap(lines =>
+                    lines.length
+                        ? this.dataService
+                              .query(
+                                  PreviewRefundLineTotalDocument,
+                                  { orderId: this.order.id, lines },
+                                  'network-only',
+                              )
+                              .single$.pipe(
+                                  map(result => result.previewRefundLineTotal),
+                                  // The error is shown by the data service. Leave the total as it was.
+                                  catchError(() => of(undefined)),
+                              )
+                        : of(0),
+                ),
+                takeUntil(this.destroy$),
+            )
+            .subscribe(lineTotal => {
+                // A failed preview keeps the dialog from submitting until the selection changes,
+                // unless the administrator has entered the total by hand.
+                this.isCalculating = lineTotal == null && !this.manuallySetRefundTotal;
+                if (lineTotal != null && !this.manuallySetRefundTotal) {
+                    this.refundTotal = lineTotal + this.getShippingTotal();
+                    this.allocateRefundTotal();
+                }
+                this.changeDetector.markForCheck();
+            });
+    }
+
+    ngOnDestroy() {
+        this.destroy$.next();
+        this.destroy$.complete();
     }
 
     updateRefundTotal() {
         if (!this.manuallySetRefundTotal) {
-            const itemTotal = this.order.lines.reduce((total, line) => {
-                const lineRef = this.lineQuantities[line.id];
-                const refundCount = lineRef.quantity || 0;
-                return total + line.proratedUnitPriceWithTax * refundCount;
-            }, 0);
-            const shippingTotal = this.order.shippingLines.reduce((total, line) => {
-                if (this.refundShippingLineIds.includes(line.id)) {
-                    return total + line.discountedPriceWithTax;
-                } else {
-                    return total;
-                }
-            }, 0);
-            this.refundTotal = itemTotal + shippingTotal;
+            this.isCalculating = true;
+            this.lineSelectionChange$.next(this.getOrderLineInput(() => true));
+            return;
         }
+        // A manual total does not depend on the preview, so a failed or pending one must not block it.
+        this.isCalculating = false;
+        this.allocateRefundTotal();
+    }
 
-        // allocate the refund total across the refundable payments
+    private getShippingTotal(): number {
+        return this.order.shippingLines.reduce((total, line) => {
+            if (this.refundShippingLineIds.includes(line.id)) {
+                return total + line.discountedPriceWithTax;
+            } else {
+                return total;
+            }
+        }, 0);
+    }
+
+    // allocate the refund total across the refundable payments
+    private allocateRefundTotal() {
         const refundablePayments = this.refundablePayments.filter(p => p.selected);
         let refundsAllocated = 0;
         for (const payment of refundablePayments) {
@@ -173,7 +234,12 @@ export class RefundOrderDialogComponent
     }
 
     canSubmit(): boolean {
-        return 0 < this.refundTotal && this.amountToRefundTotal === this.refundTotal && !!this.reason;
+        return (
+            !this.isCalculating &&
+            0 < this.refundTotal &&
+            this.amountToRefundTotal === this.refundTotal &&
+            !!this.reason
+        );
     }
 
     select() {
@@ -183,9 +249,10 @@ export class RefundOrderDialogComponent
         this.resolveWith({
             refunds: this.refundablePayments
                 .filter(rp => rp.selected && 0 < rp.amountToRefundControl.value)
-                .map(payment => {
+                .map((payment, index) => {
                     return {
-                        lines: refundLines,
+                        // Each refund records its lines as refunded, so only the first one carries them.
+                        lines: index === 0 ? refundLines : [],
                         reason: this.reason,
                         paymentId: payment.id,
                         amount: payment.amountToRefundControl.value,

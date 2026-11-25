@@ -21,6 +21,7 @@ interface OrderModificationSummaryProps {
     }>;
     onNoteChange?: (note: string) => void;
     onRecalculateShippingChange?: (recalculate: boolean) => void;
+    onRecalculateTaxChange?: (recalculate: boolean) => void;
 }
 
 interface LineAdjustment {
@@ -39,7 +40,13 @@ export function OrderModificationSummary({
     eligibleShippingMethods,
     onNoteChange,
     onRecalculateShippingChange,
+    onRecalculateTaxChange,
 }: Readonly<OrderModificationSummaryProps>) {
+    // Only orders whose tax came as absolute amounts from a tax strategy, such as an ERP, can have
+    // their paid tax replaced.
+    const hasTaxAmounts = originalOrder.lines.some(line =>
+        line.taxLines?.some(taxLine => taxLine.amount != null),
+    );
     // Map by line id for quick lookup
     const originalLineMap = new Map(originalOrder.lines.map(line => [line.id, line]));
 
@@ -255,14 +262,25 @@ export function OrderModificationSummary({
                     id="recalculate-shipping"
                     disabled={hasNoModifications}
                     checked={modifyOrderInput.options?.recalculateShipping ?? true}
-                    onCheckedChange={checked =>
-                        onRecalculateShippingChange?.(!!checked)
-                    }
+                    onCheckedChange={checked => onRecalculateShippingChange?.(!!checked)}
                 />
                 <label htmlFor="recalculate-shipping" className="text-sm cursor-pointer">
                     <Trans>Recalculate shipping</Trans>
                 </label>
             </div>
+            {hasTaxAmounts && (
+                <div className="mt-2 flex items-center gap-2" data-testid="recalculate-tax-field">
+                    <Checkbox
+                        id="recalculate-tax"
+                        disabled={hasNoModifications}
+                        checked={modifyOrderInput.options?.recalculateTax ?? false}
+                        onCheckedChange={checked => onRecalculateTaxChange?.(!!checked)}
+                    />
+                    <label htmlFor="recalculate-tax" className="text-sm cursor-pointer">
+                        <Trans>Recalculate tax, replacing the tax that was paid</Trans>
+                    </label>
+                </div>
+            )}
             <div className="mb-4 mt-4">
                 <div className="font-medium mb-2">
                     <Trans>Note</Trans>

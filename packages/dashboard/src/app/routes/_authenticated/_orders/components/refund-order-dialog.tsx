@@ -22,7 +22,7 @@ import {
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { uiConfig } from 'virtual:vendure-ui-config';
 
@@ -93,7 +93,7 @@ function RefundTargetRow({
                     </Label>
                     <Input
                         type="number"
-                        step="0.01"
+                        step={toMajorUnits(1)}
                         data-testid="refund-target-amount"
                         value={target.amountToRefund ? toMajorUnits(target.amountToRefund) : ''}
                         placeholder="0"
@@ -398,13 +398,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                 <div className="flex items-center gap-2">
                                     <Checkbox
                                         checked={refund.manuallySetRefundTotal}
-                                        onCheckedChange={checked => {
-                                            refund.setManuallySetRefundTotal(!!checked);
-                                            if (!checked) {
-                                                const calculated = refund.recalculateRefundTotal();
-                                                refund.onManualRefundTotalChange(calculated);
-                                            }
-                                        }}
+                                        onCheckedChange={checked => refund.setManuallySetRefundTotal(!!checked)}
                                     />
                                     <Label className="font-normal text-sm text-muted-foreground">
                                         <Trans>Override</Trans>
@@ -414,7 +408,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                             <div className="flex items-center gap-2">
                                 <Input
                                     type="number"
-                                    step="0.01"
+                                    step={toMajorUnits(1)}
                                     value={refund.refundTotal ? toMajorUnits(refund.refundTotal) : ''}
                                     placeholder="0"
                                     onChange={e =>
@@ -425,6 +419,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                     disabled={!refund.manuallySetRefundTotal}
                                     className="w-32"
                                 />
+                                {refund.isCalculating && <Loader2 className="size-4 animate-spin" />}
                                 <span className="text-muted-foreground">{order.currencyCode}</span>
                                 <span className="text-muted-foreground text-sm">
                                     <Trans>(max: {formatCurrency(refund.totalRefundableAmount, order.currencyCode)})</Trans>
