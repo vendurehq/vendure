@@ -22,6 +22,7 @@ import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProviders, queryClient } from './app-providers.js';
+import { removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
 import { setDocumentDirection } from './common/set-document-direction.js';
 import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
@@ -105,6 +106,14 @@ function InnerApp() {
     }, [isRTL]);
 
     const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
+
+    useEffect(() => {
+        if (!isReady) {
+            return;
+        }
+        return removeBootSplashWhenResolved(router);
+    }, [isReady, router]);
+
     return (
         <>
             <DirectionProvider direction={isRTL ? 'rtl' : 'ltr'}>
@@ -121,8 +130,8 @@ function InnerApp() {
 
 /**
  * Lightweight full-screen splash shown while auth + server config are still
- * resolving on cold load. Without this we render an empty document, which
- * makes the dashboard feel laggy on first paint.
+ * resolving, e.g. after a sign-in. It looks like the boot screen of
+ * `index.html`, which covers it on a cold load.
  */
 function BootSplash() {
     return (
@@ -154,10 +163,9 @@ function App() {
     }, [extensionsLoaded]);
 
     if (!i18nLoaded || !extensionsRegistered) {
-        // Show a minimal full-screen splash so the user sees that the app is
-        // loading rather than a white screen while i18n catalogs and dashboard
-        // extensions resolve.
-        return <BootSplash />;
+        // The boot screen of index.html covers the app until the first page
+        // has rendered, while the i18n catalogs and dashboard extensions resolve.
+        return null;
     }
     return (
         <AppProviders>
@@ -170,6 +178,9 @@ function App() {
 const rootElement = document.getElementById('app')!;
 
 if (!rootElement.innerHTML) {
+    // An error that unmounts the app before the first page would leave the boot
+    // screen spinning. React reports uncaught errors to the window.
+    window.addEventListener('error', removeBootSplash, { once: true });
     const root = createRoot(rootElement);
     root.render(
         <React.StrictMode>

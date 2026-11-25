@@ -61,6 +61,8 @@ export interface DashboardThemeOptions extends ThemeVariables {
      *
      * To override design tokens (e.g. brand colors), prefer the `light`/`dark`
      * theme options — `additionalStylesheets` is for layering custom CSS rules.
+     * The loading screen of a cold load reads only the `light`/`dark` options,
+     * because it paints before these stylesheets load.
      *
      * @example
      * ```ts
@@ -293,12 +295,52 @@ function generateTextStyleUtilities(): string {
         .join('\n\n');
 }
 
+/**
+ * The variables that the boot screen in `index.html` reads. The stylesheet loads
+ * with the app, so `index.html` gets these in an inline style to paint the boot
+ * screen in the saved theme from the first frame.
+ */
+export const BOOT_VARIABLES = ['background', 'muted-foreground'];
+
+/**
+ * Generates the inline style for `index.html`: the boot variables of the light
+ * theme in `:root` and of the dark theme in `.dark`, with the user's overrides,
+ * as the stylesheet declares them once it loads.
+ */
+function generateBootStyle(light: ThemeColors, dark: ThemeColors): string {
+    const declarations = (theme: ThemeColors) =>
+        BOOT_VARIABLES.filter(key => theme[key] !== undefined)
+            .map(key => `--${key}: ${theme[key] as string};`)
+            .join(' ');
+    return `:root { ${declarations(light)} } .dark { ${declarations(dark)} }`;
+}
+
 export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plugin {
     const additionalStylesheets = normalizeStylesheetPaths(options.additionalStylesheets);
+    // Merge default themes with custom themes
+    const mergedLightTheme = { ...defaultVariables.light, ...options.theme?.light };
+    const mergedDarkTheme = { ...defaultVariables.dark, ...options.theme?.dark };
 
     return {
         name: 'vendure:admin-theme',
         enforce: 'pre', // This ensures our plugin runs before other CSS processors
+        transformIndexHtml(html, ctx) {
+            // Don't add the boot style to Storybook HTML files
+            if (
+                ctx.filename &&
+                (ctx.filename.includes('iframe.html') || ctx.filename.includes('storybook'))
+            ) {
+                return html;
+            }
+            return [
+                {
+                    tag: 'style',
+                    children: generateBootStyle(mergedLightTheme, mergedDarkTheme),
+                    // First in the head, so every stylesheet after it wins once it loads.
+                    injectTo: 'head-prepend',
+                },
+            ];
+        },
         transform(code, id) {
             // Only transform the dashboard's main `styles.css` (used in both
             // bundle and source mode, see issue #4719).
@@ -330,13 +372,6 @@ export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plug
                 result.includes('@import "virtual:admin-theme";') ||
                 result.includes("@import 'virtual:admin-theme';")
             ) {
-                const lightOverrides = options.theme?.light || {};
-                const darkOverrides = options.theme?.dark || {};
-
-                // Merge default themes with custom themes
-                const mergedLightTheme = { ...defaultVariables.light, ...lightOverrides };
-                const mergedDarkTheme = { ...defaultVariables.dark, ...darkOverrides };
-
                 const themeCSS = `
                     :root {
                         ${Object.entries(mergedLightTheme)
