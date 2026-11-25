@@ -96,6 +96,7 @@ function makeContext(options: { ask?: Partial<CommandAsk>; mcp?: boolean } = {})
             : {}),
         notice: (level, message) => notices.push({ level, message }),
         progress: () => undefined,
+        output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
     };

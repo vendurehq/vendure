@@ -328,8 +328,8 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
         } else if (event.type === 'progress') {
             process.stderr.write(`${String(event.message)}\n`);
         } else if (event.type === 'output') {
-            // The output of a process a `service` command runs, such as `vendure dev`, passed on as
-            // it came. Under `--json` it is an event on stderr like any other.
+            // `ctx.output`: text passed on as it came, such as the output of the processes
+            // `vendure dev` runs. Under `--json` it is an event on stderr like any other.
             (event.stream === 'stderr' ? process.stderr : process.stdout).write(String(event.text));
         }
     };

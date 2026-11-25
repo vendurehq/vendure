@@ -1203,6 +1203,11 @@ export async function run(input: { dryRun: boolean }, ctx: CommandContext) {
 `run` never prints or prompts. It reports through `ctx`, and returns its output, or `incomplete()`,
 `failed()` or `fail()` from `@vendure/common/lib/command`.
 
+`ctx.output(text, stream)` passes text on to the caller as it comes, such as the lines of a log the command
+follows. A person sees it as it is, on stdout unless `stream` is `'stderr'`, so end each line with a newline. Under
+`--json` each call is an `output` event on stderr, and stdout holds only the envelope. What the caller needs once the
+run ends belongs in the output `run` returns.
+
 `ctx.spawn` starts a process, and passes its output on to the caller. Pass `quiet: true` to keep the
 output in the result only, for a process whose answer the command reads, such as `git status
 --porcelain`. Pass `timeoutMs` to stop a process that runs too long: the result then has

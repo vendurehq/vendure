@@ -278,6 +278,23 @@ export interface CommandEvent {
     [key: string]: unknown;
 }
 
+/**
+ * @description
+ * The event {@link CommandContext.output} reports: text the caller sees as it comes, such as the
+ * output of a process a command runs or the lines of a log it follows. A person sees `text` as it
+ * is, on `stream`. Under `--json` it is a tagged line on stderr like any other event, whatever
+ * `stream` says, so stdout holds only the envelope.
+ *
+ * @since 4.0.0
+ */
+export interface CommandOutputEvent extends CommandEvent {
+    type: 'output';
+    /** Where a person sees the text. */
+    stream: 'stdout' | 'stderr';
+    /** The text as it came, newlines included. It can hold ANSI colour codes. */
+    text: string;
+}
+
 /** The result of a process started through `ctx.spawn`. */
 export interface SpawnResult {
     exitCode: number | null;
@@ -386,6 +403,15 @@ export interface CommandContext {
     notice(level: CommandNoticeLevel, message: string): void;
     /** Reports progress. */
     progress(message: string, current?: number, total?: number): void;
+    /**
+     * Passes text on to the caller as it comes, such as the lines of a log the command follows. A
+     * person sees it as it is, on `stream`, so end each line with a newline. Under `--json` each
+     * call is a {@link CommandOutputEvent} on stderr. It is not part of the envelope: what the
+     * caller needs once the run ends goes in the output `run` returns.
+     *
+     * @since 4.0.0
+     */
+    output(text: string, stream?: CommandOutputEvent['stream']): void;
     /** Reports an event of any other type. */
     event(type: string, data?: Record<string, unknown>): void;
     /** Starts a process. Under `--json` its stdout goes to stderr. */
