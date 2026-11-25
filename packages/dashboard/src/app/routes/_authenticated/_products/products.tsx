@@ -90,9 +90,9 @@ function ProductListPage() {
                     cell: ({ row }) => <VendureImage asset={row.original.featuredAsset} preset="tiny" />,
                 },
                 name: {
-                    // The one column without a width: it takes the rest of the row.
-                    // No minimum width: only the data cells could set one, so the column
-                    // would change width between the skeleton, the empty state and the rows.
+                    // The one column without a width: it takes the rest of the row, and
+                    // keeps a readable minimum on a narrow screen.
+                    meta: { minWidth: '10rem' },
                     cell: ({ row }) => (
                         <FitToColumn>
                             <DetailPageButton id={row.original.id} label={row.original.name} />
