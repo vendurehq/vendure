@@ -10,6 +10,7 @@ import {
     DOCS_MCP_URL,
     docsServerConfig,
     renderAgentsMd,
+    withDocsServer,
     writeAgentFiles,
 } from './agent-files.js';
 import { getPackageManagerInfo } from './package-manager.js';
@@ -103,6 +104,28 @@ describe('MCP configs', () => {
         for (const [client, file] of Object.entries(CLIENT_CONFIG_FILES)) {
             expect(source).toMatch(new RegExp(`${client}: \\{ file: '${file.replace(/\./g, '\\.')}'`));
         }
+    });
+});
+
+describe('withDocsServer()', () => {
+    it('adds the docs server and keeps the servers and keys already there', () => {
+        const existing = JSON.stringify({ inputs: [], servers: { mine: { command: 'mine' } } });
+        expect(JSON.parse(withDocsServer('vscode', existing))).toEqual({
+            inputs: [],
+            servers: { mine: { command: 'mine' }, 'vendure-docs': { type: 'http', url: DOCS_MCP_URL } },
+        });
+    });
+
+    it('appends the Codex table once', () => {
+        const existing = 'model = "o3"\n';
+        const once = withDocsServer('codex', existing);
+        expect(once).toBe(`model = "o3"\n\n[mcp_servers.vendure-docs]\nurl = "${DOCS_MCP_URL}"\n`);
+        expect(withDocsServer('codex', once)).toBe(once);
+    });
+
+    it('refuses a file it cannot read', () => {
+        expect(() => withDocsServer('claude', '{ not json')).toThrow();
+        expect(() => withDocsServer('claude', JSON.stringify({ mcpServers: [] }))).toThrow(/mcpServers/);
     });
 });
 
@@ -205,7 +228,7 @@ describe('writeAgentFiles()', () => {
         expect(result.failed).toEqual([
             {
                 client: 'cursor',
-                reason: 'not installed. Run `vendure mcp install --client cursor` and add the entry it prints to .cursor/mcp.json',
+                reason: 'not installed. Run `npx vendure mcp install --client cursor` and add the entry it prints to .cursor/mcp.json',
                 retryable: false,
             },
         ]);
@@ -246,6 +269,37 @@ describe('writeAgentFiles()', () => {
         expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
             '- Skills in `.agents/skills/`: `vendure-cli`, `vendure-store-setup`, `vendure-troubleshooting`.',
         );
+    });
+
+    it("keeps an existing config's servers, and leaves a file it cannot read alone", async () => {
+        const dir = projectWithFakeCli('existing-configs', { status: 'ok', output: { action: 'updated' } });
+        fs.mkdirSync(path.join(dir, '.vscode'));
+        fs.writeFileSync(
+            path.join(dir, '.vscode/mcp.json'),
+            JSON.stringify({ servers: { mine: { command: 'x' } } }),
+        );
+        fs.writeFileSync(path.join(dir, '.mcp.json'), '{ broken');
+        const result = await writeAgentFiles({
+            ...base,
+            agents: ['claude', 'vscode'],
+            root: dir,
+            serverDir: dir,
+            mcpInstallUnavailable: undefined,
+        });
+
+        expect(JSON.parse(fs.readFileSync(path.join(dir, '.vscode/mcp.json'), 'utf-8')).servers.mine).toEqual(
+            {
+                command: 'x',
+            },
+        );
+        expect(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf-8')).toBe('{ broken');
+        expect(result.failed).toEqual([
+            {
+                client: 'claude',
+                reason: expect.stringMatching(/^\.mcp\.json was left as it is, because it could not be read/),
+                retryable: false,
+            },
+        ]);
     });
 
     it('writes nothing with no clients', async () => {

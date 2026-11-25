@@ -35,6 +35,34 @@ export const CLIENT_CONFIG_FILES: Record<AgentClient, string> = {
     codex: '.codex/config.toml',
 };
 
+/**
+ * A client's config with the `vendure-docs` server added, keeping every other server and key of the
+ * existing file. Throws when the existing file cannot be read as the client's format.
+ */
+export function withDocsServer(client: AgentClient, existing: string | undefined): string {
+    if (existing === undefined || existing.trim() === '') {
+        return docsServerConfig(client);
+    }
+    if (client === 'codex') {
+        if (existing.includes(`[mcp_servers.${DOCS_MCP_SERVER_NAME}]`)) {
+            return existing;
+        }
+        return `${existing}${existing.endsWith('\n') ? '\n' : '\n\n'}${docsServerConfig(client)}`;
+    }
+    const key = client === 'vscode' ? 'servers' : 'mcpServers';
+    const config: unknown = JSON.parse(existing);
+    const servers = isObject(config) ? (config[key] ?? {}) : undefined;
+    if (!isObject(config) || !isObject(servers)) {
+        throw new Error(`its "${key}" is not an object`);
+    }
+    const entry = (JSON.parse(docsServerConfig(client)) as Record<string, Record<string, unknown>>)[key];
+    return json({ ...config, [key]: { ...servers, ...entry } });
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /** The `vendure-docs` entry in the form each client's config holds it. */
 export function docsServerConfig(client: AgentClient): string {
     switch (client) {
@@ -171,7 +199,21 @@ async function writeClientConfig(
     input: WriteAgentFilesInput,
     write: WriteFile,
 ): Promise<AgentFileFailure | undefined> {
-    write(CLIENT_CONFIG_FILES[client], docsServerConfig(client));
+    const file = CLIENT_CONFIG_FILES[client];
+    const target = path.join(input.root, file);
+    const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : undefined;
+    let config: string;
+    try {
+        config = withDocsServer(client, existing);
+    } catch (e) {
+        // An existing file create cannot read is left as it is.
+        return {
+            client,
+            reason: `${file} was left as it is, because it could not be read (${e instanceof Error ? e.message : String(e)})`,
+            retryable: false,
+        };
+    }
+    write(file, config);
     const installed = input.mcpInstallUnavailable ?? (await installVendureServer(client, input));
     return 'reason' in installed ? { client, ...installed } : undefined;
 }
@@ -194,7 +236,7 @@ async function writeCursorConfig(
     const why = 'reason' in installed ? installed.reason : '`vendure mcp install` printed no entry';
     return {
         client: 'cursor',
-        reason: `${why}. Run \`vendure mcp install --client cursor\` and add the entry it prints to ${file}`,
+        reason: `${why}. Run \`${input.pmInfo.exec} vendure mcp install --client cursor\` and add the entry it prints to ${file}`,
         retryable: false,
     };
 }

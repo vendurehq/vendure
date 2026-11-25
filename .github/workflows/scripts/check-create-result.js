@@ -92,17 +92,11 @@ for (const file of [
     assert(fs.existsSync(path.join(root, file)), `Expected the agent file ${file}`);
 }
 
-// After a real install, `vendure mcp install` must have completed every client's config.
-const installed = !result.next.some(line => / install$/.test(line));
-if (installed) {
-    assert(
-        result.agentFiles.failed.length === 0,
-        `Expected no failed agent client: ${JSON.stringify(result.agentFiles.failed)}`,
-    );
-}
+// Every CI run passes --no-install, because a created project cannot be installed until a
+// @vendure/cloud release accepts Vendure 4. So `vendure mcp install` has not run, and each config
+// holds only the docs server.
 const claudeServers = JSON.parse(fs.readFileSync(path.join(root, '.mcp.json'), 'utf-8')).mcpServers;
 assert(claudeServers['vendure-docs'], 'Expected the vendure-docs server in .mcp.json');
-assert(!installed || claudeServers.vendure, 'Expected the vendure server in .mcp.json');
 
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf-8' }).trim();
 assert(git('rev-list', '--count', 'HEAD') === '1', 'Expected exactly one commit');

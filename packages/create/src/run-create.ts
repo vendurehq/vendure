@@ -245,7 +245,8 @@ async function addStorefront(
     context.reporter.stop(`Downloaded the ${storefront.name} storefront`);
 }
 
-async function install({ options, context, pmInfo, root, serverDir }: Project): Promise<void> {
+async function install(project: Project): Promise<void> {
+    const { options, context, pmInfo, root, serverDir } = project;
     context.reporter.start(`Installing dependencies with ${pmInfo.name}`);
     try {
         await installDependencies(options.packageManager, root, context.logLevel);
@@ -253,8 +254,20 @@ async function install({ options, context, pmInfo, root, serverDir }: Project): 
         if (!(e instanceof CreateError)) {
             throw e;
         }
+        context.reporter.fail('The install failed');
+        // None of the agent files needs the install except the `vendure` MCP entry, which the
+        // failure reports as retryable, so they are written before create stops.
+        await writeProjectAgentFiles(project, NOT_INSTALLED);
         const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
-        const fix = [e.fix, `Your choices are kept in ${recordPath.split(path.sep).join('/')}.`];
+        const fix = [
+            e.fix,
+            `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
+        ];
+        if (options.agents.length) {
+            fix.push(
+                `After the install, run \`${pmInfo.exec} vendure mcp install --client <client>\` for each agent client.`,
+            );
+        }
         if (options.git) {
             fix.push('Then run `git init`, `git add -A` and `git commit` to make the initial commit.');
         }
@@ -263,7 +276,15 @@ async function install({ options, context, pmInfo, root, serverDir }: Project): 
     context.reporter.stop('Installed dependencies');
 }
 
-async function writeProjectAgentFiles(project: Project): Promise<AgentFilesResult> {
+const NOT_INSTALLED: McpInstallUnavailable = {
+    reason: 'the dependencies were not installed, so `vendure mcp install` could not run',
+    retryable: true,
+};
+
+async function writeProjectAgentFiles(
+    project: Project,
+    unavailable?: McpInstallUnavailable,
+): Promise<AgentFilesResult> {
     const { options, context, root, serverDir } = project;
     context.reporter.start('Writing the agent files');
     const agentFiles = await writeAgentFiles({
@@ -274,7 +295,7 @@ async function writeProjectAgentFiles(project: Project): Promise<AgentFilesResul
         root,
         serverDir,
         assetsDir: context.assetsDir,
-        mcpInstallUnavailable: await whyMcpInstallCannotRun(options, root),
+        mcpInstallUnavailable: unavailable ?? (await whyMcpInstallCannotRun(options, root)),
     });
     const failures = agentFiles.failed.map(failure => failure.client + ' (' + failure.reason + ')');
     context.reporter.stop(
@@ -303,10 +324,12 @@ const INSIDE_ANOTHER_REPOSITORY = [
     "repository's root. Add the `vendure` server to the config by hand",
 ].join(' ');
 
-const NO_REPOSITORY_IN_WORKSPACE = [
-    'the project has no git repository, so `vendure mcp install` would write into apps/server.',
-    'Run `git init`, then `vendure mcp install` in the project root',
-].join(' ');
+function noRepositoryInWorkspace(exec: string): string {
+    return [
+        'the project has no git repository, so `vendure mcp install` would write into apps/server.',
+        `Run \`git init\`, then \`${exec} vendure mcp install\` in the project root`,
+    ].join(' ');
+}
 
 /**
  * `vendure mcp install` writes at the git root, which must be the project root, and runs the
@@ -325,15 +348,12 @@ async function whyMcpInstallCannotRun(
     }
     if (top.code !== 0 && options.storefront) {
         return {
-            reason: NO_REPOSITORY_IN_WORKSPACE,
+            reason: noRepositoryInWorkspace(getPackageManagerInfo(options.packageManager).exec),
             retryable: false,
         };
     }
     if (!options.install) {
-        return {
-            reason: 'the dependencies were not installed, so `vendure mcp install` could not run',
-            retryable: true,
-        };
+        return NOT_INSTALLED;
     }
     return undefined;
 }

@@ -134,12 +134,40 @@ describe('runCreate() when the install fails', () => {
         expect(error).toBeInstanceOf(CreateError);
         expect(error?.code).toBe('create.install-failed');
         expect(error?.fix).toContain('git init');
-        expect(error?.fix).toContain('Your choices are kept in .vendure/create.json.');
+        expect(error?.fix).toContain(
+            'Your choices are kept in .vendure/create.json, and the agent files are written.',
+        );
         expect(readJson(path.join(options.projectDir, CREATE_RECORD_PATH))).toMatchObject({
             preset: { name: 'uk', options: {} },
         });
-        expect(events.slice(-2)).toEqual(['start: Installing dependencies with npm', 'fail: Create stopped']);
+        expect(events.slice(0, 3)).toEqual([
+            'start: Writing the project in ' + options.projectDir,
+            'stop: Wrote the project files',
+            'start: Installing dependencies with npm',
+        ]);
+        expect(events).toContain('fail: The install failed');
         expect(fs.existsSync(path.join(options.projectDir, '.git'))).toBe(false);
+    });
+
+    it('still writes the agent files, which need no install', async () => {
+        install.fail = true;
+        const options = optionsFor('failed-install-agents', { agents: ['claude'] });
+        const error = await runCreate(options, {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter: recordingReporter().reporter,
+            projectDirArg: 'x',
+        }).then(
+            () => undefined,
+            (e: unknown) => e as CreateError,
+        );
+
+        expect(error?.fix).toContain('After the install, run `npx vendure mcp install --client <client>`');
+        for (const file of ['AGENTS.md', 'CLAUDE.md', '.mcp.json', '.agents/skills/vendure-cli/SKILL.md']) {
+            expect(fs.existsSync(path.join(options.projectDir, file))).toBe(true);
+        }
+        expect(readJson(path.join(options.projectDir, CREATE_RECORD_PATH)).agents).toEqual(['claude']);
     });
 });
 

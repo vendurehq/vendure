@@ -137,8 +137,15 @@ export function getWorkspaceRootPackageJson(
             typecheck: ws('server', 'typecheck'),
         },
         // The agent clients start `npx @vendure/cli mcp` at the git root, which is this workspace
-        // root. pnpm does not hoist a workspace's dependencies here, so the root declares it.
-        devDependencies: { '@vendure/cli': vendureVersion, concurrently: CONCURRENTLY_VERSION },
+        // root. pnpm does not hoist a workspace's dependencies here, so the root declares it, with
+        // the same `vite` and `@types/node` as the server. pnpm then resolves the CLI's peers the
+        // same way in both, and links one copy, which `vendure mcp install` checks.
+        devDependencies: {
+            '@types/node': TYPES_NODE_VERSION,
+            '@vendure/cli': vendureVersion,
+            concurrently: CONCURRENTLY_VERSION,
+            vite: VITE_VERSION,
+        },
     };
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];

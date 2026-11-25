@@ -122,7 +122,7 @@ describe('create --yes --json', () => {
                     { client: 'claude', reason: NOT_INSTALLED },
                     {
                         client: 'cursor',
-                        reason: `${NOT_INSTALLED}. Run \`vendure mcp install --client cursor\` and add the entry it prints to .cursor/mcp.json`,
+                        reason: `${NOT_INSTALLED}. Run \`pnpm exec vendure mcp install --client cursor\` and add the entry it prints to .cursor/mcp.json`,
                     },
                     { client: 'vscode', reason: NOT_INSTALLED },
                     { client: 'codex', reason: NOT_INSTALLED },
