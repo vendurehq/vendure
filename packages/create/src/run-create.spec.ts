@@ -212,6 +212,31 @@ describe('runCreate() when the install fails', () => {
         );
     });
 
+    it('names no git init for a project inside another repository', async () => {
+        install.fail = true;
+        const outer = path.join(workDir, 'outer-repo-failed-install');
+        fs.mkdirSync(outer);
+        execFileSync('git', ['init', '--quiet', outer]);
+        const options = {
+            ...optionsFor('outer-repo-failed-install/inner', { agents: ['claude'], git: true }),
+            projectDir: path.join(outer, 'inner'),
+        };
+        const error = await runCreate(options, {
+            createVersion: '4.0.0',
+            assetsDir,
+            logLevel: 'silent',
+            reporter: recordingReporter().reporter,
+            projectDirArg: 'x',
+        }).then(
+            () => undefined,
+            (e: unknown) => e as CreateError,
+        );
+        expect(error?.fix).not.toContain('git init');
+        expect(error?.fix).toContain(
+            'The agent configs need more: the project is inside another git repository',
+        );
+    });
+
     it('says why the configs need more without git in a workspace', async () => {
         install.fail = true;
         const options = optionsFor('failed-install-no-git', { agents: ['claude'], storefront: 'nextjs' });

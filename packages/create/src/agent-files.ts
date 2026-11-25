@@ -42,8 +42,8 @@ export const CLIENT_CONFIG_FILES: Record<AgentClient, string> = {
  * existing file. Throws when the existing file cannot be read as the client's format.
  *
  * Today only `.vscode/mcp.json` can already exist, because a project directory may hold `.vscode`
- * but not the other clients' files. The other formats are handled the same way, so the function
- * stays correct if that list grows.
+ * but not the other clients' files. Claude Code and Codex configs are merged the same way. Cursor's
+ * file is written whole by `writeCursorConfig`, so allowing `.cursor` needs a merge there too.
  */
 export function withDocsServer(client: AgentClient, existing: string | undefined): string {
     if (existing === undefined || existing.trim() === '') {
@@ -103,7 +103,7 @@ export function claudeSettings(): string {
 export interface AgentsMdInput {
     name: string;
     /** The skills copied into `.agents/skills/`. */
-    skills?: readonly string[];
+    skills: readonly string[];
     pmInfo: PackageManagerInfo;
     storefront: StorefrontStarter | undefined;
 }
@@ -119,7 +119,7 @@ export function renderAgentsMd(template: string, input: AgentsMdInput): string {
         storefront: input.storefront,
         serverDir: input.storefront ? SERVER_WORKSPACE_DIR : undefined,
         serverPath: input.storefront ? `${SERVER_WORKSPACE_DIR}/` : '',
-        skills: input.skills ?? [],
+        skills: input.skills,
         selfHostingGuideUrl: SELF_HOSTING_GUIDE_URL,
     });
 }
@@ -131,7 +131,8 @@ export interface McpInstallUnavailable {
     retryable: boolean;
 }
 
-export interface WriteAgentFilesInput extends AgentsMdInput {
+/** `writeAgentFiles` lists the skills itself, from the assets. */
+export interface WriteAgentFilesInput extends Omit<AgentsMdInput, 'skills'> {
     agents: readonly AgentClient[];
     /** The project root, which is the git root when the config can be completed. */
     root: string;

@@ -53,6 +53,7 @@ describe('renderAgentsMd()', () => {
             name: 'my-shop',
             pmInfo: getPackageManagerInfo('pnpm'),
             storefront: undefined,
+            skills: ['vendure-cli'],
         });
         const lines = text.split('\n');
         expect(lines[0]).toBe('# my-shop');
@@ -68,6 +69,7 @@ describe('renderAgentsMd()', () => {
             name: 'my-shop',
             pmInfo: getPackageManagerInfo('npm'),
             storefront: STOREFRONT_STARTERS.find(s => s.id === 'tanstack'),
+            skills: ['vendure-cli'],
         });
         expect(text).toContain('with a TanStack Start storefront in `apps/storefront`');
         expect(text).toContain('Run the `vendure` commands in `apps/server`.');
@@ -304,11 +306,10 @@ describe('writeAgentFiles()', () => {
             mcpInstallUnavailable: undefined,
         });
 
-        expect(JSON.parse(fs.readFileSync(path.join(dir, '.vscode/mcp.json'), 'utf-8')).servers.mine).toEqual(
-            {
-                command: 'x',
-            },
-        );
+        expect(JSON.parse(fs.readFileSync(path.join(dir, '.vscode/mcp.json'), 'utf-8')).servers).toEqual({
+            mine: { command: 'x' },
+            'vendure-docs': { type: 'http', url: DOCS_MCP_URL },
+        });
         expect(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf-8')).toBe('{ broken');
         expect(result.failed).toEqual([
             {

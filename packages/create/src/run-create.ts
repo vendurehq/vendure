@@ -262,9 +262,11 @@ async function install(project: Project): Promise<void> {
         }
         context.reporter.fail('The install failed');
         // None of the agent files needs the install except the `vendure` MCP entry, so they are
-        // written before create stops. Without git, the same checks as a finished run apply: a
-        // project inside another repository, or a workspace with no repository of its own.
-        const blocked = options.git ? undefined : await whyMcpInstallCannotRun(options, root);
+        // written before create stops. The same checks as a finished run apply. With git, the
+        // user runs `git init` next, so only a project inside another repository is blocked.
+        const checked = await whyMcpInstallCannotRun(options, root);
+        const insideAnotherRepository = checked?.reason === INSIDE_ANOTHER_REPOSITORY;
+        const blocked = options.git && !insideAnotherRepository ? undefined : checked;
         await writeProjectAgentFiles(project, blocked ?? NOT_INSTALLED);
         const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
         const fix = [
@@ -272,7 +274,7 @@ async function install(project: Project): Promise<void> {
             `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
         ];
         const mcpInstall = mcpInstallSteps(options.agents, pmInfo.exec);
-        if (options.git) {
+        if (options.git && !insideAnotherRepository) {
             // `vendure mcp install` writes at the git root, so the repository comes first.
             fix.push(
                 options.agents.length

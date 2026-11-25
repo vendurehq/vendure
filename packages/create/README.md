@@ -16,7 +16,7 @@ In a terminal, create asks for each choice. Every choice also has a flag, so age
 npx @vendure/create my-shop --yes --json
 ```
 
-Create writes the files, installs the dependencies, writes the agent files, and makes a git repository with an initial commit. The agent files are `AGENTS.md`, the Vendure skills in `.agents/skills/`, and each agent client's MCP config, with the `vendure` server (added by `vendure mcp install`) and the `vendure-docs` server. A client whose config could not be completed is listed in `agentFiles.failed`, and `next` names the command to finish it. It records your choices in `.vendure/create.json`, which `vendure dev` reads.
+Create writes the files, installs the dependencies, writes the agent files, and makes a git repository with an initial commit. The agent files are `AGENTS.md`, the Vendure skills in `.agents/skills/`, and each agent client's MCP config, with the `vendure` server (added by `vendure mcp install`) and the `vendure-docs` server. A client whose config could not be completed is listed in `agentFiles.failed` with the reason. Where running `vendure mcp install` again completes it, `next` names that command. Otherwise the reason says what to do. It records your choices in `.vendure/create.json`, which `vendure dev` reads.
 
 ## Options
 
