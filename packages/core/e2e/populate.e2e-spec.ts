@@ -1,4 +1,3 @@
-import { INestApplication } from '@nestjs/common';
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { User } from '@vendure/core';
 import { populate } from '@vendure/core/cli';
@@ -79,33 +78,61 @@ describe('populate() function', () => {
         await server.destroy();
     }, TEST_SETUP_TIMEOUT_MS);
 
-    describe('populating default channel', () => {
-        let app: INestApplication;
-
+    /**
+     * Runs `populate()` on the test server before the tests of a `describe` block, and closes the
+     * app it bootstrapped after them. The setup bootstraps a full server and imports products and
+     * assets, so it gets the setup timeout rather than the default hook timeout. The app is closed
+     * also when the setup failed or timed out: a setup that times out keeps running, and an app it
+     * leaves listening makes the next block's bootstrap fail with EADDRINUSE.
+     */
+    function populateBeforeAll(
+        initialDataForPopulate: () => InitialData,
+        csvFile: string,
+        channelToken?: () => string,
+    ): void {
+        let bootstrapping: Promise<void> | undefined;
         beforeAll(async () => {
-            const initialDataForPopulate: InitialData = {
-                defaultLanguage: initialData.defaultLanguage,
-                defaultZone: initialData.defaultZone,
-                taxRates: [],
-                shippingMethods: [],
-                paymentMethods: [],
-                countries: [],
-                collections: [{ name: 'Collection 1', filters: [] }],
-            };
-            const csvFile = path.join(__dirname, 'fixtures', 'product-import.csv');
-            app = await populate(
+            await populate(
                 async () => {
-                    await server.bootstrap();
+                    bootstrapping = server.bootstrap();
+                    await bootstrapping;
                     return server.app;
                 },
-                initialDataForPopulate,
+                initialDataForPopulate(),
                 csvFile,
+                channelToken?.(),
             );
         }, TEST_SETUP_TIMEOUT_MS);
 
         afterAll(async () => {
-            await app.close();
-        });
+            // A setup that timed out may still be bootstrapping. Wait for it, so that the app it
+            // creates is the one closed here. Without a started app, `server.app` is the previous
+            // block's, which that block closed.
+            const started = await bootstrapping?.then(
+                () => true,
+                () => false,
+            );
+            if (started) {
+                await server.app.close();
+            }
+        }, TEST_SETUP_TIMEOUT_MS);
+    }
+
+    const emptyInitialData = (collectionName: string): InitialData => ({
+        defaultLanguage: initialData.defaultLanguage,
+        defaultZone: initialData.defaultZone,
+        taxRates: [],
+        shippingMethods: [],
+        paymentMethods: [],
+        countries: [],
+        collections: [{ name: collectionName, filters: [] }],
+    });
+
+    describe('populating default channel', () => {
+        populateBeforeAll(
+            () => emptyInitialData('Collection 1'),
+            path.join(__dirname, 'fixtures', 'product-import.csv'),
+        );
 
         it('populates products', async () => {
             await adminClient.asSuperAdmin();
@@ -136,33 +163,11 @@ describe('populate() function', () => {
     });
 
     describe('populating a non-default channel', () => {
-        let app: INestApplication;
-        beforeAll(async () => {
-            const initialDataForPopulate: InitialData = {
-                defaultLanguage: initialData.defaultLanguage,
-                defaultZone: initialData.defaultZone,
-                taxRates: [],
-                shippingMethods: [],
-                paymentMethods: [],
-                countries: [],
-                collections: [{ name: 'Collection 2', filters: [] }],
-            };
-            const csvFile = path.join(__dirname, 'fixtures', 'product-import-channel.csv');
-
-            app = await populate(
-                async () => {
-                    await server.bootstrap();
-                    return server.app;
-                },
-                initialDataForPopulate,
-                csvFile,
-                channel2.token,
-            );
-        });
-
-        afterAll(async () => {
-            await app.close();
-        });
+        populateBeforeAll(
+            () => emptyInitialData('Collection 2'),
+            path.join(__dirname, 'fixtures', 'product-import-channel.csv'),
+            () => channel2.token,
+        );
 
         it('populates products', async () => {
             await adminClient.asSuperAdmin();
@@ -191,32 +196,10 @@ describe('populate() function', () => {
 
     // https://github.com/vendurehq/vendure/issues/1445
     describe('clashing option names', () => {
-        let app: INestApplication;
-
-        beforeAll(async () => {
-            const initialDataForPopulate: InitialData = {
-                defaultLanguage: initialData.defaultLanguage,
-                defaultZone: initialData.defaultZone,
-                taxRates: [],
-                shippingMethods: [],
-                paymentMethods: [],
-                countries: [],
-                collections: [{ name: 'Collection 1', filters: [] }],
-            };
-            const csvFile = path.join(__dirname, 'fixtures', 'product-import-option-values.csv');
-            app = await populate(
-                async () => {
-                    await server.bootstrap();
-                    return server.app;
-                },
-                initialDataForPopulate,
-                csvFile,
-            );
-        }, TEST_SETUP_TIMEOUT_MS);
-
-        afterAll(async () => {
-            await app.close();
-        });
+        populateBeforeAll(
+            () => emptyInitialData('Collection 1'),
+            path.join(__dirname, 'fixtures', 'product-import-option-values.csv'),
+        );
 
         it('populates variants & options', async () => {
             await adminClient.asSuperAdmin();
