@@ -14,8 +14,9 @@ import { authEnvironment } from './startup-environment.js';
 export interface AuthOptions {
     /**
      * Read for `VENDURE_CONSOLE_API_URL`, which selects the staging Console or a
-     * loopback Console in local development, and `VENDURE_CLI_CONFIG_DIR`, which
-     * moves the credential file.
+     * loopback Console in local development. In the CLI, `VENDURE_CLOUD_TOKEN`
+     * and the config directory, which holds the credential file, are always the
+     * ones the CLI started with. Outside it, they are read from here too.
      */
     env?: NodeJS.ProcessEnv;
     fetch?: typeof globalThis.fetch;

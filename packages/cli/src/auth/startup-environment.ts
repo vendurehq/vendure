@@ -19,20 +19,26 @@ export function recordStartupEnvironment(env: NodeJS.ProcessEnv = process.env): 
 }
 
 /**
- * The environment the auth code reads: `env` when a caller passes one, as tests do. Otherwise the
- * process environment, with the auth variables as they were at startup. Outside the CLI, where
- * nothing recorded them, it is the process environment as it is.
+ * The environment the auth code reads. In the CLI, the token and the config directory are always the
+ * ones recorded at startup, even when a caller passes `env`: a plugin that builds one from
+ * `process.env` to choose the Console API URL can't pick up a token a `.env` set. `env` still decides
+ * `VENDURE_CONSOLE_API_URL`, and with no `env` it is the startup value too. Outside the CLI, where
+ * nothing recorded them, it is `env` or the process environment as it is.
  *
  * It is also the environment to start a CLI child process with, so the child records the same
  * values rather than ones a `.env` put into this process.
  */
 export function authEnvironment(env?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-    if (env) {
-        return env;
-    }
     const startup = readStartupRecord();
     if (!startup) {
-        return process.env;
+        return env ?? process.env;
+    }
+    if (env) {
+        return {
+            ...env,
+            VENDURE_CLOUD_TOKEN: startup.VENDURE_CLOUD_TOKEN,
+            VENDURE_CLI_CONFIG_DIR: startup.VENDURE_CLI_CONFIG_DIR,
+        };
     }
     return { ...process.env, ...startup };
 }

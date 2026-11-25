@@ -93,7 +93,7 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     // to staging installs from staging.
     log.step('Step 3 of 3: Install the Vendure Platform packages');
     const env = {
-        ...process.env,
+        ...authEnvironment(),
         VENDURE_CONSOLE_APP_URL: origins.appOrigin,
         VENDURE_CONSOLE_API_URL: origins.apiOrigin,
     };

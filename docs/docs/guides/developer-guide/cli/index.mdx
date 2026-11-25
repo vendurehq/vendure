@@ -603,8 +603,8 @@ cannot share your login, because each renewal spends its single-use refresh toke
 as a delegated agent key, in `VENDURE_CLOUD_TOKEN`. Only a person at a terminal is signed in automatically. Every
 other run returns `incomplete` with an `input` need for the secret `token` field, whose fix is
 `vendure auth login --json`. `VENDURE_CLOUD_TOKEN`, `VENDURE_CONSOLE_API_URL` and the CLI's config directory are read
-from the environment the CLI started with, never from a project's `.env` file, so a repository's `.env` cannot choose
-the credential the CLI acts with, where it sends it, or where the login is stored. The config directory is
+from the environment the CLI started with, never from a project's `.env` file. A repository's `.env` therefore cannot
+choose the credential the CLI acts with, where it sends it, or where the login is stored. The config directory is
 `VENDURE_CLI_CONFIG_DIR`, or else `vendure` in `XDG_CONFIG_HOME`, `APPDATA` on Windows, or `~/.config`. Commands that
 load the Vendure config also run the project's own code, so only run them in a repository you trust.
 

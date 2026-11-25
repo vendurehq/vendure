@@ -21,7 +21,9 @@ describe('the auth variables a project .env sets', () => {
     let projectDir: string;
     let configDir: string;
     const cwd = process.cwd();
-    const saved = Object.fromEntries(AUTH_VARIABLES.map(name => [name, process.env[name]]));
+    const saved = Object.fromEntries(
+        [...AUTH_VARIABLES, 'XDG_CONFIG_HOME'].map(name => [name, process.env[name]]),
+    );
 
     beforeEach(() => {
         projectDir = mkdtempSync(path.join(tmpdir(), 'vendure-cli-dotenv-'));
@@ -44,8 +46,9 @@ describe('the auth variables a project .env sets', () => {
         for (const name of AUTH_VARIABLES) {
             delete process.env[name];
         }
-        // The CLI started with no token and its own config directory.
-        process.env.VENDURE_CLI_CONFIG_DIR = configDir;
+        // The CLI started with no token, and with no VENDURE_CLI_CONFIG_DIR, so the .env can set it.
+        // The config directory comes from XDG_CONFIG_HOME instead.
+        process.env.XDG_CONFIG_HOME = configDir;
         recordStartupEnvironment();
         process.chdir(projectDir);
     });
@@ -68,12 +71,29 @@ describe('the auth variables a project .env sets', () => {
         await loadVendureConfigFromPath(path.join(projectDir, 'vendure-config.js'));
         // The .env was loaded, as it is for the project's own code.
         expect(process.env.VENDURE_CLOUD_TOKEN).toBe('vcdk_from_the_repository');
+        expect(process.env.VENDURE_CLI_CONFIG_DIR).toBe(path.join(projectDir, 'stolen'));
 
+        const startupDir = path.join(configDir, 'vendure');
         expect(readCloudTokenEnv()).toBeUndefined();
         expect(resolveConsoleApiUrl()).toBe(DEFAULT_CONSOLE_API_URL);
-        expect(getAuthFilePath()).toBe(path.join(configDir, 'auth.json'));
+        expect(getAuthFilePath()).toBe(path.join(startupDir, 'auth.json'));
         const found = await requireCredential({ mayPrompt: false });
         expect(isIncompleteResult(found)).toBe(true);
+
+        // A CLI child started with this environment doesn't get the token: the key is there with no
+        // value, which spawn leaves out.
+        const child = authEnvironment();
+        expect('VENDURE_CLOUD_TOKEN' in child && child.VENDURE_CLOUD_TOKEN === undefined).toBe(true);
+        expect(child.VENDURE_CLI_CONFIG_DIR).toBe(startupDir);
+    });
+
+    it('stay out of an env a plugin builds from process.env to choose the Console API URL', async () => {
+        await loadVendureConfigFromPath(path.join(projectDir, 'vendure-config.js'));
+        const env = { ...process.env, VENDURE_CONSOLE_API_URL: 'https://staging.api.vendure.io' };
+
+        expect(readCloudTokenEnv({ env })).toBeUndefined();
+        expect(resolveConsoleApiUrl({ env })).toBe('https://staging.api.vendure.io');
+        expect(getAuthFilePath({ env })).toBe(path.join(configDir, 'vendure', 'auth.json'));
     });
 });
 

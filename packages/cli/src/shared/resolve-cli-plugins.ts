@@ -233,7 +233,8 @@ export interface ResolveCliPluginsOptions {
     resolvePackage?: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
     /**
      * Environment the global scope reads its allowlist and config directory
-     * from. Defaults to the config directory the CLI resolved at startup and `process.env`.
+     * from. The config directory defaults to the one the CLI resolved at startup. The
+     * allowlist variable defaults to `process.env`.
      */
     env?: NodeJS.ProcessEnv;
     /**
