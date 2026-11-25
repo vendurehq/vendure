@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-25T19:14:48+01:00"
+          "lastModified": "2026-11-25T19:55:51+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-25T07:07:42+01:00"
+              "lastModified": "2026-11-25T19:55:51+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-25T07:07:42+01:00"
+          "lastModified": "2026-11-25T19:55:51+01:00"
         },
         {
           "title": "Worker & Job Queue",
@@ -4673,6 +4673,12 @@
               "lastModified": "2026-11-25T15:30:50+01:00"
             },
             {
+              "title": "vendure dev",
+              "slug": "dev",
+              "file": "docs/reference/cli/dev.mdx",
+              "lastModified": "2026-11-25T19:55:51+01:00"
+            },
+            {
               "title": "vendure devserver",
               "slug": "devserver",
               "file": "docs/reference/cli/devserver.mdx",
@@ -4721,7 +4727,7 @@
               "lastModified": "2026-11-24T17:24:04Z"
             }
           ],
-          "lastModified": "2026-11-25T15:30:50+01:00"
+          "lastModified": "2026-11-25T19:55:51+01:00"
         },
         {
           "title": "GraphQL API",
