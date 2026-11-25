@@ -6,6 +6,8 @@ import {
     incomplete,
 } from '@vendure/common/lib/command';
 
+import { authEnvironment } from './startup-environment.js';
+
 import { NotLoggedInError, isRenewalRefused } from './auth-errors.js';
 import { AuthOptions } from './auth-options.js';
 import { getAccessToken, readAuthStatus } from './auth-session.js';
@@ -113,7 +115,7 @@ export async function requireCredential(
 
 /** The value of `VENDURE_CLOUD_TOKEN`, or `undefined` when it is unset or blank. */
 export function readCloudTokenEnv(options: AuthOptions = {}): string | undefined {
-    const value = (options.env ?? process.env)[CLOUD_TOKEN_ENV]?.trim();
+    const value = authEnvironment(options.env)[CLOUD_TOKEN_ENV]?.trim();
     return value ? value : undefined;
 }
 

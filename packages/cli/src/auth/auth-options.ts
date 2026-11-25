@@ -3,6 +3,8 @@ import path from 'node:path';
 import { DEFAULT_CONSOLE_API_URL, classifyConsoleApiOrigin } from '../commands/console/console-origins.js';
 import { getVendureCliConfigDir } from '../shared/cli-config-dir.js';
 
+import { authEnvironment } from './startup-environment.js';
+
 /**
  * Seams for the CLI login. Every field is optional and defaults to the real
  * process, so a plugin calls these functions with no arguments.
@@ -28,7 +30,7 @@ export interface AuthOptions {
  * The WorkOS client is read from this Console at login.
  */
 export function resolveConsoleApiUrl(options: AuthOptions = {}): string {
-    const apiUrl = (options.env ?? process.env).VENDURE_CONSOLE_API_URL?.trim();
+    const apiUrl = authEnvironment(options.env).VENDURE_CONSOLE_API_URL?.trim();
     if (!apiUrl) {
         return DEFAULT_CONSOLE_API_URL;
     }
@@ -43,23 +45,23 @@ export function resolveConsoleApiUrl(options: AuthOptions = {}): string {
 }
 
 export function getAuthFilePath(options: AuthOptions = {}): string {
-    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth.json');
+    return path.join(getVendureCliConfigDir(authEnvironment(options.env)), 'auth.json');
 }
 
 export function getAuthLockPath(options: AuthOptions = {}): string {
-    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth.lock');
+    return path.join(getVendureCliConfigDir(authEnvironment(options.env)), 'auth.lock');
 }
 
 /** The device login that `vendure auth login --json` started and `vendure auth wait` finishes. */
 export function getPendingLoginPath(options: AuthOptions = {}): string {
-    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending.json');
+    return path.join(getVendureCliConfigDir(authEnvironment(options.env)), 'auth-pending.json');
 }
 
 export function getPendingLoginLockPath(options: AuthOptions = {}): string {
-    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending.lock');
+    return path.join(getVendureCliConfigDir(authEnvironment(options.env)), 'auth-pending.lock');
 }
 
 /** How the last pending device login ended, for a wait that queued behind the one that finished it. */
 export function getFinishedLoginPath(options: AuthOptions = {}): string {
-    return path.join(getVendureCliConfigDir(options.env ?? process.env), 'auth-pending-outcome.json');
+    return path.join(getVendureCliConfigDir(authEnvironment(options.env)), 'auth-pending-outcome.json');
 }

@@ -10,7 +10,13 @@ import { checkProjectCli, findMcpProject } from '../../command-host/mcp/project.
 import { runToolInChild } from '../../command-host/mcp/run-tool-in-child.js';
 import { McpServer, McpToolMode } from '../../command-host/mcp/server.js';
 
-import { cliNotInstalled, notProjectCli, projectAmbiguous } from './mcp.errors.js';
+import {
+    cliNotInstalled,
+    commandsListingFailed,
+    commandsListingTimedOut,
+    notProjectCli,
+    projectAmbiguous,
+} from './mcp.errors.js';
 
 /**
  * Starts the Developer MCP server on stdio and returns when the client closes the connection.
@@ -72,36 +78,52 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
 }
 
 /** How long `vendure commands --json` may take before the server offers the CLI's own commands only. */
-const LIST_COMMANDS_TIMEOUT_MS = 30_000;
+const LIST_COMMANDS_TIMEOUT_MS = 5_000;
 
 /**
  * The commands of the project, as `vendure commands --json` lists them in the directory the tool
  * calls run in. A child process lists them because `--dir` can name another project than the one
  * this process started in, and that project's `cliPlugin` commands decide which of its plugins'
- * commands are refused. Refused plugins are
- * written to stderr, which MCP clients keep in their server log.
+ * commands are refused. Refused plugins are written to stderr, which MCP clients keep in their
+ * server log.
+ *
+ * MCP clients give a server a few seconds to start, so after {@link LIST_COMMANDS_TIMEOUT_MS} the
+ * server offers the CLI's own commands, with a coded notice on stderr, and stops the child.
  */
 async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]> {
-    const envelope = await runToolInChild(
+    const controller = new AbortController();
+    let timer: NodeJS.Timeout | undefined;
+    const timedOut = new Promise<'timed-out'>(resolve => {
+        timer = setTimeout(() => resolve('timed-out'), LIST_COMMANDS_TIMEOUT_MS);
+    });
+    const listing = runToolInChild(
         ['commands'],
         {},
         {
             cliBin: process.argv[1],
             cwd,
-            // A plugin module that never lets the child exit must not stop the server from starting.
-            signal: AbortSignal.timeout(LIST_COMMANDS_TIMEOUT_MS),
+            signal: controller.signal,
             onEvent: () => undefined,
             onLog: () => undefined,
         },
     );
+    const envelope = await Promise.race([listing, timedOut]);
+    clearTimeout(timer);
+    if (envelope === 'timed-out') {
+        // The child is stopped in the background. The server does not wait for it.
+        controller.abort();
+        void listing.catch(() => undefined);
+        writeNotice(commandsListingTimedOut, { project: cwd, seconds: LIST_COMMANDS_TIMEOUT_MS / 1000 });
+        return loadMergedManifest({ plugins: [] });
+    }
     const output = envelope.output as
         | { commands?: MergedManifestCommand[]; refused?: RefusedManifest[] }
         | undefined;
     if (envelope.status !== 'ok' || !Array.isArray(output?.commands)) {
-        process.stderr.write(
-            `Could not list the commands of ${cwd}, so only the CLI's own commands are offered: ` +
-                `${envelope.error?.message ?? envelope.status}\n`,
-        );
+        writeNotice(commandsListingFailed, {
+            project: cwd,
+            reason: envelope.error?.message ?? envelope.status,
+        });
         return loadMergedManifest({ plugins: [] });
     }
     for (const { package: packageName, error } of output.refused ?? []) {
@@ -110,6 +132,11 @@ async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]
         );
     }
     return output.commands;
+}
+
+/** Writes a coded notice to stderr, which MCP clients keep in their server log. */
+function writeNotice<Details>(error: CommandErrorDefinition<Details>, details: Details): void {
+    process.stderr.write(`[${error.code}] ${error.message(details)}\n`);
 }
 
 /** Writes a coded error to stderr, since stdout carries the protocol, and returns its exit code. */
