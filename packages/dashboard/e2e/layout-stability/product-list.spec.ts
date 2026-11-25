@@ -205,8 +205,7 @@ for (const viewport of VIEWPORTS) {
                         await addStatusFilter(ctx.page);
                         await settle(ctx);
                     },
-                    trigger: ({ page }) =>
-                        page.locator('[data-slot="chip-remove"]').first().click(),
+                    trigger: ({ page }) => page.locator('[data-slot="chip-remove"]').first().click(),
                     allow: filterChips,
                 });
             });

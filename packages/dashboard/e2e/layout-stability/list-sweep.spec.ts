@@ -6,7 +6,7 @@ import { anchorName, type Analysis } from './harness/analyze.js';
 import { waitForList } from './harness/anchors.js';
 import { test } from './harness/fixtures.js';
 import type { Timeline } from './harness/recorder.js';
-import { type LayoutContext, runScenario, settle } from './harness/scenario.js';
+import { runScenario, settle, type LayoutContext } from './harness/scenario.js';
 import { listVariant } from './harness/variants.js';
 
 /**
@@ -22,15 +22,24 @@ const ROUTES_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 /** The URL of every route file that renders a ListPage, from the route tree. */
 function listRoutes(): string[] {
     const files = fs.readdirSync(ROUTES_DIR, { recursive: true, encoding: 'utf8' });
-    return files
-        .filter(file => file.endsWith('.tsx'))
-        .map(file => fs.readFileSync(path.join(ROUTES_DIR, file), 'utf8'))
-        .filter(source => source.includes('<ListPage'))
-        .map(source => /createFileRoute\('([^']+)'\)/.exec(source)?.[1])
-        .filter((id): id is string => !!id)
-        // Segments starting with `_` are pathless layout routes.
-        .map(id => '/' + id.split('/').filter(segment => segment && !segment.startsWith('_')).join('/'))
-        .sort();
+    return (
+        files
+            .filter(file => file.endsWith('.tsx'))
+            .map(file => fs.readFileSync(path.join(ROUTES_DIR, file), 'utf8'))
+            .filter(source => source.includes('<ListPage'))
+            .map(source => /createFileRoute\('([^']+)'\)/.exec(source)?.[1])
+            .filter((id): id is string => !!id)
+            // Segments starting with `_` are pathless layout routes.
+            .map(
+                id =>
+                    '/' +
+                    id
+                        .split('/')
+                        .filter(segment => segment && !segment.startsWith('_'))
+                        .join('/'),
+            )
+            .sort()
+    );
 }
 
 interface Measure {
@@ -51,7 +60,12 @@ function topMover(timeline: Timeline, analysis: Analysis): string {
     return entry?.sources[0]?.node.split(' > ').slice(-2).join(' > ') ?? '';
 }
 
-async function measure(ctx: LayoutContext, name: string, trigger: (ctx: LayoutContext) => Promise<unknown>, prepare: (ctx: LayoutContext) => Promise<unknown>): Promise<Measure | string> {
+async function measure(
+    ctx: LayoutContext,
+    name: string,
+    trigger: (ctx: LayoutContext) => Promise<unknown>,
+    prepare: (ctx: LayoutContext) => Promise<unknown>,
+): Promise<Measure | string> {
     try {
         const { timeline, analysis } = await runScenario(ctx, { name, prepare, trigger }, []);
         return { cls: analysis.cls, top: topMover(timeline, analysis) };
