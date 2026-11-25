@@ -269,6 +269,13 @@ export interface PaginatedListDataTableProps<
      * @since 4.0.0
      */
     skeletonCells?: Record<string, React.ReactNode>;
+    /**
+     * @description
+     * The rows open a detail page. See the `rowLinks` prop of {@link DataTable}.
+     *
+     * @since 4.0.0
+     */
+    rowLinks?: boolean;
     disableViewOptions?: boolean;
     /**
      * @description
@@ -503,6 +510,7 @@ export function PaginatedListDataTable<
     selectionStorageKey,
     rowCountKey,
     skeletonCells,
+    rowLinks,
     disableViewOptions,
     enableViews,
     setTableOptions,
@@ -669,6 +677,7 @@ export function PaginatedListDataTable<
                     selectionStorageKey={selectionStorageKey}
                     rowCountKey={rowCountKey}
                     skeletonCells={skeletonCells}
+                    rowLinks={rowLinks}
                     setTableOptions={setTableOptions}
                     onRefresh={refetchPaginatedList}
                     onReorder={onReorder}

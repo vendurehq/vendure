@@ -83,6 +83,7 @@ function ProductListPage() {
                 },
             ]}
             skeletonCells={{ featuredAsset: thumbnail }}
+            rowLinks
             customizeColumns={{
                 featuredAsset: {
                     meta: { width: '5.5rem' },

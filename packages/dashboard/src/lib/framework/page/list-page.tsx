@@ -453,6 +453,15 @@ export interface ListPageProps<
      * @since 4.0.0
      */
     skeletonCells?: Record<string, React.ReactNode>;
+    /**
+     * @description
+     * Set when the rows open a detail page through a `DetailPageButton`. The
+     * table keeps the row link's slot after the last column while it loads, so
+     * the columns do not move sideways when the rows arrive.
+     *
+     * @since 4.0.0
+     */
+    rowLinks?: boolean;
 }
 
 /**
@@ -578,6 +587,7 @@ export function ListPage<
     emptyStateAction,
     emptyStateIllustration,
     skeletonCells,
+    rowLinks,
 }: Readonly<ListPageProps<T, U, V, AC>>) {
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
@@ -684,6 +694,7 @@ export function ListPage<
         emptyStateAction,
         emptyStateIllustration,
         skeletonCells,
+        rowLinks,
     };
 
     return (

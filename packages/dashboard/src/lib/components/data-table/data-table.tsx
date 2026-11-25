@@ -223,6 +223,15 @@ interface DataTableProps<TData> {
      * @since 4.0.0
      */
     skeletonCells?: Record<string, React.ReactNode>;
+    /**
+     * @description
+     * The rows open a detail page through a `DetailPageButton`. The table
+     * keeps the row link's slot after the last column while it loads and when it
+     * is empty, so the columns do not move when the rows arrive.
+     *
+     * @since 4.0.0
+     */
+    rowLinks?: boolean;
     enableViews?: boolean;
     /**
      * @description
@@ -336,6 +345,7 @@ export function DataTable<TData>({
     selectionStorageKey,
     rowCountKey,
     skeletonCells,
+    rowLinks,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -784,6 +794,7 @@ export function DataTable<TData>({
                         skeletonRowCount={Math.min(pagination.pageSize, MAX_SKELETON_ROWS)}
                         rowCountKey={rowCountKey}
                         skeletonCells={skeletonCells}
+                        rowLinks={rowLinks}
                         frame={frame}
                         pagination={
                             onPageChange && totalItems != null
