@@ -1,0 +1,45 @@
+import { defineError } from '@vendure/common/lib/command';
+
+export const consoleErrors = {
+    projectIsDirectory: defineError<{ project: string }>({
+        code: 'console.project-is-directory',
+        exit: 1,
+        message: ({ project }) =>
+            `--project names the Console Project to link, by its id or slug, but "${project}" is a directory. ` +
+            'Pass the project directory with --dir, and the Console Project with --project.',
+        fix: ({ project }) => [
+            {
+                description: 'Select the project directory with --dir',
+                path: ['console', 'link'],
+                input: { dir: project },
+            },
+        ],
+    }),
+    linkFailed: defineError<{ message: string }>({
+        code: 'console.link-failed',
+        exit: 1,
+        message: ({ message }) => message,
+    }),
+    unlinkFailed: defineError<{ message: string }>({
+        code: 'console.unlink-failed',
+        exit: 1,
+        message: ({ message }) => message,
+    }),
+    manifestInvalid: defineError<{ manifestPath: string; reason: string }>({
+        code: 'console.manifest-invalid',
+        exit: 1,
+        message: ({ manifestPath, reason }) => `Invalid Project Link Manifest at ${manifestPath}: ${reason}`,
+        fix: () => [
+            {
+                description: 'Remove the manifest, then link the project again',
+                path: ['console', 'unlink'],
+                input: {},
+            },
+        ],
+    }),
+    statusFailed: defineError<{ message: string }>({
+        code: 'console.status-failed',
+        exit: 1,
+        message: ({ message }) => message,
+    }),
+};

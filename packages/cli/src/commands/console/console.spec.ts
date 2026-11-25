@@ -3,10 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CliCommandExit } from '../../shared/cli-command-exit.js';
-
 import { ConsoleReporter } from './console-reporter.js';
-import { ConsoleCommandResult } from './console-result.js';
+import { render as renderStatus, statusOutput } from './console-status.run.js';
 import {
     ACCOUNT_ID,
     NOW,
@@ -28,6 +26,7 @@ import {
     ConsoleCommandOptions,
     consoleCommand,
     resolveConsoleEndpoints,
+    runConsole,
 } from './console.js';
 import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore.js';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest.js';
@@ -97,7 +96,7 @@ describe('console command', () => {
         delete test.dependencies.cwd;
         vi.spyOn(process, 'cwd').mockReturnValue(root);
 
-        expect(await consoleCommand('status', {}, test.dependencies)).toBe(0);
+        expect(await statusOf(test)).toBe(0);
         expect(test.messages.join('\n')).toContain('Project: Not linked');
     });
 
@@ -192,7 +191,7 @@ describe('console command', () => {
             },
         });
 
-        expect(await consoleCommand('status', {}, test.dependencies)).toBe(1);
+        expect(await statusOf(test)).toBe(1);
         const output = test.messages.join('\n');
         expect(output).toContain(STAGING_CONSOLE.appOrigin);
         expect(output).toContain('https://console.vendure.io');
@@ -318,7 +317,11 @@ describe('console command', () => {
         const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
 
         expect(
-            await consoleCommand('link', { project }, testDependencies(workspace, fetchMock).dependencies),
+            await consoleCommand(
+                'link',
+                { dir: project },
+                testDependencies(workspace, fetchMock).dependencies,
+            ),
         ).toBe(0);
 
         expect(fs.existsSync(path.join(project, '.vendure', '.installation-id'))).toBe(false);
@@ -521,17 +524,17 @@ describe('console command', () => {
         expect(select).not.toHaveBeenCalled();
         expect(fetchMock).toHaveBeenCalledOnce();
         // CLO-1166: the refusal names the flag that chooses one, and the slugs it takes.
-        expect(test.messages.join('\n')).toContain('vendure console link --console-project <id|slug>');
+        expect(test.messages.join('\n')).toContain('vendure console link --project <id|slug>');
         expect(test.messages.join('\n')).toContain(`Wholesale (wholesale, ${OTHER_PROJECT_ID})`);
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
     // CLO-1166 — --console-project chooses the Project, so a coding agent can link in a shared account
     it.each([
-        { consoleProject: 'wholesale', by: 'slug' },
-        { consoleProject: 'WHOLESALE', by: 'slug, ignoring case' },
-        { consoleProject: OTHER_PROJECT_ID.toUpperCase(), by: 'id, ignoring case' },
-    ])('links the project that --console-project names by $by without asking', async ({ consoleProject }) => {
+        { project: 'wholesale', by: 'slug' },
+        { project: 'WHOLESALE', by: 'slug, ignoring case' },
+        { project: OTHER_PROJECT_ID.toUpperCase(), by: 'id, ignoring case' },
+    ])('links the project that --project names by $by without asking', async ({ project }) => {
         const root = vendureProject();
         const other = { ...manifest, project: { id: OTHER_PROJECT_ID, name: 'Wholesale' } };
         const fetchMock = sequenceFetch(
@@ -546,7 +549,7 @@ describe('console command', () => {
         const select = vi.fn();
         const test = testDependencies(root, fetchMock, { isNonInteractive: () => false, select });
 
-        expect(await consoleCommand('link', { consoleProject }, test.dependencies)).toBe(0);
+        expect(await consoleCommand('link', { project }, test.dependencies)).toBe(0);
         expect(select).not.toHaveBeenCalled();
         expect(fetchMock.mock.calls[1][0]).toBe(`http://localhost:3001/v1/projects/${OTHER_PROJECT_ID}/link`);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.name).toBe('Wholesale');
@@ -570,13 +573,9 @@ describe('console command', () => {
         const select = vi.fn();
         const test = testDependencies(root, fetchMock, { openUrl, prompt, select });
 
-        expect(
-            await consoleCommand(
-                'link',
-                { nonInteractive: true, force: true, consoleProject: 'wholesale' },
-                test.dependencies,
-            ),
-        ).toBe(0);
+        expect(await consoleCommand('link', { force: true, project: 'wholesale' }, test.dependencies)).toBe(
+            0,
+        );
         for (const fn of [openUrl, prompt, select]) expect(fn).not.toHaveBeenCalled();
         expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe(
             `Bearer ${STORED_ACCESS_TOKEN}`,
@@ -596,16 +595,16 @@ describe('console command', () => {
         );
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: 'parts-counter' }, test.dependencies)).toBe(1);
+        expect(await consoleCommand('link', { project: 'parts-counter' }, test.dependencies)).toBe(1);
         expect(fetchMock).toHaveBeenCalledOnce();
         const output = test.messages.join('\n');
-        expect(output).toContain('--console-project parts-counter is not an active project of Acme');
+        expect(output).toContain('--project parts-counter is not an active project of Acme');
         expect(output).toContain(`Storefront (storefront, ${PROJECT_ID})`);
         expect(output).toContain('--organization <Account identifier>');
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
-    it('does not let --console-project replace an existing link without --force', async () => {
+    it('does not let --project replace an existing link without the replaceLink consent', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         const fetchMock = sequenceFetch(
@@ -618,11 +617,11 @@ describe('console command', () => {
         );
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: 'wholesale' }, test.dependencies)).toBe(1);
+        expect(await consoleCommand('link', { project: 'wholesale' }, test.dependencies)).toBe(1);
         // Only the project list, to read the linked Project's slug. No link request.
         expect(fetchMock).toHaveBeenCalledOnce();
         expect(test.messages.join('\n')).toContain(
-            'Add --force to replace the link with the Project that --console-project names.',
+            'Run the command again, and give the replaceLink consent to replace the link with the Project that --project names.',
         );
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
@@ -633,7 +632,7 @@ describe('console command', () => {
         const fetchMock = sequenceFetch(new Response('{}', { status: 503 }));
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: 'storefront' }, test.dependencies)).toBe(1);
+        expect(await consoleCommand('link', { project: 'storefront' }, test.dependencies)).toBe(1);
         expect(fetchMock).toHaveBeenCalledOnce();
         expect(test.messages.join('\n')).toContain('HTTP 503');
         expect(test.messages.join('\n')).not.toContain('--force');
@@ -649,11 +648,11 @@ describe('console command', () => {
         );
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: 'storefront' }, test.dependencies)).toBe(1);
+        expect(await consoleCommand('link', { project: 'storefront' }, test.dependencies)).toBe(1);
         const output = test.messages.join('\n');
-        expect(output).toContain('could not check whether --console-project storefront names that Project');
+        expect(output).toContain('could not check whether --project storefront names that Project');
         expect(output).toContain(
-            `Pass the linked Project's id, ${PROJECT_ID}, to --console-project to keep the link.`,
+            `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
         );
         expect(output).not.toContain('--force');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
@@ -665,9 +664,9 @@ describe('console command', () => {
         const fetchMock = sequenceFetch(jsonResponse(projectList()));
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: 'storefrnt' }, test.dependencies)).toBe(1);
+        expect(await consoleCommand('link', { project: 'storefrnt' }, test.dependencies)).toBe(1);
         const output = test.messages.join('\n');
-        expect(output).toContain('--console-project storefrnt is not an active project of Acme');
+        expect(output).toContain('--project storefrnt is not an active project of Acme');
         expect(output).toContain(`Storefront (storefront, ${PROJECT_ID})`);
         expect(output).not.toContain('--force');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
@@ -684,19 +683,12 @@ describe('console command', () => {
             );
 
         async function runJson(root: string, fetchMock: typeof fetch, options: ConsoleCommandOptions) {
-            const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
-            const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
-            const test = testDependencies(root, fetchMock);
-            const exitCode = await consoleCommand(
-                'link',
-                { json: true, nonInteractive: true, ...options },
-                test.dependencies,
-            );
-            expect(stdout).toHaveBeenCalledOnce();
+            const test = testDependencies(root, fetchMock, { outputMode: 'json' });
+            const run = await runConsole('link', options, test.dependencies);
             return {
-                exitCode,
-                result: JSON.parse(String(stdout.mock.calls[0][0])) as ConsoleCommandResult,
-                stderr: stderr.mock.calls.map(call => String(call[0])).join(''),
+                exitCode: run.exitCode,
+                result: run.result,
+                stderr: test.messages.join('\n'),
             };
         }
 
@@ -707,7 +699,7 @@ describe('console command', () => {
             const run = await runJson(root, fetchMock, { force: true });
 
             expect(run.exitCode).toBe(1);
-            expect(run.result.needs).toEqual([expect.objectContaining({ field: 'consoleProject' })]);
+            expect(run.result.needs).toEqual([expect.objectContaining({ field: 'project' })]);
             expect(fetchMock).toHaveBeenCalledOnce();
             expect(fetchMock.mock.calls[0][1]?.method).not.toBe('DELETE');
             expect(fs.existsSync(path.join(root, '.vendure', 'telemetry-attribution.json'))).toBe(true);
@@ -716,7 +708,7 @@ describe('console command', () => {
         it('lists the projects and names --organization when --console-project names none of them', async () => {
             const root = vendureProject();
             const run = await runJson(root, sequenceFetch(twoProjects()), {
-                consoleProject: 'parts-counter',
+                project: 'parts-counter',
             });
 
             expect(run.exitCode).toBe(1);
@@ -724,7 +716,7 @@ describe('console command', () => {
             expect(run.result.needs).toEqual([
                 expect.objectContaining({
                     kind: 'input',
-                    field: 'consoleProject',
+                    field: 'project',
                     choices: ['storefront', 'wholesale'],
                 }),
             ]);
@@ -734,7 +726,7 @@ describe('console command', () => {
             expect(nextSteps).toContain('--organization <Account identifier>');
             // The result holds no option values, so the mistyped value is only on stderr.
             expect(nextSteps).not.toContain('parts-counter');
-            expect(run.stderr).toContain('--console-project parts-counter is not an active project of Acme');
+            expect(run.stderr).toContain('--project parts-counter is not an active project of Acme');
             expect(run.stderr).not.toContain('The Console command failed.');
             expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
         });
@@ -742,37 +734,38 @@ describe('console command', () => {
         it('lists the projects and names --console-project when the account has several', async () => {
             const root = vendureProject();
             const fetchMock = sequenceFetch(twoProjects());
-            const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
-            vi.spyOn(process.stderr, 'write').mockReturnValue(true);
-            const test = testDependencies(root, fetchMock);
+            const test = testDependencies(root, fetchMock, { outputMode: 'json' });
 
-            // Without --non-interactive, --json signs in if it must, but still does not prompt.
-            expect(await consoleCommand('link', { json: true }, test.dependencies)).toBe(1);
-            const result = JSON.parse(String(stdout.mock.calls[0][0])) as ConsoleCommandResult;
+            // Without a person, a link does not prompt.
+            const { exitCode, result } = await runConsole('link', {}, test.dependencies);
+            expect(exitCode).toBe(1);
             expect(result.outcome).toBe('incomplete');
             expect(result.needs).toEqual([
                 expect.objectContaining({
                     kind: 'input',
-                    field: 'consoleProject',
+                    field: 'project',
                     choices: ['storefront', 'wholesale'],
                 }),
             ]);
             const nextSteps = result.nextSteps.join('\n');
-            expect(nextSteps).toContain('vendure console link --console-project <id|slug>');
+            expect(nextSteps).toContain('vendure console link --project <id|slug>');
             expect(nextSteps).toContain(`Storefront (storefront, ${PROJECT_ID})`);
             expect(nextSteps).toContain(`Wholesale (wholesale, ${OTHER_PROJECT_ID})`);
         });
 
-        it('names --force when --console-project names another project than the linked one', async () => {
+        it('names the replaceLink consent when --project names another project than the linked one', async () => {
             const root = vendureProject();
             fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
-            const run = await runJson(root, sequenceFetch(twoProjects()), { consoleProject: 'wholesale' });
+            const run = await runJson(root, sequenceFetch(twoProjects()), { project: 'wholesale' });
 
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('incomplete');
-            expect(run.result.needs).toEqual([expect.objectContaining({ kind: 'input', field: 'force' })]);
+            expect(run.result.needs).toEqual([
+                expect.objectContaining({ kind: 'input', field: 'replaceLink' }),
+            ]);
             expect(run.result.nextSteps).toEqual([
-                'Add --force to replace the link with the Project that --console-project names.',
+                'Run the command again, and give the replaceLink consent to replace the link with the Project that --project names.',
+                `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
             ]);
             expect(run.stderr).toContain(
                 `This project is already linked to Storefront (${PROJECT_ID}) in Acme.`,
@@ -787,27 +780,25 @@ describe('console command', () => {
             const fetchMock = sequenceFetch(
                 jsonResponse([{ id: PROJECT_ID, name: 'Storefront', state: 'active' }]),
             );
-            const run = await runJson(root, fetchMock, { consoleProject: 'storefront' });
+            const run = await runJson(root, fetchMock, { project: 'storefront' });
 
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('incomplete');
             expect(run.result.needs).toEqual([
-                expect.objectContaining({ kind: 'input', field: 'consoleProject' }),
+                expect.objectContaining({ kind: 'input', field: 'replaceLink' }),
             ]);
-            expect(run.result.needs[0]).not.toHaveProperty('choices');
             expect(run.result.nextSteps).toEqual([
-                `Pass the linked Project's id, ${PROJECT_ID}, to --console-project to keep the link.`,
+                'Run the command again, and give the replaceLink consent to replace the link with the Project that --project names.',
+                `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
             ]);
-            expect(run.stderr).toContain(
-                'could not check whether --console-project storefront names that Project',
-            );
+            expect(run.stderr).toContain('could not check whether --project storefront names that Project');
         });
 
         it('still hides a raw error, such as a failed Console request', async () => {
             const root = vendureProject();
             fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
             const run = await runJson(root, sequenceFetch(new Response('{}', { status: 503 })), {
-                consoleProject: 'storefront',
+                project: 'storefront',
             });
 
             expect(run.exitCode).toBe(1);
@@ -825,15 +816,11 @@ describe('console command', () => {
         const test = testDependencies(root, fetchMock);
 
         expect(
-            await consoleCommand(
-                'link',
-                { organization: 'Other', consoleProject: 'storefront' },
-                test.dependencies,
-            ),
+            await consoleCommand('link', { organization: 'Other', project: 'storefront' }, test.dependencies),
         ).toBe(1);
         expect(fetchMock).not.toHaveBeenCalled();
         expect(test.messages.join('\n')).toContain(
-            'Add --force to replace the link with the Project that --console-project names.',
+            'Run the command again, and give the replaceLink consent to replace the link with the Project that --project names.',
         );
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
@@ -845,11 +832,7 @@ describe('console command', () => {
         const test = testDependencies(root, fetchMock);
 
         expect(
-            await consoleCommand(
-                'link',
-                { organization: 'acme', consoleProject: 'storefront' },
-                test.dependencies,
-            ),
+            await consoleCommand('link', { organization: 'acme', project: 'storefront' }, test.dependencies),
         ).toBe(0);
         expect(test.messages.join('\n')).toContain('Already linked to Storefront in Acme.');
     });
@@ -860,7 +843,7 @@ describe('console command', () => {
         const fetchMock = sequenceFetch(jsonResponse(projectList()));
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: 'Storefront' }, test.dependencies)).toBe(0);
+        expect(await consoleCommand('link', { project: 'Storefront' }, test.dependencies)).toBe(0);
         expect(fetchMock).toHaveBeenCalledOnce();
         expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3001/v1/projects');
         expect(test.messages.join('\n')).toContain('Already linked to Storefront in Acme.');
@@ -873,7 +856,7 @@ describe('console command', () => {
         const fetchMock = vi.fn();
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', { consoleProject: PROJECT_ID }, test.dependencies)).toBe(0);
+        expect(await consoleCommand('link', { project: PROJECT_ID }, test.dependencies)).toBe(0);
         expect(fetchMock).not.toHaveBeenCalled();
         expect(test.messages.join('\n')).toContain('Already linked to Storefront in Acme.');
     });
@@ -1056,7 +1039,7 @@ describe('console command', () => {
         const fetchMock = vi.fn() as unknown as typeof fetch;
         const test = testDependencies(workspace, fetchMock);
 
-        expect(await consoleCommand('link', { project, force: true }, test.dependencies)).toBe(1);
+        expect(await consoleCommand('link', { dir: project, force: true }, test.dependencies)).toBe(1);
         expect(fetchMock).not.toHaveBeenCalled();
         expect(test.messages.join('\n')).toContain('outside the selected Vendure project');
     });
@@ -1160,7 +1143,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).link.id).toBe(OTHER_LINK_ID);
         expect(fs.existsSync(path.join(root, '.vendure', 'telemetry-attribution.json'))).toBe(false);
         const status = testDependencies(root, vi.fn() as unknown as typeof fetch);
-        expect(await consoleCommand('status', {}, status.dependencies)).toBe(0);
+        expect(await statusOf(status)).toBe(0);
         expect(status.messages.join('\n')).toContain('Telemetry: not attributed');
     });
 
@@ -1218,31 +1201,39 @@ describe('console command', () => {
         expect(hook).toHaveBeenCalledOnce();
     });
 
-    it('uses --yes to approve manifest replacement and removal', async () => {
+    it('replaces or removes a manifest only with the consent, never with --yes', async () => {
         const replacementRoot = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(replacementRoot)));
         fs.writeFileSync(getProjectLinkManifestPath(replacementRoot), '{invalid');
-        const replacementPrompt = vi.fn(() => Promise.resolve(false));
+        const replacementPrompt = vi.fn(() => Promise.resolve(true));
+        const refused = testDependencies(replacementRoot, vi.fn() as unknown as typeof fetch, {
+            isNonInteractive: () => false,
+            prompt: replacementPrompt,
+        });
+        expect(await consoleCommand('link', { yes: true }, refused.dependencies)).toBe(1);
+        expect(fs.readFileSync(getProjectLinkManifestPath(replacementRoot), 'utf-8')).toBe('{invalid');
+
         const replacement = testDependencies(
             replacementRoot,
             sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
             { isNonInteractive: () => false, prompt: replacementPrompt },
         );
-
-        expect(await consoleCommand('link', { yes: true }, replacement.dependencies)).toBe(0);
+        expect(await consoleCommand('link', { force: true }, replacement.dependencies)).toBe(0);
         expect(replacementPrompt).not.toHaveBeenCalled();
         expect(fs.readJsonSync(getProjectLinkManifestPath(replacementRoot))).toEqual(localManifest);
 
         const unlinkRoot = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(unlinkRoot)));
         fs.writeJsonSync(getProjectLinkManifestPath(unlinkRoot), manifest);
-        const unlinkPrompt = vi.fn(() => Promise.resolve(false));
+        const unlinkPrompt = vi.fn(() => Promise.resolve(true));
         const unlink = testDependencies(unlinkRoot, vi.fn() as unknown as typeof fetch, {
             isNonInteractive: () => false,
             prompt: unlinkPrompt,
         });
 
-        expect(await consoleCommand('unlink', { yes: true }, unlink.dependencies)).toBe(0);
+        expect(await consoleCommand('unlink', { yes: true }, unlink.dependencies)).toBe(1);
+        expect(fs.existsSync(getProjectLinkManifestPath(unlinkRoot))).toBe(true);
+        expect(await consoleCommand('unlink', { force: true }, unlink.dependencies)).toBe(0);
         expect(unlinkPrompt).not.toHaveBeenCalled();
         expect(fs.existsSync(getProjectLinkManifestPath(unlinkRoot))).toBe(false);
     });
@@ -1264,38 +1255,25 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
-    it('rethrows CliCommandExit from the prompt so the CLI host owns the exit', async () => {
-        const root = vendureProject();
-        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
-        fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
-        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
-            isNonInteractive: () => false,
-            prompt: () => Promise.reject(new CliCommandExit(1)),
-        });
-
-        await expect(consoleCommand('link', {}, test.dependencies)).rejects.toBeInstanceOf(CliCommandExit);
-        expect(test.messages.join('\n')).not.toContain('requested exit code');
-        expect(fs.readFileSync(getProjectLinkManifestPath(root), 'utf-8')).toBe('{invalid');
-    });
-
-    it('leaves an invalid manifest unchanged when interactive replacement is cancelled', async () => {
+    it('leaves an invalid manifest unchanged without the replaceLink consent', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
         const fetchMock = vi.fn() as unknown as typeof fetch;
         const test = testDependencies(root, fetchMock, {
             isNonInteractive: () => false,
-            prompt: () => Promise.resolve(false),
+            prompt: () => Promise.resolve(true),
         });
 
-        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
         expect(fetchMock).not.toHaveBeenCalled();
+        expect(test.messages.join('\n')).toContain('without the replaceLink consent');
         expect(fs.readFileSync(getProjectLinkManifestPath(root), 'utf-8')).toBe('{invalid');
     });
 
     // Repeating a link is how a project that is already linked gets its setup
     // run again. Minting a second Project Link would abandon the first.
-    it('repeats a link without asking Console for another one, and names --force', async () => {
+    it('repeats a link without asking Console for another one, and names --project', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
@@ -1314,17 +1292,17 @@ describe('console command', () => {
         });
         const output = test.messages.join('\n');
         expect(output).toContain('Already linked to');
-        expect(output).toContain('vendure console link --force');
+        expect(output).toContain('vendure console link --project <id|slug>');
         expect(output).toContain('https://docs.vendure.io/mcp');
     });
 
-    it('keeps the docs MCP guidance out of --non-interactive output', async () => {
+    it('keeps the docs MCP guidance out of output that no person reads', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), localManifest);
-        const test = testDependencies(root, vi.fn());
+        const test = testDependencies(root, vi.fn(), { outputMode: 'json' });
 
-        expect(await consoleCommand('link', { nonInteractive: true }, test.dependencies)).toBe(0);
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
         expect(test.messages.join('\n')).toContain('Already linked to');
         expect(test.messages.join('\n')).not.toContain('https://docs.vendure.io/mcp');
     });
@@ -1546,16 +1524,17 @@ describe('console command', () => {
         expect(test.messages.join('\n')).toContain('not trusted');
     });
 
-    it('returns an interrupt exit code when the confirmation prompt is cancelled', async () => {
+    it('keeps the manifest when unlink has no removeLink consent', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), localManifest);
         const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
             isNonInteractive: () => false,
-            prompt: () => Promise.resolve(undefined),
+            prompt: () => Promise.resolve(true),
         });
 
-        expect(await consoleCommand('unlink', {}, test.dependencies)).toBe(130);
+        expect(await consoleCommand('unlink', {}, test.dependencies)).toBe(1);
+        expect(test.messages.join('\n')).toContain('without the removeLink consent');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
@@ -1563,13 +1542,13 @@ describe('console command', () => {
         const root = vendureProject();
         const fetchMock = vi.fn() as unknown as typeof fetch;
         const unlinked = testDependencies(root, fetchMock);
-        expect(await consoleCommand('status', {}, unlinked.dependencies)).toBe(0);
+        expect(await statusOf(unlinked)).toBe(0);
         expect(unlinked.messages.join('\n')).toContain('Project: Not linked');
 
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), localManifest);
         const linked = testDependencies(root, fetchMock);
-        expect(await consoleCommand('status', {}, linked.dependencies)).toBe(0);
+        expect(await statusOf(linked)).toBe(0);
         expect(linked.messages.join('\n')).toContain(`Account: Acme (${ACCOUNT_ID})`);
         expect(linked.messages.join('\n')).toContain(`Manifest: ${getProjectLinkManifestPath(root)}`);
         expect(linked.messages.join('\n')).toContain(`Console: ${LOCAL_CONSOLE.appOrigin}`);
@@ -1579,7 +1558,7 @@ describe('console command', () => {
 
         fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
         const malformed = testDependencies(root, fetchMock);
-        expect(await consoleCommand('status', {}, malformed.dependencies)).toBe(1);
+        expect(await statusOf(malformed)).toBe(1);
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
@@ -1590,7 +1569,7 @@ describe('console command', () => {
         const installationId = fs.readFileSync(path.join(root, '.vendure', '.installation-id'), 'utf8');
 
         const attributed = testDependencies(root, fetchMock);
-        expect(await consoleCommand('status', {}, attributed.dependencies)).toBe(0);
+        expect(await statusOf(attributed)).toBe(0);
         expect(attributed.messages.join('\n')).toContain(
             `Telemetry: attributed to Storefront (installation ${installationId})`,
         );
@@ -1598,7 +1577,7 @@ describe('console command', () => {
         const off = testDependencies(root, fetchMock, {
             env: { ...LOCAL_CONSOLE_ENV, VENDURE_DISABLE_TELEMETRY: '1' },
         });
-        expect(await consoleCommand('status', {}, off.dependencies)).toBe(0);
+        expect(await statusOf(off)).toBe(0);
         expect(off.messages.join('\n')).toContain('Telemetry: off (VENDURE_DISABLE_TELEMETRY)');
 
         // A link made before attribution, or by another machine, sent no installation ID.
@@ -1607,7 +1586,7 @@ describe('console command', () => {
             link: { ...localManifest.link, id: OTHER_LINK_ID },
         });
         const other = testDependencies(root, fetchMock);
-        expect(await consoleCommand('status', {}, other.dependencies)).toBe(0);
+        expect(await statusOf(other)).toBe(0);
         expect(other.messages.join('\n')).toContain('Telemetry: not attributed');
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
@@ -1623,7 +1602,7 @@ describe('console command', () => {
             },
         });
 
-        expect(await consoleCommand('status', {}, test.dependencies)).toBe(0);
+        expect(await statusOf(test)).toBe(0);
         expect(test.messages.join('\n')).toContain(`Console: ${STAGING_CONSOLE.appOrigin}`);
     });
 
@@ -1715,6 +1694,15 @@ describe('console command', () => {
  * directory and holds a login for the run's Console API, scoped to the Acme
  * organization.
  */
+/** Runs `vendure console status`, and records what it shows a person among the messages. */
+async function statusOf(test: ReturnType<typeof testDependencies>): Promise<number> {
+    const run = await runConsole('status', {}, test.dependencies);
+    if (run.status && run.status.kind !== 'invalid') {
+        test.messages.push(renderStatus(statusOutput(run.status)));
+    }
+    return run.exitCode;
+}
+
 function testDependencies(
     root: string,
     fetchImplementation: typeof fetch,

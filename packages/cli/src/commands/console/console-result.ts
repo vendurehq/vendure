@@ -40,7 +40,13 @@ export interface ConsoleLinkResultContribution {
     nextSteps?: string[];
 }
 
-/** The single Console result written to stdout in JSON mode. @since 3.8.0 */
+/**
+ * The single Console result written to stdout in JSON mode.
+ *
+ * @deprecated Since 4.0.0, `vendure console link`, `status` and `unlink --json` write the envelope
+ * every command writes, with the command's output, needs or coded error.
+ * @since 3.8.0
+ */
 export interface ConsoleCommandResult {
     schemaVersion: 1;
     operation: string;

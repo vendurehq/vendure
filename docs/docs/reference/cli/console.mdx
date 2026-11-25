@@ -1,0 +1,134 @@
+---
+title: "vendure console"
+generated: true
+---
+
+
+<a name="console-link"></a>
+
+## vendure console link
+
+Link this Vendure project to a Vendure Console Project, and run the setup of the CLI plugins. Run again to repair a link.
+
+```bash
+vendure console link [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `console_link`
+- Shows a preview of what it will do before it asks for consent.
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--dir <dir>` | string | The Vendure project directory. Without it, the project is found from the working directory. |
+| `--project <id\|slug>` | string | The Console Project to link, by its id or slug. Without it, a person picks one, and a run without a person links the only Project of the account or asks for this field. |
+| `--organization <account>` | string | Link a project of this organization: its Account identifier (Vendure Console → Settings) or its name. Signs in again when the CLI login belongs to another organization. |
+
+### Consents
+
+Without the consent, the command returns `incomplete` with a preview and a digest. Pass the digest as the value of the consent to run it. `--yes` never grants a consent.
+
+- `--replace-link <digest>`: Replace the Project Link of this project with another Console Project. The replaced link no longer attributes telemetry.
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `outcome` | `"linked"` or `"repaired"` | `linked` when this run wrote the link, `repaired` when it kept the one on disk. |
+| `manifestPath` | string | The Project Link Manifest, which is safe to commit. |
+| `project` | object | The linked Console Project. |
+| `account` | object | The Customer Account the Project belongs to. |
+| `plugins` | object | What the setup of each CLI plugin reported, by plugin id. |
+| `nextSteps` | array of string | What to do next, such as a step a plugin needs to finish its setup. |
+
+### Errors
+
+- `console.project-is-directory` (exit code 1)
+- `console.link-failed` (exit code 1)
+- `cli.cancelled` (exit code 130)
+
+### Examples
+
+```bash
+vendure console link
+vendure console link --project storefront
+vendure console link --dir apps/server --project storefront --json
+```
+
+<a name="console-status"></a>
+
+## vendure console status
+
+Show the Console Project this Vendure project is linked to. `vendure auth status` shows the login.
+
+```bash
+vendure console status [options]
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `console_status`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--dir <dir>` | string | The Vendure project directory. Without it, the project is found from the working directory. |
+
+### Errors
+
+- `console.manifest-invalid` (exit code 1)
+- `console.status-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure console status
+vendure console status --dir apps/server --json
+```
+
+<a name="console-unlink"></a>
+
+## vendure console unlink
+
+Remove the Project Link Manifest of this project. The Console Project and the CLI login stay as they are.
+
+```bash
+vendure console unlink [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `console_unlink`
+- Shows a preview of what it will do before it asks for consent.
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--dir <dir>` | string | The Vendure project directory. Without it, the project is found from the working directory. |
+
+### Consents
+
+Without the consent, the command returns `incomplete` with a preview and a digest. Pass the digest as the value of the consent to run it. `--yes` never grants a consent.
+
+- `--remove-link <digest>`: Remove the Project Link Manifest of this project, and stop attributing its telemetry to the Console Project.
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `removed` | boolean | False when the project was not linked. |
+| `manifestPath` | string |  |
+
+### Errors
+
+- `console.unlink-failed` (exit code 1)
+- `cli.cancelled` (exit code 130)
+
+### Examples
+
+```bash
+vendure console unlink
+vendure console unlink --remove-link <digest> --json
+```

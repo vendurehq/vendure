@@ -1,0 +1,87 @@
+import { CommandContext, ErrorResult, fail } from '@vendure/common/lib/command';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { getPluginExtensions } from '../../shared/plugin-extensions.js';
+
+import { ConsoleLinkHookRegistration, RegisteredConsoleLinkHook } from './console-link-hook.js';
+import { ConsoleReporter } from './console-reporter.js';
+import { consoleErrors } from './console.errors.js';
+import { ConsoleCommandDependencies } from './console.js';
+import { openConsoleBrowser } from './open-browser.js';
+
+/** A reporter that says nothing, for the lookups of a preview: the run reports what they find. */
+export const silentReporter: ConsoleReporter = {
+    error: () => undefined,
+    info: () => undefined,
+    success: () => undefined,
+    warn: () => undefined,
+    url: () => undefined,
+};
+
+/** The `afterConsoleLink` hooks of the loaded CLI plugins. */
+export function consoleLinkHooks(): RegisteredConsoleLinkHook[] {
+    return getPluginExtensions<ConsoleLinkHookRegistration>('afterConsoleLink').map(
+        ({ pluginId, extension }) =>
+            typeof extension === 'function'
+                ? { pluginId, hook: extension, requiresSession: false }
+                : { pluginId, hook: extension.hook, requiresSession: true },
+    );
+}
+
+/**
+ * The dependencies of the `vendure console` engine for a run on the command host. Messages become
+ * notices, a URL a hook reports is passed on as output, and without `ctx.ask` nobody is asked.
+ * `errors` collects what the engine reported as an error, for the coded error of a failed run.
+ */
+export function consoleDependencies(
+    ctx: CommandContext,
+    hooks: RegisteredConsoleLinkHook[] = [],
+): { dependencies: ConsoleCommandDependencies; errors: string[] } {
+    const errors: string[] = [];
+    const { ask } = ctx;
+    const dependencies: ConsoleCommandDependencies = {
+        cwd: ctx.cwd,
+        env: process.env,
+        fetch: globalThis.fetch,
+        hooks,
+        isNonInteractive: () => !ask,
+        now: () => Date.now(),
+        openUrl: openConsoleBrowser,
+        prompt: message => (ask ? ask.confirm(message) : Promise.resolve(undefined)),
+        select: (message, choices) => (ask ? ask.select(message, choices) : Promise.resolve(undefined)),
+        reporter: {
+            error: message => {
+                errors.push(message);
+                ctx.notice('warning', message);
+            },
+            warn: message => ctx.notice('warning', message),
+            info: message => ctx.notice('info', message),
+            success: message => ctx.notice('info', message),
+            url: value => ctx.event('output', { stream: 'stdout', text: `${value}\n` }),
+        },
+        // Nobody reads raw errors when nobody is asked: an agent, a script or CI.
+        outputMode: ask ? 'human' : 'json',
+        signal: ctx.signal,
+    };
+    return { dependencies, errors };
+}
+
+/**
+ * `--project` names a Console Project. A value that is a directory is the `--project <dir>` of
+ * earlier versions, which is `--dir` now.
+ */
+export function projectIsDirectory(project: string | undefined, cwd: string): ErrorResult | undefined {
+    const value = project?.trim();
+    if (!value) {
+        return undefined;
+    }
+    try {
+        if (fs.statSync(path.resolve(cwd, value)).isDirectory()) {
+            return fail(consoleErrors.projectIsDirectory, { project: value });
+        }
+    } catch {
+        // Not a path on disk, so it is an id or a slug.
+    }
+    return undefined;
+}

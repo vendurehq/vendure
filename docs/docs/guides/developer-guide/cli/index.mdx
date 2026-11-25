@@ -658,7 +658,7 @@ develop the Project.
 To link a Project without choosing it in the terminal, pass its id or its slug, the name in its Console URL:
 
 ```bash
-npx vendure console link --console-project parts-counter
+npx vendure console link --project parts-counter
 ```
 
 If the Customer Account has no active Project with that id or slug, the command stops, lists the Projects it has,
@@ -700,7 +700,8 @@ With `VENDURE_DISABLE_TELEMETRY=true` (or `1`), the link sends no installation I
 project that was never linked sends anonymous telemetry, as before. After an unlink, telemetry is anonymous only if
 Console removed the attribution. See [Unlink a project](#unlink-a-project).
 
-A link with `--force` first tells Console to stop the attribution of the link it replaces. It does this also when
+A link that replaces another, with the `replaceLink` consent, first tells Console to stop the attribution of the link
+it replaces. It does this also when
 `VENDURE_DISABLE_TELEMETRY` is set. For this request the CLI uses only a stored login for the account of the replaced
 link. It does not sign you in to that account. If the request fails, the CLI shows a warning that names the replaced
 Project, its ID and the installation ID, and continues with the new link. The attribution can then stay with the
@@ -710,8 +711,8 @@ Console moves an existing attribution to the new Project only within the same Co
 the CLI could not stop belongs to a different account, it stays with that account until that account unlinks the
 installation. The CLI cannot see this case, so it still reports the new Project as attributed.
 
-A repeated link without `--force` does not contact Console, so it does not attribute a project that was linked before
-this feature or on another machine. Run `vendure console link --force` to attribute it.
+A repeated link does not contact Console, so it does not attribute a project that was linked before this feature or
+on another machine. Run `vendure console unlink`, then `vendure console link`, to attribute it.
 
 ### Use Vendure development workflows in your coding assistant
 
@@ -739,13 +740,12 @@ The CLI prints these steps only in human output. Without a person at a terminal,
 For automation, run:
 
 ```bash
-npx vendure console link --json --console-project parts-counter --project ./apps/server
+npx vendure console link --json --project parts-counter --dir ./apps/server
 ```
 
-A run never prompts, signs in or opens a browser without a person at a terminal: under `--json`, when `CI` or
-`VENDURE_CLI_NON_INTERACTIVE` is set, or when stdin or stdout is not a terminal. `--non-interactive` still works and
-means the same, but is no longer listed in `--help` and will be removed in a later release. An existing manifest is
-reused.
+A run never prompts, signs in or opens a browser without a person at a terminal: under `--json`, through the Developer
+MCP (`console_link`), when `CI` or `VENDURE_CLI_NON_INTERACTIVE` is set, or when stdin or stdout is not a terminal. An
+existing manifest is reused.
 
 To create a Project Link, the command needs a credential. It uses the login stored by `vendure auth login`, and
 otherwise `VENDURE_CLOUD_TOKEN`, for example a delegated agent key. Without either, the result is `incomplete`, with
@@ -754,45 +754,32 @@ request to Console. Sign in a person with [`vendure auth login --json` and `vend
 or set `VENDURE_CLOUD_TOKEN`, then run the command again. `VENDURE_CLOUD_TOKEN` is never renewed and never given to
 plugin hooks that request a session.
 
-```bash
-npx vendure console link --json --console-project parts-counter
-npx vendure console link --json --force --console-project parts-counter
-```
+The command links the Project that `--project` names, or the organization's single Project. When there are more and
+no `--project`, or when `--project` names none of them, the result is `incomplete`: an `input` need for `project`
+lists the Projects' slugs as its `choices`, and the notices list the Projects with their names. For a value that names
+none of them, the notices also point to `--organization`. When `--project` names another Project than the linked one,
+the result is `incomplete` with a `consent` need for `replaceLink`. See
+[Replacing or removing a link](#replacing-or-removing-a-link). The consent does not authorize a plugin to replace
+credentials or registry tokens.
 
-The command links the Project that `--console-project` names, or the organization's single Project. When there are
-more and no `--console-project`, or when `--console-project` names none of them, the result is `incomplete`: an
-`input` need for `consoleProject` lists the Projects' slugs as its `choices`, and `nextSteps` lists the Projects with
-their names. For a value that names none of them, `nextSteps` also points to `--organization`. When
-`--console-project` names another Project than the linked one, the need is for `force`. `--force` still means a
-different Project Link. Without a terminal it replaces the link only with the Project that `--console-project` names,
-or the account's single Project, and nothing changes until that Project is known. Neither `--force` nor `--yes`
-authorizes a plugin to replace credentials or registry tokens.
-
-`--json` writes one result to stdout. Reporter progress goes to stderr. Human output remains the default. The result
-has this shape:
+`--json` writes the envelope that every command writes. Its output has this shape:
 
 ```json
 {
-    "schemaVersion": 1,
-    "operation": "console.link",
     "outcome": "repaired",
-    "data": {
-        "link": { "outcome": "repaired", "manifestPath": "/checkout/apps/server/.vendure/project.json" },
-        "plugins": {}
-    },
-    "needs": [],
+    "manifestPath": "/checkout/apps/server/.vendure/project.json",
+    "project": { "id": "<uuid>", "name": "Parts Counter" },
+    "account": { "id": "<uuid>", "name": "Bromley Art Supplies" },
+    "plugins": {},
     "nextSteps": []
 }
 ```
 
-`needs` uses the same shape as every other CLI command's `incomplete` result: `input` needs name a field, and say
-whether it is secret, its valid `choices` and the command that fixes it. They never contain secret values. `needs`
-replaces `missingInputs`.
-
-Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Plugin setup data
-is stored under the plugin ID in `data.plugins`. Incomplete or failed setup returns exit code 1 and keeps the
-linked manifest. Interrupts retain exit code 130 or 143. JSON results contain no tokens, parsed option values, or raw
-errors. Plugins must supply only safe setup metadata.
+`outcome` is `linked` when the run wrote the link and `repaired` when it kept the one on disk. Plugin setup data is
+stored under the plugin ID in `plugins`. When a plugin's setup still needs something, the result is `incomplete` with
+the plugin's needs and the output of the link so far. Failed setup is the coded error `console.link-failed`. Either
+way, the linked manifest stays. The output contains no tokens or raw errors. Plugins must supply only safe setup
+metadata.
 
 ### Link status
 
@@ -815,7 +802,8 @@ Use `unlink` to remove the local manifest:
 npx vendure console unlink
 ```
 
-This command removes `.vendure/project.json`. If the link attributed telemetry, the CLI first tells Vendure Console to
+This command removes `.vendure/project.json`, once you give the `removeLink` consent. See
+[Replacing or removing a link](#replacing-or-removing-a-link). If the link attributed telemetry, the CLI first tells Vendure Console to
 stop the attribution. For this, it uses your CLI login, and signs you in when it runs in a terminal. If Console cannot
 be reached or refuses the request, the CLI shows a warning and still removes the local link and its attribution
 record. Console then continues to attribute telemetry from this installation to the Project until the attribution is
@@ -824,51 +812,52 @@ removed. In that case, set `VENDURE_DISABLE_TELEMETRY=true` to stop telemetry fr
 The command does not delete the Console Project or its Project Link, and it does not revoke server-side credentials.
 Your CLI login stays. Run `vendure auth logout` to sign out.
 
-### Project selection and confirmation
+### Project selection
 
 The CLI uses the nearest project that has a direct `@vendure/core` dependency. From a monorepo root, it uses the only
 Vendure project under `packages`, `apps`, `libs`, `services`, or `modules`. If more than one project exists, select one:
 
 ```bash
-npx vendure console status --project ./apps/server
+npx vendure console status --dir ./apps/server
 ```
 
-Use `--force` to create a different Project Link for an already-linked project, or to remove its current link without
-confirmation:
+`--project` names the Console Project, never a directory. A `--project` value that is a directory is refused with the
+coded error `console.project-is-directory`: pass the directory with `--dir`.
+
+### Replacing or removing a link
+
+Replacing the link of a project with another Console Project, and removing a link, each need a named consent:
+`replaceLink` for `vendure console link`, and `removeLink` for `vendure console unlink`. In a terminal, the CLI shows
+what will change and asks. Without a terminal, the result is `incomplete` with a `consent` need that holds a preview of
+the change and a digest. Run the same command again with the digest:
 
 ```bash
-npx vendure console link --force
-npx vendure console unlink --force
+npx vendure console unlink --json
+npx vendure console unlink --remove-link <digest> --json
+npx vendure console link --project wholesale --replace-link <digest> --json
 ```
 
-Before it links, `vendure console link --force` tells Console to stop the telemetry attribution of the link it
-replaces. See [Telemetry attribution](#telemetry-attribution).
+The digest covers the current link and the requested Project, so it consents to that change only. `--yes` never gives
+a consent.
 
-`--force` also permits replacement of an invalid manifest. It does not bypass ambiguous project selection or a manifest
-that belongs to another project root. Use `--console-project` to choose the Project. On a linked project,
-`--console-project` with a different Project needs `--force`.
+`vendure console link` needs `replaceLink` when `--project` names another Project than the linked one, when the CLI
+cannot check whether `--project` names the linked one, and when the manifest cannot be read. To choose a different
+Project in the terminal instead, run `vendure console unlink`, then `vendure console link`.
 
-A prompt in a terminal waits for your answer. In a run without a terminal, or with `CI` or
-`VENDURE_CLI_NON_INTERACTIVE` set, the command does not prompt. Where it needs an answer, it stops and names the flag
-that gives it.
+Before it replaces a link, `vendure console link` tells Console to stop the telemetry attribution of the link it
+replaces. See [Telemetry attribution](#telemetry-attribution). The consent does not bypass ambiguous project
+selection or a manifest that belongs to another project root.
+
+### Repairing a link
 
 Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
-is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
-may have arrived with a clone.
+is reused and any plugin setup runs again. Where a plugin is registered and a person is at a terminal, that is
+confirmed first, because the manifest may have arrived with a clone. Without a person, plugin setup runs.
 
 A cloned manifest can link a Project of a Customer Account that you are not a member of. The repair then names that
-account, and plugin setup runs without a Console session. Run `vendure console link --force` to link the project to
-one of your own Projects, or ask an administrator of that account to add you. If you use another Vendure Console login
-for that account, run `vendure auth login` with it.
-
-Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes and plugin setup on a
-repair. It does not answer questions asked by a plugin hook:
-
-```bash
-npx vendure console link --yes
-```
-
-On an already-linked project, `--yes` keeps the repair behavior. Only `--force` creates a different Project Link.
+account, and plugin setup runs without a Console session. Run `vendure console link --project <id|slug>` to link the
+project to one of your own Projects, or ask an administrator of that account to add you. If you use another Vendure
+Console login for that account, run `vendure auth login` with it.
 
 ### Manifest and source control
 
@@ -1655,9 +1644,9 @@ Throw when setup fails, or call `context.contributeResult` with `outcome: 'incom
 Core combines contributions into one result. Do not print a second JSON object or include credentials, tokens,
 raw errors, or parsed option values in a contribution. Use `context.reporter` for progress.
 
-`context.outputMode` is `'human'` or `'json'`. `context.options` is a frozen copy of parsed command options,
-including flags declared by `extendCommands`. Define explicit plugin replacement flags and read them here.
-Core's `--yes` and `--force` apply only to Core decisions. On a repair, a session-requesting hook gets the CLI login
+`context.outputMode` is `'human'` when a person is at a terminal, and `'json'` otherwise. `context.options` is a
+frozen copy of the command's input. `context.force` is `true` when the `replaceLink` consent was given. The consent
+applies only to Core's decision to replace the link. On a repair, a session-requesting hook gets the CLI login
 for the manifest's account, or for the organization that `--organization` names. An interactive repair signs in
 first when no such login is stored. A non-interactive repair does not sign in. If the login is missing, report
 incomplete setup through `contributeResult`. Core does not read plugin credential stores.
@@ -1666,7 +1655,7 @@ When a session-requesting hook gets no session, `context.sessionUnavailable` say
 
 - `'not-signed-in'`: no CLI login for the account is stored, and the run does not sign in. Ask the user to sign in.
 - `'account-inaccessible'`: the signed-in user is not a member of the manifest's Customer Account, and Core has
-  said so. Signing in again as the same user does not help. Point to `vendure console link --force`, and do not
+  said so. Signing in again as the same user does not help. Point to `vendure console link --project <id|slug>`, and do not
   fall back to `getAccessToken()`, whose login belongs to another account.
 - `'sign-in-failed'`: the sign-in failed, and Core has reported why.
 
@@ -1681,13 +1670,13 @@ runs hooks with `context.outcome` set to `'repaired'`. The repair creates no
 Project Link. It signs in only when a hook requested a session and no login is
 stored, as described above.
 
-An interactive repair names the project and account before it runs hooks. Pass
-`--yes` to answer this CLI confirmation in advance. The CLI asks nothing when
-no hooks are registered or when the run is non-interactive.
+An interactive repair names the project and account before it runs hooks. The
+CLI asks nothing when no hooks are registered or when no person is at a
+terminal.
 
-`--force` links a checkout to a **different** Console Project. It
-skips the reuse, links the Project you choose, and the hooks run with an `outcome`
-of `'linked'`.
+`--project` with another Project, and the `replaceLink` consent, links a
+checkout to a **different** Console Project. It skips the reuse, links that
+Project, and the hooks run with an `outcome` of `'linked'`.
 
 If a hook must run only against production, require
 `context.endpoints.official === 'production'`. The value is `'staging'` for the
@@ -2101,6 +2090,6 @@ npx vendure add --help
 npx vendure migrate --help
 npx vendure schema --help
 npx vendure doctor --help
-npx vendure console --help
+npx vendure console link --help
 npx vendure plugins --help
 ```

@@ -1,4 +1,3 @@
-import { confirm, isCancel, log, select } from '@clack/prompts';
 import { InputNeed } from '@vendure/common/lib/command';
 
 import {
@@ -30,7 +29,6 @@ import {
     matchesOrganization,
 } from '../../auth/credential.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
-import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
 import {
     ConsoleLinkContext,
@@ -78,21 +76,19 @@ const MAX_RESPONSE_BYTES = 1024 * 1024;
 const DOCS_MCP_URL = 'https://docs.vendure.io/mcp';
 
 export interface ConsoleCommandOptions {
-    json?: boolean;
+    /** The Vendure project directory. Without it, the project is found from the working directory. */
+    dir?: string;
     /**
-     * @deprecated Hidden alias, kept for one release. A run never prompts or signs in without a
-     * person at a terminal: under `--json`, with `CI` or `VENDURE_CLI_NON_INTERACTIVE` set, or
-     * when stdin or stdout is not a TTY.
+     * The caller gave the consent for this change: `replaceLink` for a link that replaces another,
+     * `removeLink` for an unlink. The host asks for it before the command runs.
      */
-    nonInteractive?: boolean;
-    project?: string;
     force?: boolean;
-    /** Answers every confirmation owned by the CLI. */
+    /** Answers the plain confirmations the CLI owns. It never stands for a consent. */
     yes?: boolean;
     /** The organization to link a project of: its Account identifier or its name. */
     organization?: string;
     /** The Console Project to link: its id or its slug. Replaces the project prompt. */
-    consoleProject?: string;
+    project?: string;
 }
 
 export interface ConsoleCommandDependencies {
@@ -114,6 +110,8 @@ export interface ConsoleCommandDependencies {
         choices: Array<{ value: string; label: string }>,
     ) => Promise<string | undefined>;
     reporter: ConsoleReporter;
+    /** `json` when no person reads the output, so hooks and messages give no raw errors. */
+    outputMode: 'human' | 'json';
     signal?: AbortSignal;
 }
 
@@ -187,12 +185,12 @@ class ConsoleInputError extends Error {
     }
 }
 
-/** The `input` need for `--console-project`, the Console Project to link. */
+/** The `input` need for `--project`, the Console Project to link. */
 function consoleProjectNeed(projects?: Array<{ id: string; slug?: string }>): InputNeed {
     const choices = projects?.map(project => project.slug ?? project.id);
     return {
         kind: 'input',
-        field: 'consoleProject',
+        field: 'project',
         description: 'The Console Project to link, by its id or slug',
         ...(choices?.length ? { choices } : {}),
     };
@@ -222,80 +220,77 @@ function loginNextStep(organization?: string, rerun = 'this command'): string {
     );
 }
 
-/** The `input` need for `--force`, which replaces a different Project Link. */
-function forceNeed(): InputNeed {
+/** The consent that replaces a different Project Link, which the host asks for before the run. */
+function replaceLinkNeed(): InputNeed {
     return {
         kind: 'input',
-        field: 'force',
-        description: 'Replace the current Project Link with the Project that --console-project names',
+        field: 'replaceLink',
+        description:
+            'The digest of the replaceLink consent, which replaces the current Project Link with the ' +
+            'Project that --project names. Run the command again to be asked for it.',
     };
 }
 
 const defaultReporter: ConsoleReporter = {
-    error: message => log.error(message),
-    info: message => log.info(message),
-    success: message => log.success(message),
-    warn: message => log.warn(message),
+    error: message => process.stderr.write(`${message}\n`),
+    info: message => process.stderr.write(`${message}\n`),
+    success: message => process.stderr.write(`${message}\n`),
+    warn: message => process.stderr.write(`${message}\n`),
     url: value => process.stdout.write(`${value}\n`),
 };
 
+/** What a run without a host uses. The host passes its own prompts when a person is there. */
 function createDefaultDependencies(): ConsoleCommandDependencies {
     return {
         cwd: process.cwd(),
         env: process.env,
         fetch: globalThis.fetch,
         hooks: [],
-        isNonInteractive: () => isNonInteractiveEnvironment(),
+        isNonInteractive: () => true,
         now: () => Date.now(),
         openUrl: openConsoleBrowser,
-        // Every caller checks `isNonInteractive()` first, so these prompts always have a terminal.
-        prompt: async message => {
-            const result = await confirm({ message });
-            return isCancel(result) ? undefined : result;
-        },
-        select: async (message, choices) => {
-            const result = await select({ message, options: choices });
-            return isCancel(result) ? undefined : String(result);
-        },
+        prompt: async () => undefined,
+        select: async () => undefined,
         reporter: defaultReporter,
+        outputMode: 'human',
     };
 }
 
+/** What a `vendure console` action did: its exit code, and the result the command reports. */
+export interface ConsoleRun {
+    exitCode: number;
+    result: ConsoleCommandResult;
+    /** The manifest the link wrote or reused, when there is one. */
+    manifest?: ProjectLinkManifest;
+    /** What stopped the run, worded for the caller. Never a credential. */
+    failure?: string;
+    /** What `status` read. */
+    status?: ConsoleStatus;
+    /** The run was cancelled. */
+    interrupted?: boolean;
+}
+
+/** {@link runConsole}, for the exit code only. */
 export async function consoleCommand(
     action?: string,
     options: ConsoleCommandOptions = {},
     dependencies: Partial<ConsoleCommandDependencies> = {},
 ): Promise<number> {
+    return (await runConsole(action, options, dependencies)).exitCode;
+}
+
+/**
+ * Runs `vendure console link`, `status` or `unlink`. The host owns cancellation and the output:
+ * `dependencies.signal` stops the run, and the result is returned rather than printed.
+ */
+export async function runConsole(
+    action?: string,
+    options: ConsoleCommandOptions = {},
+    dependencies: Partial<ConsoleCommandDependencies> = {},
+): Promise<ConsoleRun> {
     const normalizedAction = action?.trim().toLowerCase();
     const resolvedDependencies = { ...createDefaultDependencies(), ...dependencies };
-    // Prompts also stay disabled in JSON mode so stdout contains only the result.
-    if (options.nonInteractive || options.json) {
-        resolvedDependencies.isNonInteractive = () => true;
-    }
-    if (options.json) {
-        const report = (message: string) => {
-            process.stderr.write(`${message}\n`);
-        };
-        resolvedDependencies.reporter = {
-            error: report,
-            info: report,
-            success: report,
-            warn: report,
-            url: report,
-        };
-    }
     const abortController = new AbortController();
-    let interruptedExitCode: number | undefined;
-    const onSigint = () => {
-        interruptedExitCode = 130;
-        abortController.abort();
-    };
-    const onSigterm = () => {
-        interruptedExitCode = 143;
-        abortController.abort();
-    };
-    process.once('SIGINT', onSigint);
-    process.once('SIGTERM', onSigterm);
     const externalSignal = dependencies.signal;
     const onExternalAbort = () => abortController.abort();
     if (externalSignal?.aborted) {
@@ -317,6 +312,14 @@ export async function consoleCommand(
             nextSteps: [],
         },
     };
+    const done = (exitCode: number, interrupted = false): ConsoleRun => ({
+        exitCode,
+        result: state.result,
+        ...(state.manifest ? { manifest: state.manifest } : {}),
+        ...(state.failure ? { failure: state.failure } : {}),
+        ...(state.status ? { status: state.status } : {}),
+        ...(interrupted ? { interrupted } : {}),
+    });
     try {
         const code = await runConsoleCommand(
             action,
@@ -326,39 +329,117 @@ export async function consoleCommand(
             state,
         );
         if (state.setupIncomplete) {
-            return 1;
+            return done(1);
         }
         if (code === 0) {
             state.result.outcome = state.outcome ?? (normalizedAction === 'unlink' ? 'unlinked' : 'read');
         }
-        return code;
+        return done(code);
     } catch (error) {
-        return reportConsoleCommandError(
-            error,
-            options,
-            resolvedDependencies.reporter,
-            state,
-            interruptedExitCode,
-        );
+        const interrupted = abortController.signal.aborted || error instanceof CommandInterruptedError;
+        return done(reportConsoleCommandError(error, interrupted, resolvedDependencies, state), interrupted);
     } finally {
-        process.removeListener('SIGINT', onSigint);
-        process.removeListener('SIGTERM', onSigterm);
         externalSignal?.removeEventListener('abort', onExternalAbort);
-        if (options.json) {
-            process.stdout.write(`${JSON.stringify(state.result)}\n`);
-        }
     }
 }
 
-/** Reports a failure without exposing raw errors in JSON mode. */
+/** What `plan()` shows the caller before a change, and the consents the change needs. */
+export interface ConsoleChangePreview {
+    preview: Record<string, unknown>;
+    requiredConsents: Array<'replaceLink' | 'removeLink'>;
+}
+
+/**
+ * The change `vendure console link` or `unlink` would make to the Project Link, and whether it
+ * needs a consent. A link needs `replaceLink` when it would replace a valid link with another
+ * Project, when the CLI cannot tell whether `--project` names the linked one, or when the manifest
+ * cannot be read. An unlink needs `removeLink` whenever there is a manifest. Anything that stops
+ * the preview, such as a project that cannot be found, needs no consent: the run reports it.
+ */
+export async function previewConsoleChange(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies> = {},
+): Promise<ConsoleChangePreview> {
+    const resolved = { ...createDefaultDependencies(), ...dependencies };
+    const signal = resolved.signal ?? new AbortController().signal;
+    const none = (preview: Record<string, unknown> = {}): ConsoleChangePreview => ({
+        preview,
+        requiredConsents: [],
+    });
+    try {
+        const projectRoot = resolveProjectRoot(resolved.cwd, options.dir);
+        const existing = readProjectLinkManifest(projectRoot);
+        if (existing.kind === 'missing') {
+            return none({ manifestPath: existing.path, linked: false });
+        }
+        const consent = action === 'link' ? 'replaceLink' : 'removeLink';
+        if (existing.kind === 'invalid') {
+            return {
+                preview: {
+                    action:
+                        action === 'link'
+                            ? 'Replace the Project Link Manifest, which cannot be read'
+                            : 'Remove the Project Link Manifest, which cannot be read',
+                    manifestPath: existing.path,
+                    reason: existing.reason,
+                },
+                requiredConsents: [consent],
+            };
+        }
+        const current = {
+            project: { id: existing.manifest.project.id, name: existing.manifest.project.name },
+            account: { id: existing.manifest.account.id, name: existing.manifest.account.name },
+        };
+        if (action === 'unlink') {
+            return {
+                preview: { action: 'Remove the Project Link', manifestPath: existing.path, current },
+                requiredConsents: [consent],
+            };
+        }
+        const requested = options.project?.trim() || undefined;
+        if (!requested) {
+            return none({ action: 'Repair the Project Link', manifestPath: existing.path, current });
+        }
+        const organization = options.organization?.trim() || undefined;
+        const endpoints = resolveConsoleEndpoints(resolved.env, existing.manifest.console);
+        const linked = await namesLinkedProject(
+            requested,
+            organization,
+            existing.manifest,
+            endpoints,
+            resolved,
+            signal,
+        );
+        if (linked === 'same') {
+            return none({ action: 'Repair the Project Link', manifestPath: existing.path, current });
+        }
+        return {
+            preview: {
+                action:
+                    linked === 'different'
+                        ? 'Replace the Project Link with another Console Project'
+                        : 'Replace the Project Link. The CLI could not check whether --project names the linked Project',
+                manifestPath: existing.path,
+                current,
+                requested: { project: requested, ...(organization ? { organization } : {}) },
+            },
+            requiredConsents: [consent],
+        };
+    } catch {
+        return none();
+    }
+}
+
+/** Reports a failure without exposing raw errors when no person reads the output. */
 function reportConsoleCommandError(
     error: unknown,
-    options: ConsoleCommandOptions,
-    reporter: ConsoleReporter,
+    interrupted: boolean,
+    dependencies: ConsoleCommandDependencies,
     state: ConsoleCommandState,
-    interruptedExitCode: number | undefined,
 ): number {
-    if (error instanceof ConsoleInputError && interruptedExitCode === undefined) {
+    const { reporter } = dependencies;
+    if (error instanceof ConsoleInputError && !interrupted) {
         state.result.outcome = 'incomplete';
         state.result.needs.push(error.need);
         state.result.nextSteps.push(...error.nextSteps);
@@ -368,24 +449,21 @@ function reportConsoleCommandError(
     }
     state.result.outcome = 'failed';
     state.result.nextSteps.push('Check the Console configuration and rerun vendure console link.');
-    if (interruptedExitCode !== undefined || error instanceof CommandInterruptedError) {
-        // A process signal wins so SIGTERM retains exit code 143. Prompt cancellation and external aborts use 130.
+    if (interrupted) {
         reporter.warn(
             // An interrupt after the manifest was written stopped setup, not the link.
             state.manifestPath && state.outcome
                 ? `Console command interrupted. ${linkUnfinished(state.outcome, state.manifestPath)}`
                 : 'Console command interrupted. No Project Link Manifest was changed.',
         );
-        return interruptedExitCode ?? 130;
+        return 130;
     }
     if (error instanceof CliCommandExit) {
-        if (options.json) {
-            return error.exitCode || 1;
-        }
-        throw error;
+        return error.exitCode || 1;
     }
     const detail = error instanceof Error ? error.message : String(error);
-    reporter.error(options.json ? 'The Console command failed.' : detail);
+    state.failure = dependencies.outputMode === 'json' ? 'The Console command failed.' : detail;
+    reporter.error(state.failure);
     return 1;
 }
 
@@ -395,6 +473,12 @@ function reportConsoleCommandError(
  */
 interface ConsoleCommandState {
     result: ConsoleCommandResult;
+    /** The manifest the link wrote or reused. */
+    manifest?: ProjectLinkManifest;
+    /** What stopped the run, for the coded error the command returns. Never a credential. */
+    failure?: string;
+    /** What `status` read. */
+    status?: ConsoleStatus;
     setupIncomplete?: boolean;
     /** Set once the Project Link Manifest is on disk, written or reused. */
     manifestPath?: string;
@@ -421,9 +505,9 @@ async function runConsoleCommand(
 
     assertNoRemovedConsoleEnvironment(dependencies.env);
 
-    const projectRoot = resolveProjectRoot(dependencies.cwd, options.project);
+    const projectRoot = resolveProjectRoot(dependencies.cwd, options.dir);
     if (normalizedAction === 'status') {
-        return status(projectRoot, dependencies.env, dependencies.reporter);
+        return status(projectRoot, dependencies.env, state);
     }
     if (normalizedAction === 'unlink') {
         return unlink(projectRoot, options, dependencies, signal);
@@ -497,7 +581,9 @@ async function link(
         dependencies.env,
         existing.kind === 'valid' ? existing.manifest.console : undefined,
     );
-    const requestedProject = options.consoleProject?.trim() || undefined;
+    const requestedProject = options.project?.trim() || undefined;
+    // Without the replaceLink consent, a valid link is repaired, unless --project names another
+    // Project. The command asks for the consent only when it does.
     if (existing.kind === 'valid' && !options.force) {
         const linked = requestedProject
             ? await namesLinkedProject(
@@ -511,18 +597,17 @@ async function link(
             : 'same';
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
-            throw linked === 'different'
-                ? new ConsoleInputError(`This project is already linked to ${current}.`, forceNeed(), [
-                      'Add --force to replace the link with the Project that --console-project names.',
-                  ])
-                : new ConsoleInputError(
-                      `This project is already linked to ${current}, and the CLI could not check whether ` +
-                          `--console-project ${String(requestedProject)} names that Project.`,
-                      consoleProjectNeed(),
-                      [
-                          `Pass the linked Project's id, ${existing.manifest.project.id}, to --console-project to keep the link.`,
-                      ],
-                  );
+            throw new ConsoleInputError(
+                linked === 'different'
+                    ? `This project is already linked to ${current}.`
+                    : `This project is already linked to ${current}, and the CLI could not check whether ` +
+                          `--project ${String(requestedProject)} names that Project.`,
+                replaceLinkNeed(),
+                [
+                    'Run the command again, and give the replaceLink consent to replace the link with the Project that --project names.',
+                    `To keep the link, pass the linked Project's id, ${existing.manifest.project.id}, to --project.`,
+                ],
+            );
         }
         // A repeated link reuses the manifest and reruns plugin setup.
         return repair(
@@ -536,7 +621,6 @@ async function link(
             state,
         );
     }
-    const replacementFlag = options.force ? ' --force' : '';
     // Without a person nobody can sign in, so a missing credential is reported before anything
     // changes.
     const available = await storedLoginOrInterrupt(endpoints, options, dependencies, signal);
@@ -555,16 +639,15 @@ async function link(
         );
         const nextStep = loginNextStep(
             requestedOrganization,
-            `vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag}`,
+            `vendure console link --dir ${JSON.stringify(projectRoot)}`,
         );
         state.result.nextSteps.push(nextStep);
         dependencies.reporter.info(nextStep);
         return 1;
     }
     if (existing.kind !== 'missing') {
-        const confirmed = await confirmManifestChange('replace', existing, options, dependencies);
-        if (confirmed !== 'confirmed') {
-            return confirmed === 'cancelled' ? 0 : 1;
+        if (confirmManifestChange('replace', existing, options, dependencies) !== 'confirmed') {
+            return 1;
         }
     }
     // The old account's credential, found before signing in or choosing an account can change
@@ -598,7 +681,7 @@ async function link(
         endpoints,
         dependencies,
     );
-    // Only `--force` gets here with a valid manifest. It is detached once the Project to link is
+    // Only the replaceLink consent gets here with a valid manifest. It is detached once the Project to link is
     // known, so a run that cannot choose one changes nothing. The user leaves its
     // Project, so its attribution ends also when telemetry is off.
     if (
@@ -635,6 +718,7 @@ async function link(
     });
     const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
     state.outcome = 'linked';
+    state.manifest = manifest;
     state.manifestPath = manifestPath;
     state.result.data.link = { outcome: 'linked', manifestPath };
     dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
@@ -682,7 +766,7 @@ async function link(
         signal,
         state,
     );
-    reportCodingAssistantSetup(code, manifest, endpoints, options, dependencies.reporter);
+    reportCodingAssistantSetup(code, manifest, endpoints, dependencies);
     return code;
 }
 
@@ -764,13 +848,13 @@ async function signIn(
 }
 
 /**
- * Whether `--console-project` names the Project the manifest links. The
+ * Whether `--project` names the Project the manifest links. The
  * manifest holds only the Project's id, so a slug is looked up with the stored
  * login for the manifest's account. `'unknown'` when there is no such login
  * or Console sends no slug for the linked Project. A failed lookup throws, and
  * so does a value that names no active Project of the account.
  * Only `'different'`, another active Project or another account named by
- * `--organization`, may lead to `--force`, which replaces the link.
+ * `--organization`, or an `'unknown'`, may lead to the replaceLink consent, which replaces the link.
  */
 async function namesLinkedProject(
     requested: string,
@@ -810,7 +894,7 @@ async function namesLinkedProject(
         if (signal.aborted || error instanceof CommandInterruptedError) {
             throw new CommandInterruptedError();
         }
-        // A failed lookup is not a different Project, so it must not lead to --force.
+        // A failed lookup is not a different Project, so it must not lead to a replacement.
         throw error;
     }
 }
@@ -1045,7 +1129,7 @@ async function listProjects(
 }
 
 /**
- * The project to link: the one `--console-project` names by id or slug. Without
+ * The project to link: the one `--project` names by id or slug. Without
  * it, an organization with one active project links that project. With more,
  * the user chooses, which needs a terminal.
  */
@@ -1077,7 +1161,7 @@ async function chooseProject(
             `${accountName} has ${projects.length} projects.`,
             consoleProjectNeed(projects),
             [
-                'Choose one with vendure console link --console-project <id|slug>, or run vendure console link ' +
+                'Choose one with vendure console link --project <id|slug>, or run vendure console link ' +
                     `in a terminal:\n${describeProjects(projects)}`,
             ],
         );
@@ -1093,7 +1177,7 @@ async function chooseProject(
     return chosen;
 }
 
-/** The project that `--console-project` names by id or slug, ignoring case. */
+/** The project that `--project` names by id or slug, ignoring case. */
 function findProject(projects: ConsoleProject[], requested: string): ConsoleProject | undefined {
     const wanted = requested.toLowerCase();
     return projects.find(
@@ -1107,11 +1191,11 @@ function projectNotFound(
     projects: ConsoleProject[],
 ): ConsoleInputError {
     return new ConsoleInputError(
-        `--console-project ${requested} is not an active project of ${accountName}, the Customer Account ` +
+        `--project ${requested} is not an active project of ${accountName}, the Customer Account ` +
             'this login uses.',
         consoleProjectNeed(projects),
         [
-            `Pass the id or slug of one of the projects of ${accountName} to --console-project:\n${describeProjects(projects)}`,
+            `Pass the id or slug of one of the projects of ${accountName} to --project:\n${describeProjects(projects)}`,
             'To link a project of another Customer Account, add --organization <Account identifier>.',
         ],
     );
@@ -1237,13 +1321,14 @@ async function repair(
         await writeProjectLinkManifestAtomic(projectRoot, currentManifest);
     }
     state.outcome = 'repaired';
+    state.manifest = currentManifest;
     state.manifestPath = manifestPath;
     state.result.data.link = { outcome: 'repaired', manifestPath };
     dependencies.reporter.success(
         `Already linked to ${currentManifest.project.name} in ${currentManifest.account.name}.`,
     );
     dependencies.reporter.info(
-        `${upgraded ? 'Updated' : 'Kept'} ${manifestPath}. Run vendure console link --force to link this project to a different Console Project.`,
+        `${upgraded ? 'Updated' : 'Kept'} ${manifestPath}. To link this project to a different Console Project, run vendure console link --project <id|slug>.`,
     );
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
     if (!(await confirmRepair(currentManifest, options, dependencies))) {
@@ -1268,26 +1353,25 @@ async function repair(
         signal,
         state,
     );
-    reportCodingAssistantSetup(code, currentManifest, endpoints, options, dependencies.reporter);
+    reportCodingAssistantSetup(code, currentManifest, endpoints, dependencies);
     return code;
 }
 
 /**
  * The next step after a link: the docs MCP. Console decides at access time who
- * gets the development workflows, so the CLI only points to the setup. Human
- * output only: the JSON result and `--non-interactive` output keep their shape.
+ * gets the development workflows, so the CLI only points to the setup. Only for a person at a
+ * terminal.
  */
 function reportCodingAssistantSetup(
     code: number,
     manifest: ProjectLinkManifest,
     endpoints: ConsoleEndpoints,
-    options: ConsoleCommandOptions,
-    reporter: ConsoleReporter,
+    dependencies: ConsoleCommandDependencies,
 ): void {
-    if (code !== 0 || options.json || options.nonInteractive) {
+    if (code !== 0 || dependencies.outputMode === 'json') {
         return;
     }
-    reporter.info(
+    dependencies.reporter.info(
         [
             'Next: use Vendure development workflows and patterns through your coding assistant.',
             `  1. Add ${DOCS_MCP_URL} as an MCP server in your coding assistant.`,
@@ -1439,7 +1523,7 @@ function reportInaccessibleAccount(
             organizations.length
                 ? `Your Customer Accounts:\n${describeOrganizations(organizations)}`
                 : 'Your login is not a member of any Customer Account.',
-            'To link this project to one of your own Projects, run vendure console link --force. ' +
+            'To link this project to one of your own Projects, run vendure console link --project <id|slug>. ' +
                 `To keep this link, ask an administrator of "${manifest.account.name}" to add you to that account.`,
             'If you use another Vendure Console login for that account, run vendure auth login with it.',
             'Plugin setup runs without a Console session.',
@@ -1457,7 +1541,7 @@ function reportInaccessibleAccount(
  * run and there is nobody to ask. `--yes` is the answer given in advance, for
  * repeating a repair in a project whose manifest the developer already trusts.
  *
- * `--force` is not that answer. It links to a different Project, so it never
+ * The replaceLink consent is not that answer. It links to a different Project, so it never
  * reaches here.
  */
 async function confirmRepair(
@@ -1559,7 +1643,7 @@ async function runConsoleLinkHooks(
                 throw error;
             }
             const rawDetail = error instanceof Error ? error.message : String(error);
-            const detail = options.json ? 'Setup did not finish.' : rawDetail;
+            const detail = dependencies.outputMode === 'json' ? 'Setup did not finish.' : rawDetail;
             state.result.outcome = 'failed';
             state.result.nextSteps.push(`Rerun vendure console link to finish setup for ${pluginId}.`);
             dependencies.reporter.error(`The ${pluginId} plugin failed after linking: ${detail}`);
@@ -1593,7 +1677,7 @@ function createConsoleLinkContext(
         ...(inputs.sessionUnavailable ? { sessionUnavailable: inputs.sessionUnavailable } : {}),
         signal,
         reporter: dependencies.reporter,
-        outputMode: options.json ? 'json' : 'human',
+        outputMode: dependencies.outputMode,
         options: freezeOptions(structuredClone({ ...options })),
         contributeResult,
         confirm: message => confirmForHook(message, isNonInteractive, dependencies.prompt),
@@ -1641,43 +1725,58 @@ function linkUnfinished(outcome: ConsoleLinkOutcome, manifestPath: string): stri
     return `${survived} The setup that runs after linking did not finish.`;
 }
 
-/** Reports the Project Link only. `vendure auth status` reports the login. */
-function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleReporter): number {
+/** What `vendure console status` reads: the Project Link and where telemetry goes. */
+export type ConsoleStatus =
+    | { kind: 'missing'; manifestPath: string }
+    | { kind: 'invalid'; manifestPath: string; reason: string }
+    | {
+          kind: 'valid';
+          manifestPath: string;
+          manifest: ProjectLinkManifest;
+          consoleUrl: string;
+          apiUrl: string;
+          telemetry:
+              | { state: 'off' }
+              | { state: 'attributed'; installationId: string }
+              | { state: 'not-attributed' };
+      };
+
+/** Reads the Project Link of `projectRoot`, without calling Console. */
+export function readConsoleStatus(projectRoot: string, env: NodeJS.ProcessEnv): ConsoleStatus {
     const result = readProjectLinkManifest(projectRoot);
     if (result.kind === 'missing') {
-        reporter.info(`Project: Not linked\nManifest: ${result.path}\n${LOGIN_STATUS_HINT}`);
-        return 0;
+        return { kind: 'missing', manifestPath: result.path };
     }
     if (result.kind === 'invalid') {
-        reporter.error(`Invalid Project Link Manifest at ${result.path}: ${result.reason}`);
-        return 1;
+        return { kind: 'invalid', manifestPath: result.path, reason: result.reason };
     }
-
     const { manifest } = result;
     const endpoints = resolveConsoleEndpoints(env, manifest.console);
     const attribution = readTelemetryAttribution(projectRoot, manifest);
-    reporter.info(
-        [
-            `Account: ${manifest.account.name} (${manifest.account.id})`,
-            `Project: ${manifest.project.name} (${manifest.project.id})`,
-            `Schema version: ${manifest.schemaVersion}`,
-            `Protocol version: ${manifest.link.protocolVersion}`,
-            `Link: ${manifest.link.id}`,
-            `Console: ${endpoints.consoleUrl}`,
-            `Console API: ${endpoints.apiUrl}`,
-            `Manifest: ${result.path}`,
-            isTelemetryDisabled(env)
-                ? 'Telemetry: off (VENDURE_DISABLE_TELEMETRY)'
-                : attribution
-                  ? `Telemetry: attributed to ${manifest.project.name} (installation ${attribution.installationId})`
-                  : 'Telemetry: not attributed. Run vendure console link --force to attribute it.',
-            LOGIN_STATUS_HINT,
-        ].join('\n'),
-    );
-    return 0;
+    return {
+        kind: 'valid',
+        manifestPath: result.path,
+        manifest,
+        consoleUrl: endpoints.consoleUrl,
+        apiUrl: endpoints.apiUrl,
+        telemetry: isTelemetryDisabled(env)
+            ? { state: 'off' }
+            : attribution
+              ? { state: 'attributed', installationId: attribution.installationId }
+              : { state: 'not-attributed' },
+    };
 }
 
-const LOGIN_STATUS_HINT = 'Login: run vendure auth status';
+/** Reports the Project Link only. `vendure auth status` reports the login. */
+function status(projectRoot: string, env: NodeJS.ProcessEnv, state: ConsoleCommandState): number {
+    const result = readConsoleStatus(projectRoot, env);
+    state.status = result;
+    if (result.kind === 'invalid') {
+        state.failure = `Invalid Project Link Manifest at ${result.manifestPath}: ${result.reason}`;
+        return 1;
+    }
+    return 0;
+}
 
 function reportProjectLinkGitignore(projectRoot: string, reporter: ConsoleReporter): void {
     const gitignore = ensureProjectLinkGitignore(projectRoot);
@@ -1710,9 +1809,8 @@ async function unlink(
         return 0;
     }
 
-    const confirmed = await confirmManifestChange('remove', existing, options, dependencies);
-    if (confirmed !== 'confirmed') {
-        return confirmed === 'cancelled' ? 0 : 1;
+    if (confirmManifestChange('remove', existing, options, dependencies) !== 'confirmed') {
+        return 1;
     }
     const attribution =
         existing.kind === 'valid' ? readTelemetryAttribution(projectRoot, existing.manifest) : undefined;
@@ -1786,40 +1884,23 @@ async function detachTelemetry(
     }
 }
 
-async function confirmManifestChange(
+/**
+ * Whether the caller gave the consent for this change. The host asks a person for it, or returns a
+ * consent need, before the run starts, so a run without it refuses.
+ */
+function confirmManifestChange(
     action: 'replace' | 'remove',
     existing: Exclude<ManifestReadResult, { kind: 'missing' }>,
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
-): Promise<'confirmed' | 'cancelled' | 'required'> {
-    if (options.force || options.yes) {
+): 'confirmed' | 'required' {
+    if (options.force) {
         return 'confirmed';
     }
-    if (dependencies.isNonInteractive()) {
-        dependencies.reporter.error(
-            `Refusing to ${action} ${existing.path} without confirmation in a non-interactive environment.`,
-        );
-        dependencies.reporter.info(
-            `Run vendure console ${action === 'replace' ? 'link' : 'unlink'} --force to confirm this action.`,
-        );
-        return 'required';
-    }
-
-    const detail =
-        existing.kind === 'valid'
-            ? `${existing.manifest.project.name} in ${existing.manifest.account.name}`
-            : `the invalid manifest at ${existing.path}`;
-    const result = await dependencies.prompt(
-        `${action === 'replace' ? 'Replace' : 'Remove'} the local link for ${detail}?`,
+    dependencies.reporter.error(
+        `Refusing to ${action} ${existing.path} without the ${action === 'replace' ? 'replaceLink' : 'removeLink'} consent.`,
     );
-    if (result === undefined) {
-        throw new CommandInterruptedError();
-    }
-    if (result !== true) {
-        dependencies.reporter.info('No Project Link Manifest changes were made.');
-        return 'cancelled';
-    }
-    return 'confirmed';
+    return 'required';
 }
 
 async function requestJson(

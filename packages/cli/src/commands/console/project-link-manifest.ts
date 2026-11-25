@@ -61,7 +61,7 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
             const candidates = findWorkspaceVendureProjects(resolvedCwd);
             if (candidates.length === 0) {
                 throw new Error(
-                    'Could not find a Vendure project. Run this command from a project that depends on @vendure/core, or pass --project <path>.' +
+                    'Could not find a Vendure project. Run this command from a project that depends on @vendure/core, or pass --dir <path>.' +
                         projectDirectoryHint(resolvedCwd),
                 );
             }
@@ -69,7 +69,7 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
                 throw new Error(
                     `Multiple Vendure projects were found:\n${candidates
                         .map(candidate => `   ${candidate}`)
-                        .join('\n')}\nRun the command again with --project <path>.`,
+                        .join('\n')}\nRun the command again with --dir <path>.`,
                 );
             }
             projectRoot = candidates[0];
@@ -80,17 +80,17 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
     return projectRoot;
 }
 
-/** Names the likely project directories and the matching `--project` flag. Empty when there are none. */
+/** Names the likely project directories and the matching `--dir` flag. Empty when there are none. */
 function projectDirectoryHint(cwd: string): string {
     const hints = findProjectDirectoryHints(cwd);
     if (hints.length === 0) {
         return '';
     }
     if (hints.length === 1) {
-        return `\nFound a Vendure project in \`${hints[0]}\`. Run the command there, or pass \`--project ${hints[0]}\`.`;
+        return `\nFound a Vendure project in \`${hints[0]}\`. Run the command there, or pass \`--dir ${hints[0]}\`.`;
     }
     const list = hints.map(hint => `   ${hint}`).join('\n');
-    return `\nFound Vendure projects in:\n${list}\nRun the command in one of them, or pass --project <path>, for example \`--project ${hints[0]}\`.`;
+    return `\nFound Vendure projects in:\n${list}\nRun the command in one of them, or pass --dir <path>, for example \`--dir ${hints[0]}\`.`;
 }
 
 export function getProjectLinkManifestPath(projectRoot: string): string {

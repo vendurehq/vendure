@@ -14,11 +14,11 @@ import {
     TakenCommandPath,
 } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
-import { consoleCommandDef } from './commands/console/command.js';
+import { CONSOLE_DIR_FLAG } from './commands/console/console.command.js';
 import { DEV_DIR_FLAG } from './commands/dev/dev.command.js';
-import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
+import { setPluginExtensionAccessor } from './shared/plugin-extensions.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -96,11 +96,10 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
             pluginOptions.projectFlag = DEV_DIR_FLAG;
             break;
         case 'console':
-            for (const option of consoleCommandDef.options ?? []) {
-                selection.option(buildOptionFlags(option), option.description);
-            }
+            selection.option(`${CONSOLE_DIR_FLAG} <dir>`);
             selection.parseOptions(process.argv.slice(3));
-            pluginOptions.project = selection.opts<{ project?: string }>().project;
+            pluginOptions.project = selection.opts<{ dir?: string }>().dir;
+            pluginOptions.projectFlag = CONSOLE_DIR_FLAG;
             break;
     }
     const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
@@ -139,6 +138,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         rootOptions: registry.getRootOptions(),
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
+    // For the commands declared with `defineCommand`, such as `vendure console link`, which runs
+    // the plugins' `afterConsoleLink` hooks.
+    setPluginExtensionAccessor(extensionPoint => registry.getPluginExtensions(extensionPoint));
 
     // Commands declared with `defineCommand` are built from the manifests alone: the CLI's own and
     // those of the enabled plugins. Their declarations load only when one of them runs.

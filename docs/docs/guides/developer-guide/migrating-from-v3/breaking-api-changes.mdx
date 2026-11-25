@@ -267,6 +267,25 @@ The Vendure CLI signs in with a device login, so the browser login API that `@ve
 
 Update scripts, `package.json` scripts and CI jobs that pass `--project` to `vendure dev`.
 
+## vendure console
+
+`vendure console link`, `status` and `unlink` are declared with `defineCommand`, like the CLI's other agent-ready
+commands. They are also tools of the Developer MCP.
+
+| Before | In v4 |
+|---|---|
+| `vendure console link --project <dir>` | `vendure console link --dir <dir>`. The same applies to `status` and `unlink`. |
+| `vendure console link --console-project <id\|slug>` | `vendure console link --project <id\|slug>`. A `--project` value that is a directory is refused with the coded error `console.project-is-directory`. |
+| `--force` replaced a link with another Console Project, or removed a link, without asking | Each needs a named consent: `replaceLink` for `link`, and `removeLink` for `unlink`. A person at a terminal is asked. Without one, the command returns `incomplete` with a `consent` need, and you run it again with `--replace-link <digest>` or `--remove-link <digest>`. |
+| `vendure console link --force` without `--console-project` chose a new Project in the terminal | Run `vendure console unlink`, then `vendure console link`. |
+| `--yes` answered the CLI's confirmations, including replacing and removing a link | `--yes` is gone from `vendure console`. It never gives a consent. Without a person at a terminal, a repair runs plugin setup without asking, as before. |
+| `--json` wrote a `ConsoleCommandResult` (`schemaVersion`, `operation`, `outcome`, `data`, `needs`, `nextSteps`) | `--json` writes the envelope that every command writes. `link` returns `outcome`, `manifestPath`, `project`, `account`, `plugins` and `nextSteps` as its output, its needs as an `incomplete` result, and a failed plugin setup as the coded error `console.link-failed`. `ConsoleCommandResult` is deprecated. |
+| `--non-interactive` | Removed. A run never prompts without a person at a terminal: under `--json`, through the Developer MCP, with `CI` or `VENDURE_CLI_NON_INTERACTIVE` set, or without a TTY. |
+| A CLI plugin could add options to `console` and wrap its action with `extendCommands` | That extension is skipped, with a warning. `afterConsoleLink` hooks run as before, and `context.options` holds the command's input. |
+
+Update scripts and CI jobs that pass `--project <dir>`, `--console-project`, `--force`, `--yes` or `--non-interactive`
+to `vendure console`.
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.

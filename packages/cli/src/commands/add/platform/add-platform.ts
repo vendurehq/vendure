@@ -63,11 +63,11 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     const projectRoot = resolveProjectRoot(deps.cwd);
     const manifest = readProjectLinkManifest(projectRoot);
     if (manifest.kind !== 'valid') {
-        // `vendure console link` exits with 0 when the user keeps an invalid manifest.
+        // A manifest that cannot be read stays until someone gives the consent to replace it.
         const reason = manifest.kind === 'invalid' ? ` ${manifest.reason}` : '';
         cancel(
             `Platform setup stopped. The Project Link Manifest at ${manifest.path} is not valid.${reason} ` +
-                `Run "vendure console link --force" to replace it, then run "vendure add" again.`,
+                `Run "vendure console unlink" to remove it, then run "vendure add" again.`,
         );
         exitCliCommand(0);
     }

@@ -193,48 +193,14 @@ describe('console link hooks', () => {
         const registry = registryWith();
         const rejected = defineCliPlugin({
             id: FIRST_PLUGIN,
-            // `console` is already a built-in and this does not set
+            // `migrate` is already a built-in and this does not set
             // `replaces`, so the whole plugin is refused.
-            commands: [{ name: 'console', description: 'Shadowed console', action: async () => 0 }],
+            commands: [{ name: 'migrate', description: 'Shadowed migrate', action: async () => 0 }],
             afterConsoleLink: async () => undefined,
         });
 
         expect(() => registry.applyPlugin(rejected)).toThrow();
         expect(registry.getPluginExtensions('afterConsoleLink')).toEqual([]);
-    });
-
-    it('lets one plugin both extend the console command and register a hook', async () => {
-        const trace: string[] = [];
-        const registry = registryWith();
-        registry.applyPlugin(
-            defineCliPlugin({
-                id: FIRST_PLUGIN,
-                commands: [],
-                extendCommands: [
-                    {
-                        command: 'console',
-                        decorate:
-                            ({ next }) =>
-                            async (...args) => {
-                                trace.push('decorator');
-                                return next(...args);
-                            },
-                    },
-                ],
-                afterConsoleLink: async () => {
-                    trace.push('hook');
-                },
-            }),
-        );
-
-        expect(registry.getPluginExtensions('afterConsoleLink').map(entry => entry.pluginId)).toEqual([
-            FIRST_PLUGIN,
-        ]);
-        const root = vendureProject();
-        const test = await runLink(root, registry);
-
-        expect(test.exitCode).toBe(0);
-        expect(trace).toEqual(['hook']);
     });
 
     it('names afterConsoleLink as a supported extension point at runtime', () => {
@@ -373,9 +339,10 @@ describe('console link hooks', () => {
         );
         const root = vendureProject();
 
+        // A hook that stops the run with exit code zero has not finished setup, so the run fails.
         await expect(
             runLink(root, registry, { reporter: recordingReporter(messages, reports) }),
-        ).rejects.toMatchObject({ exitCode });
+        ).resolves.toMatchObject({ exitCode: exitCode || 1 });
         // The hooks after it did not run, and the reader is told so rather than
         // being left with an exit code and a success message.
         expect(trace).toEqual([FIRST_PLUGIN]);
