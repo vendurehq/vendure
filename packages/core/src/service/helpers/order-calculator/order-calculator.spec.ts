@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { AdjustmentType, LanguageCode, TaxLine } from '@vendure/common/lib/generated-types';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
@@ -2059,6 +2059,150 @@ describe('OrderCalculator', () => {
                 expect(order.subTotalWithTax).toBe(960);
                 assertOrderTotalsAddUp(order);
             });
+        });
+    });
+
+    // OSS-1507: absolute tax amounts from a TaxLineCalculationStrategy
+    describe('absolute tax amounts', () => {
+        let erpCalls: number;
+        let erpSurcharge: number;
+        // An ERP that rounds 5% tax to the nearest 0.05, and can be made to answer differently.
+        const erpStrategy: TaxLineCalculationStrategy = {
+            calculate({ orderLine }: CalculateTaxLinesArgs): TaxLine[] {
+                erpCalls++;
+                const amount = Math.round((orderLine.proratedLinePrice * 0.05) / 5) * 5 + erpSurcharge;
+                return [{ description: 'VAT', taxRate: 5, amount }];
+            },
+        };
+        const threshold = (minimum: number) =>
+            new Promotion({
+                id: 95,
+                conditions: [{ code: 'gross_threshold', args: [] }],
+                promotionConditions: [
+                    new PromotionCondition({
+                        args: {},
+                        code: 'gross_threshold',
+                        description: [{ languageCode: LanguageCode.en, value: '' }],
+                        check: (_ctx, order) => minimum <= order.subTotalWithTax,
+                    }),
+                ],
+                actions: [{ code: 'fixed_off', args: [] }],
+                promotionActions: [
+                    new PromotionOrderAction({
+                        code: 'fixed_off',
+                        description: [{ languageCode: LanguageCode.en, value: '' }],
+                        args: {},
+                        execute: () => -4075,
+                    }),
+                ],
+            });
+        const discountOnSecondLine = new Promotion({
+            id: 96,
+            conditions: [],
+            promotionConditions: [],
+            actions: [{ code: 'second_line_off', args: [] }],
+            promotionActions: [
+                new PromotionItemAction({
+                    code: 'second_line_off',
+                    description: [{ languageCode: LanguageCode.en, value: '' }],
+                    args: {},
+                    execute: (_ctx, orderLine) => (orderLine.listPrice === 50000 ? -1000 : 0),
+                }),
+            ],
+        });
+
+        beforeAll(() => {
+            mockConfigService.taxOptions.taxLineCalculationStrategy = erpStrategy;
+        });
+        afterAll(() => {
+            mockConfigService.taxOptions.taxLineCalculationStrategy = new DefaultTaxLineCalculationStrategy();
+        });
+        beforeEach(() => {
+            erpCalls = 0;
+            erpSurcharge = 0;
+        });
+
+        it('uses the amount for the line and the order totals', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+
+            // 5% of 3,989.75 is 199.4875, which the ERP rounds to 199.50.
+            expect(order.lines[0].proratedLineTax).toBe(19950);
+            expect(order.subTotalWithTax).toBe(418925);
+        });
+
+        it('judges a promotion on the rate, so it does not turn on and off', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            const subTotals: number[] = [];
+            for (let i = 0; i < 6; i++) {
+                await orderCalculator.applyPriceAdjustments(ctx, order, [threshold(418925)], order.lines);
+                subTotals.push(order.subTotal);
+            }
+
+            // The rate gives 199.49, one cent under the threshold, so the promotion never applies.
+            expect(subTotals).toEqual(Array(6).fill(398975));
+            expect(order.subTotalWithTax).toBe(418925);
+        });
+
+        it('does not ask again about a line whose price did not change', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [
+                    { listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 },
+                    { listPrice: 50000, taxCategory: taxCategoryStandard, quantity: 1 },
+                ],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+            erpCalls = 0;
+            order.lines[1].quantity = 2;
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], [order.lines[1]]);
+
+            expect(erpCalls).toBe(1);
+            expect(order.lines[0].proratedLineTax).toBe(19950);
+            expect(order.lines[1].proratedLineTax).toBe(5000);
+        });
+
+        it('keeps the paid amount of an unchanged line on a placed order', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [
+                    { listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 },
+                    { listPrice: 50000, taxCategory: taxCategoryStandard, quantity: 1 },
+                ],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+            order.orderPlacedAt = new Date();
+            // The ERP now answers 0.05 higher for every line.
+            erpSurcharge = 5;
+            await orderCalculator.applyPriceAdjustments(ctx, order, [discountOnSecondLine], [order.lines[1]]);
+
+            expect(order.lines[0].proratedLineTax).toBe(19950);
+            // The discounted line changed, so it takes the new answer: 5% of 490.00, plus 0.05.
+            expect(order.lines[1].proratedLineTax).toBe(2455);
+        });
+
+        it('replaces the amounts of a placed order when asked to recalculate tax', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+            order.orderPlacedAt = new Date();
+            erpSurcharge = 5;
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], [], { recalculateTax: true });
+
+            expect(order.lines[0].proratedLineTax).toBe(19955);
         });
     });
 });

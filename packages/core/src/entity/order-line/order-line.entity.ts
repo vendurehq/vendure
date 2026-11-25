@@ -5,7 +5,7 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { grossPriceOf, hasTaxAmounts, netPriceOf } from '../../common/tax-utils';
+import { getTaxShare, grossPriceOf, hasTaxAmounts, netPriceOf } from '../../common/tax-utils';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
@@ -587,22 +587,8 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         return withTax ? base + tax : base - tax;
     }
 
-    /**
-     * @description
-     * When every TaxLine has an absolute `amount`, returns their total as a share of the taxable
-     * line total it was calculated for, so the tax for any part of the line can be derived from it.
-     * Returns undefined when the tax is derived from the rates.
-     */
     private getTaxShare(): number | undefined {
-        const taxLines = (this.taxLines ?? []) as StoredTaxLine[];
-        if (!hasTaxAmounts(taxLines)) {
-            return undefined;
-        }
-        const taxBase = taxLines[0].taxBase;
-        if (!taxBase) {
-            return 0;
-        }
-        return summate(taxLines as Array<Required<StoredTaxLine>>, 'amount') / taxBase;
+        return getTaxShare(this.taxLines);
     }
 
     private scaleAmount(amount: number, quantity: number, basis: number): number {

@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { filterAsync } from '@vendure/common/lib/filter-async';
 import { AdjustmentType, TaxLine } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
+import { summate } from '@vendure/common/lib/shared-utils';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
 import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
+import { hasTaxAmounts, withoutTaxAmounts } from '../../../common/tax-utils';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { OrderLine, TaxRate } from '../../../entity';
@@ -46,6 +48,16 @@ export interface ApplyPriceAdjustmentsOptions {
      * re-selecting the method.
      */
     recalculateShippingPromotions?: boolean;
+    /**
+     * @description
+     * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, and replaces the
+     * absolute tax amounts of a placed Order even where the line did not change. Use it when the
+     * tax may differ for an unchanged line, for example after a change of address. Defaults to
+     * `false`, so a placed Order keeps the tax amounts that were paid.
+     *
+     * @since 3.9.0
+     */
+    recalculateTax?: boolean;
 }
 
 /**
@@ -103,19 +115,25 @@ export class OrderCalculator {
             order.taxZoneId = activeTaxZone.id;
             taxZoneChanged = true;
         }
+        // Absolute tax amounts from the TaxLineCalculationStrategy are held aside while promotions
+        // are tested and applied, so that promotions always judge the Order on the tax that the
+        // rates give. Otherwise a promotion could see a total that depends on whether it applied
+        // in the previous calculation, and turn on and off on every recalculation.
+        const recalculateTax = options?.recalculateTax === true;
+        const settledTaxAmounts = this.detachTaxAmounts(order.lines);
+        if (recalculateTax || taxZoneChanged) {
+            settledTaxAmounts.clear();
+        }
+        const providedTaxAmounts = new Map<OrderLine, TaxLine[]>();
+        const getTaxRate = this.createTaxRateGetter(ctx, activeTaxZone);
         for (const updatedOrderLine of updatedOrderLines) {
-            await this.applyTaxesToOrderLine(
-                ctx,
-                order,
-                updatedOrderLine,
-                this.createTaxRateGetter(ctx, activeTaxZone),
-            );
+            await this.applyTaxesToOrderLine(ctx, order, updatedOrderLine, getTaxRate, providedTaxAmounts);
         }
         this.calculateOrderTotals(order);
         if (order.lines.length) {
-            if (taxZoneChanged) {
+            if (taxZoneChanged || recalculateTax) {
                 // First apply taxes to the non-discounted prices
-                await this.applyTaxes(ctx, order, activeTaxZone);
+                await this.applyTaxes(ctx, order, activeTaxZone, providedTaxAmounts);
             }
 
             // Then test and apply promotions
@@ -125,8 +143,11 @@ export class OrderCalculator {
             if (order.subTotal !== totalBeforePromotions) {
                 // Finally, re-calculate taxes because the promotions may have
                 // altered the unit prices, which in turn will alter the tax payable.
-                await this.applyTaxes(ctx, order, activeTaxZone);
+                await this.applyTaxes(ctx, order, activeTaxZone, providedTaxAmounts);
             }
+            // Shipping is judged on the final tax, as are the eligibility checks outside this method.
+            await this.attachTaxAmounts(ctx, order, settledTaxAmounts, providedTaxAmounts, getTaxRate);
+            this.calculateOrderTotals(order);
         }
         const recalculateShipping = options?.recalculateShipping !== false;
         // Shipping promotions default to following `recalculateShipping`, but can be re-tested
@@ -149,23 +170,85 @@ export class OrderCalculator {
      * @description
      * Applies the correct TaxRate to each OrderLine in the order.
      */
-    private async applyTaxes(ctx: RequestContext, order: Order, activeZone: Zone) {
+    private async applyTaxes(
+        ctx: RequestContext,
+        order: Order,
+        activeZone: Zone,
+        providedTaxAmounts?: Map<OrderLine, TaxLine[]>,
+    ) {
         const getTaxRate = this.createTaxRateGetter(ctx, activeZone);
         for (const line of order.lines) {
-            await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate);
+            await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate, providedTaxAmounts);
         }
         this.calculateOrderTotals(order);
+    }
+
+    /**
+     * Removes the absolute tax amounts from the OrderLines, so that their tax is derived from the
+     * rates, and returns the TaxLines with the amounts.
+     */
+    private detachTaxAmounts(lines: OrderLine[]): Map<OrderLine, TaxLine[]> {
+        const detached = new Map<OrderLine, TaxLine[]>();
+        for (const line of lines) {
+            if (hasTaxAmounts(line.taxLines)) {
+                detached.set(line, line.taxLines);
+                line.taxLines = withoutTaxAmounts(line.taxLines);
+            }
+        }
+        return detached;
+    }
+
+    /**
+     * Gives each OrderLine back its absolute tax amounts, if they apply to its final taxable total:
+     * the amounts the TaxLineCalculationStrategy returned in this calculation, or the ones the line
+     * had before it. A placed Order prefers the amounts it had, which are the ones that were paid,
+     * so a strategy that answers differently today does not change an unchanged line. A line whose
+     * amounts no longer apply is asked again for its final total.
+     */
+    private async attachTaxAmounts(
+        ctx: RequestContext,
+        order: Order,
+        settled: Map<OrderLine, TaxLine[]>,
+        provided: Map<OrderLine, TaxLine[]>,
+        getTaxRate: (taxCategoryId: ID) => Promise<TaxRate>,
+    ) {
+        for (const line of order.lines) {
+            const candidates = order.orderPlacedAt
+                ? [settled.get(line), provided.get(line)]
+                : [provided.get(line), settled.get(line)];
+            if (!candidates.some(candidate => candidate)) {
+                continue;
+            }
+            const taxableTotal = line.getTaxableLineTotal();
+            const applicable = candidates.find(
+                candidate =>
+                    candidate &&
+                    (candidate[0] as { taxBase?: number }).taxBase === taxableTotal &&
+                    summate(candidate, 'taxRate') === summate(line.taxLines, 'taxRate'),
+            );
+            if (applicable) {
+                line.taxLines = applicable;
+            } else {
+                await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate);
+            }
+        }
     }
 
     /**
      * @description
      * Applies the correct TaxRate to an OrderLine
      */
+    /**
+     * Applies the TaxLines from the TaxLineCalculationStrategy to the line. If `providedTaxAmounts`
+     * is given, absolute tax amounts are recorded there instead of on the line, to be attached
+     * once the line's taxable total is final.
+     */
     private async applyTaxesToOrderLine(
         ctx: RequestContext,
         order: Order,
         line: OrderLine,
         getTaxRate: (taxCategoryId: ID) => Promise<TaxRate>,
+        providedTaxAmounts?: Map<OrderLine, TaxLine[]>,
     ) {
         const applicableTaxRate = await getTaxRate(line.taxCategoryId);
         const { taxLineCalculationStrategy } = this.configService.taxOptions;
@@ -187,8 +270,17 @@ export class OrderCalculator {
         // Record the total that the amounts apply to, so that the OrderLine can derive the tax of
         // any part of the line, such as the units that remain after a partial cancellation.
         const taxBase = amounts ? line.getTaxableLineTotal() : undefined;
-        line.taxLines =
-            taxBase == null ? taxLines : taxLines.map(taxLine => ({ ...taxLine, taxBase }) as TaxLine);
+        if (taxBase == null) {
+            line.taxLines = taxLines;
+            return;
+        }
+        const withBase = taxLines.map(taxLine => ({ ...taxLine, taxBase }) as TaxLine);
+        if (providedTaxAmounts) {
+            providedTaxAmounts.set(line, withBase);
+            line.taxLines = withoutTaxAmounts(withBase);
+        } else {
+            line.taxLines = withBase;
+        }
     }
 
     /**
