@@ -203,6 +203,26 @@ interface DataTableProps<TData> {
      * @since 4.0.0
      */
     selectionStorageKey?: string;
+    /**
+     * @description
+     * Remembers how many rows the table showed, in local storage under this key.
+     * The next first load draws that many skeleton rows, so the table keeps its
+     * height when the rows arrive, also after a reload. Name the list and anything
+     * that scopes its rows, such as the channel. Without it the first load draws
+     * up to 10 skeleton rows.
+     *
+     * @since 4.0.0
+     */
+    rowCountKey?: string;
+    /**
+     * @description
+     * Loading cells by column id, for cells taller than one text line (a
+     * thumbnail, a two-line cell), so a skeleton row has the height of a
+     * loaded row. A missing entry draws one text line.
+     *
+     * @since 4.0.0
+     */
+    skeletonCells?: Record<string, React.ReactNode>;
     enableViews?: boolean;
     /**
      * @description
@@ -314,6 +334,8 @@ export function DataTable<TData>({
     selectedItems,
     onSelectionChange,
     selectionStorageKey,
+    rowCountKey,
+    skeletonCells,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -696,7 +718,11 @@ export function DataTable<TData>({
                     index tables elsewhere, and avoiding a dead middle. */}
                 {!toolsInHeader && (
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
+                        {/* As tall as the view tabs, also before the saved views load
+                            and when the server has none, so the toolbar keeps its height. */}
+                        <div className={cn('min-w-0 flex-1', showViewsControls && 'min-h-9')}>
+                            {showViewsControls && <DataTableViewsTabs />}
+                        </div>
                         {renderTools(table)}
                     </div>
                 )}
@@ -756,6 +782,8 @@ export function DataTable<TData>({
                         onTableReady={handleTableReady}
                         isLoading={isLoading}
                         skeletonRowCount={Math.min(pagination.pageSize, MAX_SKELETON_ROWS)}
+                        rowCountKey={rowCountKey}
+                        skeletonCells={skeletonCells}
                         frame={frame}
                         pagination={
                             onPageChange && totalItems != null

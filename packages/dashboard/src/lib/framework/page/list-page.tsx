@@ -444,6 +444,15 @@ export interface ListPageProps<
      * scenario illustration such as `NoProductsIllustration` when one matches.
      */
     emptyStateIllustration?: React.ReactNode;
+    /**
+     * @description
+     * Loading cells by column id, for columns whose cells are taller than one
+     * text line (a thumbnail, a two-line cell). The loading rows then have the
+     * height of the loaded rows, and the list does not move when they arrive.
+     *
+     * @since 4.0.0
+     */
+    skeletonCells?: Record<string, React.ReactNode>;
 }
 
 /**
@@ -568,6 +577,7 @@ export function ListPage<
     disableDragAndDrop = false,
     emptyStateAction,
     emptyStateIllustration,
+    skeletonCells,
 }: Readonly<ListPageProps<T, U, V, AC>>) {
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
@@ -673,6 +683,7 @@ export function ListPage<
         registerRefresher,
         emptyStateAction,
         emptyStateIllustration,
+        skeletonCells,
     };
 
     return (
@@ -685,6 +696,9 @@ export function ListPage<
                         {...commonTableProps}
                         enableViews
                         selectionStorageKey={selectionStorageKey}
+                        // Not scoped by channel: the active channel loads after the list
+                        // mounts, and the count is read once, before the first paint.
+                        rowCountKey={route.id}
                         onReorder={onReorder}
                         disableDragAndDrop={disableDragAndDrop}
                     />

@@ -291,6 +291,9 @@ function getRowActions(
         id: 'actions',
         accessorKey: 'actions',
         header: () => <Trans>Actions</Trans>,
+        // As narrow as its header and button allow: the row's spare width goes to the
+        // columns without a width, the same while the rows load and once they arrive.
+        meta: { width: 1 },
         enableColumnFilter: false,
         enableHiding: false,
         cell: ({ row, table }) => {

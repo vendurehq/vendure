@@ -253,6 +253,22 @@ export interface PaginatedListDataTableProps<
      * @since 4.0.0
      */
     selectionStorageKey?: string;
+    /**
+     * @description
+     * Remembers the row count of the last load for the next first load. See the
+     * `rowCountKey` prop of {@link DataTable}.
+     *
+     * @since 4.0.0
+     */
+    rowCountKey?: string;
+    /**
+     * @description
+     * Loading cells by column id, for cells taller than one text line. See the
+     * `skeletonCells` prop of {@link DataTable}.
+     *
+     * @since 4.0.0
+     */
+    skeletonCells?: Record<string, React.ReactNode>;
     disableViewOptions?: boolean;
     /**
      * @description
@@ -485,6 +501,8 @@ export function PaginatedListDataTable<
     selectedItems,
     onSelectionChange,
     selectionStorageKey,
+    rowCountKey,
+    skeletonCells,
     disableViewOptions,
     enableViews,
     setTableOptions,
@@ -649,6 +667,8 @@ export function PaginatedListDataTable<
                     selectedItems={selectedItems}
                     onSelectionChange={onSelectionChange}
                     selectionStorageKey={selectionStorageKey}
+                    rowCountKey={rowCountKey}
+                    skeletonCells={skeletonCells}
                     setTableOptions={setTableOptions}
                     onRefresh={refetchPaginatedList}
                     onReorder={onReorder}
