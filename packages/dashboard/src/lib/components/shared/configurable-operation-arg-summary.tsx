@@ -1,3 +1,4 @@
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import {
@@ -227,7 +228,7 @@ const facetValueSummaryDocument = graphql(`
 
 function FacetValueSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
     const ids = toIdArray(value);
-    const { data } = useQuery({
+    const { data, isPending } = useQuery({
         queryKey: ['FacetValueSummary', ids],
         queryFn: () => api.query(facetValueSummaryDocument, { options: { filter: { id: { in: ids } } } }),
         enabled: ids.length > 0,
@@ -235,7 +236,7 @@ function FacetValueSummary({ value }: Readonly<DashboardFormComponentSummaryProp
     });
     const items = data?.facetValues.items;
     if (!items) {
-        return <EntityCountFallback count={ids.length} />;
+        return <EntityCountFallback count={ids.length} loading={isPending} />;
     }
     return <NameList names={items.map(item => `${item.name} (${item.facet.name})`)} />;
 }
@@ -253,7 +254,7 @@ const productVariantSummaryDocument = graphql(`
 
 function ProductVariantSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
     const ids = toIdArray(value);
-    const { data } = useQuery({
+    const { data, isPending } = useQuery({
         queryKey: ['ProductVariantSummary', ids],
         queryFn: () => api.query(productVariantSummaryDocument, { options: { filter: { id: { in: ids } } } }),
         enabled: ids.length > 0,
@@ -261,7 +262,7 @@ function ProductVariantSummary({ value }: Readonly<DashboardFormComponentSummary
     });
     const items = data?.productVariants.items;
     if (!items) {
-        return <EntityCountFallback count={ids.length} />;
+        return <EntityCountFallback count={ids.length} loading={isPending} />;
     }
     return <NameList names={items.map(item => item.name)} />;
 }
@@ -279,7 +280,7 @@ const productSummaryDocument = graphql(`
 
 function ProductSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
     const ids = toIdArray(value);
-    const { data } = useQuery({
+    const { data, isPending } = useQuery({
         queryKey: ['ProductSummary', ids],
         queryFn: () => api.query(productSummaryDocument, { options: { filter: { id: { in: ids } } } }),
         enabled: ids.length > 0,
@@ -287,7 +288,7 @@ function ProductSummary({ value }: Readonly<DashboardFormComponentSummaryProps>)
     });
     const items = data?.products.items;
     if (!items) {
-        return <EntityCountFallback count={ids.length} />;
+        return <EntityCountFallback count={ids.length} loading={isPending} />;
     }
     return <NameList names={items.map(item => item.name)} />;
 }
@@ -313,7 +314,7 @@ const customerGroupSummaryDocument = graphql(`
 
 function CustomerGroupSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
     const ids = toIdArray(value);
-    const { data } = useQuery({
+    const { data, isPending } = useQuery({
         queryKey: ['CustomerGroupSummary', ids],
         queryFn: () => api.query(customerGroupSummaryDocument, { options: { filter: { id: { in: ids } } } }),
         enabled: ids.length > 0,
@@ -321,7 +322,7 @@ function CustomerGroupSummary({ value }: Readonly<DashboardFormComponentSummaryP
     });
     const items = data?.customerGroups.items;
     if (!items) {
-        return <EntityCountFallback count={ids.length} />;
+        return <EntityCountFallback count={ids.length} loading={isPending} />;
     }
     return <NameList names={items.map(item => item.name)} />;
 }
@@ -345,8 +346,21 @@ function NameList({ names }: Readonly<{ names: string[] }>) {
     );
 }
 
-function EntityCountFallback({ count }: Readonly<{ count: number }>) {
+/**
+ * The value of an entity arg whose names have not loaded: a skeleton while they
+ * load, so the sentence does not show a count that then changes to the names, and
+ * the count when they cannot load.
+ */
+function EntityCountFallback({ count, loading }: Readonly<{ count: number; loading: boolean }>) {
     const { t } = useLingui();
+    if (loading && count > 0) {
+        return (
+            <span data-slot="arg-summary-skeleton">
+                <Skeleton className="inline-block h-[0.8lh] w-24 align-middle" aria-hidden="true" />
+                <span className="sr-only">{t`Loading…`}</span>
+            </span>
+        );
+    }
     return <>{t`${count} selected`}</>;
 }
 

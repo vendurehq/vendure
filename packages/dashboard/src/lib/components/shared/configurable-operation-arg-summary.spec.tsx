@@ -1,10 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+    ArgSummary,
     compactText,
     getJsonSummary,
     shouldUseListCountSummary,
 } from './configurable-operation-arg-summary.js';
+
+vi.mock('@lingui/react', () => ({
+    useLingui: () => ({
+        _: (d: { message?: string; id: string; values?: Record<string, unknown> }) =>
+            (d.message ?? d.id).replace(/\{(\w+)\}/g, (_, key: string) => String(d.values?.[key])),
+    }),
+}));
+
+// The facet value input lists its own values, so its summary names them
+vi.mock('@/vdb/framework/extension-api/input-component-extensions.js', () => ({
+    getInputComponent: () => ({ metadata: { isListInput: true } }),
+}));
 
 describe('shouldUseListCountSummary', () => {
     it('uses a count when a scalar component is wrapped for a list field', () => {
@@ -41,5 +56,44 @@ describe('getJsonSummary', () => {
 
     it('uses compact text for invalid JSON', () => {
         expect(getJsonSummary('not json')).toEqual({ type: 'text', value: 'not json' });
+    });
+});
+
+// OSS-1513 — a facet value filter read "1 selected" until the facet value names loaded
+describe('ArgSummary of entity ids', () => {
+    const fieldDef = {
+        name: 'facetValueIds',
+        type: 'ID',
+        list: true,
+        required: false,
+        ui: { component: 'facet-value-form-input' },
+    } as const;
+
+    function render(facetValues?: Array<{ id: string; name: string; facet: { name: string } }>) {
+        const queryClient = new QueryClient();
+        if (facetValues) {
+            queryClient.setQueryData(['FacetValueSummary', ['1']], {
+                facetValues: { items: facetValues },
+            });
+        }
+        return renderToStaticMarkup(
+            <QueryClientProvider client={queryClient}>
+                <ArgSummary fieldDef={fieldDef as never} value='["1"]' />
+            </QueryClientProvider>,
+        );
+    }
+
+    it('shows a skeleton, not a count, while the names load', () => {
+        const markup = render();
+
+        expect(markup).toContain('data-slot="arg-summary-skeleton"');
+        expect(markup).not.toContain('selected');
+    });
+
+    it('shows the names once they have loaded', () => {
+        const markup = render([{ id: '1', name: 'Electronics', facet: { name: 'category' } }]);
+
+        expect(markup).toContain('Electronics (category)');
+        expect(markup).not.toContain('data-slot="arg-summary-skeleton"');
     });
 });
