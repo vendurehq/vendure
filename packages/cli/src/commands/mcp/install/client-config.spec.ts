@@ -139,6 +139,26 @@ describe('updateClientConfig() for Codex', () => {
         expect(text).toBe(table);
     });
 
+    // `@vendure/create` writes this table before it runs `vendure mcp install`.
+    it('adds the table beside a server whose url names a vendure.* host', () => {
+        const existing = '[mcp_servers.vendure-docs]\nurl = "https://docs.vendure.io/mcp"\n';
+
+        const { text, action } = updateClientConfig('codex', existing);
+
+        expect(action).toBe('created');
+        expect(text).toBe(`${existing}\n${table}`);
+    });
+
+    it.each([
+        ['[mcp_servers.remote]\nargs = ["--url", "https://mcp.vendure.io"]\n'],
+        ['[mcp_servers.remote]\nurl = "https://a.vendure.io/#x"\n'],
+    ])('adds the table beside a server whose string values name a vendure.* host: %j', existing => {
+        const { text, action } = updateClientConfig('codex', existing);
+
+        expect(action).toBe('created');
+        expect(text).toBe(`${existing}\n${table}`);
+    });
+
     it('leaves other tables that mention vendure alone', () => {
         const existing =
             '[projects."/home/me/vendure-shop"]\ntrust_level = "trusted"\n\n[mcp_servers.vendure-docs]\ncommand = "docs"\n';

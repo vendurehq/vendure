@@ -168,6 +168,19 @@ describe('vendure mcp install', () => {
         expect(fs.existsSync(path.join(root, '.mcp.json'))).toBe(false);
     });
 
+    // The printed entry runs the same `npx` from the root, so it would not start either.
+    it('refuses to print the Cursor entry when the root does not resolve the CLI', async () => {
+        const root = repo({
+            'package.json': JSON.stringify({ private: true, workspaces: ['apps/*'] }),
+            'apps/server/package.json': vendureProject,
+            'apps/server/node_modules/@vendure/cli/package.json': cli('4.0.0'),
+        });
+
+        const result = await install({ client: 'cursor', dir: root });
+
+        expect(result.envelope.error?.code).toBe('mcp.root-cannot-resolve-cli');
+    });
+
     it('writes the root config of a monorepo whose root resolves the hoisted CLI', async () => {
         const root = repo({
             'package.json': JSON.stringify({ private: true, workspaces: ['apps/*'] }),

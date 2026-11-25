@@ -56,6 +56,14 @@
     "nx": {
         "tags": [
             "scope:tool"
-        ]
+        ],
+        "namedInputs": {
+            "default": [
+                "{projectRoot}/**/*",
+                "sharedGlobals",
+                "{workspaceRoot}/skills/**/*",
+                "{workspaceRoot}/packages/cli/src/commands/mcp/install/client-config.ts"
+            ]
+        }
     }
 }

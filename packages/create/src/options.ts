@@ -15,7 +15,7 @@ import {
     SCENARIOS,
 } from './registries.js';
 import { STOREFRONT_STARTERS, StorefrontId } from './storefront-starters.js';
-import { CliLogLevel, CreateOptions } from './types.js';
+import { AGENT_CLIENTS, AgentClient, CliLogLevel, CreateOptions } from './types.js';
 
 /**
  * The raw values of the flags, as commander parses them. Every choice is a string here, and
@@ -29,6 +29,7 @@ export interface RawCreateFlags {
     scenario?: string;
     features?: string;
     packageManager?: string;
+    agents?: string;
     yes?: boolean;
     json?: boolean;
     install?: boolean;
@@ -86,6 +87,11 @@ export const CREATE_OPTIONS: readonly CreateOption[] = [
         key: 'packageManager',
         flags: '--package-manager <name>',
         description: `The package manager: ${PACKAGE_MANAGERS.join(', ')} (default: the one that ran create)`,
+    },
+    {
+        key: 'agents',
+        flags: '--agents <clients>',
+        description: `A comma-separated list of the agent clients to write files for: ${AGENT_CLIENTS.join(', ')}, or none (default all)`,
     },
     { key: 'yes', flags: '-y, --yes', description: 'Accept every default and never prompt' },
     {
@@ -152,6 +158,24 @@ export function parseStorefront(value: string): StorefrontId | null {
         );
     }
     return storefront.id;
+}
+
+export function parseAgents(value: string): AgentClient[] {
+    const names = splitList(value);
+    if (names.length === 1 && names[0] === 'none') {
+        return [];
+    }
+    for (const name of names) {
+        if (!(AGENT_CLIENTS as readonly string[]).includes(name)) {
+            throw new CreateError(
+                'create.agent-unknown',
+                `Unknown agent client "${name}".`,
+                `Use one or more of ${AGENT_CLIENTS.join(', ')}, or none.`,
+            );
+        }
+    }
+    // In the table's order, without duplicates, so the record does not depend on how they were typed.
+    return AGENT_CLIENTS.filter(client => names.includes(client));
 }
 
 export function parseFeatures(value: string): string[] {
@@ -237,8 +261,7 @@ export function resolveCreateOptions(
         preset,
         scenario: resolved.scenario,
         features,
-        // No agent files are written yet, so no client is chosen.
-        agents: [],
+        agents: flags.agents !== undefined ? parseAgents(flags.agents) : [...AGENT_CLIENTS],
         install: flags.install !== false,
         git: flags.git !== false,
     };

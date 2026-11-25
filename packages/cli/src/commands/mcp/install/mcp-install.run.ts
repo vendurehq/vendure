@@ -108,6 +108,22 @@ function writeProjectConfig(
 
     const { file: relativeFile, writes } = CLIENT_CONFIG[input.client];
     const file = path.join(root, relativeFile);
+    // MCP clients start `npx` from the folder they were opened in, usually the repository root, and
+    // npx runs the `@vendure/cli` installed there. A client whose entry is printed, not written,
+    // gets the same check, because the printed entry is meant to be used as it is. `--print` only
+    // shows the entry, so it skips the check.
+    if (!input.print) {
+        const cliFromRoot = resolveCliAtNpmPrefix(root);
+        if (cliFromRoot?.dir !== local.dir) {
+            return fail(rootCannotResolveCli, {
+                root,
+                project,
+                projectVersion: local.version,
+                rootVersion: cliFromRoot?.version ?? null,
+                client: input.client,
+            });
+        }
+    }
     if (input.print || !writes) {
         if (!writes) {
             ctx.notice(
@@ -124,19 +140,6 @@ function writeProjectConfig(
             config: configBlock(input.client),
             command: null,
         };
-    }
-
-    // MCP clients start `npx` from the folder they were opened in, usually the repository root, and
-    // npx runs the `@vendure/cli` installed there.
-    const cliFromRoot = resolveCliAtNpmPrefix(root);
-    if (cliFromRoot?.dir !== local.dir) {
-        return fail(rootCannotResolveCli, {
-            root,
-            project,
-            projectVersion: local.version,
-            rootVersion: cliFromRoot?.version ?? null,
-            client: input.client,
-        });
     }
 
     const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : undefined;

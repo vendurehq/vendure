@@ -86,11 +86,12 @@ describe('getServerPackageJson()', () => {
 
 describe('getWorkspaceRootPackageJson()', () => {
     it('runs the server and the storefront workspaces with the chosen manager', () => {
-        const pkg = getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('pnpm')) as any;
+        const pkg = getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('pnpm'), '4.0.0') as any;
         expect(pkg.scripts['dev:server']).toBe('pnpm --filter server dev');
         expect(pkg.workspaces).toBeUndefined();
+        expect(pkg.devDependencies['@vendure/cli']).toBe('4.0.0');
         expect(
-            (getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('npm')) as any).workspaces,
+            (getWorkspaceRootPackageJson('my-shop', getPackageManagerInfo('npm'), '4.0.0') as any).workspaces,
         ).toEqual(['apps/*']);
     });
 });
@@ -178,5 +179,24 @@ describe('toPackageName()', () => {
         expect(toPackageName('My Shop')).toBe('my-shop');
         expect(toPackageName('.hidden')).toBe('hidden');
         expect(toPackageName('***')).toBe('vendure-app');
+    });
+
+    it('collapses runs of other characters and trims the ends as the npm rules need', () => {
+        expect(toPackageName('a--b')).toBe('a--b');
+        expect(toPackageName('a  &  b')).toBe('a-b');
+        expect(toPackageName('shop***')).toBe('shop');
+        expect(toPackageName('shop-')).toBe('shop');
+        expect(toPackageName('*.-_shop')).toBe('shop');
+        expect(toPackageName('Café Shop')).toBe('caf-shop');
+        expect(toPackageName('~my.shop_1')).toBe('~my.shop_1');
+    });
+
+    it('takes linear time on a long input of the characters a backtracking pattern trips on', () => {
+        // A run of dashes followed by an allowed character: `/-+$/` retries from every dash.
+        const adversarial = 'a' + '-'.repeat(50_000) + 'b';
+        const start = performance.now();
+        expect(toPackageName(adversarial)).toBe(adversarial);
+        expect(toPackageName('-'.repeat(50_000))).toBe('vendure-app');
+        expect(performance.now() - start).toBeLessThan(500);
     });
 });

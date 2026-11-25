@@ -80,6 +80,31 @@ assert(record.version === 1, `Unexpected record version ${record.version}`);
 assert(record.packageManager === packageManager, `Unexpected record packageManager ${record.packageManager}`);
 assert(record.storefront === storefront, `Unexpected record storefront ${record.storefront}`);
 
+const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf-8');
+assert(agents.includes(`\`${packageManager} run dev\``), `Expected AGENTS.md to use ${packageManager}`);
+for (const file of [
+    'CLAUDE.md',
+    '.claude/settings.json',
+    '.mcp.json',
+    '.cursor/mcp.json',
+    '.agents/skills/vendure-cli/SKILL.md',
+    '.claude/skills/vendure-cli/SKILL.md',
+]) {
+    assert(fs.existsSync(path.join(root, file)), `Expected the agent file ${file}`);
+}
+
+// Every CI run passes --no-install, because a created project cannot be installed until a
+// @vendure/cloud release accepts Vendure 4. So `vendure mcp install` has not run, and each config
+// holds only the docs server.
+const claudeServers = JSON.parse(fs.readFileSync(path.join(root, '.mcp.json'), 'utf-8')).mcpServers;
+const docsServer = claudeServers['vendure-docs'];
+assert(
+    docsServer && docsServer.type === 'http' && docsServer.url === 'https://docs.vendure.io/mcp',
+    `Unexpected vendure-docs server in .mcp.json: ${JSON.stringify(docsServer)}`,
+);
+// Fails once CI installs a created project, as a reminder to check the `vendure` entry instead.
+assert(!claudeServers.vendure, 'Expected no vendure server without an install: update this check');
+
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf-8' }).trim();
 assert(git('rev-list', '--count', 'HEAD') === '1', 'Expected exactly one commit');
 assert(git('status', '--porcelain') === '', 'Expected a clean working tree after the initial commit');

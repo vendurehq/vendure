@@ -1,0 +1,29 @@
+# {{ name }}
+
+A Vendure store{{#if storefront}} with a {{ storefront.frameworkName }} storefront in `apps/storefront`{{/if}}. It is a Vendure Cloud app: `{{ serverPath }}src/vendure-config.ts` calls `defineCloudConfig()`, and there is no entry point.
+
+## Commands
+
+The package manager is {{ packageManager }}.{{#if serverPath}} Run the `vendure` commands in `{{ serverDir }}`.{{/if}}
+
+- `{{ dev }}`: start the local environment. It needs Docker or Podman, and starts PostgreSQL, Redis, the server, the worker and the Dashboard.
+- `{{ build }}`: compile the project.
+- `{{ typecheck }}`: check the types.
+- `{{ exec }} vendure guide`: the agent guide for the Vendure CLI. Read it before you use the CLI.
+- `{{ exec }} vendure commands --json`: the commands that accept `--json`.
+
+## Rules
+
+- Change the database schema only through migrations. After you change an entity or a custom field, run `{{ exec }} vendure migrate generate <name>`, and commit the file it writes in `{{ serverPath }}src/migrations/`.
+- Keep plugins in `{{ serverPath }}src/plugins/`, and add them to the `store` extension in `{{ serverPath }}src/vendure-config.ts`.
+- `{{ serverPath }}.vendure/create.json` records what the project was created with. Do not edit it.
+- Do not set the options the Cloud runtime owns, such as `dbConnectionOptions`, the API port or the superadmin credentials. `defineCloudConfig` refuses them.
+
+## Agent tools
+
+- The `vendure` MCP server runs the project's own CLI (`vendure mcp`). The `vendure-docs` MCP server searches the Vendure documentation.
+- Skills in `.agents/skills/`:{{#each skills}} `{{ this }}`{{#unless @last}},{{/unless}}{{/each}}. Each skill's `SKILL.md` says when to use it.{{#if claudeSkills}} Claude Code reads its copy in `.claude/skills/`, so change both.{{/if}}
+
+## Deploying
+
+`{{ exec }} vendure cloud deploy` deploys to Vendure Cloud. Production needs `MCP_TOKEN_SECRET` and `MCP_ISSUER`. To run Vendure on your own infrastructure, see {{ selfHostingGuideUrl }}.
