@@ -121,7 +121,7 @@ class TtlOrderRecalculationStrategy implements OrderRecalculationStrategy {
 </div>
 ## ApplyPriceAdjustmentsOptions
 
-<GenerationInfo sourceFile="packages/core/src/service/helpers/order-calculator/order-calculator.ts" sourceLine="32" packageName="@vendure/core" since="3.8.0" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-calculator/order-calculator.ts" sourceLine="35" packageName="@vendure/core" since="3.8.0" />
 
 Options passed to `OrderService.applyPriceAdjustments` and `OrderCalculator.applyPriceAdjustments`.
 
@@ -129,6 +129,7 @@ Options passed to `OrderService.applyPriceAdjustments` and `OrderCalculator.appl
 interface ApplyPriceAdjustmentsOptions {
     recalculateShipping?: boolean;
     recalculateShippingPromotions?: boolean;
+    recalculateTax?: boolean;
 }
 ```
 
@@ -150,6 +151,15 @@ adjustments cleared/re-applied. Defaults to the value of `recalculateShipping`, 
 callers that freeze shipping entirely (e.g. order modification) are unaffected, while
 read-time recalculation can drop a now-inactive shipping promotion's discount without
 re-selecting the method.
+### recalculateTax
+
+<MemberInfo kind="property" type={`boolean`}  since="3.9.0"  />
+
+Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, ShippingLine and
+Surcharge, and replaces the absolute tax amounts of a placed Order even where the item did not
+change. Use it when the
+tax may differ for an unchanged line, for example after a change of address. Defaults to
+`false`, so a placed Order keeps the tax amounts that were paid.
 
 
 </div>

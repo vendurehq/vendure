@@ -2,7 +2,7 @@
 title: "OrderItemPriceCalculationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/order/order-item-price-calculation-strategy.ts" sourceLine="60" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/order/order-item-price-calculation-strategy.ts" sourceLine="61" packageName="@vendure/core" />
 
 The OrderItemPriceCalculationStrategy defines the listPrice of an OrderLine when adding an item to an Order. By default the
 [DefaultOrderItemPriceCalculationStrategy](/reference/typescript-api/orders/default-order-item-price-calculation-strategy#defaultorderitempricecalculationstrategy) is used.
@@ -62,6 +62,11 @@ interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
         order: Order,
         quantity: number,
     ): PriceCalculationResult | Promise<PriceCalculationResult>;
+    calculateLinePrices?(
+        ctx: RequestContext,
+        order: Order,
+        lines: LinePriceCalculationInput[],
+    ): Array<PriceCalculationResult | undefined> | Promise<Array<PriceCalculationResult | undefined>>;
 }
 ```
 * Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
@@ -82,6 +87,44 @@ Note: if you have any `relation` type custom fields defined on the OrderLine ent
 passed in to this method if they are set to `eager: true`. Otherwise, you can use the [EntityHydrator](/reference/typescript-api/data-access/entity-hydrator#entityhydrator)to join the missing relations.
 
 Note: the `quantity` argument was added in v2.0.0
+### calculateLinePrices
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, lines: <a href='/reference/typescript-api/orders/line-price-calculation-input#linepricecalculationinput'>LinePriceCalculationInput</a>[]) => Array<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a> | undefined> | Promise<Array<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a> | undefined>>`}  since="3.9.0"  />
+
+Optionally returns the price of whole lines, for their quantities, as integers in the
+smallest unit of the configured [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy) precision. Use this when an external
+system such as an ERP prices a line as a total that no whole unit price reproduces.
+
+For example, at precision 2 an ERP may price 20 units at 1.235 each as 24.70. Return
+`{ price: 2470, priceIncludesTax: true }` for that line. The line total is then exactly 24.70,
+and the unit price shown for the line is the rounded 1.24.
+
+Vendure calls this once each time it reprices lines, with every line it is repricing, so
+that an ERP can price them in a single request. That happens whenever an OrderLine is added
+or its quantity changes, and for all lines when the Order moves to `ArrangingPayment`. Return
+an array with one entry per line, in the same order. An entry of `undefined` prices that line
+with `calculateUnitPrice` instead.
+
+Vendure applies tax and promotions to the line total. A partial cancellation scales the
+existing quote to the remaining units without calling this method. The quote is stored on the
+OrderLine, so placed Orders keep their prices if this method is later removed.
+
+*Example*
+
+```ts
+export class ErpPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
+    calculateUnitPrice(ctx, productVariant) {
+        return { price: productVariant.listPrice, priceIncludesTax: productVariant.listPriceIncludesTax };
+    }
+
+    async calculateLinePrices(ctx, order, lines) {
+        const quotes = await erpClient.priceLines(
+            lines.map(line => ({ sku: line.productVariant.sku, quantity: line.quantity })),
+        );
+        return quotes.map(quote => ({ price: quote.totalInCents, priceIncludesTax: quote.grossPrices }));
+    }
+}
+```
 
 
 </div>

@@ -1,0 +1,43 @@
+---
+title: "LinePriceCalculationInput"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/order/order-item-price-calculation-strategy.ts" sourceLine="134" packageName="@vendure/core" since="3.9.0" />
+
+One OrderLine passed to `OrderItemPriceCalculationStrategy.calculateLinePrices`.
+
+```ts title="Signature"
+interface LinePriceCalculationInput {
+    orderLine: OrderLine;
+    productVariant: ProductVariant;
+    orderLineCustomFields: { [key: string]: any };
+    quantity: number;
+}
+```
+
+<div className="members-wrapper">
+
+### orderLine
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
+
+
+### productVariant
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>`}   />
+
+
+### orderLineCustomFields
+
+<MemberInfo kind="property" type={`{ [key: string]: any }`}   />
+
+The OrderLine custom fields. Relation custom fields are only included if they are
+`eager: true`.
+### quantity
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+
+
+</div>

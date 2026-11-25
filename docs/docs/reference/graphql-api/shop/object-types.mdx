@@ -3378,6 +3378,7 @@ type SellerTranslation {
     ShippingMethod: '/reference/graphql-api/shop/object-types#shippingmethod',
     Money: '/reference/graphql-api/shop/object-types#money',
     Discount: '/reference/graphql-api/shop/object-types#discount',
+    TaxLine: '/reference/graphql-api/shop/object-types#taxline',
     JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
@@ -3389,6 +3390,7 @@ type SellerTranslation {
   discountedPrice: Money!
   discountedPriceWithTax: Money!
   discounts: [Discount!]!
+  taxLines: [TaxLine!]!
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -3782,11 +3784,19 @@ type Success {
   typeLinks={{
     String: '/reference/graphql-api/shop/object-types#string',
     Float: '/reference/graphql-api/shop/object-types#float',
+    Money: '/reference/graphql-api/shop/object-types#money',
   }}
 >
 {`type TaxLine {
   description: String!
   taxRate: Float!
+  """
+  The absolute tax of the whole item (OrderLine, ShippingLine or Surcharge) for this TaxLine, when
+  the TaxLineCalculationStrategy provides it, for example from an ERP. The item's tax then equals
+  this amount rather than being derived from the rate. After a partial cancellation it is the tax
+  of the remaining units. Null when the tax is derived from the rate.
+  """
+  amount: Money
 }`}
 </GraphQLDoc>
 

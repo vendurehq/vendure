@@ -60,7 +60,7 @@ The Order's `lines`, `surcharges`, and `shippingLines` relations must be loaded.
 </div>
 ## DefaultOrderTaxCalculationStrategy
 
-<GenerationInfo sourceFile="packages/core/src/config/tax/default-order-tax-calculation-strategy.ts" sourceLine="20" packageName="@vendure/core" since="3.6.0" />
+<GenerationInfo sourceFile="packages/core/src/config/tax/default-order-tax-calculation-strategy.ts" sourceLine="21" packageName="@vendure/core" since="3.6.0" />
 
 The default [OrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy). Tax is rounded at the
 individual line level and then summed. This matches the standard Vendure behaviour
@@ -93,7 +93,7 @@ class DefaultOrderTaxCalculationStrategy implements OrderTaxCalculationStrategy 
 </div>
 ## OrderLevelTaxCalculationStrategy
 
-<GenerationInfo sourceFile="packages/core/src/config/tax/order-level-tax-calculation-strategy.ts" sourceLine="42" packageName="@vendure/core" since="3.6.0" />
+<GenerationInfo sourceFile="packages/core/src/config/tax/order-level-tax-calculation-strategy.ts" sourceLine="46" packageName="@vendure/core" since="3.6.0" />
 
 An [OrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy) that groups net subtotals by tax rate
 and rounds once per group. This eliminates per-line rounding accumulation errors

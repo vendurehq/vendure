@@ -2562,6 +2562,13 @@ input IDOperators {
 {`input ModifyOrderOptions {
   freezePromotions: Boolean
   recalculateShipping: Boolean
+  """
+  Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, ShippingLine and
+  Surcharge, replacing the absolute tax amounts that were paid even on items that did not change.
+  Use it after a change of address when the tax may differ, and check the result with \`dryRun\`
+  first. Defaults to false.
+  """
+  recalculateTax: Boolean
 }`}
 </GraphQLDoc>
 

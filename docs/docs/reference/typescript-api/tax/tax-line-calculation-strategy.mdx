@@ -4,7 +4,7 @@ generated: true
 ---
 ## TaxLineCalculationStrategy
 
-<GenerationInfo sourceFile="packages/core/src/config/tax/tax-line-calculation-strategy.ts" sourceLine="29" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/tax/tax-line-calculation-strategy.ts" sourceLine="67" packageName="@vendure/core" />
 
 This strategy defines how the TaxLines on OrderItems are calculated. By default,
 the [DefaultTaxLineCalculationStrategy](/reference/typescript-api/tax/default-tax-line-calculation-strategy#defaulttaxlinecalculationstrategy) is used, which directly applies
@@ -12,6 +12,43 @@ a single TaxLine based on the applicable [TaxRate](/reference/typescript-api/ent
 
 However, custom strategies may use any suitable method for calculating TaxLines.
 For example, a third-party tax API or a lookup of a custom tax table may be used.
+
+## Absolute tax amounts
+
+By default, Vendure derives the tax of an OrderLine from the `taxRate` of its TaxLines. If an
+external system such as an ERP calculates the tax with its own rounding, return its result as
+the `amount` of each TaxLine instead. The amount is the tax of the whole line, as an integer in
+the smallest unit of the configured [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy) precision. It applies to the line total
+in the tax basis of the line's price: `orderLine.proratedLinePrice` when prices exclude tax, and
+`orderLine.proratedLinePriceWithTax` when they include it. Set it on all or none of a line's
+TaxLines.
+
+The `taxRate` remains the rate that the line displays. Vendure keeps the amount as the line's tax
+until it calls this strategy again. If a partial cancellation removes units without
+recalculating the Order, Vendure gives the remaining units their share of the amount.
+
+ShippingLines and Surcharges derive their tax from the rate, unless the strategy also implements
+`calculateShippingLineTaxLines()` or `calculateSurchargeTaxLines()` to return amounts for them.
+
+*Example*
+
+```ts
+export class ErpTaxLineCalculationStrategy implements TaxLineCalculationStrategy {
+    async calculate({ orderLine, applicableTaxRate }: CalculateTaxLinesArgs) {
+        const lineTotal = orderLine.listPriceIncludesTax
+            ? orderLine.proratedLinePriceWithTax
+            : orderLine.proratedLinePrice;
+        const erpTax = await erpClient.getLineTax(orderLine.productVariant.sku, lineTotal);
+        return [
+            {
+                description: applicableTaxRate.name,
+                taxRate: applicableTaxRate.value,
+                amount: erpTax.amountInCents,
+            },
+        ];
+    }
+}
+```
 
 :::info
 
@@ -23,6 +60,8 @@ your VendureConfig.
 ```ts title="Signature"
 interface TaxLineCalculationStrategy extends InjectableStrategy {
     calculate(args: CalculateTaxLinesArgs): TaxLine[] | Promise<TaxLine[]>;
+    calculateShippingLineTaxLines?(args: CalculateShippingLineTaxLinesArgs): TaxLine[] | Promise<TaxLine[]>;
+    calculateSurchargeTaxLines?(args: CalculateSurchargeTaxLinesArgs): TaxLine[] | Promise<TaxLine[]>;
 }
 ```
 * Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
@@ -40,12 +79,34 @@ whenever an Order is modified in some way (adding/removing items, applying promo
 setting ShippingMethod etc), care should be taken so that calling the function does
 not adversely impact overall performance. For example, by using caching and only
 calling external APIs when absolutely necessary.
+### calculateShippingLineTaxLines
+
+<MemberInfo kind="method" type={`(args: <a href='/reference/typescript-api/tax/tax-line-calculation-strategy#calculateshippinglinetaxlinesargs'>CalculateShippingLineTaxLinesArgs</a>) => TaxLine[] | Promise<TaxLine[]>`}  since="3.9.0"  />
+
+Optionally returns the TaxLines of a ShippingLine, with absolute tax `amount`s, for example
+from an ERP. The amount is the tax of the ShippingLine's discounted price, in the tax basis of
+its price: `shippingLine.discountedPrice` when it excludes tax, and
+`shippingLine.discountedPriceWithTax` when it includes it.
+
+Vendure calls this after the shipping price and shipping promotions are applied, and only when
+that price changed since the last call. `args.taxLines` holds the TaxLines that Vendure derived
+from the ShippingCalculator's rate. Return them unchanged to keep the rate.
+### calculateSurchargeTaxLines
+
+<MemberInfo kind="method" type={`(args: <a href='/reference/typescript-api/tax/tax-line-calculation-strategy#calculatesurchargetaxlinesargs'>CalculateSurchargeTaxLinesArgs</a>) => TaxLine[] | Promise<TaxLine[]>`}  since="3.9.0"  />
+
+Optionally returns the TaxLines of a Surcharge, with absolute tax `amount`s, for example from an
+ERP. The amount is the tax of the Surcharge's price, in the tax basis of that price.
+
+Vendure calls this when it recalculates the Order, and only when the Surcharge's price changed
+since the last call. `args.taxLines` holds the TaxLines that the Surcharge was created with.
+Return them unchanged to keep the rate.
 
 
 </div>
 ## CalculateTaxLinesArgs
 
-<GenerationInfo sourceFile="packages/core/src/config/tax/tax-line-calculation-strategy.ts" sourceLine="47" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/tax/tax-line-calculation-strategy.ts" sourceLine="113" packageName="@vendure/core" />
 
 
 
@@ -78,6 +139,89 @@ interface CalculateTaxLinesArgs {
 ### applicableTaxRate
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>`}   />
+
+
+
+
+</div>
+## CalculateShippingLineTaxLinesArgs
+
+<GenerationInfo sourceFile="packages/core/src/config/tax/tax-line-calculation-strategy.ts" sourceLine="130" packageName="@vendure/core" since="3.9.0" />
+
+The arguments passed to `TaxLineCalculationStrategy.calculateShippingLineTaxLines()`: the
+ShippingLine, with its final price after shipping promotions, and the TaxLines that Vendure
+derived for it from the ShippingCalculator's rate.
+
+```ts title="Signature"
+interface CalculateShippingLineTaxLinesArgs {
+    ctx: RequestContext;
+    order: Order;
+    shippingLine: ShippingLine;
+    taxLines: TaxLine[];
+}
+```
+
+<div className="members-wrapper">
+
+### ctx
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+
+### order
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
+
+
+### shippingLine
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/shipping-line#shippingline'>ShippingLine</a>`}   />
+
+
+### taxLines
+
+<MemberInfo kind="property" type={`TaxLine[]`}   />
+
+
+
+
+</div>
+## CalculateSurchargeTaxLinesArgs
+
+<GenerationInfo sourceFile="packages/core/src/config/tax/tax-line-calculation-strategy.ts" sourceLine="146" packageName="@vendure/core" since="3.9.0" />
+
+The arguments passed to `TaxLineCalculationStrategy.calculateSurchargeTaxLines()`: the Surcharge,
+and the TaxLines that it was created with.
+
+```ts title="Signature"
+interface CalculateSurchargeTaxLinesArgs {
+    ctx: RequestContext;
+    order: Order;
+    surcharge: Surcharge;
+    taxLines: TaxLine[];
+}
+```
+
+<div className="members-wrapper">
+
+### ctx
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+
+### order
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
+
+
+### surcharge
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/surcharge#surcharge'>Surcharge</a>`}   />
+
+
+### taxLines
+
+<MemberInfo kind="property" type={`TaxLine[]`}   />
 
 
 

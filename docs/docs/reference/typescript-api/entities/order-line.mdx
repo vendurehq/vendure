@@ -2,7 +2,7 @@
 title: "OrderLine"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/order-line/order-line.entity.ts" sourceLine="32" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/order-line/order-line.entity.ts" sourceLine="41" packageName="@vendure/core" />
 
 A single line on an [Order](/reference/typescript-api/entities/order#order) which contains information about the [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) and
 quantity ordered, as well as the price and tax information.
@@ -86,6 +86,7 @@ class OrderLine extends VendureEntity implements HasCustomFields {
     addAdjustment(adjustment: Adjustment) => ;
     setQuantityRescalingAdjustments(newQuantity: number) => ;
     clearAdjustments(type?: AdjustmentType) => ;
+    getUnitPriceForPromotion(withTax: boolean) => number;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
@@ -332,7 +333,8 @@ The `proratedLinePrice` including tax.
 Sets this line's quantity to `newQuantity`, rescaling its `PROMOTION`-type adjustments to
 match. Used where a quantity reduction bypasses `OrderCalculator` recalculation (see
 `OrderModifier.cancelOrderByOrderLines()`), to preserve the invariant that `PROMOTION`
-amounts are stored scaled to the current quantity.
+amounts are stored scaled to the current quantity. Absolute tax amounts from a
+TaxLineCalculationStrategy are rescaled to the new quantity in the same way.
 
 A `newQuantity` of 0 sets the quantity but leaves the adjustments untouched: the getters
 short-circuit on an empty line either way, so scaling them to zero would only erase the
@@ -342,6 +344,21 @@ record of the discount that had applied, which plugins and accounting exports re
 <MemberInfo kind="method" type={`(type?: AdjustmentType) => `}   />
 
 
+### getUnitPriceForPromotion
+
+<MemberInfo kind="method" type={`(withTax: boolean) => number`}  since="3.9.0"  />
+
+The unit price that a promotion should discount, in the requested tax basis. For a line priced
+by `OrderItemPriceCalculationStrategy.calculateLinePrices` this is the quote divided by its
+quantity, before rounding, so a percentage discount matches the quoted line total. For other
+lines it is `unitPrice` or `unitPriceWithTax`.
+
+*Example*
+
+```ts
+const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
+return -unitPrice * (args.discount / 100);
+```
 
 
 </div>

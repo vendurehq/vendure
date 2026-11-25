@@ -33,9 +33,13 @@ more information.
 </div>
 ## PromotionItemAction
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="365" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="370" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to individual [OrderLine](/reference/typescript-api/entities/order-line#orderline)s.
+
+Return the amount in the tax basis of the Channel, as set by `ctx.channel.pricesIncludeTax`.
+If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrices` in the
+other tax basis, Vendure converts the amount to the basis of that price.
 
 *Example*
 
@@ -45,7 +49,8 @@ const itemPercentageDiscount = new PromotionItemAction({
     code: 'item_percentage_discount',
     args: { discount: 'percentage' },
     execute(ctx, orderLine, args) {
-        return -orderLine.unitPrice * (args.discount / 100);
+        const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
+        return -unitPrice * (args.discount / 100);
     },
     description: 'Discount every item by { discount }%',
 });
@@ -67,7 +72,7 @@ class PromotionItemAction<T extends ConfigArgs = ConfigArgs, U extends Array<Pro
 </div>
 ## PromotionOrderAction
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="475" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="485" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to the [Order](/reference/typescript-api/entities/order#order) as a whole.
 
@@ -101,7 +106,7 @@ class PromotionOrderAction<T extends ConfigArgs = ConfigArgs, U extends Promotio
 </div>
 ## PromotionShippingAction
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="517" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="527" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to the shipping cost of an Order.
 
@@ -363,10 +368,14 @@ the Shipping, i.e. the number should be negative.
 </div>
 ## PromotionLineAction
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="420" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="430" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to individual [OrderLine](/reference/typescript-api/entities/order-line#orderline)s.
 The difference from PromotionItemAction is that it applies regardless of the Quantity of the OrderLine.
+
+Return the amount in the tax basis of the Channel, as set by `ctx.channel.pricesIncludeTax`.
+If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrices` in the
+other tax basis, Vendure converts the amount to the basis of that price.
 
 *Example*
 
@@ -376,7 +385,8 @@ const linePercentageDiscount = new PromotionLineAction({
     code: 'line_percentage_discount',
     args: { discount: 'percentage' },
     execute(ctx, orderLine, args) {
-        return -orderLine.linePrice * (args.discount / 100);
+        const linePrice = ctx.channel.pricesIncludeTax ? orderLine.linePriceWithTax : orderLine.linePrice;
+        return -linePrice * (args.discount / 100);
     },
     description: 'Discount every line by { discount }%',
 });

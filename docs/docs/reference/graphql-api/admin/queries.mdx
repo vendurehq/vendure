@@ -753,6 +753,30 @@ type Query {
 }`}
 </GraphQLDoc>
 
+<a name="previewrefundlinetotal"></a>
+
+## previewRefundLineTotal
+
+<GraphQLDoc
+  type="query"
+  typeName="previewRefundLineTotal"
+  typeLinks={{
+    Money: '/reference/graphql-api/admin/object-types#money',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    OrderLineInput: '/reference/graphql-api/admin/input-types#orderlineinput',
+  }}
+>
+{`"""
+Returns the tax-inclusive refund amount for the given units, excluding shipping. Units that were
+cancelled are valued at the price recorded when they were cancelled, for lines priced by
+\`OrderItemPriceCalculationStrategy.calculateLinePrices\`. Returns an error if more units are
+requested than the line can still refund.
+"""
+type Query {
+  previewRefundLineTotal(orderId: ID!, lines: [OrderLineInput!]!): Money!
+}`}
+</GraphQLDoc>
+
 <a name="product"></a>
 
 ## product
