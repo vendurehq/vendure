@@ -591,6 +591,27 @@ describe('loginWithDevice', () => {
             });
         });
 
+        it('stores nothing when the login is interrupted during the wait', async () => {
+            writeStoredAuth(storedAuth({ refreshToken: 'previous' }), options);
+            const workos = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+                THROTTLED('30'),
+            ]);
+            const controller = new AbortController();
+            const sleep = (ms: number) => {
+                if (ms < 1000) return Promise.resolve();
+                controller.abort();
+                return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+            };
+
+            await expect(
+                loginWithDevice({ ...options, fetch: workos.fetch, sleep, signal: controller.signal }),
+            ).rejects.toThrow('aborted');
+            expect(readStoredAuth(options)?.refreshToken).toBe('previous');
+        });
+
         it('waits for Retry-After when it lists the organizations to choose from', async () => {
             const workos = fakeWorkos([
                 serviceInfo(),

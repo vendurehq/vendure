@@ -358,7 +358,11 @@ export async function loginWithDevice(
             organization = await scopeTo(resolveOrganization(organizations, options.organization));
         } else {
             const tokenOrganization = tokenOrganizationId(authentication);
-            organizations = await lookUpOrganizations().catch(() => undefined);
+            organizations = await lookUpOrganizations().catch(error => {
+                // An interrupted login stores nothing, so the previous login stays.
+                if (options.signal?.aborted) throw error;
+                return undefined;
+            });
             const current = organizations?.find(org => org.workosOrganizationId === tokenOrganization);
             const chosen =
                 organizations && organizations.length > 1
