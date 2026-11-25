@@ -288,6 +288,10 @@ commands. They are also tools of the Developer MCP.
 Update scripts and CI jobs that pass `--project <dir>`, `--console-project`, `--force`, `--yes` or `--non-interactive`
 to `vendure console`.
 
+Without a person at a terminal, as in CI, scripts and agents, an error that an `afterConsoleLink` hook throws is
+reported in general terms: `The <plugin> plugin failed after linking: Setup did not finish.` Run `vendure console link`
+in a terminal to see the hook's own message. Errors the CLI writes itself are always reported as they are.
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.

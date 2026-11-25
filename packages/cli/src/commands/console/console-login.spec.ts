@@ -696,7 +696,7 @@ describe('console link command line login', () => {
     });
 
     // CLO-1165 — a cloned manifest that links a Project of somebody else's Customer Account
-    it('names the Customer Account a repair cannot reach and points to --force, without signing in again', async () => {
+    it('names the Customer Account a repair cannot reach and points to --project, without signing in again', async () => {
         const sessions: Array<ConsoleSession | undefined> = [];
         const unavailable: Array<string | undefined> = [];
         const run = await runLink({
@@ -793,7 +793,7 @@ describe('console link command line login', () => {
 });
 
 // CLO-1166
-describe('console link --non-interactive --console-project', () => {
+describe('console link --project without a person', () => {
     const twoProjects = [
         { id: PROJECT_ID, name: 'Storefront' },
         { id: OTHER_PROJECT_ID, name: 'Parts Counter', slug: 'parts-counter' },

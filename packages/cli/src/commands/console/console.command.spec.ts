@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Prompter } from '../../command-host/host.js';
 import { testCommand } from '../../command-host/test-command.js';
-import { setPluginExtensionAccessor } from '../../shared/plugin-extensions.js';
+import { setPluginExtensionAccessor, setPluginProjectRoot } from '../../shared/plugin-extensions.js';
 
 import { ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook.js';
 import { run as runLink } from './console-link.run.js';
@@ -39,6 +39,7 @@ beforeEach(() => {
 
 afterEach(() => {
     setPluginExtensionAccessor(undefined);
+    setPluginProjectRoot(undefined);
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -212,6 +213,18 @@ describe('vendure console link', () => {
                 },
             });
         }
+
+        // A fix keeps the rest of the caller's input.
+        const link = await testCommand(
+            consoleLinkDefinition,
+            { project: 'storefront', organization: 'Acme' },
+            { cwd: workspace },
+        );
+        expect(link.envelope.error?.fixes).toEqual([
+            expect.objectContaining({
+                input: { project: 'storefront', organization: 'Acme', dir: 'server' },
+            }),
+        ]);
     });
 
     it('runs a link and its hooks once when a person is there, and tells them what a hook needs', async () => {
@@ -296,14 +309,21 @@ describe('vendure console link', () => {
         const server = path.join(root, 'apps', 'server');
         fs.outputJsonSync(path.join(server, 'package.json'), { dependencies: { '@vendure/core': '4.0.0' } });
 
-        const result = await testCommand(consoleLinkDefinition, { project: 'apps/server' }, { cwd: root });
+        const result = await testCommand(
+            consoleLinkDefinition,
+            { project: 'apps/server', organization: 'Acme' },
+            { cwd: root },
+        );
 
         expect(result.envelope).toMatchObject({
             status: 'error',
             error: {
                 code: 'console.project-is-directory',
                 fixes: [
-                    expect.objectContaining({ path: ['console', 'link'], input: { dir: 'apps/server' } }),
+                    expect.objectContaining({
+                        path: ['console', 'link'],
+                        input: { dir: 'apps/server', organization: 'Acme' },
+                    }),
                 ],
             },
         });
@@ -395,6 +415,68 @@ describe('vendure console link', () => {
         expect(result.envelope.error?.message).toContain(
             'Set both VENDURE_CONSOLE_APP_URL and VENDURE_CONSOLE_API_URL',
         );
+        // The reason is the coded error's message, so it is not a notice as well.
+        expect(result.envelope.notices.map(notice => notice.message).join('\n')).not.toContain('Set both');
+    });
+
+    it('gives a run without a person the error an auth request returned, which the CLI wrote', async () => {
+        const root = project('none');
+        vi.stubEnv('VENDURE_DISABLE_TELEMETRY', '1');
+        // An agent's key, whose Customer Account the CLI looks up.
+        vi.stubEnv('VENDURE_CLOUD_TOKEN', 'vcdk_agent_key');
+        const console = fakeConsole();
+        vi.stubGlobal('fetch', (input: string | URL, init?: RequestInit) =>
+            new URL(String(input)).pathname === '/v1/me'
+                ? Promise.resolve(new Response('{"secret":"vcli_body"}', { status: 500 }))
+                : console.fetch(input, init),
+        );
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope.status).toBe('error');
+        expect(result.envelope.error?.message).toContain('HTTP 500');
+        expect(result.envelope.error?.message).not.toBe('The Console command failed.');
+        expect(JSON.stringify(result.envelope)).not.toContain('vcli_body');
+    });
+
+    it('asks for the project input, not the replaceLink consent, for a Project the account does not have', async () => {
+        const root = project();
+        storeLogin(process.env, 'https://api.vendure.io');
+        vi.stubGlobal(
+            'fetch',
+            fakeConsole({
+                projects: projectList([
+                    { id: PROJECT_ID, name: 'Storefront' },
+                    { id: OTHER_PROJECT_ID, name: 'Wholesale' },
+                ]),
+            }).fetch,
+        );
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root, project: 'storefrnt' });
+
+        expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs).toEqual([
+            expect.objectContaining({
+                kind: 'input',
+                field: 'project',
+                choices: ['storefront', 'wholesale'],
+            }),
+        ]);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('warns when the plugins loaded are those of another project than the one it links', async () => {
+        const root = project();
+        const other = createVendureProject(directories, 'console-command-other-');
+        setPluginProjectRoot(other);
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope.status).toBe('ok');
+        expect(result.envelope.notices).toContainEqual({
+            level: 'warning',
+            message: expect.stringContaining(`pass --dir ${root} on the command line`),
+        });
     });
 
     it('returns the link as failed when a hook fails after it, without what the hook threw', async () => {
@@ -535,14 +617,17 @@ describe('vendure console status', () => {
         });
     });
 
-    it('returns a coded error for a manifest it cannot read', async () => {
+    it('returns a coded error for a manifest it cannot read, with a fix for the same project', async () => {
         const root = project('invalid');
 
         const result = await testCommand(consoleStatusDefinition, { dir: root });
 
         expect(result.envelope).toMatchObject({
             status: 'error',
-            error: { code: 'console.manifest-invalid' },
+            error: {
+                code: 'console.manifest-invalid',
+                fixes: [expect.objectContaining({ path: ['console', 'unlink'], input: { dir: root } })],
+            },
         });
     });
 });

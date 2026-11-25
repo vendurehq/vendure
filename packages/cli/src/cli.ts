@@ -16,7 +16,7 @@ import {
 import { builtinCommandDefs } from './commands/builtins.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
-import { setPluginExtensionAccessor } from './shared/plugin-extensions.js';
+import { setPluginExtensionAccessor, setPluginProjectRoot } from './shared/plugin-extensions.js';
 import { PROJECT_DIR_FLAG, selectsPluginProject } from './shared/project-dir-flag.js';
 import {
     CliPluginScopeError,
@@ -25,6 +25,7 @@ import {
     pluginsCommandFor,
     resolveCliPlugins,
     ResolveCliPluginsOptions,
+    resolveCliProjectRoot,
 } from './shared/resolve-cli-plugins.js';
 import { PluginFailureStep, unknownCommandHelp } from './shared/unknown-command-help.js';
 
@@ -95,6 +96,14 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         pluginOptions.projectFlag = PROJECT_DIR_FLAG;
     }
     const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
+    try {
+        // The project the plugins came from, so a command that works on another one can say so.
+        setPluginProjectRoot(
+            resolveCliProjectRoot(process.cwd(), pluginOptions.project, pluginOptions.projectFlag),
+        );
+    } catch {
+        // No project: the plugins are the global ones.
+    }
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }

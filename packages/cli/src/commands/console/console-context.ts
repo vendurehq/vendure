@@ -6,12 +6,13 @@ import {
     fail,
     incomplete,
     IncompleteResult,
+    isErrorResult,
 } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { hostErrors } from '../../command-host/host-errors.js';
-import { getPluginExtensions } from '../../shared/plugin-extensions.js';
+import { getPluginExtensions, getPluginProjectRoot } from '../../shared/plugin-extensions.js';
 import { findProjectDirectoryHints } from '../../utilities/monorepo-utils.js';
 
 import { ConsoleLinkHookRegistration, RegisteredConsoleLinkHook } from './console-link-hook.js';
@@ -68,9 +69,10 @@ export function consoleDependencies(
         prompt: message => (ask ? ask.confirm(message) : Promise.resolve(undefined)),
         select: (message, choices) => (ask ? ask.select(message, choices) : Promise.resolve(undefined)),
         reporter: {
+            // Reported once the run knows its result, by {@link reportErrors}, so the message that
+            // becomes the coded error is not also a notice.
             error: message => {
                 errors.push(message);
-                ctx.notice('warning', message);
             },
             warn: message => ctx.notice('warning', message),
             info: message => ctx.notice('info', message),
@@ -90,9 +92,8 @@ export function consoleDependencies(
  * already chosen the directory, so `--project` is the Console Project whatever its name.
  */
 export function projectIsDirectory(
-    project: string | undefined,
+    { project, dir, organization }: { project?: string; dir?: string; organization?: string },
     cwd: string,
-    dir?: string,
 ): ErrorResult | undefined {
     const value = project?.trim();
     if (!value || dir?.trim()) {
@@ -106,7 +107,10 @@ export function projectIsDirectory(
             devDependencies?: Record<string, string>;
         } | null;
         if (packageJson?.dependencies?.['@vendure/core'] || packageJson?.devDependencies?.['@vendure/core']) {
-            return fail(consoleErrors.projectIsDirectory, { project: value });
+            return fail(consoleErrors.projectIsDirectory, {
+                project: value,
+                ...(organization ? { organization } : {}),
+            });
         }
     } catch {
         // Not a directory with a package.json, so it is an id or a slug.
@@ -122,6 +126,8 @@ export function resolveConsoleProject(
     command: string[],
     cwd: string,
     dir: string | undefined,
+    /** The rest of the caller's input, which each fix keeps. */
+    input: Record<string, unknown> = {},
 ): { projectRoot: string } | { error: ErrorResult } {
     try {
         return { projectRoot: resolveProjectRoot(cwd, dir) };
@@ -137,6 +143,7 @@ export function resolveConsoleProject(
                 message: error instanceof Error ? error.message : String(error),
                 command,
                 candidates,
+                input,
             }),
         };
     }
@@ -198,7 +205,10 @@ export async function previewForRun(
             return { result: fail(hostErrors.cancelled, {}) };
         }
         if (described.kind === 'need') {
-            ctx.notice('warning', described.message);
+            if (!ctx.ask) {
+                // The need has no message of its own, so the reason is a notice.
+                ctx.notice('warning', described.message);
+            }
             described.nextSteps.forEach(step => ctx.notice('info', step));
             return {
                 result: ctx.ask ? fail(failed, { message: described.message }) : incomplete([described.need]),
@@ -228,4 +238,45 @@ export function describeNeed(need: CommandNeed): string {
         case 'person':
             return `${need.summary} ${need.url}`;
     }
+}
+
+/**
+ * Reports what the engine said was an error, as warning notices, once the run knows its result.
+ * A message the coded error carries is left out, so a person does not read it twice.
+ */
+export function reportErrors<Result>(ctx: CommandContext, errors: string[], result: Result): Result {
+    const details = isErrorResult(result) ? (result.details as { message?: unknown } | undefined) : undefined;
+    const coded = typeof details?.message === 'string' ? details.message : undefined;
+    for (const message of errors) {
+        if (!coded?.includes(message)) {
+            ctx.notice('warning', message);
+        }
+    }
+    return result;
+}
+
+/**
+ * Why the plugin setup of this run is not that of `projectRoot`: the CLI loaded the plugins of
+ * another project, because `dir` came only in the input, which the CLI reads after it loads them.
+ */
+export function pluginProjectMismatch(projectRoot: string): string | undefined {
+    const loadedFor = getPluginProjectRoot();
+    if (!loadedFor || sameDirectory(loadedFor, projectRoot)) {
+        return undefined;
+    }
+    return (
+        `The CLI plugins of ${loadedFor} were loaded, so their setup runs, not that of ${projectRoot}. ` +
+        `To run the plugin setup of ${projectRoot}, pass --dir ${projectRoot} on the command line.`
+    );
+}
+
+function sameDirectory(a: string, b: string): boolean {
+    const real = (directory: string) => {
+        try {
+            return fs.realpathSync(directory);
+        } catch {
+            return path.resolve(directory);
+        }
+    };
+    return real(a) === real(b);
 }

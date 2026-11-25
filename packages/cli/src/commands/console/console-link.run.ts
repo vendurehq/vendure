@@ -6,8 +6,10 @@ import {
     consoleDependencies,
     consoleLinkHooks,
     describeNeed,
+    pluginProjectMismatch,
     previewForRun,
     projectIsDirectory,
+    reportErrors,
     resolveConsoleProject,
 } from './console-context.js';
 import { consoleErrors } from './console.errors.js';
@@ -25,22 +27,26 @@ function isAnswerable(need: CommandNeed): boolean {
  * Links the project, or repairs the link on disk, then runs the `afterConsoleLink` hooks of the
  * CLI plugins. Without a person, a missing login or Project, and what a hook still needs, are
  * needs. With a person, they are notices: the host would ask the person for fields this command
- * does not take, and run the link and its hooks again. A hook that failed is a coded error. Either
- * way, the link it ran after stays in place.
+ * does not take, and run the link and its hooks again. A hook that failed leaves the link it ran
+ * after in place, and the result is failed.
  */
 export async function run(input: LinkInput, ctx: CommandContext) {
-    const refused = projectIsDirectory(input.project, ctx.cwd, input.dir);
+    const refused = projectIsDirectory(input, ctx.cwd);
     if (refused) {
         return refused;
     }
-    const project = resolveConsoleProject(['console', 'link'], ctx.cwd, input.dir);
+    const { dir, ...rest } = input;
+    const project = resolveConsoleProject(['console', 'link'], ctx.cwd, dir, rest);
     if ('error' in project) {
         return project.error;
     }
+    const mismatch = pluginProjectMismatch(project.projectRoot);
+    if (mismatch) {
+        ctx.notice('warning', mismatch);
+    }
     const { dependencies, errors } = consoleDependencies(ctx, consoleLinkHooks());
-    // The host runs this only once the caller gave the consents that `plan()` asked for, so a
-    // replacement found again here has its consent. Its lookup is passed on, so the link does not
-    // look the Project up a third time.
+    // The run works from the preview whose consents the host asked for, as `plan()` recorded it,
+    // and passes its lookup on, so the link does not look the Project up again.
     const previewed = await previewForRun('link', input, ctx, dependencies, consoleErrors.linkFailed);
     if ('result' in previewed) {
         return previewed.result;
@@ -81,25 +87,33 @@ export async function run(input: LinkInput, ctx: CommandContext) {
             nextSteps: [...output.nextSteps, ...steps.map(describeNeed)],
         };
         if (answerable.length > 0) {
-            return incomplete(answerable, withSteps);
+            return reportErrors(ctx, errors, incomplete(answerable, withSteps));
         }
         if (withSteps) {
-            return failed(withSteps);
+            return reportErrors(ctx, errors, failed(withSteps));
         }
         // Nothing was linked. The reason the engine gave, such as a Project that is not one of the
         // account's, comes first.
-        return fail(consoleErrors.linkFailed, {
-            message: [...errors.slice(-1), ...steps.map(describeNeed)].join(' '),
-        });
+        return reportErrors(
+            ctx,
+            errors,
+            fail(consoleErrors.linkFailed, {
+                message: [...errors.slice(-1), ...steps.map(describeNeed)].join(' '),
+            }),
+        );
     }
     if (exitCode === 0 && output) {
-        return output;
+        return reportErrors(ctx, errors, output);
     }
-    const reason = failure ?? errors.at(-1) ?? 'The Console link did not finish.';
     if (output) {
-        // The link is on disk, and the setup after it did not finish.
-        ctx.notice('warning', reason);
-        return failed(output);
+        // The link is on disk, and the setup after it did not finish. The engine said why.
+        return reportErrors(ctx, errors, failed(output));
     }
-    return fail(consoleErrors.linkFailed, { message: reason });
+    return reportErrors(
+        ctx,
+        errors,
+        fail(consoleErrors.linkFailed, {
+            message: failure ?? errors.at(-1) ?? 'The Console link did not finish.',
+        }),
+    );
 }

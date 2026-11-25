@@ -1,16 +1,9 @@
 import { InputNeed } from '@vendure/common/lib/command';
 
 import {
-    DeviceLoginDeniedError,
-    DeviceLoginExpiredError,
-    DeviceLoginPendingError,
-    DeviceLoginReplacedError,
     NotLoggedInError,
-    ReauthenticationRequiredError,
-    SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
-    SessionUnstorableError,
 } from '../../auth/auth-errors.js';
 import { AuthOptions } from '../../auth/auth-options.js';
 import {
@@ -37,6 +30,7 @@ import {
 } from '../../auth/credential.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 
+import { isCliMadeError } from '../../shared/cli-made-error.js';
 import { ConsoleCliError } from './console-cli-error.js';
 import {
     ConsoleLinkContext,
@@ -161,7 +155,7 @@ interface StoredLogin {
     refusal?: Error;
 }
 
-class ConsoleRequestError extends Error {
+class ConsoleRequestError extends ConsoleCliError {
     constructor(
         message: string,
         readonly httpStatus?: number,
@@ -184,7 +178,7 @@ class CommandInterruptedError extends Error {
  * with the input to change and the next steps. The next steps hold no option
  * values, only what Console returned and the flags to use.
  */
-class ConsoleInputError extends Error {
+class ConsoleInputError extends ConsoleCliError {
     constructor(
         message: string,
         readonly need: InputNeed,
@@ -381,7 +375,13 @@ export async function previewConsoleChange(
                 signal,
             );
         } catch (error) {
-            if (signal.aborted || error instanceof CommandInterruptedError) {
+            // A Project the account does not have is the caller's input to fix, not a link to
+            // consent to: the run reports it, with the Projects to choose from.
+            if (
+                signal.aborted ||
+                error instanceof CommandInterruptedError ||
+                error instanceof ConsoleInputError
+            ) {
                 throw error;
             }
             // A lookup that failed cannot show that the link stays, so the link needs the consent,
@@ -437,32 +437,13 @@ export function describeConsoleError(
     return { kind: 'failed', message: reportableMessage(error, outputMode) };
 }
 
-/** The errors whose messages the CLI wrote, so they hold no response body or credential. */
-const CLI_ERRORS = [
-    ConsoleCliError,
-    ConsoleRequestError,
-    ConsoleInputError,
-    ConsoleTokenRefusedError,
-    OrganizationNotFoundError,
-    NotLoggedInError,
-    SessionRejectedError,
-    SessionRefreshUnavailableError,
-    SessionUnstorableError,
-    ReauthenticationRequiredError,
-    SessionLockUnavailableError,
-    DeviceLoginDeniedError,
-    DeviceLoginExpiredError,
-    DeviceLoginPendingError,
-    DeviceLoginReplacedError,
-];
-
 /**
  * The message to report for `error`: its own when the CLI wrote it, or when a person reads the
  * output. Otherwise, such as for a library error without a person, a general one, as 3.x reported
  * under `--json`.
  */
 function reportableMessage(error: unknown, outputMode: ConsoleCommandDependencies['outputMode']): string {
-    if (outputMode === 'json' && !CLI_ERRORS.some(type => error instanceof type)) {
+    if (outputMode === 'json' && !isCliMadeError(error)) {
         return 'The Console command failed.';
     }
     return error instanceof Error ? error.message : String(error);

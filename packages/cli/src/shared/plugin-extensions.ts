@@ -17,3 +17,15 @@ export function getPluginExtensions<T = unknown>(
 ): ReadonlyArray<RegisteredCliPluginExtension<T>> {
     return accessor ? accessor<T>(extensionPoint) : [];
 }
+
+let pluginProjectRoot: string | undefined;
+
+/** Records the project whose CLI plugins the CLI loaded. The CLI calls it as it loads them. */
+export function setPluginProjectRoot(projectRoot: string | undefined): void {
+    pluginProjectRoot = projectRoot;
+}
+
+/** The project whose CLI plugins the CLI loaded. Undefined outside the CLI, or before plugins load. */
+export function getPluginProjectRoot(): string | undefined {
+    return pluginProjectRoot;
+}

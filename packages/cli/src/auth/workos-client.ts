@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { CliMadeError } from '../shared/cli-made-error.js';
 import {
     AUTH_LOGIN_COMMAND,
     DeviceLoginDeniedError,
@@ -101,7 +102,7 @@ export async function startDeviceAuthorization(
     );
     if (!response.ok) {
         const code = await readErrorCode(response);
-        throw new Error(
+        throw new CliMadeError(
             `Could not start the login: the authentication service answered ${describeFailure(response, code)}.`,
         );
     }
@@ -115,7 +116,7 @@ export async function startDeviceAuthorization(
         !isHttpsUrl(body.verification_uri_complete) ||
         !positiveNumber(body.expires_in)
     ) {
-        throw new Error('The authentication service returned a malformed device authorization.');
+        throw new CliMadeError('The authentication service returned a malformed device authorization.');
     }
     return {
         deviceCode: body.device_code,
@@ -189,7 +190,7 @@ export async function pollDeviceAuthorization(
             break;
         }
         const advice = code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
-        throw new Error(
+        throw new CliMadeError(
             `The login failed: the authentication service answered ${describeFailure(response, code)}.${advice}`,
         );
     }
@@ -284,7 +285,9 @@ async function workosRequest(
         });
     } catch (error) {
         if (options.signal?.aborted) throw error;
-        throw new Error('Could not reach the authentication service. Check your connection and try again.');
+        throw new CliMadeError(
+            'Could not reach the authentication service. Check your connection and try again.',
+        );
     }
 }
 
@@ -300,17 +303,25 @@ async function readErrorCode(response: Response): Promise<string | undefined> {
     return typeof body.code === 'string' ? body.code : undefined;
 }
 
+/**
+ * The status, and the service's error code when it is a short identifier such as `invalid_grant`.
+ * Anything else the response holds stays out of the message.
+ */
 function describeFailure(response: Response, code: string | undefined): string {
-    return code ? `${code} (HTTP ${response.status})` : `HTTP ${response.status}`;
+    return code && /^[a-z][a-z0-9_]{0,63}$/.test(code)
+        ? `${code} (HTTP ${response.status})`
+        : `HTTP ${response.status}`;
 }
 
 function parseAuthentication(body: unknown): WorkosAuthentication {
     if (!isRecord(body) || !nonEmpty(body.access_token) || !nonEmpty(body.refresh_token)) {
-        throw new Error('The authentication service returned a malformed authentication response.');
+        throw new CliMadeError('The authentication service returned a malformed authentication response.');
     }
     const user = body.user;
     if (!isRecord(user) || !nonEmpty(user.id) || typeof user.email !== 'string') {
-        throw new Error('The authentication service returned an authentication response without a user.');
+        throw new CliMadeError(
+            'The authentication service returned an authentication response without a user.',
+        );
     }
     return {
         accessToken: body.access_token,

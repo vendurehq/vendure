@@ -10,7 +10,7 @@ import { LinkInput } from './console.schema.js';
  * for one replacement never applies to another.
  */
 export async function plan(input: LinkInput, ctx: CommandContext): Promise<CommandPlan | ErrorResult> {
-    const refused = projectIsDirectory(input.project, ctx.cwd, input.dir);
+    const refused = projectIsDirectory(input, ctx.cwd);
     if (refused) {
         return refused;
     }

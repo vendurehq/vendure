@@ -553,7 +553,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.name).toBe('Wholesale');
     });
 
-    it('links with --non-interactive, --force and --console-project using the stored login', async () => {
+    it('links the Project --project names with the replaceLink consent, using the stored login', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         const other = { ...manifest, project: { id: OTHER_PROJECT_ID, name: 'Wholesale' } };
@@ -579,7 +579,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
-    it('refuses a --console-project that is not a project of the account, and names --organization', async () => {
+    it('refuses a --project that is not a project of the account, and names --organization', async () => {
         const root = vendureProject();
         const fetchMock = sequenceFetch(
             jsonResponse(
@@ -622,7 +622,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
-    it('does not suggest --force when the slug of the linked project cannot be read', async () => {
+    it('does not suggest the replaceLink consent when the slug of the linked project cannot be read', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         const fetchMock = sequenceFetch(new Response('{}', { status: 503 }));
@@ -635,7 +635,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
-    it('asks for the linked project id, not --force, when the slug cannot be checked', async () => {
+    it('names the linked project id and the replaceLink consent when the slug cannot be checked', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         // Console sends no slug for the linked Project.
@@ -654,7 +654,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
-    it('names the projects, not --force, when --console-project names no project of a linked account', async () => {
+    it('names the projects, not the replaceLink consent, when --project names no project of a linked account', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         const fetchMock = sequenceFetch(jsonResponse(projectList()));
@@ -669,7 +669,7 @@ describe('console command', () => {
     });
 
     // CLO-1166 — a coding agent using --json learns the valid slugs and the flags from the result
-    describe('--console-project refusals with --json', () => {
+    describe('--project refusals without a person', () => {
         const twoProjects = () =>
             jsonResponse(
                 projectList([
@@ -688,7 +688,7 @@ describe('console command', () => {
             };
         }
 
-        it('detaches nothing when --force without --console-project cannot choose a Project', async () => {
+        it('detaches nothing when the replaceLink consent without --project cannot choose a Project', async () => {
             const root = previouslyLinkedWithAttribution();
             const fetchMock = sequenceFetch(twoProjects());
 
@@ -701,7 +701,7 @@ describe('console command', () => {
             expect(fs.existsSync(path.join(root, '.vendure', 'telemetry-attribution.json'))).toBe(true);
         });
 
-        it('lists the projects and names --organization when --console-project names none of them', async () => {
+        it('lists the projects and names --organization when --project names none of them', async () => {
             const root = vendureProject();
             const run = await runJson(root, sequenceFetch(twoProjects()), {
                 project: 'parts-counter',
@@ -727,7 +727,7 @@ describe('console command', () => {
             expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
         });
 
-        it('lists the projects and names --console-project when the account has several', async () => {
+        it('lists the projects and names --project when the account has several', async () => {
             const root = vendureProject();
             const fetchMock = sequenceFetch(twoProjects());
             const test = testDependencies(root, fetchMock, { outputMode: 'json' });
@@ -837,7 +837,7 @@ describe('console command', () => {
         expect(test.messages.join('\n')).toContain('Already linked to Storefront in Acme.');
     });
 
-    it('repairs the link when --console-project names the linked project by slug', async () => {
+    it('repairs the link when --project names the linked project by slug', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         const fetchMock = sequenceFetch(jsonResponse(projectList()));
@@ -850,7 +850,7 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
     });
 
-    it('repairs the link when --console-project names the linked project by id', async () => {
+    it('repairs the link when --project names the linked project by id', async () => {
         const root = vendureProject();
         fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
         const fetchMock = vi.fn();
@@ -1031,7 +1031,7 @@ describe('console command', () => {
         expect(test.messages.join('\n')).toContain('does not allow you to see its projects');
     });
 
-    it('does not let --force bypass a cross-root Project Link Manifest', async () => {
+    it('does not let the replaceLink consent bypass a cross-root Project Link Manifest', async () => {
         const { workspace, project } = vendureMonorepo();
         const ancestorManifest = getProjectLinkManifestPath(workspace);
         fs.ensureDirSync(path.dirname(ancestorManifest));
@@ -1044,7 +1044,7 @@ describe('console command', () => {
         expect(test.messages.join('\n')).toContain('outside the selected Vendure project');
     });
 
-    it('fails closed for replacement in non-interactive mode and allows --force', async () => {
+    it('fails closed for replacement without the consent, and allows it with the replaceLink consent', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         // An invalid manifest is the case that still has to be replaced: there
@@ -1070,7 +1070,7 @@ describe('console command', () => {
         });
     });
 
-    it('uses --force to replace a valid manifest with a new Project Link', async () => {
+    it('uses the replaceLink consent to replace a valid manifest with a new Project Link', async () => {
         const root = vendureProject();
         const previous: ProjectLinkManifest = {
             ...localManifest,

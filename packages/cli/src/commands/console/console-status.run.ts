@@ -26,6 +26,7 @@ export async function run(input: DirInput, ctx: CommandContext) {
         return fail(consoleErrors.manifestInvalid, {
             manifestPath: status.manifestPath,
             reason: status.reason,
+            ...(input.dir ? { dir: input.dir } : {}),
         });
     }
     return statusOutput(status);

@@ -2,7 +2,12 @@ import { CommandContext, fail } from '@vendure/common/lib/command';
 
 import { hostErrors } from '../../command-host/host-errors.js';
 
-import { consoleDependencies, previewForRun, resolveConsoleProject } from './console-context.js';
+import {
+    consoleDependencies,
+    previewForRun,
+    reportErrors,
+    resolveConsoleProject,
+} from './console-context.js';
 import { consoleErrors } from './console.errors.js';
 import { runConsole } from './console.js';
 import { DirInput, UnlinkOutput } from './console.schema.js';
@@ -17,7 +22,7 @@ export async function run(input: DirInput, ctx: CommandContext) {
         return project.error;
     }
     const { dependencies, errors } = consoleDependencies(ctx);
-    // The host runs this only once the caller gave the consent `plan()` asked for.
+    // The run works from the preview whose consent the host asked for, as `plan()` recorded it.
     const previewed = await previewForRun('unlink', input, ctx, dependencies, consoleErrors.unlinkFailed);
     if ('result' in previewed) {
         return previewed.result;
@@ -32,14 +37,18 @@ export async function run(input: DirInput, ctx: CommandContext) {
         return fail(hostErrors.cancelled, {});
     }
     if (exitCode !== 0 || typeof preview.manifestPath !== 'string') {
-        return fail(consoleErrors.unlinkFailed, {
-            message: failure ?? errors.at(-1) ?? 'The Console unlink did not finish.',
-        });
+        return reportErrors(
+            ctx,
+            errors,
+            fail(consoleErrors.unlinkFailed, {
+                message: failure ?? errors.at(-1) ?? 'The Console unlink did not finish.',
+            }),
+        );
     }
-    return {
+    return reportErrors(ctx, errors, {
         removed: removed === true,
         manifestPath: preview.manifestPath,
-    } satisfies UnlinkOutput;
+    } satisfies UnlinkOutput);
 }
 
 export function render(output: UnlinkOutput): string {
