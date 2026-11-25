@@ -151,9 +151,11 @@ export async function runInTestHost(
     const writeStdout = process.stdout.write;
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const writeStderr = process.stderr.write;
+    /* eslint-disable no-console -- the console is what this replaces, to catch a command that prints */
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const consoleMethods = CONSOLE_METHODS.map(name => [name, console[name]] as const);
-    process.stdout.write = capture as typeof process.stdout.write;
-    process.stderr.write = capture as typeof process.stderr.write;
+    process.stdout.write = capture;
+    process.stderr.write = capture;
     for (const name of CONSOLE_METHODS) {
         console[name] = capture;
     }
@@ -166,6 +168,7 @@ export async function runInTestHost(
         for (const [name, method] of consoleMethods) {
             console[name] = method;
         }
+        /* eslint-enable no-console */
         activeRun = false;
     }
     if (printed.length > 0) {
