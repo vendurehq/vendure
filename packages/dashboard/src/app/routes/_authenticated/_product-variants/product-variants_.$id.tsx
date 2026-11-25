@@ -428,6 +428,7 @@ function ProductVariantDetailPage() {
         isChannelStockSettingsPending ? (
             <>
                 {label} <Skeleton className="inline-block h-[0.8lh] w-24 align-middle" aria-hidden="true" />
+                <span className="sr-only">{t`Loading…`}</span>
             </>
         ) : (
             label
@@ -770,18 +771,23 @@ function ProductVariantDetailPage() {
                                     stock. Using a negative value enables backorder support.
                                 </Trans>
                             }
-                            render={({ field }) => (
-                                <Input
-                                    type="number"
-                                    disabled={effectiveStock.thresholdDisabled}
-                                    value={
-                                        effectiveStock.thresholdDisabled
-                                            ? effectiveStock.displayedThreshold
-                                            : field.value
-                                    }
-                                    onChange={e => field.onChange(e.target.valueAsNumber)}
-                                />
-                            )}
+                            render={({ field }) =>
+                                // The Channel's threshold is unknown until its settings load
+                                effectiveStock.thresholdDisabled && isChannelStockSettingsPending ? (
+                                    <Skeleton className="h-8.5 w-full" aria-hidden="true" />
+                                ) : (
+                                    <Input
+                                        type="number"
+                                        disabled={effectiveStock.thresholdDisabled}
+                                        value={
+                                            effectiveStock.thresholdDisabled
+                                                ? effectiveStock.displayedThreshold
+                                                : field.value
+                                        }
+                                        onChange={e => field.onChange(e.target.valueAsNumber)}
+                                    />
+                                )
+                            }
                         />
                     </DetailFormGrid>
                     {stockLevels?.map((stockLevel, index) => {
