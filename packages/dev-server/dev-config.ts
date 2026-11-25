@@ -158,11 +158,8 @@ export const devConfig: VendureConfig = {
             },
         }),
         // The Store MCP, which `vendure store check` and the MCP tools use. `vendure dev` trusts the
-        // local `vendure mcp` server. The secret is for this development server only.
-        McpPlugin.init({
-            oauth: { tokenSecret: process.env.MCP_TOKEN_SECRET ?? 'dev-server-mcp-token-secret' },
-            shopAccess: 'anonymous',
-        }),
+        // local `vendure mcp` server, so no OAuth is configured.
+        McpPlugin.init({ shopAccess: 'anonymous' }),
         ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
         SERVE_STATIC_DASHBOARD
             ? DashboardPlugin.init({
