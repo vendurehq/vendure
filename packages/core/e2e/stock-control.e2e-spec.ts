@@ -17,6 +17,7 @@ import {
     type Order,
     type OrderState,
     PaymentMethodHandler,
+    Release,
     type RequestContext,
     RequestContextService,
     StockLevel,
@@ -39,15 +40,22 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod, twoStagePaymentMethod } from './fixtures/test-payment-methods';
+import {
+    testCreateStockLocationDocument,
+    testGetStockLevelsForVariantDocument,
+} from './graphql/admin-definitions';
 import { fulfillmentFragment, variantWithStockFragment } from './graphql/fragments-admin';
 import { FragmentOf, graphql } from './graphql/graphql-admin';
 import { graphql as graphqlShop } from './graphql/graphql-shop';
 import {
+    addManualPaymentToOrderDocument,
+    adminTransitionToStateDocument,
     cancelOrderDocument,
     createFulfillmentDocument,
     getOrderDocument,
     getStockMovementByTypeDocument,
     getStockMovementDocument,
+    modifyOrderDocument,
     settlePaymentDocument,
     updateGlobalSettingsDocument,
     updateProductVariantsDocument,
@@ -60,6 +68,7 @@ import {
     getEligibleShippingMethodsDocument,
     getProductWithStockLevelDocument,
     removeAllOrderLinesDocument,
+    setCustomerDocument,
     setShippingAddressDocument,
     setShippingMethodDocument,
     testOrderFragment,
@@ -1829,6 +1838,205 @@ describe('Stock control', () => {
             } finally {
                 subscription.unsubscribe();
             }
+        });
+    });
+
+    // #5670 - an OrderLine allocated at two StockLocations releases its stock from the location
+    // which still holds the allocation
+    describe('releasing an OrderLine allocated at two StockLocations', () => {
+        const variantId = 'T_3';
+        const defaultLocationId = 'T_1';
+        let secondLocationId: string;
+        let baseline: Map<string, number>;
+        let guestCount = 0;
+
+        async function getAllocatedByLocation(): Promise<Map<string, number>> {
+            const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                id: variantId,
+            });
+            return new Map(
+                productVariant!.stockLevels.map(level => [level.stockLocationId, level.stockAllocated]),
+            );
+        }
+
+        async function expectAllocatedDelta(atDefault: number, atSecond: number) {
+            const allocated = await getAllocatedByLocation();
+            expect({
+                default: allocated.get(defaultLocationId)! - baseline.get(defaultLocationId)!,
+                second: allocated.get(secondLocationId)! - baseline.get(secondLocationId)!,
+            }).toEqual({ default: atDefault, second: atSecond });
+        }
+
+        /**
+         * Places an order for 1 unit, which is allocated at the default location because it has
+         * one unit available, then modifies the line to `quantity`, which allocates the rest at the
+         * second location. This is the reproduction from #5670.
+         */
+        async function placeOrderAllocatedAtTwoLocations(
+            quantity = 2,
+        ): Promise<{ orderId: string; lineId: string }> {
+            const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                id: variantId,
+            });
+            const allocatedAtDefault = productVariant!.stockLevels.find(
+                l => l.stockLocationId === defaultLocationId,
+            )!.stockAllocated;
+            const allocatedAtSecond = productVariant!.stockLevels.find(
+                l => l.stockLocationId === secondLocationId,
+            )?.stockAllocated;
+            await adminClient.query(updateProductVariantsDocument, {
+                input: [
+                    {
+                        id: variantId,
+                        trackInventory: GlobalFlag.TRUE,
+                        useGlobalOutOfStockThreshold: false,
+                        outOfStockThreshold: 0,
+                        stockLevels: [
+                            { stockLocationId: defaultLocationId, stockOnHand: allocatedAtDefault + 1 },
+                            { stockLocationId: secondLocationId, stockOnHand: (allocatedAtSecond ?? 0) + 5 },
+                        ],
+                    },
+                ],
+            });
+            baseline = await getAllocatedByLocation();
+
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: variantId,
+                quantity: 1,
+            });
+            orderGuard.assertSuccess(addItemToOrder);
+            await shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: `split-allocation-${++guestCount}@test.com`,
+                    firstName: 'Split',
+                    lastName: 'Allocation',
+                },
+            });
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(order);
+            expect(order.state).toBe('PaymentSettled');
+            await expectAllocatedDelta(1, 0);
+
+            const modifying = await adminClient.query(adminTransitionToStateDocument, {
+                id: order.id,
+                state: 'Modifying',
+            });
+            expect((modifying.transitionOrderToState as any).state).toBe('Modifying');
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: order.id,
+                    adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity }],
+                },
+            });
+            expect((modifyOrder as any).lines[0].quantity).toBe(quantity);
+            await adminClient.query(adminTransitionToStateDocument, {
+                id: order.id,
+                state: 'ArrangingAdditionalPayment',
+            });
+            const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentToOrderDocument, {
+                input: { orderId: order.id, method: 'test', transactionId: 'split', metadata: {} },
+            });
+            expect((addManualPaymentToOrder as any).id).toBe(order.id);
+            const settled = await adminClient.query(adminTransitionToStateDocument, {
+                id: order.id,
+                state: 'PaymentSettled',
+            });
+            expect((settled.transitionOrderToState as any).state).toBe('PaymentSettled');
+            await expectAllocatedDelta(1, quantity - 1);
+
+            return { orderId: order.id, lineId: order.lines[0].id };
+        }
+
+        async function cancelUnits(orderId: string, lineId: string, quantity: number) {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId, lines: [{ orderLineId: lineId, quantity }] },
+            });
+            orderGuard.assertSuccess(cancelOrder as any);
+            return cancelOrder as { state: string; lines: Array<{ quantity: number }> };
+        }
+
+        function getReleaseRows(lineId: string) {
+            return server.app
+                .get(TransactionalConnection)
+                .rawConnection.getRepository(Release)
+                .find({ where: { orderLine: { id: lineId.replace(/^T_/, '') } } });
+        }
+
+        beforeAll(async () => {
+            const { createStockLocation } = await adminClient.query(testCreateStockLocationDocument, {
+                input: { name: 'Warehouse 2', description: 'Second location for split allocations' },
+            });
+            secondLocationId = createStockLocation.id;
+        });
+
+        it('cancelling one unit at a time releases each unit from the location which holds it', async () => {
+            const { orderId, lineId } = await placeOrderAllocatedAtTwoLocations();
+
+            const { cancelOrder: first } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId, lines: [{ orderLineId: lineId, quantity: 1 }] },
+            });
+            expect((first as any).lines[0].quantity).toBe(1);
+
+            const { cancelOrder: second } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId, lines: [{ orderLineId: lineId, quantity: 1 }] },
+            });
+            expect((second as any).state).toBe('Cancelled');
+
+            await expectAllocatedDelta(0, 0);
+        });
+
+        it('a single cancellation spanning both locations records the quantity released at each', async () => {
+            const { orderId, lineId } = await placeOrderAllocatedAtTwoLocations();
+
+            const cancelled = await cancelUnits(orderId, lineId, 2);
+            expect(cancelled.state).toBe('Cancelled');
+
+            await expectAllocatedDelta(0, 0);
+            const releases = await getReleaseRows(lineId);
+            expect(
+                releases.map(r => ({ stockLocationId: String(r.stockLocationId), quantity: r.quantity })),
+            ).toEqual(
+                expect.arrayContaining([
+                    { stockLocationId: defaultLocationId.replace(/^T_/, ''), quantity: 1 },
+                    { stockLocationId: secondLocationId.replace(/^T_/, ''), quantity: 1 },
+                ]),
+            );
+            expect(releases.length).toBe(2);
+        });
+
+        it('a later cancellation releases what is left after an earlier one spanned both locations', async () => {
+            const { orderId, lineId } = await placeOrderAllocatedAtTwoLocations(3);
+
+            await cancelUnits(orderId, lineId, 2);
+            await expectAllocatedDelta(0, 1);
+
+            const cancelled = await cancelUnits(orderId, lineId, 1);
+            expect(cancelled.state).toBe('Cancelled');
+            await expectAllocatedDelta(0, 0);
+        });
+
+        it('modifyOrder releases each removed unit from the location which holds it', async () => {
+            const { orderId, lineId } = await placeOrderAllocatedAtTwoLocations();
+            const { order } = await adminClient.query(getOrderDocument, { id: orderId });
+            const paymentId = order!.payments!.find(p => p.transactionId !== 'split')!.id;
+
+            for (const quantity of [1, 0]) {
+                await adminClient.query(adminTransitionToStateDocument, { id: orderId, state: 'Modifying' });
+                const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                    input: {
+                        dryRun: false,
+                        orderId,
+                        adjustOrderLines: [{ orderLineId: lineId, quantity }],
+                        refund: { paymentId },
+                    },
+                });
+                expect((modifyOrder as any).lines[0].quantity).toBe(quantity);
+            }
+
+            await expectAllocatedDelta(0, 0);
         });
     });
 });
