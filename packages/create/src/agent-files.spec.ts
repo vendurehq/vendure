@@ -63,6 +63,9 @@ describe('renderAgentsMd()', () => {
         expect(text).toContain('- `pnpm run dev`: start the local environment.');
         expect(text).toContain('`pnpm exec vendure guide`');
         expect(text).toContain('`pnpm exec vendure migrate -g <name>`');
+        // The preview known issue: remove with the note once the CLI resolves a Cloud config.
+        expect(text).toContain('`pnpm exec vendure doctor --check project dependencies`');
+        expect(text).toContain('`pnpm exec vendure devserver status --json`');
         expect(text).not.toMatch(/\bnpm run\b|\bnpx\b|\{\{/);
     });
 
