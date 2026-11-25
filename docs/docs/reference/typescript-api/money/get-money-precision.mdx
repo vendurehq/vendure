@@ -1,0 +1,25 @@
+---
+title: "GetMoneyPrecision"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/entity/money-strategy.ts" sourceLine="129" packageName="@vendure/core" since="3.8.3" />
+
+Returns the number of decimal places of the given [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy), which is
+[DEFAULT_MONEY_PRECISION](/reference/typescript-api/money/default_money_precision#default_money_precision) unless the strategy sets `precision`.
+
+*Example*
+
+```ts
+const precision = getMoneyPrecision(configService.entityOptions.moneyStrategy);
+const majorUnits = amount / 10 ** precision;
+```
+
+```ts title="Signature"
+function getMoneyPrecision(moneyStrategy: Pick<MoneyStrategy, 'precision'>): number
+```
+Parameters
+
+### moneyStrategy
+
+<MemberInfo kind="parameter" type={`Pick<<a href='/reference/typescript-api/money/money-strategy#moneystrategy'>MoneyStrategy</a>, 'precision'>`} />
+

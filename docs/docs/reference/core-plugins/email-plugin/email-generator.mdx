@@ -41,13 +41,14 @@ interpolated email text.
 </div>
 ## HandlebarsMjmlGenerator
 
-<GenerationInfo sourceFile="packages/email-plugin/src/generator/handlebars-mjml-generator.ts" sourceLine="17" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/generator/handlebars-mjml-generator.ts" sourceLine="18" packageName="@vendure/email-plugin" />
 
 Uses Handlebars (https://handlebarsjs.com/) to output MJML (https://mjml.io) which is then
 compiled down to responsive email HTML.
 
 ```ts title="Signature"
 class HandlebarsMjmlGenerator implements EmailGenerator {
+    init(injector: Injector) => ;
     onInit(options: InitializedEmailPluginOptions) => ;
     generate(from: string, subject: string, template: string, templateVars: any) => ;
 }
@@ -57,6 +58,11 @@ class HandlebarsMjmlGenerator implements EmailGenerator {
 
 
 <div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
 
 ### onInit
 

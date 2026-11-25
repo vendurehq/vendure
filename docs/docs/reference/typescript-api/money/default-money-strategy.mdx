@@ -4,8 +4,8 @@ generated: true
 ---
 <GenerationInfo sourceFile="packages/core/src/config/entity/default-money-strategy.ts" sourceLine="14" packageName="@vendure/core" since="2.0.0" />
 
-A [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy) that stores monetary values as a `int` type in the database.
-The storage configuration and rounding logic replicates the behaviour of Vendure pre-2.0.
+A [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy) that stores monetary values as an `int` type in the database.
+Multiplies the unit amount by the quantity and rounds the resulting line amount.
 
 ```ts title="Signature"
 class DefaultMoneyStrategy implements MoneyStrategy {
