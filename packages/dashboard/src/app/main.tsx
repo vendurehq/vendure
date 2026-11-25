@@ -22,6 +22,7 @@ import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProviders, queryClient } from './app-providers.js';
+import { removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
 import { setDocumentDirection } from './common/set-document-direction.js';
 import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
@@ -110,11 +111,7 @@ function InnerApp() {
         if (!isReady) {
             return;
         }
-        if (router.state.status === 'idle' && router.state.resolvedLocation) {
-            removeBootSplash();
-            return;
-        }
-        return router.subscribe('onResolved', removeBootSplash);
+        return removeBootSplashWhenResolved(router);
     }, [isReady, router]);
 
     return (
@@ -129,16 +126,6 @@ function InnerApp() {
             </DirectionProvider>
         </>
     );
-}
-
-/**
- * Removes the boot screen of `index.html` on the frame after the router has
- * resolved the first page. It covers the cold load from the first paint, so the
- * splashes below and the pending page of the first route stay hidden behind it,
- * and the user sees one loading screen.
- */
-function removeBootSplash() {
-    requestAnimationFrame(() => document.getElementById('boot-splash')?.remove());
 }
 
 /**
@@ -191,6 +178,9 @@ function App() {
 const rootElement = document.getElementById('app')!;
 
 if (!rootElement.innerHTML) {
+    // An error that unmounts the app before the first page would leave the boot
+    // screen spinning. React reports uncaught errors to the window.
+    window.addEventListener('error', removeBootSplash, { once: true });
     const root = createRoot(rootElement);
     root.render(
         <React.StrictMode>

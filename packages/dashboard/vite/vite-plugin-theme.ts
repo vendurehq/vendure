@@ -61,6 +61,8 @@ export interface DashboardThemeOptions extends ThemeVariables {
      *
      * To override design tokens (e.g. brand colors), prefer the `light`/`dark`
      * theme options — `additionalStylesheets` is for layering custom CSS rules.
+     * The loading screen of a cold load reads only the `light`/`dark` options,
+     * because it paints before these stylesheets load.
      *
      * @example
      * ```ts
@@ -298,7 +300,7 @@ function generateTextStyleUtilities(): string {
  * with the app, so `index.html` gets these in an inline style to paint the boot
  * screen in the saved theme from the first frame.
  */
-const BOOT_VARIABLES = ['background', 'muted-foreground'];
+export const BOOT_VARIABLES = ['background', 'muted-foreground'];
 
 /**
  * Generates the inline style for `index.html`: the boot variables of the light
@@ -334,6 +336,7 @@ export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plug
                 {
                     tag: 'style',
                     children: generateBootStyle(mergedLightTheme, mergedDarkTheme),
+                    // First in the head, so every stylesheet after it wins once it loads.
                     injectTo: 'head-prepend',
                 },
             ];
