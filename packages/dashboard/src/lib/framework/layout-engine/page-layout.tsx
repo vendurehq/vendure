@@ -369,8 +369,9 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
         }
     }
 
-    // The card for locked Platform blocks goes at the bottom of its column.
-    if (lockedPageCard) {
+    // The card for locked Platform blocks goes at the bottom of its column. A
+    // skeleton leaves it out: it is real, focusable content.
+    if (lockedPageCard && !isSkeleton) {
         finalChildArray.push(
             <PlatformPromotionPageCard
                 key="platform-promotion"

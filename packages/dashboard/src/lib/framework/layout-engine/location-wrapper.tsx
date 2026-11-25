@@ -1,5 +1,6 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
+import { useIsPageSkeleton } from '@/vdb/hooks/use-is-page-skeleton.js';
 import { usePageBlock } from '@/vdb/hooks/use-page-block.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
@@ -25,6 +26,7 @@ export function LocationWrapper({ children, identifier }: Readonly<LocationWrapp
     const page = usePage();
     const pageBlock = usePageBlock({ optional: true });
     const { settings } = useUserSettings();
+    const isSkeleton = useIsPageSkeleton();
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const blockId = pageBlock?.blockId ?? null;
     const isPageWrapper = !blockId;
@@ -68,7 +70,8 @@ export function LocationWrapper({ children, identifier }: Readonly<LocationWrapp
         }
     };
 
-    if (settings.devMode) {
+    // A page skeleton is aria-hidden, so it gets no dev-mode buttons.
+    if (settings.devMode && !isSkeleton) {
         const pageId = page.pageId;
         return (
             <div
