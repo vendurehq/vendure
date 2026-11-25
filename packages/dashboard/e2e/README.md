@@ -76,9 +76,10 @@ bun run e2e:pw -- layout-stability
 
 - **Held network.** Every Admin API operation is held until the spec releases it (`harness/network.ts`). A scenario runs once per release order: all orders for up to 4 operations, else 10 orders shuffled from a seed. The seed is printed on failure; `LAYOUT_SEED=<n>` replays it.
 - **Response variants.** `harness/variants.ts` rewrites a real list response: 0 rows, 1 row, a full page, long names, no images, a large total.
-- **Continuous measurement.** A recorder (`harness/recorder.ts`) samples the tracked elements on every animation frame, labelled with the step ("held: ProductList", "released: ProductList"). It records layout-shift entries in the same timeline. Each element must keep its position and size in every frame, to the pixel, unless the scenario declares the change (`allow`). CLS must be 0.
+- **Continuous measurement.** A recorder (`harness/recorder.ts`) samples the tracked elements on every animation frame, labelled with the step ("held: ProductList", "released: ProductList"). It records layout-shift entries in the same timeline. Each element must keep its position and size in every frame, to the pixel, unless the scenario declares the change (`allow`). CLS must be 0. In a document the scenario loaded, layout shifts count from its start.
+- **Snapshots.** The Product list specs answer each list query with the first response for its variables, so other specs that change products do not change the rows mid-scenario.
 - **On failure** the message names the element, the change, the step and the release order, then the first bad frame and the layout-shift sources. The full timeline is written as JSON to the test output folder.
-- **Sweep.** `list-sweep.spec.ts` loads every list page (a cold reload, then the next page) and writes the CLS and the element that moved most to `test-results/layout-sweep/table.md`. It never fails.
+- **Sweep.** `list-sweep.spec.ts` loads every list page (a cold reload, then the next page) and writes the CLS and the element that moved most to `test-results/layout-sweep/table.md`. It never fails, and it runs only on request: `LAYOUT_SWEEP=1 bun run e2e:pw -- list-sweep`.
 
 ## Adding test pages via dashboard extensions
 

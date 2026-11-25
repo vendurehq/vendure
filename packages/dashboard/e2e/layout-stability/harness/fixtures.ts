@@ -16,7 +16,6 @@ const seed = layoutSeed();
 export const test = base.extend<{ anchors: AnchorSpec[]; layout: LayoutContext }>({
     anchors: [LIST_PAGE_ANCHORS, { option: true }],
     layout: async ({ page, anchors }, use, testInfo) => {
-        await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.addInitScript(installRecorder, anchors);
         const network = new HeldNetwork(page);
         await network.install();

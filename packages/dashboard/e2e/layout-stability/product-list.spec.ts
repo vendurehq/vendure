@@ -1,10 +1,17 @@
 import type { Page } from '@playwright/test';
 
 import type { AllowRule } from './harness/analyze.js';
-import { EVERY_ROW, LIST_PAGE_ANCHORS, waitForList } from './harness/anchors.js';
+import { EVERY_ROW, LIST_PAGE_ANCHORS, TABLE, waitForList } from './harness/anchors.js';
 import { test, VIEWPORTS } from './harness/fixtures.js';
 import { forEachOrder, type LayoutContext, once, settle } from './harness/scenario.js';
-import { fillPage, LIST_VARIANTS, type ListVariant, listVariant } from './harness/variants.js';
+import {
+    fillPage,
+    frozen,
+    LIST_VARIANTS,
+    type ListVariant,
+    listVariant,
+    pageSize,
+} from './harness/variants.js';
 
 /**
  * The Product list must not move while it loads, between its loading, empty
@@ -14,7 +21,6 @@ import { fillPage, LIST_VARIANTS, type ListVariant, listVariant } from './harnes
  */
 
 const LIST = 'ProductList';
-const TABLE = '[data-slot="data-table"]';
 
 async function openList(ctx: LayoutContext) {
     await ctx.page.goto('/products');
@@ -24,16 +30,14 @@ async function openList(ctx: LayoutContext) {
 
 /** The sidebar link to the Product list, with the sidebar (mobile) and its Catalog section open. */
 async function productsNavLink(page: Page) {
-    const link = page.locator('[data-slot="sidebar"] a[href$="/products"]').first();
-    const catalog = page.locator('[data-slot="sidebar"]').getByRole('button', { name: 'Catalog' }).first();
-    if (!(await catalog.isVisible())) {
+    const sidebar = page.locator('[data-slot="sidebar"]');
+    const catalog = sidebar.getByRole('button', { name: 'Catalog' }).first();
+    if ((page.viewportSize()?.width ?? 0) < 768)
         await page.locator('[data-sidebar="trigger"]').first().click();
-        await catalog.waitFor();
-    }
-    if (!(await link.isVisible())) {
-        await catalog.click();
-        await link.waitFor();
-    }
+    await catalog.waitFor();
+    if ((await catalog.getAttribute('aria-expanded')) !== 'true') await catalog.click();
+    const link = sidebar.locator('a[href$="/products"]').first();
+    await link.waitFor();
     return link;
 }
 
@@ -53,7 +57,6 @@ const ROWS_BELOW_MAY_MOVE: AllowRule[] = [
     // Layout-shift entries of the body's rows, the footer and its pagination
     // (the source path ends in one of them).
     {
-        anchor: /^$/,
         node: /(^|> )(\w+\[data-slot="(card-footer|table-body|table-row|table-cell|table-pagination[\w-]*)"\]|t[rd](:nth-child\(\d+\))?)$/,
     },
 ];
@@ -62,10 +65,12 @@ for (const viewport of VIEWPORTS) {
     test.describe(`Product list layout at ${viewport.width}`, () => {
         test.use({ viewport: { width: viewport.width, height: viewport.height } });
         test.describe.configure({ timeout: 300_000 });
+        // A snapshot of the server's list: other specs change products while these run.
+        test.beforeEach(({ layout }) => layout.network.rewrite(LIST, frozen()));
 
         for (const variant of Object.keys(LIST_VARIANTS) as ListVariant[]) {
             test(`cold reload, ${LIST_VARIANTS[variant]}`, async ({ layout }) => {
-                layout.network.rewrite(LIST, listVariant(variant));
+                layout.network.rewrite(LIST, frozen(listVariant(variant)));
                 await forEachOrder(layout, {
                     name: `cold reload (${variant})`,
                     // The previous visit, as a signed-in user reloading the page has had.
@@ -113,7 +118,7 @@ for (const viewport of VIEWPORTS) {
         });
 
         test.describe('paging', () => {
-            test.beforeEach(({ layout }) => layout.network.rewrite(LIST, listVariant('fullPage')));
+            test.beforeEach(({ layout }) => layout.network.rewrite(LIST, frozen(listVariant('fullPage'))));
 
             test('next page', async ({ layout }) => {
                 await once(layout, {
@@ -152,7 +157,7 @@ for (const viewport of VIEWPORTS) {
         });
 
         test('sorting a column', async ({ layout }) => {
-            layout.network.rewrite(LIST, listVariant('fullPage'));
+            layout.network.rewrite(LIST, frozen(listVariant('fullPage')));
             await once(layout, {
                 name: 'sort by name',
                 prepare: openList,
@@ -187,7 +192,7 @@ for (const viewport of VIEWPORTS) {
             }
 
             test('add a filter', async ({ layout }) => {
-                layout.network.rewrite(LIST, listVariant('fullPage'));
+                layout.network.rewrite(LIST, frozen(listVariant('fullPage')));
                 await once(layout, {
                     name: 'add filter',
                     prepare: openList,
@@ -197,7 +202,7 @@ for (const viewport of VIEWPORTS) {
             });
 
             test('remove a filter', async ({ layout }) => {
-                layout.network.rewrite(LIST, listVariant('fullPage'));
+                layout.network.rewrite(LIST, frozen(listVariant('fullPage')));
                 await once(layout, {
                     name: 'remove filter',
                     prepare: async ctx => {
@@ -212,7 +217,7 @@ for (const viewport of VIEWPORTS) {
         });
 
         test('search typing', async ({ layout }) => {
-            layout.network.rewrite(LIST, listVariant('fullPage'));
+            layout.network.rewrite(LIST, frozen(listVariant('fullPage')));
             await once(layout, {
                 name: 'search',
                 prepare: openList,
@@ -259,14 +264,19 @@ for (const viewport of VIEWPORTS) {
 
             test('deleting a row moves only the rows below it', async ({ layout }) => {
                 const deleted = new Set<string>();
-                layout.network.rewrite(LIST, (data, variables) => {
-                    const items = data.products.items.filter((item: any) => !deleted.has(item.id));
-                    const take = Number(variables?.options?.take) || 10;
-                    return {
-                        ...data,
-                        products: { items: fillPage(items, take), totalItems: 120 - deleted.size },
-                    };
-                });
+                layout.network.rewrite(
+                    LIST,
+                    frozen((data, variables) => {
+                        const items = data.products.items.filter((item: any) => !deleted.has(item.id));
+                        return {
+                            ...data,
+                            products: {
+                                items: fillPage(items, pageSize(variables)),
+                                totalItems: 120 - deleted.size,
+                            },
+                        };
+                    }),
+                );
                 // The server keeps the product: other specs share its data.
                 layout.network.fake('DeleteProduct', () => ({
                     deleteProduct: { result: 'DELETED', message: null },

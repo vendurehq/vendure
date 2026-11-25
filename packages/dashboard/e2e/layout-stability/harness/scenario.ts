@@ -87,16 +87,23 @@ async function retryOnNavigation<T>(page: Page, fn: () => Promise<T>): Promise<T
     }
 }
 
-/** Starts the recorder in the current document, after every declared font has loaded. */
-async function startRecorder(page: Page, label: string) {
+/**
+ * Starts the recorder in the current document, after every declared font has
+ * loaded. In a document the scenario loaded (`newDocument`), the layout shifts
+ * from its start count too.
+ */
+async function startRecorder(page: Page, label: string, newDocument = false) {
     await retryOnNavigation(page, async () => {
         await page.waitForFunction(() => !!window.__layout);
-        await page.evaluate(async first => {
-            await Promise.all(Array.from(document.fonts).map(face => face.load().catch(() => undefined)));
-            await document.fonts.ready;
-            if (window.__layout!.running) window.__layout!.setLabel(first);
-            else window.__layout!.start(first);
-        }, label);
+        await page.evaluate(
+            async ([first, fromStart]) => {
+                await Promise.all(Array.from(document.fonts).map(face => face.load().catch(() => undefined)));
+                await document.fonts.ready;
+                if (window.__layout!.running) window.__layout!.setLabel(first);
+                else window.__layout!.start(first, fromStart);
+            },
+            [label, newDocument] as const,
+        );
     });
 }
 
@@ -106,7 +113,8 @@ async function setLabel(page: Page, label: string) {
             const recorder = window.__layout;
             if (!recorder) throw new Error('__layout missing');
             if (recorder.running) recorder.setLabel(next);
-            else recorder.start(next);
+            // The scenario navigated: a new document.
+            else recorder.start(next, true);
         }, label),
     );
 }
@@ -130,7 +138,7 @@ export async function runScenario(
         await withTimeout(network.waitForHeld(), 15_000, `${scenario.name} requested nothing`);
     }
     // A full navigation replaced the document: start again in the new one.
-    await startRecorder(page, `held: ${network.describeHeld()}`);
+    await startRecorder(page, `held: ${network.describeHeld()}`, true);
     await settle(ctx);
 
     const released: string[] = [];

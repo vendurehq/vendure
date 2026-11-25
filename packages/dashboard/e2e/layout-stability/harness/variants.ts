@@ -19,18 +19,19 @@ export const LIST_VARIANTS: Record<ListVariant, string> = {
 
 const LONG = 'An extraordinarily long product name that keeps going well past eighty characters';
 
-function pageSize(variables: Record<string, any>) {
+/** The page size a list query asks for (the Dashboard default is 10). */
+export function pageSize(variables: Record<string, any>) {
     return Number(variables?.options?.take) || 10;
 }
 
 function mapList(
     data: any,
-    fn: (list: { items: any[]; totalItems: number }, variables: any) => any,
+    fn: (list: { items: any[]; totalItems: number }, variables: any, field: string) => any,
     variables: any,
 ) {
     const field = Object.keys(data ?? {}).find(k => Array.isArray(data[k]?.items));
     if (!field) return data;
-    return { ...data, [field]: fn(data[field], variables) };
+    return { ...data, [field]: fn(data[field], variables, field) };
 }
 
 /** Fills the page to `take` rows with copies of the real rows (ids made unique). */
@@ -54,16 +55,21 @@ export function listVariant(variant: ListVariant): ResponseRewrite | undefined {
             return (data, vars) =>
                 mapList(data, list => ({ ...list, items: list.items.slice(0, 1), totalItems: 1 }), vars);
         case 'fullPage': {
-            // A later page of a short list is empty on the server: fill it from the rows seen before.
-            let seen: any[] = [];
+            // A later page of a short list is empty on the server: fill it from the
+            // rows seen before, of the same list.
+            const seen = new Map<string, any[]>();
             return (data, vars) =>
                 mapList(
                     data,
-                    (list, v) => {
-                        if (list.items.length) seen = list.items;
+                    (list, v, field) => {
+                        if (list.items.length) seen.set(field, list.items);
                         return {
                             ...list,
-                            items: fillPage(seen, pageSize(v), Number(v?.options?.skip) || 0),
+                            items: fillPage(
+                                seen.get(field) ?? [],
+                                pageSize(v),
+                                Number(v?.options?.skip) || 0,
+                            ),
                             totalItems: 120,
                         };
                     },
@@ -101,4 +107,19 @@ export function listVariant(variant: ListVariant): ResponseRewrite | undefined {
         case 'bigTotal':
             return (data, vars) => mapList(data, list => ({ ...list, totalItems: 123456 }), vars);
     }
+}
+
+/**
+ * Answers each set of variables with the response it got first, then applies
+ * `rewrite`. Other specs change the server's data while these run; a snapshot
+ * keeps the rows of a scenario the same in every load and every release order.
+ */
+export function frozen(rewrite?: ResponseRewrite): ResponseRewrite {
+    const first = new Map<string, any>();
+    return (data, variables) => {
+        const key = JSON.stringify(variables ?? {});
+        if (!first.has(key)) first.set(key, data);
+        const snapshot = first.get(key);
+        return rewrite ? rewrite(snapshot, variables) : snapshot;
+    };
 }

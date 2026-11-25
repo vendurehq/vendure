@@ -2,11 +2,11 @@ import type { AnchorProp, AnchorSpec, FrameSample, ShiftEntry, Timeline } from '
 
 /**
  * An intended change: anchors matching `anchor` may change `props` in frames
- * whose label matches `label`. With `node`, a layout-shift entry whose sources
- * all match `node` is part of the change too, and does not count in CLS.
+ * whose label matches `label`. A layout-shift entry whose sources all match
+ * `node` is part of the change too, and does not count in CLS.
  */
 export interface AllowRule {
-    anchor: RegExp;
+    anchor?: RegExp;
     props?: AnchorProp[];
     label?: RegExp;
     node?: RegExp;
@@ -94,7 +94,7 @@ export function analyze(timeline: Timeline, allow: AllowRule[] = []): Analysis {
 function allowed(rules: AllowRule[], key: string, prop: AnchorProp, label: string) {
     return rules.some(
         rule =>
-            rule.anchor.test(key) &&
+            !!rule.anchor?.test(key) &&
             (!rule.props || rule.props.includes(prop)) &&
             (!rule.label || rule.label.test(label)),
     );
@@ -123,11 +123,12 @@ export function when(label: string): string {
 
 const px = (n: number) => `${Math.round(n * 100) / 100}`;
 
-export function describeViolation(specs: AnchorSpec[], v: Violation, order: string): string {
+export function describeViolation(specs: AnchorSpec[], v: Violation, order?: string): string {
     const delta = v.to - v.from;
     return (
         `${anchorName(specs, v.key)} ${PROP_VERB[v.prop]} ${px(v.from)} → ${px(v.to)} ` +
-        `(${delta > 0 ? '+' : ''}${px(delta)} px) ${when(v.frame.label)} (order: [${order}])`
+        `(${delta > 0 ? '+' : ''}${px(delta)} px) ${when(v.frame.label)}` +
+        (order === undefined ? '' : ` (order: [${order}])`)
     );
 }
 
@@ -169,8 +170,7 @@ export function report(timeline: Timeline, analysis: Analysis, order: string): s
         lines.push(`  ${describeViolation(timeline.specs, first, order)}`);
         lines.push(`    first bad frame: ${first.at} ms, state "${first.frame.label}"`);
         lines.push(...describeShifts(first.shifts));
-        for (const v of rest)
-            lines.push(`  ${describeViolation(timeline.specs, v, '').replace(/ \(order: \[\]\)$/, '')}`);
+        for (const v of rest) lines.push(`  ${describeViolation(timeline.specs, v)}`);
     }
     if (analysis.cls > 0) {
         lines.push(`  CLS ${analysis.cls.toFixed(4)} (expected 0)`);
@@ -182,7 +182,7 @@ export function report(timeline: Timeline, analysis: Analysis, order: string): s
 /** A run's failure without its timings and order, to group runs that fail the same way. */
 export function signature(timeline: Timeline, analysis: Analysis): string {
     return [
-        ...analysis.violations.map(v => describeViolation(timeline.specs, v, '')),
+        ...analysis.violations.map(v => describeViolation(timeline.specs, v)),
         analysis.cls > 0 ? `CLS ${analysis.cls.toFixed(3)}` : '',
     ].join('\n');
 }

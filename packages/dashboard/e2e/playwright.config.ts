@@ -44,6 +44,8 @@ export default defineConfig({
             // Layout shift specs (`e2e/layout-stability`): run with `bun run e2e:pw -- layout-stability`.
             name: 'layout-stability',
             testDir: './layout-stability',
+            // The sweep is a survey that never fails: run it on request only.
+            testIgnore: process.env.LAYOUT_SWEEP ? [] : ['**/list-sweep.spec.ts'],
             use: {
                 ...devices['Desktop Chrome'],
                 storageState: path.join(__dirname, '.auth/admin.json'),

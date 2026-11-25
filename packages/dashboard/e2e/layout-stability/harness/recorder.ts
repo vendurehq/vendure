@@ -57,7 +57,11 @@ export interface Timeline {
 
 export interface LayoutRecorder {
     running: boolean;
-    start(label: string): void;
+    /**
+     * Starts sampling. With `fromDocumentStart`, layout shifts from the start of
+     * the document count too: the scenario loaded this document.
+     */
+    start(label: string, fromDocumentStart?: boolean): void;
     setLabel(label: string): void;
     stop(): Timeline;
     /** Resolves after `n` animation frames. */
@@ -73,7 +77,7 @@ declare global {
 export function installRecorder(specs: AnchorSpec[]) {
     const round = (n: number) => Math.round(n * 100) / 100;
     let running = false;
-    let label = '';
+    let label = 'document start';
     let frames: FrameSample[] = [];
     let shifts: ShiftEntry[] = [];
     let labels: Array<{ t: number; label: string }> = [];
@@ -162,9 +166,12 @@ export function installRecorder(specs: AnchorSpec[]) {
         requestAnimationFrame(tick);
     };
 
+    // Layout shifts are kept from the start of the document until the first
+    // stop, so a recorder started late in a new document still has them.
+    let collecting = true;
     const record = (entries: PerformanceEntryList) => {
         for (const entry of entries as any[]) {
-            if (!running || entry.startTime < startedAt) continue;
+            if (!collecting) continue;
             const at = labels.filter(l => l.t <= entry.startTime).pop();
             shifts.push({
                 t: round(entry.startTime),
@@ -190,11 +197,12 @@ export function installRecorder(specs: AnchorSpec[]) {
         get running() {
             return running;
         },
-        start(first: string) {
+        start(first: string, fromDocumentStart = false) {
             frames = [];
-            shifts = [];
             labels = [];
-            startedAt = performance.now();
+            startedAt = fromDocumentStart ? 0 : performance.now();
+            shifts = shifts.filter(s => s.t >= startedAt);
+            collecting = true;
             running = true;
             recorder.setLabel(first);
             requestAnimationFrame(tick);
@@ -207,6 +215,7 @@ export function installRecorder(specs: AnchorSpec[]) {
             // Entries the observer has not delivered yet.
             record(observer.takeRecords());
             running = false;
+            collecting = false;
             return { specs, frames, shifts, labels };
         },
         frames(n: number) {

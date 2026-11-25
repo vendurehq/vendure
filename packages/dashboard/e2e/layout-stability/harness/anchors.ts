@@ -2,7 +2,8 @@ import type { Page } from '@playwright/test';
 
 import type { AnchorSpec } from './recorder.js';
 
-const TABLE = '[data-slot="data-table"]';
+/** The DataTable of a list page. */
+export const TABLE = '[data-slot="data-table"]';
 
 /** The anchors of a list page: title row, toolbar, header cells, first and last row, footer, content height. */
 export const LIST_PAGE_ANCHORS: AnchorSpec[] = [

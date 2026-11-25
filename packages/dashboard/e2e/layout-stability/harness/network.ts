@@ -44,8 +44,6 @@ export class HeldNetwork {
     private rewrites = new Map<string, ResponseRewrite>();
     private fakes = new Map<string, FakeResponse>();
     private listRewrite: ResponseRewrite | undefined;
-    /** Names of the operations that arrived while holding, in arrival order. */
-    readonly arrivals: string[] = [];
 
     constructor(private page: Page) {}
 
@@ -142,7 +140,6 @@ export class HeldNetwork {
             },
         };
         this.held.push(op);
-        this.arrivals.push(name);
         const listeners = this.arrivalListeners;
         this.arrivalListeners = [];
         listeners.forEach(fn => fn());

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { anchorName, type Analysis } from './harness/analyze.js';
-import { waitForList } from './harness/anchors.js';
+import { TABLE, waitForList } from './harness/anchors.js';
 import { test } from './harness/fixtures.js';
 import type { Timeline } from './harness/recorder.js';
 import { runScenario, settle, type LayoutContext } from './harness/scenario.js';
@@ -13,8 +13,9 @@ import { listVariant } from './harness/variants.js';
  * A survey, not a gate: every list page of the Dashboard is loaded (a cold
  * reload, then one step to the next page) and its layout shift is recorded.
  * It never fails. The table of results is written to
- * test-results/layout-sweep/table.md. The Product list has the full suite in
- * product-list.spec.ts.
+ * test-results/layout-sweep/table.md. It runs only with LAYOUT_SWEEP=1 (see
+ * playwright.config.ts): CI has no use for a table nobody reads. The Product
+ * list has the full suite in product-list.spec.ts.
  */
 
 const ROUTES_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../src/app/routes');
@@ -77,6 +78,14 @@ async function measure(
 const cell = (m: Measure | string) =>
     typeof m === 'string' ? `${m} |  ` : `${m.cls.toFixed(4)} | ${m.top || '—'}`;
 
+/** Writes through a temporary file, so a worker that reads the folder never sees half a file. */
+function writeAtomic(file: string, content: string) {
+    const temporary = `${file}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, content);
+    fs.renameSync(temporary, file);
+}
+
+/** Rebuilds the table from every route measured so far; the last test to finish writes it whole. */
 function writeTable(dir: string) {
     const rows = fs
         .readdirSync(dir)
@@ -88,11 +97,12 @@ function writeTable(dir: string) {
         '| --- | --- | --- | --- | --- |',
         ...rows.map(r => `| ${r.route} | ${cell(r.reload)} | ${cell(r.paging)} |`),
     ];
-    fs.writeFileSync(path.join(dir, 'table.md'), lines.join('\n') + '\n');
+    writeAtomic(path.join(dir, 'table.md'), lines.join('\n') + '\n');
 }
 
 test.describe('List layout sweep at 1440', () => {
     test.use({ viewport: { width: 1440, height: 900 } });
+    test.describe.configure({ timeout: 120_000 });
 
     for (const route of listRoutes()) {
         test(route, async ({ layout }, testInfo) => {
@@ -116,7 +126,7 @@ test.describe('List layout sweep at 1440', () => {
                 `next page ${route}`,
                 ({ page }) =>
                     page
-                        .locator('[data-slot="data-table"] [data-slot="table-pagination"]')
+                        .locator(`${TABLE} [data-slot="table-pagination"]`)
                         .getByRole('button', { name: 'Go to next page' })
                         .click({ timeout: 5_000 }),
                 async ctx => {
@@ -129,7 +139,7 @@ test.describe('List layout sweep at 1440', () => {
             testInfo.annotations.push({ type: 'layout', description: JSON.stringify(row) });
             const dir = path.join(testInfo.project.outputDir, 'layout-sweep');
             fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(path.join(dir, `${route.replace(/\W+/g, '-')}.json`), JSON.stringify(row));
+            writeAtomic(path.join(dir, `${route.replace(/\W+/g, '-')}.json`), JSON.stringify(row));
             writeTable(dir);
         });
     }
