@@ -116,6 +116,25 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          * @default 'start'
          */
         align?: 'start' | 'end';
+        /**
+         * @description
+         * The column's width: a number in px or a CSS length (`'8rem'`). The column
+         * keeps it while the list loads, when it is empty and with rows, so the
+         * headers do not move. Give one to each column whose content has a known
+         * width, and leave the widest text column without, so it takes the rest
+         * of the row.
+         *
+         * @since 4.0.0
+         */
+        width?: number | string;
+        /**
+         * @description
+         * The narrowest the column gets, for the column without a `width`. It
+         * holds in every state, like `width`.
+         *
+         * @since 4.0.0
+         */
+        minWidth?: number | string;
     };
 };
 
