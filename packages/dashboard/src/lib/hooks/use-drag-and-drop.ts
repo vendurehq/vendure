@@ -27,7 +27,7 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
         }),
     );
 
-    const { data, onReorder, disabled = false } = options;
+    const { data, onReorder, onError, disabled = false } = options;
 
     // The order of a drop, kept while `onReorder` runs and until `data` changes.
     // Otherwise the rows are `data` itself, read during render: a copy made in an
@@ -35,13 +35,18 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
     // show no rows (the empty state) with `isLoading` already false.
     const [dropped, setDropped] = useState<{ source: TData[]; rows: TData[] } | null>(null);
     const [isReordering, setIsReordering] = useState(false);
-    const localData = dropped && (isReordering || dropped.source === data) ? dropped.rows : data;
+    if (dropped && !isReordering && dropped.source !== data) {
+        setDropped(null);
+    }
+    const localData = dropped?.rows ?? data;
 
     const handleDragEnd = useCallback(
         async (event: DragEndEvent) => {
             const { active, over } = event;
 
-            if (!over || active.id === over.id || !onReorder || disabled) {
+            // One drop at a time: a second one would end the first one's hold, and
+            // its indices would come from rows the first one is still changing.
+            if (!over || active.id === over.id || !onReorder || disabled || isReordering) {
                 return;
             }
 
@@ -52,22 +57,19 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
                 return;
             }
 
-            // Optimistically update the UI
             setDropped({ source: data, rows: arrayMove(localData, oldIndex, newIndex) });
             setIsReordering(true);
 
             try {
-                // Call the user's onReorder callback with all items for context
                 await onReorder(oldIndex, newIndex, localData[oldIndex], localData);
             } catch (error) {
-                // Revert on error
                 setDropped(null);
-                options.onError?.(error as Error);
+                onError?.(error as Error);
             } finally {
                 setIsReordering(false);
             }
         },
-        [data, localData, onReorder, disabled],
+        [data, localData, onReorder, onError, disabled, isReordering],
     );
 
     const itemIds = useMemo(() => localData.map(item => (item as { id: string }).id), [localData]);
