@@ -30,7 +30,9 @@ const isBaseRoute = (p: string) => p === '' || p === `/`;
 
 export function GeneratedBreadcrumbs() {
     const matches = useRouterState({ select: s => s.matches });
-    const currentPath = useRouterState({ select: s => s.location.pathname });
+    // The path of the rendered page, not of the location: when a navigation starts,
+    // the location is already the next one, while the matches are still the current page's.
+    const currentPath = useRouterState({ select: s => s.matches.at(-1)?.pathname ?? s.location.pathname });
     const { i18n } = useLingui();
     const navMenuConfig = getNavMenuConfig();
 
