@@ -199,7 +199,7 @@ function combineInputs(
                     ),
                 );
                 if (results.some(result => result instanceof Promise)) {
-                    return Promise.all(results).then(merge);
+                    return Promise.all(results.map(result => Promise.resolve(result))).then(merge);
                 }
                 return merge(results as StandardSchemaResult[]);
             },
