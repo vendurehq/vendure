@@ -32,6 +32,7 @@ import {
     RelationCustomFieldConfig,
     StructCustomFieldConfig,
 } from '../../../config/custom-field/custom-field-types';
+import { getMoneyPrecision } from '../../../config/entity/money-strategy';
 import { GlobalSettings } from '../../../entity/global-settings/global-settings.entity';
 import { ChannelService } from '../../../service/services/channel.service';
 import { GlobalSettingsService } from '../../../service/services/global-settings.service';
@@ -70,7 +71,7 @@ export class GlobalSettingsResolver {
             orderProcess: this.orderService.getOrderProcessStates(),
             permittedAssetTypes: this.configService.assetOptions.permittedFileTypes,
             permissions,
-            moneyStrategyPrecision: this.configService.entityOptions.moneyStrategy.precision ?? 2,
+            moneyStrategyPrecision: getMoneyPrecision(this.configService.entityOptions.moneyStrategy),
         };
     }
 

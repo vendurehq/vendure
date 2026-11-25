@@ -1,3 +1,4 @@
+import { ConfigService, DEFAULT_MONEY_PRECISION, getMoneyPrecision, Injector } from '@vendure/core';
 import dateFormat from 'dateformat';
 import Handlebars from 'handlebars';
 import mjml2html from 'mjml';
@@ -15,6 +16,12 @@ import { EmailGenerator } from './email-generator';
  * @docsPage EmailGenerator
  */
 export class HandlebarsMjmlGenerator implements EmailGenerator {
+    private moneyPrecision = DEFAULT_MONEY_PRECISION;
+
+    init(injector: Injector) {
+        this.moneyPrecision = getMoneyPrecision(injector.get(ConfigService).entityOptions.moneyStrategy);
+    }
+
     async onInit(options: InitializedEmailPluginOptions) {
         if (options.templateLoader.loadPartials) {
             const partials = await options.templateLoader.loadPartials();
@@ -50,6 +57,8 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
             return dateFormat(date, format);
         });
 
+        const precision = this.moneyPrecision;
+        const factor = 10 ** precision;
         Handlebars.registerHelper(
             'formatMoney',
             (amount?: number, currencyCode?: string, locale?: string) => {
@@ -62,13 +71,17 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
                 if (!currencyCode || typeof currencyCode === 'object') {
                     return new Intl.NumberFormat(typeof locale === 'object' ? undefined : locale, {
                         style: 'decimal',
-                    }).format(amount / 100);
+                        maximumFractionDigits: precision,
+                    }).format(amount / factor);
                 }
                 // Same reasoning for `locale` as for `currencyCode` here.
+                // Show every decimal place of the configured precision, as the Dashboard does.
                 return new Intl.NumberFormat(typeof locale === 'object' ? undefined : locale, {
                     style: 'currency',
                     currency: currencyCode,
-                }).format(amount / 100);
+                    minimumFractionDigits: precision,
+                    maximumFractionDigits: precision,
+                }).format(amount / factor);
             },
         );
     }

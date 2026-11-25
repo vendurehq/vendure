@@ -9,6 +9,7 @@ import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError } from '../../../common/error/errors';
 import { ConfigService } from '../../../config/config.service';
 import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import { getMoneyPrecision } from '../../../config/entity/money-strategy';
 import { Logger } from '../../../config/index';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { Facet } from '../../../entity/facet/facet.entity';
@@ -181,6 +182,7 @@ export class Importer {
                 `No TaxCategories found in the database. Ensure the IntialData.taxRates array is not empty.`,
             );
         }
+        const priceFactor = 10 ** getMoneyPrecision(this.configService.entityOptions.moneyStrategy);
         await this.fastImporter.initialize(ctx.channel);
 
         // Build a map of shared option groups (only groups with an explicit code are shared)
@@ -324,7 +326,7 @@ export class Importer {
                             ),
                         };
                     }),
-                    price: Math.round(variant.price * 100),
+                    price: Math.round(variant.price * priceFactor),
                     customFields: variantCustomFields,
                 });
             }

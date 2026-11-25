@@ -36,9 +36,14 @@ export class EmailProcessor {
 
     async init() {
         this.emailSender = this.options.emailSender ? this.options.emailSender : new NodemailerEmailSender();
-        this.generator = this.options.emailGenerator
-            ? this.options.emailGenerator
-            : new HandlebarsMjmlGenerator();
+        if (this.options.emailGenerator) {
+            // The EmailPlugin has already called init() on a configured generator.
+            this.generator = this.options.emailGenerator;
+        } else {
+            const generator = new HandlebarsMjmlGenerator();
+            generator.init(new Injector(this.moduleRef));
+            this.generator = generator;
+        }
         if (this.generator.onInit) {
             await this.generator.onInit.call(this.generator, this.options);
         }

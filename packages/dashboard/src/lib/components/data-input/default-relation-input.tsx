@@ -1,5 +1,6 @@
 import { StatusBadge, orderStateDictionary, type Tone } from '@/vdb/components/ui/status-badge.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMemo } from 'react';
@@ -108,7 +109,11 @@ function createBaseEntityConfig(
 }
 
 // Entity type mappings from the dev-config.ts - using functions to generate configs
-const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string) => string) => ({
+const createEntityConfigs = (
+    i18n: any,
+    getTranslatedOrderState: (state: string) => string,
+    formatCurrency: (value: number, currency: string) => string,
+) => ({
     Product: createRelationSelectorConfig({
         ...createBaseEntityConfig('Product', i18n),
         listQuery: graphql(`
@@ -372,10 +377,11 @@ const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string)
             }
         `),
         label: (item: any) => {
+            const total = formatCurrency(item.totalWithTax, item.currencyCode);
             return (
                 <EntityLabel
                     title={item.code}
-                    subtitle={`${item.customer?.firstName} ${item.customer?.lastName} • ${item.totalWithTax / 100} ${item.currencyCode}`}
+                    subtitle={`${item.customer?.firstName} ${item.customer?.lastName} • ${total}`}
                     placeholderLetter="O"
                     rounded
                     statusIndicator={
@@ -385,7 +391,7 @@ const createEntityConfigs = (i18n: any, getTranslatedOrderState: (state: string)
                             tone={orderStateDictionary.toneFor(item.state)}
                         />
                     }
-                    tooltipText={`${item.code} - ${item.customer?.firstName} ${item.customer?.lastName} (${item.totalWithTax / 100} ${item.currencyCode})`}
+                    tooltipText={`${item.code} - ${item.customer?.firstName} ${item.customer?.lastName} (${total})`}
                 />
             );
         },
@@ -620,9 +626,10 @@ export function DefaultRelationInput({
 }: Readonly<DefaultRelationInputProps>) {
     const { t } = useLingui();
     const { getTranslatedOrderState } = useDynamicTranslations();
+    const { formatCurrency } = useLocalFormat();
     const ENTITY_CONFIGS = useMemo(
-        () => createEntityConfigs(t, getTranslatedOrderState),
-        [t, getTranslatedOrderState],
+        () => createEntityConfigs(t, getTranslatedOrderState, formatCurrency),
+        [t, getTranslatedOrderState, formatCurrency],
     );
     if (!fieldDef || (!isRelationCustomFieldConfig(fieldDef) && !entityType)) {
         return null;
