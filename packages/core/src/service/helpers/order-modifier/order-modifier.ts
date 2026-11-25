@@ -70,7 +70,7 @@ import { TranslatorService } from '../translator/translator.service';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
-import { setOrderLinePrice } from '../utils/set-order-line-price';
+import { setOrderLinePrices } from '../utils/set-order-line-price';
 
 import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
 
@@ -672,14 +672,16 @@ export class OrderModifier {
             }
         }
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
+        const entries: Array<{ line: OrderLine; variant: ProductVariant }> = [];
         for (const orderLine of updatedOrderLines) {
             const variant = await this.productVariantService.applyChannelPriceAndTax(
                 orderLine.productVariant,
                 ctx,
                 order,
             );
-            await setOrderLinePrice(ctx, orderItemPriceCalculationStrategy, variant, order, orderLine);
+            entries.push({ line: orderLine, variant });
         }
+        await setOrderLinePrices(ctx, orderItemPriceCalculationStrategy, order, entries);
 
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,

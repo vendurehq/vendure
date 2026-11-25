@@ -1,6 +1,7 @@
 import { RequestContext } from '../../api/common/request-context';
 import { PriceCalculationResult } from '../../common/types/common-types';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 
@@ -80,21 +81,23 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
 
     /**
      * @description
-     * Optionally returns the price of the whole line, for the given quantity, as an integer in the
+     * Optionally returns the price of whole lines, for their quantities, as integers in the
      * smallest unit of the configured {@link MoneyStrategy} precision. Use this when an external
-     * system such as an ERP prices the line as a total that no whole unit price reproduces.
+     * system such as an ERP prices a line as a total that no whole unit price reproduces.
      *
      * For example, at precision 2 an ERP may price 20 units at 1.235 each as 24.70. Return
-     * `{ price: 2470, priceIncludesTax: true }`. The line total is then exactly 24.70, and the
-     * unit price shown for the line is the rounded 1.24.
+     * `{ price: 2470, priceIncludesTax: true }` for that line. The line total is then exactly 24.70,
+     * and the unit price shown for the line is the rounded 1.24.
      *
-     * Vendure applies tax and promotions to the line total, and calls this method again whenever
-     * it reprices the line, for example after a quantity change. A partial cancellation scales the
-     * existing quote to the remaining units without calling it. Return `undefined` to price the line
+     * Vendure calls this once each time it reprices lines, with every line it is repricing, so
+     * that an ERP can price them in a single request. That happens whenever an OrderLine is added
+     * or its quantity changes, and for all lines when the Order moves to `ArrangingPayment`. Return
+     * an array with one entry per line, in the same order. An entry of `undefined` prices that line
      * with `calculateUnitPrice` instead.
      *
-     * The quote is stored on the OrderLine, so placed Orders keep their prices if this method is
-     * later removed.
+     * Vendure applies tax and promotions to the line total. A partial cancellation scales the
+     * existing quote to the remaining units without calling this method. The quote is stored on the
+     * OrderLine, so placed Orders keep their prices if this method is later removed.
      *
      * @example
      * ```ts
@@ -103,20 +106,39 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
      *         return { price: productVariant.listPrice, priceIncludesTax: productVariant.listPriceIncludesTax };
      *     }
      *
-     *     async calculateLinePrice(ctx, productVariant, orderLineCustomFields, order, quantity) {
-     *         const quote = await erpClient.getLinePrice(productVariant.sku, quantity);
-     *         return { price: quote.totalInCents, priceIncludesTax: quote.grossPrices };
+     *     async calculateLinePrices(ctx, order, lines) {
+     *         const quotes = await erpClient.priceLines(
+     *             lines.map(line => ({ sku: line.productVariant.sku, quantity: line.quantity })),
+     *         );
+     *         return quotes.map(quote => ({ price: quote.totalInCents, priceIncludesTax: quote.grossPrices }));
      *     }
      * }
      * ```
      *
      * @since 3.9.0
      */
-    calculateLinePrice?(
+    calculateLinePrices?(
         ctx: RequestContext,
-        productVariant: ProductVariant,
-        orderLineCustomFields: { [key: string]: any },
         order: Order,
-        quantity: number,
-    ): PriceCalculationResult | undefined | Promise<PriceCalculationResult | undefined>;
+        lines: LinePriceCalculationInput[],
+    ): Array<PriceCalculationResult | undefined> | Promise<Array<PriceCalculationResult | undefined>>;
+}
+
+/**
+ * @description
+ * One OrderLine passed to `OrderItemPriceCalculationStrategy.calculateLinePrices`.
+ *
+ * @docsCategory Orders
+ * @since 3.9.0
+ */
+export interface LinePriceCalculationInput {
+    orderLine: OrderLine;
+    productVariant: ProductVariant;
+    /**
+     * @description
+     * The OrderLine custom fields. Relation custom fields are only included if they are
+     * `eager: true`.
+     */
+    orderLineCustomFields: { [key: string]: any };
+    quantity: number;
 }

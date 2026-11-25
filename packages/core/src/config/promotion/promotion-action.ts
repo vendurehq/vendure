@@ -346,7 +346,7 @@ export abstract class PromotionAction<
  * Represents a PromotionAction which applies to individual {@link OrderLine}s.
  *
  * Return the amount in the tax basis of the Channel, as set by `ctx.channel.pricesIncludeTax`.
- * If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrice` in the
+ * If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrices` in the
  * other tax basis, Vendure converts the amount to the basis of that price.
  *
  * @example
@@ -407,7 +407,7 @@ export class PromotionItemAction<
  * The difference from PromotionItemAction is that it applies regardless of the Quantity of the OrderLine.
  *
  * Return the amount in the tax basis of the Channel, as set by `ctx.channel.pricesIncludeTax`.
- * If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrice` in the
+ * If the OrderLine has a price from `OrderItemPriceCalculationStrategy.calculateLinePrices` in the
  * other tax basis, Vendure converts the amount to the basis of that price.
  *
  * @example

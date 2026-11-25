@@ -12,7 +12,7 @@ type Query {
     """
     Returns the tax-inclusive refund amount for the given units, excluding shipping. Units that were
     cancelled are valued at the price recorded when they were cancelled, for lines priced by
-    `OrderItemPriceCalculationStrategy.calculateLinePrice`. Returns an error if more units are
+    `OrderItemPriceCalculationStrategy.calculateLinePrices`. Returns an error if more units are
     requested than the line can still refund.
     """
     previewRefundLineTotal(orderId: ID!, lines: [OrderLineInput!]!): Money!

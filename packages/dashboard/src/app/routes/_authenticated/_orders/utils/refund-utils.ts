@@ -28,7 +28,7 @@ export function getRefundablePayments(payments: Payment[] | undefined | null): R
 /**
  * Calculate total refund amount from the server's line refund preview and the selected shipping.
  * The line total comes from the `previewRefundLineTotal` query, so that it matches what the server
- * refunds, including lines priced by `calculateLinePrice` and units that were already cancelled.
+ * refunds, including lines priced by `calculateLinePrices` and units that were already cancelled.
  */
 export function calculateRefundTotal(
     order: Order,

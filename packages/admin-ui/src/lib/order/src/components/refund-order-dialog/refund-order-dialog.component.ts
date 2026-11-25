@@ -107,7 +107,7 @@ export class RefundOrderDialogComponent
         );
         this.refundablePayments = getRefundablePayments(this.order.payments);
         // The server calculates the line total, so that the refund matches what it records,
-        // including lines priced by `calculateLinePrice`. A newer selection cancels a pending one.
+        // including lines priced by `calculateLinePrices`. A newer selection cancels a pending one.
         this.lineSelectionChange$
             .pipe(
                 switchMap(lines =>

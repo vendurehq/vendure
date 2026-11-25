@@ -1,7 +1,8 @@
 import {
-    PriceCalculationResult,
+    LinePriceCalculationInput,
     Order,
     OrderItemPriceCalculationStrategy,
+    PriceCalculationResult,
     ProductVariant,
     RequestContext,
     roundMoney,
@@ -33,17 +34,22 @@ export class TestOrderItemPriceCalculationStrategy implements OrderItemPriceCalc
 }
 
 export class TestQuotedLinePriceStrategy extends TestOrderItemPriceCalculationStrategy {
-    calculateLinePrice(
+    /** The number of lines in each call, so tests can check that the lines are priced together. */
+    static calls: number[] = [];
+
+    calculateLinePrices(
         ctx: RequestContext,
-        productVariant: ProductVariant,
-        customFields: { [key: string]: any },
         order: Order,
-        quantity: number,
-    ): PriceCalculationResult | undefined {
-        if (customFields.giftWrap && quantity >= 10) {
-            // Lines below 20 units pay a fixed fee, so a new quote differs from a scaled one.
-            const fee = quantity < 20 ? 100 : 0;
-            return { price: Math.round((1010 * 95 * quantity) / 100) + fee, priceIncludesTax: true };
-        }
+        lines: LinePriceCalculationInput[],
+    ): Array<PriceCalculationResult | undefined> {
+        TestQuotedLinePriceStrategy.calls.push(lines.length);
+        return lines.map(({ orderLineCustomFields, quantity }) => {
+            if (orderLineCustomFields.giftWrap && quantity >= 10) {
+                // Lines below 20 units pay a fixed fee, so a new quote differs from a scaled one.
+                const fee = quantity < 20 ? 100 : 0;
+                return { price: Math.round((1010 * 95 * quantity) / 100) + fee, priceIncludesTax: true };
+            }
+            return undefined;
+        });
     }
 }

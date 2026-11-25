@@ -129,7 +129,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
 
     /**
      * @description
-     * The line total returned by `OrderItemPriceCalculationStrategy.calculateLinePrice`, in the
+     * The line total returned by `OrderItemPriceCalculationStrategy.calculateLinePrices`, in the
      * same tax basis as `listPrice`. When set, the line prices derive from this total rather than
      * from `listPrice`, which then holds the rounded unit price for display only.
      *
@@ -383,7 +383,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * The tax-inclusive value of this line in refund order: each earlier cancellation at the value it
      * was recorded with, followed by the remaining units at their current price. Refunds of these
      * parts add up to exactly what was paid. Returns an empty array for lines that have neither a
-     * quote from `calculateLinePrice` nor absolute tax amounts, whose refunds use
+     * quote from `calculateLinePrices` nor absolute tax amounts, whose refunds use
      * `proratedUnitPriceWithTax`. Requires the `cancellationLines` relation.
      *
      * @internal
@@ -413,7 +413,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     /**
      * @description
      * Converts a promotion amount in the tax basis of the Channel to the tax basis of the quote from
-     * `calculateLinePrice`, rounded once on the line total. Lines without a quote return the amount
+     * `calculateLinePrices`, rounded once on the line total. Lines without a quote return the amount
      * unchanged.
      *
      * @internal
@@ -534,7 +534,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     /**
      * @description
      * The unit price that a promotion should discount, in the requested tax basis. For a line priced
-     * by `OrderItemPriceCalculationStrategy.calculateLinePrice` this is the quote divided by its
+     * by `OrderItemPriceCalculationStrategy.calculateLinePrices` this is the quote divided by its
      * quantity, before rounding, so a percentage discount matches the quoted line total. For other
      * lines it is `unitPrice` or `unitPriceWithTax`.
      *

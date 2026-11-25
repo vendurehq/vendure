@@ -137,7 +137,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
-import { setOrderLinePrice } from '../helpers/utils/set-order-line-price';
+import { setOrderLinePrices } from '../helpers/utils/set-order-line-price';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -2710,21 +2710,22 @@ export class OrderService implements OnApplicationBootstrap {
         if (updatedOrderLines?.length) {
             const { orderItemPriceCalculationStrategy, changedPriceHandlingStrategy } =
                 this.configService.orderOptions;
+            const entries: Array<{ line: OrderLine; variant: ProductVariant }> = [];
             for (const updatedOrderLine of updatedOrderLines) {
                 const variant = await this.productVariantService.applyChannelPriceAndTax(
                     updatedOrderLine.productVariant,
                     ctx,
                     order,
                 );
-                await setOrderLinePrice(
-                    ctx,
-                    orderItemPriceCalculationStrategy,
-                    variant,
-                    order,
-                    updatedOrderLine,
-                    changedPriceHandlingStrategy,
-                );
+                entries.push({ line: updatedOrderLine, variant });
             }
+            await setOrderLinePrices(
+                ctx,
+                orderItemPriceCalculationStrategy,
+                order,
+                entries,
+                changedPriceHandlingStrategy,
+            );
         }
 
         // A blocking event handler or a concurrent request can add or remove a Surcharge after
