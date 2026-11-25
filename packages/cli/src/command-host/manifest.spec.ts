@@ -99,7 +99,6 @@ function plugin(packageName: string, ...paths: string[][]): ResolvedCommandManif
     return {
         packageName,
         manifest: manifest(packageName, ...paths),
-        manifestPath: `/plugins/${packageName}/vendure-commands.json`,
         definitionsPath: `/plugins/${packageName}/commands.js`,
         scope: 'project',
     };

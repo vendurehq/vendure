@@ -242,18 +242,33 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
         });
     });
 
-    describe('a plugin whose manifest cannot be read', () => {
-        it('is refused whole, its cliPlugin too, and listed under refused', async () => {
-            const p = projectWith(['defined-commands-cli-plugin']);
+    describe('a package that also declares a cliPlugin', () => {
+        /** Gives the installed defineCommand fixture a cliPlugin with one command, `name`. */
+        function addCliPlugin(p: CliTestProject, name: string): string {
             const dir = join('node_modules', ...EXAMPLE.split('/'));
-            // The same package also declares a cliPlugin, which must not load without its manifest.
             p.writeFile(
                 join(dir, 'cli-plugin.cjs'),
-                "module.exports = { id: 'example', commands: [{ name: 'legacy', description: 'Legacy', action: async () => 0 }] };\n",
+                `module.exports = { id: '${EXAMPLE}', commands: [{ name: '${name}', description: 'Legacy', ` +
+                    `action: async () => { console.log('LEGACY_RAN'); return 0; } }] };\n`,
             );
             const packageJson = JSON.parse(p.readFile(join(dir, 'package.json')));
             packageJson.vendure.cliPlugin = './cli-plugin.cjs';
             p.writeFile(join(dir, 'package.json'), JSON.stringify(packageJson));
+            return dir;
+        }
+
+        it('loads both kinds of command', async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            addCliPlugin(p, 'legacy');
+
+            expect((await p.runCliCommand(['legacy'])).stdout).toContain('LEGACY_RAN');
+            const greet = await p.runCliCommand(['example', 'greet', 'Ada', '--json']);
+            expect(envelopeOf(greet.stdout).output).toEqual({ message: 'Hello, Ada!' });
+        });
+
+        it('leaves out only the defineCommand commands when the manifest cannot be read', async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            const dir = addCliPlugin(p, 'legacy');
             p.writeFile(join(dir, 'vendure-commands.json'), '{ not json');
 
             const envelope = await listCommands(p);
@@ -262,8 +277,28 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             ]);
             expect(envelope.output.commands.filter((c: any) => c.source === EXAMPLE)).toEqual([]);
 
-            const legacy = await p.runCliCommand(['legacy'], { expectError: true });
-            expect(legacy.stderr).toContain('Unknown command "legacy"');
+            const legacy = await p.runCliCommand(['legacy']);
+            expect(legacy.stdout).toContain('LEGACY_RAN');
+            expect(legacy.stderr).toContain(
+                `Failed to load the defineCommand commands of CLI plugin "${EXAMPLE}"`,
+            );
+        });
+
+        it("refuses a defineCommand command that its own cliPlugin's command takes", async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            addCliPlugin(p, 'example');
+
+            const envelope = await listCommands(p);
+            expect(envelope.output.refused).toEqual([
+                {
+                    package: EXAMPLE,
+                    error: expect.objectContaining({
+                        code: 'plugin.command-clash',
+                        message: expect.stringContaining(`the command "example" of ${EXAMPLE}`),
+                    }),
+                },
+            ]);
+            expect((await p.runCliCommand(['example'])).stdout).toContain('LEGACY_RAN');
         });
     });
 
@@ -281,7 +316,14 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
                     }),
                 },
             ]);
-            expect(envelope.notices[0]).toMatchObject({ level: 'warning' });
+            expect(envelope.notices).toEqual([
+                {
+                    level: 'warning',
+                    message: expect.stringContaining(
+                        `The commands of ${CLASHING} are not loaded: [plugin.command-clash]`,
+                    ),
+                },
+            ]);
             const sources = new Set(envelope.output.commands.map((c: any) => c.source));
             expect(sources).toEqual(new Set(['@vendure/cli', EXAMPLE]));
 

@@ -1236,9 +1236,12 @@ activation](#explicit-activation)). Then:
 
 A package may add commands to a group that exists already, such as `vendure acme` or `vendure auth`.
 It may not declare a command that another package or a built-in command already has, turn a group
-into a command, or add a command under another command. The CLI refuses the whole package with a
-`plugin.command-clash` error, which it writes to stderr and lists under `refused` in
-`vendure commands --json`. Every other command keeps working. `admin` and `shop` are reserved, and so
+into a command, or add a command under another command. The commands of a `cliPlugin` count, the
+package's own included. The CLI then leaves out all the commands the package declares with
+`defineCommand`, with a `plugin.command-clash` error that it writes to stderr and lists under
+`refused` in `vendure commands --json`. Every other command keeps working, including the package's
+own `cliPlugin` commands, which follow the rules in [Collisions](#collisions). A manifest that can't be
+read is reported the same way, as `plugin.unavailable`. `admin` and `shop` are reserved, and so
 are the field names `json`, `input`, `format`, `yes` and `project`. A manifest that breaks these rules
 is refused with `plugin.manifest-invalid`.
 

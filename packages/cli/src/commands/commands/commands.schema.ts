@@ -14,5 +14,7 @@ export const output = z.object({
             }),
         )
         .optional()
-        .describe('Enabled plugins whose commands were left out, each with the coded error that says why'),
+        .describe(
+            'Enabled plugins whose defineCommand commands were left out, each with the coded error that says why',
+        ),
 });

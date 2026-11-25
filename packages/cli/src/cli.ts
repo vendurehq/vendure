@@ -92,7 +92,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         reportedFailures.map(failure => [failure.packageName, 'load']),
     );
     for (const failure of reportedFailures) {
-        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
+        const headline =
+            failure.part === 'commandManifest'
+                ? 'Failed to load the defineCommand commands of CLI plugin'
+                : 'Failed to load CLI plugin';
+        writePluginSkipped(failure.packageName, headline, failure.reason, failure.scope);
     }
     for (const { packageName, plugin, scope } of loaded) {
         try {
@@ -120,7 +124,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
                 manifests.find(manifest => manifest.packageName === packageName)?.scope ?? 'project';
             writePluginSkipped(
                 packageName,
-                'Refused the commands of CLI plugin',
+                'Refused the defineCommand commands of CLI plugin',
                 `[${error.code}] ${error.message}`,
                 scope,
             );

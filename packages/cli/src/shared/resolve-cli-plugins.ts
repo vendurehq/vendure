@@ -56,7 +56,6 @@ export interface PackageJsonLike {
 export interface ResolvedCommandManifest {
     packageName: string;
     manifest: CommandManifest;
-    manifestPath: string;
     definitionsPath: string;
     /** Which allowlist enabled it. */
     scope: CliPluginScopeKind;
@@ -80,6 +79,11 @@ export interface CliPluginLoadFailure {
      * finding it and failing to load it.
      */
     notInstalled: boolean;
+    /**
+     * Set when only the package's command manifest failed. Its `cliPlugin`, if it has one, is
+     * loaded anyway.
+     */
+    part?: 'commandManifest';
 }
 
 /**
@@ -576,14 +580,19 @@ function loadInto(
             result.manifests.push({
                 packageName,
                 manifest: readCommandManifest(manifestPath, packageName),
-                manifestPath,
                 definitionsPath: path.resolve(resolved.dir, vendure.commandDefinitions),
                 scope: scope.kind,
             });
         } catch (e: any) {
-            // The package is refused whole, as for a clash, so its `cliPlugin` is not loaded either.
-            fail(e?.message ?? String(e));
-            return;
+            // Only the `defineCommand` commands are left out, as for a clash. A `cliPlugin` follows
+            // its own rules and still loads.
+            result.failures.push({
+                packageName,
+                reason: e?.message ?? String(e),
+                scope: scope.kind,
+                notInstalled: false,
+                part: 'commandManifest',
+            });
         }
     }
 

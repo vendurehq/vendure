@@ -111,8 +111,10 @@ export interface LoadProjectCommandsOptions {
  *
  * A plugin may add commands under a group that already exists, such as `cloud`, but never a
  * command whose path another package or a built-in command has, a command that would turn a
- * group into a command, or one under another package's command. Such a plugin is refused whole,
- * with a coded error, and the rest of the commands stay.
+ * group into a command, or one under another package's command. The Commander commands of a
+ * `cliPlugin` count, the package's own included. All the `defineCommand` commands of such a
+ * plugin are refused, with a coded error, and the rest of the commands stay. Its `cliPlugin`
+ * commands follow their own collision rules.
  */
 export async function loadProjectCommands(
     options: LoadProjectCommandsOptions = {},
@@ -251,20 +253,16 @@ function findClash(
 }
 
 /**
- * Imports a plugin's declarations module. It exports its commands as `commands`, or as its
- * default export.
+ * Imports a plugin's declarations module, which exports its commands as `commands`. A CommonJS
+ * module's exports can arrive as the default export of the import, so `default.commands` is read
+ * too.
  */
 async function importDefinitions(file: string): Promise<CommandDefinition[]> {
     const mod = (await import(pathToFileURL(file).href)) as {
         commands?: unknown;
-        default?: { commands?: unknown } | unknown;
+        default?: { commands?: unknown };
     };
-    const defaultExport = mod.default;
-    const commands =
-        mod.commands ??
-        (Array.isArray(defaultExport)
-            ? defaultExport
-            : (defaultExport as { commands?: unknown } | undefined)?.commands);
+    const commands = mod.commands ?? mod.default?.commands;
     if (!Array.isArray(commands)) {
         throw new Error(`${file} does not export its commands as "commands"`);
     }
