@@ -134,9 +134,9 @@ describe('runCreate() when the install fails', () => {
         expect(error).toBeInstanceOf(CreateError);
         expect(error?.code).toBe('create.install-failed');
         expect(error?.fix).toContain('git init');
-        expect(error?.fix).toContain(
-            'Your choices are kept in .vendure/create.json, and the agent files are written.',
-        );
+        // No agent clients, so no agent files are claimed.
+        expect(error?.fix).toContain('Your choices are kept in .vendure/create.json.');
+        expect(error?.fix).not.toContain('agent files');
         expect(readJson(path.join(options.projectDir, CREATE_RECORD_PATH))).toMatchObject({
             preset: { name: 'uk', options: {} },
         });

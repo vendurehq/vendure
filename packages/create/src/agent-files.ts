@@ -104,6 +104,8 @@ export interface AgentsMdInput {
     name: string;
     /** The skills copied into `.agents/skills/`. */
     skills: readonly string[];
+    /** Whether Claude Code gets its copy of the skills in `.claude/skills/`. */
+    claudeSkills: boolean;
     pmInfo: PackageManagerInfo;
     storefront: StorefrontStarter | undefined;
 }
@@ -120,6 +122,7 @@ export function renderAgentsMd(template: string, input: AgentsMdInput): string {
         serverDir: input.storefront ? SERVER_WORKSPACE_DIR : undefined,
         serverPath: input.storefront ? `${SERVER_WORKSPACE_DIR}/` : '',
         skills: input.skills,
+        claudeSkills: input.claudeSkills,
         selfHostingGuideUrl: SELF_HOSTING_GUIDE_URL,
     });
 }
@@ -134,7 +137,7 @@ export interface McpInstallUnavailable {
 }
 
 /** `writeAgentFiles` lists the skills itself, from the assets. */
-export interface WriteAgentFilesInput extends Omit<AgentsMdInput, 'skills'> {
+export interface WriteAgentFilesInput extends Omit<AgentsMdInput, 'skills' | 'claudeSkills'> {
     agents: readonly AgentClient[];
     /** The project root, which is the git root when the config can be completed. */
     root: string;
@@ -173,6 +176,7 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
         renderAgentsMd(fs.readFileSync(path.join(input.assetsDir, 'agents.hbs'), 'utf-8'), {
             ...input,
             skills,
+            claudeSkills: input.agents.includes('claude'),
         }),
     );
     for (const skill of skills) {
@@ -183,6 +187,12 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
     if (input.agents.includes('claude')) {
         write('CLAUDE.md', '@AGENTS.md\n');
         write('.claude/settings.json', claudeSettings());
+        // Claude Code loads project skills only from `.claude/skills/`, so it gets its own copy.
+        for (const skill of skills) {
+            const target = `.claude/skills/${skill}`;
+            fs.copySync(path.join(skillsDir, skill), path.join(input.root, target));
+            result.written.push(`${target}/`);
+        }
     }
 
     for (const client of input.agents) {

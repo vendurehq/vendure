@@ -54,6 +54,7 @@ describe('renderAgentsMd()', () => {
             pmInfo: getPackageManagerInfo('pnpm'),
             storefront: undefined,
             skills: ['vendure-cli'],
+            claudeSkills: false,
         });
         const lines = text.split('\n');
         expect(lines[0]).toBe('# my-shop');
@@ -70,6 +71,7 @@ describe('renderAgentsMd()', () => {
             pmInfo: getPackageManagerInfo('npm'),
             storefront: STOREFRONT_STARTERS.find(s => s.id === 'tanstack'),
             skills: ['vendure-cli'],
+            claudeSkills: false,
         });
         expect(text).toContain('with a TanStack Start storefront in `apps/storefront`');
         expect(text).toContain('Run the `vendure` commands in `apps/server`.');
@@ -162,6 +164,13 @@ describe('writeAgentFiles()', () => {
             'vendure-docs': { url: DOCS_MCP_URL },
         });
         expect(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf-8')).toBe('@AGENTS.md\n');
+        // Claude Code reads project skills only from `.claude/skills/`.
+        for (const skill of ['vendure-cli', 'vendure-store-setup', 'vendure-troubleshooting']) {
+            expect(fs.existsSync(path.join(dir, '.claude/skills', skill, 'SKILL.md'))).toBe(true);
+        }
+        expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
+            'Claude Code reads its copy in `.claude/skills/`, so change both.',
+        );
         for (const skill of ['vendure-cli', 'vendure-store-setup', 'vendure-troubleshooting']) {
             expect(fs.existsSync(path.join(dir, '.agents/skills', skill, 'SKILL.md'))).toBe(true);
         }

@@ -137,7 +137,7 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
     // the commit, so the project is never left with a repository and no commit.
     const agentFiles = await writeProjectAgentFiles(project).catch((e: unknown): AgentFilesResult => {
         project.context.reporter.fail('The agent files could not be written');
-        const reason = `the agent files could not be written: ${e instanceof Error ? e.message : String(e)}`;
+        const reason = `the agent files could not all be written, and some may be missing: ${e instanceof Error ? e.message : String(e)}`;
         return {
             written: [],
             failed: options.agents.map(client => ({ client, reason, retryable: false })),
@@ -288,7 +288,7 @@ async function install(project: Project): Promise<void> {
             e.fix,
             agentFilesError
                 ? `Your choices are kept in ${recordPath.split(path.sep).join('/')}. The agent files could not be written: ${agentFilesError}.`
-                : `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
+                : `Your choices are kept in ${recordPath.split(path.sep).join('/')}${options.agents.length ? ', and the agent files are written' : ''}.`,
         ];
         const mcpInstall = mcpInstallSteps(options.agents, pmInfo.exec);
         if (options.git && !insideAnotherRepository) {
@@ -358,10 +358,13 @@ async function commit({ context, root }: Project): Promise<GitResult> {
     return git;
 }
 
-const GIT_NOT_INSTALLED_IN_WORKSPACE = [
-    'git is not installed, so the project has no repository, and `vendure mcp install` would write',
-    'into apps/server. Install git, then run `git init` and `vendure mcp install` in the project root',
-].join(' ');
+function gitNotInstalledInWorkspace(options: CreateOptions): string {
+    const exec = getPackageManagerInfo(options.packageManager).exec;
+    return [
+        'git is not installed, so the project has no repository, and `vendure mcp install` would write',
+        `into apps/server. Install git, then run \`git init\` and in the project root ${mcpInstallSteps(options.agents, exec)}`,
+    ].join(' ');
+}
 
 const INSIDE_ANOTHER_REPOSITORY = [
     'the project is inside another git repository, and `vendure mcp install` writes at that',
@@ -396,7 +399,7 @@ async function whyMcpInstallCannotRun(
         return {
             kind: 'no-repository-in-workspace',
             // Without git there is no `git init` to suggest, only where the configs would go.
-            reason: top.spawnError ? GIT_NOT_INSTALLED_IN_WORKSPACE : noRepositoryInWorkspace(options),
+            reason: top.spawnError ? gitNotInstalledInWorkspace(options) : noRepositoryInWorkspace(options),
             retryable: false,
         };
     }

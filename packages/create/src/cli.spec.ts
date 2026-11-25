@@ -112,6 +112,9 @@ describe('create --yes --json', () => {
                     '.agents/skills/vendure-troubleshooting/',
                     'CLAUDE.md',
                     '.claude/settings.json',
+                    '.claude/skills/vendure-cli/',
+                    '.claude/skills/vendure-store-setup/',
+                    '.claude/skills/vendure-troubleshooting/',
                     '.mcp.json',
                     '.cursor/mcp.json',
                     '.vscode/mcp.json',
@@ -142,7 +145,11 @@ describe('create --yes --json', () => {
     });
 
     it('writes a Cloud Config app and no self-hosted files', () => {
-        expect(filesIn(projectDir).filter(file => !file.startsWith('.agents/'))).toEqual([
+        expect(
+            filesIn(projectDir).filter(
+                file => !file.startsWith('.agents/') && !file.startsWith('.claude/skills/'),
+            ),
+        ).toEqual([
             '.claude/settings.json',
             '.codex/config.toml',
             '.cursor/mcp.json',

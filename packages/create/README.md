@@ -16,7 +16,16 @@ In a terminal, create asks for each choice. Every choice also has a flag, so age
 npx @vendure/create my-shop --yes --json
 ```
 
-Create writes the files, installs the dependencies, writes the agent files, and makes a git repository with an initial commit. The agent files are `AGENTS.md`, the Vendure skills in `.agents/skills/`, and each agent client's MCP config, with the `vendure` server (added by `vendure mcp install`) and the `vendure-docs` server. A client whose config could not be completed is listed in `agentFiles.failed` with the reason. Where running `vendure mcp install` again completes it, `next` names that command, which changes the committed config, so commit it afterwards. Otherwise the reason says what to do. It records your choices in `.vendure/create.json`, which `vendure dev` reads.
+Create writes the files, installs the dependencies, writes the agent files, and makes a git repository with an initial commit.
+
+The agent files are:
+
+- `AGENTS.md`, and the Vendure skills in `.agents/skills/`. With Claude Code, also `CLAUDE.md`, `.claude/settings.json` and a copy of the skills in `.claude/skills/`, where Claude Code reads them.
+- Each agent client's MCP config, with the `vendure` server (added by `vendure mcp install`) and the `vendure-docs` server.
+
+A client whose config could not be completed is listed in `agentFiles.failed` with the reason. `next` lists `vendure mcp install` for each client that running it again completes. That command changes the committed config, so commit again afterwards. For other failures, the reason says what to do.
+
+Create records your choices in `.vendure/create.json`, which `vendure dev` reads.
 
 ## Options
 
@@ -51,6 +60,9 @@ With `--json`, create prints one document on stdout:
             ".agents/skills/vendure-troubleshooting/",
             "CLAUDE.md",
             ".claude/settings.json",
+            ".claude/skills/vendure-cli/",
+            ".claude/skills/vendure-store-setup/",
+            ".claude/skills/vendure-troubleshooting/",
             ".mcp.json",
             ".cursor/mcp.json",
             ".vscode/mcp.json",

@@ -19,6 +19,9 @@ module.exports = function prepareAssets(createRoot, { clean = true } = {}) {
     // test setup copies over the folder instead, because a build may be reading it at the same time.
     if (clean) {
         fs.rmSync(assets, { recursive: true, force: true });
+    } else {
+        // Only the skills, which create copies by directory, so a removed skill does not linger.
+        fs.rmSync(path.join(assets, 'skills'), { recursive: true, force: true });
     }
     fs.cpSync(path.join(createRoot, 'templates'), assets, { recursive: true });
     for (const skill of BUNDLED_SKILLS) {

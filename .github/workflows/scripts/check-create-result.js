@@ -88,6 +88,7 @@ for (const file of [
     '.mcp.json',
     '.cursor/mcp.json',
     '.agents/skills/vendure-cli/SKILL.md',
+    '.claude/skills/vendure-cli/SKILL.md',
 ]) {
     assert(fs.existsSync(path.join(root, file)), `Expected the agent file ${file}`);
 }

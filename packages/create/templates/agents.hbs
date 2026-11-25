@@ -22,7 +22,7 @@ The package manager is {{ packageManager }}.{{#if serverPath}} Run the `vendure`
 ## Agent tools
 
 - The `vendure` MCP server runs the project's own CLI (`vendure mcp`). The `vendure-docs` MCP server searches the Vendure documentation.
-- Skills in `.agents/skills/`:{{#each skills}} `{{ this }}`{{#unless @last}},{{/unless}}{{/each}}. Each skill's `SKILL.md` says when to use it.
+- Skills in `.agents/skills/`:{{#each skills}} `{{ this }}`{{#unless @last}},{{/unless}}{{/each}}. Each skill's `SKILL.md` says when to use it.{{#if claudeSkills}} Claude Code reads its copy in `.claude/skills/`, so change both.{{/if}}
 
 ## Deploying
 
