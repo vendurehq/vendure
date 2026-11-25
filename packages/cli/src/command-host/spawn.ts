@@ -32,14 +32,14 @@ class LineWriter {
     }
 }
 
+/** How long a process that `timeoutMs` stopped has to exit after SIGTERM, before it is killed. */
+export const TIMEOUT_KILL_GRACE_MS = 2000;
+
 /**
  * Builds `ctx.spawn`. The process's stdout goes to `forwardStdout`, which the host points at
  * stderr under `--json`. Its stderr always goes to `process.stderr`. With `wholeLines`, both are
  * passed on in whole lines. The process is stopped when the signal fires.
  */
-/** How long a process that `timeoutMs` stopped has to exit after SIGTERM, before it is killed. */
-export const TIMEOUT_KILL_GRACE_MS = 2000;
-
 export function createSpawn(
     cwd: string,
     signal: AbortSignal,
@@ -96,6 +96,11 @@ export function createSpawn(
                 clearTimeout(timer);
                 clearTimeout(killTimer);
                 signal.removeEventListener('abort', onAbort);
+                if (timedOut) {
+                    // A grandchild can hold the pipes open after the kill. Nothing reads them now.
+                    child.stdout?.destroy();
+                    child.stderr?.destroy();
+                }
                 out?.flush();
                 err?.flush();
                 resolve({

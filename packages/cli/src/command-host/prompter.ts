@@ -10,7 +10,7 @@ import type {
 import type { Prompter } from './host.js';
 
 /** The value of the choice that lets a person type their own. No real choice uses a NUL. */
-const OTHER = '\u0000other';
+export const OTHER = '\u0000other';
 
 /**
  * The answer to a text prompt. Clack resolves `undefined` when the person presses Enter without

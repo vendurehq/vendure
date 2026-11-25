@@ -64,10 +64,14 @@ describe('createSpawn', () => {
                 '-e',
                 'process.on("SIGTERM", () => {}); process.stdout.write("partial"); setInterval(() => {}, 1000)',
             ],
-            { timeoutMs: 300, quiet: true },
+            // Long enough for the child to start and install its handler on a slow runner.
+            { timeoutMs: 1_500, quiet: true },
         );
         expect(result).toMatchObject({ exitCode: null, timedOut: true, stdout: 'partial' });
-        expect(Date.now() - started).toBeLessThan(300 + TIMEOUT_KILL_GRACE_MS + 1_500);
+        // The grace period ran: the process ignored SIGTERM, and was killed after it.
+        const elapsed = Date.now() - started;
+        expect(elapsed).toBeGreaterThanOrEqual(1_500 + TIMEOUT_KILL_GRACE_MS - 100);
+        expect(elapsed).toBeLessThan(1_500 + TIMEOUT_KILL_GRACE_MS + 2_000);
     });
 
     it('stops the process when the signal fires', async () => {

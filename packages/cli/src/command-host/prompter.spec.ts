@@ -10,7 +10,7 @@ vi.mock('@clack/prompts', () => ({
 
 import { confirm, isCancel, password, select, text } from '@clack/prompts';
 
-import { createClackPrompter } from './prompter.js';
+import { createClackPrompter, OTHER } from './prompter.js';
 
 const validate = (answer: string) => (answer ? undefined : 'Required');
 
@@ -87,7 +87,7 @@ describe('createClackPrompter', () => {
     it('lets a person type a value instead of a choice when select has other', async () => {
         const prompter = createClackPrompter();
         vi.mocked(select).mockClear();
-        vi.mocked(select).mockResolvedValueOnce('\u0000other');
+        vi.mocked(select).mockResolvedValueOnce(OTHER);
         vi.mocked(text).mockClear();
         const answer = await prompter.select('Environment', [{ value: 'prod', label: 'prod' }], {
             other: 'Create a new environment',
@@ -97,7 +97,7 @@ describe('createClackPrompter', () => {
             message: 'Environment',
             options: [
                 { value: 'prod', label: 'prod' },
-                { value: '\u0000other', label: 'Create a new environment' },
+                { value: OTHER, label: 'Create a new environment' },
             ],
         });
         expect(text).toHaveBeenCalledWith({ message: 'Create a new environment' });

@@ -303,7 +303,7 @@ export interface SpawnOptions {
     quiet?: boolean;
     /**
      * Stops the process with SIGTERM when it runs longer than this, in milliseconds, and sets
-     * `timedOut` in the result. A process still running two seconds later is killed, and the result
+     * `timedOut` in the result. A process still running a short grace period later is killed, and the result
      * holds the output so far. For a probe that may never answer, such as a container runtime.
      *
      * @since 4.0.0
@@ -332,7 +332,9 @@ export interface CommandAsk {
     /**
      * Resolves to the chosen `value`, or `undefined` when the person cancels. With `other`, a last
      * choice of that label lets the person type a value instead, which it resolves to, for example
-     * the name of an environment to create.
+     * the name of an environment to create. A typed value can be `''` when the person types nothing.
+     *
+     * @since 4.0.0 for `options`
      */
     select(
         message: string,
@@ -340,7 +342,8 @@ export interface CommandAsk {
         options?: CommandSelectOptions,
     ): Promise<string | undefined>;
     /**
-     * Asks for a line of text. Resolves to the answer, or `undefined` when the person cancels.
+     * Asks for a line of text. Resolves to the answer, `''` when the person types nothing, or
+     * `undefined` when they cancel.
      *
      * @since 4.0.0
      */
