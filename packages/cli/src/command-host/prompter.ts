@@ -1,5 +1,14 @@
 import { confirm, isCancel, password, select, text } from '@clack/prompts';
-import type { CommandChoice, ConsentNeed, InputNeed } from '@vendure/common/lib/command';
+import type {
+    CommandChoice,
+    CommandSelectOptions,
+    CommandTextOptions,
+    ConsentNeed,
+    InputNeed,
+} from '@vendure/common/lib/command';
+
+/** The value of the choice that lets a person type their own. No real choice uses a NUL. */
+const OTHER = '\u0000other';
 
 import type { Prompter } from './host.js';
 
@@ -36,8 +45,26 @@ export function createClackPrompter(): Prompter {
             const answer = await confirm({ message, initialValue: false });
             return isCancel(answer) ? undefined : answer;
         },
-        async select(message: string, choices: CommandChoice[]) {
-            const answer = await select({ message, options: choices });
+        async select(message: string, choices: CommandChoice[], options: CommandSelectOptions = {}) {
+            const answer = await select({
+                message,
+                options: [...choices, ...(options.other ? [{ value: OTHER, label: options.other }] : [])],
+            });
+            if (isCancel(answer)) {
+                return undefined;
+            }
+            if (answer !== OTHER) {
+                return String(answer);
+            }
+            const typed = await text({ message: options.other ?? message });
+            return isCancel(typed) ? undefined : String(typed);
+        },
+        async text(message: string, options: CommandTextOptions = {}) {
+            const answer = await text({
+                message,
+                placeholder: options.placeholder,
+                initialValue: options.initialValue,
+            });
             return isCancel(answer) ? undefined : String(answer);
         },
     };

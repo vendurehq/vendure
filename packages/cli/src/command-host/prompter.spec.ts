@@ -72,4 +72,39 @@ describe('createClackPrompter', () => {
         expect(answer).toBe('true');
         expect(confirm).toHaveBeenCalledWith({ message: 'Translatable', initialValue: false });
     });
+
+    it('asks for a line of text for ctx.ask', async () => {
+        vi.mocked(text).mockClear();
+        const answer = await createClackPrompter().text('Name the environment', { placeholder: 'staging' });
+        expect(answer).toBe('typed');
+        expect(text).toHaveBeenCalledWith({
+            message: 'Name the environment',
+            placeholder: 'staging',
+            initialValue: undefined,
+        });
+    });
+
+    it('lets a person type a value instead of a choice when select has other', async () => {
+        const prompter = createClackPrompter();
+        vi.mocked(select).mockClear();
+        vi.mocked(select).mockResolvedValueOnce('\u0000other');
+        vi.mocked(text).mockClear();
+        const answer = await prompter.select('Environment', [{ value: 'prod', label: 'prod' }], {
+            other: 'Create a new environment',
+        });
+        expect(answer).toBe('typed');
+        expect(select).toHaveBeenCalledWith({
+            message: 'Environment',
+            options: [
+                { value: 'prod', label: 'prod' },
+                { value: '\u0000other', label: 'Create a new environment' },
+            ],
+        });
+        expect(text).toHaveBeenCalledWith({ message: 'Create a new environment' });
+
+        vi.mocked(select).mockResolvedValueOnce('prod');
+        expect(
+            await prompter.select('Environment', [{ value: 'prod', label: 'prod' }], { other: 'New' }),
+        ).toBe('prod');
+    });
 });

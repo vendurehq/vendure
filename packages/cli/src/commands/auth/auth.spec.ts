@@ -89,6 +89,7 @@ function makeContext(options: { ask?: Partial<CommandAsk>; mcp?: boolean } = {})
                   ask: {
                       confirm: () => Promise.resolve(undefined),
                       select: () => Promise.resolve(undefined),
+                      text: () => Promise.resolve(undefined),
                       ...options.ask,
                   },
               }

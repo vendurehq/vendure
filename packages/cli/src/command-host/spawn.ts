@@ -52,6 +52,7 @@ export function createSpawn(
                 env: { ...withoutLocalTrustSecret(process.env), ...options.env },
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
+            const quiet = options.quiet === true;
             const writeStderr = (text: string) => process.stderr.write(text);
             const out = wholeLines ? new LineWriter(forwardStdout) : undefined;
             const err = wholeLines ? new LineWriter(writeStderr) : undefined;
@@ -60,6 +61,9 @@ export function createSpawn(
             child.stdout?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
                 stdout += text;
+                if (quiet) {
+                    return;
+                }
                 if (out) {
                     out.push(text);
                 } else {
@@ -69,26 +73,44 @@ export function createSpawn(
             child.stderr?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
                 stderr += text;
+                if (quiet) {
+                    return;
+                }
                 if (err) {
                     err.push(text);
                 } else {
                     writeStderr(text);
                 }
             });
+            let timedOut = false;
+            const timer =
+                options.timeoutMs === undefined
+                    ? undefined
+                    : setTimeout(() => {
+                          timedOut = true;
+                          child.kill('SIGTERM');
+                      }, options.timeoutMs);
             const onAbort = () => child.kill('SIGTERM');
             if (signal.aborted) {
                 onAbort();
             }
             signal.addEventListener('abort', onAbort, { once: true });
             child.on('error', error => {
+                clearTimeout(timer);
                 signal.removeEventListener('abort', onAbort);
                 reject(error);
             });
             child.on('close', exitCode => {
+                clearTimeout(timer);
                 signal.removeEventListener('abort', onAbort);
                 out?.flush();
                 err?.flush();
-                resolve({ exitCode, stdout, stderr });
+                resolve({
+                    exitCode: timedOut ? null : exitCode,
+                    stdout,
+                    stderr,
+                    ...(timedOut ? { timedOut } : {}),
+                });
             });
         });
 }
