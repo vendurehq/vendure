@@ -43,6 +43,14 @@ class FakeChildProcess extends EventEmitter {
     }
 }
 
+/** Swallows the status lines a supervised process writes. */
+const silentIo = {
+    write: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+    error: () => undefined,
+};
+
 describe('dev command', () => {
     describe('getDevProcessDefinitions()', () => {
         it('uses default entrypoints', () => {
@@ -492,6 +500,7 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
                     reloadIgnoredPaths: options.reloadIgnoredPaths?.(projectDir) ?? [],
                     spawnChild,
                     monitor: options.monitor ?? createMonitor(),
+                    io: silentIo,
                 },
             );
             startedProcesses.push(supervised);

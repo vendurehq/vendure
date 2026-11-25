@@ -127,10 +127,10 @@ to the project directory.
 | `--inspect [host:port]` | Enable the Node.js inspector for the server and worker. |
 | `--inspect-brk [host:port]` | Enable the inspector and pause before user code starts. |
 | `--no-reload` | Disable automatic server and worker restarts. |
+| `--reload-ignored-paths <path...>` | Paths whose changes never restart the server or the worker. |
 
 `vendure dev` runs until you stop it, so it is not a Developer MCP tool: agents use the `devserver`
-commands below. In Vendure 4 it takes the project directory as `--dir`; `--project` named it before.
-With `--json`, the output of the processes goes to stderr as `output` events while the run lasts, and the
+commands below. With `--json`, the output of the processes goes to stderr as `output` events while the run lasts, and the
 envelope is written when it ends. Stopping it with Ctrl+C is a normal end, with exit code 0.
 
 When a backend file changes, `vendure dev` restarts the server and the worker once. A compile error or a
@@ -1404,8 +1404,8 @@ error: unknown command 'plann'
 
 `extendCommands` reaches the commands registered as `cliPlugin` commands and the built-ins that are
 not declared with `defineCommand`, such as `start`, `build` and `add`. A command declared with
-`defineCommand`, such as `vendure dev`, cannot be extended this way: a plugin that tries is refused,
-with a message naming the command.
+`defineCommand`, such as `vendure dev`, cannot be extended this way: the CLI skips that extension
+with a warning, and loads the rest of the plugin.
 
 More than one plugin may need the same command. One plugin might add a
 credential to `vendure start`, and another might need to add to it as well.

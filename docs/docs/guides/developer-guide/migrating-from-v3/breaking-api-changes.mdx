@@ -254,6 +254,18 @@ The Vendure CLI signs in with a device login, so the browser login API that `@ve
 | Imports from `@vendure/cli/dist/commands/console/cli-auth` | The package root, `@vendure/cli` |
 | `ConsoleSession.refreshToken` | Nothing. The session an `afterConsoleLink` hook gets never carried one. |
 
+## vendure dev
+
+`vendure dev` is declared with `defineCommand`, like the CLI's other agent-ready commands.
+
+| Before | In v4 |
+|---|---|
+| `vendure dev --project <dir>` | `vendure dev --dir <dir>`. `--project` names the Vendure Cloud project. |
+| Ctrl+C ended the run with exit code 130 | A run stopped with Ctrl+C or SIGTERM ends with exit code 0. A run that a process ends with an error exits 1. |
+| A CLI plugin could add options to `dev` and wrap its action with `extendCommands` | That extension is skipped, with a warning, and the plugin's other commands still load. A plugin can still replace `dev` with `replaces: true`. |
+
+Update scripts, `package.json` scripts and CI jobs that pass `--project` to `vendure dev`.
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.

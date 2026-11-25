@@ -14,6 +14,7 @@ import {
 } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
+import { DEV_DIR_FLAG } from './commands/dev/dev.command.js';
 import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
@@ -79,10 +80,12 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     const selection = new Command().allowUnknownOption().exitOverride();
     switch (process.argv[2]) {
         case 'dev':
-            selection.option('--dir <dir>');
+            // Only the flag selects the plugins' project. A `dir` inside `--input` is read once the
+            // plugins are loaded, so it selects the project to run, not the plugins.
+            selection.option(`${DEV_DIR_FLAG} <dir>`);
             selection.parseOptions(process.argv.slice(3));
             pluginOptions.project = selection.opts<{ dir?: string }>().dir;
-            pluginOptions.projectFlag = '--dir';
+            pluginOptions.projectFlag = DEV_DIR_FLAG;
             break;
         case 'console':
             for (const option of consoleCommandDef.options ?? []) {

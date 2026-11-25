@@ -419,10 +419,12 @@ function draftExtension(
 
     const entry = draft.commands.get(path[0]);
     const target = entry && findNodeAtPath(entry.node, path.slice(1));
+    // Only this extension is skipped: the plugin's other commands and extensions still apply.
     if (!target && hostCommands.has(label)) {
-        conflicts.push(
-            `"vendure ${label}" is declared with defineCommand, so extendCommands cannot extend it. ` +
-                'A plugin adds to it with a command extension declared with defineCommand instead.',
+        notices.push(
+            `Skipped the extension of "vendure ${label}" from ${source}: the command is declared with ` +
+                'defineCommand, which extendCommands cannot extend. The plugin can still replace it with ' +
+                '`replaces: true`.\n',
         );
         return;
     }

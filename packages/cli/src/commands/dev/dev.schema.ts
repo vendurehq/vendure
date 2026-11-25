@@ -46,7 +46,11 @@ export const input = z.object({
 });
 
 export const output = z.object({
-    exitCode: z.number().describe('The exit code of the run'),
+    processExitCode: z
+        .number()
+        .describe(
+            'The exit code the dev processes ended with, such as 130 after Ctrl+C. The CLI itself exits 0 for a stopped run, and 1 for one a process ended with an error',
+        ),
     stopped: z.boolean().describe('The run was stopped, by Ctrl+C or a signal, rather than ending by itself'),
 });
 

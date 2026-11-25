@@ -310,18 +310,27 @@ describe('Command extensions: registration through Commander', () => {
 
 describe('Command extensions: collisions', () => {
     // `vendure dev` is declared with defineCommand, which extendCommands cannot reach.
-    it('names a command the CLI declares with defineCommand when a plugin tries to extend it', () => {
+    it('skips only the extension of a command the CLI declares with defineCommand, with a warning', () => {
         const registry = new CommandRegistry();
         registry.setHostDeclaredCommands([['dev'], ['migrate', 'generate']]);
         const plugin = defineCliPlugin({
             id: '@example/dev-extender',
-            commands: [],
+            commands: [{ name: 'hello', description: 'Hello', action: async () => 0 }],
             extendCommands: [{ command: 'dev', options: [{ long: '--x', description: 'X' }] }],
         });
-
-        expect(() => registry.applyPlugin(plugin)).toThrow(
-            /"vendure dev" is declared with defineCommand, so extendCommands cannot extend it/,
-        );
+        const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+            registry.applyPlugin(plugin);
+            expect(stderr).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    'Skipped the extension of "vendure dev" from @example/dev-extender: the command is declared with defineCommand',
+                ),
+            );
+        } finally {
+            stderr.mockRestore();
+        }
+        // The plugin's own command is still registered.
+        expect(registry.get('hello')).toBeDefined();
     });
 
     it('rejects an extension of a command that is not registered', () => {

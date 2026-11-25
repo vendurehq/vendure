@@ -3,8 +3,8 @@
  *
  * These spawn the built CLI (`dist/cli.js`) against a temporary project, with
  * one fixture standing in for `@vendure-platform/cli` and another for
- * `@vendure/cloud`, both wrapping the built-in `start`. (`dev` is declared with
- * `defineCommand` now, which these Commander extensions cannot wrap.)
+ * `@vendure/cloud`, both wrapping the built-in `start`. `vendure dev` is declared
+ * with `defineCommand`, which these Commander extensions cannot wrap.
  *
  * `start bogus` is used to drive the whole chain: the built-in rejects an unknown
  * target before it starts any process, so the test observes both wrappers and
@@ -97,7 +97,7 @@ describe('Several plugins extending one command', () => {
     it('shows the extended description in root help', async () => {
         const result = await project.runCliCommand(['--help']);
 
-        expect(result.stdout).toContain('Run Vendure in development mode with linked Platform credentials');
+        expect(result.stdout).toContain('Start a built Vendure project with linked Platform credentials');
     });
 
     it('still rejects an unknown option on the extended command', async () => {

@@ -11,7 +11,7 @@ module.exports = defineCliPlugin({
     extendCommands: [
         {
             command: 'start',
-            description: 'Run Vendure in development mode with linked Platform credentials',
+            description: 'Start a built Vendure project with linked Platform credentials',
             options: [
                 {
                     long: '--rotate-credential',

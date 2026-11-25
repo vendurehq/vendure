@@ -2,6 +2,9 @@ import { defineCommand } from '@vendure/common/lib/command';
 
 import { devErrors } from './dev.errors.js';
 
+/** The option that selects the project directory of `vendure dev`. The CLI reads it before plugins load. */
+export const DEV_DIR_FLAG = '--dir';
+
 /**
  * `vendure dev`, the foreground run of the server, the worker and the Dashboard. It runs until it
  * is stopped, so it is a `service`: it is not an MCP tool. Agents use the `devserver` commands.

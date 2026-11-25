@@ -30,14 +30,15 @@ export async function run(input: DevInput, ctx: CommandContext) {
         error: message => ctx.notice('warning', message),
     };
     const { dir, ...options } = input;
-    const {
-        startError,
-        stopSignal: _stopSignal,
-        ...result
-    } = await runDev(input.target, { ...options, project: dir }, { io, signal: ctx.signal });
+    const { startError, ...result } = await runDev(
+        input.target,
+        { ...options, project: dir },
+        { io, signal: ctx.signal },
+    );
     if (startError !== undefined) {
         return fail(devErrors.startFailed, { message: startError });
     }
     // A run that a person or a signal stopped ended as it should. One that ended by itself did not.
-    return result.exitCode !== 0 && !result.stopped ? failed(result) : result;
+    const output = { processExitCode: result.exitCode, stopped: result.stopped };
+    return result.exitCode !== 0 && !result.stopped ? failed(output) : output;
 }

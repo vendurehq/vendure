@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCommandInHarness } from '../../command-host/__tests__/command-harness.js';
 import { collectFlagInput, registerManifestCommands } from '../../command-host/commander-adapter.js';
+import { coreCommandDefinitions } from '../../command-host/core-commands.js';
+import { isExposed, toolName } from '../../command-host/mcp/server.js';
 
 import { devDefinition } from './dev.command.js';
 import type { DevIo, RunDevOptions } from './dev.js';
@@ -74,8 +76,11 @@ describe('vendure dev on the command host', () => {
         });
     });
 
-    it('is a service, so it is not an MCP tool', () => {
-        expect(devDefinition.behavior).toBe('service');
+    it('is not among the tools of the Developer MCP', async () => {
+        const manifest = await buildCommandManifest('@vendure/cli', '0.0.0', coreCommandDefinitions);
+        const tools = mergeManifests([manifest]).filter(isExposed).map(toolName);
+        expect(tools).toContain('devserver_start');
+        expect(tools).not.toContain('dev');
     });
 
     it('passes its input to the run, with the project directory and the signal', async () => {
@@ -87,7 +92,10 @@ describe('vendure dev on the command host', () => {
             { signal },
         );
 
-        expect(result.envelope).toMatchObject({ status: 'ok', output: { exitCode: 0, stopped: true } });
+        expect(result.envelope).toMatchObject({
+            status: 'ok',
+            output: { processExitCode: 0, stopped: true },
+        });
         const [target, options, runOptions] = runDev.mock.calls[0] as [string, object, RunDevOptions];
         expect(target).toBe('server');
         expect(options).toMatchObject({ project: 'apps/server', reload: false });
@@ -132,7 +140,7 @@ describe('vendure dev on the command host', () => {
 
         runDev.mockResolvedValue({ exitCode: 130, stopped: true });
         const stopped = await runCommandInHarness(devDefinition, {});
-        expect(stopped.envelope.status).toBe('ok');
+        expect(stopped.envelope).toMatchObject({ status: 'ok', output: { processExitCode: 130 } });
         expect(stopped.exitCode).toBe(0);
     });
 });
