@@ -44,7 +44,18 @@ With `--json`, create prints one document on stdout:
     "projectDir": "/home/me/my-shop",
     "packageManager": "pnpm",
     "agentFiles": {
-        "written": ["AGENTS.md", ".agents/skills/vendure-cli/", "CLAUDE.md", ".mcp.json"],
+        "written": [
+            "AGENTS.md",
+            ".agents/skills/vendure-cli/",
+            ".agents/skills/vendure-store-setup/",
+            ".agents/skills/vendure-troubleshooting/",
+            "CLAUDE.md",
+            ".claude/settings.json",
+            ".mcp.json",
+            ".cursor/mcp.json",
+            ".vscode/mcp.json",
+            ".codex/config.toml"
+        ],
         "failed": []
     },
     "git": { "status": "committed" },
