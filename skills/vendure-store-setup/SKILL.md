@@ -46,8 +46,8 @@ List them with `vendure seed`. Each preset:
 | `single-country --country NZ --currency NZD` | any | include tax | Standard at 0: set your rate |
 | `eu --country DE` | EUR | include VAT | Standard and reduced per member state |
 
-`eu` is listed only once its VAT table has been reviewed for the release. Its
-`--country` is the seller's own member state.
+`eu`'s `--country` is the seller's own member state. The preset sets it as the
+channel's tax country, so its rates are the ones entered prices include.
 
 ### Applying a preset
 
@@ -105,8 +105,9 @@ accountant or tax authority.
   Assign each product the matching tax category.
 - **EU One-Stop Shop.** A seller registered for OSS charges the buyer's country
   rate on cross-border sales to consumers. Use one country rate per member state
-  and category, in one `EU` zone, and a zone rate at the seller's own rate on that
-  zone, which is the rate entered prices include. Rates change every year: check
+  and category, in one `EU` zone that is the channel's default tax zone, and set the
+  channel's tax country (`taxCountryCode`) to the seller's own member state: its
+  rate is the one entered prices include. Rates change every year: check
   them against the European Commission's published rates.
 - **US sales tax.** Rates depend on the state, county and city of the address, and
   on whether the seller has nexus there. Static rates are not workable: install a

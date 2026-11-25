@@ -102,13 +102,6 @@ export type {
     WorkosClient,
 } from './auth/index.js';
 export { builtinCommands } from './commands/builtins.js';
-export {
-    ConsoleTokenGrantError,
-    loginWithBrowser,
-    refreshSession,
-} from './commands/console/authentication.js';
-export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication.js';
-export type { ConsoleSession } from './commands/console/cli-auth.js';
 export type {
     ConsoleLinkContext,
     ConsoleLinkEndpoints,
@@ -116,6 +109,7 @@ export type {
     ConsoleLinkHookRegistration,
     ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
+    ConsoleSession,
     ConsoleSessionUnavailableReason,
 } from './commands/console/console-link-hook.js';
 export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins.js';

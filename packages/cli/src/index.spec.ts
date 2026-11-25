@@ -50,7 +50,7 @@ describe('CLI package root', () => {
             net.Server.prototype.listen = forbidden;
             globalThis.fetch = forbidden;
             const cli = await import(${JSON.stringify(pathToFileURL(path.join(import.meta.dirname, 'index.ts')).href)});
-            for (const name of ['loginWithBrowser', 'refreshSession', 'ConsoleTokenGrantError']) {
+            for (const name of ['loginWithDevice', 'startDeviceLogin', 'getAccessToken', 'requireCredential']) {
                 assert.equal(typeof cli[name], 'function');
             }
         `,

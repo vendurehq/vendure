@@ -19,6 +19,7 @@ import {
 } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
+import { McpPlugin } from '@vendure/mcp-plugin';
 import 'dotenv/config';
 import { createRequire } from 'node:module';
 import path from 'path';
@@ -156,6 +157,10 @@ export const devConfig: VendureConfig = {
                 adminPasswordResetUrl: `${dashboardUrl}/reset-password`,
             },
         }),
+        // The Store MCP, which `vendure store check` and the MCP tools use. With no oauth block, the
+        // CLI's local trust gives `vendure mcp` admin access, and `/mcp/shop` takes anonymous callers
+        // by default.
+        McpPlugin.init({}),
         ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
         SERVE_STATIC_DASHBOARD
             ? DashboardPlugin.init({

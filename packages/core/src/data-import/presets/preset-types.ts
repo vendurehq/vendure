@@ -69,6 +69,8 @@ export interface PresetResult {
     channel: {
         defaultCurrencyCode: CurrencyCode;
         pricesIncludeTax: boolean;
+        /** The channel's tax country, when the preset sets one. */
+        taxCountryCode?: string;
         defaultTaxZone: string;
         defaultShippingZone: string;
     };

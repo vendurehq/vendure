@@ -105,7 +105,7 @@ describe('Seed command E2E', { timeout: 120_000 }, () => {
 
             expect(result.envelope.status).toBe('ok');
             const names = (result.envelope.output as any).presets.map((p: any) => p.name);
-            expect(names).toEqual(['uk', 'us', 'au', 'single-country']);
+            expect(names).toEqual(['eu', 'uk', 'us', 'au', 'single-country']);
         });
 
         it('applies a preset', async () => {

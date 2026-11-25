@@ -9,8 +9,9 @@ const EU_COUNTRY_CODES = EU_VAT_RATES.map(r => r.countryCode);
 
 /**
  * EUR, prices include VAT. One `EU` zone with the 27 member states, and a standard and a reduced
- * rate for each member state, as the One-Stop Shop scheme needs. The zone also has a rate at the
- * seller's own VAT, which is the rate the entered prices include.
+ * rate for each member state, as the One-Stop Shop scheme needs. The seller's member state is the
+ * channel's tax country, so its rates are the ones the entered prices include, and the zone needs no
+ * rate of its own.
  */
 export const euPreset: Preset = {
     name: 'eu',
@@ -34,24 +35,21 @@ export const euPreset: Preset = {
     },
     apply(ctx, services, options) {
         // validate() has checked that the country is a member state.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const seller = EU_VAT_RATES.find(r => r.countryCode === options.country)!;
         return seedBaseData(ctx, services, {
             preset: 'eu',
             options,
             currencyCode: CurrencyCode.EUR,
             pricesIncludeTax: true,
             zone: { name: 'EU', countryCodes: EU_COUNTRY_CODES },
+            taxCountryCode: options.country,
             taxCategories: [
                 {
                     name: 'Standard',
                     isDefault: true,
-                    zoneRate: seller.standard,
                     countryRates: Object.fromEntries(EU_VAT_RATES.map(r => [r.countryCode, r.standard])),
                 },
                 {
                     name: 'Reduced',
-                    zoneRate: seller.reduced,
                     countryRates: Object.fromEntries(EU_VAT_RATES.map(r => [r.countryCode, r.reduced])),
                 },
             ],

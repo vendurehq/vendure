@@ -243,6 +243,17 @@ orderOptions: {
 - Remove the `@/vdb/*` path from your `tsconfig.json`. `@vendure/dashboard` now ships type declarations, so TypeScript no longer reads the Dashboard's source.
 - The package no longer ships the Dashboard's TypeScript source. Code that reads files from `node_modules/@vendure/dashboard/src` must import from `@vendure/dashboard` instead.
 
+## CLI login API
+
+The Vendure CLI signs in with a device login, so the browser login API that `@vendure/cli` exported since v3.8.0 is removed. It was not deprecated first.
+
+| Removed | Use instead |
+|---|---|
+| `loginWithBrowser()`, `ConsoleBrowserLoginOptions` | `loginWithDevice()`, which stores the login the CLI shares. See [Console authentication](https://github.com/vendurehq/vendure/blob/major/packages/cli/CONSOLE_AUTH.md). |
+| `refreshSession()`, `ConsoleRefreshOptions`, `ConsoleTokenGrantError` | `getAccessToken()`, which renews the stored login, or `refreshAccessToken()` after a 401 |
+| Imports from `@vendure/cli/dist/commands/console/cli-auth` | The package root, `@vendure/cli` |
+| `ConsoleSession.refreshToken` | Nothing. The session an `afterConsoleLink` hook gets never carried one. |
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.

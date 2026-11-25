@@ -4,8 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { readStoredAuth } from '../../auth/auth-store.js';
 
-import { ConsoleSession } from './cli-auth.js';
-import { RegisteredConsoleLinkHook } from './console-link-hook.js';
+import { ConsoleSession, RegisteredConsoleLinkHook } from './console-link-hook.js';
 import { ConsoleReporter } from './console-reporter.js';
 import {
     ACCOUNT_ID,

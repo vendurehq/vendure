@@ -1,8 +1,21 @@
-import { ConsoleSession } from './cli-auth.js';
 import { ConsoleOriginEnvironment } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { ConsoleLinkResultContribution } from './console-result.js';
 import { ProjectLinkManifest } from './project-link-manifest.js';
+
+/**
+ * The session `vendure console link` gives an `afterConsoleLink` hook that requested one: the
+ * stored login's access token and when it expires. The refresh token stays in the login, because
+ * it is single-use. Do not store the token. When a token is needed, call `getAccessToken()` from
+ * `@vendure/cli` with `VENDURE_CONSOLE_API_URL` set to `endpoints.apiUrl`, so the CLI renews it.
+ *
+ * @since 3.8.0
+ */
+export interface ConsoleSession {
+    accessToken: string;
+    /** Epoch milliseconds. */
+    expiresAt: number;
+}
 
 /** The Console origins resolved for this run. @since 3.8.0 */
 export interface ConsoleLinkEndpoints {
@@ -29,9 +42,10 @@ export type ConsoleLinkOutcome = 'linked' | 'repaired';
  *   of the user's own Projects, an administrator of that account adds the user, or the user runs
  *   `vendure auth login` with another Vendure Console login that is a member. The CLI has said so.
  * - `'sign-in-failed'`: the sign-in failed. The CLI has reported why.
- * - `'environment-credential'`: the run uses `VENDURE_CLOUD_TOKEN`, such as an agent's delegated key,
- *   which is never given to a hook. Do not fall back to `getAccessToken()`: a stored login, if any,
- *   is not the credential this run uses. Since 4.0.0.
+ * - `'environment-credential'`: `vendure console link` created the link with `VENDURE_CLOUD_TOKEN`,
+ *   such as an agent's delegated key, which is never given to a hook. Do not fall back to
+ *   `getAccessToken()`: a stored login, if any, is not the credential this run uses. A repeated
+ *   link with only the token gives `'not-signed-in'`. Since 4.0.0.
  *
  * @since 3.8.2
  */

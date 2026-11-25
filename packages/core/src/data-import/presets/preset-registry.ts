@@ -37,7 +37,7 @@ export function getPreset(name: string): Preset | undefined {
 /**
  * @description
  * Lists the released base-data presets: `eu`, `uk`, `us`, `au` and `single-country`. `eu` is
- * released once its VAT rates have been reviewed.
+ * listed only while its VAT rates have a review date, see `EU_VAT_RATES_REVIEWED_AT`.
  *
  * @docsCategory import-export
  * @docsPage Presets
