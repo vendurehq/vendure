@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-24T22:45:19+01:00"
+              "lastModified": "2026-11-25T07:07:42+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-20T17:56:50+01:00"
+          "lastModified": "2026-11-25T07:07:42+01:00"
         },
         {
           "title": "Worker & Job Queue",
