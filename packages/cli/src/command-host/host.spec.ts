@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { runCommandInHarness } from './__tests__/command-harness.js';
 import { consentDigest } from './digest.js';
 import { formatFix } from './format-fix.js';
+import { presentForPeople } from './present.js';
 
 const input = z.object({
     name: z.string().describe('The name'),
@@ -32,6 +33,7 @@ const brokenError = defineError<{ what: string }>({
 const noAsk = {
     confirm: async () => undefined,
     select: async () => undefined,
+    text: () => Promise.resolve(undefined),
 };
 
 function makeCommand(
@@ -129,6 +131,47 @@ describe('executeCommand', () => {
             });
             expect(run).not.toHaveBeenCalled();
         });
+    });
+
+    it('hands the validated input to render() with the output', async () => {
+        const render = vi.fn(() => 'shown');
+        const def = makeCommand(async i => ({ hello: i.name }), {
+            render: async () => ({ render }),
+        });
+        const result = await runCommandInHarness(def, { name: 'a' });
+        expect(result.input).toEqual({ name: 'a' });
+        const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+            await presentForPeople(def, result);
+        } finally {
+            stdout.mockRestore();
+        }
+        expect(render).toHaveBeenCalledWith({ hello: 'a' }, { name: 'a' });
+    });
+
+    it('gives ctx.ask a text prompt, and a select that takes a typed value', async () => {
+        const text = vi.fn(async () => 'staging');
+        const select = vi.fn(async () => 'new-env');
+        const def = makeCommand(async (_i, ctx) => ({
+            typed: await ctx.ask?.text('Name it', { placeholder: 'x' }),
+            picked: await ctx.ask?.select('Pick', [{ value: 'a', label: 'A' }], { other: 'New' }),
+        }));
+        const result = await runCommandInHarness(
+            def,
+            { name: 'a' },
+            {
+                prompter: {
+                    ...noAsk,
+                    text,
+                    select,
+                    askInput: async () => undefined,
+                    askConsent: async () => true,
+                },
+            },
+        );
+        expect(result.envelope.output).toEqual({ typed: 'staging', picked: 'new-env' });
+        expect(text).toHaveBeenCalledWith('Name it', { placeholder: 'x' });
+        expect(select).toHaveBeenCalledWith('Pick', [{ value: 'a', label: 'A' }], { other: 'New' });
     });
 
     describe('requires.auth', () => {

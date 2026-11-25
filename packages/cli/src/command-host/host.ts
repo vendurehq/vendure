@@ -11,6 +11,8 @@ import {
     CommandEvent,
     CommandNeed,
     CommandNotice,
+    CommandSelectOptions,
+    CommandTextOptions,
     ConsentNeed,
     ErrorResult,
     InputNeed,
@@ -46,8 +48,17 @@ export interface Prompter {
     askConsent(need: ConsentNeed): Promise<boolean>;
     /** Asks a yes or no question for `ctx.ask`. Resolves to `undefined` when the person cancels. */
     confirm(message: string): Promise<boolean | undefined>;
-    /** Asks for one of `choices` for `ctx.ask`. Resolves to `undefined` when the person cancels. */
-    select(message: string, choices: CommandChoice[]): Promise<string | undefined>;
+    /**
+     * Asks for one of `choices` for `ctx.ask`, or with `other` for a typed value. Resolves to
+     * `undefined` when the person cancels.
+     */
+    select(
+        message: string,
+        choices: CommandChoice[],
+        options?: CommandSelectOptions,
+    ): Promise<string | undefined>;
+    /** Asks for a line of text for `ctx.ask`. Resolves to `undefined` when the person cancels. */
+    text(message: string, options?: CommandTextOptions): Promise<string | undefined>;
 }
 
 export interface HostEnvironment {
@@ -79,6 +90,8 @@ export interface HostEnvironment {
 export interface HostResult {
     envelope: CommandEnvelope;
     exitCode: number;
+    /** The validated input `run()` received, for `render()`. Present when `run()` ran. */
+    input?: Record<string, unknown>;
 }
 
 function envelope(
@@ -207,7 +220,8 @@ function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandC
             ? {
                   ask: {
                       confirm: message => prompter.confirm(message),
-                      select: (message, choices) => prompter.select(message, choices),
+                      select: (message, choices, options) => prompter.select(message, choices, options),
+                      text: (message, options) => prompter.text(message, options),
                   },
               }
             : {}),
@@ -566,11 +580,13 @@ export async function executeCommand(
             return {
                 envelope: envelope('failed', notices, { output: protectedOutput.output }),
                 exitCode: COMMAND_EXIT_CODES.failed,
+                input: parsed,
             };
         }
         return {
             envelope: envelope('ok', notices, { output: protectedOutput.output }),
             exitCode: COMMAND_EXIT_CODES.ok,
+            input: parsed,
         };
     } catch (e) {
         if (env.signal.aborted) {

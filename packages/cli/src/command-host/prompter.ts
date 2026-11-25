@@ -1,7 +1,24 @@
 import { confirm, isCancel, password, select, text } from '@clack/prompts';
-import type { CommandChoice, ConsentNeed, InputNeed } from '@vendure/common/lib/command';
+import type {
+    CommandChoice,
+    CommandSelectOptions,
+    CommandTextOptions,
+    ConsentNeed,
+    InputNeed,
+} from '@vendure/common/lib/command';
 
 import type { Prompter } from './host.js';
+
+/** The value of the choice that lets a person type their own. No real choice uses a NUL. */
+export const OTHER = '\u0000other';
+
+/**
+ * The answer to a text prompt. Clack resolves `undefined` when the person presses Enter without
+ * typing, which is an empty answer, not a cancel.
+ */
+function typedAnswer(answer: unknown): string | undefined {
+    return isCancel(answer) ? undefined : String(answer ?? '');
+}
 
 /** Asks a person at a terminal with @clack/prompts. */
 export function createClackPrompter(): Prompter {
@@ -36,9 +53,23 @@ export function createClackPrompter(): Prompter {
             const answer = await confirm({ message, initialValue: false });
             return isCancel(answer) ? undefined : answer;
         },
-        async select(message: string, choices: CommandChoice[]) {
-            const answer = await select({ message, options: choices });
-            return isCancel(answer) ? undefined : String(answer);
+        async select(message: string, choices: CommandChoice[], options: CommandSelectOptions = {}) {
+            const answer = await select({
+                message,
+                options: [...choices, ...(options.other ? [{ value: OTHER, label: options.other }] : [])],
+            });
+            if (isCancel(answer)) {
+                return undefined;
+            }
+            if (answer !== OTHER) {
+                return String(answer);
+            }
+            return typedAnswer(await text({ message: options.other ?? message }));
+        },
+        async text(message: string, options: CommandTextOptions = {}) {
+            return typedAnswer(
+                await text({ message, placeholder: options.placeholder, initialValue: options.initialValue }),
+            );
         },
     };
 }

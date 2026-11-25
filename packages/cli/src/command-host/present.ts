@@ -43,7 +43,7 @@ export async function presentForPeople(
     if (envelope.status === 'ok' || envelope.status === 'failed') {
         if (def.render) {
             const { render } = await def.render();
-            const text = render(envelope.output);
+            const text = render(envelope.output, result.input ?? {});
             if (typeof text === 'string') {
                 process.stdout.write(`${text}\n`);
             }

@@ -283,11 +283,32 @@ export interface SpawnResult {
     exitCode: number | null;
     stdout: string;
     stderr: string;
+    /**
+     * True when `timeoutMs` ran out and the host stopped the process. `exitCode` is then `null`.
+     *
+     * @since 4.0.0
+     */
+    timedOut?: boolean;
 }
 
 export interface SpawnOptions {
     cwd?: string;
     env?: Record<string, string | undefined>;
+    /**
+     * Captures the process's output in the result without passing it on to the caller. For a
+     * process whose answer the command reads, such as `git status --porcelain`.
+     *
+     * @since 4.0.0
+     */
+    quiet?: boolean;
+    /**
+     * Stops the process with SIGTERM when it runs longer than this, in milliseconds, and sets
+     * `timedOut` in the result. A process still running a short grace period later is killed, and the result
+     * holds the output so far. For a probe that may never answer, such as a container runtime.
+     *
+     * @since 4.0.0
+     */
+    timeoutMs?: number;
 }
 
 /**
@@ -308,8 +329,38 @@ export interface CommandChoice {
 export interface CommandAsk {
     /** Resolves to `undefined` when the person cancels. */
     confirm(message: string): Promise<boolean | undefined>;
-    /** Resolves to the chosen `value`, or `undefined` when the person cancels. */
-    select(message: string, choices: CommandChoice[]): Promise<string | undefined>;
+    /**
+     * Resolves to the chosen `value`, or `undefined` when the person cancels. With `other`, a last
+     * choice of that label lets the person type a value instead, which it resolves to, for example
+     * the name of an environment to create. A typed value can be `''` when the person types nothing.
+     *
+     * @since 4.0.0 for `options`
+     */
+    select(
+        message: string,
+        choices: CommandChoice[],
+        options?: CommandSelectOptions,
+    ): Promise<string | undefined>;
+    /**
+     * Asks for a line of text. Resolves to the answer, `''` when the person types nothing, or
+     * `undefined` when they cancel.
+     *
+     * @since 4.0.0
+     */
+    text(message: string, options?: CommandTextOptions): Promise<string | undefined>;
+}
+
+/** @since 4.0.0 */
+export interface CommandSelectOptions {
+    /** The label of a last choice that lets the person type a value, such as `Create a new environment`. */
+    other?: string;
+}
+
+/** @since 4.0.0 */
+export interface CommandTextOptions {
+    placeholder?: string;
+    /** The answer the person starts from. */
+    initialValue?: string;
 }
 
 /**
@@ -389,7 +440,8 @@ export type CommandPlanFn<Input = any> = (
     ctx: CommandContext,
 ) => Promise<CommandPlan | ErrorResult>;
 
-export type CommandRenderFn<Output = any> = (output: Output) => string | void;
+/** `render` receives the output and the validated input of the run, such as a `details` flag. */
+export type CommandRenderFn<Output = any, Input = any> = (output: Output, input: Input) => string | void;
 
 /** Command metadata used by the CLI only. MCP clients never see it. */
 export interface CommandCliMetadata {
