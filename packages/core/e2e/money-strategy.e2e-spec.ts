@@ -102,7 +102,8 @@ describe('Custom MoneyStrategy', () => {
         cheapVariantId = productVariants.items[0].id;
         expensiveVariantId = expensiveVariant.id;
 
-        expect(CustomMoneyStrategy.transformerFromSpy).toHaveBeenCalledTimes(productVariants.items.length);
+        expect(productVariants.items.length).toBe(4);
+        expect(CustomMoneyStrategy.transformerFromSpy).toHaveBeenCalledTimes(4);
     });
 
     // https://github.com/vendurehq/vendure/issues/838
@@ -150,9 +151,11 @@ describe('Custom MoneyStrategy', () => {
         expect(addItemToOrder.total).toBe(total);
     });
 
+    // At precision 4, 3 units at 0.9595 cost 2.8785, and 5% off is 0.143925, which rounds to 0.1439.
+    // At precision 2 the unit price would be 0.96 and the total 2.74.
     it('applies a percentage promotion at the configured precision', async () => {
         const { productVariants } = await adminClient.query(getProductVariantListDocument, {
-            options: { filter: { sku: { eq: 'OFFER101' } } },
+            options: { filter: { sku: { eq: 'ERP9595' } } },
         });
         const variantId = productVariants.items[0].id;
         await adminClient.query(createPromotionDocument, {
@@ -175,11 +178,11 @@ describe('Custom MoneyStrategy', () => {
         await shopClient.asAnonymousUser();
         const { addItemToOrder } = await shopClient.query(localAddItemToOrderDocument, {
             productVariantId: variantId,
-            quantity: 20,
+            quantity: 3,
         });
         orderGuard.assertSuccess(addItemToOrder);
-        expect(addItemToOrder.lines[0].linePrice).toBe(202_000);
+        expect(addItemToOrder.lines[0].linePrice).toBe(28_785);
         const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, { couponCode: 'FIVE' });
-        expect(applyCouponCode).toMatchObject({ subTotal: 191_900, total: 191_900 });
+        expect(applyCouponCode).toMatchObject({ subTotal: 27_346, total: 27_346 });
     });
 });

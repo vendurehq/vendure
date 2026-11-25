@@ -1,4 +1,4 @@
-import { getConfig } from '@vendure/core';
+import { ConfigService, DEFAULT_MONEY_PRECISION, getMoneyPrecision, Injector } from '@vendure/core';
 import dateFormat from 'dateformat';
 import Handlebars from 'handlebars';
 import mjml2html from 'mjml';
@@ -16,6 +16,12 @@ import { EmailGenerator } from './email-generator';
  * @docsPage EmailGenerator
  */
 export class HandlebarsMjmlGenerator implements EmailGenerator {
+    private moneyPrecision = DEFAULT_MONEY_PRECISION;
+
+    init(injector: Injector) {
+        this.moneyPrecision = getMoneyPrecision(injector.get(ConfigService).entityOptions.moneyStrategy);
+    }
+
     async onInit(options: InitializedEmailPluginOptions) {
         if (options.templateLoader.loadPartials) {
             const partials = await options.templateLoader.loadPartials();
@@ -51,7 +57,7 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
             return dateFormat(date, format);
         });
 
-        const precision = getConfig().entityOptions.moneyStrategy.precision ?? 2;
+        const precision = this.moneyPrecision;
         const factor = 10 ** precision;
         Handlebars.registerHelper(
             'formatMoney',
@@ -69,9 +75,12 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
                     }).format(amount / factor);
                 }
                 // Same reasoning for `locale` as for `currencyCode` here.
+                // Show every decimal place of the configured precision, as the Dashboard does.
                 return new Intl.NumberFormat(typeof locale === 'object' ? undefined : locale, {
                     style: 'currency',
                     currency: currencyCode,
+                    minimumFractionDigits: precision,
+                    maximumFractionDigits: precision,
                 }).format(amount / factor);
             },
         );

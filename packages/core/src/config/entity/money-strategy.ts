@@ -27,9 +27,9 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
  *
  * ## Precision
  *
- * Both strategies store money as integers. At precision 4, a unit price of 1.235 is `12350`.
- * An {@link OrderItemPriceCalculationStrategy} that returns this value prices 20 units at
- * `247000`, or 24.70. Product CSV files express prices in major currency units.
+ * Both strategies store money as integers. At precision 4, a unit price of 1.235 is `12350`,
+ * and 20 units at this price give a line price of `247000`, which is 24.70. Product CSV files
+ * express prices in major currency units.
  *
  * Changing precision on an existing installation requires rescaling stored monetary amounts.
  * Payment integrations must convert amounts to the units their provider accepts.
@@ -101,4 +101,31 @@ export interface MoneyStrategy extends InjectableStrategy {
      * ```
      */
     round(value: number, quantity?: number): number;
+}
+
+/**
+ * @description
+ * The number of decimal places that a {@link MoneyStrategy} uses when it does not set `precision`.
+ *
+ * @docsCategory money
+ * @since 3.8.3
+ */
+export const DEFAULT_MONEY_PRECISION = 2;
+
+/**
+ * @description
+ * Returns the number of decimal places of the given {@link MoneyStrategy}, which is
+ * {@link DEFAULT_MONEY_PRECISION} unless the strategy sets `precision`.
+ *
+ * @example
+ * ```ts
+ * const precision = getMoneyPrecision(configService.entityOptions.moneyStrategy);
+ * const majorUnits = amount / 10 ** precision;
+ * ```
+ *
+ * @docsCategory money
+ * @since 3.8.3
+ */
+export function getMoneyPrecision(moneyStrategy: Pick<MoneyStrategy, 'precision'>): number {
+    return moneyStrategy.precision ?? DEFAULT_MONEY_PRECISION;
 }

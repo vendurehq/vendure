@@ -477,8 +477,8 @@ describe('EmailPlugin', () => {
 
         it.each([
             [2, 123, '1.23', '1.23'],
-            [4, 9595, '0.9595', '0.96'],
-            [0, 1, '1', '1.00'],
+            [4, 9595, '0.9595', '0.9595'],
+            [0, 1, '1', '1'],
         ] as const)('formats money at precision %i', async (precision, myPrice, decimal, currency) => {
             class TestMoneyStrategy extends DefaultMoneyStrategy {
                 readonly precision = precision;
