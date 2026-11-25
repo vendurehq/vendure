@@ -348,6 +348,27 @@ describe('writeAgentFiles()', () => {
         ]);
     });
 
+    it('reports an existing config path it cannot read, such as a directory', async () => {
+        const dir = projectWithFakeCli('config-is-a-directory', { status: 'ok', output: {} });
+        fs.mkdirSync(path.join(dir, '.vscode/mcp.json'), { recursive: true });
+        const result = await writeAgentFiles({
+            ...base,
+            agents: ['vscode'],
+            root: dir,
+            serverDir: dir,
+            mcpInstallUnavailable: undefined,
+        });
+        expect(result.failed).toEqual([
+            {
+                client: 'vscode',
+                reason: expect.stringMatching(
+                    /^\.vscode\/mcp\.json was left as it is, because it could not be read/,
+                ),
+                retryable: false,
+            },
+        ]);
+    });
+
     it('writes nothing with no clients', async () => {
         const none = path.join(workDir, 'none');
         const result = await writeAgentFiles({

@@ -57,27 +57,13 @@
         "tags": [
             "scope:tool"
         ],
-        "targets": {
-            "build": {
-                "inputs": [
-                    "production",
-                    "^production",
-                    "{workspaceRoot}/skills/**/*"
-                ]
-            },
-            "test": {
-                "inputs": [
-                    "default",
-                    "^production",
-                    "{workspaceRoot}/vitest.shared.mts",
-                    "{workspaceRoot}/tools/nx-plugin/vitest.package.config.mts",
-                    {
-                        "runtime": "node --version"
-                    },
-                    "{workspaceRoot}/skills/**/*",
-                    "{workspaceRoot}/packages/cli/src/commands/mcp/install/client-config.ts"
-                ]
-            }
+        "namedInputs": {
+            "default": [
+                "{projectRoot}/**/*",
+                "sharedGlobals",
+                "{workspaceRoot}/skills/**/*",
+                "{workspaceRoot}/packages/cli/src/commands/mcp/install/client-config.ts"
+            ]
         }
     }
 }

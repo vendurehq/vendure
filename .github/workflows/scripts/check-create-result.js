@@ -96,7 +96,13 @@ for (const file of [
 // @vendure/cloud release accepts Vendure 4. So `vendure mcp install` has not run, and each config
 // holds only the docs server.
 const claudeServers = JSON.parse(fs.readFileSync(path.join(root, '.mcp.json'), 'utf-8')).mcpServers;
-assert(claudeServers['vendure-docs'], 'Expected the vendure-docs server in .mcp.json');
+const docsServer = claudeServers['vendure-docs'];
+assert(
+    docsServer && docsServer.type === 'http' && docsServer.url === 'https://docs.vendure.io/mcp',
+    `Unexpected vendure-docs server in .mcp.json: ${JSON.stringify(docsServer)}`,
+);
+// Fails once CI installs a created project, as a reminder to check the `vendure` entry instead.
+assert(!claudeServers.vendure, 'Expected no vendure server without an install: update this check');
 
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf-8' }).trim();
 assert(git('rev-list', '--count', 'HEAD') === '1', 'Expected exactly one commit');

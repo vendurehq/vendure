@@ -133,7 +133,16 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
     const gitInit: GitInitResult = options.git
         ? await initGitRepository(project.root)
         : { status: 'skipped', reason: '--no-git was given' };
-    const agentFiles = await writeProjectAgentFiles(project);
+    // An error while writing the agent files is reported for every client, and create goes on to
+    // the commit, so the project is never left with a repository and no commit.
+    const agentFiles = await writeProjectAgentFiles(project).catch((e: unknown): AgentFilesResult => {
+        project.context.reporter.fail('The agent files could not be written');
+        const reason = `the agent files could not be written: ${e instanceof Error ? e.message : String(e)}`;
+        return {
+            written: [],
+            failed: options.agents.map(client => ({ client, reason, retryable: false })),
+        };
+    });
     const git = gitInit.status === 'initialised' ? await commit(project) : gitInit;
 
     return {
@@ -349,6 +358,11 @@ async function commit({ context, root }: Project): Promise<GitResult> {
     return git;
 }
 
+const GIT_NOT_INSTALLED_IN_WORKSPACE = [
+    'git is not installed, so the project has no repository, and `vendure mcp install` would write',
+    'into apps/server. Install git, then run `git init` and `vendure mcp install` in the project root',
+].join(' ');
+
 const INSIDE_ANOTHER_REPOSITORY = [
     'the project is inside another git repository, and `vendure mcp install` writes at that',
     "repository's root. Add the `vendure` server to the config by hand",
@@ -381,7 +395,8 @@ async function whyMcpInstallCannotRun(
     if (top.code !== 0 && options.storefront) {
         return {
             kind: 'no-repository-in-workspace',
-            reason: noRepositoryInWorkspace(options),
+            // Without git there is no `git init` to suggest, only where the configs would go.
+            reason: top.spawnError ? GIT_NOT_INSTALLED_IN_WORKSPACE : noRepositoryInWorkspace(options),
             retryable: false,
         };
     }

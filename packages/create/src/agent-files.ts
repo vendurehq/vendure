@@ -210,9 +210,10 @@ async function writeClientConfig(
 ): Promise<AgentFileFailure | undefined> {
     const file = CLIENT_CONFIG_FILES[client];
     const target = path.join(input.root, file);
-    const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : undefined;
     let config: string;
     try {
+        // Inside the try, so a file that is a directory or cannot be read is reported, not thrown.
+        const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf-8') : undefined;
         config = withDocsServer(client, existing);
     } catch (e) {
         // An existing file create cannot read is left as it is.
