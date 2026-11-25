@@ -214,8 +214,8 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             try {
                 const started = Date.now();
                 await mcp.request('initialize', { protocolVersion: '2025-06-18' });
-                // The listing gives up after 5 seconds; the plugin takes 9.
-                expect(Date.now() - started).toBeLessThan(8_500);
+                // The listing gives up after 15 seconds; the plugin takes 20.
+                expect(Date.now() - started).toBeLessThan(19_000);
                 const search = await mcp.callTool('search_tools', { query: 'doctor' });
                 expect(search.result.structuredContent.tools.map((t: any) => t.name)).toContain('doctor');
                 expect(mcp.stderr()).toContain('[mcp.commands-listing-timed-out]');

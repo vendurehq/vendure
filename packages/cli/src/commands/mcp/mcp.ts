@@ -78,7 +78,7 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
 }
 
 /** How long `vendure commands --json` may take before the server offers the CLI's own commands only. */
-const LIST_COMMANDS_TIMEOUT_MS = 5_000;
+const LIST_COMMANDS_TIMEOUT_MS = 15_000;
 
 /**
  * The commands of the project, as `vendure commands --json` lists them in the directory the tool
