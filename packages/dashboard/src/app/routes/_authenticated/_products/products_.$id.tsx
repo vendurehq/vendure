@@ -134,7 +134,7 @@ function ProductDetailPage() {
     const { t } = useLingui();
     const refreshRef = useRef<() => void>(() => {});
     const { channels } = useChannel();
-    const { priceFactor, priceFactorField } = usePriceFactor();
+    const { priceFactor, priceFactorField, priceFactorValid } = usePriceFactor();
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
@@ -390,6 +390,7 @@ function ProductDetailPage() {
                                 priceFactor,
                             })}
                             additionalAssignFields={priceFactorField}
+                            additionalAssignFieldsValid={priceFactorValid}
                             queryKeyScope={['DetailPage', 'product']}
                         />
                     </PageBlock>

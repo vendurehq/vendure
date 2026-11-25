@@ -28,10 +28,10 @@ export class VendureAdminClient {
         }
     }
 
-    async gql(query: string, variables?: Record<string, unknown>) {
+    async gql(query: string, variables?: Record<string, unknown>, headers?: Record<string, string>) {
         if (!this.authToken) throw new Error('Call login() first');
         const response = await this.page.request.post(ADMIN_API, {
-            headers: { Authorization: `Bearer ${this.authToken}` },
+            headers: { Authorization: `Bearer ${this.authToken}`, ...headers },
             data: { query, variables },
         });
         const newToken = response.headers()['vendure-auth-token'];

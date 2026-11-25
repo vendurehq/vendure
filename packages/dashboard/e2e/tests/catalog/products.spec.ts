@@ -1,6 +1,11 @@
 import { type Page, expect, test } from '@playwright/test';
 
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
+import {
+    createPriceFactorFixture,
+    selectAssignChannel,
+    typePriceFactor,
+} from '../../utils/price-factor-fixture.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 async function navigateToLaptopProduct(page: Page) {
@@ -848,3 +853,36 @@ for (const productCount of [0, 1, 2]) {
         }
     });
 }
+
+test.describe('Product detail assign to channel', () => {
+    // #5950 — the channels block uses the same price conversion factor as the bulk action
+    test('blocks an invalid price conversion factor and assigns with a typed one', async ({ page }) => {
+        const fixture = await createPriceFactorFixture(page, 'detail');
+        try {
+            await page.goto(`/products/${fixture.productId}`);
+            await page.getByRole('button', { name: 'Assign to channel' }).click();
+            let dialog = await selectAssignChannel(page, fixture.channelCode);
+            await typePriceFactor(dialog, '-1');
+            await expect(dialog.getByRole('button', { name: 'Assign' })).toBeDisabled();
+
+            // Unparseable text must not keep Assign disabled once the dialog is reopened empty
+            await typePriceFactor(dialog, '1e');
+            await dialog.getByRole('button', { name: 'Cancel' }).click();
+            await expect(dialog).toBeHidden();
+            await page.getByRole('button', { name: 'Assign to channel' }).click();
+            dialog = await selectAssignChannel(page, fixture.channelCode);
+            await expect(dialog.getByRole('spinbutton')).toHaveAttribute('aria-invalid', 'false');
+            const assign = dialog.getByRole('button', { name: 'Assign' });
+            await expect(assign).toBeEnabled();
+
+            const factor = await typePriceFactor(dialog, '0.25');
+            await expect(factor).toHaveValue('0.25');
+            await expect(assign).toBeEnabled();
+            await assign.click();
+            await expect(dialog).toBeHidden();
+            await expect.poll(fixture.priceInChannel).toBe(250);
+        } finally {
+            await fixture.cleanup();
+        }
+    });
+});

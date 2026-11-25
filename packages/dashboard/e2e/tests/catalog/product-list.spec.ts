@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import {
+    createPriceFactorFixture,
+    selectAssignChannel,
+    typePriceFactor,
+} from '../../utils/price-factor-fixture.js';
+
+async function openBulkAssignDialog(
+    page: import('@playwright/test').Page,
+    fixture: { channelCode: string; productName: string },
+) {
+    const lp = new BaseListPage(page, { path: '/products', title: 'Products', newButtonLabel: 'New Product' });
+    await lp.goto();
+    await lp.expectLoaded();
+    await lp.search(fixture.productName);
+    await lp.getRows().filter({ hasText: fixture.productName }).getByRole('checkbox').click();
+    await page.getByRole('button', { name: /Actions/i }).click();
+    await page.getByRole('menuitem', { name: 'Assign to channel' }).click();
+    return selectAssignChannel(page, fixture.channelCode);
+}
 
 test.describe('Product List', () => {
     const listPage = (page: import('@playwright/test').Page) =>
@@ -497,5 +516,56 @@ test.describe('Product List', () => {
             await page.getByRole('button', { name: 'Clear all' }).click();
             await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
         });
+    });
+
+    // #5950 — the price conversion factor must accept values typed after clearing the field
+    test('should assign products to a channel with a typed price conversion factor', async ({ page }) => {
+        const fixture = await createPriceFactorFixture(page, 'list');
+        try {
+            const dialog = await openBulkAssignDialog(page, fixture);
+            const factor = dialog.getByRole('spinbutton');
+            await expect(factor).toHaveValue('1');
+            await factor.clear();
+            await expect(factor).toHaveValue('');
+            await factor.pressSequentially('0.5');
+            await expect(factor).toHaveValue('0.5');
+
+            await dialog.getByRole('button', { name: 'Assign' }).click();
+            await listPage(page).expectSuccessToast();
+            expect(await fixture.priceInChannel()).toBe(500);
+        } finally {
+            await fixture.cleanup();
+        }
+    });
+
+    // #5950 — an invalid price conversion factor must block Assign instead of sending a factor of 1
+    test('should block Assign while the price conversion factor is invalid', async ({ page }) => {
+        const fixture = await createPriceFactorFixture(page, 'list-invalid');
+        try {
+            const dialog = await openBulkAssignDialog(page, fixture);
+            const assign = dialog.getByRole('button', { name: 'Assign' });
+
+            // Negative, and unparseable (reported by the browser as an empty value)
+            for (const text of ['-1', '1e']) {
+                const factor = await typePriceFactor(dialog, text);
+                await expect(factor).toHaveAttribute('aria-invalid', 'true');
+                await expect(assign).toBeDisabled();
+            }
+
+            // An empty field falls back to the default of 1
+            const factor = dialog.getByRole('spinbutton');
+            await factor.clear();
+            await expect(factor).toHaveAttribute('aria-invalid', 'false');
+            await expect(assign).toBeEnabled();
+
+            // A factor of 0 is honoured, as in the Admin API
+            await typePriceFactor(dialog, '0');
+            await expect(assign).toBeEnabled();
+            await assign.click();
+            await listPage(page).expectSuccessToast();
+            expect(await fixture.priceInChannel()).toBe(0);
+        } finally {
+            await fixture.cleanup();
+        }
     });
 });
