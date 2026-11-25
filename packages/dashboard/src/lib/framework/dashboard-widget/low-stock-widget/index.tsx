@@ -1,12 +1,12 @@
-import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
+import { EmptyState, ErrorState } from '@/vdb/components/ui/state-views.js';
 import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { Tabs, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
 import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
 import { useWidgetConfig } from '@/vdb/hooks/use-widget-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
     ListRow,
     ListRowChevron,
@@ -17,6 +17,7 @@ import {
 } from '@vendure-io/ui/components/molecules/list-row';
 import { PackageCheck } from 'lucide-react';
 import { DashboardBaseWidget } from '../base-widget.js';
+import { ListRowsSkeleton } from '../widget-skeletons.js';
 import { lowStockVariantsQuery } from './low-stock-widget.graphql.js';
 
 const WIDGET_ID = 'low-stock-widget';
@@ -76,9 +77,7 @@ export function LowStockWidget() {
             }
         >
             {isPending ? (
-                <div className="flex h-full w-full items-center justify-center">
-                    <LoadingState variant="spinner" label={<Trans>Loading stock levels…</Trans>} />
-                </div>
+                <ListRowsSkeleton rows={MAX_ITEMS} meta trailingClassName="w-20" />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState
@@ -118,8 +117,8 @@ export function LowStockWidget() {
                         title={<Trans>No low stock in this sample</Trans>}
                         description={
                             <Trans>
-                                None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}.
-                                Others may still be low.
+                                None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}
+                                . Others may still be low.
                             </Trans>
                         }
                     />

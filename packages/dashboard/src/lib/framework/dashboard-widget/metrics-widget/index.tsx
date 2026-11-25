@@ -1,18 +1,18 @@
-import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
+import { EmptyState, ErrorState } from '@/vdb/components/ui/state-views.js';
 import { Tabs, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { Trans } from '@lingui/react/macro';
-import { useLingui } from '@lingui/react/macro';
+import { useWidgetConfig } from '@/vdb/hooks/use-widget-config.js';
+import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ChartColumn } from 'lucide-react';
 import { useMemo } from 'react';
 import { DashboardBaseWidget } from '../base-widget.js';
-import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
-import { useWidgetConfig } from '@/vdb/hooks/use-widget-config.js';
-import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
+import { ChartSkeleton } from '../widget-skeletons.js';
 import { MetricsChart } from './chart.js';
 import { orderChartDataQuery } from './metrics-widget.graphql.js';
 
@@ -113,9 +113,7 @@ export function MetricsWidget() {
             }
         >
             {isPending ? (
-                <div className="flex h-full w-full items-center justify-center">
-                    <LoadingState variant="spinner" label={<Trans>Loading metrics…</Trans>} />
-                </div>
+                <ChartSkeleton />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState

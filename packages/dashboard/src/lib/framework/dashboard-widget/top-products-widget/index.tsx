@@ -1,14 +1,14 @@
+import { EmptyState, ErrorState } from '@/vdb/components/ui/state-views.js';
 import { Tabs, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
-import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
+import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useWidgetConfig } from '@/vdb/hooks/use-widget-config.js';
 import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
     ListRow,
     ListRowChevron,
@@ -20,6 +20,7 @@ import {
 import { Package } from 'lucide-react';
 import { useMemo } from 'react';
 import { DashboardBaseWidget } from '../base-widget.js';
+import { ListRowsSkeleton } from '../widget-skeletons.js';
 import { topProductsOrdersQuery } from './top-products-widget.graphql.js';
 
 const WIDGET_ID = 'top-products-widget';
@@ -118,9 +119,7 @@ export function TopProductsWidget() {
             }
         >
             {isPending ? (
-                <div className="flex h-full w-full items-center justify-center">
-                    <LoadingState variant="spinner" label={<Trans>Loading top products…</Trans>} />
-                </div>
+                <ListRowsSkeleton rows={TOP_N} ranked trailingClassName="w-10" />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState
@@ -134,7 +133,9 @@ export function TopProductsWidget() {
                 <div role="list" className="-ms-(--card-ps) -me-(--card-px)">
                     {topProducts.map((product, index) => (
                         <ListRow key={product.variantId} role="listitem">
-                            <ListRowLeading className="w-5 justify-end tabular-nums">{index + 1}</ListRowLeading>
+                            <ListRowLeading className="w-5 justify-end tabular-nums">
+                                {index + 1}
+                            </ListRowLeading>
                             <ListRowContent>
                                 <ListRowLink
                                     render={
