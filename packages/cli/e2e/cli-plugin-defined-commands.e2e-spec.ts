@@ -7,6 +7,7 @@
  */
 import { buildCommandManifest, readManifestFile } from '@vendure/common/lib/command/manifest';
 import { spawn } from 'node:child_process';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -266,16 +267,30 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             expect(envelopeOf(greet.stdout).output).toEqual({ message: 'Hello, Ada!' });
         });
 
-        it('leaves out only the defineCommand commands when the manifest cannot be read', async () => {
+        it.each([
+            ['cannot be parsed', '{ not json'],
+            ['is missing', undefined],
+            [
+                'has a malformed command',
+                JSON.stringify({ manifestVersion: 1, package: EXAMPLE, version: '1.0.0', commands: [{}] }),
+            ],
+        ])('leaves out only the defineCommand commands when the manifest %s', async (_, content) => {
             const p = projectWith(['defined-commands-cli-plugin']);
             const dir = addCliPlugin(p, 'legacy');
-            p.writeFile(join(dir, 'vendure-commands.json'), '{ not json');
+            const manifestFile = join(p.projectDir, dir, 'vendure-commands.json');
+            if (content === undefined) {
+                rmSync(manifestFile);
+            } else {
+                writeFileSync(manifestFile, content);
+            }
 
             const envelope = await listCommands(p);
             expect(envelope.output.refused).toEqual([
                 { package: EXAMPLE, error: expect.objectContaining({ code: 'plugin.unavailable' }) },
             ]);
             expect(envelope.output.commands.filter((c: any) => c.source === EXAMPLE)).toEqual([]);
+            // The CLI's own commands are still there.
+            expect(envelope.output.commands.some((c: any) => c.path.join(' ') === 'doctor')).toBe(true);
 
             const legacy = await p.runCliCommand(['legacy']);
             expect(legacy.stdout).toContain('LEGACY_RAN');
@@ -316,14 +331,8 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
                     }),
                 },
             ]);
-            expect(envelope.notices).toEqual([
-                {
-                    level: 'warning',
-                    message: expect.stringContaining(
-                        `The commands of ${CLASHING} are not loaded: [plugin.command-clash]`,
-                    ),
-                },
-            ]);
+            // Startup has written the refusal to stderr already, so it is not repeated as a notice.
+            expect(envelope.notices).toEqual([]);
             const sources = new Set(envelope.output.commands.map((c: any) => c.source));
             expect(sources).toEqual(new Set(['@vendure/cli', EXAMPLE]));
 

@@ -188,6 +188,24 @@ describe('mergeProjectManifests', () => {
         ]);
     });
 
+    it('refuses a plugin that declares both a command and a group at one path', () => {
+        const { refused } = mergeProjectManifests(core, [plugin('acme-cli', ['acme', 'sync'], ['acme'])]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            [
+                'plugin.command-clash',
+                expect.stringContaining('"acme", which clashes with the command "acme sync" of acme-cli'),
+            ],
+        ]);
+    });
+
+    it("refuses a malformed manifest, and keeps the CLI's own commands", () => {
+        const bad = plugin('acme-cli', ['acme']);
+        bad.manifest.commands = [{} as ManifestCommand];
+        const { commands, refused } = mergeProjectManifests(core, [bad]);
+        expect(refused.map(r => r.error.code)).toEqual(['plugin.manifest-invalid']);
+        expect(commands).toHaveLength(3);
+    });
+
     it('refuses a manifest that the merge rules reject, such as a reserved field', () => {
         const bad = plugin('acme-cli', ['acme']);
         bad.manifest.commands[0].input = { type: 'object', properties: { json: { type: 'boolean' } } };

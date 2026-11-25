@@ -71,6 +71,9 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     return 0;
 }
 
+/** How long `vendure commands --json` may take before the server offers the CLI's own commands only. */
+const LIST_COMMANDS_TIMEOUT_MS = 30_000;
+
 /**
  * The commands of the project, as `vendure commands --json` lists them in the directory the tool
  * calls run in. A child process lists them because `--dir` can name another project than the one
@@ -85,7 +88,8 @@ async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]
         {
             cliBin: process.argv[1],
             cwd,
-            signal: new AbortController().signal,
+            // A plugin module that never lets the child exit must not stop the server from starting.
+            signal: AbortSignal.timeout(LIST_COMMANDS_TIMEOUT_MS),
             onEvent: () => undefined,
             onLog: () => undefined,
         },

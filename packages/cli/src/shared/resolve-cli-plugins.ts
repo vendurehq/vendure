@@ -79,6 +79,8 @@ export interface CliPluginLoadFailure {
      * finding it and failing to load it.
      */
     notInstalled: boolean;
+    /** Whether the package declares `vendure.commandManifest`, so has `defineCommand` commands. */
+    declaresCommandManifest?: boolean;
     /**
      * Set when only the package's command manifest failed. Its `cliPlugin`, if it has one, is
      * loaded anyway.
@@ -446,29 +448,39 @@ function checkDeclaresPlugin(
     if (!hasEntry && !hasManifest) {
         return 'Does not declare vendure.cliPlugin or vendure.commandManifest in its package.json';
     }
-    const missing = (label: string, rel: string) => {
-        const file = path.resolve(resolved.dir, rel);
-        return fs.existsSync(file)
-            ? undefined
-            : `${label} "${rel}" not found at ${file}. If this is a workspace package, it may need to be built.`;
-    };
     if (hasEntry) {
-        const problem = missing('Entry', entryRel);
-        if (problem) {
-            return problem;
-        }
+        // A problem with the manifest of a package that also has a `cliPlugin` leaves out only its
+        // `defineCommand` commands, so it is reported when the package loads, not here.
+        return missingFile(resolved.dir, 'Entry', entryRel);
     }
-    if (hasManifest) {
-        const definitionsRel = vendure?.commandDefinitions;
-        if (typeof definitionsRel !== 'string' || definitionsRel.length === 0) {
-            return (
-                'Declares vendure.commandManifest but not vendure.commandDefinitions, the module ' +
-                'that exports its commands'
-            );
-        }
-        return missing('Command manifest', manifestRel) ?? missing('Command definitions', definitionsRel);
+    return commandManifestProblem(resolved.dir, resolved.packageJson);
+}
+
+function missingFile(dir: string, label: string, rel: string): string | undefined {
+    const file = path.resolve(dir, rel);
+    return fs.existsSync(file)
+        ? undefined
+        : `${label} "${rel}" not found at ${file}. If this is a workspace package, it may need to be built.`;
+}
+
+/** Why the `defineCommand` commands of a package that declares a manifest cannot load, if they can't. */
+function commandManifestProblem(dir: string, packageJson: PackageJsonLike): string | undefined {
+    const vendure = packageJson.vendure;
+    const manifestRel = vendure?.commandManifest;
+    const definitionsRel = vendure?.commandDefinitions;
+    if (typeof manifestRel !== 'string' || manifestRel.length === 0) {
+        return undefined;
     }
-    return undefined;
+    if (typeof definitionsRel !== 'string' || definitionsRel.length === 0) {
+        return (
+            'Declares vendure.commandManifest but not vendure.commandDefinitions, the module ' +
+            'that exports its commands'
+        );
+    }
+    return (
+        missingFile(dir, 'Command manifest', manifestRel) ??
+        missingFile(dir, 'Command definitions', definitionsRel)
+    );
 }
 
 /**
@@ -551,12 +563,15 @@ function loadInto(
     packageName: string,
     loadModules: boolean,
 ): void {
+    const declaresCommandManifest =
+        typeof scope.resolvePackage(packageName)?.packageJson.vendure?.commandManifest === 'string';
     const fail = (reason: string) =>
         result.failures.push({
             packageName,
             reason,
             scope: scope.kind,
             notInstalled: !scope.resolvePackage(packageName),
+            declaresCommandManifest,
         });
 
     const ineligible = scope.check(packageName);
@@ -574,25 +589,32 @@ function loadInto(
         return;
     }
 
-    if (typeof manifestRel === 'string' && typeof vendure?.commandDefinitions === 'string') {
-        const manifestPath = path.resolve(resolved.dir, manifestRel);
-        try {
-            result.manifests.push({
-                packageName,
-                manifest: readCommandManifest(manifestPath, packageName),
-                definitionsPath: path.resolve(resolved.dir, vendure.commandDefinitions),
-                scope: scope.kind,
-            });
-        } catch (e: any) {
-            // Only the `defineCommand` commands are left out, as for a clash. A `cliPlugin` follows
-            // its own rules and still loads.
+    if (typeof manifestRel === 'string') {
+        // Only the `defineCommand` commands are left out, as for a clash. A `cliPlugin` follows its
+        // own rules and still loads.
+        const manifestFailed = (reason: string) =>
             result.failures.push({
                 packageName,
-                reason: e?.message ?? String(e),
+                reason,
                 scope: scope.kind,
                 notInstalled: false,
+                declaresCommandManifest: true,
                 part: 'commandManifest',
             });
+        const problem = commandManifestProblem(resolved.dir, resolved.packageJson);
+        if (problem) {
+            manifestFailed(problem);
+        } else {
+            try {
+                result.manifests.push({
+                    packageName,
+                    manifest: readCommandManifest(path.resolve(resolved.dir, manifestRel), packageName),
+                    definitionsPath: path.resolve(resolved.dir, vendure?.commandDefinitions as string),
+                    scope: scope.kind,
+                });
+            } catch (e: any) {
+                manifestFailed(e?.message ?? String(e));
+            }
         }
     }
 
@@ -632,7 +654,65 @@ function readCommandManifest(manifestPath: string, packageName: string): Command
                 `Build it with the package's own name.`,
         );
     }
+    manifest.commands.forEach((command, index) => {
+        const problem = malformedCommandField(command);
+        if (problem) {
+            throw new Error(
+                `Command ${index + 1} of the command manifest at ${manifestPath} has ${problem}. ` +
+                    'Build the manifest with writeCommandManifest.',
+            );
+        }
+    });
     return manifest;
+}
+
+const COMMAND_BEHAVIORS = ['readonly', 'mutating', 'destructive', 'service'];
+
+/**
+ * The field of a manifest command that does not have the shape `writeCommandManifest` writes, if
+ * any. The host and `vendure mcp` read these fields without checking them again, so a manifest
+ * that was edited by hand or built by something else is refused here.
+ */
+function malformedCommandField(command: unknown): string | undefined {
+    if (!isPlainObject(command)) {
+        return 'no fields';
+    }
+    const c = command;
+    const isStringArray = (value: unknown): value is string[] =>
+        Array.isArray(value) && value.every(item => typeof item === 'string');
+    if (!isStringArray(c.path) || c.path.length === 0) {
+        return 'no "path" of one or more words';
+    }
+    if (typeof c.description !== 'string') {
+        return 'no "description"';
+    }
+    if (typeof c.behavior !== 'string' || !COMMAND_BEHAVIORS.includes(c.behavior)) {
+        return `a "behavior" that is not one of ${COMMAND_BEHAVIORS.join(', ')}`;
+    }
+    for (const field of ['input', 'cli', 'consents', 'requires', 'expose']) {
+        if (!isPlainObject(c[field])) {
+            return `no "${field}" object`;
+        }
+    }
+    for (const field of ['keywords', 'examples']) {
+        if (!isStringArray(c[field])) {
+            return `no "${field}" list`;
+        }
+    }
+    if (
+        !Array.isArray(c.errors) ||
+        !c.errors.every(error => isPlainObject(error) && typeof error.code === 'string')
+    ) {
+        return 'no "errors" list of codes';
+    }
+    if (typeof c.hasPlan !== 'boolean') {
+        return 'no "hasPlan"';
+    }
+    return undefined;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

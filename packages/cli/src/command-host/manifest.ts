@@ -128,7 +128,10 @@ export async function loadProjectCommands(
     // A package that failed to resolve has no manifest to merge, and its commands are left out too.
     // A globally enabled package that is not installed is normal in a project that does not use it.
     const unavailable = failures
-        .filter(failure => !(failure.scope === 'global' && failure.notInstalled))
+        .filter(
+            failure =>
+                failure.declaresCommandManifest && !(failure.scope === 'global' && failure.notInstalled),
+        )
         .map(failure => ({
             package: failure.packageName,
             error: errorBody(hostErrors.pluginUnavailable, {
@@ -176,12 +179,14 @@ export function mergeProjectManifests(
             });
             continue;
         }
-        const clash = findClash(plugin.manifest, taken);
-        if (clash) {
-            refuse(hostErrors.pluginCommandClash, { plugin: plugin.packageName, ...clash });
-            continue;
-        }
+        // A manifest is input from another package, so nothing about it may stop the CLI's own
+        // commands from loading: any problem refuses this package's commands alone.
         try {
+            const clash = findClash(plugin.manifest, taken);
+            if (clash) {
+                refuse(hostErrors.pluginCommandClash, { plugin: plugin.packageName, ...clash });
+                continue;
+            }
             mergeManifests([...accepted, plugin.manifest]);
         } catch (e) {
             refuse(hostErrors.pluginManifestInvalid, {
@@ -240,14 +245,17 @@ function findClash(
     manifest: CommandManifest,
     taken: TakenCommandPath[],
 ): { command: string; other: string } | undefined {
+    // The package's own commands count too, so it cannot declare both `acme` and `acme sync`.
+    const seen = [...taken];
     for (const command of manifest.commands) {
-        const other = taken.find(
+        const other = seen.find(
             entry =>
                 (entry.leaf && startsWith(command.path, entry.path)) || startsWith(entry.path, command.path),
         );
         if (other) {
             return { command: command.path.join(' '), other: other.owner };
         }
+        seen.push(...pathsOf({ ...manifest, commands: [command] }));
     }
     return undefined;
 }
