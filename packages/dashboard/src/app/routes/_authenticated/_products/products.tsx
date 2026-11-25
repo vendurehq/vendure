@@ -91,12 +91,12 @@ function ProductListPage() {
                 },
                 name: {
                     // The one column without a width: it takes the rest of the row.
+                    // No minimum width: only the data cells could set one, so the column
+                    // would change width between the skeleton, the empty state and the rows.
                     cell: ({ row }) => (
-                        <div className="min-w-40">
-                            <FitToColumn>
-                                <DetailPageButton id={row.original.id} label={row.original.name} />
-                            </FitToColumn>
-                        </div>
+                        <FitToColumn>
+                            <DetailPageButton id={row.original.id} label={row.original.name} />
+                        </FitToColumn>
                     ),
                 },
                 slug: {
@@ -157,12 +157,16 @@ function ProductListPage() {
             }}
             route={Route}
             emptyStateAction={
-                <PermissionGuard requires={['CreateProduct', 'CreateCatalog']}>
-                    <Button render={<Link to="./new" />}>
-                        <PlusIcon className="mr-2 h-4 w-4" />
-                        <Trans>Create your first product</Trans>
-                    </Button>
-                </PermissionGuard>
+                // The button shows once the permissions load. Its slot has the button's
+                // height before that, so the empty state does not grow when it appears.
+                <div className="flex min-h-8.5 items-center justify-center">
+                    <PermissionGuard requires={['CreateProduct', 'CreateCatalog']}>
+                        <Button render={<Link to="./new" />}>
+                            <PlusIcon className="mr-2 h-4 w-4" />
+                            <Trans>Create your first product</Trans>
+                        </Button>
+                    </PermissionGuard>
+                </div>
             }
             bulkActions={[
                 [
