@@ -230,15 +230,19 @@ jobs:
           done
           exit $failed
 
+      # A failed package discovery, or a publish directory that does not exist, fails the step
+      # instead of publishing nothing, or the wrong directory, and reporting success.
       - name: Publish to NPM (major-nightly)
         if: matrix.type == 'major-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
+          dirs=$(node .github/workflows/scripts/public-package-dirs.js) || exit 1
+          if [ -z "$dirs" ]; then echo "No public packages found"; exit 1; fi
           failed=0
-          for dir in $(node .github/workflows/scripts/public-package-dirs.js); do
+          for dir in $dirs; do
             (
-              cd "$dir"
-              publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'")
-              cd "$publish_dir"
+              cd "$dir" || exit 1
+              publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'") || exit 1
+              cd "$publish_dir" || exit 1
               for i in 1 2 3; do npm publish --access public --tag major && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done
             ) || failed=1
           done
