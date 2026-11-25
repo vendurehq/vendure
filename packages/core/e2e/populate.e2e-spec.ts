@@ -81,12 +81,13 @@ describe('populate() function', () => {
     /**
      * Runs `populate()` on the test server before the tests of a `describe` block, and closes the
      * app it bootstrapped after them. The setup bootstraps a full server and imports products and
-     * assets, so it gets the setup timeout rather than the default hook timeout. The app is closed
-     * also when the setup failed or timed out: a setup that times out keeps running, and an app it
-     * leaves listening makes the next block's bootstrap fail with EADDRINUSE.
+     * assets, so it gets the setup timeout rather than the default hook timeout.
+     *
+     * The teardown closes the app even when the setup timed out. A timed-out setup keeps running,
+     * and its app would keep the port. The next block's bootstrap would then fail with EADDRINUSE.
      */
-    function populateBeforeAll(
-        initialDataForPopulate: () => InitialData,
+    function populateForBlock(
+        initialDataForPopulate: InitialData,
         csvFile: string,
         channelToken?: () => string,
     ): void {
@@ -98,16 +99,15 @@ describe('populate() function', () => {
                     await bootstrapping;
                     return server.app;
                 },
-                initialDataForPopulate(),
+                initialDataForPopulate,
                 csvFile,
                 channelToken?.(),
             );
         }, TEST_SETUP_TIMEOUT_MS);
 
         afterAll(async () => {
-            // A setup that timed out may still be bootstrapping. Wait for it, so that the app it
-            // creates is the one closed here. Without a started app, `server.app` is the previous
-            // block's, which that block closed.
+            // Without an app this block started, `server.app` is the previous block's, which that
+            // block closed.
             const started = await bootstrapping?.then(
                 () => true,
                 () => false,
@@ -118,7 +118,7 @@ describe('populate() function', () => {
         }, TEST_SETUP_TIMEOUT_MS);
     }
 
-    const emptyInitialData = (collectionName: string): InitialData => ({
+    const initialDataWithCollection = (collectionName: string): InitialData => ({
         defaultLanguage: initialData.defaultLanguage,
         defaultZone: initialData.defaultZone,
         taxRates: [],
@@ -129,8 +129,8 @@ describe('populate() function', () => {
     });
 
     describe('populating default channel', () => {
-        populateBeforeAll(
-            () => emptyInitialData('Collection 1'),
+        populateForBlock(
+            initialDataWithCollection('Collection 1'),
             path.join(__dirname, 'fixtures', 'product-import.csv'),
         );
 
@@ -163,8 +163,8 @@ describe('populate() function', () => {
     });
 
     describe('populating a non-default channel', () => {
-        populateBeforeAll(
-            () => emptyInitialData('Collection 2'),
+        populateForBlock(
+            initialDataWithCollection('Collection 2'),
             path.join(__dirname, 'fixtures', 'product-import-channel.csv'),
             () => channel2.token,
         );
@@ -196,8 +196,8 @@ describe('populate() function', () => {
 
     // https://github.com/vendurehq/vendure/issues/1445
     describe('clashing option names', () => {
-        populateBeforeAll(
-            () => emptyInitialData('Collection 1'),
+        populateForBlock(
+            initialDataWithCollection('Collection 1'),
             path.join(__dirname, 'fixtures', 'product-import-option-values.csv'),
         );
 
