@@ -28,7 +28,12 @@ import {
 import { consentDigest } from './digest.js';
 import { hostErrors } from './host-errors.js';
 
-/** Asks a person. Only given to the host when a person is present. */
+/**
+ * @description
+ * How the host asks for one input field: the check of an answer, and what kind of field it is.
+ *
+ * @since 4.0.0
+ */
 export interface AskInputOptions {
     /**
      * The problem with an answer, or `undefined` when it is valid, so a person can correct a bad
@@ -41,6 +46,14 @@ export interface AskInputOptions {
     boolean: boolean;
 }
 
+/**
+ * @description
+ * Asks a person. The host is given one only when a person is present at a terminal. A test passes
+ * its own to `testCommand` to answer as a person would: each method resolves to the answer, or to
+ * `undefined` for a cancel.
+ *
+ * @since 4.0.0
+ */
 export interface Prompter {
     /** Asks for an input field. Resolves to `undefined` when the person cancels. */
     askInput(need: InputNeed, options: AskInputOptions): Promise<string | undefined>;
@@ -61,6 +74,22 @@ export interface Prompter {
     text(message: string, options?: CommandTextOptions): Promise<string | undefined>;
 }
 
+/**
+ * @description
+ * Starts a process for `ctx.spawn`.
+ *
+ * @since 4.0.0
+ */
+export type SpawnFn = (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult>;
+
+/**
+ * @description
+ * Writes a secret output value to a file that only the user can read, and returns its path.
+ *
+ * @since 4.0.0
+ */
+export type WriteSecretFn = (command: string[], field: string, value: string) => string;
+
 export interface HostEnvironment {
     cwd: string;
     signal: AbortSignal;
@@ -69,7 +98,7 @@ export interface HostEnvironment {
     /** Set only when stdin and stdout are TTYs, CI is not set, and `--json` is not used. */
     prompter?: Prompter;
     emit(event: CommandEvent): void;
-    spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
+    spawn: SpawnFn;
     findProjectRoot(): string | undefined;
     /**
      * Finds the credential a command with `requires.auth` needs, signing a person in only when
@@ -84,7 +113,7 @@ export interface HostEnvironment {
      * Writes a secret output value to a file that only the user can read, and returns its
      * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
      */
-    writeSecret?(command: string[], field: string, value: string): string;
+    writeSecret?: WriteSecretFn;
 }
 
 export interface HostResult {

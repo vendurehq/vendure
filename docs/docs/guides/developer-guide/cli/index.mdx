@@ -607,7 +607,9 @@ A command that needs your Vendure account uses the stored login first, then `VEN
 cannot share your login, because each renewal spends its single-use refresh token. Give it its own credential, such
 as a delegated agent key, in `VENDURE_CLOUD_TOKEN`. Only a person at a terminal is signed in automatically. Every
 other run returns `incomplete` with an `input` need for the secret `token` field, whose fix is
-`vendure auth login --json`.
+`vendure auth login --json`. The CLI checks for `VENDURE_CLOUD_TOKEN` in the process environment before it
+loads a project's `.env` file, so a cloned repository's `.env` cannot choose the credential the CLI finds for
+a command.
 
 When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
 asks before it is replaced. A login that can no longer be renewed is replaced without asking.
@@ -1263,6 +1265,25 @@ validated with its own schema. A field that a group and one of its commands both
 A command with `requires: { auth: 'cloud' }` receives the credential the CLI found as
 `ctx.credential`, `{ source: 'stored-login' | 'environment', token }`. The token is a secret: never
 print, log or return it.
+
+Test a command with `testCommand` from `@vendure/cli`, in your tests only. It runs the command through
+the CLI's command host, as `vendure <command> --json` would, and fails when the command writes to the
+console itself:
+
+```ts title="test/sync.test.ts"
+import { testCommand } from '@vendure/cli';
+import { commandDeclarations } from '@vendure/common/lib/command';
+
+import * as declarations from '../src/commands.js';
+
+const [sync] = commandDeclarations(declarations);
+const result = await testCommand(sync, { dryRun: true });
+// result.envelope, result.exitCode, result.events and result.spawned
+```
+
+`commandDeclarations` applies the package's groups, as the CLI does. Pass `spawn` to answer the
+processes the command starts, `credential` for a command with `requires.auth`, and `prompter` to answer
+as a person would.
 
 A package can declare both these keys and a `cliPlugin`. It is enabled the same way, with
 `vendure plugins add`, and only an enabled package's commands are loaded ([Explicit

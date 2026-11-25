@@ -519,7 +519,8 @@ export interface CommandDefinition {
          * The command needs a Vendure Cloud credential. Before anything else runs, the host looks
          * for one: the stored login, then `VENDURE_CLOUD_TOKEN`, then a device login when a person
          * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
-         * secret `token` field, whose fix is `vendure auth login --json`.
+         * secret `token` field, whose fix is `vendure auth login --json`. The host reads
+         * `VENDURE_CLOUD_TOKEN` from the process environment before it loads a project's `.env` file.
          *
          * `run()` receives the credential the host found as `ctx.credential`. A command that needs
          * a login for one organization can call `requireCredential` from `@vendure/cli` with
