@@ -70,7 +70,8 @@ Use the \`devserver\` commands, not the foreground \`vendure dev\`, which never 
   returns at once while the old run is still ready.
 - \`vendure devserver logs --since 5m --json\` reads its logs. \`vendure devserver stop\` stops it.
 
-After you change an entity, run \`vendure migrate generate\`, then \`vendure migrate run\`.
+After you change an entity, run \`vendure migrate -g <name>\`. In a Vendure Cloud project,
+\`vendure dev\` applies the migration. Otherwise run \`vendure migrate -r\`.
 \`vendure doctor --json\` checks the project's setup.
 
 ## The Developer MCP and the Store MCP
