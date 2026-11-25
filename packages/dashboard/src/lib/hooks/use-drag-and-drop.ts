@@ -1,6 +1,6 @@
 import { DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface UseDragAndDropOptions<TData> {
     data: TData[];
@@ -27,23 +27,26 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
         }),
     );
 
-    const { data, onReorder, disabled = false } = options;
+    const { data, onReorder, onError, disabled = false } = options;
 
-    const [localData, setLocalData] = useState<TData[]>(data);
+    // The order of a drop, kept while `onReorder` runs and until `data` changes.
+    // Otherwise the rows are `data` itself, read during render: a copy made in an
+    // effect is one render behind, so the render where a query finishes would
+    // show no rows (the empty state) with `isLoading` already false.
+    const [dropped, setDropped] = useState<{ source: TData[]; rows: TData[] } | null>(null);
     const [isReordering, setIsReordering] = useState(false);
-
-    // Update local data when data prop changes (but not during reordering)
-    useEffect(() => {
-        if (!isReordering) {
-            setLocalData(data);
-        }
-    }, [data, isReordering]);
+    if (dropped && !isReordering && dropped.source !== data) {
+        setDropped(null);
+    }
+    const localData = dropped?.rows ?? data;
 
     const handleDragEnd = useCallback(
         async (event: DragEndEvent) => {
             const { active, over } = event;
 
-            if (!over || active.id === over.id || !onReorder || disabled) {
+            // One drop at a time: a second one would end the first one's hold, and
+            // its indices would come from rows the first one is still changing.
+            if (!over || active.id === over.id || !onReorder || disabled || isReordering) {
                 return;
             }
 
@@ -54,24 +57,19 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
                 return;
             }
 
-            // Optimistically update the UI
-            const originalState = [...localData];
-            const newData = arrayMove(localData, oldIndex, newIndex);
-            setLocalData(newData);
+            setDropped({ source: data, rows: arrayMove(localData, oldIndex, newIndex) });
             setIsReordering(true);
 
             try {
-                // Call the user's onReorder callback with all items for context
                 await onReorder(oldIndex, newIndex, localData[oldIndex], localData);
             } catch (error) {
-                // Revert on error
-                setLocalData(originalState);
-                options.onError?.(error as Error);
+                setDropped(null);
+                onError?.(error as Error);
             } finally {
                 setIsReordering(false);
             }
         },
-        [localData, onReorder, disabled],
+        [data, localData, onReorder, onError, disabled, isReordering],
     );
 
     const itemIds = useMemo(() => localData.map(item => (item as { id: string }).id), [localData]);
