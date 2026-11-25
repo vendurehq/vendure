@@ -236,7 +236,9 @@ describe('quoted order line prices', () => {
         },
     );
 
-    it('rejects a line-based refund of a quoted line added by a modification', async () => {
+    // A line-based refund leaves out lines that the placed order did not contain, so it records no
+    // RefundLine for units that were never paid.
+    it('leaves a quoted line added by a modification out of a line-based refund', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
         const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
             productVariantId: variantId,
@@ -269,7 +271,7 @@ describe('quoted order line prices', () => {
         const rejected = await adminClient.query(refundOrderDocument, {
             input: { paymentId: payment.id, lines },
         });
-        expect(rejected.refundOrder).toMatchObject({ errorCode: 'QUANTITY_TOO_GREAT_ERROR' });
+        expect(rejected.refundOrder).toMatchObject({ errorCode: 'NOTHING_TO_REFUND_ERROR' });
         const previewDocument = graphql(`
             query PreviewQuotedRefund($orderId: ID!, $lines: [OrderLineInput!]!) {
                 previewRefundLineTotal(orderId: $orderId, lines: $lines)
@@ -313,6 +315,24 @@ describe('quoted order line prices', () => {
         expect(after.order?.payments?.flatMap(p => p.refunds.flatMap(r => r.lines))).toEqual([
             { orderLineId: addedLine.id, quantity: 10 },
         ]);
+
+        // A request that mixes a placed line with an added one refunds the placed line only.
+        const placedLineId = addItemToOrder.lines[0].id;
+        const { refundOrder: mixed } = await adminClient.query(refundOrderDocument, {
+            input: {
+                paymentId: payment.id,
+                lines: [
+                    { orderLineId: placedLineId, quantity: 1 },
+                    { orderLineId: addedLine.id, quantity: 1 },
+                ],
+            },
+        });
+        // One of the 11 units of a quote of 10655.
+        expect(mixed).toMatchObject({ total: 969 });
+        const mixedLines = (await adminClient.query(getRefundLines, { id: paid.id })).order?.payments
+            ?.flatMap(p => p.refunds)
+            .find(refund => refund.total === (mixed as { total: number }).total)?.lines;
+        expect(mixedLines).toEqual([{ orderLineId: placedLineId, quantity: 1 }]);
     });
 
     it('reloads a placed quote after removing the hook and synchronizing the database', async () => {

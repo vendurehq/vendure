@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { RequestContext, Zone, Channel, Order } from '../../';
+import { Channel, Order, RequestContext, Zone } from '../../';
 
 import { AddressBasedTaxZoneStrategy } from './address-based-tax-zone-strategy';
 

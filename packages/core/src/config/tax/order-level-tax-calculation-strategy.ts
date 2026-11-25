@@ -142,17 +142,17 @@ export class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStra
         groups: Map<string, TaxGroup>,
         taxLines: TaxLine[] | undefined,
         lineNetBase: number,
-        lineTax?: number,
+        lineTax: number,
     ) {
         if (!taxLines?.length) {
             return;
         }
-        const hasAmounts = lineTax != null && hasTaxAmounts(taxLines);
+        const hasAmounts = hasTaxAmounts(taxLines);
         const amountTotal = hasAmounts ? sumTaxAmounts(taxLines) : 0;
         for (const taxLine of taxLines) {
             const key = `${taxLine.description}:${taxLine.taxRate}`;
             const fixedTax =
-                hasAmounts && amountTotal !== 0 ? ((lineTax ?? 0) * (taxLine.amount ?? 0)) / amountTotal : 0;
+                hasAmounts && amountTotal !== 0 ? (lineTax * (taxLine.amount ?? 0)) / amountTotal : 0;
             const rateBase = hasAmounts ? 0 : lineNetBase;
             const existing = groups.get(key);
             if (existing) {

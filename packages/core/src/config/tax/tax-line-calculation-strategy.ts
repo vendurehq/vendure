@@ -119,6 +119,9 @@ export interface CalculateTaxLinesArgs {
 
 /**
  * @description
+ * The arguments passed to `TaxLineCalculationStrategy.calculateShippingLineTaxLines()`: the
+ * ShippingLine, with its final price after shipping promotions, and the TaxLines that Vendure
+ * derived for it from the ShippingCalculator's rate.
  *
  * @docsCategory tax
  * @docsPage TaxLineCalculationStrategy
@@ -133,6 +136,8 @@ export interface CalculateShippingLineTaxLinesArgs {
 
 /**
  * @description
+ * The arguments passed to `TaxLineCalculationStrategy.calculateSurchargeTaxLines()`: the Surcharge,
+ * and the TaxLines that it was created with.
  *
  * @docsCategory tax
  * @docsPage TaxLineCalculationStrategy

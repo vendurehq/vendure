@@ -2194,7 +2194,7 @@ describe('OrderCalculator', () => {
         it('uses amounts for shipping lines and surcharges, and asks again only when their price changes', async () => {
             let itemCalls = 0;
             const withItems: TaxLineCalculationStrategy = {
-                calculate: erpStrategy.calculate,
+                calculate: args => erpStrategy.calculate(args),
                 calculateShippingLineTaxLines: ({ shippingLine }) => {
                     itemCalls++;
                     const amount = Math.round(shippingLine.discountedPrice * 0.2) + 1;
@@ -2256,6 +2256,66 @@ describe('OrderCalculator', () => {
                 await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines, options);
                 expect(itemCalls).toBe(3);
                 expect(order.shippingWithTax).toBe(481);
+            } finally {
+                mockConfigService.taxOptions.taxLineCalculationStrategy = erpStrategy;
+            }
+        });
+
+        it('does not ask again about a line that gave no amounts, as when the ERP is unavailable', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+            const unavailable: TaxLineCalculationStrategy = {
+                calculate: () => {
+                    erpCalls++;
+                    return [{ description: 'VAT', taxRate: 5 }];
+                },
+            };
+            mockConfigService.taxOptions.taxLineCalculationStrategy = unavailable;
+            try {
+                erpCalls = 0;
+                order.lines[0].quantity = 2;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+
+                expect(erpCalls).toBe(1);
+                // 5% of 7,979.50, from the rate.
+                expect(order.lines[0].proratedLineTax).toBe(39898);
+            } finally {
+                mockConfigService.taxOptions.taxLineCalculationStrategy = erpStrategy;
+            }
+        });
+
+        it('keeps a threshold promotion stable when prices include tax', async () => {
+            const grossErp: TaxLineCalculationStrategy = {
+                calculate({ orderLine }: CalculateTaxLinesArgs): TaxLine[] {
+                    // 5% tax included in the gross price, rounded by the ERP to the nearest 0.05.
+                    const gross = orderLine.proratedLinePriceWithTax;
+                    const amount = Math.round((gross * 5) / 105 / 5) * 5;
+                    return [{ description: 'VAT', taxRate: 5, amount }];
+                },
+            };
+            mockConfigService.taxOptions.taxLineCalculationStrategy = grossErp;
+            try {
+                const ctx = createRequestContext({ pricesIncludeTax: true });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 418925, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                const results: Array<[number, number]> = [];
+                for (let i = 0; i < 3; i++) {
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [threshold(398976)], order.lines);
+                    results.push([order.subTotal, order.subTotalWithTax]);
+                }
+
+                // The promotion applies on every run, and the ERP's amount for the discounted
+                // gross total is taken off it to give the net total.
+                expect(new Set(results.map(result => result.join()))).toHaveProperty('size', 1);
+                expect(order.lines[0].proratedLineTax).toBe(
+                    Math.round((order.lines[0].proratedLinePriceWithTax * 5) / 105 / 5) * 5,
+                );
             } finally {
                 mockConfigService.taxOptions.taxLineCalculationStrategy = erpStrategy;
             }

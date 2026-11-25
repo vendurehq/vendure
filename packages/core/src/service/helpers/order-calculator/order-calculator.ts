@@ -131,7 +131,7 @@ export class OrderCalculator {
             settledTaxAmounts.clear();
             settledItemTaxAmounts.clear();
         }
-        const providedTaxAmounts = new Map<OrderLine, TaxLine[]>();
+        const providedTaxAmounts = new Map<OrderLine, TaxLine[] | null>();
         const getTaxRate = this.createTaxRateGetter(ctx, activeTaxZone);
         for (const updatedOrderLine of updatedOrderLines) {
             await this.applyTaxesToOrderLine(ctx, order, updatedOrderLine, getTaxRate, providedTaxAmounts);
@@ -182,7 +182,7 @@ export class OrderCalculator {
         ctx: RequestContext,
         order: Order,
         activeZone: Zone,
-        providedTaxAmounts?: Map<OrderLine, TaxLine[]>,
+        providedTaxAmounts?: Map<OrderLine, TaxLine[] | null>,
     ) {
         const getTaxRate = this.createTaxRateGetter(ctx, activeZone);
         for (const line of order.lines) {
@@ -217,7 +217,7 @@ export class OrderCalculator {
         ctx: RequestContext,
         order: Order,
         settled: Map<OrderLine, TaxLine[]>,
-        provided: Map<OrderLine, TaxLine[]>,
+        provided: Map<OrderLine, TaxLine[] | null>,
         getTaxRate: (taxCategoryId: ID) => Promise<TaxRate>,
     ) {
         for (const line of order.lines) {
@@ -233,9 +233,11 @@ export class OrderCalculator {
             );
             if (applicable) {
                 line.taxLines = applicable;
-            } else {
+            } else if (provided.get(line) !== null) {
                 await this.applyTaxesToOrderLine(ctx, order, line, getTaxRate);
             }
+            // Otherwise the strategy was asked about this line in this calculation and returned no
+            // amounts, for example because the ERP is unavailable, so it is not asked again.
         }
     }
 
@@ -283,14 +285,14 @@ export class OrderCalculator {
     /**
      * Applies the TaxLines from the TaxLineCalculationStrategy to the line. If `providedTaxAmounts`
      * is given, absolute tax amounts are recorded there instead of on the line, to be attached
-     * once the line's taxable total is final.
+     * once the line's taxable total is final, and a line that gave no amounts is recorded as null.
      */
     private async applyTaxesToOrderLine(
         ctx: RequestContext,
         order: Order,
         line: OrderLine,
         getTaxRate: (taxCategoryId: ID) => Promise<TaxRate>,
-        providedTaxAmounts?: Map<OrderLine, TaxLine[]>,
+        providedTaxAmounts?: Map<OrderLine, TaxLine[] | null>,
     ) {
         const applicableTaxRate = await getTaxRate(line.taxCategoryId);
         const { taxLineCalculationStrategy } = this.configService.taxOptions;
@@ -302,6 +304,8 @@ export class OrderCalculator {
         });
         const withBase = withTaxBase(taxLines, () => line.getTaxableLineTotal());
         if (!hasTaxAmounts(withBase)) {
+            // Records that the line was asked, and gave no amounts.
+            providedTaxAmounts?.set(line, null);
             line.taxLines = taxLines;
             return;
         }

@@ -62,7 +62,6 @@ import {
     MultipleOrderError,
     NothingToRefundError,
     PaymentOrderMismatchError,
-    QuantityTooGreatError,
     RefundOrderStateError,
     RefundStateTransitionError,
     SettlePaymentError,
@@ -2166,19 +2165,29 @@ export class OrderService implements OnApplicationBootstrap {
         ) {
             return new RefundOrderStateError({ orderState: order.state });
         }
-        // The deprecated line-based amount excludes lines that were not part of the placed order.
-        // Recording RefundLines for them would mark unpaid units as refunded.
+        // The deprecated line-based amount excludes lines that were not part of the placed order,
+        // such as lines that an order modification added. Recording RefundLines for them would mark
+        // unpaid units as refunded, so they are left out of the refund.
         const legacyLineIds =
             input.amount || input.targets?.length
                 ? []
                 : (input.lines ?? []).filter(line => 0 < line.quantity).map(line => line.orderLineId);
-        if (
-            legacyLineIds.length &&
-            (await this.connection.getRepository(ctx, OrderLine).count({
+        if (legacyLineIds.length) {
+            const unplacedLines = await this.connection.getRepository(ctx, OrderLine).find({
                 where: { id: In(legacyLineIds), orderPlacedQuantity: 0 },
-            }))
-        ) {
-            return new QuantityTooGreatError();
+                select: { id: true },
+            });
+            if (unplacedLines.length) {
+                input = {
+                    ...input,
+                    lines: (input.lines ?? []).filter(
+                        line => !unplacedLines.some(unplaced => idsAreEqual(unplaced.id, line.orderLineId)),
+                    ),
+                };
+                if (!input.lines?.length && !input.shipping && !input.adjustment) {
+                    return new NothingToRefundError();
+                }
+            }
         }
 
         const createdRefund = await this.paymentService.createRefund(ctx, input, order, payment);

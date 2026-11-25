@@ -283,6 +283,29 @@ describe('OrderLine entity', () => {
             expect(line.proratedLineTax).toBe(19949);
         });
 
+        // A zero taxable total says nothing about the tax of the line's other prices.
+        it('derives the other prices from the rate when the amount is on a zero total', () => {
+            const line = new OrderLine({
+                quantity: 1,
+                orderPlacedQuantity: 1,
+                listPrice: 50000,
+                listPriceIncludesTax: false,
+                taxLines: [{ description: 'VAT', taxRate: 5, amount: 0, taxBase: 0 } as any],
+                adjustments: [{ ...itemPromotionAdjustment, amount: -50000 }],
+            });
+            expect(line.proratedLinePriceWithTax).toBe(0);
+            expect(line.unitPriceWithTax).toBe(52500);
+            expect(line.linePriceWithTax).toBe(52500);
+            expect(line.discounts[0].amountWithTax).toBe(-52500);
+        });
+
+        it('derives the unit price with tax from the rate after a full cancellation', () => {
+            const line = lineWithTaxAmount(false);
+            line.setQuantityRescalingAdjustments(0);
+            expect(line.taxLines[0]).toMatchObject({ amount: 0, taxBase: 0 });
+            expect(line.unitPriceWithTax).toBe(1200);
+        });
+
         it('derives the tax from the rate when the tax lines have no amount', () => {
             const line = new OrderLine({
                 quantity: 3,

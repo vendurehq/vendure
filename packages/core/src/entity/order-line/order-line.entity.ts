@@ -421,18 +421,16 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * @internal
      */
     getAdjustmentAmount(amount: number, includesTax: boolean): number {
-        // Existing unit-price strategies keep their historical promotion tax treatment.
+        // A line without a quote stores the promotion amount as the action returned it, without
+        // converting its tax basis, as before 3.9.
         if (!this.isQuoted()) {
             return amount;
         }
         if (includesTax === this.listPriceIncludesTax) {
             return roundMoney(amount);
         }
-        const taxShare = this.getTaxShare();
-        if (taxShare != null) {
-            // The inverse of `withTaxBasis()`.
-            return roundMoney(includesTax ? amount / (1 + taxShare) : amount / (1 - taxShare));
-        }
+        // Promotions run while absolute tax amounts are detached (see OrderCalculator), so the
+        // conversion always uses the rate.
         return roundMoney(
             includesTax ? netPriceOf(amount, this.taxRate) : grossPriceOf(amount, this.taxRate),
         );

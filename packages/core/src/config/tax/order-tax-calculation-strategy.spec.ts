@@ -1,3 +1,4 @@
+import { AdjustmentType } from '@vendure/common/lib/generated-types';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Order } from '../../entity/order/order.entity';
@@ -497,6 +498,26 @@ describe('OrderTaxCalculationStrategy', () => {
             expect(taxSummary).toEqual([
                 { description: 'VAT', taxRate: 5, taxBase: 399077, taxTotal: 19955 },
             ]);
+        });
+
+        it('derives the undiscounted shipping price from the rate when shipping is free', () => {
+            const shippingLine = new ShippingLine({
+                listPrice: 500,
+                listPriceIncludesTax: false,
+                adjustments: [
+                    {
+                        adjustmentSource: 'PROMOTION:1',
+                        type: AdjustmentType.PROMOTION,
+                        description: 'free shipping',
+                        amount: -500,
+                        data: {},
+                    },
+                ],
+                taxLines: [{ description: 'VAT', taxRate: 20, amount: 0, taxBase: 0 } as any],
+            });
+
+            expect(shippingLine.discountedPriceWithTax).toBe(0);
+            expect(shippingLine.priceWithTax).toBe(600);
         });
 
         it('uses the absolute tax amounts of shipping lines and surcharges', () => {

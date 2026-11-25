@@ -86,7 +86,8 @@ export function taxAmountsApply(
  * @description
  * When every TaxLine has an absolute `amount` (see {@link hasTaxAmounts}), returns their total as a
  * share of the taxable total they were calculated for, so that the tax of any part of an item can
- * be derived from it. Returns undefined when the tax is derived from the rates.
+ * be derived from it. Returns undefined when the tax is derived from the rates, which includes an
+ * amount on a taxable total of zero.
  */
 export function getTaxShare(taxLines: readonly StoredTaxLine[] | undefined): number | undefined {
     if (!taxLines || !hasTaxAmounts(taxLines)) {
@@ -94,7 +95,10 @@ export function getTaxShare(taxLines: readonly StoredTaxLine[] | undefined): num
     }
     const taxBase = taxLines[0].taxBase;
     if (!taxBase) {
-        return 0;
+        // An amount on a zero total, such as a fully discounted or cancelled line, says nothing
+        // about the tax of the item's other prices, so those are derived from the rate. The tax of
+        // the zero total is zero either way.
+        return undefined;
     }
     return sumTaxAmounts(taxLines) / taxBase;
 }
