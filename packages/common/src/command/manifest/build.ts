@@ -1,11 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { CommandDefinition, JsonSchema } from '../types';
+import { applyCommandGroups } from '../groups';
+import { CommandDefinition, CommandGroupDefinition, JSON_SCHEMA_TARGET, JsonSchema } from '../types';
 
 import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest';
 
-const JSON_SCHEMA_TARGET = 'draft-2020-12';
+/** @since 4.0.0 */
+export interface BuildCommandManifestOptions {
+    /**
+     * Groups whose shared input applies to the commands they hold. Each command's input in the
+     * manifest includes their fields. The declarations module exports the same list as `groups`, so
+     * the host applies them when it runs a command.
+     */
+    groups?: CommandGroupDefinition[];
+}
 
 /**
  * Builds the manifest of a package from its command definitions. This is the build step. It
@@ -16,9 +25,10 @@ export async function buildCommandManifest(
     packageName: string,
     version: string,
     definitions: CommandDefinition[],
+    options: BuildCommandManifestOptions = {},
 ): Promise<CommandManifest> {
     const commands: ManifestCommand[] = [];
-    for (const def of definitions) {
+    for (const def of applyCommandGroups(definitions, options.groups)) {
         const schemas = await def.schemas();
         const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
         const properties = { ...((input.properties as Record<string, unknown> | undefined) ?? {}) };
@@ -108,8 +118,9 @@ export async function writeCommandManifest(
     packageName: string,
     version: string,
     definitions: CommandDefinition[],
+    options: BuildCommandManifestOptions = {},
 ): Promise<string> {
-    const manifest = await buildCommandManifest(packageName, version, definitions);
+    const manifest = await buildCommandManifest(packageName, version, definitions, options);
     const file = path.join(outDir, MANIFEST_FILE_NAME);
     fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n');
     return file;

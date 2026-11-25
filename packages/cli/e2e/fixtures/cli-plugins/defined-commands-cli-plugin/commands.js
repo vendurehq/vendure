@@ -1,12 +1,21 @@
 // The declarations of this package's commands. They are plain data: declaring them loads no
 // schema library and no implementation, and imports nothing from @vendure/cli.
-import { defineCommand, defineError } from '@vendure/common/lib/command';
+import { defineCommand, defineCommandGroup, defineError } from '@vendure/common/lib/command';
 
 export const nothingToReset = defineError({
     code: 'example.nothing-to-reset',
     exit: 1,
     message: ({ file }) => `There is no example data at ${file}`,
 });
+
+// Every `example` command takes `--audience`, declared once for the group.
+export const groups = [
+    defineCommandGroup({
+        path: ['example'],
+        schemas: () => import('./example-group.schema.js'),
+        cli: { flags: { audience: { short: '-a' } } },
+    }),
+];
 
 export const commands = [
     defineCommand({

@@ -3,7 +3,7 @@
 import { writeCommandManifest } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 
-import { commands } from './commands.js';
+import { commands, groups } from './commands.js';
 
 const { name, version } = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
-await writeCommandManifest(import.meta.dirname, name, version, commands);
+await writeCommandManifest(import.meta.dirname, name, version, commands, { groups });
