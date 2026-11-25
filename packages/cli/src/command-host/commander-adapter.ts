@@ -4,11 +4,13 @@ import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
 import { requireCredential } from '../auth/credential.js';
+import { pluginCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
+import { CORE_SOURCE } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
@@ -21,10 +23,11 @@ const CANCEL_GRACE_MS = 10_000;
 
 export interface AdapterOptions {
     /**
-     * Loads the command declarations. Called only when a command runs, never to build the
-     * command line, which is built from the manifest alone.
+     * Loads the command declarations of the package that declared a command, its manifest's
+     * `source`. Called only when a command runs, never to build the command line, which is built
+     * from the manifests alone.
      */
-    loadDefinitions(): Promise<CommandDefinition[]>;
+    loadDefinitions(source: string): Promise<CommandDefinition[]>;
 }
 
 /**
@@ -61,6 +64,9 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                if (parent === program && manifestCommand.source !== CORE_SOURCE) {
+                    group.helpGroup(pluginCommandsHeading(manifestCommand.source));
+                }
             }
             parent = group;
         }
@@ -86,6 +92,9 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         siblings.splice(siblings.indexOf(existing), 1);
     }
     const command = parent.command(name).description(manifestCommand.description);
+    if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
+        command.helpGroup(pluginCommandsHeading(manifestCommand.source));
+    }
     const positional = manifestCommand.cli.positional ?? [];
     const properties = (manifestCommand.input.properties ?? {}) as Record<string, Record<string, any>>;
 
@@ -140,7 +149,9 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     });
 
     command.action(async (...args: any[]) => {
-        const opts = command.opts();
+        // With the options of the commands above it: a CLI plugin can declare a shared `--json` on
+        // the program, which then takes the flag before this command sees it.
+        const opts = command.optsWithGlobals();
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
         );
@@ -258,8 +269,19 @@ async function runLeaf(
     }
     Object.assign(input, collectFlagInput(command, properties, positionalValues));
 
-    const definitions = await options.loadDefinitions();
     const key = manifestCommand.path.join(' ');
+    let definitions: CommandDefinition[];
+    try {
+        definitions = await options.loadDefinitions(manifestCommand.source);
+    } catch (e) {
+        return finish(
+            errorResult(hostErrors.pluginDefinitionsFailed, {
+                plugin: manifestCommand.source,
+                command: key,
+                reason: e instanceof Error ? e.message : String(e),
+            }),
+        );
+    }
     const def = definitions.find(candidate => candidate.path.join(' ') === key);
     const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
     if (!def || mismatch) {

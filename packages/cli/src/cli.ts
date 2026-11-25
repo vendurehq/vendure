@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
 import { registerManifestCommands } from './command-host/commander-adapter.js';
-import { loadMergedManifest } from './command-host/manifest.js';
+import { loadProjectCommands, setCommanderPaths, TakenCommandPath } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
 import { devCommandDef } from './commands/dev/command.js';
@@ -76,7 +76,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         selection.parseOptions(process.argv.slice(3));
         pluginOptions.project = selection.opts<{ project?: string }>().project;
     }
-    const { loaded, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
+    const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
@@ -109,12 +109,24 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
 
-    // Commands declared with `defineCommand` are built from the manifest alone. Their
-    // declarations load only when one of them runs.
+    // Commands declared with `defineCommand` are built from the manifests alone: the CLI's own and
+    // those of the enabled plugins. Their declarations load only when one of them runs.
     try {
-        registerManifestCommands(program, await loadMergedManifest(), {
-            loadDefinitions: async () =>
-                (await import('./command-host/core-commands.js')).coreCommandDefinitions,
+        setCommanderPaths(commanderPaths(program));
+        const projectCommands = await loadProjectCommands({ plugins: manifests });
+        for (const { package: packageName, error } of projectCommands.refused) {
+            unavailablePackages.set(packageName, 'register');
+            const scope =
+                manifests.find(manifest => manifest.packageName === packageName)?.scope ?? 'project';
+            writePluginSkipped(
+                packageName,
+                'Refused the commands of CLI plugin',
+                `[${error.code}] ${error.message}`,
+                scope,
+            );
+        }
+        registerManifestCommands(program, projectCommands.commands, {
+            loadDefinitions: source => projectCommands.loadDefinitions(source),
         });
     } catch (e) {
         process.stderr.write(
@@ -138,6 +150,31 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     maybeWriteInactivePluginsHint(process.argv, pluginOptions);
 
     await program.parseAsync(process.argv);
+}
+
+/**
+ * The paths of the commands registered with Commander so far: the built-in commands and those of
+ * CLI plugins. A command with subcommands is a group, which a plugin's manifest may add to.
+ */
+function commanderPaths(program: Command): TakenCommandPath[] {
+    const paths: TakenCommandPath[] = [];
+    // Only a plugin's top-level commands carry its help heading.
+    const visit = (command: Command, parent: string[], parentPlugin?: string) => {
+        for (const child of command.commands) {
+            const path = [...parent, child.name()];
+            const plugin = parentPlugin ?? /^Commands from (.+):$/.exec(child.helpGroup())?.[1];
+            paths.push({
+                path,
+                owner: plugin
+                    ? `the command "${path.join(' ')}" of ${plugin}`
+                    : `the built-in command "${path.join(' ')}"`,
+                leaf: child.commands.length === 0,
+            });
+            visit(child, path, plugin);
+        }
+    };
+    visit(program, []);
+    return paths;
 }
 
 /**

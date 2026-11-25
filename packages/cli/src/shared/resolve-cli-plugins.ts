@@ -1,3 +1,4 @@
+import { CommandManifest, readManifestFile } from '@vendure/common/lib/command/manifest';
 import fs from 'fs-extra';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -26,8 +27,39 @@ export interface PackageJsonLike {
          * Used for actionable unknown-command hints without loading plugin code.
          */
         cliCommands?: string[];
+        /**
+         * The `vendure-commands.json` of the package's `defineCommand` commands, built with
+         * `writeCommandManifest` from `@vendure/common/lib/command/manifest`. The CLI reads it to
+         * build the command line, and `vendure mcp` reads it to list tools, without loading any
+         * code of the package.
+         *
+         * @since 4.0.0
+         */
+        commandManifest?: string;
+        /**
+         * The module that exports the package's `defineCommand` declarations as `commands`. The CLI
+         * imports it only when one of those commands runs.
+         *
+         * @since 4.0.0
+         */
+        commandDefinitions?: string;
         cli?: ProjectCliPluginConfig;
     };
+}
+
+/**
+ * The `defineCommand` commands of an enabled package: its manifest, read without loading any of
+ * the package's code, and the module the CLI imports when one of the commands runs.
+ *
+ * @since 4.0.0
+ */
+export interface ResolvedCommandManifest {
+    packageName: string;
+    manifest: CommandManifest;
+    manifestPath: string;
+    definitionsPath: string;
+    /** Which allowlist enabled it. */
+    scope: CliPluginScopeKind;
 }
 
 export interface ResolvedCliPlugin {
@@ -72,6 +104,8 @@ export interface CliPluginScopeError {
  */
 export interface CliPluginLoadResult {
     loaded: ResolvedCliPlugin[];
+    /** The command manifests of the enabled packages that declare `vendure.commandManifest`. */
+    manifests: ResolvedCommandManifest[];
     failures: CliPluginLoadFailure[];
     scopeErrors: CliPluginScopeError[];
 }
@@ -122,6 +156,13 @@ export interface DiscoveredCliPlugin {
      * Command names from package.json `vendure.cliCommands` when declared.
      */
     declaredCommands?: string[];
+    /** The manifest of the package's `defineCommand` commands, when it declares one. */
+    manifestPath?: string;
+    /**
+     * The first word of each command in the package's command manifest. Read from the manifest
+     * file, so known without loading the package's code.
+     */
+    manifestCommands?: string[];
     /**
      * Top-level command names read from the plugin module itself. Only known
      * when the plugin was actually loaded, which `validate` does for enabled
@@ -140,7 +181,19 @@ export interface DiscoveredCliPlugin {
  * the package declared nothing rather than that it contributes nothing.
  */
 export function cliPluginCommandNames(plugin: DiscoveredCliPlugin): string[] {
-    return plugin.loadedCommands ?? plugin.declaredCommands ?? [];
+    return [
+        ...new Set([
+            ...(plugin.loadedCommands ?? plugin.declaredCommands ?? []),
+            ...(plugin.manifestCommands ?? []),
+        ]),
+    ];
+}
+
+/** Whether a package says it provides the top-level command `commandName`, without loading it. */
+function declaresCommand(plugin: DiscoveredCliPlugin, commandName: string): boolean {
+    return Boolean(
+        plugin.declaredCommands?.includes(commandName) || plugin.manifestCommands?.includes(commandName),
+    );
 }
 
 export interface ResolveCliPluginsOptions {
@@ -290,19 +343,34 @@ function describePackage(
     isEnabled: boolean,
 ): DiscoveredCliPlugin | undefined {
     const resolved = scope.resolvePackage(packageName);
-    const entryRel = resolved?.packageJson.vendure?.cliPlugin;
-    if (!resolved || typeof entryRel !== 'string') {
+    const vendure = resolved?.packageJson.vendure;
+    const entryRel = typeof vendure?.cliPlugin === 'string' ? vendure.cliPlugin : undefined;
+    const manifestRel = typeof vendure?.commandManifest === 'string' ? vendure.commandManifest : undefined;
+    if (!resolved || (!entryRel && !manifestRel)) {
         return undefined;
     }
+    const manifestPath = manifestRel ? path.resolve(resolved.dir, manifestRel) : undefined;
     return {
         packageName,
         scope: scope.kind,
         status: isEnabled ? 'enabled' : 'not-enabled',
         reason: isEnabled ? undefined : notEnabledReason(scope),
-        entryRel,
-        entryPath: path.resolve(resolved.dir, entryRel),
-        declaredCommands: normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands),
+        ...(entryRel ? { entryRel, entryPath: path.resolve(resolved.dir, entryRel) } : {}),
+        declaredCommands: normalizeDeclaredCommands(vendure?.cliCommands),
+        ...(manifestPath ? { manifestPath, manifestCommands: readManifestCommandNames(manifestPath) } : {}),
     };
+}
+
+/**
+ * The first word of each command in a manifest, or `undefined` when the file cannot be read. A
+ * package that is not enabled is only described, so a broken manifest is reported once it is.
+ */
+function readManifestCommandNames(manifestPath: string): string[] | undefined {
+    try {
+        return [...new Set(readManifestFile(manifestPath).commands.map(command => command.path[0]))];
+    } catch {
+        return undefined;
+    }
 }
 
 /**
@@ -335,10 +403,13 @@ function describeEnabledPackage(
  * here rather than at the next startup.
  */
 function withLoadedCommands(entry: DiscoveredCliPlugin, packageName: string): DiscoveredCliPlugin {
-    if (!entry.entryPath) {
-        return entry;
-    }
     try {
+        if (entry.manifestPath) {
+            readCommandManifest(entry.manifestPath, packageName);
+        }
+        if (!entry.entryPath) {
+            return entry;
+        }
         const plugin = loadCliPluginModule(entry.entryPath, packageName);
         return { ...entry, loadedCommands: plugin.commands.map(command => command.name) };
     } catch (e: any) {
@@ -363,13 +434,35 @@ function checkDeclaresPlugin(
         // The scope's own rule already reported this; nothing to add.
         return undefined;
     }
-    const entryRel = resolved.packageJson.vendure?.cliPlugin;
-    if (!entryRel || typeof entryRel !== 'string') {
-        return 'Does not declare vendure.cliPlugin in its package.json';
+    const vendure = resolved.packageJson.vendure;
+    const entryRel = vendure?.cliPlugin;
+    const manifestRel = vendure?.commandManifest;
+    const hasEntry = typeof entryRel === 'string' && entryRel.length > 0;
+    const hasManifest = typeof manifestRel === 'string' && manifestRel.length > 0;
+    if (!hasEntry && !hasManifest) {
+        return 'Does not declare vendure.cliPlugin or vendure.commandManifest in its package.json';
     }
-    const entryPath = path.resolve(resolved.dir, entryRel);
-    if (!fs.existsSync(entryPath)) {
-        return `Entry "${entryRel}" not found at ${entryPath}. If this is a workspace package, it may need to be built.`;
+    const missing = (label: string, rel: string) => {
+        const file = path.resolve(resolved.dir, rel);
+        return fs.existsSync(file)
+            ? undefined
+            : `${label} "${rel}" not found at ${file}. If this is a workspace package, it may need to be built.`;
+    };
+    if (hasEntry) {
+        const problem = missing('Entry', entryRel);
+        if (problem) {
+            return problem;
+        }
+    }
+    if (hasManifest) {
+        const definitionsRel = vendure?.commandDefinitions;
+        if (typeof definitionsRel !== 'string' || definitionsRel.length === 0) {
+            return (
+                'Declares vendure.commandManifest but not vendure.commandDefinitions, the module ' +
+                'that exports its commands'
+            );
+        }
+        return missing('Command manifest', manifestRel) ?? missing('Command definitions', definitionsRel);
     }
     return undefined;
 }
@@ -380,11 +473,35 @@ function checkDeclaresPlugin(
  * Packages that declare `vendure.cliPlugin` but are not listed are discovered
  * (see {@link discoverCliPlugins}) but not executed. Per-package failures are
  * returned instead of thrown so the CLI stays usable.
+ *
+ * An enabled package that declares `vendure.commandManifest` contributes its
+ * manifest to `manifests`. Reading it runs none of the package's code.
  */
 export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPluginLoadResult {
+    return resolveEnabledPackages(options, true);
+}
+
+/**
+ * The command manifests of the enabled packages, as {@link resolveCliPlugins} finds them, without
+ * loading any `vendure.cliPlugin` module. `vendure mcp` uses it, because plugin code must never run
+ * in the process that speaks the protocol on stdout.
+ *
+ * @since 4.0.0
+ */
+export function resolveCommandManifests(
+    options: ResolveCliPluginsOptions = {},
+): Omit<CliPluginLoadResult, 'loaded'> {
+    const { manifests, failures, scopeErrors } = resolveEnabledPackages(options, false);
+    return { manifests, failures, scopeErrors };
+}
+
+function resolveEnabledPackages(
+    options: ResolveCliPluginsOptions,
+    loadModules: boolean,
+): CliPluginLoadResult {
     const scopes = getPluginScopes(options);
     const owner = owningScopes(scopes);
-    const result: CliPluginLoadResult = { loaded: [], failures: [], scopeErrors: [] };
+    const result: CliPluginLoadResult = { loaded: [], manifests: [], failures: [], scopeErrors: [] };
 
     for (const scope of scopes) {
         if (scope.error) {
@@ -392,7 +509,7 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
         }
         for (const packageName of scope.allowlist) {
             if (owner.get(packageName) === scope) {
-                loadInto(result, scope, packageName);
+                loadInto(result, scope, packageName, loadModules);
             }
         }
     }
@@ -425,7 +542,12 @@ function owningScopes(scopes: PluginScope[]): Map<string, PluginScope> {
 }
 
 /** Loads one package, recording either the plugin or the reason it could not be. */
-function loadInto(result: CliPluginLoadResult, scope: PluginScope, packageName: string): void {
+function loadInto(
+    result: CliPluginLoadResult,
+    scope: PluginScope,
+    packageName: string,
+    loadModules: boolean,
+): void {
     const fail = (reason: string) =>
         result.failures.push({
             packageName,
@@ -441,12 +563,32 @@ function loadInto(result: CliPluginLoadResult, scope: PluginScope, packageName: 
     }
 
     const resolved = scope.resolvePackage(packageName);
-    const entryRel = resolved?.packageJson.vendure?.cliPlugin;
-    if (!resolved || typeof entryRel !== 'string') {
+    const vendure = resolved?.packageJson.vendure;
+    const entryRel = vendure?.cliPlugin;
+    const manifestRel = vendure?.commandManifest;
+    if (!resolved || (typeof entryRel !== 'string' && typeof manifestRel !== 'string')) {
         fail('Passed every check but no plugin entry could be resolved');
         return;
     }
 
+    if (typeof manifestRel === 'string' && typeof vendure?.commandDefinitions === 'string') {
+        const manifestPath = path.resolve(resolved.dir, manifestRel);
+        try {
+            result.manifests.push({
+                packageName,
+                manifest: readCommandManifest(manifestPath, packageName),
+                manifestPath,
+                definitionsPath: path.resolve(resolved.dir, vendure.commandDefinitions),
+                scope: scope.kind,
+            });
+        } catch (e: any) {
+            fail(e?.message ?? String(e));
+        }
+    }
+
+    if (typeof entryRel !== 'string' || !loadModules) {
+        return;
+    }
     const entryPath = path.resolve(resolved.dir, entryRel);
     try {
         result.loaded.push({
@@ -458,6 +600,29 @@ function loadInto(result: CliPluginLoadResult, scope: PluginScope, packageName: 
     } catch (e: any) {
         fail(e?.message ?? String(e));
     }
+}
+
+/**
+ * Reads a package's command manifest. The manifest names the package it was built for, and the
+ * host finds a command's declarations through that name, so a manifest that names another package
+ * is refused.
+ */
+function readCommandManifest(manifestPath: string, packageName: string): CommandManifest {
+    let manifest: CommandManifest;
+    try {
+        manifest = readManifestFile(manifestPath);
+    } catch (e: any) {
+        throw new Error(
+            `Failed to read the command manifest of "${packageName}" from ${manifestPath}: ${e?.message ?? String(e)}`,
+        );
+    }
+    if (manifest.package !== packageName) {
+        throw new Error(
+            `The command manifest at ${manifestPath} was built for "${manifest.package}", not "${packageName}". ` +
+                `Build it with the package's own name.`,
+        );
+    }
+    return manifest;
 }
 
 /**
@@ -498,7 +663,7 @@ export function findInactivePluginProvidingCommand(
     options: ResolveCliPluginsOptions = {},
 ): DiscoveredCliPlugin | undefined {
     return inactiveCopies(discoverCliPlugins(options))
-        .filter(plugin => plugin.declaredCommands?.includes(commandName))
+        .filter(plugin => declaresCommand(plugin, commandName))
         .pop();
 }
 
@@ -518,7 +683,7 @@ export function findEnabledPluginDeclaringCommand(
             loadedCopies.set(plugin.packageName, plugin);
         }
     }
-    return [...loadedCopies.values()].find(plugin => plugin.declaredCommands?.includes(commandName));
+    return [...loadedCopies.values()].find(plugin => declaresCommand(plugin, commandName));
 }
 
 /**

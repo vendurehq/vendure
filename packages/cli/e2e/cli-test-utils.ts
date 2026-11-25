@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { stripAnsi } from '../src/shared/strip-ansi.js';
 
@@ -191,6 +191,7 @@ export function installCliPluginFixture(
 
     cpSync(fixtureDir, targetDir, { recursive: true });
     linkCliPackage(project);
+    linkPeerDependencies(project, fixtureDir);
 
     updatePackageJson(project, packageJson => {
         packageJson.dependencies = { ...packageJson.dependencies, [packageName]: '1.0.0' };
@@ -229,6 +230,37 @@ function linkCliPackage(project: CliTestProject): void {
     updatePackageJson(project, packageJson => {
         packageJson.devDependencies = { ...packageJson.devDependencies, '@vendure/cli': '*' };
     });
+}
+
+/**
+ * Links the packages a fixture names in `peerDependencies`, such as `@vendure/common` and `zod`
+ * for a fixture that declares `defineCommand` commands, from the repository into the project's
+ * `node_modules`, so the fixture resolves them as an installed plugin would.
+ */
+function linkPeerDependencies(project: CliTestProject, fixtureDir: string): void {
+    const fixture = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'));
+    for (const name of Object.keys(fixture.peerDependencies ?? {})) {
+        const linkPath = join(project.projectDir, 'node_modules', ...name.split('/'));
+        if (existsSync(linkPath)) {
+            continue;
+        }
+        const target = findInstalledPackage(name);
+        mkdirSync(dirname(linkPath), { recursive: true });
+        symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+    }
+}
+
+/** The directory of a package the CLI resolves, found through `node_modules`, since `exports` can hide its package.json. */
+function findInstalledPackage(name: string): string {
+    for (let dir = CLI_PACKAGE_DIR; ; dir = dirname(dir)) {
+        const candidate = join(dir, 'node_modules', ...name.split('/'));
+        if (existsSync(join(candidate, 'package.json'))) {
+            return candidate;
+        }
+        if (dirname(dir) === dir) {
+            throw new Error(`${name} is not installed`);
+        }
+    }
 }
 
 function updatePackageJson(project: CliTestProject, mutate: (packageJson: any) => void): void {

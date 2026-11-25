@@ -48,7 +48,7 @@ export interface RegisterCommandsOptions {
  * The package name is used unchanged rather than a prettier display name, so
  * the heading names the exact thing to install, enable or remove.
  */
-function pluginCommandsHeading(packageName: string): string {
+export function pluginCommandsHeading(packageName: string): string {
     return `Commands from ${packageName}:`;
 }
 

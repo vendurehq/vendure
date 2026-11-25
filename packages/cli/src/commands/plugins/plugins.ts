@@ -233,7 +233,7 @@ async function runInteractiveManager(): Promise<void> {
 
     const discovered = discoverCliPlugins({ validate: true });
     if (discovered.length === 0) {
-        log.info('No installed package declares a vendure.cliPlugin entry.');
+        log.info('No installed package declares a vendure.cliPlugin or vendure.commandManifest entry.');
         return;
     }
 
@@ -387,6 +387,8 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
                     entryPath: plugin.entryPath,
                     declaredCommands: plugin.declaredCommands,
                     loadedCommands: plugin.loadedCommands,
+                    manifestPath: plugin.manifestPath,
+                    manifestCommands: plugin.manifestCommands,
                 })),
             },
             null,

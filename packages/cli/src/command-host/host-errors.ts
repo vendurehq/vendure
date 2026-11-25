@@ -53,6 +53,25 @@ export const hostErrors = {
             `The command needs a Vendure Cloud credential, and finding one failed: ${message}`,
         fix: () => [LOGIN_FIX],
     }),
+    pluginCommandClash: defineError<{ plugin: string; command: string; other: string }>({
+        code: 'plugin.command-clash',
+        exit: 1,
+        message: ({ plugin, command, other }) =>
+            `${plugin} declares the command "${command}", which clashes with ${other}. ` +
+            `None of the commands of ${plugin} are loaded. Disable one of the two packages, or rename the command.`,
+    }),
+    pluginManifestInvalid: defineError<{ plugin: string; reason: string }>({
+        code: 'plugin.manifest-invalid',
+        exit: 1,
+        message: ({ plugin, reason }) =>
+            `The command manifest of ${plugin} is not valid, so none of its commands are loaded: ${reason}`,
+    }),
+    pluginDefinitionsFailed: defineError<{ plugin: string; command: string; reason: string }>({
+        code: 'plugin.definitions-failed',
+        exit: 1,
+        message: ({ plugin, command, reason }) =>
+            `"${command}" could not run, because the command declarations of ${plugin} failed to load: ${reason}`,
+    }),
     inputUnreadable: defineError<{ reason: string }>({
         code: 'input.unreadable',
         exit: 1,
