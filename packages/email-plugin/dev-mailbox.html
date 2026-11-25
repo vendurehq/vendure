@@ -171,7 +171,7 @@
                     <div class="date">${item.date}</div>
                     <div class="recipient">${escapeHTMLEntities(item.recipient)}</div>
                 </div>
-                <div class="subject">${item.subject}</div>`;
+                <div class="subject">${escapeHTMLEntities(item.subject)}</div>`;
 
             row.addEventListener('click', (e) => {
                 selectedId = item.fileName;
@@ -204,7 +204,7 @@
             </tr>
             <tr>
                 <td>Subject:</td>
-                <td>${email.subject}</td>
+                <td>${escapeHTMLEntities(email.subject)}</td>
             </tr>
             <tr>
                 <td>Date:</td>
@@ -212,7 +212,7 @@
             </tr>
         </table>
     </div>
-    <iframe srcdoc="${email.body.replace(/"/g, '&quot;')}"></iframe>
+    <iframe srcdoc="${escapeHTMLEntities(email.body)}"></iframe>
 `;
 
         document.querySelector('.detail').innerHTML = content;

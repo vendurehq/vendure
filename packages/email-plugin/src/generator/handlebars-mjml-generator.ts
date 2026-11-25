@@ -15,28 +15,48 @@ import { EmailGenerator } from './email-generator';
  * @docsPage EmailGenerator
  */
 export class HandlebarsMjmlGenerator implements EmailGenerator {
+    private partialSources: Record<string, string> = {};
+
     async onInit(options: InitializedEmailPluginOptions) {
         if (options.templateLoader.loadPartials) {
             const partials = await options.templateLoader.loadPartials();
-            partials.forEach(({ name, content }) => Handlebars.registerPartial(name, content));
+            partials.forEach(({ name, content }) => {
+                Handlebars.registerPartial(name, content);
+                this.partialSources[name] = content;
+            });
         }
         this.registerHelpers();
     }
 
     async generate(from: string, subject: string, template: string, templateVars: any) {
-        const compiledFrom = Handlebars.compile(from, { noEscape: true });
-        const compiledSubject = Handlebars.compile(subject);
         const compiledTemplate = Handlebars.compile(template);
         // We enable prototype properties here, aware of the security implications
         // described here: https://handlebarsjs.com/api-reference/runtime-options.html#options-to-control-prototype-access
         // This is needed because some Vendure entities use getters on the entity
         // prototype (e.g. Order.total) which may need to be interpolated.
         const templateOptions: RuntimeOptions = { allowProtoPropertiesByDefault: true };
-        const fromResult = compiledFrom(templateVars, templateOptions);
-        const subjectResult = compiledSubject(templateVars, templateOptions);
+        const fromResult = this.renderMailHeader(from, templateVars, templateOptions);
+        const subjectResult = this.renderMailHeader(subject, templateVars, templateOptions);
         const mjml = compiledTemplate(templateVars, templateOptions);
         const body = (await mjml2html(mjml)).html;
         return { from: fromResult, subject: subjectResult, body };
+    }
+
+    /**
+     * `from` and `subject` are mail headers. They are plain text, never HTML, so interpolated
+     * values are not HTML-escaped. The result must not be inserted into HTML without escaping.
+     *
+     * Handlebars compiles a partial the first time a template uses it, with that template's
+     * options, and caches it in the partials object of the render. By default that object is the
+     * global `Handlebars.partials`, which the HTML body also uses. Passing a fresh copy of the
+     * partial sources keeps partials compiled here without escaping out of the body, and keeps
+     * partials compiled by the body with escaping out of the headers.
+     */
+    private renderMailHeader(source: string, templateVars: any, templateOptions: RuntimeOptions) {
+        return Handlebars.compile(source, { noEscape: true })(templateVars, {
+            ...templateOptions,
+            partials: { ...this.partialSources },
+        });
     }
 
     private registerHelpers() {
