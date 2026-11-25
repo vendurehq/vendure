@@ -226,6 +226,7 @@ export function mergeProjectManifests(
         commands: mergeManifests(accepted),
         refused,
         loadDefinitions: async source => {
+            // The CLI's own commands declare no groups, so they need no `commandDeclarations`.
             if (source === CORE_SOURCE) {
                 return (await import('./core-commands.js')).coreCommandDefinitions;
             }
@@ -300,7 +301,10 @@ async function importDefinitions(file: string): Promise<CommandDefinition[]> {
     try {
         return commandDeclarations(mod);
     } catch (e) {
-        throw new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`);
+        // The original error, with its stack, stays reachable as `cause`.
+        throw Object.assign(new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`), {
+            cause: e,
+        });
     }
 }
 

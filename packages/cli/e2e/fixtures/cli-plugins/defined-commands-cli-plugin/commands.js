@@ -12,7 +12,6 @@ export const nothingToReset = defineError({
 export const groups = [
     defineCommandGroup({
         path: ['example'],
-        description: 'Example commands',
         schemas: () => import('./example-group.schema.js'),
         cli: { flags: { audience: { short: '-a' } } },
     }),

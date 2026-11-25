@@ -1,15 +1,13 @@
-import type {
+import {
     CommandCliMetadata,
     CommandDefinition,
     CommandGroupDefinition,
+    JSON_SCHEMA_TARGET,
     JsonSchema,
     StandardSchema,
     StandardSchemaIssue,
     StandardSchemaResult,
 } from './types';
-
-/** The JSON Schema draft that manifests and combined schemas are produced for. */
-export const JSON_SCHEMA_TARGET = 'draft-2020-12';
 
 function startsWith(path: string[], prefix: string[]): boolean {
     return prefix.length <= path.length && prefix.every((segment, index) => path[index] === segment);
@@ -167,10 +165,12 @@ function combineInputs(
                 defs[name] = definition;
             }
         }
+        const required = jsonParts.flatMap(jsonPart => (jsonPart.required as string[] | undefined) ?? []);
+        const { required: _commandRequired, ...commandPart } = jsonParts[commandIndex];
         return {
-            ...jsonParts[commandIndex],
+            ...commandPart,
             properties: Object.assign({}, ...jsonParts.map(propertiesOf)),
-            required: jsonParts.flatMap(jsonPart => (jsonPart.required as string[] | undefined) ?? []),
+            ...(required.length ? { required } : {}),
             ...(Object.keys(defs).length ? { $defs: defs } : {}),
         } as JsonSchema;
     };

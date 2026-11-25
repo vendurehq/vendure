@@ -169,6 +169,14 @@ export const COMMAND_ENVELOPE_SCHEMA_VERSION = 1;
 
 /**
  * @description
+ * The JSON Schema draft that manifests and the CLI host produce and read schemas for.
+ *
+ * @since 4.0.0
+ */
+export const JSON_SCHEMA_TARGET = 'draft-2020-12';
+
+/**
+ * @description
  * How a run ended. `ok` and `failed` carry the command's output, `incomplete` carries needs, and
  * `error` carries an error.
  */
@@ -420,8 +428,9 @@ export interface SecretFileReference {
  * A group of commands that share input fields, such as `cloud`, whose commands all take
  * `--project` and `--environment`. Declared as plain data, like a command.
  *
- * The shared fields apply to every command of the same package whose path starts with the group's
- * path. They are flags of each of those commands, part of each one's input in the manifest and of
+ * The shared fields apply to every command of the same package whose path is longer than the
+ * group's and starts with it, so a command at the group's own path gets none of them. They are
+ * flags of each of those commands, part of each one's input in the manifest and of
  * its MCP tool. `run()` receives one input object with the command's fields and the shared ones.
  * Each part is validated with its own schema. A field that a group and one of its commands both
  * declare fails the manifest build.
@@ -431,8 +440,6 @@ export interface SecretFileReference {
 export interface CommandGroupDefinition {
     /** The path the group's commands start with, for example `['cloud']`. */
     path: string[];
-    /** Shown for the group in help. */
-    description?: string;
     /** The schemas module of the group. It exports `input`, the shared fields. */
     schemas: () => Promise<{ input: StandardSchema }>;
     /** CLI metadata for the shared fields, the same as a command's. */

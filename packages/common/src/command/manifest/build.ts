@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { applyCommandGroups, JSON_SCHEMA_TARGET } from '../groups';
-import { CommandDefinition, CommandGroupDefinition, JsonSchema } from '../types';
+import { applyCommandGroups } from '../groups';
+import { CommandDefinition, CommandGroupDefinition, JSON_SCHEMA_TARGET, JsonSchema } from '../types';
 
 import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest';
 

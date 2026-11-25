@@ -1230,7 +1230,6 @@ import { defineCommand, defineCommandGroup } from '@vendure/common/lib/command';
 export const groups = [
     defineCommandGroup({
         path: ['acme'],
-        description: 'Acme commands',
         schemas: () => import('./acme-group.schema.js'), // exports `input`, the shared fields
         cli: { flags: { project: { short: '-p' } } },
     }),
@@ -1243,7 +1242,8 @@ export const commands = [/* defineCommand({ path: ['acme', 'sync'], ... }) */];
 await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { groups });
 ```
 
-A group's fields apply to every command of the package whose path starts with the group's path. They are
+A group's fields apply to every command of the package whose path starts with the group's path and is
+longer than it, so a command at the group's own path gets none of them. They are
 flags of each of those commands and part of each one's input in `vendure commands --json` and the
 Developer MCP. `run()` receives them in one input object with the command's own fields. Each part is
 validated with its own schema. A field that a group and one of its commands both declare fails the build.

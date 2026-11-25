@@ -36,7 +36,6 @@ function objectSchema(
 
 const cloudGroup = defineCommandGroup({
     path: ['cloud'],
-    description: 'Vendure Cloud commands',
     schemas: async () => ({
         input: objectSchema(
             { project: { type: 'string' }, environment: { type: 'string' } },
@@ -185,23 +184,106 @@ describe('nested groups', () => {
     });
 });
 
+/** A schema whose JSON Schema refers to a definition, as Zod writes for a registered schema. */
+function schemaWithDefs(field: string, definition: Record<string, unknown>): StandardSchema {
+    return {
+        '~standard': {
+            version: 1,
+            vendor: 'test',
+            validate: value => ({ value }),
+            jsonSchema: {
+                input: () => ({
+                    type: 'object',
+                    properties: { [field]: { $ref: '#/$defs/Region' } },
+                    $defs: { Region: definition },
+                }),
+                output: () => ({ type: 'object', properties: {} }),
+            },
+        },
+    };
+}
+
 describe('$defs', () => {
+    const region = { type: 'string', enum: ['eu', 'us'] };
+
     it("keeps the definitions a group's JSON Schema refers to", async () => {
-        const withDefs = objectSchema({ region: { $ref: '#/$defs/Region' } as any });
-        const json = withDefs['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
-        json.$defs = { Region: { type: 'string', enum: ['eu', 'us'] } };
-        const regionGroup = defineCommandGroup({
-            path: ['cloud'],
-            schemas: async () => ({ input: withDefs }),
-        });
         const [deploy] = applyCommandGroups(
             [command(['cloud', 'deploy'], { commit: { type: 'string' } })],
-            [regionGroup],
+            [
+                defineCommandGroup({
+                    path: ['cloud'],
+                    schemas: async () => ({ input: schemaWithDefs('region', region) }),
+                }),
+            ],
         );
         const combined = (await deploy.schemas()).input['~standard'].jsonSchema.input({
             target: 'draft-2020-12',
         });
-        expect(combined.$defs).toEqual({ Region: { type: 'string', enum: ['eu', 'us'] } });
+        expect(combined.$defs).toEqual({ Region: region });
+    });
+
+    it('fails when two parts define one name differently', async () => {
+        const [deploy] = applyCommandGroups(
+            [
+                defineCommand({
+                    path: ['cloud', 'deploy'],
+                    description: 'Deploy',
+                    behavior: 'mutating',
+                    schemas: async () => ({ input: schemaWithDefs('target', { type: 'number' }) }),
+                    run: async () => ({ run: async () => ({}) }),
+                }),
+            ],
+            [
+                defineCommandGroup({
+                    path: ['cloud'],
+                    schemas: async () => ({ input: schemaWithDefs('region', region) }),
+                }),
+            ],
+        );
+        const { input } = await deploy.schemas();
+        expect(() => input['~standard'].jsonSchema.input({ target: 'draft-2020-12' })).toThrow(
+            'define "$defs/Region" differently',
+        );
+    });
+});
+
+describe('a command at the path of its group', () => {
+    it("gets none of the group's fields", async () => {
+        const cloud = command(['cloud'], { verbose: { type: 'boolean' } });
+        const [applied] = applyCommandGroups(
+            [cloud, command(['cloud', 'deploy'], { commit: { type: 'string' } })],
+            [cloudGroup],
+        );
+        expect(applied).toBe(cloud);
+    });
+});
+
+describe('a part that validates asynchronously', () => {
+    it("makes the combined result a Promise with every part's values", async () => {
+        const asyncGroup = defineCommandGroup({
+            path: ['cloud'],
+            schemas: async () => {
+                const sync = objectSchema({ project: { type: 'string' } });
+                return {
+                    input: {
+                        '~standard': {
+                            ...sync['~standard'],
+                            validate: async (value: unknown) => sync['~standard'].validate(value),
+                        },
+                    },
+                };
+            },
+        });
+        const [deploy] = applyCommandGroups(
+            [command(['cloud', 'deploy'], { commit: { type: 'string' } })],
+            [asyncGroup],
+        );
+        const result = (await deploy.schemas()).input['~standard'].validate({
+            project: 'shop',
+            commit: 'abc',
+        });
+        expect(result).toBeInstanceOf(Promise);
+        expect(await result).toEqual({ value: { project: 'shop', commit: 'abc' } });
     });
 });
 

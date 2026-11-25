@@ -98,8 +98,7 @@
             "type": "string",
             "description": "The digest of the preview for this consent: Delete example-data.json and the data in it"
           }
-        },
-        "required": []
+        }
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
