@@ -62,7 +62,7 @@ describe('renderAgentsMd()', () => {
         expect(text).toContain('The package manager is pnpm.');
         expect(text).toContain('- `pnpm run dev`: start the local environment.');
         expect(text).toContain('`pnpm exec vendure guide`');
-        expect(text).toContain('`pnpm exec vendure migrate generate <name>`');
+        expect(text).toContain('`pnpm exec vendure migrate -g <name>`');
         expect(text).not.toMatch(/\bnpm run\b|\bnpx\b|\{\{/);
     });
 
