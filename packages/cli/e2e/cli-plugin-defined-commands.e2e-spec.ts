@@ -6,6 +6,7 @@
  * discovery, the manifest merge and the host the same way a real installation does.
  */
 import { buildCommandManifest, readManifestFile } from '@vendure/common/lib/command/manifest';
+import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -19,6 +20,41 @@ function envelopeOf(stdout: string) {
     const lines = stdout.split('\n').filter(line => line.trim());
     expect(lines).toHaveLength(1);
     return JSON.parse(lines[0]);
+}
+
+/** Runs `vendure mcp` in the project, and talks to it over stdio. */
+function startMcp(cwd: string) {
+    const child = spawn(process.execPath, [join(import.meta.dirname, '..', 'dist', 'cli.js'), 'mcp'], {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const replies = new Map<number, (message: any) => void>();
+    let buffer = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines.filter(Boolean)) {
+            const message = JSON.parse(line);
+            replies.get(message.id)?.(message);
+        }
+    });
+    let nextId = 1;
+    const request = (method: string, params?: object): Promise<any> => {
+        const id = nextId++;
+        const reply = new Promise(resolve => replies.set(id, resolve));
+        child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+        return reply;
+    };
+    return {
+        request,
+        callTool: (name: string, args: object) => request('tools/call', { name, arguments: args }),
+        close: () =>
+            new Promise<void>(resolve => {
+                child.on('close', () => resolve());
+                child.stdin.end();
+            }),
+    };
 }
 
 async function listCommands(project: CliTestProject) {
@@ -132,6 +168,38 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             expect(envelopeOf(third.stdout).error).toMatchObject({ code: 'example.nothing-to-reset' });
         });
 
+        it('offers its commands as Developer MCP tools, and runs them in a child process', async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            const mcp = startMcp(p.projectDir);
+            try {
+                await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                const search = await mcp.callTool('search_tools', { query: 'greet' });
+                expect(search.result.structuredContent.tools[0]).toMatchObject({
+                    name: 'example_greet',
+                    behavior: 'readonly',
+                });
+
+                const greet = await mcp.callTool('execute_readonly', {
+                    tool: 'example_greet',
+                    input: { name: 'Ada' },
+                });
+                expect(greet.result.isError).toBe(false);
+                expect(greet.result.structuredContent).toMatchObject({
+                    status: 'ok',
+                    output: { message: 'Hello, Ada!' },
+                });
+
+                // A destructive plugin command needs the destructive executor and a consent.
+                const reset = await mcp.callTool('execute_destructive', { tool: 'example_reset', input: {} });
+                expect(reset.result.structuredContent).toMatchObject({
+                    status: 'incomplete',
+                    needs: [{ kind: 'consent', consent: 'resetData' }],
+                });
+            } finally {
+                await mcp.close();
+            }
+        });
+
         it('lists its commands under the package in vendure --help', async () => {
             const result = await projectWith(['defined-commands-cli-plugin']).runCliCommand(['--help']);
             expect(result.stdout).toContain(`Commands from ${EXAMPLE}:`);
@@ -155,8 +223,47 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             expect(envelope.output.commands.filter((c: any) => c.source === EXAMPLE)).toEqual([]);
 
             const run = await p.runCliCommand(['example', 'greet', 'Ada', '--json'], { expectError: true });
-            expect(run.exitCode).not.toBe(0);
-            expect(run.stdout).not.toContain('Hello');
+            expect(run.exitCode).toBe(1);
+            expect(run.stdout).toBe('');
+            // The hint reads the command names from the manifest, without loading the package.
+            expect(run.stderr).toContain('Unknown command "example"');
+            expect(run.stderr).toContain(`vendure plugins add ${EXAMPLE}`);
+
+            const mcp = startMcp(p.projectDir);
+            try {
+                await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                const search = await mcp.callTool('search_tools', { query: 'greet' });
+                expect(search.result.structuredContent.tools.map((t: any) => t.name)).not.toContain(
+                    'example_greet',
+                );
+            } finally {
+                await mcp.close();
+            }
+        });
+    });
+
+    describe('a plugin whose manifest cannot be read', () => {
+        it('is refused whole, its cliPlugin too, and listed under refused', async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            const dir = join('node_modules', ...EXAMPLE.split('/'));
+            // The same package also declares a cliPlugin, which must not load without its manifest.
+            p.writeFile(
+                join(dir, 'cli-plugin.cjs'),
+                "module.exports = { id: 'example', commands: [{ name: 'legacy', description: 'Legacy', action: async () => 0 }] };\n",
+            );
+            const packageJson = JSON.parse(p.readFile(join(dir, 'package.json')));
+            packageJson.vendure.cliPlugin = './cli-plugin.cjs';
+            p.writeFile(join(dir, 'package.json'), JSON.stringify(packageJson));
+            p.writeFile(join(dir, 'vendure-commands.json'), '{ not json');
+
+            const envelope = await listCommands(p);
+            expect(envelope.output.refused).toEqual([
+                { package: EXAMPLE, error: expect.objectContaining({ code: 'plugin.unavailable' }) },
+            ]);
+            expect(envelope.output.commands.filter((c: any) => c.source === EXAMPLE)).toEqual([]);
+
+            const legacy = await p.runCliCommand(['legacy'], { expectError: true });
+            expect(legacy.stderr).toContain('Unknown command "legacy"');
         });
     });
 
@@ -184,7 +291,9 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             expect(help.stderr).toContain(`vendure plugins remove ${CLASHING}`);
 
             const clashing = await p.runCliCommand(['clashing', 'hello', '--json'], { expectError: true });
-            expect(clashing.exitCode).not.toBe(0);
+            expect(clashing.exitCode).toBe(1);
+            expect(clashing.stdout).toBe('');
+            expect(clashing.stderr).toContain('Unknown command "clashing"');
         });
     });
 });

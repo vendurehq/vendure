@@ -52,6 +52,11 @@ export function pluginCommandsHeading(packageName: string): string {
     return `Commands from ${packageName}:`;
 }
 
+/** The package a {@link pluginCommandsHeading} names, or `undefined` for any other heading. */
+export function pluginFromCommandsHeading(heading: string | undefined): string | undefined {
+    return heading ? /^Commands from (.+):$/.exec(heading)?.[1] : undefined;
+}
+
 /** As {@link pluginCommandsHeading}, for the shared options of a package. */
 function pluginOptionsHeading(packageName: string): string {
     return `Options from ${packageName}:`;

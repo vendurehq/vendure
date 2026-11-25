@@ -483,8 +483,7 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
 
 /**
  * The command manifests of the enabled packages, as {@link resolveCliPlugins} finds them, without
- * loading any `vendure.cliPlugin` module. `vendure mcp` uses it, because plugin code must never run
- * in the process that speaks the protocol on stdout.
+ * importing any `vendure.cliPlugin` module. Reading a manifest runs none of the package's code.
  *
  * @since 4.0.0
  */
@@ -582,7 +581,9 @@ function loadInto(
                 scope: scope.kind,
             });
         } catch (e: any) {
+            // The package is refused whole, as for a clash, so its `cliPlugin` is not loaded either.
             fail(e?.message ?? String(e));
+            return;
         }
     }
 

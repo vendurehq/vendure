@@ -174,6 +174,21 @@ describe('mergeProjectManifests', () => {
         expect(refused.map(r => [r.package, r.error.code])).toEqual([['acme-cli', 'plugin.command-clash']]);
     });
 
+    it('lets a plugin add to a built-in command that holds core manifest commands, such as migrate', () => {
+        const { commands, refused } = mergeProjectManifests(
+            core,
+            [plugin('acme-cli', ['migrate', 'acme']), plugin('dev-cli', ['dev', 'acme'])],
+            [
+                { path: ['migrate'], owner: 'the built-in command "migrate"', leaf: true },
+                { path: ['dev'], owner: 'the built-in command "dev"', leaf: true },
+            ],
+        );
+        expect(commands.map(c => c.path.join(' '))).toContain('migrate acme');
+        expect(refused.map(r => [r.package, r.error.message])).toEqual([
+            ['dev-cli', expect.stringContaining('clashes with the built-in command "dev"')],
+        ]);
+    });
+
     it('refuses a manifest that the merge rules reject, such as a reserved field', () => {
         const bad = plugin('acme-cli', ['acme']);
         bad.manifest.commands[0].input = { type: 'object', properties: { json: { type: 'boolean' } } };

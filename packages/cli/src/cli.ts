@@ -11,7 +11,7 @@ import { consoleCommandDef } from './commands/console/command.js';
 import { devCommandDef } from './commands/dev/command.js';
 import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
-import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
+import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -154,7 +154,8 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
 /**
  * The paths of the commands registered with Commander so far: the built-in commands and those of
- * CLI plugins. A command with subcommands is a group, which a plugin's manifest may add to.
+ * CLI plugins. A command with subcommands is a group, which a plugin's manifest may add to. So is
+ * a command that the CLI's own manifest adds to, such as `add`, which the merge decides.
  */
 function commanderPaths(program: Command): TakenCommandPath[] {
     const paths: TakenCommandPath[] = [];
@@ -162,7 +163,7 @@ function commanderPaths(program: Command): TakenCommandPath[] {
     const visit = (command: Command, parent: string[], parentPlugin?: string) => {
         for (const child of command.commands) {
             const path = [...parent, child.name()];
-            const plugin = parentPlugin ?? /^Commands from (.+):$/.exec(child.helpGroup())?.[1];
+            const plugin = parentPlugin ?? pluginFromCommandsHeading(child.helpGroup());
             paths.push({
                 path,
                 owner: plugin

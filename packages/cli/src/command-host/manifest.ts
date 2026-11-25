@@ -82,8 +82,10 @@ let commanderPaths: TakenCommandPath[] = [];
 
 /**
  * Records the paths that Commander commands take in this process: the built-in commands and those
- * of CLI plugins. Later loads, such as `vendure commands`, then refuse the same plugins that the
- * command line did.
+ * of CLI plugins. `cli.ts` calls it once, before it registers the manifest commands. Later loads in
+ * the same process, such as `vendure commands` and `vendure mcp`, then refuse the same plugins that
+ * the command line did. Commander's commands are only known after the `cliPlugin` modules have
+ * run, which is why they are recorded rather than worked out again.
  */
 export function setCommanderPaths(paths: TakenCommandPath[]): void {
     commanderPaths = paths;
@@ -96,7 +98,8 @@ export interface LoadProjectCommandsOptions {
     plugins?: ResolvedCommandManifest[];
     /**
      * Paths the Commander commands already take, such as `dev` and the commands of CLI plugins.
-     * Defaults to those recorded with {@link setCommanderPaths}.
+     * Defaults to those recorded with {@link setCommanderPaths}, which is an empty list in a process
+     * that did not start through `cli.ts`, such as a test.
      */
     takenPaths?: TakenCommandPath[];
     coreManifestFile?: string;
@@ -115,8 +118,23 @@ export async function loadProjectCommands(
     options: LoadProjectCommandsOptions = {},
 ): Promise<ProjectCommands> {
     const core = await loadCoreManifest(options.coreManifestFile);
-    const plugins = options.plugins ?? resolveCommandManifests(options.pluginOptions).manifests;
-    return mergeProjectManifests(core, plugins, options.takenPaths ?? commanderPaths);
+    if (options.plugins) {
+        return mergeProjectManifests(core, options.plugins, options.takenPaths ?? commanderPaths);
+    }
+    const { manifests, failures } = resolveCommandManifests(options.pluginOptions);
+    const merged = mergeProjectManifests(core, manifests, options.takenPaths ?? commanderPaths);
+    // A package that failed to resolve has no manifest to merge, and its commands are left out too.
+    // A globally enabled package that is not installed is normal in a project that does not use it.
+    const unavailable = failures
+        .filter(failure => !(failure.scope === 'global' && failure.notInstalled))
+        .map(failure => ({
+            package: failure.packageName,
+            error: errorBody(hostErrors.pluginUnavailable, {
+                plugin: failure.packageName,
+                reason: failure.reason,
+            }),
+        }));
+    return { ...merged, refused: [...unavailable, ...merged.refused] };
 }
 
 /**
@@ -131,7 +149,20 @@ export function mergeProjectManifests(
     const accepted: CommandManifest[] = [core];
     const definitionsPaths = new Map<string, string>();
     const refused: RefusedManifest[] = [];
-    const taken: TakenCommandPath[] = [...takenPaths, ...pathsOf(core)];
+    const corePaths = pathsOf(core);
+    // Built-in Commander commands such as `add` and `migrate` hold the CLI's own manifest commands,
+    // so they are groups that a plugin may add to.
+    const taken: TakenCommandPath[] = [
+        ...takenPaths.map(entry =>
+            entry.leaf &&
+            corePaths.some(
+                other => other.path.length > entry.path.length && startsWith(other.path, entry.path),
+            )
+                ? { ...entry, leaf: false }
+                : entry,
+        ),
+        ...corePaths,
+    ];
 
     for (const plugin of plugins) {
         const refuse = <Details>(error: CommandErrorDefinition<Details>, details: Details) =>

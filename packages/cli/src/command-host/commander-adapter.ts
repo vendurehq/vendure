@@ -4,7 +4,7 @@ import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
 import { requireCredential } from '../auth/credential.js';
-import { pluginCommandsHeading } from '../shared/command-registry.js';
+import { pluginCommandsHeading, pluginFromCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
@@ -82,7 +82,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         // A CLI plugin already replaced this command. The plugin's command wins for people and
         // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
         // coded error instead of the plugin's output.
-        replacedBy = /^Commands from (.+):$/.exec(existing.helpGroup())?.[1] ?? 'a CLI plugin';
+        replacedBy = pluginFromCommandsHeading(existing.helpGroup()) ?? 'a CLI plugin';
         if (!isMcpCall()) {
             process.stderr.write(`Replaced command "${manifestCommand.path.join(' ')}" via ${replacedBy}\n`);
             return;

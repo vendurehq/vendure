@@ -55,7 +55,8 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     const cwd = project.kind === 'found' ? project.dir : start;
 
     const server = new McpServer({
-        commands: await loadMergedManifest(),
+        // The plugins of the project the tool calls run in, which `--dir` can move away from here.
+        commands: await loadMergedManifest({ pluginOptions: { cwd } }),
         mode,
         input: process.stdin,
         output: process.stdout,

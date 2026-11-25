@@ -66,6 +66,12 @@ export const hostErrors = {
         message: ({ plugin, reason }) =>
             `The command manifest of ${plugin} is not valid, so none of its commands are loaded: ${reason}`,
     }),
+    pluginUnavailable: defineError<{ plugin: string; reason: string }>({
+        code: 'plugin.unavailable',
+        exit: 1,
+        message: ({ plugin, reason }) =>
+            `${plugin} is enabled, but its commands could not be loaded: ${reason}`,
+    }),
     pluginDefinitionsFailed: defineError<{ plugin: string; command: string; reason: string }>({
         code: 'plugin.definitions-failed',
         exit: 1,
