@@ -1,4 +1,5 @@
-import type {
+import {
+    commandDeclarations,
     CommandDefinition,
     CommandErrorBody,
     CommandErrorDefinition,
@@ -227,6 +228,7 @@ export function mergeProjectManifests(
         commands: mergeManifests(accepted),
         refused,
         loadDefinitions: async source => {
+            // The CLI's own commands declare no groups, so they need no `commandDeclarations`.
             if (source === CORE_SOURCE) {
                 return (await import('./core-commands.js')).coreCommandDefinitions;
             }
@@ -293,20 +295,19 @@ function findClash(
 }
 
 /**
- * Imports a plugin's declarations module, which exports its commands as `commands`. A CommonJS
- * module's exports can arrive as the default export of the import, so `default.commands` is read
- * too.
+ * Imports a plugin's declarations module: its `commands`, with the shared input of its `groups`
+ * applied, so the group fields the manifest lists reach `run()`.
  */
 async function importDefinitions(file: string): Promise<CommandDefinition[]> {
-    const mod = (await import(pathToFileURL(file).href)) as {
-        commands?: unknown;
-        default?: { commands?: unknown };
-    };
-    const commands = mod.commands ?? mod.default?.commands;
-    if (!Array.isArray(commands)) {
-        throw new Error(`${file} does not export its commands as "commands"`);
+    const mod: unknown = await import(pathToFileURL(file).href);
+    try {
+        return commandDeclarations(mod);
+    } catch (e) {
+        // The original error, with its stack, stays reachable as `cause`.
+        throw Object.assign(new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`), {
+            cause: e,
+        });
     }
-    return commands as CommandDefinition[];
 }
 
 /** The merged manifest for the project at the working directory. */

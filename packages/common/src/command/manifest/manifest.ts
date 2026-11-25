@@ -8,9 +8,9 @@ export const MANIFEST_FILE_NAME = 'vendure-commands.json';
 
 /**
  * Field names a command may not use. The host adds `--json`, `--input` and `--format` to every
- * command. `--yes` and `--project` are reserved for host flags.
+ * command, and reserves `--yes` for a flag of its own.
  */
-export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes', 'project'];
+export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes'];
 
 /** Command paths that start with these words belong to the store's tools. */
 export const RESERVED_PATH_ROOTS = ['admin', 'shop'];

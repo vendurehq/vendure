@@ -2,6 +2,7 @@ import type {
     CommandDefinition,
     CommandErrorDefinition,
     CommandFix,
+    CommandGroupDefinition,
     CommandNeed,
     ErrorResult,
     FailedResult,
@@ -34,6 +35,17 @@ export function isValidErrorCode(code: string): boolean {
  */
 export function defineCommand<T extends CommandDefinition>(definition: T): T {
     return definition;
+}
+
+/**
+ * @description
+ * Declares a group of commands that share input fields. It returns its argument. See
+ * {@link CommandGroupDefinition}.
+ *
+ * @since 4.0.0
+ */
+export function defineCommandGroup<T extends CommandGroupDefinition>(group: T): T {
+    return group;
 }
 
 /**

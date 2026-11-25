@@ -169,6 +169,14 @@ export const COMMAND_ENVELOPE_SCHEMA_VERSION = 1;
 
 /**
  * @description
+ * The JSON Schema draft that manifests and the CLI host produce and read schemas for.
+ *
+ * @since 4.0.0
+ */
+export const JSON_SCHEMA_TARGET = 'draft-2020-12';
+
+/**
+ * @description
  * How a run ended. `ok` and `failed` carry the command's output, `incomplete` carries needs, and
  * `error` carries an error.
  */
@@ -331,6 +339,26 @@ export interface CommandContext {
     event(type: string, data?: Record<string, unknown>): void;
     /** Starts a process. Under `--json` its stdout goes to stderr. */
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
+    /**
+     * The credential the host found for a command with `requires.auth`, before `run()` started.
+     * Present only for such a command.
+     *
+     * @since 4.0.0
+     */
+    credential?: CommandCredential;
+}
+
+/**
+ * @description
+ * A Vendure Cloud credential, as the host found it for a command with `requires.auth: 'cloud'`:
+ * the stored login of `vendure auth login`, or `VENDURE_CLOUD_TOKEN`. `token` is a bearer token:
+ * never print, log or return it.
+ *
+ * @since 4.0.0
+ */
+export interface CommandCredential {
+    source: 'stored-login' | 'environment';
+    token: string;
 }
 
 /** What `plan` returns. */
@@ -401,6 +429,29 @@ export interface SecretFileReference {
 
 /**
  * @description
+ * A group of commands that share input fields, such as `cloud`, whose commands all take
+ * `--project` and `--environment`. Declared as plain data, like a command.
+ *
+ * The shared fields apply to every command of the same package whose path is longer than the
+ * group's and starts with it, so a command at the group's own path gets none of them. They are
+ * flags of each of those commands, part of each one's input in the manifest and of
+ * its MCP tool. `run()` receives one input object with the command's fields and the shared ones.
+ * Each part is validated with its own schema. A field that a group and one of its commands both
+ * declare fails the manifest build.
+ *
+ * @since 4.0.0
+ */
+export interface CommandGroupDefinition {
+    /** The path the group's commands start with, for example `['cloud']`. */
+    path: string[];
+    /** The schemas module of the group. It exports `input`, the shared fields. */
+    schemas: () => Promise<{ input: StandardSchema }>;
+    /** CLI metadata for the shared fields, the same as a command's. */
+    cli?: Pick<CommandCliMetadata, 'flags' | 'fields'>;
+}
+
+/**
+ * @description
  * A command declared as plain data. Declaring it loads no implementation and no schema library.
  */
 export interface CommandDefinition {
@@ -418,10 +469,10 @@ export interface CommandDefinition {
          * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
          * secret `token` field, whose fix is `vendure auth login --json`.
          *
-         * `run()` then reads the credential with `requireCredential` from `@vendure/cli`, with
-         * `mayPrompt: false`, and returns an `incomplete` result from it unchanged. That can happen
-         * when the command needs a login for one organization, because the host only checks that
-         * some credential exists.
+         * `run()` receives the credential the host found as `ctx.credential`. A command that needs
+         * a login for one organization can call `requireCredential` from `@vendure/cli` with
+         * `mayPrompt: false` and that organization, and return an `incomplete` result from it
+         * unchanged, because the host only checks that some credential exists.
          *
          * @since 4.0.0
          */
