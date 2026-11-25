@@ -10,6 +10,7 @@ import type { TestProject } from 'vitest/node';
 export function setup({ config }: TestProject): void {
     const prepareAssets = createRequire(import.meta.url)('./prepare-assets.cjs') as (
         createRoot: string,
+        options: { clean: boolean },
     ) => void;
-    prepareAssets(config.root);
+    prepareAssets(config.root, { clean: false });
 }

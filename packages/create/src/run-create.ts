@@ -265,13 +265,21 @@ async function install(project: Project): Promise<void> {
         // written before create stops. The same checks as a finished run apply. With git, the
         // user runs `git init` next, so only a project inside another repository is blocked.
         const checked = await whyMcpInstallCannotRun(options, root);
-        const insideAnotherRepository = checked?.reason === INSIDE_ANOTHER_REPOSITORY;
+        const insideAnotherRepository = checked?.kind === 'inside-another-repository';
         const blocked = options.git && !insideAnotherRepository ? undefined : checked;
-        await writeProjectAgentFiles(project, blocked ?? NOT_INSTALLED);
+        // A failure here must not hide the install's own error, which is the one to fix first.
+        let agentFilesError: string | undefined;
+        try {
+            await writeProjectAgentFiles(project, blocked ?? NOT_INSTALLED);
+        } catch (agentError) {
+            agentFilesError = agentError instanceof Error ? agentError.message : String(agentError);
+        }
         const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
         const fix = [
             e.fix,
-            `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
+            agentFilesError
+                ? `Your choices are kept in ${recordPath.split(path.sep).join('/')}. The agent files could not be written: ${agentFilesError}.`
+                : `Your choices are kept in ${recordPath.split(path.sep).join('/')}, and the agent files are written.`,
         ];
         const mcpInstall = mcpInstallSteps(options.agents, pmInfo.exec);
         if (options.git && !insideAnotherRepository) {
@@ -294,6 +302,7 @@ async function install(project: Project): Promise<void> {
 }
 
 const NOT_INSTALLED: McpInstallUnavailable = {
+    kind: 'not-installed',
     reason: 'the dependencies were not installed, so `vendure mcp install` could not run',
     retryable: true,
 };
@@ -364,12 +373,14 @@ async function whyMcpInstallCannotRun(
     const top = await runCommand('git', ['rev-parse', '--show-toplevel'], { cwd: root });
     if (top.code === 0 && fs.realpathSync(top.stdout.trim()) !== fs.realpathSync(root)) {
         return {
+            kind: 'inside-another-repository',
             reason: INSIDE_ANOTHER_REPOSITORY,
             retryable: false,
         };
     }
     if (top.code !== 0 && options.storefront) {
         return {
+            kind: 'no-repository-in-workspace',
             reason: noRepositoryInWorkspace(options),
             retryable: false,
         };

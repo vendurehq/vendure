@@ -126,6 +126,8 @@ export function renderAgentsMd(template: string, input: AgentsMdInput): string {
 
 /** Why `vendure mcp install` could not complete a client's config. */
 export interface McpInstallUnavailable {
+    /** Which check failed, for code to branch on. `reason` is the text for people. */
+    kind: 'inside-another-repository' | 'no-repository-in-workspace' | 'not-installed' | 'failed';
     reason: string;
     /** Whether running `vendure mcp install` again later completes it, as after an install. */
     retryable: boolean;
@@ -222,7 +224,9 @@ async function writeClientConfig(
     }
     write(file, config);
     const installed = input.mcpInstallUnavailable ?? (await installVendureServer(client, input));
-    return 'reason' in installed ? { client, ...installed } : undefined;
+    return 'reason' in installed
+        ? { client, reason: installed.reason, retryable: installed.retryable }
+        : undefined;
 }
 
 /**
@@ -236,7 +240,18 @@ async function writeCursorConfig(
     const file = CLIENT_CONFIG_FILES.cursor;
     const installed = input.mcpInstallUnavailable ?? (await installVendureServer('cursor', input));
     if (!('reason' in installed) && installed.printed) {
-        write(file, cursorConfig(installed.printed));
+        let config: string;
+        try {
+            config = cursorConfig(installed.printed);
+        } catch {
+            write(file, docsServerConfig('cursor'));
+            return {
+                client: 'cursor',
+                reason: `\`vendure mcp install\` printed an entry that is not JSON. Run ${cursorInstallStep(input.pmInfo.exec)}`,
+                retryable: false,
+            };
+        }
+        write(file, config);
         return undefined;
     }
     write(file, docsServerConfig('cursor'));
@@ -287,6 +302,7 @@ async function installVendureServer(
     if (run.spawnError) {
         return {
             reason: `Could not run \`vendure mcp install\`: ${run.spawnError.message}`,
+            kind: 'failed',
             retryable: false,
         };
     }
@@ -297,6 +313,7 @@ async function installVendureServer(
     const detail = run.output.trim() || 'exit code ' + String(run.code);
     return {
         reason: envelope?.error?.message ?? `\`vendure mcp install --client ${client}\` failed: ${detail}`,
+        kind: 'failed',
         retryable: false,
     };
 }

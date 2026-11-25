@@ -221,7 +221,7 @@ describe('writeAgentFiles()', () => {
 
     it('writes the docs server alone when vendure mcp install cannot run', async () => {
         const dir = path.join(workDir, 'unavailable');
-        const unavailable = { reason: 'not installed', retryable: true };
+        const unavailable = { kind: 'not-installed' as const, reason: 'not installed', retryable: true };
         const result = await writeAgentFiles({
             ...base,
             agents: ['cursor'],
@@ -251,11 +251,39 @@ describe('writeAgentFiles()', () => {
             agents: ['cursor'],
             root: dir,
             serverDir: dir,
-            mcpInstallUnavailable: { reason: 'add the server by hand', retryable: false },
+            mcpInstallUnavailable: {
+                kind: 'inside-another-repository',
+                reason: 'add the server by hand',
+                retryable: false,
+            },
         });
         expect(result.failed).toEqual([
             { client: 'cursor', reason: 'add the server by hand', retryable: false },
         ]);
+    });
+
+    it('reports Cursor when the printed entry is not JSON, instead of failing create', async () => {
+        const dir = projectWithFakeCli('bad-entry', {
+            status: 'ok',
+            output: { action: 'printed', config: '{ nope' },
+        });
+        const result = await writeAgentFiles({
+            ...base,
+            agents: ['cursor'],
+            root: dir,
+            serverDir: dir,
+            mcpInstallUnavailable: undefined,
+        });
+        expect(result.failed).toEqual([
+            {
+                client: 'cursor',
+                reason: expect.stringMatching(/^`vendure mcp install` printed an entry that is not JSON\. /),
+                retryable: false,
+            },
+        ]);
+        expect(JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf-8')).mcpServers).toEqual({
+            'vendure-docs': { url: DOCS_MCP_URL },
+        });
     });
 
     it('reports Cursor when vendure mcp install printed no entry', async () => {
@@ -283,7 +311,7 @@ describe('writeAgentFiles()', () => {
             agents: ['codex'],
             root: dir,
             serverDir: dir,
-            mcpInstallUnavailable: { reason: 'x', retryable: true },
+            mcpInstallUnavailable: { kind: 'not-installed', reason: 'x', retryable: true },
         });
         expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
             '- Skills in `.agents/skills/`: `vendure-cli`, `vendure-store-setup`, `vendure-troubleshooting`.',

@@ -13,9 +13,13 @@ const BUNDLED_SKILLS = ['vendure-cli', 'vendure-store-setup', 'vendure-troublesh
  *   cannot load `@vendure/core` before the project is installed, so it validates `--preset`
  *   against this list. The two packages share one version, and core is built before create.
  */
-module.exports = function prepareAssets(createRoot) {
+module.exports = function prepareAssets(createRoot, { clean = true } = {}) {
     const assets = path.join(createRoot, 'assets');
-    fs.rmSync(assets, { recursive: true, force: true });
+    // The build starts from an empty folder, so a removed template or skill does not ship. The
+    // test setup copies over the folder instead, because a build may be reading it at the same time.
+    if (clean) {
+        fs.rmSync(assets, { recursive: true, force: true });
+    }
     fs.cpSync(path.join(createRoot, 'templates'), assets, { recursive: true });
     for (const skill of BUNDLED_SKILLS) {
         fs.cpSync(path.join(createRoot, '../../skills', skill), path.join(assets, 'skills', skill), {

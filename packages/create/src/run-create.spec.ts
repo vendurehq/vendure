@@ -276,7 +276,7 @@ describe('runCreate() when vendure mcp install cannot complete the configs', () 
         expect(fs.existsSync(path.join(workDir, 'no-git-workspace/apps/server/.mcp.json'))).toBe(false);
     });
 
-    // `vendure mcp install --client cursor` checks the outer root, which cannot resolve the project's CLI.
+    // The project is inside another repository, so create runs no `vendure mcp install` and names no command.
     it('names no command for Cursor inside another repository', async () => {
         const outer = path.join(workDir, 'outer-repo-cursor');
         fs.mkdirSync(outer);

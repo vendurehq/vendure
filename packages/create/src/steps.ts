@@ -71,12 +71,12 @@ export async function installDependencies(
 
 export const INITIAL_COMMIT_MESSAGE = 'Initial commit from @vendure/create';
 
+export type GitInitResult = Exclude<GitResult, { status: 'committed' }> | { status: 'initialised' };
+
 /**
  * Initialises a git repository, without committing. A missing git or a directory that is already
  * inside a repository is reported and never fails create.
  */
-export type GitInitResult = Exclude<GitResult, { status: 'committed' }> | { status: 'initialised' };
-
 export async function initGitRepository(cwd: string): Promise<GitInitResult> {
     const version = await runCommand('git', ['--version'], { cwd });
     if (version.spawnError || version.code !== 0) {
