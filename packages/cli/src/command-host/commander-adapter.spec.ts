@@ -1,4 +1,4 @@
-import { defineCommand } from '@vendure/common/lib/command';
+import { CommandDefinition, defineCommand } from '@vendure/common/lib/command';
 import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { Command } from 'commander';
 import { EventEmitter } from 'node:events';
@@ -16,6 +16,7 @@ import {
     createHostEnvironment,
     findMismatch,
     jsonRequested,
+    optionNotTaken,
     registerManifestCommands,
 } from './commander-adapter.js';
 import { executeCommand } from './host.js';
@@ -440,75 +441,75 @@ describe('options of a command that has commands under it', () => {
         cli: { flags: { environment: { short: '-e' } } },
         run: async () => ({ run: async () => ({}) }),
     });
-    const argv = process.argv;
-
-    afterEach(() => {
-        process.argv = argv;
-        vi.restoreAllMocks();
+    // Three levels, with no command at `acme deploy plan`: `run` takes `environment` only.
+    const runIt = defineCommand({
+        path: ['acme', 'deploy', 'plan', 'run'],
+        description: 'Run the plan',
+        behavior: 'mutating',
+        schemas: async () => ({ input: z.object({ environment: shared.environment }) }),
+        cli: { flags: { environment: { short: '-e' } } },
+        run: async () => ({ run: async () => ({}) }),
     });
 
-    /** Parses a command line, and returns the options `plan` received, or how the run stopped. */
-    async function parse(args: string[]) {
-        const built = await buildCommandManifest('@test/pkg', '1.0.0', [deploy, plan]);
+    /**
+     * Parses a command line, with the action of the command that runs replaced, and returns the
+     * input that command would receive and the option it does not take, if any.
+     */
+    async function parse(args: string[], commands: CommandDefinition[] = [deploy, plan]) {
+        const built = await buildCommandManifest('@test/pkg', '1.0.0', commands);
         const root = new Command('vendure');
         registerManifestCommands(root, mergeManifests([built]), { loadDefinitions: async () => [] });
-        const deployCommand = (root.commands.find(c => c.name() === 'acme') as Command).commands[0];
-        const planCommand = deployCommand.commands[0];
-        let received: Record<string, unknown> | undefined;
-        planCommand.action(() => {
-            received = planCommand.opts();
-        });
-        const stderr: string[] = [];
-        vi.spyOn(process.stderr, 'write').mockImplementation(text => {
-            stderr.push(String(text));
-            return true;
-        });
-        vi.spyOn(process, 'exit').mockImplementation(code => {
-            throw new Error(`exit ${String(code)}`);
-        });
-        process.argv = ['node', 'vendure', ...args];
-        let stopped: string | undefined;
-        try {
-            await root.parseAsync(process.argv);
-        } catch (e) {
-            stopped = (e as Error).message;
+        let ran: Command | undefined;
+        const replace = (command: Command) => {
+            command.action(() => {
+                ran = command;
+            });
+            command.commands.forEach(replace);
+        };
+        root.commands.forEach(replace);
+        await root.parseAsync(['node', 'vendure', ...args]);
+        if (!ran) {
+            throw new Error('no command ran');
         }
-        return { received, stopped, stderr: stderr.join('') };
+        const fields = Object.keys((await ran.opts()) ?? {});
+        return {
+            ran: ran.name(),
+            input: collectFlagInput(ran, ['environment', 'dryRun', 'force', ...fields]),
+            notTaken: optionNotTaken(ran),
+        };
     }
 
-    it('passes on an option given after the command under it, in each form', async () => {
-        expect((await parse(['acme', 'deploy', 'plan', '--environment=prod'])).received).toMatchObject({
-            environment: 'prod',
-        });
-        expect((await parse(['acme', 'deploy', 'plan', '-eprod'])).received).toMatchObject({
-            environment: 'prod',
-        });
-        expect((await parse(['acme', 'deploy', 'plan', '--dry-run'])).received).toMatchObject({
-            dryRun: true,
-        });
-        expect((await parse(['acme', 'deploy', 'plan', '--no-dry-run'])).received).toMatchObject({
+    it('gives the command that runs an option of the command above, before or after its name', async () => {
+        for (const args of [
+            ['acme', 'deploy', 'plan', '--environment=prod'],
+            ['acme', 'deploy', '--environment', 'prod', 'plan'],
+            ['acme', 'deploy', '-eprod', 'plan'],
+            ['acme', 'deploy', 'plan', '-e', 'prod'],
+        ]) {
+            const result = await parse(args);
+            expect(result).toMatchObject({ ran: 'plan', input: { environment: 'prod' } });
+            expect(result.notTaken).toBeUndefined();
+        }
+        expect((await parse(['acme', 'deploy', '--no-dry-run', 'plan'])).input).toMatchObject({
             dryRun: false,
         });
     });
 
-    it('stops an option given before the command under it, with the corrected line', async () => {
-        const result = await parse(['acme', 'deploy', '--environment', 'prod', 'plan']);
-        expect(result.stopped).toBe('exit 1');
-        expect(result.received).toBeUndefined();
-        expect(result.stderr).toContain(
-            '[cli.option-before-command] --environment comes before the end of the command path. ' +
-                'Options go after it: vendure acme deploy plan --environment prod',
-        );
+    it('names an option of the command above that the command that runs does not take', async () => {
+        expect((await parse(['acme', 'deploy', '--force', 'plan'])).notTaken).toBe('--force');
+        expect((await parse(['acme', 'deploy', 'plan', '--no-force'])).notTaken).toBe('--no-force');
+        // The command above itself takes it.
+        expect((await parse(['acme', 'deploy', '--force'])).notTaken).toBeUndefined();
     });
 
-    it('stops an option the command under it does not take, wherever it is', async () => {
-        for (const args of [
-            ['acme', 'deploy', 'plan', '--force'],
-            ['acme', 'deploy', '--force', 'plan'],
-        ]) {
-            const result = await parse(args);
-            expect(result.stopped).toBe('exit 1');
-            expect(result.stderr).toContain('[cli.usage] --force is not an option of "plan"');
-        }
+    it('reads an option two levels up, through a group between them', async () => {
+        const result = await parse(
+            ['acme', 'deploy', '--environment', 'prod', 'plan', 'run'],
+            [deploy, runIt],
+        );
+        expect(result).toMatchObject({ ran: 'run', input: { environment: 'prod' } });
+        expect((await parse(['acme', 'deploy', '--dry-run', 'plan', 'run'], [deploy, runIt])).notTaken).toBe(
+            '--dry-run',
+        );
     });
 });

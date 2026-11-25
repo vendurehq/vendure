@@ -205,38 +205,8 @@ export function mergeProjectManifests(
         // commands from loading: any problem refuses this package's commands alone.
         try {
             const clash = findClash(plugin.manifest, taken);
-            if (clash?.kind === 'parent-gap') {
-                refuse(hostErrors.pluginParentGap, {
-                    plugin: plugin.packageName,
-                    command: clash.command,
-                    child: clash.child,
-                    missing: clash.missing,
-                });
-                continue;
-            }
-            if (clash?.kind === 'parent-flag-conflict') {
-                refuse(hostErrors.pluginParentFlagConflict, {
-                    plugin: plugin.packageName,
-                    command: clash.command,
-                    child: clash.child,
-                    flag: clash.flag,
-                });
-                continue;
-            }
-            if (clash?.kind === 'parent-positional') {
-                refuse(hostErrors.pluginParentPositional, {
-                    plugin: plugin.packageName,
-                    command: clash.command,
-                    child: clash.child,
-                });
-                continue;
-            }
             if (clash) {
-                refuse(hostErrors.pluginCommandClash, {
-                    plugin: plugin.packageName,
-                    command: clash.command,
-                    other: clash.other,
-                });
+                refused.push({ package: plugin.packageName, error: clash(plugin.packageName) });
                 continue;
             }
             mergeManifests([...accepted, plugin.manifest]);
@@ -306,25 +276,20 @@ function startsWith(commandPath: string[], prefix: string[]): boolean {
 }
 
 /**
- * The first command of a manifest that clashes with a path already taken: the same path, a path
- * that holds a taken command, or a path under a taken command. Paths under a taken group are fine.
+ * The first command of a manifest that clashes with a path already taken, as the error to refuse the
+ * package with. A clash is the same path, a path that holds a taken command, or a path under a
+ * taken command. Paths under a taken group are fine.
  *
- * A package may declare a command and commands under it, such as `acme deploy` and
- * `acme deploy plan`, when the command above takes no positional fields: a positional value could
- * otherwise be taken for the name of a command under it, and when a flag they share is declared the
- * same way on both: Commander reads the flags of the command above first, with its declaration.
+ * A package may also declare a command and commands under it, such as `acme deploy` and
+ * `acme deploy plan`, with two conditions:
+ * - The command above takes no positional fields. A positional value could otherwise be taken for
+ *   the name of a command under it.
+ * - A flag they share is declared the same way on both. Commander reads it with the declaration of
+ *   the command above.
+ *
  * Another package may not add to either.
  */
-function findClash(
-    manifest: CommandManifest,
-    taken: TakenCommandPath[],
-):
-    | { kind: 'clash'; command: string; other: string }
-    | { kind: 'parent-positional'; command: string; child: string }
-    | { kind: 'parent-flag-conflict'; command: string; child: string; flag: string }
-    | { kind: 'parent-gap'; command: string; child: string; missing: string }
-    | undefined {
-    const ownPaths = new Set(manifest.commands.map(command => command.path.join(' ')));
+function findClash(manifest: CommandManifest, taken: TakenCommandPath[]): RefusedClash | undefined {
     for (const command of manifest.commands) {
         const name = command.path.join(' ');
         const other = taken.find(
@@ -332,46 +297,38 @@ function findClash(
                 (entry.leaf && startsWith(command.path, entry.path)) || startsWith(entry.path, command.path),
         );
         if (other) {
-            return { kind: 'clash', command: name, other: other.owner };
+            return plugin =>
+                errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: other.owner });
         }
         for (const own of manifest.commands) {
             if (own === command) {
                 continue;
             }
             if (own.path.join(' ') === name) {
-                return {
-                    kind: 'clash',
-                    command: name,
-                    other: `another command "${name}" of ${manifest.package}`,
-                };
+                const duplicate = `another command "${name}" of ${manifest.package}`;
+                return plugin =>
+                    errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: duplicate });
             }
-            if (startsWith(own.path, command.path) && command.cli.positional?.length) {
-                return { kind: 'parent-positional', command: name, child: own.path.join(' ') };
+            if (!startsWith(own.path, command.path)) {
+                continue;
             }
-            // Every path between a command and a command under it is a command of the package too.
-            // A group there would take no options, so the options of the command above could not
-            // reach the command under it.
-            if (startsWith(own.path, command.path)) {
-                for (let length = command.path.length + 1; length < own.path.length; length++) {
-                    const between = own.path.slice(0, length).join(' ');
-                    if (!ownPaths.has(between)) {
-                        return {
-                            kind: 'parent-gap',
-                            command: name,
-                            child: own.path.join(' '),
-                            missing: between,
-                        };
-                    }
-                }
+            const child = own.path.join(' ');
+            if (command.cli.positional?.length) {
+                return plugin =>
+                    errorBody(hostErrors.pluginParentPositional, { plugin, command: name, child });
             }
-            const flag = startsWith(own.path, command.path) ? sharedFlagConflict(command, own) : undefined;
+            const flag = sharedFlagConflict(command, own);
             if (flag) {
-                return { kind: 'parent-flag-conflict', command: name, child: own.path.join(' '), flag };
+                return plugin =>
+                    errorBody(hostErrors.pluginParentFlagConflict, { plugin, command: name, child, flag });
             }
         }
     }
     return undefined;
 }
+
+/** A refusal of a package's commands, as the error body for the package of the given name. */
+type RefusedClash = (plugin: string) => CommandErrorBody;
 
 /** How a command declares each of its flags, by flag: the long flags and the short ones. */
 function flagDeclarations(command: ManifestCommand): Map<string, string> {

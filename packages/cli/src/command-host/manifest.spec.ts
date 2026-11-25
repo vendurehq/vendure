@@ -256,15 +256,6 @@ describe('mergeProjectManifests', () => {
         ]);
     });
 
-    it('refuses a command under a command of the package with a group between them', () => {
-        const { refused } = mergeProjectManifests(core, [
-            plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan', 'x']),
-        ]);
-        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
-            ['plugin.parent-gap', expect.stringContaining('but not "acme deploy plan" between them')],
-        ]);
-    });
-
     it("still refuses a plugin that adds a command under another package's command", () => {
         const { refused } = mergeProjectManifests(core, [
             plugin('acme-cli', ['acme', 'deploy']),

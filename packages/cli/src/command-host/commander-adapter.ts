@@ -17,7 +17,6 @@ import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
 import { CORE_SOURCE } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
-import { commandLineWithOptionsLast } from './option-order.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
 import { writeSecretFile } from './secret-file.js';
@@ -55,99 +54,52 @@ function findChild(parent: Command, name: string): Command | undefined {
 }
 
 /**
- * A command with commands under it, such as `cloud deploy` with `cloud deploy plan`, has options of
- * its own. Commander reads the options of a command line before it picks the subcommand, so the
- * parent takes every option it knows, wherever it is on the line, and then runs only the
- * subcommand.
- *
- * - An option given after the subcommand's name belongs to the subcommand, so its value is passed
- *   on to it.
- * - An option given before the subcommand's name would be lost without a word. That run stops with
- *   a coded error that names the command line with the options at the end.
+ * The commands this adapter registered from a manifest. A command with commands under it, such as
+ * `cloud deploy` with `cloud deploy plan`, reads the options it knows wherever they are on the line,
+ * before or after the subcommand. The command that runs reads them from there (see
+ * {@link ancestorOptionValue}). An option that only the command above takes would be ignored, so
+ * the run stops instead (see {@link optionNotTaken}).
  */
-function routeParentOptions(command: Command): void {
-    command.hook('preSubcommand', (parent, subcommand) => {
-        const args = process.argv.slice(2);
-        const subcommandAt = subcommandIndex(parent, subcommand, args);
-        const handled = new Set<string>();
-        for (const option of parent.options) {
-            const name = option.attributeName();
-            if (handled.has(name) || parent.getOptionValueSource(name) !== 'cli') {
-                continue;
-            }
-            handled.add(name);
-            // `--x` and `--no-x` set the same value, so every flag of it counts.
-            const flags = parent.options.filter(candidate => candidate.attributeName() === name);
-            const positions = args
-                .map((arg, index) => (flags.some(flag => namesOption(flag, arg)) ? index : -1))
-                .filter(index => index !== -1);
-            const flag = option.long ?? option.flags;
-            // Wherever it is, an option the command under it doesn't take can't be passed on.
-            if (!subcommand.options.some(candidate => candidate.attributeName() === name)) {
-                stop(
-                    errorResult(hostErrors.usage, {
-                        message: `${flag} is not an option of "${subcommand.name()}"`,
-                    }),
-                    `[${hostErrors.usage.code}]`,
-                );
-            }
-            // An option the CLI cannot find on the line, such as `-ye` for two short flags, is
-            // passed on rather than reported in the wrong place.
-            if (positions.every(index => index > subcommandAt)) {
-                subcommand.setOptionValueWithSource(name, parent.getOptionValue(name), 'cli');
-                continue;
-            }
-            let root = parent;
-            while (root.parent) {
-                root = root.parent;
-            }
-            const line = commandLineWithOptionsLast(root, args);
-            stop(
-                line
-                    ? errorResult(hostErrors.optionBeforeCommand, { option: flag, line })
-                    : errorResult(hostErrors.usage, {
-                          message: `${flag} comes before the end of the command path. Options go after the full command path.`,
-                      }),
-                `[${line ? hostErrors.optionBeforeCommand.code : hostErrors.usage.code}]`,
-            );
+const manifestCommands = new WeakSet<Command>();
+
+/**
+ * The first option given to a manifest command above `command` that `command` doesn't take, such as
+ * `--force` of `cloud deploy` in `cloud deploy --force plan`. Undefined when there is none.
+ */
+export function optionNotTaken(command: Command): string | undefined {
+    for (let ancestor = command.parent; ancestor; ancestor = ancestor.parent) {
+        if (!manifestCommands.has(ancestor)) {
+            continue;
         }
-    });
+        for (const option of ancestor.options) {
+            const name = option.attributeName();
+            if (
+                ancestor.getOptionValueSource(name) !== 'cli' ||
+                command.options.some(candidate => candidate.attributeName() === name)
+            ) {
+                continue;
+            }
+            // `--x` and `--no-x` set the same value: name the one that set it.
+            const value: unknown = ancestor.getOptionValue(name);
+            const given =
+                ancestor.options.find(
+                    candidate => candidate.attributeName() === name && candidate.negate === (value === false),
+                ) ?? option;
+            return given.long ?? given.flags;
+        }
+    }
+    return undefined;
 }
 
 /** Ends the run with a host error: the envelope under `--json`, a coded line otherwise. */
-function stop(result: HostResult, prefix: string): never {
+function stop(result: HostResult): never {
     if (jsonRequested(process.argv)) {
         fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
     } else {
-        process.stderr.write(`${prefix} ${result.envelope.error?.message ?? ''}\n`);
+        const error = result.envelope.error;
+        process.stderr.write(`[${error?.code ?? 'cli.usage'}] ${error?.message ?? ''}\n`);
     }
     process.exit(result.exitCode);
-}
-
-/** Where the subcommand's name is on the command line: after its parent's own path. */
-function subcommandIndex(parent: Command, subcommand: Command, args: readonly string[]): number {
-    const path: string[] = [];
-    for (let command: Command | null = parent; command?.parent; command = command.parent) {
-        path.unshift(command.name());
-    }
-    let next = 0;
-    for (const segment of [...path, subcommand.name()]) {
-        const at = args.indexOf(segment, next);
-        if (at === -1) {
-            return args.length;
-        }
-        next = at + 1;
-    }
-    return next - 1;
-}
-
-function namesOption(option: { long?: string; short?: string }, arg: string): boolean {
-    const long = option.long;
-    return (
-        (long !== undefined && (arg === long || arg.startsWith(`${long}=`))) ||
-        // `-e` alone, or with its value attached, as in `-eprod`.
-        (option.short !== undefined && !arg.startsWith('--') && arg.startsWith(option.short))
-    );
 }
 
 /**
@@ -178,6 +130,10 @@ export function registerManifestCommands(
                     group.helpGroup(pluginCommandsHeading(manifestCommand.source));
                 }
             }
+            if (manifestCommands.has(group)) {
+                // A command with commands under it reports a name that is none of them itself.
+                group.allowExcessArguments();
+            }
             parent = group;
         }
         registerLeaf(parent, manifestCommand, options);
@@ -205,8 +161,10 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     const command = (group ?? parent.command(name)).description(manifestCommand.description);
     if (group) {
         manifestGroups.delete(group);
+        // It has commands under it already: see registerManifestCommands.
+        command.allowExcessArguments();
     }
-    routeParentOptions(command);
+    manifestCommands.add(command);
     if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
         command.helpGroup(pluginCommandsHeading(manifestCommand.source));
     }
@@ -253,16 +211,24 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const passThrough =
             error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
         if (jsonRequested(process.argv) && !passThrough) {
-            const result = errorResult(hostErrors.usage, {
-                message: error.message.replace(/^error: /, ''),
-            });
-            fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
-            process.exit(result.exitCode);
+            stop(errorResult(hostErrors.usage, { message: error.message.replace(/^error: /, '') }));
         }
         process.exit(error.exitCode);
     });
 
     command.action(async (...args: any[]) => {
+        const path = manifestCommand.path.join(' ');
+        if (command.commands.length > 0 && command.args.length > positional.length) {
+            stop(
+                errorResult(hostErrors.usage, {
+                    message: `"${command.args[positional.length]}" is not a command of "${path}"`,
+                }),
+            );
+        }
+        const notTaken = optionNotTaken(command);
+        if (notTaken) {
+            stop(errorResult(hostErrors.usage, { message: `${notTaken} is not an option of "${path}"` }));
+        }
         const opts = hostFlags(command);
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),

@@ -85,30 +85,42 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             expect(envelopeOf(plan.stdout).output).toEqual({ ran: 'plan', environment: 'prod' });
         });
 
-        it('stops an option given before the command under it, and names the corrected line', async () => {
+        it('takes an option of the command above before or after the name of the command under it', async () => {
             const p = projectWith(['parent-commands-cli-plugin']);
 
-            const result = await p.runCliCommand(
-                ['acme', 'deploy', '--environment', 'prod', 'plan', '--json'],
-                {
-                    expectError: true,
-                },
-            );
-            expect(envelopeOf(result.stdout).error).toMatchObject({
-                code: 'cli.option-before-command',
-                message: expect.stringContaining('vendure acme deploy plan --environment prod --json'),
-            });
+            const result = await p.runCliCommand([
+                'acme',
+                'deploy',
+                '--environment',
+                'prod',
+                'plan',
+                '--json',
+            ]);
+            expect(envelopeOf(result.stdout).output).toEqual({ ran: 'plan', environment: 'prod' });
         });
 
-        it('refuses an option of the command above given after a command that does not take it', async () => {
+        it('refuses an option of the command above that the command that runs does not take', async () => {
             const p = projectWith(['parent-commands-cli-plugin']);
 
-            const result = await p.runCliCommand(['acme', 'deploy', 'plan', '--force', '--json'], {
-                expectError: true,
-            });
+            for (const args of [
+                ['acme', 'deploy', 'plan', '--force', '--json'],
+                ['acme', 'deploy', '--force', 'plan', '--json'],
+            ]) {
+                const result = await p.runCliCommand(args, { expectError: true });
+                expect(envelopeOf(result.stdout).error).toMatchObject({
+                    code: 'cli.usage',
+                    message: '--force is not an option of "acme deploy plan"',
+                });
+            }
+        });
+
+        it('reports a name that is not a command under it', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', 'plna', '--json'], { expectError: true });
             expect(envelopeOf(result.stdout).error).toMatchObject({
                 code: 'cli.usage',
-                message: expect.stringContaining('--force is not an option of "plan"'),
+                message: '"plna" is not a command of "acme deploy"',
             });
         });
 
