@@ -1342,7 +1342,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-10-16T14:35:27Z"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1920,7 +1920,7 @@
                   "title": "OrderLine",
                   "slug": "order-line",
                   "file": "docs/reference/typescript-api/entities/order-line.mdx",
-                  "lastModified": "2026-10-05T12:08:27+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "OrderLineReference",
@@ -2695,6 +2695,12 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "LinePriceCalculationInput",
+                  "slug": "line-price-calculation-input",
+                  "file": "docs/reference/typescript-api/orders/line-price-calculation-input.mdx",
+                  "lastModified": "2026-11-25T15:50:32Z"
+                },
+                {
                   "title": "Merge Strategies",
                   "slug": "merge-strategies",
                   "file": "docs/reference/typescript-api/orders/merge-strategies.mdx",
@@ -2722,7 +2728,7 @@
                   "title": "OrderItemPriceCalculationStrategy",
                   "slug": "order-item-price-calculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-item-price-calculation-strategy.mdx",
-                  "lastModified": "2026-11-25T14:55:44Z"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "OrderLineDiscountDistributionStrategy",
@@ -2758,7 +2764,7 @@
                   "title": "OrderRecalculationStrategy",
                   "slug": "order-recalculation-strategy",
                   "file": "docs/reference/typescript-api/orders/order-recalculation-strategy.mdx",
-                  "lastModified": "2026-07-22T11:48:45+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "OrderSellerStrategy",
@@ -2988,7 +2994,7 @@
                   "title": "Promotion Action",
                   "slug": "promotion-action",
                   "file": "docs/reference/typescript-api/promotions/promotion-action.mdx",
-                  "lastModified": "2026-09-08T15:27:18Z"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "Promotion Condition",
@@ -3132,13 +3138,13 @@
                   "title": "OrderCalculator",
                   "slug": "order-calculator",
                   "file": "docs/reference/typescript-api/service-helpers/order-calculator.mdx",
-                  "lastModified": "2026-07-22T11:48:45+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-11-17T15:01:49Z"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -3272,13 +3278,13 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-11-17T15:01:49Z"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "OrderTestingService",
                   "slug": "order-testing-service",
                   "file": "docs/reference/typescript-api/services/order-testing-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "PaymentMethodService",
@@ -3290,7 +3296,7 @@
                   "title": "PaymentService",
                   "slug": "payment-service",
                   "file": "docs/reference/typescript-api/services/payment-service.mdx",
-                  "lastModified": "2026-09-25T17:20:15+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "ProductOptionGroupService",
@@ -3598,13 +3604,13 @@
                   "title": "OrderTaxCalculationStrategy",
                   "slug": "order-tax-calculation-strategy",
                   "file": "docs/reference/typescript-api/tax/order-tax-calculation-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "TaxLineCalculationStrategy",
                   "slug": "tax-line-calculation-strategy",
                   "file": "docs/reference/typescript-api/tax/tax-line-calculation-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "TaxOptions",
@@ -4378,7 +4384,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-09-25T17:20:15+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "Mutations",
@@ -4390,13 +4396,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-09-25T17:20:15+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-09-25T17:20:15+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4434,7 +4440,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-09-25T17:20:15+02:00"
+                  "lastModified": "2026-11-25T15:50:32Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
