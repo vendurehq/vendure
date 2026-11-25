@@ -1,8 +1,10 @@
 import { Card, CardContent } from '@/vdb/components/ui/card.js';
 import { PageHeader, PageHeaderActions, PageHeaderContent } from '@/vdb/components/ui/page-header.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
+import { AUTHENTICATED_ROUTE_PREFIX } from '@/vdb/constants.js';
 import { Trans } from '@lingui/react/macro';
-import { useParams } from '@tanstack/react-router';
+import { useMatch } from '@tanstack/react-router';
 import React from 'react';
 
 const LIST_ROWS = 10;
@@ -12,11 +14,12 @@ const LIST_ROWS = 10;
  * skeleton title and action.
  */
 function PageSkeleton({
+    kind,
     actionWidth,
     children,
-}: Readonly<{ actionWidth: string; children: React.ReactNode }>) {
+}: Readonly<{ kind: 'list' | 'detail'; actionWidth: string; children: React.ReactNode }>) {
     return (
-        <div className="m-4 space-y-4" aria-busy="true">
+        <div className="m-4 space-y-4" data-skeleton={kind}>
             <span className="sr-only" role="status">
                 <Trans>Loading…</Trans>
             </span>
@@ -39,7 +42,7 @@ function PageSkeleton({
  */
 export function ListPageSkeleton() {
     return (
-        <PageSkeleton actionWidth="w-32">
+        <PageSkeleton kind="list" actionWidth="w-32">
             <Card className="gap-0 py-0">
                 <div className="flex items-center justify-between gap-2 px-4 py-4">
                     <Skeleton className="h-6 w-12" />
@@ -89,7 +92,7 @@ function SideCardSkeleton({ rows }: Readonly<{ rows: number }>) {
  */
 export function DetailPageSkeleton() {
     return (
-        <PageSkeleton actionWidth="w-20">
+        <PageSkeleton kind="detail" actionWidth="w-20">
             <div className="@container/layout w-full">
                 <div className="grid grid-cols-1 gap-4 @3xl/layout:grid-cols-4">
                     <Card className="@3xl/layout:col-span-3">
@@ -116,10 +119,36 @@ export function DetailPageSkeleton() {
 }
 
 /**
- * The pending component of every route. A route with an `id` param is a detail
- * page, every other route a list page.
+ * The spinner for a pending route that is not a page of the app shell: the
+ * shell itself and the sign-in pages.
+ */
+function RouteSpinner() {
+    return (
+        <div
+            className="flex items-center justify-center w-full text-muted-foreground"
+            style={{ minHeight: '60vh' }}
+            role="status"
+        >
+            <Spinner />
+            <span className="sr-only">
+                <Trans>Loading…</Trans>
+            </span>
+        </div>
+    );
+}
+
+/**
+ * The pending component of every route. A page of the app shell gets the shape
+ * of a detail page when its path has a param, else of a list page. The home
+ * page and the routes outside the shell get a spinner.
  */
 export function RoutePending() {
-    const params: Record<string, unknown> = useParams({ strict: false });
-    return params.id ? <DetailPageSkeleton /> : <ListPageSkeleton />;
+    const { routeId } = useMatch({ strict: false });
+    if (
+        !routeId.startsWith(`${AUTHENTICATED_ROUTE_PREFIX}/`) ||
+        routeId === `${AUTHENTICATED_ROUTE_PREFIX}/`
+    ) {
+        return <RouteSpinner />;
+    }
+    return routeId.includes('/$') ? <DetailPageSkeleton /> : <ListPageSkeleton />;
 }
