@@ -779,13 +779,14 @@ credentials or registry tokens.
 stored under the plugin ID in `plugins`. When a plugin's setup still needs something the caller can answer, the result
 is `incomplete` with the need and the output of the link so far: a need with a `fix`, which names the command that
 answers it, or an `input` need for `dir`, `project` or `organization`, the link's own fields. Any other need is
-reported as a next step in `nextSteps`, and the result is `failed` with that output.
-With a person at a terminal, the CLI shows every need, and the result is `failed` with the output. Setup that fails after the link is a `failed` result with the
-output, and the reason as a notice. A link that fails is the coded error `console.link-failed`, with the reason as its
-message. An error a plugin hook throws can hold anything, so without a person at a terminal the CLI reports it only as
-`The <plugin> plugin failed after linking: Setup did not finish.`, as 3.x did under `--json`. Either way, a linked manifest stays. A project directory that cannot be found is the coded error
-`console.project-not-found`, with a fix for each Vendure project found nearby. The output contains no tokens or raw errors. Plugins must supply only safe setup
-metadata.
+reported as a next step in `nextSteps`, and the result is `failed` with that output. With a person at a terminal, the
+CLI shows every need, and the result is `failed` with the output. Setup that fails after the link is a `failed` result
+with the output, and the reason as a notice. A link that fails is the coded error `console.link-failed`, with the
+reason as its message. An error a plugin hook throws can hold anything, so without a person at a terminal the CLI
+reports it only as `The <plugin> plugin failed after linking: Setup did not finish.`, as 3.x did under `--json`.
+Either way, a linked manifest stays. A project directory that cannot be found is the coded error
+`console.project-not-found`, with a fix for each Vendure project found nearby. The output contains no tokens or raw
+errors. Plugins must supply only safe setup metadata.
 
 ### Link status
 

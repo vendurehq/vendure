@@ -20,6 +20,7 @@ export const consoleLinkDefinition = defineCommand({
     errors: [
         consoleErrors.projectIsDirectory,
         consoleErrors.projectNotFound,
+        consoleErrors.linkChanged,
         consoleErrors.linkFailed,
         hostErrors.cancelled,
     ],
@@ -63,7 +64,12 @@ export const consoleUnlinkDefinition = defineCommand({
             'Remove the Project Link Manifest of this project, and stop attributing its telemetry to the Console Project.',
     },
     schemas: async () => (await import('./console.schema.js')).unlink,
-    errors: [consoleErrors.projectNotFound, consoleErrors.unlinkFailed, hostErrors.cancelled],
+    errors: [
+        consoleErrors.projectNotFound,
+        consoleErrors.linkChanged,
+        consoleErrors.unlinkFailed,
+        hostErrors.cancelled,
+    ],
     examples: ['vendure console unlink', 'vendure console unlink --remove-link <digest> --json'],
     plan: () => import('./console-unlink.plan.js'),
     run: () => import('./console-unlink.run.js'),

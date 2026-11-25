@@ -759,7 +759,13 @@ describe('resolveCliPlugins()', () => {
                 scopes: ['project'],
                 resolvePackage: fixture.resolvePackage,
             }),
-        ).toEqual({ loaded: [], manifests: [], failures: [], scopeErrors: [] });
+        ).toEqual({
+            loaded: [],
+            manifests: [],
+            failures: [],
+            scopeErrors: [],
+            projectRoot: path.resolve(fixture.root),
+        });
 
         const discovered = discoverCliPlugins({
             cwd: fixture.root,

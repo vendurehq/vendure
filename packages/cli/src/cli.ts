@@ -25,7 +25,6 @@ import {
     pluginsCommandFor,
     resolveCliPlugins,
     ResolveCliPluginsOptions,
-    resolveCliProjectRoot,
 } from './shared/resolve-cli-plugins.js';
 import { PluginFailureStep, unknownCommandHelp } from './shared/unknown-command-help.js';
 
@@ -95,15 +94,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         pluginOptions.project = selection.opts<{ dir?: string }>().dir;
         pluginOptions.projectFlag = PROJECT_DIR_FLAG;
     }
-    const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
-    try {
-        // The project the plugins came from, so a command that works on another one can say so.
-        setPluginProjectRoot(
-            resolveCliProjectRoot(process.cwd(), pluginOptions.project, pluginOptions.projectFlag),
-        );
-    } catch {
-        // No project: the plugins are the global ones.
-    }
+    const { loaded, manifests, failures, scopeErrors, projectRoot } = resolveCliPlugins(pluginOptions);
+    // The project the plugins came from, so a command that works on another one can say so.
+    setPluginProjectRoot(projectRoot);
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }

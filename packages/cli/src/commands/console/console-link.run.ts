@@ -53,14 +53,17 @@ export async function run(input: LinkInput, ctx: CommandContext) {
     if ('result' in previewed) {
         return previewed.result;
     }
-    const { requiredConsents, linked } = previewed.preview;
-    const { exitCode, result, manifest, failure, interrupted } = await runConsole(
+    const { requiredConsents, linked, identity } = previewed.preview;
+    const { exitCode, result, manifest, failure, interrupted, changed } = await runConsole(
         'link',
-        { ...input, force: requiredConsents.includes('replaceLink'), linked },
+        { ...input, force: requiredConsents.includes('replaceLink'), linked, expected: identity },
         dependencies,
     );
     if (interrupted) {
         return fail(hostErrors.cancelled, {});
+    }
+    if (changed) {
+        return fail(consoleErrors.linkChanged, {});
     }
     const output: LinkOutput | undefined =
         manifest && result.data.link

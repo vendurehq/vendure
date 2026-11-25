@@ -1,4 +1,6 @@
 import { InputNeed } from '@vendure/common/lib/command';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
 
 import {
     NotLoggedInError,
@@ -89,6 +91,11 @@ export interface ConsoleCommandOptions {
      * Given, the link does not look the Project up again.
      */
     linked?: LinkedProject;
+    /**
+     * The manifest the caller consented to a change of, by {@link manifestIdentity}. A link or unlink
+     * that finds another one refuses with `console.link-changed`.
+     */
+    expected?: string;
     /** The organization to link a project of: its Account identifier or its name. */
     organization?: string;
     /** The Console Project to link: its id or its slug. Replaces the project prompt. */
@@ -237,6 +244,8 @@ export interface ConsoleRun {
     failure?: string;
     /** For an unlink: whether it removed a manifest. */
     removed?: boolean;
+    /** The manifest was no longer the one the caller consented to a change of. Nothing changed. */
+    changed?: boolean;
     /** The run was cancelled. */
     interrupted?: boolean;
 }
@@ -275,6 +284,7 @@ export async function runConsole(
         ...(state.manifest ? { manifest: state.manifest } : {}),
         ...(state.failure ? { failure: state.failure } : {}),
         ...(state.removed !== undefined ? { removed: state.removed } : {}),
+        ...(state.changed ? { changed: true } : {}),
         ...(interrupted ? { interrupted } : {}),
     });
     try {
@@ -300,6 +310,47 @@ export interface ConsoleChangePreview {
     requiredConsents: Array<'replaceLink' | 'removeLink'>;
     /** For a link over a valid link: whether `--project` names the linked Project. */
     linked?: LinkedProject;
+    /**
+     * The manifest the preview is of, by {@link manifestIdentity}. A run refuses to change a
+     * manifest that is no longer this one.
+     */
+    identity?: string;
+}
+
+/**
+ * Which manifest is on disk: `missing`, the link id of a valid one, or a hash of the contents of one
+ * that cannot be read. A consent is given for the manifest a preview named, so a run compares this
+ * with the one it reads before it replaces or removes anything.
+ */
+export function manifestIdentity(existing: ManifestReadResult): string {
+    if (existing.kind === 'missing') {
+        return 'missing';
+    }
+    if (existing.kind === 'valid') {
+        return `link:${existing.manifest.link.id}`;
+    }
+    let contents = '';
+    try {
+        contents = fs.readFileSync(existing.path, 'utf8');
+    } catch {
+        // Gone or unreadable since: the hash of nothing differs from what a preview saw.
+    }
+    return `invalid:${createHash('sha256').update(contents).digest('hex')}`;
+}
+
+/** The manifest changed between the preview the caller consented to and the run. */
+class ConsoleLinkChangedError extends ConsoleCliError {
+    constructor() {
+        super('The Project Link changed since it was confirmed. Run the command again.');
+        this.name = 'ConsoleLinkChangedError';
+    }
+}
+
+/** Refuses a run whose manifest is no longer the one its preview named. */
+function assertUnchanged(existing: ManifestReadResult, options: ConsoleCommandOptions): void {
+    if (options.expected !== undefined && manifestIdentity(existing) !== options.expected) {
+        throw new ConsoleLinkChangedError();
+    }
 }
 
 /**
@@ -328,85 +379,89 @@ export async function previewConsoleChange(
     try {
         const projectRoot = resolveProjectRoot(resolved.cwd, options.dir);
         const existing = readProjectLinkManifest(projectRoot);
-        if (existing.kind === 'missing') {
-            return none({ manifestPath: existing.path, linked: false });
-        }
-        const consent = action === 'link' ? 'replaceLink' : 'removeLink';
-        if (existing.kind === 'invalid') {
+        const identity = manifestIdentity(existing);
+        const previewed = await (async (): Promise<ConsoleChangePreview> => {
+            if (existing.kind === 'missing') {
+                return none({ manifestPath: existing.path, linked: false });
+            }
+            const consent = action === 'link' ? 'replaceLink' : 'removeLink';
+            if (existing.kind === 'invalid') {
+                return {
+                    preview: {
+                        action:
+                            action === 'link'
+                                ? 'Replace the Project Link Manifest, which cannot be read'
+                                : 'Remove the Project Link Manifest, which cannot be read',
+                        manifestPath: existing.path,
+                        reason: existing.reason,
+                    },
+                    requiredConsents: [consent],
+                };
+            }
+            const current = {
+                project: { id: existing.manifest.project.id, name: existing.manifest.project.name },
+                account: { id: existing.manifest.account.id, name: existing.manifest.account.name },
+            };
+            if (action === 'unlink') {
+                return {
+                    preview: { action: 'Remove the Project Link', manifestPath: existing.path, current },
+                    requiredConsents: [consent],
+                };
+            }
+            const requested = options.project?.trim() || undefined;
+            if (!requested) {
+                return {
+                    ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
+                    linked: 'same',
+                };
+            }
+            const organization = options.organization?.trim() || undefined;
+            const endpoints = resolveConsoleEndpoints(resolved.env, existing.manifest.console);
+            let linked: LinkedProject;
+            try {
+                linked = await namesLinkedProject(
+                    requested,
+                    organization,
+                    existing.manifest,
+                    endpoints,
+                    resolved,
+                    signal,
+                );
+            } catch (error) {
+                // A Project the account does not have is the caller's input to fix, not a link to
+                // consent to: the run reports it, with the Projects to choose from.
+                if (
+                    signal.aborted ||
+                    error instanceof CommandInterruptedError ||
+                    error instanceof ConsoleInputError
+                ) {
+                    throw error;
+                }
+                // A lookup that failed cannot show that the link stays, so the link needs the consent,
+                // as when the CLI cannot tell. The run reports what the lookup found, if it fails again.
+                linked = 'unknown';
+            }
+            if (linked === 'same') {
+                return {
+                    ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
+                    linked,
+                };
+            }
             return {
                 preview: {
                     action:
-                        action === 'link'
-                            ? 'Replace the Project Link Manifest, which cannot be read'
-                            : 'Remove the Project Link Manifest, which cannot be read',
+                        linked === 'different'
+                            ? 'Replace the Project Link with another Console Project'
+                            : 'Replace the Project Link. The CLI could not check whether --project names the linked Project',
                     manifestPath: existing.path,
-                    reason: existing.reason,
+                    current,
+                    requested: { project: requested, ...(organization ? { organization } : {}) },
                 },
                 requiredConsents: [consent],
-            };
-        }
-        const current = {
-            project: { id: existing.manifest.project.id, name: existing.manifest.project.name },
-            account: { id: existing.manifest.account.id, name: existing.manifest.account.name },
-        };
-        if (action === 'unlink') {
-            return {
-                preview: { action: 'Remove the Project Link', manifestPath: existing.path, current },
-                requiredConsents: [consent],
-            };
-        }
-        const requested = options.project?.trim() || undefined;
-        if (!requested) {
-            return {
-                ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
-                linked: 'same',
-            };
-        }
-        const organization = options.organization?.trim() || undefined;
-        const endpoints = resolveConsoleEndpoints(resolved.env, existing.manifest.console);
-        let linked: LinkedProject;
-        try {
-            linked = await namesLinkedProject(
-                requested,
-                organization,
-                existing.manifest,
-                endpoints,
-                resolved,
-                signal,
-            );
-        } catch (error) {
-            // A Project the account does not have is the caller's input to fix, not a link to
-            // consent to: the run reports it, with the Projects to choose from.
-            if (
-                signal.aborted ||
-                error instanceof CommandInterruptedError ||
-                error instanceof ConsoleInputError
-            ) {
-                throw error;
-            }
-            // A lookup that failed cannot show that the link stays, so the link needs the consent,
-            // as when the CLI cannot tell. The run reports what the lookup found, if it fails again.
-            linked = 'unknown';
-        }
-        if (linked === 'same') {
-            return {
-                ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
                 linked,
             };
-        }
-        return {
-            preview: {
-                action:
-                    linked === 'different'
-                        ? 'Replace the Project Link with another Console Project'
-                        : 'Replace the Project Link. The CLI could not check whether --project names the linked Project',
-                manifestPath: existing.path,
-                current,
-                requested: { project: requested, ...(organization ? { organization } : {}) },
-            },
-            requiredConsents: [consent],
-            linked,
-        };
+        })();
+        return { ...previewed, identity };
     } catch (error) {
         if (strict) {
             throw error;
@@ -479,6 +534,9 @@ function reportConsoleCommandError(
     if (error instanceof CliCommandExit) {
         return error.exitCode || 1;
     }
+    if (error instanceof ConsoleLinkChangedError) {
+        state.changed = true;
+    }
     state.failure = reportableMessage(error, dependencies.outputMode);
     reporter.error(state.failure);
     return 1;
@@ -496,6 +554,7 @@ interface ConsoleCommandState {
     failure?: string;
     /** For an unlink: whether it removed a manifest. */
     removed?: boolean;
+    changed?: boolean;
     setupIncomplete?: boolean;
     /** Set once the Project Link Manifest is on disk, written or reused. */
     manifestPath?: string;
@@ -581,6 +640,7 @@ async function link(
     state: ConsoleCommandState,
 ): Promise<number> {
     const existing = readProjectLinkManifest(projectRoot);
+    assertUnchanged(existing, options);
     const endpoints = resolveConsoleEndpoints(
         dependencies.env,
         existing.kind === 'valid' ? existing.manifest.console : undefined,
@@ -1816,6 +1876,7 @@ async function unlink(
     state: ConsoleCommandState,
 ): Promise<number> {
     const existing = readProjectLinkManifest(projectRoot);
+    assertUnchanged(existing, options);
     state.removed = false;
     state.manifestPath = existing.path;
     if (existing.kind === 'missing') {

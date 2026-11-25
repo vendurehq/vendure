@@ -32,6 +32,12 @@ export const consoleErrors = {
                 input: { ...input, dir: candidate },
             })),
     }),
+    linkChanged: defineError<Record<string, never>>({
+        code: 'console.link-changed',
+        exit: 1,
+        message: () =>
+            'The Project Link changed since it was confirmed, so nothing was changed. Run the command again.',
+    }),
     linkFailed: defineError<{ message: string }>({
         code: 'console.link-failed',
         exit: 1,

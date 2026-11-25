@@ -62,10 +62,9 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
      */
     commandPath: string[];
     /**
-     * Reads plugin contributions registered for a named extension point. No built-in command reads
-     * it any more, but a CLI plugin's own command can, so it stays while `CliPlugin.commands` does.
-     * The commands declared with `defineCommand` read the same registry through
-     * `shared/plugin-extensions.ts`, because they get a `CommandContext`, not this one.
+     * Reads plugin contributions registered for a named extension point. CLI plugin commands read
+     * them here. Commands declared with `defineCommand` read the same registry through
+     * `shared/plugin-extensions.ts`, because they get a `CommandContext` rather than this context.
      */
     getPluginExtensions: CliPluginExtensionAccessor;
 }

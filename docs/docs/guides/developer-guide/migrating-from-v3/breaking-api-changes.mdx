@@ -289,8 +289,10 @@ Update scripts and CI jobs that pass `--project <dir>`, `--console-project`, `--
 to `vendure console`.
 
 Without a person at a terminal, as in CI, scripts and agents, an error that an `afterConsoleLink` hook throws is
-reported in general terms: `The <plugin> plugin failed after linking: Setup did not finish.` Run `vendure console link`
-in a terminal to see the hook's own message. Errors the CLI writes itself are always reported as they are.
+reported in general terms: `The <plugin> plugin failed after linking: Setup did not finish.` This is deliberate, because
+CI logs can be public and a hook's error can hold anything the plugin put in it. To see the hook's own message, run
+`vendure console link` at a terminal, or read the hook's own logs. Errors the CLI writes itself are always reported as
+they are.
 
 ## Removed deprecated APIs
 

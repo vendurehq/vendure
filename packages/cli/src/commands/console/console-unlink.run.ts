@@ -27,14 +27,17 @@ export async function run(input: DirInput, ctx: CommandContext) {
     if ('result' in previewed) {
         return previewed.result;
     }
-    const { preview, requiredConsents } = previewed.preview;
-    const { exitCode, failure, interrupted, removed } = await runConsole(
+    const { preview, requiredConsents, identity } = previewed.preview;
+    const { exitCode, failure, interrupted, removed, changed } = await runConsole(
         'unlink',
-        { dir: input.dir, force: requiredConsents.includes('removeLink') },
+        { dir: input.dir, force: requiredConsents.includes('removeLink'), expected: identity },
         dependencies,
     );
     if (interrupted) {
         return fail(hostErrors.cancelled, {});
+    }
+    if (changed) {
+        return fail(consoleErrors.linkChanged, {});
     }
     if (exitCode !== 0 || typeof preview.manifestPath !== 'string') {
         return reportErrors(

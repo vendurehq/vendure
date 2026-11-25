@@ -8,7 +8,10 @@ import { testCommand } from '../../command-host/test-command.js';
 import { setPluginExtensionAccessor, setPluginProjectRoot } from '../../shared/plugin-extensions.js';
 
 import { ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook.js';
+import { plan as planLink } from './console-link.plan.js';
 import { run as runLink } from './console-link.run.js';
+import { plan as planUnlink } from './console-unlink.plan.js';
+import { run as runUnlink } from './console-unlink.run.js';
 import {
     consoleLinkDefinition,
     consoleStatusDefinition,
@@ -54,6 +57,19 @@ function project(linked: 'valid' | 'invalid' | 'none' = 'valid'): string {
         fs.outputFileSync(getProjectLinkManifestPath(root), '{invalid');
     }
     return root;
+}
+
+/** A context without a person, for a test that calls plan() and run() itself, as the host does. */
+function contextFor(cwd: string): CommandContext {
+    return {
+        cwd,
+        signal: new AbortController().signal,
+        mcp: false,
+        notice: () => undefined,
+        progress: () => undefined,
+        event: () => undefined,
+        spawn: () => Promise.reject(new Error('no processes in tests')),
+    };
 }
 
 function consentNeed(needs: unknown): ConsentNeed {
@@ -479,6 +495,16 @@ describe('vendure console link', () => {
         });
     });
 
+    it('does not warn about the plugins when the CLI loaded no project scope', async () => {
+        const root = project();
+        setPluginProjectRoot(undefined);
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope.status).toBe('ok');
+        expect(result.envelope.notices.map(notice => notice.message).join('\n')).not.toContain('--dir');
+    });
+
     it('does not warn about the plugins without a dir, as from a workspace root', async () => {
         const workspace = createVendureProject(directories, 'console-command-');
         fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true, workspaces: ['apps/*'] });
@@ -595,6 +621,36 @@ describe('vendure console link', () => {
 
         expect(result).toMatchObject({ vendureResult: 'error', code: 'console.link-failed' });
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    // The consent covers the manifest plan() named. Another one written before the run is not it.
+    it('refuses a replacement when the manifest changed between the plan and the run', async () => {
+        const root = project('invalid');
+        const ctx = contextFor(root);
+
+        const planned = await planLink({ dir: root }, ctx);
+        expect(planned).toMatchObject({ requiredConsents: ['replaceLink'] });
+        fs.outputFileSync(getProjectLinkManifestPath(root), '{another invalid manifest');
+        const result = await runLink({ dir: root }, ctx);
+
+        expect(result).toMatchObject({ vendureResult: 'error', code: 'console.link-changed' });
+        expect(fs.readFileSync(getProjectLinkManifestPath(root), 'utf-8')).toBe('{another invalid manifest');
+    });
+});
+
+describe('vendure console unlink, when the manifest changes before the run', () => {
+    it('removes nothing, and says the link changed since it was confirmed', async () => {
+        const root = project();
+        const ctx = contextFor(root);
+
+        const planned = await planUnlink({ dir: root }, ctx);
+        expect(planned).toMatchObject({ requiredConsents: ['removeLink'] });
+        const other = { ...manifest, link: { ...manifest.link, id: '99999999-9999-4999-8999-999999999999' } };
+        fs.outputJsonSync(getProjectLinkManifestPath(root), other);
+        const result = await runUnlink({ dir: root }, ctx);
+
+        expect(result).toMatchObject({ vendureResult: 'error', code: 'console.link-changed' });
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(other);
     });
 });
 
