@@ -308,7 +308,7 @@ async function installVendureServer(
     );
     const run = await runCommand('vendure', ['mcp', 'install', '--client', client, '--json'], {
         cwd: input.serverDir,
-        env: { ...process.env, PATH: [...bins, process.env.PATH ?? ''].join(path.delimiter) },
+        env: withBinsOnPath(bins),
     });
     if (run.spawnError) {
         return {
@@ -333,6 +333,18 @@ interface Envelope {
     status?: string;
     output?: { config?: string | null };
     error?: { message?: string };
+}
+
+/**
+ * The process environment with the project's bins first on the path. Windows names the variable
+ * `Path`, so the existing key is reused rather than adding a second `PATH`.
+ */
+export function withBinsOnPath(
+    bins: readonly string[],
+    env: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+    const key = Object.keys(env).find(name => name.toUpperCase() === 'PATH') ?? 'PATH';
+    return { ...env, [key]: [...bins, env[key] ?? ''].join(path.delimiter) };
 }
 
 function parseEnvelope(stdout: string): Envelope | undefined {

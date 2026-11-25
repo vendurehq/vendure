@@ -11,6 +11,7 @@ import {
     docsServerConfig,
     renderAgentsMd,
     VENDURE_MCP_SERVER_NAME,
+    withBinsOnPath,
     withDocsServer,
     writeAgentFiles,
 } from './agent-files.js';
@@ -111,6 +112,18 @@ describe('MCP configs', () => {
             // Matches the path in the client's entry, whatever the object's layout or quotes.
             expect(source).toMatch(new RegExp(`${client}: \\{[^}]*['"]${file.replace(/\./g, '\\.')}['"]`));
         }
+    });
+});
+
+describe('withBinsOnPath()', () => {
+    it('puts the bins first, under the key the environment already uses', () => {
+        const sep = path.delimiter;
+        expect(withBinsOnPath(['/a'], { Path: '/usr/bin', X: '1' })).toEqual({
+            Path: `/a${sep}/usr/bin`,
+            X: '1',
+        });
+        expect(withBinsOnPath(['/a', '/b'], { PATH: '/bin' })).toEqual({ PATH: `/a${sep}/b${sep}/bin` });
+        expect(withBinsOnPath(['/a'], {})).toEqual({ PATH: `/a${sep}` });
     });
 });
 

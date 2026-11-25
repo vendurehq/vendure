@@ -15,8 +15,9 @@ const BUNDLED_SKILLS = ['vendure-cli', 'vendure-store-setup', 'vendure-troublesh
  */
 module.exports = function prepareAssets(createRoot, { clean = true } = {}) {
     const assets = path.join(createRoot, 'assets');
-    // The build starts from an empty folder, so a removed template or skill does not ship. The
-    // test setup copies over the folder instead, because a build may be reading it at the same time.
+    // The build starts from an empty folder, so a removed template or skill does not ship. The test
+    // setup overwrites the templates and presets.json in place, so a build reading them at the same
+    // time is not left with an empty folder, and rebuilds only skills/, which create copies by folder.
     if (clean) {
         fs.rmSync(assets, { recursive: true, force: true });
     } else {

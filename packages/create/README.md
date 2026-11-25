@@ -23,7 +23,7 @@ The agent files are:
 - `AGENTS.md`, and the Vendure skills in `.agents/skills/`. With Claude Code, also `CLAUDE.md`, `.claude/settings.json` and a copy of the skills in `.claude/skills/`, where Claude Code reads them.
 - Each agent client's MCP config, with the `vendure` server (added by `vendure mcp install`) and the `vendure-docs` server.
 
-A client whose config could not be completed is listed in `agentFiles.failed` with the reason. `next` lists `vendure mcp install` for each client that running it again completes. That command changes the committed config, so commit again afterwards. For other failures, the reason says what to do.
+A client whose config could not be completed is listed in `agentFiles.failed` with the reason. When running `vendure mcp install` again would complete a client's config, `next` lists it for that client. That command changes the committed config, so commit again afterwards. For other failures, the reason says what to do.
 
 Create records your choices in `.vendure/create.json`, which `vendure dev` reads.
 
