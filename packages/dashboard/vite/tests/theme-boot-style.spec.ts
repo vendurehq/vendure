@@ -45,7 +45,9 @@ describe('theme boot style in index.html', () => {
     it('adds the boot colours of the light and dark theme first in the head', async () => {
         const html = await buildIndexHtml({});
 
-        const bootStyle = `:root { --background: ${lightTheme.background}; --muted-foreground: ${lightTheme['muted-foreground']}; } .dark { --background: ${darkTheme.background}; --muted-foreground: ${darkTheme['muted-foreground']}; }`;
+        const declarations = (theme: Record<string, unknown>) =>
+            BOOT_VARIABLES.map(key => `--${key}: ${theme[key] as string};`).join(' ');
+        const bootStyle = `:root { ${declarations(lightTheme)} } .dark { ${declarations(darkTheme)} }`;
         // First, so the app stylesheet and user stylesheets after it win once they load
         expect(html).toMatch(
             new RegExp(`<head>\\s*<base href="/dashboard/">\\s*<style>${escapeRegExp(bootStyle)}</style>`),
@@ -60,6 +62,16 @@ describe('theme boot style in index.html', () => {
 
         expect(used.length).toBeGreaterThan(0);
         expect(BOOT_VARIABLES).toEqual(expect.arrayContaining(used));
+    });
+
+    // OSS-1508 — the boot shell reads tokens whose values read other tokens
+    it('declares every variable that a boot variable reads', () => {
+        for (const theme of [lightTheme, darkTheme] as Array<Record<string, unknown>>) {
+            const read = BOOT_VARIABLES.flatMap(key =>
+                [...String(theme[key]).matchAll(/var\(--([\w-]+)\)/g)].map(m => m[1]),
+            );
+            expect(BOOT_VARIABLES).toEqual(expect.arrayContaining(read));
+        }
     });
 
     it('uses the theme overrides of the Dashboard config', async () => {

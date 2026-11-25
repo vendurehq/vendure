@@ -298,9 +298,21 @@ function generateTextStyleUtilities(): string {
 /**
  * The variables that the boot screen in `index.html` reads. The stylesheet loads
  * with the app, so `index.html` gets these in an inline style to paint the boot
- * screen in the saved theme from the first frame.
+ * screen in the saved theme from the first frame. A token that reads another
+ * variable (`card` reads `--surface-raised`) needs that variable here too.
  */
-export const BOOT_VARIABLES = ['background', 'muted-foreground'];
+export const BOOT_VARIABLES = [
+    'background',
+    'foreground',
+    'surface-raised',
+    'muted-foreground',
+    'sidebar',
+    'sidebar-border',
+    'border',
+    'card',
+    'muted',
+    'accent',
+];
 
 /**
  * Generates the inline style for `index.html`: the boot variables of the light
