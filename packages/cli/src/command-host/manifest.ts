@@ -201,8 +201,20 @@ export function mergeProjectManifests(
         // commands from loading: any problem refuses this package's commands alone.
         try {
             const clash = findClash(plugin.manifest, taken);
+            if (clash?.kind === 'parent-positional') {
+                refuse(hostErrors.pluginParentPositional, {
+                    plugin: plugin.packageName,
+                    command: clash.command,
+                    child: clash.child,
+                });
+                continue;
+            }
             if (clash) {
-                refuse(hostErrors.pluginCommandClash, { plugin: plugin.packageName, ...clash });
+                refuse(hostErrors.pluginCommandClash, {
+                    plugin: plugin.packageName,
+                    command: clash.command,
+                    other: clash.other,
+                });
                 continue;
             }
             mergeManifests([...accepted, plugin.manifest]);
@@ -274,22 +286,42 @@ function startsWith(commandPath: string[], prefix: string[]): boolean {
 /**
  * The first command of a manifest that clashes with a path already taken: the same path, a path
  * that holds a taken command, or a path under a taken command. Paths under a taken group are fine.
+ *
+ * A package may declare a command and commands under it, such as `acme deploy` and
+ * `acme deploy plan`, when the command above takes no positional fields: a positional value could
+ * otherwise be taken for the name of a command under it. Another package may not add to either.
  */
 function findClash(
     manifest: CommandManifest,
     taken: TakenCommandPath[],
-): { command: string; other: string } | undefined {
-    // The package's own commands count too, so it cannot declare both `acme` and `acme sync`.
-    const seen = [...taken];
+):
+    | { kind: 'clash'; command: string; other: string }
+    | { kind: 'parent-positional'; command: string; child: string }
+    | undefined {
     for (const command of manifest.commands) {
-        const other = seen.find(
+        const name = command.path.join(' ');
+        const other = taken.find(
             entry =>
                 (entry.leaf && startsWith(command.path, entry.path)) || startsWith(entry.path, command.path),
         );
         if (other) {
-            return { command: command.path.join(' '), other: other.owner };
+            return { kind: 'clash', command: name, other: other.owner };
         }
-        seen.push(...pathsOf({ ...manifest, commands: [command] }));
+        for (const own of manifest.commands) {
+            if (own === command) {
+                continue;
+            }
+            if (own.path.join(' ') === name) {
+                return {
+                    kind: 'clash',
+                    command: name,
+                    other: `another command "${name}" of ${manifest.package}`,
+                };
+            }
+            if (startsWith(own.path, command.path) && command.cli.positional?.length) {
+                return { kind: 'parent-positional', command: name, child: own.path.join(' ') };
+            }
+        }
     }
     return undefined;
 }

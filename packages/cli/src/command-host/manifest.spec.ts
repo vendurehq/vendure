@@ -189,14 +189,45 @@ describe('mergeProjectManifests', () => {
         ]);
     });
 
-    it('refuses a plugin that declares both a command and a group at one path', () => {
-        const { refused } = mergeProjectManifests(core, [plugin('acme-cli', ['acme', 'sync'], ['acme'])]);
+    it('lets a plugin declare a command and commands under it, in either order', () => {
+        for (const paths of [
+            [
+                ['acme', 'deploy'],
+                ['acme', 'deploy', 'plan'],
+            ],
+            [
+                ['acme', 'deploy', 'plan'],
+                ['acme', 'deploy'],
+            ],
+        ]) {
+            const { commands, refused } = mergeProjectManifests(core, [plugin('acme-cli', ...paths)]);
+            expect(refused).toEqual([]);
+            expect(commands.map(command => command.path.join(' '))).toEqual(
+                expect.arrayContaining(['acme deploy', 'acme deploy plan']),
+            );
+        }
+    });
+
+    it('refuses a command with positional fields that has commands under it', () => {
+        const withPositional = plugin('acme-cli', ['acme', 'logs'], ['acme', 'logs', 'export']);
+        withPositional.manifest.commands[0].cli = { positional: ['service'] };
+        const { refused } = mergeProjectManifests(core, [withPositional]);
         expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
             [
-                'plugin.command-clash',
-                expect.stringContaining('"acme", which clashes with the command "acme sync" of acme-cli'),
+                'plugin.parent-positional',
+                expect.stringContaining(
+                    '"acme logs" with positional fields, and the command "acme logs export"',
+                ),
             ],
         ]);
+    });
+
+    it("still refuses a plugin that adds a command under another package's command", () => {
+        const { refused } = mergeProjectManifests(core, [
+            plugin('acme-cli', ['acme', 'deploy']),
+            plugin('other-cli', ['acme', 'deploy', 'plan']),
+        ]);
+        expect(refused.map(r => [r.package, r.error.code])).toEqual([['other-cli', 'plugin.command-clash']]);
     });
 
     it.each([['doctor x'], ['-x'], ['Acme']])(

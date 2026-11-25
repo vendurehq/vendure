@@ -1311,9 +1311,16 @@ activation](#explicit-activation)). Then:
   `manifest.mismatch` error when it doesn't. Rebuild the manifest after you change a command.
 
 A package may add commands to a group that exists already, such as `vendure acme` or `vendure auth`.
-It may not declare a command that another package or a built-in command already has, turn a group
-into a command, or add a command under another command. The commands of a `cliPlugin` count, the
-package's own included. The CLI then leaves out all the commands the package declares with
+It may also declare a command and commands under it, such as `vendure acme deploy` and
+`vendure acme deploy plan`, when the command above takes no positional fields: a positional value
+could otherwise be taken for the name of a command under it. Such a command's options go after the
+full command path, as `vendure acme deploy plan --environment prod`. An option before the name of
+the command under it stops the run with the `cli.option-before-command` error, which names that line.
+
+A package may not declare a command that another package or a built-in command already has, turn
+another package's group into a command, or add a command under another package's command. The
+commands of a `cliPlugin` count, the package's own included. A command with positional fields and
+commands under it is refused with `plugin.parent-positional`. The CLI then leaves out all the commands the package declares with
 `defineCommand`, with a `plugin.command-clash` error that it writes to stderr and lists under
 `refused` in `vendure commands --json`. Every other command keeps working, including the package's
 own `cliPlugin` commands, which follow the rules in [Collisions](#collisions). A manifest that is

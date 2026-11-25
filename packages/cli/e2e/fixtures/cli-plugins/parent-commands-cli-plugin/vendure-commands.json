@@ -1,0 +1,91 @@
+{
+    "manifestVersion": 1,
+    "package": "@vendure-e2e/parent-commands-cli-plugin",
+    "version": "1.0.0",
+    "commands": [
+        {
+            "path": ["acme", "deploy", "plan"],
+            "description": "Show what a deployment would change",
+            "keywords": [],
+            "behavior": "readonly",
+            "requires": {},
+            "consents": {},
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "environment": {
+                        "default": "staging",
+                        "description": "The environment to deploy to",
+                        "type": "string"
+                    }
+                }
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "ran": {
+                        "type": "string"
+                    },
+                    "environment": {
+                        "type": "string"
+                    }
+                },
+                "required": ["ran", "environment"],
+                "additionalProperties": false
+            },
+            "cli": {
+                "fields": {}
+            },
+            "errors": [],
+            "examples": [],
+            "expose": {
+                "mcp": true
+            },
+            "hasPlan": false
+        },
+        {
+            "path": ["acme", "deploy"],
+            "description": "Deploy the project",
+            "keywords": [],
+            "behavior": "mutating",
+            "requires": {},
+            "consents": {},
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "environment": {
+                        "default": "staging",
+                        "description": "The environment to deploy to",
+                        "type": "string"
+                    }
+                }
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "ran": {
+                        "type": "string"
+                    },
+                    "environment": {
+                        "type": "string"
+                    }
+                },
+                "required": ["ran", "environment"],
+                "additionalProperties": false
+            },
+            "cli": {
+                "fields": {}
+            },
+            "errors": [],
+            "examples": [],
+            "expose": {
+                "mcp": true
+            },
+            "hasPlan": false
+        }
+    ]
+}

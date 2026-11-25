@@ -69,6 +69,37 @@ describe('registerManifestCommands', () => {
         expect(brand.commands[0].commands[0].name()).toBe('cmd');
     });
 
+    it('registers a command and the commands under it, in either order', async () => {
+        const parent = defineCommand({ ...demo, path: ['acme', 'deploy'], consents: {}, plan: undefined });
+        const child = defineCommand({
+            ...demo,
+            path: ['acme', 'deploy', 'plan'],
+            consents: {},
+            plan: undefined,
+        });
+        for (const order of [
+            [child, parent],
+            [parent, child],
+        ]) {
+            const built = await buildCommandManifest('@test/pkg', '1.0.0', order);
+            const root = new Command('vendure');
+            const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+            try {
+                registerManifestCommands(root, mergeManifests([built]), { loadDefinitions: async () => [] });
+            } finally {
+                stderr.mockRestore();
+            }
+            // The parent took the group over instead of counting as a replaced command.
+            expect(stderr).not.toHaveBeenCalled();
+            const acme = root.commands.find(c => c.name() === 'acme') as Command;
+            const deploy = acme.commands.find(c => c.name() === 'deploy') as Command;
+            expect(acme.commands.filter(c => c.name() === 'deploy')).toHaveLength(1);
+            expect(deploy.description()).toBe(demo.description);
+            expect(deploy.options.map(o => o.long)).toContain('--name');
+            expect(deploy.commands.map(c => c.name())).toEqual(['plan']);
+        }
+    });
+
     it('registers every field as an optional flag, never as a required one', async () => {
         const root = await program();
         const thing = (root.commands.find(c => c.name() === 'add') as Command).commands[0];

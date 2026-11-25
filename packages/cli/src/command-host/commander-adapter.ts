@@ -17,6 +17,7 @@ import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
 import { CORE_SOURCE } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
+import { commandLineWithOptionsLast } from './option-order.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
 import { writeSecretFile } from './secret-file.js';
@@ -54,6 +55,100 @@ function findChild(parent: Command, name: string): Command | undefined {
 }
 
 /**
+ * A command with commands under it, such as `cloud deploy` with `cloud deploy plan`, has options of
+ * its own. Commander reads the options of a command line before it picks the subcommand, so the
+ * parent takes every option it knows, wherever it is on the line, and then runs only the
+ * subcommand.
+ *
+ * - An option given after the subcommand's name belongs to the subcommand, so its value is passed
+ *   on to it.
+ * - An option given before the subcommand's name would be lost without a word. That run stops with
+ *   a coded error that names the command line with the options at the end.
+ */
+function rejectOptionsBeforeSubcommand(command: Command): void {
+    command.hook('preSubcommand', (parent, subcommand) => {
+        const args = process.argv.slice(2);
+        const subcommandAt = subcommandIndex(parent, subcommand, args);
+        const handled = new Set<string>();
+        for (const option of parent.options) {
+            const name = option.attributeName();
+            if (handled.has(name) || parent.getOptionValueSource(name) !== 'cli') {
+                continue;
+            }
+            handled.add(name);
+            // `--x` and `--no-x` set the same value, so every flag of it counts.
+            const flags = parent.options.filter(candidate => candidate.attributeName() === name);
+            const positions = args
+                .map((arg, index) => (flags.some(flag => namesOption(flag, arg)) ? index : -1))
+                .filter(index => index !== -1);
+            if (positions.length > 0 && positions.every(index => index > subcommandAt)) {
+                if (!subcommand.options.some(candidate => candidate.attributeName() === name)) {
+                    stop(
+                        errorResult(hostErrors.usage, {
+                            message: `${option.long ?? option.flags} is not an option of "${subcommand.name()}"`,
+                        }),
+                        `[${hostErrors.usage.code}]`,
+                    );
+                }
+                subcommand.setOptionValueWithSource(name, parent.getOptionValue(name), 'cli');
+                continue;
+            }
+            let root = parent;
+            while (root.parent) {
+                root = root.parent;
+            }
+            const line = commandLineWithOptionsLast(root, args) ?? 'the full command path first';
+            stop(
+                errorResult(hostErrors.optionBeforeCommand, { option: option.long ?? option.flags, line }),
+                `[${hostErrors.optionBeforeCommand.code}]`,
+            );
+        }
+    });
+}
+
+/** Ends the run with a host error: the envelope under `--json`, a coded line otherwise. */
+function stop(result: HostResult, prefix: string): never {
+    if (jsonRequested(process.argv)) {
+        fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+    } else {
+        process.stderr.write(`${prefix} ${result.envelope.error?.message ?? ''}\n`);
+    }
+    process.exit(result.exitCode);
+}
+
+/** Where the subcommand's name is on the command line: after its parent's own path. */
+function subcommandIndex(parent: Command, subcommand: Command, args: readonly string[]): number {
+    const path: string[] = [];
+    for (let command: Command | null = parent; command?.parent; command = command.parent) {
+        path.unshift(command.name());
+    }
+    let next = 0;
+    for (const segment of [...path, subcommand.name()]) {
+        const at = args.indexOf(segment, next);
+        if (at === -1) {
+            return args.length;
+        }
+        next = at + 1;
+    }
+    return next - 1;
+}
+
+function namesOption(option: { long?: string; short?: string; negate: boolean }, arg: string): boolean {
+    const long = option.long;
+    return (
+        (long !== undefined && (arg === long || arg.startsWith(`${long}=`))) ||
+        (option.short !== undefined && arg === option.short)
+    );
+}
+
+/**
+ * The groups this adapter made only to hold manifest commands, such as `cloud deploy` before the
+ * command `cloud deploy` itself is registered. A manifest command at that path takes the group
+ * over, with its commands, instead of counting as a command a CLI plugin replaced.
+ */
+const manifestGroups = new WeakSet<Command>();
+
+/**
  * Adds the commands of a manifest to a Commander program. Every field is an optional flag, so
  * that Commander never rejects a run before the host has read `--input` and decided what is
  * missing. A command goes under the group that already exists for its path, such as `add`.
@@ -69,6 +164,7 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                manifestGroups.add(group);
                 if (parent === program && manifestCommand.source !== CORE_SOURCE) {
                     group.helpGroup(pluginCommandsHeading(manifestCommand.source));
                 }
@@ -82,8 +178,9 @@ export function registerManifestCommands(
 function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, options: AdapterOptions) {
     const name = manifestCommand.path[manifestCommand.path.length - 1];
     const existing = findChild(parent, name);
+    const group = existing && manifestGroups.has(existing) ? existing : undefined;
     let replacedBy: string | undefined;
-    if (existing) {
+    if (existing && !group) {
         // A CLI plugin already replaced this command. The plugin's command wins for people and
         // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
         // coded error instead of the plugin's output.
@@ -96,7 +193,11 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const siblings = parent.commands as Command[];
         siblings.splice(siblings.indexOf(existing), 1);
     }
-    const command = parent.command(name).description(manifestCommand.description);
+    const command = (group ?? parent.command(name)).description(manifestCommand.description);
+    if (group) {
+        manifestGroups.delete(group);
+    }
+    rejectOptionsBeforeSubcommand(command);
     if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
         command.helpGroup(pluginCommandsHeading(manifestCommand.source));
     }
