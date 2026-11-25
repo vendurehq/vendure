@@ -5,13 +5,18 @@ import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
 import { registerManifestCommands } from './command-host/commander-adapter.js';
-import { loadMergedManifest } from './command-host/manifest.js';
+import {
+    CORE_SOURCE,
+    loadProjectCommands,
+    setCommanderPaths,
+    TakenCommandPath,
+} from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
 import { devCommandDef } from './commands/dev/command.js';
 import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
-import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
+import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -76,7 +81,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         selection.parseOptions(process.argv.slice(3));
         pluginOptions.project = selection.opts<{ project?: string }>().project;
     }
-    const { loaded, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
+    const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
@@ -92,7 +97,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         reportedFailures.map(failure => [failure.packageName, 'load']),
     );
     for (const failure of reportedFailures) {
-        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
+        const headline =
+            failure.failedPart === 'manifest-missing' || failure.failedPart === 'manifest-invalid'
+                ? 'Failed to load the defineCommand commands of CLI plugin'
+                : 'Failed to load CLI plugin';
+        writePluginSkipped(failure.packageName, headline, failure.reason, failure.scope);
     }
     for (const { packageName, plugin, scope } of loaded) {
         try {
@@ -109,13 +118,46 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
 
-    // Commands declared with `defineCommand` are built from the manifest alone. Their
-    // declarations load only when one of them runs.
+    // Commands declared with `defineCommand` are built from the manifests alone: the CLI's own and
+    // those of the enabled plugins. Their declarations load only when one of them runs.
     try {
-        registerManifestCommands(program, await loadMergedManifest(), {
-            loadDefinitions: async () =>
-                (await import('./command-host/core-commands.js')).coreCommandDefinitions,
-        });
+        setCommanderPaths(commanderPaths(program));
+        const projectCommands = await loadProjectCommands({ plugins: manifests });
+        for (const { package: packageName, error } of projectCommands.refused) {
+            unavailablePackages.set(packageName, 'register');
+            const scope =
+                manifests.find(manifest => manifest.packageName === packageName)?.scope ?? 'project';
+            writePluginSkipped(
+                packageName,
+                'Refused the defineCommand commands of CLI plugin',
+                `[${error.code}] ${error.message}`,
+                scope,
+            );
+        }
+        const loadDefinitions = (source: string) => projectCommands.loadDefinitions(source);
+        // The CLI's own commands first, then each plugin's on its own, so that a plugin whose
+        // commands Commander refuses cannot take the rest of the command line with it. The merge has
+        // already checked them, so this is a last resort.
+        const sources = [...new Set(projectCommands.commands.map(command => command.source))];
+        for (const source of sources) {
+            const commands = projectCommands.commands.filter(command => command.source === source);
+            try {
+                registerManifestCommands(program, commands, { loadDefinitions });
+            } catch (e) {
+                if (source === CORE_SOURCE) {
+                    throw e;
+                }
+                unavailablePackages.set(source, 'register');
+                const scope = manifests.find(manifest => manifest.packageName === source)?.scope ?? 'project';
+                const reason = e instanceof Error ? e.message : String(e);
+                writePluginSkipped(
+                    source,
+                    'Failed to register the defineCommand commands of CLI plugin',
+                    reason,
+                    scope,
+                );
+            }
+        }
     } catch (e) {
         process.stderr.write(
             `Could not load the command manifest: ${e instanceof Error ? e.message : String(e)}\n`,
@@ -138,6 +180,32 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     maybeWriteInactivePluginsHint(process.argv, pluginOptions);
 
     await program.parseAsync(process.argv);
+}
+
+/**
+ * The paths of the commands registered with Commander so far: the built-in commands and those of
+ * CLI plugins. A command with subcommands is a group, which a plugin's manifest may add to. So is
+ * a command that the CLI's own manifest adds to, such as `add`, which the merge decides.
+ */
+function commanderPaths(program: Command): TakenCommandPath[] {
+    const paths: TakenCommandPath[] = [];
+    // Only a plugin's top-level commands carry its help heading.
+    const visit = (command: Command, parent: string[], parentPlugin?: string) => {
+        for (const child of command.commands) {
+            const path = [...parent, child.name()];
+            const plugin = parentPlugin ?? pluginFromCommandsHeading(child.helpGroup());
+            paths.push({
+                path,
+                owner: plugin
+                    ? `the command "${path.join(' ')}" of ${plugin}`
+                    : `the built-in command "${path.join(' ')}"`,
+                leaf: child.commands.length === 0,
+            });
+            visit(child, path, plugin);
+        }
+    };
+    visit(program, []);
+    return paths;
 }
 
 /**

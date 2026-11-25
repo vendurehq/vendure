@@ -21,7 +21,8 @@ vendure commands
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| `commands` | array of object |  |
+| `commands` | array of object | The CLI's own commands and those of the project's enabled plugins, from their manifests. |
+| `refused` (optional) | array of object | Enabled plugins whose defineCommand commands were left out, each with the coded error that says why. |
 
 ### Examples
 

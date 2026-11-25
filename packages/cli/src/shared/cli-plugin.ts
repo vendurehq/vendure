@@ -106,6 +106,12 @@ export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtens
  * }
  * ```
  *
+ * `commandManifest` is the ability to load the `defineCommand` commands a
+ * package declares through `vendure.commandManifest` and
+ * `vendure.commandDefinitions` in its `package.json`. A package that also
+ * declares a `cliPlugin` can check for it there, so that on an older CLI it
+ * reports that its commands are missing instead of leaving them out silently.
+ *
  * Entries are only ever added, never removed or renamed, so a check written
  * against one release keeps working.
  *
@@ -118,6 +124,7 @@ export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
     'extendCommands',
     'afterConsoleLink',
     'requiresProject',
+    'commandManifest',
 ]);
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {

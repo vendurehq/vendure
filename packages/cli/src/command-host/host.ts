@@ -89,7 +89,8 @@ function envelope(
     return { schemaVersion: COMMAND_ENVELOPE_SCHEMA_VERSION, status, ...rest, notices };
 }
 
-function errorBody(error: CommandErrorDefinition, details: unknown): CommandErrorBody {
+/** The error part of an envelope, for a coded error and its details. */
+export function errorBody(error: CommandErrorDefinition, details: unknown): CommandErrorBody {
     const fixes = error.fix?.(details);
     return {
         code: error.code,

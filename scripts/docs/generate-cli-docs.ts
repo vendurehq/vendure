@@ -118,6 +118,11 @@ function renderIndex(groups: Map<string, MergedManifestCommand[]>, builtins: Bui
             'plugins add' +
             (groups.has('guide') ? ', and `vendure guide` for how an agent works with the CLI.' : '.'),
         '',
+        'A plugin package declares its own commands with `defineCommand` in the same way, and ships its own ' +
+            'manifest. See [Commands declared with `defineCommand`](' +
+            cliGuideUrl +
+            '#commands-declared-with-definecommand).',
+        '',
         '## Every command',
         '',
         '| Command | Behavior | Description |',

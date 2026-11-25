@@ -1,11 +1,13 @@
 import type { CommandErrorDefinition } from '@vendure/common/lib/command';
+import type { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import { loadMergedManifest } from '../../command-host/manifest.js';
+import { loadMergedManifest, RefusedManifest } from '../../command-host/manifest.js';
 import { AdminProxy } from '../../command-host/mcp/admin-proxy.js';
 import { checkProjectCli, findMcpProject } from '../../command-host/mcp/project.js';
+import { runToolInChild } from '../../command-host/mcp/run-tool-in-child.js';
 import { McpServer, McpToolMode } from '../../command-host/mcp/server.js';
 
 import { cliNotInstalled, notProjectCli, projectAmbiguous } from './mcp.errors.js';
@@ -55,7 +57,7 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     const cwd = project.kind === 'found' ? project.dir : start;
 
     const server = new McpServer({
-        commands: await loadMergedManifest(),
+        commands: await listProjectCommands(cwd),
         mode,
         input: process.stdin,
         output: process.stdout,
@@ -67,6 +69,47 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     });
     await server.serve();
     return 0;
+}
+
+/** How long `vendure commands --json` may take before the server offers the CLI's own commands only. */
+const LIST_COMMANDS_TIMEOUT_MS = 30_000;
+
+/**
+ * The commands of the project, as `vendure commands --json` lists them in the directory the tool
+ * calls run in. A child process lists them because `--dir` can name another project than the one
+ * this process started in, and that project's `cliPlugin` commands decide which of its plugins'
+ * commands are refused. Refused plugins are
+ * written to stderr, which MCP clients keep in their server log.
+ */
+async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]> {
+    const envelope = await runToolInChild(
+        ['commands'],
+        {},
+        {
+            cliBin: process.argv[1],
+            cwd,
+            // A plugin module that never lets the child exit must not stop the server from starting.
+            signal: AbortSignal.timeout(LIST_COMMANDS_TIMEOUT_MS),
+            onEvent: () => undefined,
+            onLog: () => undefined,
+        },
+    );
+    const output = envelope.output as
+        | { commands?: MergedManifestCommand[]; refused?: RefusedManifest[] }
+        | undefined;
+    if (envelope.status !== 'ok' || !Array.isArray(output?.commands)) {
+        process.stderr.write(
+            `Could not list the commands of ${cwd}, so only the CLI's own commands are offered: ` +
+                `${envelope.error?.message ?? envelope.status}\n`,
+        );
+        return loadMergedManifest({ plugins: [] });
+    }
+    for (const { package: packageName, error } of output.refused ?? []) {
+        process.stderr.write(
+            `The commands of ${packageName} are not offered: [${error.code}] ${error.message}\n`,
+        );
+    }
+    return output.commands;
 }
 
 /** Writes a coded error to stderr, since stdout carries the protocol, and returns its exit code. */
