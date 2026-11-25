@@ -796,10 +796,13 @@ export class OrderModifier {
                 .update({ shippingLineId: shippingLine.id })
                 .whereInIds(orderLinesForShippingLine.map(l => l.id))
                 .execute();
-            orderLinesForShippingLine.forEach(line => {
-                line.shippingLine = shippingLine;
-                line.shippingLineId = shippingLine.id;
-            });
+            // Match by id, because the strategy may return OrderLine instances other than those in order.lines
+            for (const line of order.lines) {
+                if (orderLinesForShippingLine.some(l => idsAreEqual(l.id, line.id))) {
+                    line.shippingLine = shippingLine;
+                    line.shippingLineId = shippingLine.id;
+                }
+            }
         }
         return order;
     }
