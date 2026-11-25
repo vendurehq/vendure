@@ -639,14 +639,16 @@ export function AssetGallery({
             {viewMode === 'grid' && (
                 <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    {isLoading ? (
-                        // The count is unknown until the page loads: a skeleton on a line of the same height, not "0 assets found".
-                        <SkeletonLine className="w-24" />
+                    {isLoading || isError ? (
+                        // No count until the page has loaded, not "0 assets found". The empty line keeps the row's height.
+                        <span className="block h-lh" aria-hidden="true" />
                     ) : (
-                        <Plural value={totalItems} one="# asset found" other="# assets found" />
-                    )}
-                    {selected.length > 0 && (
-                        <Trans>, {selected.length} selected</Trans>
+                        <>
+                            <Plural value={totalItems} one="# asset found" other="# assets found" />
+                            {selected.length > 0 && (
+                                <Trans>, {selected.length} selected</Trans>
+                            )}
+                        </>
                     )}
                 </div>
                 <div className="flex-1"></div>
@@ -913,7 +915,12 @@ function AssetGridView({
     );
 }
 
+// Shared by AssetCard and AssetGridSkeleton, so the skeleton keeps the card's shape.
 const ASSET_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-1';
+const ASSET_CARD_FRAME_CLASS = 'overflow-hidden rounded-lg bg-card ring-1';
+const ASSET_CARD_BODY_CLASS = 'px-2 py-1.5';
+const ASSET_CARD_META_CLASS = 'mt-0.5 flex items-center justify-between';
+const ASSET_CARD_OPEN_BOX_CLASS = '-my-0.5 -me-0.5 inline-flex h-6 items-center px-1.5';
 
 /**
  * One page of the grid while it loads: cards in the grid's own columns, each in
@@ -924,14 +931,16 @@ function AssetGridSkeleton({ count }: Readonly<{ count: number }>) {
         <LoadingState data-asset-gallery>
             <div className={ASSET_GRID_CLASS} aria-hidden="true">
                 {Array.from({ length: count }, (_, index) => (
-                    <div key={index} className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+                    <div key={index} className={`${ASSET_CARD_FRAME_CLASS} ring-foreground/10`}>
                         <Skeleton className="aspect-square rounded-none" />
-                        <div className="px-2 py-1.5">
+                        <div className={ASSET_CARD_BODY_CLASS}>
                             <SkeletonLine className="w-3/4 text-sm leading-tight" />
-                            {/* The Open link is 24px tall with -2px margins, so this row is 20px. */}
-                            <div className="mt-0.5 flex h-5 items-center justify-between">
+                            <div className={ASSET_CARD_META_CLASS}>
                                 <SkeletonLine className="w-10 text-xs" />
-                                <SkeletonLine className="w-8 text-xs" />
+                                {/* In the box of the Open link, which sets the row's height. */}
+                                <div className={ASSET_CARD_OPEN_BOX_CLASS}>
+                                    <SkeletonLine className="w-10 text-xs" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -964,8 +973,8 @@ const AssetCard = memo(function AssetCard({
     return (
         <div
             className={`
-                group relative overflow-hidden rounded-lg transition-[box-shadow] duration-fast ease-default
-                bg-card text-card-foreground ring-1 text-left
+                group relative ${ASSET_CARD_FRAME_CLASS} transition-[box-shadow] duration-fast ease-default
+                text-card-foreground text-left
                 hover:ring-primary/40
                 has-[>button:focus-visible]:outline-solid has-[>button:focus-visible]:outline-2
                 has-[>button:focus-visible]:outline-offset-2 has-[>button:focus-visible]:outline-ring
@@ -1007,11 +1016,11 @@ const AssetCard = memo(function AssetCard({
                     </div>
                 )}
             </div>
-            <div className="px-2 py-1.5">
+            <div className={ASSET_CARD_BODY_CLASS}>
                 <p ref={name} className="text-sm font-medium leading-tight line-clamp-1">
                     {asset.name}
                 </p>
-                <div className="flex items-center justify-between mt-0.5">
+                <div className={ASSET_CARD_META_CLASS}>
                     <span className="text-xs text-muted-foreground">
                         {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
                     </span>
@@ -1019,7 +1028,7 @@ const AssetCard = memo(function AssetCard({
                         to={`/assets/${asset.id}`}
                         onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         aria-label={t`Open ${asset.name}`}
-                        className="relative z-20 -my-0.5 -me-0.5 inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className={`relative z-20 ${ASSET_CARD_OPEN_BOX_CLASS} gap-1 rounded-sm text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
                     >
                         <Trans>Open</Trans>
                         <ChevronRight className="h-3 w-3" />
