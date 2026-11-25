@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 /** The skills of the repository's `skills/` folder that every created project gets. */
 const BUNDLED_SKILLS = ['vendure-cli', 'vendure-store-setup', 'vendure-troubleshooting'];

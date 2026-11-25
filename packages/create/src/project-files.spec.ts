@@ -180,4 +180,22 @@ describe('toPackageName()', () => {
         expect(toPackageName('.hidden')).toBe('hidden');
         expect(toPackageName('***')).toBe('vendure-app');
     });
+
+    it('collapses runs of other characters and trims the ends as the npm rules need', () => {
+        expect(toPackageName('a--b')).toBe('a--b');
+        expect(toPackageName('a  &  b')).toBe('a-b');
+        expect(toPackageName('shop***')).toBe('shop');
+        expect(toPackageName('shop-')).toBe('shop');
+        expect(toPackageName('*.-_shop')).toBe('shop');
+        expect(toPackageName('Café Shop')).toBe('caf-shop');
+        expect(toPackageName('~my.shop_1')).toBe('~my.shop_1');
+    });
+
+    it('takes linear time on a long input of the characters a backtracking pattern trips on', () => {
+        const adversarial = 'a' + '-'.repeat(200_000) + '!';
+        const start = performance.now();
+        expect(toPackageName(adversarial)).toBe('a');
+        expect(toPackageName('-'.repeat(200_000))).toBe('vendure-app');
+        expect(performance.now() - start).toBeLessThan(1000);
+    });
 });

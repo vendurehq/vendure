@@ -107,6 +107,6 @@ export async function commitAll(cwd: string): Promise<GitResult> {
 function gitFailed(step: string, result: RunResult): { status: 'failed'; reason: string } {
     return {
         status: 'failed',
-        reason: `\`git ${step}\` failed: ${result.output.trim() || `exit code ${String(result.code)}`}`,
+        reason: `\`git ${step}\` failed: ${result.output.trim() || 'exit code ' + String(result.code)}`,
     };
 }

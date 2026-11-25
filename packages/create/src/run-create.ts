@@ -3,10 +3,10 @@ import fs from 'fs-extra';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
-import { McpInstallUnavailable, writeAgentFiles } from './agent-files.js';
+import { AgentFilesResult, McpInstallUnavailable, writeAgentFiles } from './agent-files.js';
 import { SERVER_PORT, STOREFRONT_PORT } from './constants.js';
 import { CreateError } from './errors.js';
-import { getPackageManagerInfo } from './package-manager.js';
+import { getPackageManagerInfo, PackageManagerInfo } from './package-manager.js';
 import {
     buildCreateRecord,
     getNextCommands,
@@ -26,6 +26,7 @@ import {
     downloadAndExtractStorefront,
     getStorefrontStarter,
     renderStorefrontEnvironment,
+    StorefrontStarter,
 } from './storefront-starters.js';
 import { CliLogLevel, CreateOptions, CreateResult, GitResult } from './types.js';
 
@@ -51,7 +52,7 @@ export interface RunCreateContext {
 /**
  * Files a directory may already hold. Anything else could be overwritten, so create refuses it.
  */
-const ALLOWED_EXISTING_FILES = [
+const ALLOWED_EXISTING_FILES = new Set([
     '.DS_Store',
     'Thumbs.db',
     '.git',
@@ -59,7 +60,7 @@ const ALLOWED_EXISTING_FILES = [
     '.vscode',
     'LICENSE',
     '.gitattributes',
-];
+]);
 
 export function checkProjectDirectory(projectDir: string): void {
     if (!fs.existsSync(projectDir)) {
@@ -74,7 +75,7 @@ export function checkProjectDirectory(projectDir: string): void {
     }
     const conflicts = fs
         .readdirSync(projectDir)
-        .filter(file => !ALLOWED_EXISTING_FILES.includes(file) && !file.endsWith('.iml'));
+        .filter(file => !ALLOWED_EXISTING_FILES.has(file) && !file.endsWith('.iml'));
     if (conflicts.length) {
         throw new CreateError(
             'create.project-directory-not-empty',
@@ -98,29 +99,75 @@ export async function runCreate(options: CreateOptions, context: RunCreateContex
     }
 }
 
-async function runSteps(options: CreateOptions, context: RunCreateContext): Promise<CreateResult> {
-    const { reporter } = context;
-    checkProjectDirectory(options.projectDir);
-    const features = findFeatureSets(options.features);
-    const pmInfo = getPackageManagerInfo(options.packageManager);
-    const storefront = options.storefront ? getStorefrontStarter(options.storefront) : undefined;
-    const root = options.projectDir;
-    const serverDir = storefront ? path.join(root, SERVER_WORKSPACE_DIR) : root;
-    const packageName = toPackageName(options.name);
-    const template = (file: string) => fs.readFileSync(path.join(context.assetsDir, file), 'utf-8');
-    const writeJson = (file: string, value: unknown) =>
-        fs.outputFileSync(file, JSON.stringify(value, null, 2) + '\n');
+/** What every step of {@link runSteps} needs. */
+interface Project {
+    options: CreateOptions;
+    context: RunCreateContext;
+    pmInfo: PackageManagerInfo;
+    storefront: StorefrontStarter | undefined;
+    root: string;
+    /** The Vendure project: the root, or `apps/server` with a storefront. */
+    serverDir: string;
+}
 
-    reporter.start(`Writing the project in ${root}`);
+async function runSteps(options: CreateOptions, context: RunCreateContext): Promise<CreateResult> {
+    checkProjectDirectory(options.projectDir);
+    const storefront = options.storefront ? getStorefrontStarter(options.storefront) : undefined;
+    const project: Project = {
+        options,
+        context,
+        pmInfo: getPackageManagerInfo(options.packageManager),
+        storefront,
+        root: options.projectDir,
+        serverDir: storefront ? path.join(options.projectDir, SERVER_WORKSPACE_DIR) : options.projectDir,
+    };
+
+    writeProjectFiles(project);
+    if (storefront) {
+        await addStorefront(project, storefront);
+    }
+    if (options.install) {
+        await install(project);
+    }
+    // Before the agent files: `vendure mcp install` writes its config at the git root.
+    const gitInit: GitInitResult = options.git
+        ? await initGitRepository(project.root)
+        : { status: 'skipped', reason: '--no-git was given' };
+    const agentFiles = await writeProjectAgentFiles(project);
+    const git = gitInit.status === 'initialised' ? await commit(project) : gitInit;
+
+    return {
+        projectDir: project.root,
+        packageManager: options.packageManager,
+        agentFiles: {
+            written: agentFiles.written,
+            failed: agentFiles.failed.map(({ client, reason }) => ({ client, reason })),
+        },
+        git,
+        next: [
+            ...getNextCommands(options, context.projectDirArg),
+            // Only where running it again completes the config. The reason says what else to do.
+            ...agentFiles.failed
+                .filter(failure => failure.retryable)
+                .map(({ client }) => `${project.pmInfo.exec} vendure mcp install --client ${client}`),
+        ],
+    };
+}
+
+function writeJson(file: string, value: unknown): void {
+    fs.outputFileSync(file, JSON.stringify(value, null, 2) + '\n');
+}
+
+function writeProjectFiles({ options, context, pmInfo, storefront, root, serverDir }: Project): void {
+    const asset = (file: string) => path.join(context.assetsDir, file);
+    const packageName = toPackageName(options.name);
+    context.reporter.start(`Writing the project in ${root}`);
     if (storefront) {
         writeJson(
             path.join(root, 'package.json'),
             getWorkspaceRootPackageJson(packageName, pmInfo, context.createVersion),
         );
-        fs.copySync(
-            path.join(context.assetsDir, 'monorepo/root-gitignore.template'),
-            path.join(root, '.gitignore'),
-        );
+        fs.copySync(asset('monorepo/root-gitignore.template'), path.join(root, '.gitignore'));
     }
     writeJson(
         path.join(serverDir, 'package.json'),
@@ -128,7 +175,7 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
             name: storefront ? 'server' : packageName,
             vendureVersion: context.createVersion,
             packageManager: options.packageManager,
-            features,
+            features: findFeatureSets(options.features),
             scenario: options.scenario,
             isRoot: !storefront,
         }),
@@ -142,105 +189,96 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
     if (pmInfo.name === 'yarn') {
         fs.outputFileSync(path.join(root, '.yarnrc.yml'), getYarnRcYml());
     }
-    fs.copySync(
-        path.join(context.assetsDir, 'vendure-config.ts.template'),
-        path.join(serverDir, 'src/vendure-config.ts'),
-    );
+    fs.copySync(asset('vendure-config.ts.template'), path.join(serverDir, 'src/vendure-config.ts'));
     // Git keeps no empty directory. The migrations glob matches no dotfile.
     fs.outputFileSync(path.join(serverDir, 'src/migrations/.gitkeep'), '');
-    fs.copySync(
-        path.join(context.assetsDir, 'tsconfig.template.json'),
-        path.join(serverDir, 'tsconfig.json'),
-    );
-    fs.copySync(path.join(context.assetsDir, 'gitignore.template'), path.join(serverDir, '.gitignore'));
+    fs.copySync(asset('tsconfig.template.json'), path.join(serverDir, 'tsconfig.json'));
+    fs.copySync(asset('gitignore.template'), path.join(serverDir, '.gitignore'));
     fs.outputFileSync(
         path.join(root, 'README.md'),
-        renderReadme(template('readme.hbs'), { name: options.name, pmInfo, storefront }),
+        renderReadme(fs.readFileSync(asset('readme.hbs'), 'utf-8'), {
+            name: options.name,
+            pmInfo,
+            storefront,
+        }),
     );
-    // Written before the install, so the choices survive a failed install. No agent files are
-    // written yet, so the record names no agent client.
+    // Written before the install, so the choices survive a failed install. It is written again
+    // with the agent clients once their files are written.
     writeJson(
         path.join(serverDir, CREATE_RECORD_PATH),
         buildCreateRecord(options, context.createVersion, { agents: [] }),
     );
-    reporter.stop('Wrote the project files');
+    context.reporter.stop('Wrote the project files');
+}
 
-    if (storefront) {
-        reporter.start(`Downloading the ${storefront.name} storefront`);
-        const storefrontDir = path.join(root, STOREFRONT_WORKSPACE_DIR);
-        try {
-            await downloadAndExtractStorefront(storefrontDir, storefront);
-        } catch (e) {
-            throw new CreateError(
-                'create.storefront-download-failed',
-                `Could not download the ${storefront.name} storefront: ${e instanceof Error ? e.message : String(e)}`,
-                'Check the network connection, or set GITHUB_TOKEN if GitHub is rate-limiting you, then run create again in a new directory.',
-            );
-        }
-        const setup = {
-            projectName: options.name,
-            serverPort: SERVER_PORT,
-            storefrontPort: STOREFRONT_PORT,
-            revalidationSecret: randomBytes(32).toString('base64'),
-        };
-        const storefrontPackageJson = path.join(storefrontDir, 'package.json');
-        writeJson(
-            storefrontPackageJson,
-            configureStorefrontPackageJson(fs.readJsonSync(storefrontPackageJson), storefront, setup),
+async function addStorefront(
+    { options, context, root }: Project,
+    storefront: StorefrontStarter,
+): Promise<void> {
+    context.reporter.start(`Downloading the ${storefront.name} storefront`);
+    const storefrontDir = path.join(root, STOREFRONT_WORKSPACE_DIR);
+    try {
+        await downloadAndExtractStorefront(storefrontDir, storefront);
+    } catch (e) {
+        const reason = e instanceof Error ? e.message : String(e);
+        throw new CreateError(
+            'create.storefront-download-failed',
+            `Could not download the ${storefront.name} storefront: ${reason}`,
+            'Check the network connection, or set GITHUB_TOKEN if GitHub is rate-limiting you, then run create again in a new directory.',
         );
-        fs.outputFileSync(
-            path.join(storefrontDir, storefront.envFile),
-            renderStorefrontEnvironment(storefront, setup),
-        );
-        reporter.stop(`Downloaded the ${storefront.name} storefront`);
     }
+    const setup = {
+        projectName: options.name,
+        serverPort: SERVER_PORT,
+        storefrontPort: STOREFRONT_PORT,
+        revalidationSecret: randomBytes(32).toString('base64'),
+    };
+    const storefrontPackageJson = path.join(storefrontDir, 'package.json');
+    writeJson(
+        storefrontPackageJson,
+        configureStorefrontPackageJson(fs.readJsonSync(storefrontPackageJson), storefront, setup),
+    );
+    fs.outputFileSync(
+        path.join(storefrontDir, storefront.envFile),
+        renderStorefrontEnvironment(storefront, setup),
+    );
+    context.reporter.stop(`Downloaded the ${storefront.name} storefront`);
+}
 
-    if (options.install) {
-        reporter.start(`Installing dependencies with ${pmInfo.name}`);
-        try {
-            await installDependencies(options.packageManager, root, context.logLevel);
-        } catch (e) {
-            if (e instanceof CreateError) {
-                const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
-                throw new CreateError(
-                    e.code,
-                    e.message,
-                    [
-                        e.fix,
-                        `Your choices are kept in ${recordPath.split(path.sep).join('/')}.`,
-                        options.git
-                            ? 'Then run `git init`, `git add -A` and `git commit` to make the initial commit.'
-                            : undefined,
-                    ]
-                        .filter(Boolean)
-                        .join(' '),
-                );
-            }
+async function install({ options, context, pmInfo, root, serverDir }: Project): Promise<void> {
+    context.reporter.start(`Installing dependencies with ${pmInfo.name}`);
+    try {
+        await installDependencies(options.packageManager, root, context.logLevel);
+    } catch (e) {
+        if (!(e instanceof CreateError)) {
             throw e;
         }
-        reporter.stop('Installed dependencies');
+        const recordPath = path.relative(root, path.join(serverDir, CREATE_RECORD_PATH));
+        const fix = [e.fix, `Your choices are kept in ${recordPath.split(path.sep).join('/')}.`];
+        if (options.git) {
+            fix.push('Then run `git init`, `git add -A` and `git commit` to make the initial commit.');
+        }
+        throw new CreateError(e.code, e.message, fix.filter(Boolean).join(' '));
     }
+    context.reporter.stop('Installed dependencies');
+}
 
-    // Before the agent files: `vendure mcp install` writes its config at the git root.
-    const gitInit: GitInitResult = options.git
-        ? await initGitRepository(root)
-        : { status: 'skipped', reason: '--no-git was given' };
-
-    reporter.start('Writing the agent files');
+async function writeProjectAgentFiles(project: Project): Promise<AgentFilesResult> {
+    const { options, context, root, serverDir } = project;
+    context.reporter.start('Writing the agent files');
     const agentFiles = await writeAgentFiles({
         agents: options.agents,
         name: options.name,
-        pmInfo,
-        storefront,
+        pmInfo: project.pmInfo,
+        storefront: project.storefront,
         root,
         serverDir,
         assetsDir: context.assetsDir,
         mcpInstallUnavailable: await whyMcpInstallCannotRun(options, root),
     });
-    reporter.stop(
-        agentFiles.failed.length
-            ? `Wrote the agent files, except: ${agentFiles.failed.map(f => `${f.client} (${f.reason})`).join('; ')}`
-            : 'Wrote the agent files',
+    const failures = agentFiles.failed.map(failure => failure.client + ' (' + failure.reason + ')');
+    context.reporter.stop(
+        failures.length ? 'Wrote the agent files, except: ' + failures.join('; ') : 'Wrote the agent files',
     );
     // Rewritten with the clients create wrote files for, as the record's contract says. A client
     // whose MCP config is incomplete is still one, and `agentFiles.failed` says what is missing.
@@ -248,32 +286,16 @@ async function runSteps(options: CreateOptions, context: RunCreateContext): Prom
         path.join(serverDir, CREATE_RECORD_PATH),
         buildCreateRecord(options, context.createVersion, { agents: options.agents }),
     );
+    return agentFiles;
+}
 
-    let git: GitResult = gitInit.status === 'initialised' ? { status: 'committed' } : gitInit;
-    if (gitInit.status === 'initialised') {
-        reporter.start('Making the initial git commit');
-        git = await commitAll(root);
-        reporter.stop(
-            git.status === 'committed' ? 'Made the initial git commit' : `No git commit: ${git.reason}`,
-        );
-    }
-
-    return {
-        projectDir: root,
-        packageManager: options.packageManager,
-        agentFiles: {
-            written: agentFiles.written,
-            failed: agentFiles.failed.map(({ client, reason }) => ({ client, reason })),
-        },
-        git,
-        next: [
-            ...getNextCommands(options, context.projectDirArg),
-            // Only where running it again completes the config. The reason says what else to do.
-            ...agentFiles.failed
-                .filter(failure => failure.retryable)
-                .map(({ client }) => `${pmInfo.exec} vendure mcp install --client ${client}`),
-        ],
-    };
+async function commit({ context, root }: Project): Promise<GitResult> {
+    context.reporter.start('Making the initial git commit');
+    const git = await commitAll(root);
+    context.reporter.stop(
+        git.status === 'committed' ? 'Made the initial git commit' : 'No git commit: ' + git.reason,
+    );
+    return git;
 }
 
 const INSIDE_ANOTHER_REPOSITORY = [

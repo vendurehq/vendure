@@ -124,7 +124,7 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
     if (!input.agents.length) {
         return result;
     }
-    const write = (file: string, text: string) => {
+    const write: WriteFile = (file, text) => {
         fs.outputFileSync(path.join(input.root, file), text);
         result.written.push(file);
     };
@@ -149,34 +149,54 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
     }
 
     for (const client of input.agents) {
-        const file = CLIENT_CONFIG_FILES[client];
-        // Cursor's file is written from the printed entry below. The others get the docs server
-        // first, and `vendure mcp install` adds its entry beside it.
-        if (client !== 'cursor') {
-            write(file, docsServerConfig(client));
+        const failure =
+            client === 'cursor'
+                ? await writeCursorConfig(input, write)
+                : await writeClientConfig(client, input, write);
+        if (failure) {
+            result.failed.push(failure);
         }
-        const installed = input.mcpInstallUnavailable ?? (await installVendureServer(client, input));
-        if (client === 'cursor' && !('reason' in installed) && installed.printed) {
-            write(file, cursorConfig(installed.printed));
-            continue;
-        }
-        if (client !== 'cursor') {
-            if ('reason' in installed) {
-                result.failed.push({ client, ...installed });
-            }
-            continue;
-        }
-        // `vendure mcp install` only prints Cursor's entry, so running it again cannot complete the
-        // file. The reason says how to.
-        write(file, docsServerConfig(client));
-        const why = 'reason' in installed ? installed.reason : '`vendure mcp install` printed no entry';
-        result.failed.push({
-            client,
-            reason: `${why}. Run \`vendure mcp install --client cursor\` and add the entry it prints to ${file}`,
-            retryable: false,
-        });
     }
     return result;
+}
+
+type WriteFile = (file: string, text: string) => void;
+
+/**
+ * Writes the docs server into a client's config, then lets `vendure mcp install` add its entry
+ * beside it. Returns the failure, if any.
+ */
+async function writeClientConfig(
+    client: Exclude<AgentClient, 'cursor'>,
+    input: WriteAgentFilesInput,
+    write: WriteFile,
+): Promise<AgentFileFailure | undefined> {
+    write(CLIENT_CONFIG_FILES[client], docsServerConfig(client));
+    const installed = input.mcpInstallUnavailable ?? (await installVendureServer(client, input));
+    return 'reason' in installed ? { client, ...installed } : undefined;
+}
+
+/**
+ * Writes Cursor's config from the entry `vendure mcp install` prints. Running it again cannot
+ * complete the file, so a failure is never retryable, and its reason says how to finish.
+ */
+async function writeCursorConfig(
+    input: WriteAgentFilesInput,
+    write: WriteFile,
+): Promise<AgentFileFailure | undefined> {
+    const file = CLIENT_CONFIG_FILES.cursor;
+    const installed = input.mcpInstallUnavailable ?? (await installVendureServer('cursor', input));
+    if (!('reason' in installed) && installed.printed) {
+        write(file, cursorConfig(installed.printed));
+        return undefined;
+    }
+    write(file, docsServerConfig('cursor'));
+    const why = 'reason' in installed ? installed.reason : '`vendure mcp install` printed no entry';
+    return {
+        client: 'cursor',
+        reason: `${why}. Run \`vendure mcp install --client cursor\` and add the entry it prints to ${file}`,
+        retryable: false,
+    };
 }
 
 /**
@@ -205,10 +225,9 @@ async function installVendureServer(
     if (run.code === 0 && envelope?.status === 'ok') {
         return { printed: envelope.output?.config ?? undefined };
     }
+    const detail = run.output.trim() || 'exit code ' + String(run.code);
     return {
-        reason:
-            envelope?.error?.message ??
-            `\`vendure mcp install --client ${client}\` failed: ${run.output.trim() || `exit code ${String(run.code)}`}`,
+        reason: envelope?.error?.message ?? `\`vendure mcp install --client ${client}\` failed: ${detail}`,
         retryable: false,
     };
 }

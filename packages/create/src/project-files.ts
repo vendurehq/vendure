@@ -43,13 +43,28 @@ export const NATIVE_BUILD_DEPENDENCIES = ['bcrypt', 'esbuild', 'sharp'];
 
 /** A package name from the directory name: lowercase, with npm's allowed characters only. */
 export function toPackageName(directoryName: string): string {
-    const name = directoryName
-        .toLowerCase()
-        .replace(/[^a-z0-9._~-]+/g, '-')
-        .replace(/^[._-]+/, '')
-        .replace(/-+$/, '');
-    return name || 'vendure-app';
+    // One pass, with no regular expression over the whole name, so the time is linear in its length.
+    let name = '';
+    let separate = false;
+    for (const char of directoryName.toLowerCase()) {
+        if (!PACKAGE_NAME_CHARS.has(char)) {
+            // A run of characters npm does not allow becomes one `-`.
+            separate = true;
+        } else if (name || !LEADING_CHARS_DROPPED.has(char)) {
+            name += (separate && name ? '-' : '') + char;
+            separate = false;
+        }
+    }
+    let end = name.length;
+    while (end > 0 && name[end - 1] === '-') {
+        end--;
+    }
+    return name.slice(0, end) || 'vendure-app';
 }
+
+const PACKAGE_NAME_CHARS = new Set('abcdefghijklmnopqrstuvwxyz0123456789._~-');
+/** A package name cannot start with these. */
+const LEADING_CHARS_DROPPED = new Set('._-');
 
 export interface ServerPackageJsonInput {
     name: string;
@@ -160,11 +175,15 @@ export function getPnpmWorkspaceYaml(packagesGlobs?: string[]): string {
     if (packagesGlobs?.length) {
         lines.push('packages:', ...packagesGlobs.map(glob => `    - '${glob}'`), '');
     }
-    lines.push('# pnpm v10 build-script allowlist', 'onlyBuiltDependencies:');
-    lines.push(...NATIVE_BUILD_DEPENDENCIES.map(dep => `    - ${dep}`), '');
-    lines.push('# pnpm v11 build-script allowlist', 'allowBuilds:');
-    lines.push(...NATIVE_BUILD_DEPENDENCIES.map(dep => `    ${dep}: true`), '');
     lines.push(
+        '# pnpm v10 build-script allowlist',
+        'onlyBuiltDependencies:',
+        ...NATIVE_BUILD_DEPENDENCIES.map(dep => `    - ${dep}`),
+        '',
+        '# pnpm v11 build-script allowlist',
+        'allowBuilds:',
+        ...NATIVE_BUILD_DEPENDENCIES.map(dep => `    ${dep}: true`),
+        '',
         '# pnpm v11 fails the install when a dependency has build scripts not covered by',
         '# allowBuilds. With this off, uncovered scripts are skipped with a warning instead.',
         'strictDepBuilds: false',
@@ -231,7 +250,10 @@ export function getNextCommands(options: CreateOptions, projectDirArg: string): 
 }
 
 function quoteShellArgument(value: string): string {
-    return /^[\w./~:@+-]+$/.test(value) ? value : `'${value.replace(/'/g, `'\\''`)}'`;
+    if (/^[\w./~:@+-]+$/.test(value)) {
+        return value;
+    }
+    return "'" + value.split("'").join(String.raw`'\''`) + "'";
 }
 
 function sortKeys(record: Record<string, string>): Record<string, string> {
