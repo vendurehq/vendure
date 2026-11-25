@@ -4,9 +4,7 @@ import {
     applyPreset,
     Channel,
     ChannelService,
-    ConfigService,
     Country,
-    CountryService,
     dummyPaymentHandler,
     isSeedError,
     listPresets,
@@ -14,7 +12,6 @@ import {
     mergeConfig,
     PaymentMethod,
     PaymentMethodService,
-    Preset,
     ProductService,
     RequestContext,
     RequestContextService,
@@ -25,11 +22,9 @@ import {
     ShippingMethod,
     ShippingMethodService,
     StockLocation,
-    StockLocationService,
     TaxCategory,
     TaxCategoryService,
     TaxRate,
-    TaxRateService,
     TransactionalConnection,
     User,
     validateScenarioPack,
@@ -42,9 +37,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { euPreset } from '../src/data-import/presets/builtin-presets';
-
 import { ISO_COUNTRIES } from '../src/data-import/presets/iso-countries';
-import { graphql as adminGraphql } from './graphql/graphql-admin';
 
 import { graphql } from './graphql/graphql-admin';
 import {
@@ -74,16 +67,6 @@ const EMPTY_DATABASE = {
     },
     customerCount: 0,
 };
-
-const taxStoreReadinessDocument = adminGraphql(`
-    query PresetTaxStoreReadiness {
-        storeReadiness {
-            findings {
-                code
-            }
-        }
-    }
-`);
 
 describe('Base-data presets', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
@@ -127,25 +110,6 @@ describe('Base-data presets', () => {
             user: user!,
             channelOrToken: await defaultChannel(),
         });
-    }
-
-    async function applyDirectly(preset: Preset, options: Record<string, string>) {
-        const app = server.app;
-        const services = {
-            configService: app.get(ConfigService),
-            channelService: app.get(ChannelService),
-            zoneService: app.get(ZoneService),
-            countryService: app.get(CountryService),
-            taxCategoryService: app.get(TaxCategoryService),
-            taxRateService: app.get(TaxRateService),
-            shippingMethodService: app.get(ShippingMethodService),
-            paymentMethodService: app.get(PaymentMethodService),
-            stockLocationService: app.get(StockLocationService),
-        };
-        const ctx = await superAdminContext();
-        return app
-            .get(TransactionalConnection)
-            .withTransaction(ctx, txCtx => preset.apply(txCtx as any, services as any, options));
     }
 
     /**
@@ -397,9 +361,7 @@ describe('Base-data presets', () => {
             );
         });
 
-        // These tests call the preset directly, in a transaction as applyPreset() does, so that they
-        // can inspect the result.
-        describe('applied directly', () => {
+        describe('applied', () => {
             it('requires the seller country to be a member state', () => {
                 expect(euPreset.validate!({})).toEqual(expect.objectContaining({ option: 'country' }));
                 expect(euPreset.validate!({ country: 'GB' })).toEqual(
@@ -411,7 +373,7 @@ describe('Base-data presets', () => {
             it(
                 'creates a standard and a reduced rate per member state, with the seller country as tax country',
                 async () => {
-                    const result = await applyDirectly(euPreset, { country: 'DE' });
+                    const result = await applyPreset(server.app, 'eu', { country: 'DE' });
                     expect(result.created.taxRates).toBe(2 * 27);
                     expect(result.channel.taxCountryCode).toBe('DE');
                     const channel = await defaultChannel();
@@ -474,18 +436,6 @@ describe('Base-data presets', () => {
                 },
                 TEST_SETUP_TIMEOUT_MS,
             );
-
-            it('passes the tax checks of the store check', async () => {
-                await adminClient.asSuperAdmin();
-                const { storeReadiness } = await adminClient.query(taxStoreReadinessDocument);
-                expect(
-                    storeReadiness.findings
-                        .map(f => f.code)
-                        .filter(
-                            code => code.startsWith('store.tax.') || code.startsWith('store.channel.tax'),
-                        ),
-                ).toEqual([]);
-            });
         });
     });
 
@@ -595,29 +545,12 @@ describe('Base-data presets', () => {
             ['au', {}],
             ['us', {}],
             ['single-country', { country: 'NZ', currency: 'NZD' }],
+            ['eu', { country: 'DE' }],
         ])(
             'a store seeded with the %s preset is ready',
             async (preset, options) => {
                 await resetToEmptyDatabase();
                 await applyPreset(server.app, preset, options);
-                await addMug(1000);
-
-                const { storeReadiness } = await adminClient.query(storeReadinessDocument);
-
-                expect(storeReadiness.findings).toEqual([
-                    { code: 'store.auth.default-superadmin-password', severity: 'WARNING' },
-                ]);
-                expect(storeReadiness.ready).toBe(true);
-            },
-            TEST_SETUP_TIMEOUT_MS,
-        );
-
-        // eu is unreleased, so it is applied directly.
-        it(
-            'a store seeded with the eu preset is ready',
-            async () => {
-                await resetToEmptyDatabase();
-                await applyDirectly(euPreset, { country: 'DE' });
                 await addMug(1000);
 
                 const { storeReadiness } = await adminClient.query(storeReadinessDocument);
