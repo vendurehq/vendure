@@ -51,7 +51,7 @@ Each summary in `tools` carries `name`, `description`, and an `inputSchema` writ
 | Disabled tools | An unknown or disabled tool returns an error result |
 | Invalid arguments | Arguments are checked against the tool's schema before the tool runs |
 | Rate limits | The configured MCP rate limits apply, and a refusal arrives as an error result |
-| Destructive tools | A destructive tool needs `confirm: true` before it executes |
+| Destructive tools | A destructive tool runs only when it is called again with the consent digest from its first result |
 | Logging | An executed call writes a log row and publishes an `McpToolCallEvent`, whether the tool succeeded or failed. A call refused before execution is not logged |
 
 :::warning
@@ -75,19 +75,26 @@ requires an Admin API context.
 
 ### Confirm a destructive tool
 
-A destructive tool called without `confirm: true` returns a `confirmation_required` result and does not run. Show
-that result to the shopper, then call the tool again with `confirm: true` once they agree.
+A destructive tool does not run on its first call. It returns an `incomplete` result with a `preview` of what it
+would do and a `consent` need that carries a `digest`. Show the preview to the shopper, then call the tool again
+with the same arguments and `confirm` set to the digest once they agree.
 
-A confirmation-required result does not set `isError`, so check `structuredContent.status`:
+The digest only works for the same caller, the same arguments and the same preview, and it expires after ten
+minutes. When the target has changed since the preview, for example because the cart changed, the call returns a
+new `incomplete` result with a new preview instead of running.
+
+An `incomplete` result does not set `isError`, so check `structuredContent.status`:
 
 ```ts
 const args = { paymentMethodCode: 'standard-payment' };
 const result = await this.mcpToolExecution.executeTool(ctx, 'shop', 'place_order', args);
+const content = result.structuredContent as McpConsentRequiredResult | undefined;
 
-if (result.structuredContent?.status === 'confirmation_required') {
-    // `result.content[0].text` describes what the tool will do. Show it to the shopper.
-    if (await this.shopperApproves(result)) {
-        await this.mcpToolExecution.executeTool(ctx, 'shop', 'place_order', { ...args, confirm: true });
+if (content?.status === 'incomplete') {
+    // `content.preview` describes what the tool will do. Show it to the shopper.
+    if (await this.shopperApproves(content.preview)) {
+        const digest = content.needs[0].digest;
+        await this.mcpToolExecution.executeTool(ctx, 'shop', 'place_order', { ...args, confirm: digest });
     }
 }
 ```

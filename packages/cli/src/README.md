@@ -101,18 +101,10 @@ interface CliCommandOption {
 
 ## Interactive vs Non-Interactive Mode Detection
 
-Commands automatically detect which mode to use based on provided options:
-
-```typescript
-// Non-interactive mode is triggered when any option has a truthy value (not false)
-const nonInteractive = options && Object.values(options).some(v => v !== undefined && v !== false);
-
-if (nonInteractive) {
-    await handleNonInteractiveMode(options);
-} else {
-    await handleInteractiveMode();
-}
-```
+`vendure add` and `vendure migrate` run a subcommand through the command host when a feature flag
+is given, such as `vendure add -e MyEntity --selected-plugin MyPlugin` for
+`vendure add entity MyEntity --plugin MyPlugin`. Without one, they show a menu. The host asks a
+person for what is missing only when stdin and stdout are TTYs, and returns `incomplete` otherwise.
 
 ## Available Commands
 
@@ -237,14 +229,14 @@ npx vendure add -e MyEntity --selected-plugin MyPlugin --custom-fields --transla
 # Add a service to a plugin
 npx vendure add -s MyService --selected-plugin MyPlugin
 
-# Add a service with specific type
-npx vendure add -s MyService --selected-plugin MyPlugin --type entity
+# Add a CRUD service for an entity
+npx vendure add -s MyEntityService --selected-plugin MyPlugin --selected-entity MyEntity
 
 # Add job queue support to a plugin
 npx vendure add -j MyPlugin --name my-job --selected-service MyService
 
 # Add GraphQL codegen to a plugin
-npx vendure add -c MyPlugin
+npx vendure add codegen --plugin MyPlugin
 
 # Add API extension to a plugin
 npx vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
@@ -267,16 +259,16 @@ npx vendure migrate
 
 ```bash
 # Generate a new migration
-npx vendure migrate -g my-migration-name
+npx vendure migrate generate my-migration-name
 
 # Run pending migrations
-npx vendure migrate -r
+npx vendure migrate run
 
-# Revert the last migration
-npx vendure migrate --revert
+# Revert the last migration, after showing what it reverts and asking first
+npx vendure migrate revert
 
 # Generate migration with custom output directory
-npx vendure migrate -g my-migration -o ./custom/migrations
+npx vendure migrate generate my-migration --output-dir ./custom/migrations
 ```
 
 ## Command Implementation Patterns
@@ -369,8 +361,8 @@ import { runCliCommand } from '../../shared/cli-command-exit';
             required: false,
         },
         {
-            long: '--type <type>',
-            description: 'Type of service: basic or entity (default: basic)',
+            long: '--selected-entity <name>',
+            description: 'An entity of the plugin. The service then has CRUD methods for it',
             required: false,
         },
     ],
@@ -386,7 +378,7 @@ Commands implement validation for non-interactive mode to ensure all required pa
 Entity and service commands now support non-interactive mode with the `--selected-plugin` parameter to specify the target plugin. Both commands support additional options for customization:
 
 - Entity commands support `--custom-fields` and `--translatable` flags
-- Service commands support `--type` parameter to specify service type (basic or entity)
+- Service commands support `--selected-entity` to make a CRUD service for an entity
 
 **Example Error Handling:**
 
@@ -437,8 +429,9 @@ Keep the lazy `import()` inside the action so heavy command modules are not load
 
 ## Extending the CLI with Plugins
 
-For standalone Console login and refresh, see the [Console authentication API](../CONSOLE_AUTH.md).
-Import these operations from `@vendure/cli`. Project-link setup continues to use `afterConsoleLink`.
+For how the CLI signs in, the credential rule, `VENDURE_CLOUD_TOKEN` and the login API, see
+[Console authentication](../CONSOLE_AUTH.md). Import the login API from `@vendure/cli`.
+Project-link setup uses `afterConsoleLink`.
 
 External packages add commands, add to existing ones, or replace them by
 exporting a CLI plugin with `defineCliPlugin`.

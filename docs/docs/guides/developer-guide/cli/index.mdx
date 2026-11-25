@@ -32,6 +32,52 @@ The Vendure CLI supports both **interactive** and **non-interactive** modes:
 For guidance on using the CLI together with project instructions for AI coding agents, see the
 [AI-assisted development guide](/guides/developer-guide/ai-assisted-development/).
 
+## JSON Output for Scripts and Agents
+
+`doctor`, the `add` commands, `migrate generate`, `migrate run`, `migrate revert`, the `devserver`
+commands, `explain`, `commands` and `guide` accept `--json`. With `--json`, the command
+writes exactly one JSON document to stdout, and sends everything else, including output from libraries
+and the processes it starts, to stderr:
+
+```json
+{ "schemaVersion": 1, "status": "ok", "output": {}, "notices": [] }
+```
+
+`status` is one of:
+
+| Status       | Meaning                                                                                       | Exit code |
+| ------------ | --------------------------------------------------------------------------------------------- | --------- |
+| `ok`         | The command finished. `output` holds its result                                               | 0         |
+| `failed`     | The command finished, and its checks did not pass, for example a failed `doctor` check        | 1         |
+| `incomplete` | The command needs something before it can run. `needs` lists it                               | 3         |
+| `error`      | The command could not run. `error` holds a `code`, a `message` and structured `fixes`         | 1 or more |
+
+A need is one of:
+
+- `input`: a required field is missing. It names the `field`, and lists the valid `choices` when the
+  command can work them out, such as the plugins in your project.
+- `consent`: the command would do something destructive. It names the `consent`, shows a `preview` of
+  what would happen, and carries a `digest`. Pass the digest as the value of that consent, for example
+  `--revert-migration <digest>`, and run the same command again. If what the command would do has changed
+  since, it asks again.
+- `person`: a step only a person can take. It gives a `url`.
+
+`--input <json>` passes all of a command's options as one JSON document, and `--input -` reads that
+document from stdin. Options set as flags win over the same field in the document.
+
+The CLI prompts only when stdin and stdout are both terminals, and neither `CI` nor
+`VENDURE_CLI_NON_INTERACTIVE` is set. Otherwise a missing required option returns `incomplete` at once.
+
+While it runs, a command writes events to stderr as one JSON object per line, each tagged
+`"vendure": "event"`, so a script can tell them apart from other output.
+
+`vendure commands --json` lists these commands, with the JSON Schema of each one's input and output.
+
+`vendure guide` prints a short guide for coding agents: how to run commands with `--json`, answer
+`incomplete` results, use the dev server, and when to use the Developer MCP (`vendure mcp`) or the
+Store MCP. It ships with the CLI, so it always matches the installed version. The `vendure-cli` agent
+skill (`npx skills add vendurehq/vendure --skill vendure-cli`) points agents to it.
+
 ## The Dev Command
 
 The `dev` command runs the server, worker and Dashboard in development mode. Use a target to run one process:
@@ -81,6 +127,75 @@ to the project directory.
 | `--inspect-brk [host:port]` | Enable the inspector and pause before user code starts. |
 | `--no-reload` | Disable automatic server and worker restarts. |
 
+When a backend file changes, `vendure dev` restarts the server and the worker once. A compile error or a
+failed start does not end the run: it reports the error and restarts the process on the next save.
+Changes under `.vendure/` and under the `gqlOutputPath` of the Dashboard Vite config do not cause a restart.
+
+A run that starts the server keeps its state in a state file, which the `devserver` commands read. On macOS
+and Linux it is `.vendure/devserver.json` in the project directory. On Windows it is
+`%LOCALAPPDATA%\Vendure\devserver\<hash>.json` in your user profile, one file per project directory. On
+macOS and Linux the file has mode 0600, so only your user can read it. On Windows it takes the permissions of
+your profile's `%LOCALAPPDATA%`, which by default only you, SYSTEM and administrators can read. The file is
+deleted when the run stops. The server and the worker
+log as JSON, and every line of output goes to `.vendure/logs/dev.jsonl`. The terminal still shows readable
+text. The log rotates at 10 MB and keeps three files.
+
+## The Devserver Commands
+
+The `devserver` commands run `vendure dev` in the background and report on it, for scripts and coding agents.
+`vendure mcp` offers them as tools too. Run them in the project directory.
+
+```bash
+# Start the server, worker and Dashboard in the background, and wait until they are ready
+npx vendure devserver start
+
+# Status, URLs, restart count and the last error, with file, line and message for a compile error
+npx vendure devserver status --json
+
+# Wait until the run is ready. Returns at once if it failed
+npx vendure devserver wait --timeout 60 --json
+
+# Read the log: recent lines, one request, or warnings and errors
+npx vendure devserver logs --since 15m --min-severity warn
+npx vendure devserver logs --request <request-id> --json
+
+npx vendure devserver stop
+```
+
+To run a GraphQL operation on the running dev server, use `vendure api`. `admin` runs it on the Admin API as the
+superadmin, with no credentials needed. `shop` runs it on the Shop API anonymously, like a storefront, and each call
+is a new session. A response with errors exits with code 1, and each error keeps its `extensions`, including the
+`requestId`:
+
+```bash
+npx vendure api admin '{ products(options: { take: 5 }) { items { id name } } }' --json
+npx vendure api shop 'query ($id: ID!) { product(id: $id) { name } }' --variables '{"id":"1"}' --json
+```
+
+`--operation-name` picks one operation from a document that holds several, and `--channel-token` sends the
+`vendure-token` header for another channel. A project that sets `apiOptions.channelTokenKey` to another header
+name ignores `--channel-token`.
+
+| Command | Description |
+| --- | --- |
+| `devserver start [target]` | Start `vendure dev` in the background, for the target `all` (the default) or `server`. It waits until the run is ready or failed, except under `vendure mcp`. `--no-wait` returns once the run has started. It refuses to start while another run serves the project. |
+| `devserver status` | Report `starting`, `ready`, `restarting`, `failed` or `stopped`, with the URLs, the start time, the restart count and the last error. |
+| `devserver wait` | Wait until the run is ready, and return at once when it failed or stopped. `--after-restarts <n>` waits for the restart an edit causes: pass the `restarts` that `status` reported before the edit, plus 1. |
+| `devserver logs` | Read `.vendure/logs/dev.jsonl`, filtered with `--since` (a duration such as `15m`, or an ISO 8601 time), `--request <id>` and `--min-severity`. It returns the newest 1000 lines that match. |
+| `devserver stop` | Stop the run and wait until it has exited. |
+
+Each request has an ID, which the server returns in the `x-request-id` header and in the extensions of a
+GraphQL error. A job that a request adds carries the same ID, so `--request` finds the log lines of the
+request and of the jobs it started.
+
+`vendure explain <request-id>` collects what the log holds for one request: the error, with its code,
+message and stack, and every log line of the request. Take the ID from the `x-request-id` header or from
+`extensions.requestId` of a GraphQL error:
+
+```bash
+npx vendure explain 2b0c6c2e-5f6a-4a0e-9d1b-7f0d3c1e8a42 --json
+```
+
 ## The Add Command
 
 The `add` command is used to add new entities, resolvers, services, plugins, and more to your Vendure project.
@@ -104,41 +219,48 @@ The first entry, "Vendure Platform features (B2B, advanced search, ...), free tr
 
 ### Non-Interactive Mode
 
-For automation or when you know exactly what you need to add, you can use the non-interactive mode with specific arguments and options:
+Each feature is its own subcommand, so you can run it from a script or an agent:
 
 ```bash
-# Create a new plugin
-npx vendure add -p MyPlugin
+# Create a new plugin, and add it to the Vendure config
+npx vendure add plugin my-feature
 
 # Add an entity to a plugin
-npx vendure add -e MyEntity --selected-plugin MyPlugin
+npx vendure add entity MyEntity --plugin MyFeaturePlugin
 
 # Add an entity with features
-npx vendure add -e MyEntity --selected-plugin MyPlugin --custom-fields --translatable
+npx vendure add entity MyEntity --plugin MyFeaturePlugin --custom-fields --translatable
 
-# Add a service to a plugin
-npx vendure add -s MyService --selected-plugin MyPlugin
+# Add a basic service to a plugin
+npx vendure add service MyService --plugin MyFeaturePlugin
 
-# Add a service with specific type
-npx vendure add -s MyService --selected-plugin MyPlugin --type entity
+# Add a CRUD service for an entity
+npx vendure add service MyEntityService --plugin MyFeaturePlugin --entity MyEntity
 
-# Add job queue support to a plugin
-npx vendure add -j MyPlugin --name my-job --selected-service MyService
+# Add a job queue to a service
+npx vendure add job-queue --plugin MyFeaturePlugin --service MyService --name my-job
 
-# Add GraphQL codegen to a plugin
-npx vendure add -c MyPlugin
+# Add an Admin API extension. A CRUD service gets the entity's queries and mutations
+npx vendure add api-extension --plugin MyFeaturePlugin --service MyEntityService
 
-# Add API extension to a plugin
-npx vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
+# For any other service, name the query, the mutation, or both
+npx vendure add api-extension --plugin MyFeaturePlugin --service MyService --query-name getCustomData
 
 # Add Dashboard extensions to a plugin
-npx vendure add -d MyPlugin
+npx vendure add dashboard --plugin MyFeaturePlugin
 
-# Use custom config file
-npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
+# Add GraphQL codegen to a plugin
+npx vendure add codegen --plugin MyFeaturePlugin
 ```
 
-#### Add Command Options
+Every subcommand supports `--json`. Without a required input, it returns `incomplete` and names the
+missing fields, with the valid values, such as the plugins of your project, as `choices`. On a
+terminal, it asks for them instead.
+
+The flags in the table below are the older form of the same commands. They still work, and run the
+subcommands above.
+
+#### Older Add Command Flags
 
 | Flag | Long Form                  | Description                        | Example                                                                  |
 | ---- | -------------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
@@ -147,10 +269,9 @@ npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
 | `-e` | `--entity <n>`             | Add a new entity to a plugin       | `vendure add -e MyEntity --selected-plugin MyPlugin`                     |
 | `-s` | `--service <n>`            | Add a new service to a plugin      | `vendure add -s MyService --selected-plugin MyPlugin`                    |
 | `-j` | `--job-queue [plugin]`     | Add job queue support              | `vendure add -j MyPlugin --name job-name --selected-service ServiceName` |
-| `-c` | `--codegen [plugin]`       | Add GraphQL codegen configuration  | `vendure add -c MyPlugin`                                                |
-| `-a` | `--api-extension [plugin]` | Add API extension scaffold         | `vendure add -a MyPlugin --queryName getName --mutationName setName`     |
+| `-a` | `--api-extension [plugin]` | Add API extension scaffold         | `vendure add -a MyPlugin --selected-service MyService --query-name getName` |
 | `-d` | `--dashboard [plugin]`     | Add Dashboard extensions setup     | `vendure add -d MyPlugin`                                                |
-|      | `--config <path>`          | Specify custom Vendure config file | `--config ./custom-config.ts`                                            |
+|      | `--config <path>`          | Custom Vendure config file, used with `-p` | `vendure add -p my-plugin --config ./custom-config.ts`          |
 
 #### Sub-options for specific commands
 
@@ -163,7 +284,7 @@ npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
 **Service (`-s`) additional options:**
 
 - `--selected-plugin <n>`: Name of the plugin to add the service to (required)
-- `--type <type>`: Type of service: basic or entity (default: basic)
+- `--selected-entity <n>`: An entity of the plugin. The service then has CRUD methods for it
 
 **Job Queue (`-j`) additional options:**
 
@@ -172,8 +293,9 @@ npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
 
 **API Extension (`-a`) additional options: (requires either)**
 
-- `--queryName <n>`: Name for the GraphQL query
-- `--mutationName <n>`: Name for the GraphQL mutation
+- `--selected-service <n>`: The service the resolver calls (required)
+- `--query-name <n>`: Name for the GraphQL query
+- `--mutation-name <n>`: Name for the GraphQL mutation
 
 :::info
 **Validation**: Entity and service commands validate that the specified plugin exists in your project. If the plugin is not found, the command will list all available plugins in the error message. Both commands require the `--selected-plugin` parameter when running in non-interactive mode.
@@ -199,20 +321,23 @@ For migration operations, use specific arguments and options:
 
 ```bash
 # Generate a new migration
-npx vendure migrate -g my-migration-name
+npx vendure migrate generate my-migration-name
 
 # Run pending migrations
-npx vendure migrate -r
+npx vendure migrate run
 
-# Revert the last migration
-npx vendure migrate --revert
+# Revert the last migration, after showing what it reverts and asking first
+npx vendure migrate revert
 
 # Generate migration with custom output directory
-npx vendure migrate -g my-migration -o ./custom/migrations
+npx vendure migrate generate my-migration --output-dir ./custom/migrations
 
 # Generate a complete baseline migration against an empty shadow database
-npx vendure migrate -g initial --from-empty
+npx vendure migrate generate initial --from-empty
 ```
+
+`generate`, `run` and `revert` support `--json`, which writes one JSON document to stdout. The older
+flags `-g <name>` and `-r` run the same commands as `generate` and `run`.
 
 #### Migrate Command Options
 
@@ -220,9 +345,25 @@ npx vendure migrate -g initial --from-empty
 | ---- | --------------------- | -------------------------------------- | ------------------------------------------------- |
 | `-g` | `--generate <name>`   | Generate a new migration               | `vendure migrate -g add-user-table`               |
 | `-r` | `--run`               | Run all pending migrations             | `vendure migrate -r`                              |
-|      | `--revert`            | Revert the last migration              | `vendure migrate --revert`                        |
 | `-o` | `--output-dir <path>` | Custom output directory for migrations | `vendure migrate -g my-migration -o ./migrations` |
 |      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty` |
+
+### Reverting a Migration
+
+`vendure migrate revert` shows which config, database and migration a revert would undo, and asks you
+to confirm. With `--json`, it returns `incomplete` with a `revertMigration` consent need instead:
+
+```bash
+npx vendure migrate revert --json
+# → "needs": [{ "kind": "consent", "consent": "revertMigration", "digest": "c9bedc6757cd4396", "preview": { ... } }]
+
+npx vendure migrate revert --json --revert-migration c9bedc6757cd4396
+# → "status": "ok", "output": { "reverted": true, "migration": "First1795182600577" }
+```
+
+The digest belongs to that preview. If the last applied migration or the database changes in between, the
+command asks again. When the database has applied no migration, nothing is reverted and no consent is
+needed.
 
 ## The Schema Command
 
@@ -343,14 +484,32 @@ in-memory job queue/cache/session strategies, and missing asset storage.
 
 ### Using in CI
 
-For CI pipelines, combine `--strict` with `--format json`. The `--strict` flag treats warnings as
+For CI pipelines, combine `--strict` with `--json`. The `--strict` flag treats warnings as
 failures, and the command exits with a non-zero code when the overall result is a failure - so a
 warning will fail your build:
 
 ```bash
 # Fail the build on any warning or failure, and emit machine-readable output
-npx vendure doctor --strict --format json
+npx vendure doctor --strict --json
 ```
+
+With `--json`, the command writes one JSON document to stdout. The report is its `output`, and
+`status` is `failed` when the overall result is a failure:
+
+```json
+{
+    "schemaVersion": 1,
+    "status": "ok",
+    "output": {
+        "nodeVersion": "v22.12.0",
+        "checks": [{ "name": "Project", "status": "pass", "message": "Vendure project detected" }],
+        "overallStatus": "passed"
+    },
+    "notices": []
+}
+```
+
+`--format json` is an alias for `--json`.
 
 #### Doctor Command Options
 
@@ -359,8 +518,9 @@ npx vendure doctor --strict --format json
 | `--config <path>`   | Specify the path to a custom Vendure config file                                       | `vendure doctor --config ./src/my-config.ts`  |
 | `--check <names...>` | Run specific checks only (`project`, `dependencies`, `config`, `schema`, `database`)  | `vendure doctor --check config schema`        |
 | `--profile <name>`  | Run profile-specific checks (`production`)                                              | `vendure doctor --profile production`         |
-| `--format <type>`   | Output format: `text` (default) or `json`                                              | `vendure doctor --format json`                |
 | `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
+| `--json`            | Write one JSON document to stdout. `--format json` is an alias                        | `vendure doctor --json`                       |
+| `--input <json\|->` | Pass all options as one JSON document, or `-` to read it from stdin                   | `vendure doctor --input '{"strict":true}'`    |
 
 ## The Auth Command
 
@@ -375,9 +535,34 @@ The CLI shows a one-time code and opens your browser. Confirm the code and sign 
 than one organization, the CLI then asks which one to use, starting from the one chosen in the browser. Nothing on this
 machine needs a browser: you can open the URL on another device.
 
-Without a terminal, for example in a script, the CLI does not ask. It keeps the organization chosen in the browser, names
-it, and shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
-`vendure auth status` shows its ID and that command.
+### Signing in without a terminal
+
+Without a person at a terminal, `vendure auth login` does not wait. That is the case under `--json`, as an MCP tool, when
+`CI` or `VENDURE_CLI_NON_INTERACTIVE` is set, or when stdin or stdout is not a terminal. It returns the URL and code to
+approve at once, and `vendure auth wait` finishes the login:
+
+```bash
+npx vendure auth login --json
+# {"schemaVersion":1,"status":"ok","output":{"status":"pending","url":"https://...","code":"ABCD-EFGH","expiresAt":"..."},...}
+npx vendure auth wait --json
+```
+
+Give the URL and code to a person, who opens the URL on any device and confirms the code. `vendure auth wait` returns
+the login once the code is approved. With `--timeout <seconds>` it stops waiting earlier and returns the pending login
+again, so you can run it again. Without `--timeout` it waits for the rest of the code lifetime, or 30 seconds as an MCP
+tool. Only one `vendure auth wait` polls at a time: another one waits for it and then reports the same login.
+
+The pending login is stored in `auth-pending.json` next to `auth.json`, readable only by your user. A new
+`vendure auth login --json` replaces it, and `vendure auth logout` removes it. A stored login stays until the new one
+is approved. When no login is pending, or its code has expired or was denied, `vendure auth wait` returns an error whose
+fix is `vendure auth login --json`.
+
+Nobody is asked which organization to use either. The CLI keeps the organization chosen in the browser, names it, and
+shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
+`vendure auth status` shows its ID and that command. `--organization` passed to `vendure auth login --json` is used
+when `vendure auth wait` finishes the login.
+
+### Choosing the organization
 
 To choose the organization on the command line instead, for example in a script or on a remote machine, pass its
 Account identifier (in Vendure Console under **Settings**) or its name. Names match ignoring case:
@@ -391,6 +576,8 @@ The CLI looks the organization up in Vendure Console after you sign in. It refus
 organizations share, and lists their Account identifiers so you can pick one. To change organization later, run
 `vendure auth login --organization` again.
 
+### Checking and ending the login
+
 Check who is signed in, or sign out:
 
 ```bash
@@ -403,8 +590,18 @@ npx vendure auth logout
 `status` says so with the code it answered, for example `invalid_grant`, and tells you to run `vendure auth login`. When
 the check cannot finish, for example without a network, it shows the login with a warning.
 
-`status --json` prints the user, organization, client and access token expiry, and `renewable` with the result of the
-check. It never includes a token. It exits with code 1 when nobody is signed in or the login can no longer be renewed.
+`status --json` writes the user, organization, client and access token expiry, and `renewable` with the result of the
+check, as the `output` of the JSON result. `credential` says which credential commands use: `stored-login`,
+`environment` for `VENDURE_CLOUD_TOKEN` when no login is stored, or `none`. It never includes a token. It exits with
+code 1, with the status `failed`, when there is no credential at all.
+
+### Credentials for agents and CI
+
+A command that needs your Vendure account uses the stored login first, then `VENDURE_CLOUD_TOKEN`. A sandbox or CI job
+cannot share your login, because each renewal spends its single-use refresh token. Give it its own credential, such
+as a delegated agent key, in `VENDURE_CLOUD_TOKEN`. Only a person at a terminal is signed in automatically. Every
+other run returns `incomplete` with an `input` need for the secret `token` field, whose fix is
+`vendure auth login --json`.
 
 When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
 asks before it is replaced. A login that can no longer be renewed is replaced without asking.
@@ -527,39 +724,44 @@ not have to link the Project themselves, and they do not need a plan or trial. I
 access, the assistant tells you to run `vendure console link` and names
 [console.vendure.io](https://console.vendure.io).
 
-The CLI prints these steps only in human output. With `--json` or `--non-interactive`, the output does not change.
+The CLI prints these steps only in human output. Without a person at a terminal, the output does not change.
 
-### Structured, non-interactive linking
+### Linking without a terminal
 
 For automation, run:
 
 ```bash
-npx vendure console link --json --non-interactive --project ./apps/server
+npx vendure console link --json --console-project parts-counter --project ./apps/server
 ```
 
-`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. To
-create a Project Link, pass the Project with `--console-project`. The command then uses the login stored by
-`vendure auth login`:
+A run never prompts, signs in or opens a browser without a person at a terminal: under `--json`, when `CI` or
+`VENDURE_CLI_NON_INTERACTIVE` is set, or when stdin or stdout is not a terminal. `--non-interactive` still works and
+means the same, but is no longer listed in `--help` and will be removed in a later release. An existing manifest is
+reused.
+
+To create a Project Link, the command needs a credential. It uses the login stored by `vendure auth login`, and
+otherwise `VENDURE_CLOUD_TOKEN`, for example a delegated agent key. Without either, the result is `incomplete`, with
+an `input` need for the secret `token` field whose fix is `vendure auth login --json`, and the command sends no
+request to Console. Sign in a person with [`vendure auth login --json` and `vendure auth wait`](#signing-in-without-a-terminal),
+or set `VENDURE_CLOUD_TOKEN`, then run the command again. `VENDURE_CLOUD_TOKEN` is never renewed and never given to
+plugin hooks that request a session.
 
 ```bash
-npx vendure console link --non-interactive --console-project parts-counter
-npx vendure console link --non-interactive --force --console-project parts-counter
+npx vendure console link --json --console-project parts-counter
+npx vendure console link --json --force --console-project parts-counter
 ```
 
-Without `--console-project`, a project with no manifest returns `incomplete` with exit code 1, names the flag and
-an interactive command, and sends no request to Console. Without a stored login, the command returns `incomplete`
-and names `vendure auth login`. `--force` still means a different Project Link, so without `--console-project` it
-requires an interactive run even with `--yes`. Neither flag authorizes a plugin to replace credentials or registry
-tokens.
+The command links the Project that `--console-project` names, or the organization's single Project. When there are
+more and no `--console-project`, or when `--console-project` names none of them, the result is `incomplete`: an
+`input` need for `consoleProject` lists the Projects' slugs as its `choices`, and `nextSteps` lists the Projects with
+their names. For a value that names none of them, `nextSteps` also points to `--organization`. When
+`--console-project` names another Project than the linked one, the need is for `force`. `--force` still means a
+different Project Link. Without a terminal it replaces the link only with the Project that `--console-project` names,
+or the account's single Project, and nothing changes until that Project is known. Neither `--force` nor `--yes`
+authorizes a plugin to replace credentials or registry tokens.
 
-`--json` writes one result to stdout and disables terminal prompts. Reporter progress, including the sign-in code,
-goes to stderr. Sign-in remains available unless `--non-interactive` is set. Without a terminal, the command links
-the Project that `--console-project` names, or an organization's single Project. When there are more and no
-`--console-project`, or when `--console-project` names none of them, the result is `incomplete`: `missingInputs`
-names `--console-project`, and `nextSteps` lists the Projects with their slugs. For a value that names none of them,
-`nextSteps` also points to `--organization`. When `--console-project` names another Project than the linked one,
-`missingInputs` names `--force`. Human output remains the default.
-The result has this shape:
+`--json` writes one result to stdout. Reporter progress goes to stderr. Human output remains the default. The result
+has this shape:
 
 ```json
 {
@@ -570,13 +772,16 @@ The result has this shape:
         "link": { "outcome": "repaired", "manifestPath": "/checkout/apps/server/.vendure/project.json" },
         "plugins": {}
     },
-    "missingInputs": [],
+    "needs": [],
     "nextSteps": []
 }
 ```
 
-Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Missing inputs name the required input and may
-include `flag`, `command`, `argument`, or `environment` names. They never contain secret values. Plugin setup data
+`needs` uses the same shape as every other CLI command's `incomplete` result: `input` needs name a field, and say
+whether it is secret, its valid `choices` and the command that fixes it. They never contain secret values. `needs`
+replaces `missingInputs`.
+
+Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Plugin setup data
 is stored under the plugin ID in `data.plugins`. Incomplete or failed setup returns exit code 1 and keeps the
 linked manifest. Interrupts retain exit code 130 or 143. JSON results contain no tokens, parsed option values, or raw
 errors. Plugins must supply only safe setup metadata.
@@ -726,6 +931,104 @@ Console host is not supported.
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
 requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. It accepts the matching production pair, the matching
 staging pair, or a loopback pair. It rejects other hosts.
+
+## The Developer MCP
+
+`vendure mcp` runs the Developer MCP: an [MCP](https://modelcontextprotocol.io) server over stdio that
+offers the commands listed by `vendure commands --json` to AI agents. It is for working on the code of a
+project. An agent that has a shell can run the same commands with `--json` instead.
+
+Add it to your MCP client with `vendure mcp install`:
+
+```bash
+npx vendure mcp install --client claude
+```
+
+This writes the client's project config at the root of your git repository. For Claude Code that is
+`.mcp.json`:
+
+```json
+{
+    "mcpServers": {
+        "vendure": {
+            "command": "npx",
+            "args": ["--no", "--offline", "@vendure/cli", "mcp"]
+        }
+    }
+}
+```
+
+Commit the file. The entry has no absolute path, so every clone and every git worktree gets it, and each one
+runs the `@vendure/cli` that its own `node_modules` holds. `--no` and `--offline` stop npx from downloading
+anything. The client starts the server in the folder it was opened in, and `vendure mcp` finds the project by
+walking up from there. In a monorepo it looks in the package folders from the root, as `vendure dev` does.
+`vendure mcp` only runs from the project's own `@vendure/cli`. When npx falls back to a global install, it
+stops and names the version the project installs.
+
+| Client         | `--client` | What `install` does                                                                  |
+| -------------- | ---------- | ------------------------------------------------------------------------------------ |
+| Claude Code    | `claude`   | Writes `.mcp.json`                                                                   |
+| VS Code        | `vscode`   | Writes `.vscode/mcp.json`                                                            |
+| Codex          | `codex`    | Writes `.codex/config.toml`. Codex reads it in a trusted project                     |
+| Cursor         | `cursor`   | Prints the entry for `.cursor/mcp.json`, because Cursor does not document which folder it starts a server in |
+
+Running `install` again changes only the `vendure` entry, and leaves the others alone. `--print` shows the
+entry without writing anything.
+
+In a monorepo, the client usually starts the server from the repository root. `install` checks that npx
+finds the project's `@vendure/cli` from there. When it does not, for example with pnpm and no hoisting, add
+`@vendure/cli` as a devDependency of the root package.json, or use `--scope local`. With `--scope local`,
+`install` runs `claude mcp add --scope local` with the absolute path to the project's CLI. That entry belongs
+to your machine and is not checked in.
+
+A checked-in entry has no project directory, so the server has to find your project from the repository root.
+When the root holds more than one Vendure project, `install` refuses to write the file and offers
+`--scope local`, whose entry passes the project directory.
+
+The checked-in entry has not been tested on native Windows, where `npx` is `npx.cmd`. If your client cannot
+start it there, use `--scope local`, which runs Node with the absolute path to the CLI.
+
+By default, it offers four tools:
+
+| Tool                  | What it does                                                         |
+| --------------------- | -------------------------------------------------------------------- |
+| `search_tools`        | Finds commands by name, description or keyword, with their input     |
+| `execute_readonly`    | Runs a command that only reads, such as `doctor`                     |
+| `execute_mutating`    | Runs a command that changes files or data, such as `add_codegen`     |
+| `execute_destructive` | Runs a command that is hard to undo, such as `migrate_revert`        |
+
+A tool's name is its command path joined with `_`. Because there is one executor per kind of command, your
+MCP client can ask for approval before every destructive call and allow read-only calls. With
+`--mode direct`, each command is its own tool instead.
+
+Every tool call runs the command as `vendure <command> --json` in a new process, so its result is the same
+JSON document. Changing commands run one at a time, and read-only commands run in parallel. When the
+client cancels a call, the command and the processes it started are stopped.
+
+#### The admin tools of the dev server
+
+While `vendure dev` or `vendure devserver start` runs the project with the `McpPlugin`, the Developer MCP
+also offers the Store MCP's admin tools, named `admin_<tool>`, for example `admin_list_zones` or
+`admin_create_tax_category`. They come from the running server, so they appear when it is ready and disappear
+when it stops, and the server tells your client that its tool list changed.
+
+- They act as the superadmin, through the local trust that `vendure dev` sets up for the server it starts.
+  Leave the plugin's `localTrust` option on. A deployed server never accepts it.
+- `search_tools` finds them, and each one runs through the executor of its kind, like a command:
+  `admin_list_zones` with `execute_readonly`, `admin_delete_zone` with `execute_destructive`.
+- A destructive tool first returns an `incomplete` result with a preview and a digest. Call it again with
+  `confirm` set to the digest.
+- `admin_set_active_channel` selects the channel for the later calls of the same MCP connection. The server
+  keeps no state: the Developer MCP sends the channel's token with each call.
+- While the dev server is stopped, starting or failed, or does not serve the Store MCP, a call to an admin tool
+  returns an error with a fix, such as `devserver_start`.
+
+#### MCP Command Options
+
+| Long Form       | Description                                                                  | Example                          |
+| --------------- | ---------------------------------------------------------------------------- | -------------------------------- |
+| `--dir <path>`  | The project directory. Found by walking up from the current directory by default | `vendure mcp --dir ./my-shop` |
+| `--mode <mode>` | `discovery` (default) offers the four tools above, `direct` lists each command | `vendure mcp --mode direct`    |
 
 ## Working in Monorepos
 
@@ -1148,7 +1451,13 @@ export default defineCliPlugin({
                 context.contributeResult({
                     outcome: 'incomplete',
                     data: { session: 'missing' },
-                    missingInputs: [{ input: 'consoleSession', command: 'vendure console link' }],
+                    needs: [
+                        {
+                            kind: 'input',
+                            field: 'consoleSession',
+                            description: 'A Console login: run vendure console link on this machine and sign in',
+                        },
+                    ],
                     nextSteps: ['Run vendure console link interactively on this machine and sign in.'],
                 });
                 return;
@@ -1174,7 +1483,8 @@ Do not replace the `console` command for post-link setup. Register the hook.
 - Hooks must be repeatable because a repair runs them again.
 
 Throw when setup fails, or call `context.contributeResult` with `outcome: 'incomplete'` or `'failed'`, safe `data`,
-and repair steps. Both stop later hooks and return non-zero. Use `outcome: 'configured'` for completed setup.
+`needs` and repair steps. `missingInputs` in a contribution still works but is deprecated: each entry becomes an
+`input` need. Both stop later hooks and return non-zero. Use `outcome: 'configured'` for completed setup.
 Core combines contributions into one result. Do not print a second JSON object or include credentials, tokens,
 raw errors, or parsed option values in a contribution. Use `context.reporter` for progress.
 

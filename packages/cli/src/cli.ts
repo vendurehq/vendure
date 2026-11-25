@@ -4,6 +4,8 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
+import { registerManifestCommands } from './command-host/commander-adapter.js';
+import { loadMergedManifest } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
 import { devCommandDef } from './commands/dev/command.js';
@@ -49,6 +51,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // complete. Commander copies the help configuration into each subcommand as
     // it is created, so this must be set first.
     program.configureHelp({ showGlobalOptions: true, styleTitle: styleHelpTitle });
+    // Only on the top-level help, which is where an agent looks first.
+    program.addHelpText(
+        'after',
+        '\nAgents: run "vendure guide" for how to use this CLI, --json and the Developer MCP.',
+    );
 
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
@@ -101,6 +108,19 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         rootOptions: registry.getRootOptions(),
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
+
+    // Commands declared with `defineCommand` are built from the manifest alone. Their
+    // declarations load only when one of them runs.
+    try {
+        registerManifestCommands(program, await loadMergedManifest(), {
+            loadDefinitions: async () =>
+                (await import('./command-host/core-commands.js')).coreCommandDefinitions,
+        });
+    } catch (e) {
+        process.stderr.write(
+            `Could not load the command manifest: ${e instanceof Error ? e.message : String(e)}\n`,
+        );
+    }
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';

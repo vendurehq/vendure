@@ -1,0 +1,25 @@
+/home/dev/shop/node_modules/ts-node/src/index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+[96msrc/index.ts[0m:[93m1[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'number'.
+
+[7m1[0m const port: number = 'three thousand';
+[7m [0m [91m      ~~~~[0m
+[96msrc/index.ts[0m:[93m3[0m:[93m12[0m - [91merror[0m[90m TS2339: [0mProperty 'nope' does not exist on type 'string'.
+
+[7m3[0m   return a.nope;
+[7m [0m [91m           ~~~~[0m
+
+    at createTSError (/home/dev/shop/node_modules/ts-node/src/index.ts:859:12)
+    at reportTSError (/home/dev/shop/node_modules/ts-node/src/index.ts:863:19)
+    at getOutput (/home/dev/shop/node_modules/ts-node/src/index.ts:1077:36)
+    at Object.compile (/home/dev/shop/node_modules/ts-node/src/index.ts:1433:41)
+    at Module.m._compile (/home/dev/shop/node_modules/ts-node/src/index.ts:1617:30)
+    at node:internal/modules/cjs/loader:2060:10
+    at Object.require.extensions.<computed> [as .ts] (/home/dev/shop/node_modules/ts-node/src/index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19) {
+  diagnosticCodes: [ 2322, 2339 ]
+}

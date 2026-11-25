@@ -4,8 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { readStoredAuth } from '../../auth/auth-store.js';
 
-import { ConsoleSession } from './cli-auth.js';
-import { RegisteredConsoleLinkHook } from './console-link-hook.js';
+import { ConsoleSession, RegisteredConsoleLinkHook } from './console-link-hook.js';
 import { ConsoleReporter } from './console-reporter.js';
 import {
     ACCOUNT_ID,
@@ -66,7 +65,7 @@ afterEach(() => {
 
 describe('console link command line login', () => {
     it('signs in with the device flow when no login is stored, then links with that login', async () => {
-        const run = await runLink({ login: false });
+        const run = await runLink({ interactive: true, login: false });
 
         expect(run.exitCode).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
@@ -94,7 +93,7 @@ describe('console link command line login', () => {
     });
 
     it('never creates a Console CLI Session or a browser-approved Project Link', async () => {
-        const run = await runLink({ login: false });
+        const run = await runLink({ interactive: true, login: false });
 
         expect(run.exitCode).toBe(0);
         expect(run.urls().some(url => url.includes('/v1/auth/cli/'))).toBe(false);
@@ -115,6 +114,7 @@ describe('console link command line login', () => {
 
     it('signs in again when WorkOS has ended the stored login', async () => {
         const run = await runLink({
+            interactive: true,
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
         });
@@ -136,6 +136,7 @@ describe('console link command line login', () => {
 
     it('signs in to the organization --organization names when the stored login is for another', async () => {
         const run = await runLink({
+            interactive: true,
             options: { organization: 'Other' },
             console: {
                 memberships: [
@@ -160,7 +161,12 @@ describe('console link command line login', () => {
     // PDEV-552: a new customer's first device login has no organization.
     it("scopes a first device login without an organization to the user's only Customer Account", async () => {
         const select = vi.fn();
-        const run = await runLink({ login: false, select, console: { deviceOrganizationId: null } });
+        const run = await runLink({
+            interactive: true,
+            login: false,
+            select,
+            console: { deviceOrganizationId: null },
+        });
 
         expect(run.exitCode).toBe(0);
         expect(select).not.toHaveBeenCalled();
@@ -396,6 +402,7 @@ describe('console link command line login', () => {
 
     it('reports the sign-in URL and keeps waiting when no browser can be opened', async () => {
         const run = await runLink({
+            interactive: true,
             login: false,
             openUrl: () => Promise.reject(new Error('no browser')),
         });
@@ -409,6 +416,7 @@ describe('console link command line login', () => {
     it('returns an interrupt exit code when the sign-in is interrupted', async () => {
         const abort = new AbortController();
         const run = await runLink({
+            interactive: true,
             login: false,
             signal: abort.signal,
             openUrl: () => {
@@ -452,6 +460,7 @@ describe('console link command line login', () => {
     it('returns an interrupt exit code when a link is interrupted while the login is renewed', async () => {
         const abort = new AbortController();
         const run = await runLink({
+            interactive: true,
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             signal: abort.signal,
             fetch: () => {
@@ -833,9 +842,212 @@ describe('console link --non-interactive --console-project', () => {
         expect(run.exitCode).toBe(1);
         expect(run.urls()).toEqual([]);
         expect(run.openedUrls).toEqual([]);
-        expect(run.messages.join('\n')).toContain('--non-interactive does not sign in');
-        expect(run.messages.join('\n')).toContain('Run vendure auth login in a terminal');
+        expect(run.messages.join('\n')).toContain('nobody is at a terminal to sign in');
+        expect(run.messages.join('\n')).toContain('Run vendure auth login --json');
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
+    it('returns the token need in the JSON result, without a device flow, when no login is stored', async () => {
+        const stdout: string[] = [];
+        const write = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
+            stdout.push(String(chunk));
+            return true;
+        });
+        try {
+            const run = await runLink({ login: false, options: { json: true } });
+
+            expect(run.exitCode).toBe(1);
+            expect(run.urls()).toEqual([]);
+            expect(run.openedUrls).toEqual([]);
+        } finally {
+            write.mockRestore();
+        }
+        const result = JSON.parse(stdout.join(''));
+        expect(result).toMatchObject({
+            outcome: 'incomplete',
+            needs: [
+                {
+                    kind: 'input',
+                    field: 'token',
+                    secret: true,
+                    fix: { path: ['auth', 'login'], input: { json: true } },
+                },
+            ],
+        });
+        expect(result.missingInputs).toBeUndefined();
+    });
+
+    it('links with VENDURE_CLOUD_TOKEN when no login is stored', async () => {
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).toBe(
+            'Bearer vcdk_agent_key',
+        );
+    });
+
+    it('prefers the stored login to VENDURE_CLOUD_TOKEN', async () => {
+        const run = await runLink({
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).toBe(
+            `Bearer ${STORED_ACCESS_TOKEN}`,
+        );
+    });
+
+    it('tells a hook that requested a session that the run uses VENDURE_CLOUD_TOKEN', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['environment-credential']);
+    });
+
+    it('gives a repair hook only a person login, not VENDURE_CLOUD_TOKEN', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const unavailable: Array<string | undefined> = [];
+        const run = await runLink({
+            linked: true,
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            hooks: [recordingHook(sessions, true, unavailable)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toEqual([undefined]);
+        expect(unavailable).toEqual(['not-signed-in']);
+        expect(run.urls()).not.toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+    });
+
+    it('signs a person in for a repair hook at a terminal, rather than handing it VENDURE_CLOUD_TOKEN', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            interactive: true,
+            linked: true,
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            hooks: [recordingHook(sessions, true)],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(sessions).toHaveLength(1);
+        expect(sessions[0]?.accessToken).toBeDefined();
+        expect(sessions[0]?.accessToken).not.toBe('vcdk_agent_key');
+    });
+
+    it('detaches the old attribution with the old account login when --force links another account', async () => {
+        const installationId = '55555555-5555-4555-8555-555555555555';
+        const api = fakeConsole({ memberships: twoAccounts });
+        const deletes: Array<string | undefined> = [];
+        const fetch = ((url: string, init?: RequestInit) => {
+            if (init?.method === 'DELETE') {
+                deletes.push((init.headers as Record<string, string> | undefined)?.Authorization);
+                return Promise.resolve(new Response(null, { status: 204 }));
+            }
+            return api.fetch(url, init);
+        }) as typeof globalThis.fetch;
+
+        const run = await runLink({
+            interactive: true,
+            linked: true,
+            attribution: installationId,
+            options: { force: true },
+            fetch,
+            select: () => Promise.resolve(OTHER_ACCOUNT_ID),
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(readStoredAuth({ env: run.env })?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(deletes).toEqual([`Bearer ${STORED_ACCESS_TOKEN}`]);
+    });
+
+    it('refuses VENDURE_CLOUD_TOKEN that sees several Customer Accounts, and never asks which', async () => {
+        const select = vi.fn();
+        const run = await runLink({
+            interactive: true,
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+            console: { memberships: twoAccounts },
+            select,
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.messages.join('\n')).toContain('VENDURE_CLOUD_TOKEN belongs to 2 Customer Accounts');
+        expect(run.urls()).not.toContain(`${API_URL}/v1/projects`);
+    });
+
+    it('refuses an --organization that VENDURE_CLOUD_TOKEN does not belong to', async () => {
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront', organization: 'Other' },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.messages.join('\n')).toContain('VENDURE_CLOUD_TOKEN belongs to Acme');
+        expect(run.urls()).not.toContain(`${API_URL}/v1/projects`);
+    });
+
+    it('says that Console refused VENDURE_CLOUD_TOKEN, and returns the token need', async () => {
+        const api = fakeConsole();
+        const fetch = ((url: string, init?: RequestInit) =>
+            new URL(url).pathname === '/v1/me'
+                ? Promise.resolve(jsonResponse({ message: 'Unauthorized' }, 401))
+                : api.fetch(url, init)) as typeof globalThis.fetch;
+        const stdout: string[] = [];
+        const write = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
+            stdout.push(String(chunk));
+            return true;
+        });
+        let run: Awaited<ReturnType<typeof runLink>>;
+        try {
+            run = await runLink({
+                login: false,
+                env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+                options: { json: true, consoleProject: 'storefront' },
+                fetch,
+            });
+        } finally {
+            write.mockRestore();
+        }
+
+        expect(run.exitCode).toBe(1);
+        const result = JSON.parse(stdout.join(''));
+        expect(result).toMatchObject({
+            outcome: 'incomplete',
+            needs: [{ kind: 'input', field: 'token', secret: true }],
+        });
+        expect(result.nextSteps.join('\n')).toContain('Set VENDURE_CLOUD_TOKEN to a valid key');
+    });
+
+    it('does not renew VENDURE_CLOUD_TOKEN when Console refuses it', async () => {
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { consoleProject: 'storefront' },
+            console: { link: () => jsonResponse({ message: 'Unauthorized' }, 401) },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.refreshGrants()).toEqual([]);
     });
 
     // CLO-1244
@@ -850,10 +1062,10 @@ describe('console link --non-interactive --console-project', () => {
         const output = run.messages.join('\n');
         expect(output).not.toContain('is stored on this machine');
         expect(output).toContain(
-            'Your Vendure CLI session for https://api.vendure.io has expired or was revoked, ' +
-                'and --non-interactive does not sign in.',
+            'Your Vendure CLI session for https://api.vendure.io has expired or was revoked. ' +
+                'Nobody is at a terminal to sign in.',
         );
-        expect(output).toContain('Run vendure auth login in a terminal');
+        expect(output).toContain('Run vendure auth login --json');
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
     });
 
@@ -864,7 +1076,7 @@ describe('console link --non-interactive --console-project', () => {
 
         expect(run.exitCode).toBe(1);
         expect(run.urls()).toEqual([]);
-        expect(run.messages.join('\n')).toContain('vendure auth login --organization "Other"');
+        expect(run.messages.join('\n')).toContain('vendure auth login --json --organization "Other"');
     });
 });
 
@@ -875,7 +1087,11 @@ interface RunOptions {
     storedOrganization?: { workosOrganizationId: string; customerAccountId: string; name: string } | null;
     /** Start from a project that is already linked, so the run is a repair. */
     linked?: boolean;
+    /** With `linked`, the installation ID the link attributes telemetry to. */
+    attribution?: string;
     interactive?: boolean;
+    /** Extra environment variables for the run. */
+    env?: NodeJS.ProcessEnv;
     options?: ConsoleCommandOptions;
     console?: FakeConsoleOptions;
     fetch?: typeof globalThis.fetch;
@@ -891,8 +1107,18 @@ async function runLink(options: RunOptions = {}) {
     if (options.linked) {
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), productionManifest);
+        if (options.attribution) {
+            fs.writeJsonSync(path.join(root, '.vendure', 'telemetry-attribution.json'), {
+                linkId: productionManifest.link.id,
+                installationId: options.attribution,
+            });
+        }
     }
-    const env = { ...OFFICIAL_ENV, VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories) };
+    const env = {
+        ...OFFICIAL_ENV,
+        VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
+        ...options.env,
+    };
     if (options.login !== false) {
         storeLogin(env, API_URL, {
             ...(options.storedAccessToken ? { accessToken: options.storedAccessToken } : {}),

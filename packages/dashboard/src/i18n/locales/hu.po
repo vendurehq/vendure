@@ -310,6 +310,7 @@ msgstr "Eladók"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-option-list.tsx
 msgid "Options"
 msgstr "Opciók"
 
@@ -400,10 +401,15 @@ msgstr "Biztosan törli ezt a termékváltozatot?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {# gyűjtemény áthelyezése a kiválasztott gyűjteménybe} other {# gyűjtemény áthelyezése a kiválasztott gyűjteménybe}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Minden erőforrás működik"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Open"
@@ -470,6 +476,10 @@ msgstr "Egyéni mezők módosítva"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "A raktárhely sikeresen létrehozva"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr ""
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -908,6 +918,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Kérjük, adjon hozzá termékeket és töltse ki a szállítási címet a teszt futtatásához."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Fejlécsor be-/kikapcsolása"
@@ -1080,6 +1094,10 @@ msgstr "Az Ön API Key-e"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Biztosan törli ezt a piszkozat megrendelést?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -1631,6 +1649,10 @@ msgstr ", {0} kiválasztva"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Nem található ország"
@@ -1805,6 +1827,11 @@ msgstr "Megrendelés állapota megváltozott"
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is before"
 msgstr "előtte van"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr ""
 
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
@@ -2035,6 +2062,10 @@ msgstr "Felhasználási korlát"
 msgid "Create your first collection"
 msgstr "Hozza létre első gyűjteményét"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Globális beállítások betöltése..."
@@ -2191,6 +2222,10 @@ msgstr "Új adókategória"
 #~ msgid "Partial refund completed"
 #~ msgstr "Részleges visszatérítés elvégezve"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
 msgstr "Egyéni mezők beállítása"
@@ -2328,6 +2363,11 @@ msgstr "Utolsó 30 nap"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Nincsenek tulajdonságértékek"
+
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3127,6 +3167,8 @@ msgstr "Tulajdonságok böngészése"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Zóna"
@@ -3467,6 +3509,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Kedvezmény"
 
@@ -3897,8 +3940,6 @@ msgstr "Válasszon értéket"
 #. placeholder {0}: entry.type.replace(/_/g, ' ').toLowerCase()
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
@@ -4048,8 +4089,12 @@ msgid "Set filter criteria for the {columnId} column"
 msgstr "Szűrési feltételek beállítása a(z) {columnId} oszlophoz"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Ország"
@@ -4127,6 +4172,10 @@ msgstr "Szerepkörök keresése..."
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "A mintavételezett {CANDIDATE_POOL_SIZE} termékváltozat egyikének készlete sem {threshold} vagy az alatti. Más változatok készlete így is lehet alacsony."
@@ -4186,6 +4235,10 @@ msgstr ""
 msgid "Assign"
 msgstr "Hozzárendelés"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
 msgstr "Az eladó sikeresen létrehozva"
@@ -4216,6 +4269,10 @@ msgstr "Próbálja újra"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
 msgstr "Szállítási mód sikeresen frissítve"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
@@ -4342,6 +4399,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Ország kiválasztása"
 
@@ -4548,6 +4606,10 @@ msgstr "A jelszavak nem egyeznek"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Válasszon dátumot és időpontot"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -4837,6 +4899,10 @@ msgstr "Cím létrehozva"
 #~ msgid "Add an option group to get started with variants."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "API key sikeresen rotálva"
@@ -4870,6 +4936,10 @@ msgstr "A teljesítésben szereplő tételek."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "Fizetés törlése sikertelen"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5336,6 +5406,10 @@ msgstr "Kiszállítva"
 msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "Figyelt erőforrások"
@@ -5421,6 +5495,10 @@ msgstr "Ha engedélyezve van, a szűrők a szülő gyűjteményből öröklődne
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Válasszon zónát"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -5537,6 +5615,10 @@ msgstr "{formattedDiff} összegű visszatérítés szükséges. A folytatáshoz 
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -5938,6 +6020,10 @@ msgstr "Új szállítási mód"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Delete stock locations"
 msgstr "Készlethelyek törlése"
+
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr ""
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"
@@ -6435,10 +6521,18 @@ msgstr "Termékváltozat neve"
 msgid "Remove"
 msgstr "Eltávolítás"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Vásárló frissítése sikertelen"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
@@ -6748,6 +6842,10 @@ msgstr "Bináris"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Opciócsoport sikeresen frissítve"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7127,6 +7225,10 @@ msgstr "Globális nyelvek"
 msgid "New administrator"
 msgstr "Új rendszergazda"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Piszkozat törlése"
@@ -7485,6 +7587,10 @@ msgstr "nagyobb vagy egyenlő"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Beállítja azt a készletszintet, amelynél ez a termékváltozat készleten kívülinek minősül. Negatív érték használata lehetővé teszi az utórendelés támogatását."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Termékopciók létrehozása"
@@ -7537,6 +7643,10 @@ msgstr "Média hozzáadása"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Vásárló hozzáadva a csoporthoz"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"
@@ -7654,6 +7764,10 @@ msgstr "Adóalap"
 msgid "Load more"
 msgstr "Több betöltése"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 #~ msgstr ""
@@ -7665,6 +7779,10 @@ msgstr "Visszatérítés rendezve"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "API Key"
 msgstr "API Key"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7718,6 +7836,10 @@ msgstr "Bezárás"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Link"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"

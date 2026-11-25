@@ -1,3 +1,4 @@
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { Logger } from '@vendure/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,6 +40,7 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         connection as any,
         eventBus as any,
         resolveMcpPluginOptions(options),
+        { hasSecretArg: (code: string, name: string) => code === 'card-handler' && name === 'apiKey' } as any,
     );
     return { service, savedLogs, publishedEvents, save, publish };
 }
@@ -86,6 +88,38 @@ describe('McpToolCallLogService tool-call logging', () => {
         });
         expect(savedLogs[0].input).toEqual(input);
         expect(savedLogs[0].output).toEqual(output);
+    });
+
+    it('never stores a secret config arg in plain text, even before the operator redact function runs', async () => {
+        const redact = vi.fn((call: { input: unknown; output: unknown }) => call);
+        const { service, savedLogs } = build({ logging: { capture: 'full', redact } });
+        const input = {
+            id: '1',
+            input: { handler: { code: 'card-handler', args: { apiKey: 'sk_live_secret', mode: 'live' } } },
+        };
+        await service.logToolCall({
+            executionContext: { ctx: { apiType: 'admin', channelId: 1 } } as any,
+            tool: toolStub('update_payment_method'),
+            input,
+            output: {
+                handler: { code: 'card-handler', arguments: [{ name: 'apiKey', value: 'sk_live_secret' }] },
+            },
+            durationMs: 1,
+            status: 'success',
+        });
+        expect(JSON.stringify(savedLogs[0])).not.toContain('sk_live_secret');
+        expect(JSON.stringify(redact.mock.calls[0][0])).not.toContain('sk_live_secret');
+        expect(savedLogs[0].input).toEqual({
+            id: '1',
+            input: {
+                handler: {
+                    code: 'card-handler',
+                    args: { apiKey: REDACTED_SECRET_PLACEHOLDER, mode: 'live' },
+                },
+            },
+        });
+        // The tool ran with the real value, so the input it was given is left unchanged.
+        expect(input.input.handler.args.apiKey).toBe('sk_live_secret');
     });
 
     it("applies the operator redact function when capture is 'full', persisting exactly what it returns", async () => {

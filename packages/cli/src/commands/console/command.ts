@@ -23,7 +23,11 @@ export const consoleCommandDef: CliCommandDefinition = {
         },
         {
             long: '--non-interactive',
-            description: 'Do not prompt, sign in or open a browser',
+            description:
+                'Deprecated: a run never prompts, signs in or opens a browser without a person at a terminal',
+            // Kept for one release, so scripts that pass it keep working. --json, CI,
+            // VENDURE_CLI_NON_INTERACTIVE or a missing TTY have the same effect.
+            hidden: true,
         },
         {
             long: '--project <path>',
@@ -46,7 +50,7 @@ export const consoleCommandDef: CliCommandDefinition = {
             long: '--console-project <id|slug>',
             description:
                 'Link this Console Project, by its id or slug, instead of asking. ' +
-                'With --non-interactive, links with the stored CLI login.',
+                'Without a terminal, links with the stored CLI login or VENDURE_CLOUD_TOKEN.',
             required: false,
         },
         {

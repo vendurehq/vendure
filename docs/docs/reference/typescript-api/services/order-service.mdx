@@ -2,7 +2,7 @@
 title: "OrderService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="185" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="198" packageName="@vendure/core" />
 
 Contains methods relating to [Order](/reference/typescript-api/entities/order#order) entities.
 
@@ -50,7 +50,7 @@ class OrderService implements OnApplicationBootstrap {
     unsetBillingAddress(ctx: RequestContext, orderId: ID) => Promise<Order>;
     getEligibleShippingMethods(ctx: RequestContext, orderId: ID) => Promise<ShippingMethodQuote[]>;
     getEligiblePaymentMethods(ctx: RequestContext, orderId: ID) => Promise<PaymentMethodQuote[]>;
-    setShippingMethod(ctx: RequestContext, orderId: ID, shippingMethodIds: ID[]) => Promise<ErrorResultUnion<SetOrderShippingMethodResult, Order>>;
+    setShippingMethod(ctx: RequestContext, orderId: ID, shippingMethods: Array<ID | ShippingMethodSelectionInput>) => Promise<ErrorResultUnion<SetOrderShippingMethodResult, Order>>;
     transitionToState(ctx: RequestContext, orderId: ID, state: OrderState) => Promise<Order | OrderStateTransitionError>;
     transitionFulfillmentToState(ctx: RequestContext, fulfillmentId: ID, state: FulfillmentState) => Promise<Fulfillment | FulfillmentStateTransitionError>;
     transitionRefundToState(ctx: RequestContext, refundId: ID, state: RefundState, transactionId?: string) => Promise<Refund | RefundStateTransitionError>;
@@ -299,9 +299,11 @@ The quote also includes a price for each method, as determined by the configured
 Returns an array of quotes stating which [PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod)s may be used on this Order.
 ### setShippingMethod
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>, shippingMethodIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><SetOrderShippingMethodResult, <a href='/reference/typescript-api/entities/order#order'>Order</a>>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>, shippingMethods: Array<<a href='/reference/typescript-api/common/id#id'>ID</a> | ShippingMethodSelectionInput>) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><SetOrderShippingMethodResult, <a href='/reference/typescript-api/entities/order#order'>Order</a>>>`}   />
 
-Sets the ShippingMethod to be used on this Order.
+Sets the ShippingMethod to be used on this Order. Each entry is either a ShippingMethod id, or a
+selection which also names one of the ShippingMethod's options by its `shippingOptionCode`.
+Without a code, the cheapest option is used.
 ### transitionToState
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>, state: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a> | OrderStateTransitionError>`}   />

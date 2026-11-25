@@ -6,7 +6,9 @@ import {
     ChannelEnabledChecker,
     ChannelService,
     CollectionService,
+    ConfigArgService,
     ConfigService,
+    CountryService,
     CustomerGroupService,
     CustomerService,
     EventBus,
@@ -14,21 +16,29 @@ import {
     HistoryService,
     ListQueryBuilder,
     OrderService,
+    PaymentMethodService,
     ProductOptionGroupService,
     ProductService,
     ProductVariantService,
+    RoleService,
     SessionService,
     SettingsStoreService,
+    ShippingMethodService,
     StockLevelService,
     StockLocationService,
+    StoreReadinessService,
+    TaxCategoryService,
+    TaxRateService,
     TransactionalConnection,
     TranslatorService,
+    ZoneService,
 } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MCP_PLUGIN_OPTIONS } from '../../constants';
 import { McpToolCallLogService } from '../../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService } from '../../rate-limit/mcp-rate-limiter.service';
+import { McpConsentService } from '../../registry/mcp-consent.service';
 import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service';
 import { McpToolSchemaService } from '../../registry/mcp-tool-schema.service';
 import { resolveMcpPluginOptions } from '../../resolve-options';
@@ -55,6 +65,7 @@ describe('built-in registry discovery', () => {
                 ...mcpBuiltInToolProviders,
                 McpToolRegistryService,
                 McpToolSchemaService,
+                McpConsentService,
                 McpActiveOrderService,
                 McpToolSerializerService,
                 McpCatalogQueryService,
@@ -85,6 +96,15 @@ describe('built-in registry discovery', () => {
                 { provide: McpRateLimiterService, useValue: {} },
                 { provide: McpToolCallLogService, useValue: {} },
                 { provide: MCP_PLUGIN_OPTIONS, useValue: resolveMcpPluginOptions({}) },
+                { provide: ConfigArgService, useValue: {} },
+                { provide: CountryService, useValue: {} },
+                { provide: PaymentMethodService, useValue: {} },
+                { provide: RoleService, useValue: {} },
+                { provide: ShippingMethodService, useValue: {} },
+                { provide: TaxCategoryService, useValue: {} },
+                { provide: TaxRateService, useValue: {} },
+                { provide: ZoneService, useValue: {} },
+                { provide: StoreReadinessService, useValue: {} },
             ],
         }).compile();
         await moduleRef.init();

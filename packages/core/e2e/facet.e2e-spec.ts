@@ -922,6 +922,37 @@ describe('Facet resolver', () => {
             findOne.mockRestore();
         }
     });
+
+    // Several values with translations in one call: run concurrently in one transaction, the
+    // updates failed on Postgres with "savepoint does not exist"
+    it('updateFacetValues with several values and translations', async () => {
+        const { createFacet } = await adminClient.query(createFacetDocument, {
+            input: {
+                isPrivate: false,
+                code: 'batch-update',
+                translations: [{ languageCode: LanguageCode.en, name: 'Batch update' }],
+                values: ['one', 'two', 'three'].map(code => ({
+                    code,
+                    translations: [{ languageCode: LanguageCode.en, name: code }],
+                })),
+            },
+        });
+        const result = await adminClient.query(updateFacetValuesDocument, {
+            input: createFacet.values.map(value => ({
+                id: value.id,
+                translations: [
+                    { languageCode: LanguageCode.en, name: `${value.code} (en)` },
+                    { languageCode: LanguageCode.de, name: `${value.code} (de)` },
+                ],
+            })),
+        });
+
+        expect(result.updateFacetValues.map(v => v.name).sort()).toEqual([
+            'one (en)',
+            'three (en)',
+            'two (en)',
+        ]);
+    });
 });
 
 /**

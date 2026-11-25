@@ -13,7 +13,7 @@ import {
 import { idSchema, int32Schema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { findOrderOrThrow } from '../order-list-helpers';
+import { describeOrder, findOrderOrThrow } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const refundOrderInput = z.strictObject({
@@ -70,24 +70,31 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
         private readonly serializer: McpToolSerializerService,
     ) {}
 
+    async describe(ctx: RequestContext, input: RefundOrderToolInput) {
+        const order = await this.findOrder(ctx, input);
+        const target = describeOrder(order, value => this.serializer.decimal(value));
+        const payment = this.selectPayment(order, input);
+        if (!payment) {
+            return `Refund ${target}. Nothing will be refunded: ${this.noPaymentMessage(order, input)}`;
+        }
+        const amount = input.amount ?? getRefundableAmount(payment);
+        const reason = input.reason ? ` Reason: ${input.reason}.` : '';
+        return (
+            `Refund ${this.serializer.decimal(amount)} ${order.currencyCode} of payment ` +
+            `${String(payment.id)} (${payment.method}, ${this.serializer.decimal(getRefundableAmount(payment))} ` +
+            `refundable) on ${target}.${reason}`
+        );
+    }
+
     async execute(ctx: RequestContext, input: RefundOrderToolInput) {
-        const order = await findOrderOrThrow(this.orderService, ctx, input.id, [
-            'payments',
-            'payments.refunds',
-        ]);
-
-        const payment = input.paymentId
-            ? order.payments.find(p => idsAreEqual(p.id, input.paymentId))
-            : order.payments.find(p => p.state === 'Settled' && getRefundableAmount(p) > 0);
-
+        const order = await this.findOrder(ctx, input);
+        const payment = this.selectPayment(order, input);
         if (!payment) {
             // A bare Vendure error result: the registry reports it as a failed call.
             return {
                 __typename: 'RefundPaymentIdMissingError',
                 errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
-                message: input.paymentId
-                    ? 'The requested payment was not found on this order.'
-                    : this.nothingToRefundMessage(order),
+                message: this.noPaymentMessage(order, input),
             };
         }
         const refund = await this.orderService.refundOrder(ctx, {
@@ -98,6 +105,23 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
         return isGraphQlErrorResult(refund)
             ? refund
             : { refund: this.serializer.refund(refund, order.currencyCode) };
+    }
+
+    private findOrder(ctx: RequestContext, input: RefundOrderToolInput): Promise<Order> {
+        return findOrderOrThrow(this.orderService, ctx, input.id, ['payments', 'payments.refunds']);
+    }
+
+    /** The payment to refund. `describe` and `execute` both use it, so the preview names the payment that is refunded. */
+    private selectPayment(order: Order, input: RefundOrderToolInput): Payment | undefined {
+        return input.paymentId
+            ? order.payments.find(p => idsAreEqual(p.id, input.paymentId))
+            : order.payments.find(p => p.state === 'Settled' && getRefundableAmount(p) > 0);
+    }
+
+    private noPaymentMessage(order: Order, input: RefundOrderToolInput): string {
+        return input.paymentId
+            ? 'The requested payment was not found on this order.'
+            : this.nothingToRefundMessage(order);
     }
 
     /** Why no payment was picked: the first Settled payment is already refunded, or there is none. */

@@ -2,7 +2,7 @@
 title: "McpToolHandler"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="189" packageName="@vendure/mcp-sdk" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="203" packageName="@vendure/mcp-sdk" since="3.8.0" />
 
 The shape of an MCP tool class: an `execute` method that the server calls with the
 [RequestContext](/reference/typescript-api/request/request-context#requestcontext), the input, and, when a tool needs to know who is calling,
@@ -11,6 +11,7 @@ The shape of an MCP tool class: an `execute` method that the server calls with t
 ```ts title="Signature"
 interface McpToolHandler<I = unknown, O = unknown> {
     execute(ctx: RequestContext, input: I, caller?: McpCallerInfo): Promise<O> | O;
+    describe?(ctx: RequestContext, input: I, caller?: McpCallerInfo): Promise<string> | string;
 }
 ```
 
@@ -24,6 +25,21 @@ The tool's implementation. The server calls it with a [RequestContext](/referenc
 the validated input, and [McpCallerInfo](/reference/mcp-sdk/mcp-caller-info#mcpcallerinfo). The caller info is always passed, though the
 parameter is optional so a tool that ignores it can leave it out. Whatever the method
 returns becomes the tool's result.
+### describe
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: I, caller?: <a href='/reference/mcp-sdk/mcp-caller-info#mcpcallerinfo'>McpCallerInfo</a>) => Promise<string> | string`}  since="4.0.0"  />
+
+Describes what a `destructive` tool would do with this input, as a short plain-text summary
+that names the resolved target, for example `Cancel order AB123 (id 42), 3 lines, 120.00 EUR`.
+The server calls it before the tool runs and returns the text as the preview of the
+`incomplete` result that asks the caller for consent. It must not change any data.
+
+The consent digest covers the preview, so when the target changes between the preview and
+the confirming call, the digest no longer matches and the caller is asked again. Throw a
+caller-safe error, such as `UserInputError`, when the target does not exist.
+
+Optional. Without it, the preview is the tool's description and the input as JSON. It is
+never called for a tool that is not `destructive`.
 
 
 </div>

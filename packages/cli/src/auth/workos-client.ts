@@ -2,6 +2,10 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import {
     AUTH_LOGIN_COMMAND,
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     ReauthenticationRequiredError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
@@ -14,6 +18,8 @@ export const WORKOS_REQUEST_TIMEOUT_MS = 30_000;
 /**
  * The WorkOS application a Vendure Console accepts tokens from, as Console
  * publishes it. The CLI never chooses either value itself.
+ *
+ * @since 4.0.0
  */
 export interface WorkosClient {
     clientId: string;
@@ -45,6 +51,14 @@ export interface WorkosAuthentication {
 /** Test seam for the poll interval. */
 export interface PollOptions extends AuthOptions {
     sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+    /**
+     * Poll one last time at this time, as epoch milliseconds, then throw
+     * {@link DeviceLoginPendingError}. The code stays valid, so a later poll can
+     * finish the login. Without it, polling goes on until the code expires.
+     */
+    until?: number;
+    /** Checked before each poll. When it returns `false`, polling stops with {@link DeviceLoginReplacedError}. */
+    stillWanted?: () => boolean;
 }
 
 /**
@@ -128,7 +142,19 @@ export async function pollDeviceAuthorization(
     const deadline = now() + device.expiresIn * 1000;
     let interval = device.interval;
     while (now() < deadline) {
-        await wait(interval * 1000, options.signal);
+        if (options.stillWanted && !options.stillWanted()) {
+            throw new DeviceLoginReplacedError();
+        }
+        // The last poll is at `until`, so every wait polls at least once, even
+        // one shorter than the interval. It stops between polls, never during
+        // one, so an approval WorkOS has already answered is never dropped.
+        let last = false;
+        let delayMs = interval * 1000;
+        if (options.until !== undefined && options.until - now() < delayMs) {
+            delayMs = Math.max(0, options.until - now());
+            last = true;
+        }
+        await wait(delayMs, options.signal);
         const response = await workosRequest(
             client,
             '/user_management/authenticate',
@@ -147,15 +173,17 @@ export async function pollDeviceAuthorization(
             return parseAuthentication(await response.json());
         }
         const code = await readErrorCode(response);
-        if (code === 'authorization_pending') {
-            continue;
-        }
-        if (code === 'slow_down') {
-            interval += 5;
+        if (code === 'authorization_pending' || code === 'slow_down') {
+            if (code === 'slow_down') {
+                interval += 5;
+            }
+            if (last) {
+                throw new DeviceLoginPendingError();
+            }
             continue;
         }
         if (code === 'access_denied') {
-            throw new Error('The login was denied in the browser.');
+            throw new DeviceLoginDeniedError();
         }
         if (code === 'expired_token') {
             break;
@@ -165,7 +193,7 @@ export async function pollDeviceAuthorization(
             `The login failed: the authentication service answered ${describeFailure(response, code)}.${advice}`,
         );
     }
-    throw new Error('The login code expired before it was approved. Run the login again.');
+    throw new DeviceLoginExpiredError();
 }
 
 /**

@@ -1,10 +1,14 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
 import { MiddlewareConsumer, NestModule, OnApplicationBootstrap, Type } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
+import { LOCAL_TRUST_SECRET_ENV_VAR } from '@vendure/common/lib/local-trust';
 import {
+    ConfigService,
     I18nService,
+    Logger,
     PluginCommonModule,
     ProcessContext,
+    RuntimeVendureConfig,
     SettingsStoreScopes,
     VendurePlugin,
 } from '@vendure/core';
@@ -19,6 +23,8 @@ import {
 import { McpShopResolver } from './api/mcp-shop.resolver';
 import { checkMcpPluginOptions } from './check-options';
 import {
+    loggerCtx,
+    MCP_LOCAL_TRUST_ACTIVATION,
     MCP_PLUGIN_OPTIONS,
     MCP_SETTINGS_NAMESPACE,
     MCP_TOOL_TOGGLES_FIELD_NAME,
@@ -32,6 +38,12 @@ import {
     McpToolCallLog,
 } from './entities';
 import { ResolvedMcpPluginOptions } from './internal-types';
+import {
+    LOCAL_TRUST_OFF,
+    LocalTrustActivation,
+    readLocalTrustActivation,
+} from './local-trust/local-trust-activation';
+import { LocalTrustService } from './local-trust/local-trust.service';
 import { McpToolCallLogRetentionService } from './logging/mcp-tool-call-log-retention.service';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
@@ -42,6 +54,7 @@ import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
 import { McpOauthRateLimitGuard } from './rate-limit/mcp-oauth-rate-limit.guard';
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
+import { McpConsentService } from './registry/mcp-consent.service';
 import { McpToolExecutionService } from './registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from './registry/mcp-tool-registry.service';
 import { McpToolSchemaService } from './registry/mcp-tool-schema.service';
@@ -83,6 +96,8 @@ import { McpPluginOptions } from './types';
     controllers: [McpOauthController, McpTransportController],
     providers: [
         { provide: MCP_PLUGIN_OPTIONS, useFactory: () => McpPlugin.options },
+        { provide: MCP_LOCAL_TRUST_ACTIVATION, useFactory: () => McpPlugin.localTrustState.activation },
+        LocalTrustService,
         McpOauthService,
         McpGrantSessionService,
         McpOauthMetadataService,
@@ -90,6 +105,7 @@ import { McpPluginOptions } from './types';
         McpCimdClientResolverService,
         McpToolRegistryService,
         McpToolSchemaService,
+        McpConsentService,
         McpToolExecutionService,
         McpShopSessionService,
         McpRateLimiterService,
@@ -119,6 +135,7 @@ import { McpPluginOptions } from './types';
         if (McpPlugin.options.oauth && !McpPlugin.options.oauth.issuer) {
             McpPlugin.options.oauth.issuer = `http://localhost:${config.apiOptions.port}`;
         }
+        McpPlugin.activateLocalTrust(config);
         config.authOptions.customPermissions.push(mcpServerPermission);
         config.settingsStoreFields = {
             ...config.settingsStoreFields,
@@ -154,17 +171,80 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
      */
     static options: ResolvedMcpPluginOptions;
 
+    /**
+     * Local trust as the `configuration` hook decided it. The hook updates the fields in place.
+     *
+     * - `activation`: whether local trust is on for the app being bootstrapped.
+     * - `processRead`: what this process read from the CLI's secret. The secret is deleted from
+     *   the environment on the first read, and one process often runs the configuration hooks
+     *   more than once, for example `runMigrations()` and then `bootstrap()`, so later runs
+     *   reuse this.
+     *
+     * @internal
+     */
+    static readonly localTrustState: { activation: LocalTrustActivation; processRead: LocalTrustActivation } =
+        {
+            activation: LOCAL_TRUST_OFF,
+            processRead: LOCAL_TRUST_OFF,
+        };
+
+    /** Set when the `configuration` hook added `'bearer'` to the token method, so bootstrap can log it. */
+    private static addedBearerTokenMethod = false;
+
     constructor(
         private readonly processContext: ProcessContext,
         private readonly i18nService: I18nService,
+        private readonly configService: ConfigService,
+        private readonly localTrust: LocalTrustService,
     ) {}
 
     /**
      * Adds Vendure's error translation middleware to MCP routes, so callers receive translated
-     * error messages instead of i18n keys.
+     * error messages instead of i18n keys. With local trust on, it also adds the middleware that
+     * accepts the local-trust secret on the Admin API path.
      */
     configure(consumer: MiddlewareConsumer): void {
         consumer.apply(this.i18nService.handle()).forRoutes('mcp/shop', 'mcp/admin');
+        if (McpPlugin.localTrustState.activation.enabled) {
+            consumer
+                .apply(this.localTrust.adminApiMiddleware())
+                .forRoutes(this.configService.apiOptions.adminApiPath);
+        }
+    }
+
+    /**
+     * Reads the CLI's local-trust secret, deletes it from `process.env`, and decides whether local
+     * trust is on. The configuration hooks of later plugins, the app itself and any process
+     * spawned after this point do not inherit the secret. The Admin API only reads a bearer token
+     * when the token method includes `'bearer'`, so it is added when local trust is on.
+     *
+     * @internal
+     */
+    static activateLocalTrust(config: RuntimeVendureConfig): void {
+        if (process.env[LOCAL_TRUST_SECRET_ENV_VAR] !== undefined) {
+            McpPlugin.localTrustState.processRead = readLocalTrustActivation({
+                localTrust: McpPlugin.options.localTrust,
+                env: process.env,
+                projectDir: process.cwd(),
+                uid: process.getuid?.(),
+                platform: process.platform,
+            });
+        }
+        // An app configured with localTrust: false never uses what an earlier run read.
+        const activation = McpPlugin.options.localTrust
+            ? McpPlugin.localTrustState.processRead
+            : LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.activation = activation;
+        McpPlugin.addedBearerTokenMethod = false;
+        if (!activation.enabled) {
+            return;
+        }
+        const tokenMethod = config.authOptions.tokenMethod ?? 'cookie';
+        const methods = typeof tokenMethod === 'string' ? [tokenMethod] : [...tokenMethod];
+        if (!methods.includes('bearer')) {
+            config.authOptions.tokenMethod = [...methods, 'bearer'];
+            McpPlugin.addedBearerTokenMethod = true;
+        }
     }
 
     /**
@@ -190,5 +270,13 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
         }
         preloadSchemas();
         checkMcpPluginOptions(McpPlugin.options);
+        if (McpPlugin.addedBearerTokenMethod) {
+            Logger.info(
+                "Local trust added 'bearer' to authOptions.tokenMethod, so the Admin API accepts " +
+                    'the local-trust secret. Every Admin and Shop API request on this server may now ' +
+                    'authenticate with a bearer token.',
+                loggerCtx,
+            );
+        }
     }
 }

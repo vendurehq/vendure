@@ -1,9 +1,10 @@
 node_modules
 dist
-static/assets
-static/email/test-emails
-# Commit the identity-only Project Link Manifest. Keep all other local Vendure state ignored.
+*.log
+.DS_Store
+# Commit the create record and the project link. Keep all other local Vendure state ignored.
 .vendure/*
+!.vendure/create.json
 !.vendure/project.json
 .env
 .env.*

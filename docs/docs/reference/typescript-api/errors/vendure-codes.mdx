@@ -1,0 +1,76 @@
+---
+title: "Vendure Codes"
+generated: true
+---
+## CORE_CODE_NAMESPACE
+
+<GenerationInfo sourceFile="packages/core/src/i18n/vendure-code.ts" sourceLine="9" packageName="@vendure/core" since="4.0.0" />
+
+The namespace of the codes for errors defined by Vendure core.
+
+## UNEXPECTED_VENDURE_CODE
+
+<GenerationInfo sourceFile="packages/core/src/i18n/vendure-code.ts" sourceLine="20" packageName="@vendure/core" since="4.0.0" />
+
+The code for an error which has no code of its own: any error which is not an [I18nError](/reference/typescript-api/errors/i18n-error#i18nerror), or an
+`I18nError` whose message is plain text rather than an `error.*` i18n key.
+
+## toVendureCode
+
+<GenerationInfo sourceFile="packages/core/src/i18n/vendure-code.ts" sourceLine="49" packageName="@vendure/core" since="4.0.0" />
+
+Returns the namespaced code for an i18n error key. A code has the form `<namespace>.<kebab-name>`,
+and is stable across releases, so a client or an agent can act on it.
+
+* An `error.*` key gives `<namespace>.<name>`, for example `error.entity-with-id-not-found` gives
+  `core.entity-with-id-not-found`.
+* An `errorResult.*` key gives `<namespace>.` plus the kebab-cased ErrorResult `errorCode`, for example
+  `errorResult.COUPON_CODE_EXPIRED_ERROR` gives `core.coupon-code-expired-error`.
+* Anything else, such as a plain-text message, gives [UNEXPECTED_VENDURE_CODE](/reference/typescript-api/errors/vendure-codes#unexpected_vendure_code).
+
+The namespace defaults to `core`. A plugin passes its own namespace so that its codes cannot clash
+with the core codes.
+
+*Example*
+
+```ts
+toVendureCode('error.entity-with-id-not-found'); // 'core.entity-with-id-not-found'
+toVendureCode('error.review-not-found', 'reviews'); // 'reviews.review-not-found'
+```
+
+```ts title="Signature"
+function toVendureCode(key: string, namespace: string = CORE_CODE_NAMESPACE): string
+```
+Parameters
+
+### key
+
+<MemberInfo kind="parameter" type={`string`} />
+
+### namespace
+
+<MemberInfo kind="parameter" type={`string`} />
+
+## getErrorResultVendureCode
+
+<GenerationInfo sourceFile="packages/core/src/i18n/vendure-code.ts" sourceLine="73" packageName="@vendure/core" since="4.0.0" />
+
+Returns the namespaced code for an ErrorResult, derived from its `errorCode`. For example an ErrorResult
+with the `errorCode` `COUPON_CODE_EXPIRED_ERROR` has the code `core.coupon-code-expired-error`.
+
+The code is not part of the GraphQL schema, so a storefront still reads `errorCode`. This function is
+the one definition of the rule, for code which reports ErrorResults by their Vendure code.
+
+```ts title="Signature"
+function getErrorResultVendureCode(errorResult: { errorCode: string }, namespace: string = CORE_CODE_NAMESPACE): string
+```
+Parameters
+
+### errorResult
+
+<MemberInfo kind="parameter" type={`{ errorCode: string }`} />
+
+### namespace
+
+<MemberInfo kind="parameter" type={`string`} />
+

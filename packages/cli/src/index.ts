@@ -44,37 +44,64 @@
  * ```
  */
 export {
+    MANIFEST_FILE_NAME,
+    buildCommandManifest,
+    mergeManifests,
+    writeCommandManifest,
+} from '@vendure/common/lib/command/manifest';
+export type {
+    CommandManifest,
+    ManifestCommand,
+    MergedManifestCommand,
+} from '@vendure/common/lib/command/manifest';
+export {
+    CLOUD_TOKEN_ENV,
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     NotLoggedInError,
+    PERSON_REQUIRED_CODE,
     ReauthenticationRequiredError,
     SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
     checkAuthStatus,
+    completeDeviceLogin,
+    credentialNeed,
     getAccessToken,
     isRenewalRefused,
     listOrganizations,
     loginWithDevice,
     logout,
+    personNeedFromApiError,
     readAuthStatus,
+    readCloudTokenEnv,
     refreshAccessToken,
+    requireCredential,
+    startDeviceLogin,
 } from './auth/index.js';
 export type {
     AuthOptions,
     AuthOrganization,
     AuthStatus,
     AuthUser,
+    CloudCredential,
+    CompleteDeviceLoginOptions,
+    CredentialSource,
     DeviceAuthorization,
     DeviceLoginOptions,
     LogoutResult,
+    PersonNeedContext,
     RenewalError,
     RenewalFailureDetails,
+    RequireCredentialOptions,
+    StartedDeviceLogin,
     StoredOrganization,
+    WorkosClient,
 } from './auth/index.js';
 export { builtinCommands } from './commands/builtins.js';
-export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication.js';
-export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication.js';
-export type { ConsoleSession } from './commands/console/cli-auth.js';
 export type {
     ConsoleLinkContext,
     ConsoleLinkEndpoints,
@@ -82,6 +109,7 @@ export type {
     ConsoleLinkHookRegistration,
     ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
+    ConsoleSession,
     ConsoleSessionUnavailableReason,
 } from './commands/console/console-link-hook.js';
 export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins.js';
@@ -107,6 +135,9 @@ export type {
     CliCommandOption,
     ProjectCliPluginConfig,
 } from './shared/cli-command-definition.js';
+export type {
+    CliPluginExtensionAccessor,
+    RegisteredCliPluginExtension,
+} from './shared/cli-plugin-extension.js';
 export { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from './shared/cli-plugin.js';
 export type { CliPlugin } from './shared/cli-plugin.js';
-export type { CliPluginExtensionAccessor, RegisteredCliPluginExtension } from './shared/cli-plugin-extension.js';

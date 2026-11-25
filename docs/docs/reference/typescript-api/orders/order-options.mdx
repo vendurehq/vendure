@@ -2,7 +2,7 @@
 title: "OrderOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="643" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="673" packageName="@vendure/core" />
 
 
 
@@ -25,6 +25,7 @@ interface OrderOptions {
     guestCheckoutStrategy?: GuestCheckoutStrategy;
     orderInterceptors?: OrderInterceptor[];
     orderRecalculationStrategy?: OrderRecalculationStrategy;
+    promotionFreezeStrategy?: PromotionFreezeStrategy;
 }
 ```
 
@@ -157,6 +158,15 @@ recalculation occurs (prices only change on write mutations). Use
 [TtlOrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#ttlorderrecalculationstrategy) to keep long-lived carts in sync with changing prices
 and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
 re-evaluated when the order transitions to `ArrangingPayment`.
+### promotionFreezeStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/promotion-freeze-strategy#promotionfreezestrategy'>PromotionFreezeStrategy</a>`} default={`<a href='/reference/typescript-api/orders/promotion-freeze-strategy#defaultpromotionfreezestrategy'>DefaultPromotionFreezeStrategy</a>`}  since="4.0.0"  />
+
+Decides whether the Promotions on an Order are frozen when the Order is modified via the
+`modifyOrder` mutation, keeping the discounts the customer paid with, or re-tested. The
+default [DefaultPromotionFreezeStrategy](/reference/typescript-api/orders/promotion-freeze-strategy#defaultpromotionfreezestrategy) follows the mutation's `freezePromotions`
+option when it is set, and otherwise freezes unless the modification changes the OrderLines,
+the coupon codes or the shipping methods.
 
 
 </div>

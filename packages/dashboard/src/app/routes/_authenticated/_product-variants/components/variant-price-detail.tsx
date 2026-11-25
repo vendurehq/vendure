@@ -59,7 +59,7 @@ export function VariantPriceDetail({
         }
 
         const applicableRate = taxRatesData.taxRates.items.find(
-            taxRate => taxRate.zone.id === defaultTaxZone && taxRate.category.id === taxCategoryId,
+            taxRate => taxRate.zone?.id === defaultTaxZone && taxRate.category.id === taxCategoryId,
         );
 
         if (!applicableRate) {

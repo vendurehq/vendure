@@ -3,14 +3,13 @@ import path from 'path';
 import {
     Directory,
     ObjectLiteralExpression,
-    ObjectLiteralExpressionPropertyStructures,
     Project,
     PropertyAssignmentStructure,
     SourceFile,
     SyntaxKind,
 } from 'ts-morph';
 
-import { createFile, getTsMorphProject } from '../../../utilities/ast-utils.js';
+import { createFile } from '../../../utilities/ast-utils.js';
 
 export class CodegenConfigRef {
     public readonly sourceFile: SourceFile;

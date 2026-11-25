@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { Order } from './order-types.js';
 import {
     canCancelOrderWithoutRefund,
+    compareModificationDiscounts,
+    computePendingOrder,
+    couponCodesChanged,
     getMaxRefundableQuantity,
     getRefundableQuantity,
+    getShippingLineLabel,
     lineCanBeRefunded,
     toCustomFieldsInput,
     toModifyOrderInput,
@@ -206,5 +210,123 @@ describe('toModifyOrderInput', () => {
         expect(result.adjustOrderLines[0].customFields).toEqual({ giftFromId: '3' });
         expect(result.addItems[0].customFields).toEqual({ giftFromId: null });
         expect(input.adjustOrderLines[0].customFields).toEqual({ giftFrom: { id: '3' } });
+    });
+});
+
+// OSS-1003 / #2649 — a ShippingMethod can offer several priced options
+describe('computePendingOrder shipping options', () => {
+    const order = { lines: [], shippingLines: [] } as unknown as Order;
+    const carrier = {
+        id: 'SM1',
+        name: 'Carrier',
+        priceWithTax: 500,
+        options: [
+            { code: 'economy', name: 'Economy', priceWithTax: 500 },
+            { code: 'express', name: 'Express', priceWithTax: 1500 },
+        ],
+    };
+
+    it('previews the chosen option', () => {
+        const pending = computePendingOrder(
+            order,
+            {
+                orderId: '1',
+                dryRun: true,
+                shippingMethods: [{ shippingMethodId: 'SM1', shippingOptionCode: 'express' }],
+            },
+            new Map(),
+            [carrier],
+        );
+        expect(pending.shippingLines[0]).toMatchObject({
+            discountedPriceWithTax: 1500,
+            shippingOptionCode: 'express',
+            shippingOptionName: 'Express',
+        });
+        expect(pending.shippingLines[0].shippingMethod).not.toHaveProperty('options');
+    });
+
+    it('previews the cheapest option when only the ShippingMethod id is given', () => {
+        const pending = computePendingOrder(
+            order,
+            { orderId: '1', dryRun: true, shippingMethodIds: ['SM1'] },
+            new Map(),
+            [carrier],
+        );
+        expect(pending.shippingLines[0]).toMatchObject({
+            discountedPriceWithTax: 500,
+            shippingOptionCode: 'economy',
+        });
+    });
+});
+
+describe('getShippingLineLabel', () => {
+    it('appends the name of the chosen option', () => {
+        expect(
+            getShippingLineLabel({ shippingMethod: { name: 'Carrier' }, shippingOptionName: 'Express' }),
+        ).toBe('Carrier: Express');
+    });
+
+    it('is the ShippingMethod name when there is no option', () => {
+        expect(
+            getShippingLineLabel({ shippingMethod: { name: 'Flat rate' }, shippingOptionName: null }),
+        ).toBe('Flat rate');
+    });
+});
+
+// #5356 — the modification preview asks which discounts to keep when re-applying the
+// promotions would change them
+describe('compareModificationDiscounts', () => {
+    const tenPercent = { adjustmentSource: 'PROMOTION:1', description: '10% off', amountWithTax: -400 };
+
+    it('returns nothing when both previews are the same', () => {
+        const preview = { totalWithTax: 3600, discounts: [tenPercent] };
+        expect(compareModificationDiscounts(preview, { ...preview })).toEqual([]);
+    });
+
+    it('lists a discount which re-applying the promotions removes', () => {
+        expect(
+            compareModificationDiscounts(
+                { totalWithTax: 3600, discounts: [tenPercent] },
+                { totalWithTax: 4000, discounts: [] },
+            ),
+        ).toEqual([
+            {
+                adjustmentSource: 'PROMOTION:1',
+                description: '10% off',
+                keptAmountWithTax: -400,
+                reappliedAmountWithTax: null,
+            },
+        ]);
+    });
+
+    it('lists a discount whose amount changes', () => {
+        expect(
+            compareModificationDiscounts(
+                { totalWithTax: 5600, discounts: [tenPercent] },
+                { totalWithTax: 5400, discounts: [{ ...tenPercent, amountWithTax: -600 }] },
+            ),
+        ).toEqual([
+            {
+                adjustmentSource: 'PROMOTION:1',
+                description: '10% off',
+                keptAmountWithTax: -400,
+                reappliedAmountWithTax: -600,
+            },
+        ]);
+    });
+});
+
+describe('couponCodesChanged', () => {
+    it('ignores case and order', () => {
+        expect(couponCodesChanged(['SUMMER', 'Gift'], ['gift', 'summer'])).toBe(false);
+    });
+
+    it('is false when no coupon codes are given', () => {
+        expect(couponCodesChanged(['SUMMER'], undefined)).toBe(false);
+    });
+
+    it('detects an added or a removed code', () => {
+        expect(couponCodesChanged(['SUMMER'], ['SUMMER', 'NEW'])).toBe(true);
+        expect(couponCodesChanged(['SUMMER'], [])).toBe(true);
     });
 });

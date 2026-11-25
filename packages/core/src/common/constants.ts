@@ -101,8 +101,10 @@ export function getAllPermissionsMetadata(customPermissions: PermissionDefinitio
 export const CacheKey = {
     GlobalSettings: 'GlobalSettings',
     AllZones: 'AllZones',
-    ActiveTaxZone: (channelId: ID) => `ActiveTaxZone:${channelId}`,
-    ActiveTaxZone_PPA: (channelId: ID) => `ActiveTaxZone_PPA:${channelId}`,
+    // Keyed by Order too: the Zone can depend on the Order, and a price with no Order must not
+    // share the Zone of an Order priced in the same request.
+    ActiveTaxZone: (channelId: ID, orderId?: ID) => `ActiveTaxZone:${channelId}:${orderId ?? ''}`,
+    ActiveTaxZone_PPA: (channelId: ID, orderId?: ID) => `ActiveTaxZone_PPA:${channelId}:${orderId ?? ''}`,
     CollectionVariantCounts: 'CollectionService.getProductVariantCounts',
     CollectionVariantCountLoader: 'CollectionEntityResolver.productVariantCountLoader',
     CollectionBreadcrumbs: 'CollectionService.getBreadcrumbsForMany',

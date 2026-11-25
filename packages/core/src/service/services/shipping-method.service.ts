@@ -314,13 +314,12 @@ export class ShippingMethodService {
     }
 
     async getActiveShippingMethods(ctx: RequestContext): Promise<ShippingMethod[]> {
-        const shippingMethods = await this.connection.getRepository(ctx, ShippingMethod).find({
-            relations: { channels: true, customFields: true },
+        // `channels` is loaded in full: an eligibility checker may read it, e.g. in a multi-vendor setup.
+        const shippingMethods = await this.connection.findInChannel(ctx, ShippingMethod, ctx.channelId, {
             where: { deletedAt: IsNull() },
+            relations: { channels: true, customFields: true },
         });
-        return shippingMethods
-            .filter(sm => sm.channels.find(c => idsAreEqual(c.id, ctx.channelId)))
-            .map(m => this.translator.translate(m, ctx));
+        return shippingMethods.map(m => this.translator.translate(m, ctx));
     }
 
     /**

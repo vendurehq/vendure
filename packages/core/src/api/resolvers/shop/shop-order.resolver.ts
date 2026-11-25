@@ -32,7 +32,7 @@ import { QueryCountriesArgs } from '@vendure/common/lib/generated-types';
 import { unique } from '@vendure/common/lib/unique';
 
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../../common/error/error-result';
-import { ForbiddenError } from '../../../common/error/errors';
+import { ForbiddenError, UserInputError } from '../../../common/error/errors';
 import { NoActiveOrderError } from '../../../common/error/generated-graphql-shop-errors';
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
@@ -272,7 +272,11 @@ export class ShopOrderResolver {
                 args[ACTIVE_ORDER_INPUT_FIELD_NAME],
             );
             if (sessionOrder) {
-                return this.orderService.setShippingMethod(ctx, sessionOrder.id, args.shippingMethodId);
+                const selections = args.shippingMethods ?? args.shippingMethodId;
+                if (!selections?.length || (args.shippingMethods && args.shippingMethodId)) {
+                    throw new UserInputError('error.set-order-shipping-method-arguments-invalid');
+                }
+                return this.orderService.setShippingMethod(ctx, sessionOrder.id, selections);
             }
         }
         return new NoActiveOrderError();

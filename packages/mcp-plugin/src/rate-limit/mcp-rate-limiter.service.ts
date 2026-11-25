@@ -136,6 +136,9 @@ export class McpRateLimiterService {
     }
 
     private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
+        if (input.executionContext.localTrust) {
+            return this.buildLocalTrustBucketChecks(input);
+        }
         const checks: RateLimitCheck[] = [];
         const endpoint = input.endpoint;
         const rateLimits = this.options.rateLimits;
@@ -164,6 +167,26 @@ export class McpRateLimiterService {
                 rpm: perClientRpm,
                 scope: 'OAuth client',
             });
+        }
+        return checks;
+    }
+
+    /**
+     * A local-trust caller has one session per CLI run and no grant or OAuth client, so it gets its
+     * own `local:` buckets with the same limits. A busy local agent then cannot use up the buckets
+     * of OAuth callers acting as the same user, and theirs cannot block it.
+     */
+    private buildLocalTrustBucketChecks(input: RateLimitInput): RateLimitCheck[] {
+        const checks: RateLimitCheck[] = [];
+        const rateLimits = this.options.rateLimits;
+        const perSessionRpm = this.resolveRpm(rateLimits.perSession);
+        if (perSessionRpm > 0) {
+            checks.push({ key: `local:session:${input.endpoint}`, rpm: perSessionRpm, scope: 'session' });
+        }
+        const userKey = this.userKey(input.executionContext);
+        const perUserRpm = this.resolveRpm(rateLimits.perUser);
+        if (userKey && perUserRpm > 0) {
+            checks.push({ key: `local:user:${input.endpoint}:${userKey}`, rpm: perUserRpm, scope: 'user' });
         }
         return checks;
     }
@@ -276,6 +299,9 @@ export class McpRateLimiterService {
 
     // Client alone would collapse all its users under one bucket, so session is folded in for fairness.
     private perToolBucketKey(executionContext: McpExecutionContext): string {
+        if (executionContext.localTrust) {
+            return 'local';
+        }
         const clientKey = this.clientKey(executionContext);
         return clientKey
             ? `client:${clientKey}:session:${this.sessionKey(executionContext)}`

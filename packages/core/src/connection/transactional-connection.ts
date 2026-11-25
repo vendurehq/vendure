@@ -7,6 +7,7 @@ import {
     EntitySchema,
     FindManyOptions,
     FindOneOptions,
+    FindOptionsRelations,
     ObjectLiteral,
     ObjectType,
     ReplicationMode,
@@ -543,22 +544,7 @@ export class TransactionalConnection {
         options: VendureFindOneOptions<T> = {},
     ) {
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
-        const findOptions = toTypeOrmFindOptions<T, VendureFindOneOptions<T>>(options);
-
-        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
-            const joinedRelations = joinTreeRelationsDynamically(qb, entity, findOptions.relations);
-            // Remove any relations which are related to the 'collection' tree, as these are handled separately
-            // to avoid duplicate joins.
-            findOptions.relations = findOptionsArrayToObject<T>(
-                findOptionsObjectToArray(findOptions.relations).filter(
-                    relationPath => !joinedRelations.has(relationPath),
-                ),
-            );
-        }
-        qb.setFindOptions({
-            relationLoadStrategy: 'query', // default to query strategy for maximum performance
-            ...findOptions,
-        });
+        this.setChannelQueryFindOptions(qb, entity, options);
 
         qb.leftJoin('entity.channels', '__channel')
             .andWhere('entity.id = :id', { id })
@@ -567,6 +553,29 @@ export class TransactionalConnection {
         return qb.getOne().then(result => {
             return result ?? undefined;
         });
+    }
+
+    /**
+     * @description
+     * Like the TypeOrm `Repository.find()` method, but limits the results to entities assigned to
+     * the given Channel. Relations are loaded with separate queries (`relationLoadStrategy:
+     * 'query'`), so a relation such as `channels` is loaded in full rather than limited to the
+     * Channel, and eager relations of different entities are not multiplied in one result set.
+     *
+     * @since 4.0.0
+     */
+    findInChannel<T extends ChannelAware & VendureEntity>(
+        ctx: RequestContext,
+        entity: Type<T>,
+        channelId: ID,
+        options: VendureFindManyOptions<T> = {},
+    ): Promise<T[]> {
+        const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
+        this.setChannelQueryFindOptions(qb, entity, options);
+        qb.innerJoin('entity.channels', '__channel', '__channel.id = :__findInChannelId', {
+            __findInChannelId: channelId,
+        });
+        return qb.getMany();
     }
 
     /**
@@ -588,33 +597,42 @@ export class TransactionalConnection {
         }
 
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
-        const findOptions = toTypeOrmFindOptions<T, VendureFindManyOptions<T>>(options);
-
-        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
-            const joinedRelations = joinTreeRelationsDynamically(
-                qb as SelectQueryBuilder<VendureEntity>,
-                entity,
-                findOptions.relations,
-            );
-            // Remove any relations which are related to the 'collection' tree, as these are handled separately
-            // to avoid duplicate joins.
-            findOptions.relations = findOptionsArrayToObject<T>(
-                findOptionsObjectToArray(findOptions.relations).filter(
-                    relationPath => !joinedRelations.has(relationPath),
-                ),
-            );
-        }
-
-        qb.setFindOptions({
-            relationLoadStrategy: 'query', // default to query strategy for maximum performance
-            ...findOptions,
-        });
+        this.setChannelQueryFindOptions(qb, entity, options);
 
         qb.leftJoin('entity.channels', 'channel')
             .andWhere('entity.id IN (:...ids)', { ids })
             .andWhere('channel.id = :channelId', { channelId });
 
         return qb.getMany();
+    }
+
+    /**
+     * Sets the find options of the `*InChannel()` queries. Relations of the 'collection' tree are
+     * joined separately, so that they are not joined twice, and the other relations are loaded with
+     * separate queries (`relationLoadStrategy: 'query'`) for performance.
+     */
+    private setChannelQueryFindOptions<T extends ObjectLiteral>(
+        qb: SelectQueryBuilder<T>,
+        entity: Type<T>,
+        options: VendureFindManyOptions<T>,
+    ) {
+        const findOptions = toTypeOrmFindOptions<T, VendureFindManyOptions<T>>(options);
+        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
+            const joinedRelations = joinTreeRelationsDynamically(
+                qb as unknown as SelectQueryBuilder<VendureEntity>,
+                entity as unknown as Type<VendureEntity>,
+                findOptions.relations as FindOptionsRelations<VendureEntity>,
+            );
+            findOptions.relations = findOptionsArrayToObject<T>(
+                findOptionsObjectToArray(findOptions.relations).filter(
+                    relationPath => !joinedRelations.has(relationPath),
+                ),
+            );
+        }
+        qb.setFindOptions({
+            relationLoadStrategy: 'query',
+            ...findOptions,
+        });
     }
 
     private wrapWithAccessControl<Entity extends ObjectLiteral>(

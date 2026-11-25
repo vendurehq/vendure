@@ -4,7 +4,7 @@ import pc from 'picocolors';
 
 import { exitCliCommand } from '../../../shared/cli-command-exit.js';
 import { abortIfNonInteractive } from '../../../utilities/utils.js';
-import { openConsoleBrowser } from '../../console/authentication.js';
+import { openConsoleBrowser } from '../../console/open-browser.js';
 import {
     consoleOriginsForManifest,
     readProjectLinkManifest,

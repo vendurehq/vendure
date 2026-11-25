@@ -14,8 +14,9 @@ import { ParsedProductWithVariants } from '@vendure/core/src/index';
 import { clearAllTables } from '@vendure/testing';
 import { spawn } from 'child_process';
 import { program } from 'commander';
-import path from 'path';
 import ProgressBar from 'progress';
+
+import { initialData } from '../../core/mock-data/data-sources/initial-data';
 
 import { getLoadTestConfig } from './load-test-config';
 
@@ -68,7 +69,7 @@ async function runBenchmark(options: Options) {
         await clearAllTables(config, true);
         const populateApp = await populate(
             () => bootstrap(config),
-            path.join(__dirname, '../../create/assets/initial-data.json'),
+            initialData,
         );
         await createProducts(populateApp);
         await createOrders(populateApp);
