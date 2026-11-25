@@ -419,6 +419,25 @@ export interface CommandContext {
     /** Starts a process. Under `--json` its stdout goes to stderr. */
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
     /**
+     * Asks for a named consent that `run()` found it needs while it runs, such as a target that only
+     * turns out to be production once it is resolved. `name` must be declared in the command's
+     * `consents`, and `preview` names what the consent answers, as the preview of `plan()` does.
+     *
+     * Resolves to `true` when the caller already gave the consent for this preview: the input holds
+     * the digest of `name` and `preview`, which the host computes the same way as for `plan()`. A
+     * person at a terminal is asked instead, and `true` means they agreed.
+     *
+     * Otherwise it resolves to the {@link ConsentNeed}. Return it with `incomplete([need])`: the
+     * caller gives the consent with its digest, as `--<consent> <digest>` or the input field
+     * `name`, and runs the command again. So the run must be safe to repeat up to this point. When
+     * a person declines, the run ends as cancelled, whatever `run()` returns.
+     *
+     * A consent `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
+     *
+     * @since 4.0.0
+     */
+    consent(name: string, preview: unknown): Promise<true | ConsentNeed>;
+    /**
      * The credential the host found for a command with `requires.auth`, before `run()` started.
      * Present only for such a command.
      *

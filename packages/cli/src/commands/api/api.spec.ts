@@ -97,6 +97,7 @@ function ctx(cwd: string): CommandContext {
         output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('not used')),
+        consent: async () => true as const,
     };
 }
 

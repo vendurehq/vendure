@@ -1214,6 +1214,21 @@ Through the Developer MCP each call is an `info` log notification. What the call
 the output `run` returns. Declare the event in the command's `events` schema, with `type: 'output'`, `stream` and
 `text`, so the manifest lists it.
 
+A consent that `run()` only finds it needs while it runs, such as a target that turns out to be production once
+it is resolved, comes from `ctx.consent(name, preview)`. `name` must be one of the command's `consents`. It
+resolves to `true` when the caller already gave that consent for this preview, or when a person at the terminal
+agrees. Otherwise it resolves to the consent need: return it with `incomplete([need])`, and the caller runs the
+command again with the digest, as `--<consent> <digest>` or the input field. So the run must be safe to repeat up
+to that point. When a person declines, the run ends as cancelled. A consent that `plan()` can name before anything
+runs belongs in `plan()`.
+
+```ts
+const answer = await ctx.consent('deployToProduction', { environment: target });
+if (answer !== true) {
+    return incomplete([answer]);
+}
+```
+
 `ctx.spawn` starts a process, and passes its output on to the caller. Pass `quiet: true` to keep the
 output in the result only, for a process whose answer the command reads, such as `git status
 --porcelain`. Pass `timeoutMs` to stop a process that runs too long: the result then has

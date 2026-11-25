@@ -240,7 +240,21 @@ function answerProblem(
     return issue?.message;
 }
 
-function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandContext {
+/**
+ * What the host knows about the consents of one run: the values the caller gave, and whether a
+ * person declined one that `ctx.consent` asked for.
+ */
+interface ConsentState {
+    values: Record<string, unknown>;
+    declined: boolean;
+}
+
+function createContext(
+    def: CommandDefinition,
+    env: HostEnvironment,
+    notices: CommandNotice[],
+    consents: ConsentState,
+): CommandContext {
     const { prompter } = env;
     return {
         cwd: env.cwd,
@@ -276,6 +290,29 @@ function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandC
             env.emit({ ...data, vendure: 'event', type });
         },
         spawn: (command, args, options) => env.spawn(command, args, options),
+        consent: async (name, preview) => {
+            if (!def.consents || !Object.prototype.hasOwnProperty.call(def.consents, name)) {
+                throw new Error(`run() asked for the undeclared consent "${name}"`);
+            }
+            const digest = consentDigest(name, preview);
+            if (consents.values[name] === digest) {
+                return true;
+            }
+            const need: ConsentNeed = {
+                kind: 'consent',
+                consent: name,
+                description: def.consents[name],
+                digest,
+                preview,
+            };
+            if (prompter) {
+                if (await prompter.askConsent(need)) {
+                    return true;
+                }
+                consents.declined = true;
+            }
+            return need;
+        },
     };
 }
 
@@ -411,7 +448,18 @@ export async function executeCommand(
         if (def.requires?.project && !env.findProjectRoot()) {
             return errorResult(hostErrors.projectRequired, { command: commandName }, notices);
         }
-        const ctx = createContext(env, notices);
+        // The consents the caller gave are not input fields: they are kept for `plan()` and
+        // `ctx.consent`, and taken out of the input before it is validated.
+        const consentNames = Object.keys(def.consents ?? {});
+        const input: Record<string, unknown> = { ...rawInput };
+        const consents: ConsentState = {
+            values: Object.fromEntries(consentNames.map(name => [name, input[name]])),
+            declined: false,
+        };
+        for (const name of consentNames) {
+            delete input[name];
+        }
+        const ctx = createContext(def, env, notices, consents);
         if (def.requires?.auth) {
             if (!env.requireCredential) {
                 return errorResult(
@@ -441,12 +489,6 @@ export async function executeCommand(
             ctx.credential = found.credential;
         }
         const schemas = await def.schemas();
-        const consentNames = Object.keys(def.consents ?? {});
-        const input: Record<string, unknown> = { ...rawInput };
-        const consentValues = Object.fromEntries(consentNames.map(name => [name, input[name]]));
-        for (const name of consentNames) {
-            delete input[name];
-        }
 
         // Stage 1: inputs. A missing required field is a need. A person is also asked for the
         // optional fields that declare `prompt: true`; without a person they keep their default.
@@ -501,6 +543,9 @@ export async function executeCommand(
         if (def.plan) {
             const { plan } = await def.plan();
             const planned = await plan(parsed, ctx);
+            if (consents.declined) {
+                return errorResult(hostErrors.cancelled, {}, notices);
+            }
             if (isErrorResult(planned)) {
                 return declaredError(def, planned, notices);
             }
@@ -514,7 +559,7 @@ export async function executeCommand(
                     );
                 }
                 const digest = consentDigest(consent, planned.preview);
-                if (consentValues[consent] !== digest) {
+                if (consents.values[consent] !== digest) {
                     needs.push({
                         kind: 'consent',
                         consent,
@@ -552,6 +597,10 @@ export async function executeCommand(
         }
         const { run } = await def.run();
         const result = await run(parsed, ctx);
+        // A person declined a consent that `ctx.consent` asked for, so the run stops there.
+        if (consents.declined) {
+            return errorResult(hostErrors.cancelled, {}, notices);
+        }
         if (isIncompleteResult(result)) {
             const inputNeedsOnly = result.needs.every((need): need is InputNeed => need.kind === 'input');
             // `run()` found that it needs more input, which only it could tell. A person is asked

@@ -99,6 +99,7 @@ function makeContext(options: { ask?: Partial<CommandAsk>; mcp?: boolean } = {})
         output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
+        consent: async () => true as const,
     };
     return { ctx, notices, messages: () => notices.map(notice => notice.message) };
 }
