@@ -40,7 +40,7 @@ import { EventBus, ProductEvent, ProductVariantEvent } from '../../../event-bus/
  *   async check(ctx, order, args) {
  *     let matches = 0;
  *     for (const line of order.lines) {
- *       if (await facetValueChecker.hasFacetValues(line, args.facets)) {
+ *       if (await facetValueChecker.hasFacetValues(line, args.facets, ctx)) {
  *           matches += line.quantity;
  *       }
  *     }
@@ -70,7 +70,7 @@ export class FacetValueChecker implements OnModuleInit {
     ) {}
 
     private facetValueCache = this.cacheService.createCache({
-        getKey: (variantId: ID) => `FacetValueChecker.${variantId}`,
+        getKey: (variantId: ID) => this.getCacheKey(variantId),
         options: { ttl: ms('1w') },
     });
 
@@ -122,10 +122,9 @@ export class FacetValueChecker implements OnModuleInit {
         const variantId = orderLine.productVariant.id;
         // Promotion checks call this for the same variant many times while one order is
         // recalculated, so the cache lookup is shared for the rest of the request.
-        // The key is the same as in the shared cache. They are separate stores, so it does not collide.
         const variantFacetValueIds =
             ctx && this.requestContextCache
-                ? await this.requestContextCache.get(ctx, `FacetValueChecker.${variantId}`, () =>
+                ? await this.requestContextCache.get(ctx, this.getCacheKey(variantId), () =>
                       this.getVariantFacetValueIds(orderLine, ctx),
                   )
                 : await this.getVariantFacetValueIds(orderLine, ctx);
@@ -133,6 +132,10 @@ export class FacetValueChecker implements OnModuleInit {
             (result, id) => result && !!(variantFacetValueIds ?? []).find(_id => idsAreEqual(_id, id)),
             true as boolean,
         );
+    }
+
+    private getCacheKey(variantId: ID): string {
+        return `FacetValueChecker.${variantId}`;
     }
 
     private getVariantFacetValueIds(orderLine: OrderLine, ctx?: RequestContext): Promise<ID[]> {
