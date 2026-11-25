@@ -209,9 +209,9 @@ describe('themeVariablesPlugin', () => {
         const plugin = themeVariablesPlugin({});
         const css = `@import 'virtual:admin-theme-inline';`;
         const result = callTransform(plugin, css, '/app/styles.css');
-        // `text-sm` is the 13px body size on a 20px line, not Tailwind's 14px
-        expect(result).toContain('--text-sm: 0.8125rem;');
-        expect(result).toContain('--text-sm--line-height: calc(1.25 / 0.8125);');
+        // `text-sm` is the 14px body size on a 20px line, as in Tailwind
+        expect(result).toContain('--text-sm: 0.875rem;');
+        expect(result).toContain('--text-sm--line-height: calc(1.25 / 0.875);');
         expect(result).toContain('--text-2xs: 0.6875rem;');
         expect(result).toContain('--text-xs: 0.75rem;');
         expect(result).toContain('--font-weight-semibold: 600;');

@@ -262,8 +262,8 @@
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.0.4",
         "@uidotdev/usehooks": "^2.4.1",
-        "@vendure-io/design-tokens": "3.0.0-next.1",
-        "@vendure-io/ui": "3.0.0-next.1",
+        "@vendure-io/design-tokens": "3.0.0-next.2",
+        "@vendure-io/ui": "3.0.0-next.2",
         "@vitejs/plugin-react": "^6.1.2",
         "acorn": "^8.16.0",
         "acorn-walk": "^8.3.5",
@@ -2281,11 +2281,11 @@
 
     "@vendure-io/design-lint": ["@vendure-io/design-lint@1.0.0", "", { "peerDependencies": { "eslint": ">=9" }, "optionalPeers": ["eslint"] }, "sha512-t3DuQejlNcLnd2fo0pFsxJfKwFK/2Cc+AVM+8SPnk0hBeIvcrMpPjM2/wnD9oDzn6hp83i5QyAgTL7imrf7bLA=="],
 
-    "@vendure-io/design-tokens": ["@vendure-io/design-tokens@3.0.0-next.1", "", { "dependencies": { "@fontsource-variable/geist-mono": "^5.2.8", "@fontsource-variable/inter": "^5.2.8", "@fontsource-variable/public-sans": "^5.2.7", "tailwindcss": "^4.1.18", "tw-animate-css": "1.4.0" } }, "sha512-76uF7N60Ft5y8PVpHXbM2z+NpYgrbOkDOmrSgiZ6mBH09T0PKPO1764FcQn+ufVgEVmMg/9R64UCQgzRCtVLOQ=="],
+    "@vendure-io/design-tokens": ["@vendure-io/design-tokens@3.0.0-next.2", "", { "dependencies": { "@fontsource-variable/geist-mono": "^5.2.8", "@fontsource-variable/inter": "^5.2.8", "@fontsource-variable/public-sans": "^5.2.7", "tailwindcss": "^4.1.18", "tw-animate-css": "1.4.0" } }, "sha512-B6l8MjQwqzA24gMEBLEEc0hB2vwszwpwvoHEhxuX8pHbl5MhjTc+CMwPVUXj9LQtl7opfFRh7mWYa4YGw9c1YQ=="],
 
     "@vendure-io/docs-generator": ["@vendure-io/docs-generator@0.1.1", "", { "dependencies": { "fs-extra": "^11.0.0", "klaw-sync": "^6.0.0", "typescript": "^5.0.0" } }, "sha512-tn1BUZuacKM4d99CuVQHb+rttZJANy5kuhfWmjwhyzXMx2Nvv41WguBxVpF9njT/E7iLfyvRtwin8dom4zJF2A=="],
 
-    "@vendure-io/ui": ["@vendure-io/ui@3.0.0-next.1", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/transformers": "^3.22.0", "@tanstack/react-table": "^8.21.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1", "cmdk": "^1.1.1", "date-fns": "^4.1.0", "embla-carousel-react": "^8.6.0", "input-otp": "^1.4.2", "lucide-react": "^0.575.0", "motion": "^12.23.13", "react-day-picker": "^9.14.0", "react-resizable-panels": "^4.7.0", "recharts": "2.15.4", "shiki": "^3.22.0", "sonner": "^2.0.7", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "@vendure-io/design-tokens": "^3.0.0-next.1", "next": ">=14", "next-themes": "^0.4.6", "react": ">=19", "react-dom": ">=19" }, "optionalPeers": ["next", "next-themes"] }, "sha512-HH/kH7GGhwynyTeDbkdyZrIjbWpmnEoRbn6Lq/ro+8pC0id1CchhoUyWgd8WsvSBWqjutaVQ1XJ4lUAmMbPEMQ=="],
+    "@vendure-io/ui": ["@vendure-io/ui@3.0.0-next.2", "", { "dependencies": { "@base-ui/react": "^1.8.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/transformers": "^3.22.0", "@tanstack/react-table": "^8.21.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1", "cmdk": "^1.1.1", "date-fns": "^4.1.0", "embla-carousel-react": "^8.6.0", "input-otp": "^1.4.2", "lucide-react": "^0.575.0", "motion": "^12.23.13", "react-day-picker": "^9.14.0", "react-resizable-panels": "^4.7.0", "recharts": "2.15.4", "shiki": "^3.22.0", "sonner": "^2.0.7", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "@vendure-io/design-tokens": "^3.0.0-next.2", "next": ">=14", "next-themes": "^0.4.6", "react": ">=19", "react-dom": ">=19" }, "optionalPeers": ["next", "next-themes"] }, "sha512-jOWQU/e1yblLnf3KIbDltoKQX14E/4YBeVxgX19IiOsYiHEfAJUesVEQR8nkOEFShNf240A+i1bAueuAVoqfhQ=="],
 
     "@vendure/asset-server-plugin": ["@vendure/asset-server-plugin@workspace:packages/asset-server-plugin"],
 
