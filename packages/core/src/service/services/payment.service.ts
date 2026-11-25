@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ManualPaymentInput, OrderLineInput, RefundOrderInput } from '@vendure/common/lib/generated-types';
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { DeepPartial, ID, JsonCompatible } from '@vendure/common/lib/shared-types';
-import { getLineRefundAmount, summate } from '@vendure/common/lib/shared-utils';
+import { summate } from '@vendure/common/lib/shared-utils';
 import { In, Not } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -37,6 +37,7 @@ import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { PaymentStateMachine } from '../helpers/payment-state-machine/payment-state-machine';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
+import { getLineRefundAmount } from '../helpers/utils/get-line-refund-amount';
 import { assertOrderIsInChannel } from '../helpers/utils/order-utils';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
 
@@ -749,10 +750,10 @@ export class PaymentService {
         }
         const lines = await this.connection.getRepository(ctx, OrderLine).find({
             where: { id: In(inputs.map(input => input.orderLineId)) },
-            relations: { quotedCancellations: true },
+            relations: { cancellationLines: true },
         });
         const quotedIds = lines
-            .filter(line => line.quotedLinePrice != null || line.quotedCancellations.length > 0)
+            .filter(line => line.quotedLinePrice != null)
             .map(line => line.id);
         const previousRefunds = quotedIds.length
             ? await this.connection.getRepository(ctx, RefundLine).find({

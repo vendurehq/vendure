@@ -2190,7 +2190,7 @@ export class OrderService implements OnApplicationBootstrap {
 
     /** @internal */
     async previewRefundLineTotal(ctx: RequestContext, orderId: ID, lines: OrderLineInput[]): Promise<number> {
-        const order = await this.getOrderOrThrow(ctx, orderId, ['lines', 'lines.quotedCancellations']);
+        const order = await this.getOrderOrThrow(ctx, orderId, ['lines', 'lines.cancellationLines']);
         const refundLines = await this.connection.getRepository(ctx, RefundLine).find({
             where: { orderLineId: In(lines.map(line => line.orderLineId)), refund: { state: Not('Failed') } },
         });
@@ -2199,9 +2199,11 @@ export class OrderService implements OnApplicationBootstrap {
             if (input.quantity < 0) {
                 throw new UserInputError('errorResult.NEGATIVE_QUANTITY_ERROR');
             }
-            // The same refundable quantity as the Dashboard refund dialog uses.
+            // Cancelled units stay refundable, including units that an order modification added to
+            // a placed line. They do not count on a line that a modification added, which may not
+            // have been paid for.
             const cancelled =
-                line.orderPlacedQuantity > 0 ? summate(line.quotedCancellations, 'quantity') : 0;
+                line.orderPlacedQuantity > 0 ? summate(line.cancellationLines ?? [], 'quantity') : 0;
             const refundable =
                 Math.max(line.orderPlacedQuantity, line.quantity, cancelled + line.quantity) -
                 summate(

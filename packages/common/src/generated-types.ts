@@ -5673,6 +5673,13 @@ export type Query = {
   pendingSearchIndexUpdates: Scalars['Int']['output'];
   /** Used for real-time previews of the contents of a Collection */
   previewCollectionVariants: ProductVariantList;
+  /**
+   * Returns the tax-inclusive refund amount for the given units, excluding shipping. Units that were
+   * cancelled are valued at the price recorded when they were cancelled, for lines priced by
+   * `OrderItemPriceCalculationStrategy.calculateLinePrice`. Returns an error if more units are
+   * requested than the line can still refund.
+   */
+  previewRefundLineTotal: Scalars['Money']['output'];
   /** Get a Product either by id or slug. If neither id nor slug is specified, an error will result. */
   product?: Maybe<Product>;
   productOption?: Maybe<ProductOption>;
@@ -5890,6 +5897,12 @@ export type QueryPaymentMethodsArgs = {
 export type QueryPreviewCollectionVariantsArgs = {
   input: PreviewCollectionVariantsInput;
   options?: InputMaybe<ProductVariantListOptions>;
+};
+
+
+export type QueryPreviewRefundLineTotalArgs = {
+  lines: Array<OrderLineInput>;
+  orderId: Scalars['ID']['input'];
 };
 
 

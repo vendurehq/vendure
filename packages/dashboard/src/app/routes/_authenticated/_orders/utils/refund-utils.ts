@@ -26,27 +26,22 @@ export function getRefundablePayments(payments: Payment[] | undefined | null): R
 }
 
 /**
- * Calculate total refund amount from line selections and shipping
+ * Calculate total refund amount from the server's line refund preview and the selected shipping.
+ * The line total comes from the `previewRefundLineTotal` query, so that it matches what the server
+ * refunds, including lines priced by `calculateLinePrice` and units that were already cancelled.
  */
 export function calculateRefundTotal(
     order: Order,
-    lineSelections: Record<string, LineSelection>,
     refundShippingLineIds: string[],
-    quotedLineTotal: number,
+    lineTotal: number,
 ): number {
-    const itemTotal = order.lines.reduce((total, line) => {
-        if (line.refundPriceParts.length) return total;
-        return total + line.proratedUnitPriceWithTax * (lineSelections[line.id]?.quantity ?? 0);
-    }, quotedLineTotal);
-
     const shippingTotal = order.shippingLines.reduce((total, line) => {
         if (refundShippingLineIds.includes(line.id)) {
             return total + line.discountedPriceWithTax;
         }
         return total;
     }, 0);
-
-    return itemTotal + shippingTotal;
+    return lineTotal + shippingTotal;
 }
 
 /**

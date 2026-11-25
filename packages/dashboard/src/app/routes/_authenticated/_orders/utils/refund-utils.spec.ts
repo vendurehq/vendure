@@ -24,16 +24,15 @@ function target(overrides: Partial<RefundTarget> & { id: string }): RefundTarget
 }
 
 describe('calculateRefundTotal', () => {
-    it('adds the server quote, ordinary items, and selected shipping once', () => {
+    it('adds the previewed line total and the selected shipping once', () => {
         const order = {
-            lines: [
-                { id: 'quoted', proratedUnitPriceWithTax: 960, refundPriceParts: [{ quantity: 11 }] },
-                { id: 'regular', proratedUnitPriceWithTax: 500, refundPriceParts: [] },
+            shippingLines: [
+                { id: 'shipping', discountedPriceWithTax: 200 },
+                { id: 'other', discountedPriceWithTax: 300 },
             ],
-            shippingLines: [{ id: 'shipping', discountedPriceWithTax: 200 }],
         } as Parameters<typeof calculateRefundTotal>[0];
-        const selection = { quoted: { quantity: 10, cancel: true }, regular: { quantity: 2, cancel: false } };
-        expect(calculateRefundTotal(order, selection, ['shipping'], 9595)).toBe(10795);
+        expect(calculateRefundTotal(order, ['shipping'], 10595)).toBe(10795);
+        expect(calculateRefundTotal(order, [], 0)).toBe(0);
     });
 });
 

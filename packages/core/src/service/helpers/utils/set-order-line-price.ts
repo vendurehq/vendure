@@ -3,8 +3,8 @@ import { InternalServerError } from '../../../common/error/errors';
 import { roundMoney } from '../../../common/round-money';
 import { ChangedPriceHandlingStrategy } from '../../../config/order/changed-price-handling-strategy';
 import { OrderItemPriceCalculationStrategy } from '../../../config/order/order-item-price-calculation-strategy';
-import { Order } from '../../../entity/order/order.entity';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
+import { Order } from '../../../entity/order/order.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 
 export async function setOrderLinePrice(

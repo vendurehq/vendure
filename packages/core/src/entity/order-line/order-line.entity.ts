@@ -13,8 +13,8 @@ import { Channel } from '../channel/channel.entity';
 import { CustomOrderLineFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
+import type { CancellationLine } from '../order-line-reference/cancellation-line.entity';
 import { OrderLineReference } from '../order-line-reference/order-line-reference.entity';
-import type { QuotedLineCancellation } from '../order-line-reference/quoted-line-cancellation.entity';
 import { Order } from '../order/order.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
 import { ShippingLine } from '../shipping-line/shipping-line.entity';
@@ -121,14 +121,35 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     @Money()
     listPrice: number;
 
-    /** Total returned by calculateLinePrice, in the same tax basis as listPrice. */
+    /**
+     * @description
+     * The line total returned by `OrderItemPriceCalculationStrategy.calculateLinePrice`, in the
+     * same tax basis as `listPrice`. When set, the line prices derive from this total rather than
+     * from `listPrice`, which then holds the rounded unit price for display only.
+     *
+     * @internal
+     */
     @Money({ nullable: true })
     quotedLinePrice?: number | null;
-    /** Quantity covered by the quote, retained when items are cancelled. */
+
+    /**
+     * @description
+     * The quantity that `quotedLinePrice` covers. It is kept when units are cancelled, so the
+     * quote can be scaled to the remaining quantity without requesting a new one.
+     *
+     * @internal
+     */
     @Column({ type: 'int', nullable: true })
     quotedQuantity?: number | null;
-    @OneToMany('QuotedLineCancellation', 'orderLine', { persistence: false })
-    quotedCancellations: QuotedLineCancellation[];
+
+    /**
+     * @description
+     * The value recorded for each cancellation of units from this line.
+     *
+     * @internal
+     */
+    @OneToMany('CancellationLine', 'orderLine', { persistence: false })
+    cancellationLines: CancellationLine[];
 
     /**
      * @description
@@ -355,13 +376,20 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         return this.getPrice(true, this.quantity, 'all');
     }
 
-    @Calculated({ relations: ['quotedCancellations'] })
-    get refundPriceParts(): Array<{ priceWithTax: number; quantity: number }> {
-        const cancellations = this.quotedCancellations ?? [];
-        if (this.quotedLinePrice == null && !cancellations.length) {
+    /**
+     * @description
+     * The tax-inclusive value of this line in refund order: each earlier cancellation at the value it
+     * was recorded with, followed by the remaining units at their current price. Returns an empty
+     * array for lines without a quote from `calculateLinePrice`, whose refunds use
+     * `proratedUnitPriceWithTax`. Requires the `cancellationLines` relation.
+     *
+     * @internal
+     */
+    getRefundPriceParts(): Array<{ priceWithTax: number; quantity: number }> {
+        if (this.quotedLinePrice == null) {
             return [];
         }
-        const parts = cancellations
+        const parts = (this.cancellationLines ?? [])
             .slice()
             .sort(
                 (a, b) =>
@@ -379,7 +407,14 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         return this.proratedLinePriceWithTax - this.proratedLinePrice;
     }
 
-    /** Convert a promotion amount in the channel's tax basis to the stored quote's tax basis. */
+    /**
+     * @description
+     * Converts a promotion amount in the tax basis of the Channel to the tax basis of the quote from
+     * `calculateLinePrice`, rounded once on the line total. Lines without a quote return the amount
+     * unchanged.
+     *
+     * @internal
+     */
     getAdjustmentAmount(amount: number, includesTax: boolean): number {
         // Existing unit-price strategies keep their historical promotion tax treatment.
         if (this.quotedLinePrice == null) {
@@ -442,7 +477,21 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         }
     }
 
-    /** Unit basis for promotion calculations, before rounding a quoted unit for display. */
+    /**
+     * @description
+     * The unit price that a promotion should discount, in the requested tax basis. For a line priced
+     * by `OrderItemPriceCalculationStrategy.calculateLinePrice` this is the quote divided by its
+     * quantity, before rounding, so a percentage discount matches the quoted line total. For other
+     * lines it is `unitPrice` or `unitPriceWithTax`.
+     *
+     * @example
+     * ```ts
+     * const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
+     * return -unitPrice * (args.discount / 100);
+     * ```
+     *
+     * @since 3.9.0
+     */
     getUnitPriceForPromotion(withTax: boolean): number {
         if (this.quotedLinePrice != null && this.quotedQuantity) {
             return this.withTaxBasis(this.quotedLinePrice / this.quotedQuantity, withTax);

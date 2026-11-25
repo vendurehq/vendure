@@ -80,14 +80,37 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
 
     /**
      * @description
-     * Returns the price for the entire quantity as an integer at the configured money precision.
-     * For example, at precision 3, a quote of 19190 for 20 units totals 19.190, with a displayed
-     * unit price of 0.960. Vendure applies tax and promotions to the line price.
-     * Return undefined to use calculateUnitPrice for this line.
+     * Optionally returns the price of the whole line, for the given quantity, as an integer in the
+     * smallest unit of the configured {@link MoneyStrategy} precision. Use this when an external
+     * system such as an ERP prices the line as a total that no whole unit price reproduces.
      *
-     * Vendure stores the quote on the order line so it remains available after a strategy change.
+     * For example, at precision 2 an ERP may price 20 units at 1.235 each as 24.70. Return
+     * `{ price: 2470, priceIncludesTax: true }`. The line total is then exactly 24.70, and the
+     * unit price shown for the line is the rounded 1.24.
      *
-     * @since 3.8.3
+     * Vendure applies tax and promotions to the line total, and calls this method again whenever
+     * it reprices the line, for example after a quantity change. A partial cancellation scales the
+     * existing quote to the remaining units without calling it. Return `undefined` to price the line
+     * with `calculateUnitPrice` instead.
+     *
+     * The quote is stored on the OrderLine, so placed Orders keep their prices if this method is
+     * later removed.
+     *
+     * @example
+     * ```ts
+     * export class ErpPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
+     *     calculateUnitPrice(ctx, productVariant) {
+     *         return { price: productVariant.listPrice, priceIncludesTax: productVariant.listPriceIncludesTax };
+     *     }
+     *
+     *     async calculateLinePrice(ctx, productVariant, orderLineCustomFields, order, quantity) {
+     *         const quote = await erpClient.getLinePrice(productVariant.sku, quantity);
+     *         return { price: quote.totalInCents, priceIncludesTax: quote.grossPrices };
+     *     }
+     * }
+     * ```
+     *
+     * @since 3.9.0
      */
     calculateLinePrice?(
         ctx: RequestContext,

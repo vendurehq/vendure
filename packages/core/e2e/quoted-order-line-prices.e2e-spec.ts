@@ -1,5 +1,5 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
-import { mergeConfig, RoundPerUnitMoneyStrategy, TransactionalConnection } from '@vendure/core';
+import { DefaultMoneyStrategy, mergeConfig, TransactionalConnection } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import type { SqljsDriver } from 'typeorm/driver/sqljs/SqljsDriver';
@@ -34,8 +34,13 @@ import {
 } from './graphql/shop-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
-class ThreeDecimalMoneyStrategy extends RoundPerUnitMoneyStrategy {
+// Rounds each unit before multiplying, so the tests show that a quote is not derived from the
+// rounded unit price.
+class ThreeDecimalMoneyStrategy extends DefaultMoneyStrategy {
     readonly precision = 3;
+    round(value: number, quantity = 1): number {
+        return Math.round(value) * quantity;
+    }
 }
 
 describe('quoted order line prices', () => {
@@ -214,25 +219,6 @@ describe('quoted order line prices', () => {
             });
             const remaining = change === 'reprice' ? 9695 : 9202;
             expect(modifyOrder).toMatchObject({ id: paid.id, subTotalWithTax: remaining });
-            const { order } = await adminClient.query(
-                graphql(`
-                    query RefundPricesAfterModification($id: ID!) {
-                        order(id: $id) {
-                            lines {
-                                refundPriceParts {
-                                    quantity
-                                    priceWithTax
-                                }
-                            }
-                        }
-                    }
-                `),
-                { id: paid.id },
-            );
-            expect(order?.lines[0].refundPriceParts).toEqual([
-                { quantity: 1, priceWithTax: 969 },
-                { quantity: 10, priceWithTax: remaining },
-            ]);
             const selection = [{ orderLineId: lineId, quantity: 10 }];
             const { previewRefundLineTotal } = await adminClient.query(
                 graphql(`

@@ -30,7 +30,6 @@ export * from './money.decorator';
 export * from './order-line-reference/fulfillment-line.entity';
 export * from './order-line-reference/order-line-reference.entity';
 export * from './order-line-reference/order-modification-line.entity';
-export * from './order-line-reference/quoted-line-cancellation.entity';
 export * from './order-line-reference/refund-line.entity';
 export * from './order-line/order-line.entity';
 export * from './order-modification/order-modification.entity';

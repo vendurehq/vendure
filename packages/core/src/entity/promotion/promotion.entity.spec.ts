@@ -1,13 +1,20 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { setConfig } from '../../config/config-helpers';
-import { RoundPerUnitMoneyStrategy } from '../../config/entity/default-money-strategy';
+import { DefaultMoneyStrategy } from '../../config/entity/default-money-strategy';
 import { productsPercentageDiscount } from '../../config/promotion/actions/product-percentage-discount-action';
 import { createRequestContext } from '../../testing/order-test-utils';
 import { OrderLine } from '../order-line/order-line.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
 
 import { Promotion } from './promotion.entity';
+
+/** Rounds each unit before multiplying, the strictest case for a quoted line. */
+class RoundPerUnitMoneyStrategy extends DefaultMoneyStrategy {
+    round(value: number, quantity = 1): number {
+        return Math.round(value) * quantity;
+    }
+}
 
 describe('Promotion', () => {
     beforeAll(async () => {

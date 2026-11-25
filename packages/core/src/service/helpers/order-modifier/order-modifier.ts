@@ -39,9 +39,9 @@ import { CustomFieldConfig } from '../../../config/custom-field/custom-field-typ
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
+import { CancellationLine } from '../../../entity/order-line-reference/cancellation-line.entity';
 import { FulfillmentLine } from '../../../entity/order-line-reference/fulfillment-line.entity';
 import { OrderModificationLine } from '../../../entity/order-line-reference/order-modification-line.entity';
-import { QuotedLineCancellation } from '../../../entity/order-line-reference/quoted-line-cancellation.entity';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../../entity/order-modification/order-modification.entity';
 import { Order } from '../../../entity/order/order.entity';
@@ -285,7 +285,7 @@ export class OrderModifier {
             return new CancelActiveOrderError({ orderState: order.state });
         }
         const fullOrder = await this.connection.getEntityOrThrow(ctx, Order, order.id, {
-            relations: ['lines', 'lines.quotedCancellations'],
+            relations: ['lines'],
         });
 
         const allocatedLines: OrderLineInput[] = [];
@@ -360,15 +360,20 @@ export class OrderModifier {
                 // A partial cancellation bypasses `OrderCalculator` recalculation entirely, so the
                 // `PROMOTION` adjustments are rescaled here to preserve the invariant that they are
                 // stored scaled to the current quantity.
-                const trackQuote = orderLine.quotedLinePrice != null || orderLine.quotedCancellations?.length;
-                const before = orderLine.proratedLinePriceWithTax;
+                const priceBefore = orderLine.proratedLinePrice;
+                const priceWithTaxBefore = orderLine.proratedLinePriceWithTax;
                 orderLine.setQuantityRescalingAdjustments(orderLine.quantity - line.quantity);
-                if (trackQuote && line.quantity > 0) {
-                    await this.connection.getRepository(ctx, QuotedLineCancellation).save({
-                        orderLineId: orderLine.id,
-                        quantity: line.quantity,
-                        priceWithTax: before - orderLine.proratedLinePriceWithTax,
-                    });
+                if (line.quantity > 0) {
+                    // Records what the cancelled units were worth, so that their refund does not
+                    // change if the remaining units are repriced later.
+                    await this.connection.getRepository(ctx, CancellationLine).save(
+                        new CancellationLine({
+                            orderLineId: orderLine.id,
+                            quantity: line.quantity,
+                            price: priceBefore - orderLine.proratedLinePrice,
+                            priceWithTax: priceWithTaxBefore - orderLine.proratedLinePriceWithTax,
+                        }),
+                    );
                 }
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
                     quantity: orderLine.quantity,

@@ -201,9 +201,6 @@ export const orderDetailFragment = graphql(
             }
             lines {
                 ...OrderLine
-                refundPriceParts {
-                    quantity
-                }
             }
             surcharges {
                 id

@@ -1,9 +1,8 @@
 import { Adjustment, AdjustmentType } from '@vendure/common/lib/generated-types';
-import { getLineRefundAmount } from '@vendure/common/lib/shared-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { ensureConfigLoaded } from '../../config/config-helpers';
-import { DefaultMoneyStrategy, RoundPerUnitMoneyStrategy } from '../../config/entity/default-money-strategy';
+import { getLineRefundAmount } from '../../service/helpers/utils/get-line-refund-amount';
 
 import { OrderLine } from './order-line.entity';
 
@@ -28,11 +27,6 @@ describe('OrderLine entity', () => {
         data: {},
     };
 
-    it('can round a fractional unit before or after multiplying by quantity', () => {
-        expect(new DefaultMoneyStrategy().round(959.5, 20)).toBe(19190);
-        expect(new RoundPerUnitMoneyStrategy().round(959.5, 20)).toBe(19200);
-    });
-
     it('keeps a cent-denominated quote when the unit price is between cents', () => {
         const line = new OrderLine({
             quotedLinePrice: 2470,
@@ -50,7 +44,9 @@ describe('OrderLine entity', () => {
     it('refunds the difference between the paid and retained quantities at a rounding tie', () => {
         const line = new OrderLine({
             quotedLinePrice: 19190,
-            quotedCancellations: [{ quantity: 1, priceWithTax: 959 }],
+            cancellationLines: [
+                { quantity: 1, price: 959, priceWithTax: 959, createdAt: new Date(0) },
+            ] as any,
             quotedQuantity: 20,
             quantity: 20,
             listPrice: 960,
@@ -78,11 +74,11 @@ describe('OrderLine entity', () => {
         expect(line.linePriceWithTax).toBe(23028);
         expect(line.discountedLinePrice).toBe(17271);
         expect(line.proratedLinePriceWithTax).toBe(20725);
-        expect(line.refundPriceParts).toEqual([{ priceWithTax: 20725, quantity: 20 }]);
+        expect(line.getRefundPriceParts()).toEqual([{ priceWithTax: 20725, quantity: 20 }]);
         line.setQuantityRescalingAdjustments(7);
         line.setQuantityRescalingAdjustments(0);
         expect(line.proratedLinePriceWithTax).toBe(0);
-        expect(line.refundPriceParts).toEqual([]);
+        expect(line.getRefundPriceParts()).toEqual([]);
     });
 
     it('does not report a negative total when a full quoted discount is rescaled', () => {

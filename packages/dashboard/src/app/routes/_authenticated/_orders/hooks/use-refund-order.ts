@@ -193,28 +193,26 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         [refundTargets],
     );
 
-    const quotedLines = order.lines
-        .filter(line => line.refundPriceParts.length && lineSelections[line.id]?.quantity > 0)
+    const selectedLines = order.lines
+        .filter(line => lineSelections[line.id]?.quantity > 0)
         .map(line => ({ orderLineId: line.id, quantity: lineSelections[line.id].quantity }));
-    const needsQuote = quotedLines.length > 0 && !manuallySetRefundTotal;
-    const quote = useQuery({
+    const needsPreview = selectedLines.length > 0 && !manuallySetRefundTotal;
+    const preview = useQuery({
         queryKey: [
             'previewRefundLineTotal',
             order.id,
             order.updatedAt,
-            quotedLines,
-            quotedLines.map(line => getRefundedQuantity(order, line.orderLineId)),
+            selectedLines,
+            selectedLines.map(line => getRefundedQuantity(order, line.orderLineId)),
         ],
-        queryFn: () => api.query(previewRefundLineTotalDocument, { orderId: order.id, lines: quotedLines }),
-        enabled: needsQuote,
-        // A quote for the previous selection must not be submitted while the new one is pending.
+        queryFn: () => api.query(previewRefundLineTotalDocument, { orderId: order.id, lines: selectedLines }),
+        enabled: needsPreview,
+        // A preview for the previous selection must not be submitted while the new one is pending.
         placeholderData: undefined,
     });
-    const quotedAmount = needsQuote ? quote.data?.previewRefundLineTotal : 0;
+    const lineTotal = needsPreview ? preview.data?.previewRefundLineTotal : 0;
     const calculatedTotal =
-        quotedAmount == null
-            ? undefined
-            : calculateRefundTotal(order, lineSelections, refundShippingLineIds, quotedAmount);
+        lineTotal == null ? undefined : calculateRefundTotal(order, refundShippingLineIds, lineTotal);
 
     const allocateToTargets = useCallback(
         (total: number) => {
@@ -331,7 +329,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
 
     const validationErrors = useMemo(() => {
         const errors: string[] = [];
-        if (needsQuote && quote.error) errors.push(quote.error.message);
+        if (needsPreview && preview.error) errors.push(preview.error.message);
 
         if (refundTotal < 0) {
             errors.push(t`Refund total cannot be negative`);
@@ -378,8 +376,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
 
         return errors;
     }, [
-        needsQuote,
-        quote.error,
+        needsPreview,
+        preview.error,
         refundTotal,
         totalRefundableAmount,
         amountToRefundTotal,
@@ -392,7 +390,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         t,
     ]);
 
-    const isCalculating = needsQuote && quote.isFetching;
+    const isCalculating = needsPreview && preview.isFetching;
     const canSubmit =
         refundTotal > 0 &&
         !!reason &&
