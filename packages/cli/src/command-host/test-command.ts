@@ -10,6 +10,12 @@ import { credentialNeed } from '../auth/credential.js';
 
 import { executeCommand, HostEnvironment, HostResult, Prompter } from './host.js';
 
+/** The `console` methods a command could print with. */
+const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug'] as const;
+
+/** Whether a run is in progress, since the console is replaced for its duration. */
+let activeRun = false;
+
 /**
  * @description
  * The options of {@link testCommand}.
@@ -26,7 +32,10 @@ export interface TestCommandOptions {
      * `input` need, and `ctx.ask` is not set.
      */
     prompter?: Prompter;
-    /** What the host finds as the project root. `undefined` means outside a project. */
+    /**
+     * What the host finds as the project root. Defaults to `/project`, so a command with
+     * `requires: { project: true }` runs. Pass `undefined` to test it outside a project.
+     */
     projectRoot?: string | undefined;
     /** Answers `ctx.spawn`. Defaults to a process that exits with 0 and prints nothing. */
     spawn?: (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult>;
@@ -36,8 +45,11 @@ export interface TestCommandOptions {
      * command stops with the `token` input need, as it does without a login.
      */
     credential?: CommandCredential;
-    /** Writes a secret output to a file. Defaults to none, so a secret output stays in the result. */
-    writeSecret?: HostEnvironment['writeSecret'];
+    /**
+     * Writes a secret output to a file, and returns its path. Without it, a run that no person sees
+     * refuses a command with secret outputs, as a host that cannot keep them safe does.
+     */
+    writeSecret?: (command: string[], field: string, value: string) => string;
 }
 
 /**
@@ -63,7 +75,8 @@ export interface TestCommandResult extends HostResult {
  * `commandDeclarations(module)` of `@vendure/common/lib/command`.
  *
  * It needs no test framework. Import it from `@vendure/cli` in a plugin's tests only: declaring
- * commands never loads `@vendure/cli`.
+ * commands never loads `@vendure/cli`. It replaces the process's console for the run, so runs must
+ * not overlap: one that starts while another is running is refused.
  *
  * @example
  * ```ts
@@ -123,25 +136,37 @@ export async function runInTestHost(
         findProjectRoot: () => ('projectRoot' in options ? options.projectRoot : '/project'),
         ...overrides,
     };
-    // The console is replaced for the run, without a test framework, so a command that prints is
-    // caught whatever the plugin's tests run on.
-    // The original methods are put back on the same streams, so they keep their `this`.
+    // The console is replaced for the run, without a test framework: the stream writes, and the
+    // `console` methods, which test runners replace with their own that bypass the streams.
+    if (activeRun) {
+        throw new Error('testCommand runs must not overlap: another run is still in progress');
+    }
+    activeRun = true;
+    const capture = (...chunks: unknown[]) => {
+        printed.push(chunks.map(String).join(' '));
+        return true;
+    };
+    // The original methods are put back on the same objects, so they keep their `this`.
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const writeStdout = process.stdout.write;
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const writeStderr = process.stderr.write;
-    const capture = ((chunk: unknown) => {
-        printed.push(String(chunk));
-        return true;
-    }) as typeof process.stdout.write;
-    process.stdout.write = capture;
-    process.stderr.write = capture;
+    const consoleMethods = CONSOLE_METHODS.map(name => [name, console[name]] as const);
+    process.stdout.write = capture as typeof process.stdout.write;
+    process.stderr.write = capture as typeof process.stderr.write;
+    for (const name of CONSOLE_METHODS) {
+        console[name] = capture;
+    }
     let result: HostResult;
     try {
         result = await executeCommand(definition, input, env);
     } finally {
         process.stdout.write = writeStdout;
         process.stderr.write = writeStderr;
+        for (const [name, method] of consoleMethods) {
+            console[name] = method;
+        }
+        activeRun = false;
     }
     if (printed.length > 0) {
         throw new Error(`The command wrote to the console: ${printed.join('')}`);

@@ -99,4 +99,38 @@ describe('testCommand', () => {
         });
         await expect(testCommand(noisy, {})).rejects.toThrow('The command wrote to the console: hello');
     });
+
+    it('fails when the command prints with console.log, which a test runner replaces', async () => {
+        const logging = defineCommand({
+            path: ['acme', 'log'],
+            description: 'Log',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async () => {
+                    // eslint-disable-next-line no-console
+                    console.log('chatty');
+                    return {};
+                },
+            }),
+        });
+        await expect(testCommand(logging, {})).rejects.toThrow('The command wrote to the console: chatty');
+    });
+
+    it('refuses a run that overlaps another', async () => {
+        let release: () => void = () => undefined;
+        const slow = defineCommand({
+            path: ['acme', 'slow'],
+            description: 'Slow',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({ run: () => new Promise<object>(resolve => (release = () => resolve({}))) }),
+        });
+        const first = testCommand(slow, {});
+        await expect(testCommand(greet, { name: 'Ada' })).rejects.toThrow('must not overlap');
+        // Let the first run reach run() before releasing it.
+        await new Promise(resolve => setTimeout(resolve, 50));
+        release();
+        await expect(first).resolves.toMatchObject({ envelope: { status: 'ok' } });
+    });
 });
