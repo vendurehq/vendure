@@ -44,7 +44,7 @@ export const Route = createFileRoute('/_authenticated/_api-keys/api-keys_/$id')(
             pageId,
             blocks: [
                 { column: 'main', blockId: 'main-form' },
-                { column: 'main', blockId: 'roles', content: 'list', rows: 4, title: true },
+                { column: 'main', blockId: 'roles', content: 'list', rows: 8, title: true },
                 { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'ApiKey' },
                 { column: 'side', blockId: 'metadata', content: 'list', rows: 3, title: true },
             ],

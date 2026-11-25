@@ -42,7 +42,7 @@ export const Route = createFileRoute('/_authenticated/_administrators/administra
                     content: 'custom-fields',
                     entityType: 'Administrator',
                 },
-                { column: 'main', blockId: 'roles', content: 'list', rows: 4, title: true },
+                { column: 'main', blockId: 'roles', content: 'list', rows: 8, title: true },
             ],
         },
     },
