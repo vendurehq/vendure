@@ -21,6 +21,11 @@ interface AssignedChannelsProps {
     buildRemoveInput: (entityId: string, channelId: string) => Record<string, unknown>;
     buildAssignInput: (entityId: string, channelId: string) => Record<string, unknown>;
     additionalAssignFields?: ReactNode;
+    /**
+     * Whether the values in `additionalAssignFields` are valid. While false, the Assign button
+     * is disabled. Defaults to true.
+     */
+    additionalAssignFieldsValid?: boolean;
     /** Query key prefix to invalidate after channel changes. Defaults to `['DetailPage']`. */
     queryKeyScope?: unknown[];
 }
@@ -35,6 +40,7 @@ export function AssignedChannels({
     buildRemoveInput,
     buildAssignInput,
     additionalAssignFields,
+    additionalAssignFieldsValid,
     queryKeyScope = ['DetailPage'],
 }: Readonly<AssignedChannelsProps>) {
     const { t } = useLingui();
@@ -106,6 +112,7 @@ export function AssignedChannels({
                         onSuccess={handleAssignSuccess}
                         buildInput={(channelId: string) => buildAssignInput(entityId, channelId)}
                         additionalFields={additionalAssignFields}
+                        additionalFieldsValid={additionalAssignFieldsValid}
                     />
                 </>
             )}

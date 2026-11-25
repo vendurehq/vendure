@@ -43,6 +43,11 @@ interface AssignToChannelDialogProps {
      * Optional additional data to pass to buildInput
      */
     additionalData?: Record<string, any>;
+    /**
+     * Whether the values in `additionalFields` are valid. While false, the Assign button is
+     * disabled. Defaults to true.
+     */
+    additionalFieldsValid?: boolean;
 }
 
 export function AssignToChannelDialog({
@@ -55,6 +60,7 @@ export function AssignToChannelDialog({
     buildInput,
     additionalFields,
     additionalData = {},
+    additionalFieldsValid = true,
 }: Readonly<AssignToChannelDialogProps>) {
     const { t } = useLingui();
     const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
@@ -128,7 +134,7 @@ export function AssignToChannelDialog({
     });
 
     const handleAssign = () => {
-        if (selectedChannelIds.length === 0) {
+        if (selectedChannelIds.length === 0 || !additionalFieldsValid) {
             return;
         }
         mutate();
@@ -181,7 +187,7 @@ export function AssignToChannelDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         <Trans>Cancel</Trans>
                     </Button>
-                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isPending}>
+                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isPending || !additionalFieldsValid}>
                         <Trans>Assign</Trans>
                     </Button>
                 </DialogFooter>
@@ -190,16 +196,27 @@ export function AssignToChannelDialog({
     );
 }
 
+const MAX_PRICE_FACTOR = 99999;
+
 /**
- * Hook for managing price factor state in assign-to-channel dialogs
+ * Hook for managing price factor state in assign-to-channel dialogs.
+ *
+ * Pass `priceFactorValid` to the dialog's `additionalFieldsValid` prop, so that an invalid
+ * factor cannot be submitted.
  */
 export function usePriceFactor() {
     // The input keeps the text as typed, so that it can be cleared and intermediate values
-    // such as `0.` can be entered. An empty or invalid value falls back to the default of 1.
+    // such as `0.` can be entered. An empty value falls back to the default of 1.
     const [value, setValue] = useState('1');
+    // A number input reports text it cannot parse, such as `-` or `1e`, as an empty value.
+    // `validity.badInput` tells that apart from a cleared field. It is read in `onInput`,
+    // because React skips `onChange` when the reported value does not change.
+    const [badInput, setBadInput] = useState(false);
     const parsed = Number.parseFloat(value);
-    const isValid = Number.isFinite(parsed) && parsed >= 0;
-    const priceFactor = isValid ? parsed : 1;
+    const isEmpty = value === '' && !badInput;
+    const priceFactorValid =
+        isEmpty || (Number.isFinite(parsed) && parsed >= 0 && parsed <= MAX_PRICE_FACTOR);
+    const priceFactor = !isEmpty && priceFactorValid ? parsed : 1;
 
     const priceFactorField = (
         <div className="grid gap-2">
@@ -209,15 +226,16 @@ export function usePriceFactor() {
             <Input
                 type="number"
                 min="0"
-                max="99999"
+                max={MAX_PRICE_FACTOR}
                 step="0.01"
                 placeholder="1"
                 value={value}
                 onChange={e => setValue(e.target.value)}
-                aria-invalid={value !== '' && !isValid}
+                onInput={e => setBadInput(e.currentTarget.validity.badInput)}
+                aria-invalid={!priceFactorValid}
             />
         </div>
     );
 
-    return { priceFactor, priceFactorField };
+    return { priceFactor, priceFactorField, priceFactorValid };
 }

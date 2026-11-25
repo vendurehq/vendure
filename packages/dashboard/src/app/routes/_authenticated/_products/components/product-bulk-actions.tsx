@@ -35,7 +35,7 @@ export const DeleteProductsBulkAction: BulkActionComponent<any> = ({ selection, 
 };
 
 export const AssignProductsToChannelBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
-    const { priceFactor, priceFactorField } = usePriceFactor();
+    const { priceFactor, priceFactorField, priceFactorValid } = usePriceFactor();
 
     return (
         <AssignToChannelBulkAction
@@ -50,6 +50,7 @@ export const AssignProductsToChannelBulkAction: BulkActionComponent<any> = ({ se
                 priceFactor,
             })}
             additionalFields={priceFactorField}
+            additionalFieldsValid={priceFactorValid}
         />
     );
 };
