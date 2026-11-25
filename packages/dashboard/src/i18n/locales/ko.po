@@ -1974,6 +1974,10 @@ msgstr "{0, plural, other {에셋 # 개 업로드에 실패했습니다}}"
 msgid "We couldn't load these metrics"
 msgstr ""
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "채널 선택"

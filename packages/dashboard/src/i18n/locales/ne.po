@@ -1982,6 +1982,10 @@ msgstr "{0, plural, one {# सम्पत्ति अपलोड गर्न
 msgid "We couldn't load these metrics"
 msgstr "हामीले यी मेट्रिक्सहरू लोड गर्न सकेनौं"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "च्यानल चयन गर्नुहोस्"

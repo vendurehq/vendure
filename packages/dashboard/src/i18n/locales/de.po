@@ -1982,6 +1982,10 @@ msgstr "{0, plural, one {# Asset konnte nicht hochgeladen werden} other {# Asset
 msgid "We couldn't load these metrics"
 msgstr "Diese Metriken konnten nicht geladen werden"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "Kanal auswählen"

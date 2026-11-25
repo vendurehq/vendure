@@ -1982,6 +1982,10 @@ msgstr "{0, plural, other {# 件のアセットのアップロードに失敗し
 msgid "We couldn't load these metrics"
 msgstr "これらの指標を読み込めませんでした"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "チャネルを選択"

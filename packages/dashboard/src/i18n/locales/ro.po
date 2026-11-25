@@ -1934,6 +1934,10 @@ msgstr "{0, plural, one {Încărcarea a # resursă a eșuat} few {Încărcarea a
 msgid "We couldn't load these metrics"
 msgstr "Nu s-au putut încărca aceste metrici"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "Selectează un canal"
