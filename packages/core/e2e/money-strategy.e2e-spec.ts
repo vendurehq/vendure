@@ -1,4 +1,4 @@
-import { SortOrder } from '@vendure/common/lib/generated-types';
+import { LanguageCode, SortOrder } from '@vendure/common/lib/generated-types';
 import { Logger, mergeConfig, MoneyStrategy, VendurePlugin } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
@@ -9,8 +9,12 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { FragmentOf } from './graphql/graphql-shop';
-import { getProductVariantListDocument } from './graphql/shared-definitions';
-import { localAddItemToOrderDocument, localUpdatedOrderFragment } from './graphql/shop-definitions';
+import { createPromotionDocument, getProductVariantListDocument } from './graphql/shared-definitions';
+import {
+    applyCouponCodeDocument,
+    localAddItemToOrderDocument,
+    localUpdatedOrderFragment,
+} from './graphql/shop-definitions';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
@@ -18,6 +22,7 @@ type UpdatedOrder = FragmentOf<typeof localUpdatedOrderFragment>;
 const orderGuard: ErrorResultGuard<UpdatedOrder> = createErrorResultGuard(input => !!input.total);
 
 class CustomMoneyStrategy implements MoneyStrategy {
+    readonly precision = 4;
     static transformerFromSpy = vi.fn();
     readonly moneyColumnOptions: ColumnOptions = {
         type: 'bigint',
@@ -90,13 +95,14 @@ describe('Custom MoneyStrategy', () => {
         });
         expect(productVariants.items[0].price).toBe(31);
         expect(productVariants.items[0].priceWithTax).toBe(37);
-        expect(productVariants.items[1].price).toBe(9_999_999_00);
-        expect(productVariants.items[1].priceWithTax).toBe(11_999_998_80);
+        const expensiveVariant = productVariants.items.find(variant => variant.sku === 'EW0001')!;
+        expect(expensiveVariant.price).toBe(99_999_990_000);
+        expect(expensiveVariant.priceWithTax).toBe(119_999_988_000);
 
         cheapVariantId = productVariants.items[0].id;
-        expensiveVariantId = productVariants.items[1].id;
+        expensiveVariantId = expensiveVariant.id;
 
-        expect(CustomMoneyStrategy.transformerFromSpy).toHaveBeenCalledTimes(2);
+        expect(CustomMoneyStrategy.transformerFromSpy).toHaveBeenCalledTimes(productVariants.items.length);
     });
 
     // https://github.com/vendurehq/vendure/issues/838
@@ -108,8 +114,8 @@ describe('Custom MoneyStrategy', () => {
         });
         orderGuard.assertSuccess(addItemToOrder);
 
-        expect(addItemToOrder.lines[0].linePrice).toBe(1_999_999_800);
-        expect(addItemToOrder.lines[0].linePriceWithTax).toBe(2_399_999_760);
+        expect(addItemToOrder.lines[0].linePrice).toBe(199_999_980_000);
+        expect(addItemToOrder.lines[0].linePriceWithTax).toBe(239_999_976_000);
     });
 
     // https://github.com/vendurehq/vendure/issues/1835
@@ -125,5 +131,55 @@ describe('Custom MoneyStrategy', () => {
 
         expect(addItemToOrder.lines[0].linePrice).toBe(310);
         expect(addItemToOrder.lines[0].linePriceWithTax).toBe(372);
+    });
+
+    it.each([
+        ['ERP1235', 247_000],
+        ['ERP9595', 191_900],
+    ] as const)('preserves the imported unit price of %s across an order line', async (sku, total) => {
+        const { productVariants } = await adminClient.query(getProductVariantListDocument, {
+            options: { filter: { sku: { eq: sku } } },
+        });
+        await shopClient.asAnonymousUser();
+        const { addItemToOrder } = await shopClient.query(localAddItemToOrderDocument, {
+            productVariantId: productVariants.items[0].id,
+            quantity: 20,
+        });
+        orderGuard.assertSuccess(addItemToOrder);
+        expect(addItemToOrder.lines[0].linePrice).toBe(total);
+        expect(addItemToOrder.total).toBe(total);
+    });
+
+    it('applies a percentage promotion at the configured precision', async () => {
+        const { productVariants } = await adminClient.query(getProductVariantListDocument, {
+            options: { filter: { sku: { eq: 'OFFER101' } } },
+        });
+        const variantId = productVariants.items[0].id;
+        await adminClient.query(createPromotionDocument, {
+            input: {
+                enabled: true,
+                couponCode: 'FIVE',
+                translations: [{ languageCode: LanguageCode.en, name: '5% off' }],
+                conditions: [],
+                actions: [
+                    {
+                        code: 'products_percentage_discount',
+                        arguments: [
+                            { name: 'discount', value: '5' },
+                            { name: 'productVariantIds', value: JSON.stringify([variantId]) },
+                        ],
+                    },
+                ],
+            },
+        });
+        await shopClient.asAnonymousUser();
+        const { addItemToOrder } = await shopClient.query(localAddItemToOrderDocument, {
+            productVariantId: variantId,
+            quantity: 20,
+        });
+        orderGuard.assertSuccess(addItemToOrder);
+        expect(addItemToOrder.lines[0].linePrice).toBe(202_000);
+        const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, { couponCode: 'FIVE' });
+        expect(applyCouponCode).toMatchObject({ subTotal: 191_900, total: 191_900 });
     });
 });

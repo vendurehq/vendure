@@ -181,6 +181,7 @@ export class Importer {
                 `No TaxCategories found in the database. Ensure the IntialData.taxRates array is not empty.`,
             );
         }
+        const priceFactor = 10 ** (this.configService.entityOptions.moneyStrategy.precision ?? 2);
         await this.fastImporter.initialize(ctx.channel);
 
         // Build a map of shared option groups (only groups with an explicit code are shared)
@@ -324,7 +325,7 @@ export class Importer {
                             ),
                         };
                     }),
-                    price: Math.round(variant.price * 100),
+                    price: Math.round(variant.price * priceFactor),
                     customFields: variantCustomFields,
                 });
             }

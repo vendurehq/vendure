@@ -1,3 +1,6 @@
 name          , slug          , description                                                                                                                                                                                                                                                                                        , assets                             , facets                                  , optionGroups      , optionValues   , sku      , price   , taxCategory , stockOnHand , trackInventory , variantAssets , variantFacets
-Cheap Widget        , cheap-widget        , "A very affordable widget."                       ,   , category:electronics , "" , ""  , CW0001 , 0.31 , standard    ,             , false          ,               ,
+Cheap Widget        , cheap-widget        , "A very affordable widget."                       ,   , category:electronics , "" , ""  , CW0001 , 0.0031 , standard    ,             , false          ,               ,
 Expensive Widget , expensive-widget , "A luxury widget with a luxury price tag!" ,  , category:electronics ,       ,         , EW0001  , 9999999.00  , standard    ,             , false          ,               ,
+Precision Widget,precision-widget,Unit price with three decimals,,,,,ERP1235,1.235,standard,,false,,
+Discounted Widget,discounted-widget,Unit price after a five percent discount,,,,,ERP9595,0.9595,standard,,false,,
+Offer Widget,offer-widget,Unit price before promotion,,,,,OFFER101,1.01,standard,,false,,
