@@ -40,6 +40,18 @@ export default defineConfig({
             },
             dependencies: ['setup'],
         },
+        {
+            // Layout shift specs (`e2e/layout-stability`): run with `bun run e2e:pw -- layout-stability`.
+            name: 'layout-stability',
+            testDir: './layout-stability',
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: path.join(__dirname, '.auth/admin.json'),
+                contextOptions: { reducedMotion: 'reduce' },
+                actionTimeout: 15_000,
+            },
+            dependencies: ['setup'],
+        },
     ],
     webServer: {
         // Tests the pre-built bundle, as projects that install the package get it. The app is
