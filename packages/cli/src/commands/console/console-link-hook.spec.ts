@@ -247,6 +247,7 @@ describe('console link hooks', () => {
             'extendCommands',
             'afterConsoleLink',
             'requiresProject',
+            'commandManifest',
         ]);
         expect(Object.isFrozen(CLI_PLUGIN_EXTENSION_POINTS)).toBe(true);
     });

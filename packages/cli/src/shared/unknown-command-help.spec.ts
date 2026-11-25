@@ -250,7 +250,7 @@ describe('unknown command help', () => {
 
             expect(unknownCommandHelp('cloud', options, new Map(), notInstalled(options))).toContain(
                 `@example/cloud is enabled globally but cannot be enabled for ${options.cwd}: ` +
-                    'Does not declare vendure.cliPlugin in its package.json',
+                    'Does not declare vendure.cliPlugin or vendure.commandManifest in its package.json',
             );
         });
 
