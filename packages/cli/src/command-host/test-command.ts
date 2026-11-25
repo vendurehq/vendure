@@ -15,8 +15,63 @@ import { executeCommand, HostEnvironment, HostResult, Prompter } from './host.js
 /** The `console` methods a command could print with. */
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug'] as const;
 
-/** Whether a run is in progress, since the console is replaced for its duration. */
-let activeRun = false;
+/** The output of every run in progress. Anything written while runs overlap counts for each of them. */
+const activeRuns = new Set<string[]>();
+let restoreConsole: (() => void) | undefined;
+
+/**
+ * Starts recording what is written to the console into `printed`, and returns the function that
+ * stops it. The console is replaced once, when the first run starts, and put back when the last one
+ * ends, so runs may overlap: a write while they do counts for each of them.
+ */
+function captureConsole(printed: string[]): () => void {
+    activeRuns.add(printed);
+    if (!restoreConsole) {
+        const record = (text: string) => {
+            for (const run of activeRuns) {
+                run.push(text);
+            }
+        };
+        // A stream write records its chunk, and calls a callback it was given, as a stream would.
+        const captureWrite = ((chunk: unknown, ...rest: unknown[]) => {
+            record(String(chunk));
+            const callback = rest.find(argument => typeof argument === 'function') as
+                | (() => void)
+                | undefined;
+            callback?.();
+            return true;
+        }) as typeof process.stdout.write;
+        // The original methods are put back on the same objects, so they keep their `this`.
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const writeStdout = process.stdout.write;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const writeStderr = process.stderr.write;
+        /* eslint-disable no-console -- the console is what this replaces, to catch a command that prints */
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const consoleMethods = CONSOLE_METHODS.map(name => [name, console[name]] as const);
+        process.stdout.write = captureWrite;
+        process.stderr.write = captureWrite;
+        for (const name of CONSOLE_METHODS) {
+            // A console call records a line, formatted as the console would.
+            console[name] = (...args: unknown[]) => record(`${format(...args)}\n`);
+        }
+        restoreConsole = () => {
+            process.stdout.write = writeStdout;
+            process.stderr.write = writeStderr;
+            for (const [name, method] of consoleMethods) {
+                console[name] = method;
+            }
+            restoreConsole = undefined;
+        };
+        /* eslint-enable no-console */
+    }
+    return () => {
+        activeRuns.delete(printed);
+        if (activeRuns.size === 0) {
+            restoreConsole?.();
+        }
+    };
+}
 
 /**
  * @description
@@ -77,8 +132,8 @@ export interface TestCommandResult extends HostResult {
  * `commandDeclarations(module)` of `@vendure/common/lib/command`.
  *
  * It needs no test framework. Import it from `@vendure/cli` in a plugin's tests only: declaring
- * commands never loads `@vendure/cli`. It replaces the process's console for the run, so runs must
- * not overlap: one that starts while another is running is refused.
+ * commands never loads `@vendure/cli`. It replaces the process's console while runs are in progress.
+ * Runs may overlap, but then something written to the console counts for each of them.
  *
  * @example
  * ```ts
@@ -140,45 +195,12 @@ export async function runInTestHost(
     };
     // The console is replaced for the run, without a test framework: the stream writes, and the
     // `console` methods, which test runners replace with their own that bypass the streams.
-    if (activeRun) {
-        throw new Error('testCommand runs must not overlap: another run is still in progress');
-    }
-    activeRun = true;
-    // A stream write records its chunk, and calls a callback it was given, as a stream would.
-    const captureWrite = ((chunk: unknown, ...rest: unknown[]) => {
-        printed.push(String(chunk));
-        const callback = rest.find(argument => typeof argument === 'function') as (() => void) | undefined;
-        callback?.();
-        return true;
-    }) as typeof process.stdout.write;
-    // A console call records a line, formatted as the console would.
-    const captureConsole = (...args: unknown[]) => {
-        printed.push(`${format(...args)}\n`);
-    };
-    // The original methods are put back on the same objects, so they keep their `this`.
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const writeStdout = process.stdout.write;
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const writeStderr = process.stderr.write;
-    /* eslint-disable no-console -- the console is what this replaces, to catch a command that prints */
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const consoleMethods = CONSOLE_METHODS.map(name => [name, console[name]] as const);
-    process.stdout.write = captureWrite;
-    process.stderr.write = captureWrite;
-    for (const name of CONSOLE_METHODS) {
-        console[name] = captureConsole;
-    }
     let result: HostResult;
+    const release = captureConsole(printed);
     try {
         result = await executeCommand(definition, input, env);
     } finally {
-        process.stdout.write = writeStdout;
-        process.stderr.write = writeStderr;
-        for (const [name, method] of consoleMethods) {
-            console[name] = method;
-        }
-        /* eslint-enable no-console */
-        activeRun = false;
+        release();
     }
     if (printed.length > 0) {
         throw new Error(`The command wrote to the console: ${printed.join('')}`);

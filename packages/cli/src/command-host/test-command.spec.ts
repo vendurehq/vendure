@@ -133,7 +133,9 @@ describe('testCommand', () => {
         await expect(testCommand(writing, {})).rejects.toThrow(/wrote to the console: x\n$/);
     });
 
-    it('refuses a run that overlaps another', async () => {
+    it('runs overlapping commands, and puts the console back when the last one ends', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalWrite = process.stdout.write;
         let release: () => void = () => undefined;
         let started: () => void = () => undefined;
         const reached = new Promise<void>(resolve => (started = resolve));
@@ -151,9 +153,16 @@ describe('testCommand', () => {
             }),
         });
         const first = testCommand(slow, {});
-        await expect(testCommand(greet, { name: 'Ada' })).rejects.toThrow('must not overlap');
         await reached;
+        await expect(testCommand(greet, { name: 'Ada' })).resolves.toMatchObject({
+            envelope: { status: 'ok' },
+        });
+        // The first run is still in progress, so the console is still replaced.
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(process.stdout.write).not.toBe(originalWrite);
         release();
         await expect(first).resolves.toMatchObject({ envelope: { status: 'ok' } });
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(process.stdout.write).toBe(originalWrite);
     });
 });
