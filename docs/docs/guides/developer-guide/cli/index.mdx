@@ -777,8 +777,10 @@ credentials or registry tokens.
 
 `outcome` is `linked` when the run wrote the link and `repaired` when it kept the one on disk. Plugin setup data is
 stored under the plugin ID in `plugins`. When a plugin's setup still needs something, the result is `incomplete` with
-the plugin's needs and the output of the link so far. Failed setup is the coded error `console.link-failed`. Either
-way, the linked manifest stays. The output contains no tokens or raw errors. Plugins must supply only safe setup
+the plugin's needs and the output of the link so far. With a person at a terminal, the CLI shows what the plugin needs
+instead, and the result is `failed` with that output. Failed setup is the coded error `console.link-failed`. Either
+way, the linked manifest stays. A project directory that cannot be found is the coded error
+`console.project-not-found`, with a fix for each Vendure project found nearby. The output contains no tokens or raw errors. Plugins must supply only safe setup
 metadata.
 
 ### Link status

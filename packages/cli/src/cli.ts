@@ -14,11 +14,10 @@ import {
     TakenCommandPath,
 } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
-import { CONSOLE_DIR_FLAG } from './commands/console/console.command.js';
-import { DEV_DIR_FLAG } from './commands/dev/dev.command.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
 import { setPluginExtensionAccessor } from './shared/plugin-extensions.js';
+import { PROJECT_DIR_FLAG, selectsPluginProject } from './shared/project-dir-flag.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -86,21 +85,14 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // full command only after they have been registered.
     const pluginOptions: ResolveCliPluginsOptions = {};
     const selection = new Command().allowUnknownOption().exitOverride();
-    switch (process.argv[2]) {
-        case 'dev':
-            // Only the flag selects the plugins' project. A `dir` inside `--input` is read once the
-            // plugins are loaded, so it selects the project to run, not the plugins.
-            selection.option(`${DEV_DIR_FLAG} <dir>`);
-            selection.parseOptions(process.argv.slice(3));
-            pluginOptions.project = selection.opts<{ dir?: string }>().dir;
-            pluginOptions.projectFlag = DEV_DIR_FLAG;
-            break;
-        case 'console':
-            selection.option(`${CONSOLE_DIR_FLAG} <dir>`);
-            selection.parseOptions(process.argv.slice(3));
-            pluginOptions.project = selection.opts<{ dir?: string }>().dir;
-            pluginOptions.projectFlag = CONSOLE_DIR_FLAG;
-            break;
+    if (selectsPluginProject(process.argv.slice(2))) {
+        // Only the flag selects the plugins' project. A `dir` inside `--input` is read once the
+        // plugins are loaded, so a caller that passes the input that way passes the flag too, as
+        // the Developer MCP does.
+        selection.option(`${PROJECT_DIR_FLAG} <dir>`);
+        selection.parseOptions(process.argv.slice(3));
+        pluginOptions.project = selection.opts<{ dir?: string }>().dir;
+        pluginOptions.projectFlag = PROJECT_DIR_FLAG;
     }
     const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
     for (const scopeError of scopeErrors) {

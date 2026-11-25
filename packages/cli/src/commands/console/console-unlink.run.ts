@@ -2,9 +2,9 @@ import { CommandContext, fail } from '@vendure/common/lib/command';
 
 import { hostErrors } from '../../command-host/host-errors.js';
 
-import { consoleDependencies, silentReporter } from './console-context.js';
+import { consoleDependencies, previewForRun, resolveConsoleProject } from './console-context.js';
 import { consoleErrors } from './console.errors.js';
-import { previewConsoleChange, runConsole } from './console.js';
+import { runConsole } from './console.js';
 import { DirInput, UnlinkOutput } from './console.schema.js';
 
 /**
@@ -12,12 +12,17 @@ import { DirInput, UnlinkOutput } from './console.schema.js';
  * telemetry to the Project. The Console Project, its link and the CLI login stay as they are.
  */
 export async function run(input: DirInput, ctx: CommandContext) {
+    const project = resolveConsoleProject(['console', 'unlink'], ctx.cwd, input.dir);
+    if ('error' in project) {
+        return project.error;
+    }
     const { dependencies, errors } = consoleDependencies(ctx);
     // The host runs this only once the caller gave the consent `plan()` asked for.
-    const { preview, requiredConsents } = await previewConsoleChange('unlink', input, {
-        ...dependencies,
-        reporter: silentReporter,
-    });
+    const previewed = await previewForRun('unlink', input, ctx, dependencies, consoleErrors.unlinkFailed);
+    if ('result' in previewed) {
+        return previewed.result;
+    }
+    const { preview, requiredConsents } = previewed.preview;
     const { exitCode, failure, interrupted } = await runConsole(
         'unlink',
         { dir: input.dir, force: requiredConsents.includes('removeLink') },

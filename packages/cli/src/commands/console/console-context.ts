@@ -1,14 +1,31 @@
-import { CommandContext, ErrorResult, fail } from '@vendure/common/lib/command';
+import {
+    CommandContext,
+    CommandErrorDefinition,
+    CommandNeed,
+    ErrorResult,
+    fail,
+    incomplete,
+    IncompleteResult,
+} from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { hostErrors } from '../../command-host/host-errors.js';
 import { getPluginExtensions } from '../../shared/plugin-extensions.js';
+import { findProjectDirectoryHints } from '../../utilities/monorepo-utils.js';
 
 import { ConsoleLinkHookRegistration, RegisteredConsoleLinkHook } from './console-link-hook.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { consoleErrors } from './console.errors.js';
-import { ConsoleCommandDependencies } from './console.js';
+import {
+    ConsoleChangePreview,
+    ConsoleCommandDependencies,
+    ConsoleCommandOptions,
+    describeConsoleError,
+    previewConsoleChange,
+} from './console.js';
 import { openConsoleBrowser } from './open-browser.js';
+import { resolveProjectRoot } from './project-link-manifest.js';
 
 /** A reporter that says nothing, for the lookups of a preview: the run reports what they find. */
 export const silentReporter: ConsoleReporter = {
@@ -90,4 +107,80 @@ export function projectIsDirectory(project: string | undefined, cwd: string): Er
         // Not a directory with a package.json, so it is an id or a slug.
     }
     return undefined;
+}
+
+/**
+ * The Vendure project the command works on, or the coded error that says why there is none, with a
+ * fix for each project directory found nearby.
+ */
+export function resolveConsoleProject(
+    command: string[],
+    cwd: string,
+    dir: string | undefined,
+): { projectRoot: string } | { error: ErrorResult } {
+    try {
+        return { projectRoot: resolveProjectRoot(cwd, dir) };
+    } catch (error) {
+        let candidates: string[] = [];
+        try {
+            candidates = dir ? [] : findProjectDirectoryHints(cwd);
+        } catch {
+            // The hints only add fixes.
+        }
+        return {
+            error: fail(consoleErrors.projectNotFound, {
+                message: error instanceof Error ? error.message : String(error),
+                command,
+                candidates,
+            }),
+        };
+    }
+}
+
+/**
+ * The preview a run works from. A failed preview is reported, never taken for one that needs no
+ * consent: a need without a person, and otherwise the command's coded error.
+ */
+export async function previewForRun(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    ctx: CommandContext,
+    dependencies: ConsoleCommandDependencies,
+    failed: CommandErrorDefinition<{ message: string }>,
+): Promise<{ preview: ConsoleChangePreview } | { result: ErrorResult | IncompleteResult }> {
+    try {
+        return {
+            preview: await previewConsoleChange(
+                action,
+                options,
+                { ...dependencies, reporter: silentReporter },
+                { strict: true },
+            ),
+        };
+    } catch (error) {
+        const described = describeConsoleError(error, dependencies.outputMode, ctx.signal);
+        if (described.kind === 'interrupted') {
+            return { result: fail(hostErrors.cancelled, {}) };
+        }
+        if (described.kind === 'need') {
+            ctx.notice('warning', described.message);
+            described.nextSteps.forEach(step => ctx.notice('info', step));
+            return {
+                result: ctx.ask ? fail(failed, { message: described.message }) : incomplete([described.need]),
+            };
+        }
+        return { result: fail(failed, { message: described.message }) };
+    }
+}
+
+/** A need, worded for a person who reads it as a notice. */
+export function describeNeed(need: CommandNeed): string {
+    switch (need.kind) {
+        case 'input':
+            return need.description;
+        case 'consent':
+            return need.description;
+        case 'person':
+            return `${need.summary} ${need.url}`;
+    }
 }

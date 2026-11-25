@@ -16,7 +16,7 @@ const { spawn } = require('node:child_process');
 const mode = process.argv[2];
 const stdin = fs.readFileSync(0, 'utf-8');
 const envelope = (extra) => JSON.stringify({ schemaVersion: 1, status: 'ok', notices: [], ...extra }) + '\\n';
-if (mode === 'echo') {
+if (mode === 'echo' || mode === 'console') {
     process.stderr.write(JSON.stringify({ vendure: 'event', type: 'progress', message: 'working' }) + '\\n');
     process.stderr.write('library noise\\n');
     process.stderr.write('{"not":"an event"}\\n');
@@ -87,6 +87,15 @@ describe('runToolInChild', () => {
         });
         expect(events).toEqual([{ vendure: 'event', type: 'progress', message: 'working' }]);
         expect(logs).toEqual(['library noise', '{"not":"an event"}']);
+    });
+
+    // `vendure console` loads the plugins of the project that --dir names, before it reads stdin.
+    it('passes a dir that selects whose plugins load on the command line too', async () => {
+        const envelope = await run(['console', 'link'], { dir: 'apps/server', project: 'storefront' }).result;
+        expect(envelope.output).toMatchObject({
+            input: { dir: 'apps/server', project: 'storefront' },
+            args: ['link', '--dir', 'apps/server', '--json', '--input', '-'],
+        });
     });
 
     it('returns an error envelope when the child ends without a document', async () => {

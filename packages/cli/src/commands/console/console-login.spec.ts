@@ -441,7 +441,6 @@ describe('console link command line login', () => {
             const run = await runLink({
                 linked: true,
                 interactive,
-                options: { yes: true },
                 storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
                 signal: abort.signal,
                 fetch: () => {
@@ -617,7 +616,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
             hooks: [recordingHook(sessions, true)],
@@ -639,7 +637,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             console: {
                 refresh: () => {
@@ -662,7 +659,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedOrganization: {
                 workosOrganizationId: OTHER_ORGANIZATION_ID,
                 customerAccountId: OTHER_ACCOUNT_ID,
@@ -685,7 +681,6 @@ describe('console link command line login', () => {
             linked: true,
             interactive: true,
             login: false,
-            options: { yes: true },
             fetch: () => Promise.resolve(new Response('{}', { status: 503 })),
             hooks: [recordingHook(sessions, true, unavailable)],
         });
@@ -706,7 +701,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedOrganization: {
                 workosOrganizationId: OTHER_ORGANIZATION_ID,
                 customerAccountId: OTHER_ACCOUNT_ID,
@@ -762,7 +756,6 @@ describe('console link command line login', () => {
             linked: true,
             interactive: true,
             login: false,
-            options: { yes: true },
             console: { memberships: [twoAccounts[1]], deviceOrganizationId: OTHER_ORGANIZATION_ID },
             hooks: [recordingHook([], true, unavailable)],
         });
@@ -821,7 +814,7 @@ describe('console link --non-interactive --console-project', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(run.root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
-    it('asks for the replaceLink consent or the linked project id when no login can read the slug', async () => {
+    it('refuses, naming the replaceLink consent and the linked project id, when no login can read the slug', async () => {
         const run = await runLink({ linked: true, login: false, options: { project: 'storefront' } });
 
         expect(run.exitCode).toBe(1);
@@ -830,7 +823,10 @@ describe('console link --non-interactive --console-project', () => {
         expect(output).toContain(
             `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
         );
-        expect(run.result.needs).toEqual([expect.objectContaining({ field: 'replaceLink' })]);
+        expect(output).toContain(
+            'Replacing the link needs the replaceLink consent, which the command asks for.',
+        );
+        expect(run.result).toMatchObject({ outcome: 'failed', needs: [] });
         expect(output).not.toContain('--force');
     });
 

@@ -83,8 +83,11 @@ export interface ConsoleCommandOptions {
      * `removeLink` for an unlink. The host asks for it before the command runs.
      */
     force?: boolean;
-    /** Answers the plain confirmations the CLI owns. It never stands for a consent. */
-    yes?: boolean;
+    /**
+     * Whether `project` names the Project of a valid link, as the command found it before the run.
+     * Given, the link does not look the Project up again.
+     */
+    linked?: LinkedProject;
     /** The organization to link a project of: its Account identifier or its name. */
     organization?: string;
     /** The Console Project to link: its id or its slug. Replaces the project prompt. */
@@ -220,15 +223,18 @@ function loginNextStep(organization?: string, rerun = 'this command'): string {
     );
 }
 
-/** The consent that replaces a different Project Link, which the host asks for before the run. */
-function replaceLinkNeed(): InputNeed {
-    return {
-        kind: 'input',
-        field: 'replaceLink',
-        description:
-            'The digest of the replaceLink consent, which replaces the current Project Link with the ' +
-            'Project that --project names. Run the command again to be asked for it.',
-    };
+/** Whether `--project` names the Project of a valid link, or the CLI cannot tell. */
+export type LinkedProject = 'same' | 'different' | 'unknown';
+
+/**
+ * A refusal the CLI words itself, with no raw error or credential in it, so it is reported as it is
+ * also when no person reads the output.
+ */
+class ConsoleRefusalError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'ConsoleRefusalError';
+    }
 }
 
 const defaultReporter: ConsoleReporter = {
@@ -264,23 +270,12 @@ export interface ConsoleRun {
     manifest?: ProjectLinkManifest;
     /** What stopped the run, worded for the caller. Never a credential. */
     failure?: string;
-    /** What `status` read. */
-    status?: ConsoleStatus;
     /** The run was cancelled. */
     interrupted?: boolean;
 }
 
-/** {@link runConsole}, for the exit code only. */
-export async function consoleCommand(
-    action?: string,
-    options: ConsoleCommandOptions = {},
-    dependencies: Partial<ConsoleCommandDependencies> = {},
-): Promise<number> {
-    return (await runConsole(action, options, dependencies)).exitCode;
-}
-
 /**
- * Runs `vendure console link`, `status` or `unlink`. The host owns cancellation and the output:
+ * Runs `vendure console link` or `unlink`. The host owns cancellation and the output:
  * `dependencies.signal` stops the run, and the result is returned rather than printed.
  */
 export async function runConsole(
@@ -303,7 +298,7 @@ export async function runConsole(
         result: {
             schemaVersion: 1,
             operation:
-                normalizedAction && ['link', 'status', 'unlink'].includes(normalizedAction)
+                normalizedAction && ['link', 'unlink'].includes(normalizedAction)
                     ? `console.${normalizedAction}`
                     : 'console',
             outcome: 'failed',
@@ -317,7 +312,6 @@ export async function runConsole(
         result: state.result,
         ...(state.manifest ? { manifest: state.manifest } : {}),
         ...(state.failure ? { failure: state.failure } : {}),
-        ...(state.status ? { status: state.status } : {}),
         ...(interrupted ? { interrupted } : {}),
     });
     try {
@@ -332,7 +326,7 @@ export async function runConsole(
             return done(1);
         }
         if (code === 0) {
-            state.result.outcome = state.outcome ?? (normalizedAction === 'unlink' ? 'unlinked' : 'read');
+            state.result.outcome = state.outcome ?? 'unlinked';
         }
         return done(code);
     } catch (error) {
@@ -347,19 +341,25 @@ export async function runConsole(
 export interface ConsoleChangePreview {
     preview: Record<string, unknown>;
     requiredConsents: Array<'replaceLink' | 'removeLink'>;
+    /** For a link over a valid link: whether `--project` names the linked Project. */
+    linked?: LinkedProject;
 }
 
 /**
  * The change `vendure console link` or `unlink` would make to the Project Link, and whether it
  * needs a consent. A link needs `replaceLink` when it would replace a valid link with another
  * Project, when the CLI cannot tell whether `--project` names the linked one, or when the manifest
- * cannot be read. An unlink needs `removeLink` whenever there is a manifest. Anything that stops
- * the preview, such as a project that cannot be found, needs no consent: the run reports it.
+ * cannot be read. An unlink needs `removeLink` whenever there is a manifest.
+ *
+ * For `plan()`, anything that stops the preview, such as a project that cannot be found, needs no
+ * consent: the run reports it. With `strict`, it throws instead, so a run never takes a failed
+ * preview for one that needs no consent.
  */
 export async function previewConsoleChange(
     action: 'link' | 'unlink',
     options: ConsoleCommandOptions,
     dependencies: Partial<ConsoleCommandDependencies> = {},
+    { strict = false }: { strict?: boolean } = {},
 ): Promise<ConsoleChangePreview> {
     const resolved = { ...createDefaultDependencies(), ...dependencies };
     const signal = resolved.signal ?? new AbortController().signal;
@@ -399,7 +399,10 @@ export async function previewConsoleChange(
         }
         const requested = options.project?.trim() || undefined;
         if (!requested) {
-            return none({ action: 'Repair the Project Link', manifestPath: existing.path, current });
+            return {
+                ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
+                linked: 'same',
+            };
         }
         const organization = options.organization?.trim() || undefined;
         const endpoints = resolveConsoleEndpoints(resolved.env, existing.manifest.console);
@@ -412,7 +415,10 @@ export async function previewConsoleChange(
             signal,
         );
         if (linked === 'same') {
-            return none({ action: 'Repair the Project Link', manifestPath: existing.path, current });
+            return {
+                ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
+                linked,
+            };
         }
         return {
             preview: {
@@ -425,10 +431,43 @@ export async function previewConsoleChange(
                 requested: { project: requested, ...(organization ? { organization } : {}) },
             },
             requiredConsents: [consent],
+            linked,
         };
-    } catch {
+    } catch (error) {
+        if (strict) {
+            throw error;
+        }
         return none();
     }
+}
+
+/**
+ * How a run reports an error it caught outside the engine, such as a failed preview: an input it
+ * can name as a need, a cancellation, or a message. Raw errors are hidden when no person reads the
+ * output, as the engine hides them.
+ */
+export function describeConsoleError(
+    error: unknown,
+    outputMode: ConsoleCommandDependencies['outputMode'],
+    signal?: AbortSignal,
+):
+    | { kind: 'need'; need: InputNeed; message: string; nextSteps: string[] }
+    | { kind: 'interrupted' }
+    | { kind: 'failed'; message: string } {
+    if (signal?.aborted || error instanceof CommandInterruptedError) {
+        return { kind: 'interrupted' };
+    }
+    if (error instanceof ConsoleInputError) {
+        return { kind: 'need', need: error.need, message: error.message, nextSteps: error.nextSteps };
+    }
+    const detail = error instanceof Error ? error.message : String(error);
+    return {
+        kind: 'failed',
+        message:
+            outputMode === 'json' && !(error instanceof ConsoleRefusalError)
+                ? 'The Console command failed.'
+                : detail,
+    };
 }
 
 /** Reports a failure without exposing raw errors when no person reads the output. */
@@ -462,7 +501,10 @@ function reportConsoleCommandError(
         return error.exitCode || 1;
     }
     const detail = error instanceof Error ? error.message : String(error);
-    state.failure = dependencies.outputMode === 'json' ? 'The Console command failed.' : detail;
+    state.failure =
+        dependencies.outputMode === 'json' && !(error instanceof ConsoleRefusalError)
+            ? 'The Console command failed.'
+            : detail;
     reporter.error(state.failure);
     return 1;
 }
@@ -477,8 +519,6 @@ interface ConsoleCommandState {
     manifest?: ProjectLinkManifest;
     /** What stopped the run, for the coded error the command returns. Never a credential. */
     failure?: string;
-    /** What `status` read. */
-    status?: ConsoleStatus;
     setupIncomplete?: boolean;
     /** Set once the Project Link Manifest is on disk, written or reused. */
     manifestPath?: string;
@@ -493,12 +533,9 @@ async function runConsoleCommand(
     state: ConsoleCommandState,
 ): Promise<number> {
     const normalizedAction = action?.trim().toLowerCase();
-    if (!normalizedAction || !['link', 'status', 'unlink'].includes(normalizedAction)) {
+    if (!normalizedAction || !['link', 'unlink'].includes(normalizedAction)) {
         dependencies.reporter.error(
             normalizedAction ? `Unknown console action "${String(action)}".` : 'Missing console action.',
-        );
-        dependencies.reporter.info(
-            'Examples:\n   vendure console link\n   vendure console status\n   vendure console unlink',
         );
         return 1;
     }
@@ -506,16 +543,14 @@ async function runConsoleCommand(
     assertNoRemovedConsoleEnvironment(dependencies.env);
 
     const projectRoot = resolveProjectRoot(dependencies.cwd, options.dir);
-    if (normalizedAction === 'status') {
-        return status(projectRoot, dependencies.env, state);
-    }
     if (normalizedAction === 'unlink') {
         return unlink(projectRoot, options, dependencies, signal);
     }
     return link(projectRoot, options, dependencies, signal, state);
 }
 
-function assertNoRemovedConsoleEnvironment(env: NodeJS.ProcessEnv): void {
+/** Refuses the variables that earlier prereleases read, so a script that sets them hears about it. */
+export function assertNoRemovedConsoleEnvironment(env: NodeJS.ProcessEnv): void {
     const replacements = [
         ['VENDURE_CONSOLE_LINK_URL', 'VENDURE_CONSOLE_APP_URL'],
         ['VENDURE_CONSOLE_LINK_API_URL', 'VENDURE_CONSOLE_API_URL'],
@@ -582,31 +617,34 @@ async function link(
         existing.kind === 'valid' ? existing.manifest.console : undefined,
     );
     const requestedProject = options.project?.trim() || undefined;
-    // Without the replaceLink consent, a valid link is repaired, unless --project names another
-    // Project. The command asks for the consent only when it does.
-    if (existing.kind === 'valid' && !options.force) {
-        const linked = requestedProject
-            ? await namesLinkedProject(
-                  requestedProject,
-                  options.organization?.trim() || undefined,
-                  existing.manifest,
-                  endpoints,
-                  dependencies,
-                  signal,
-              )
-            : 'same';
+    // A valid link is repaired, unless --project names another Project. Replacing it needs the
+    // replaceLink consent, which the command asks for before the run.
+    const linked =
+        existing.kind !== 'valid'
+            ? undefined
+            : (options.linked ??
+              (options.force
+                  ? undefined
+                  : requestedProject
+                    ? await namesLinkedProject(
+                          requestedProject,
+                          options.organization?.trim() || undefined,
+                          existing.manifest,
+                          endpoints,
+                          dependencies,
+                          signal,
+                      )
+                    : 'same'));
+    if (existing.kind === 'valid' && (linked === 'same' || !options.force)) {
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
-            throw new ConsoleInputError(
-                linked === 'different'
+            throw new ConsoleRefusalError(
+                (linked === 'different'
                     ? `This project is already linked to ${current}.`
                     : `This project is already linked to ${current}, and the CLI could not check whether ` +
-                          `--project ${String(requestedProject)} names that Project.`,
-                replaceLinkNeed(),
-                [
-                    'Run the command again, and give the replaceLink consent to replace the link with the Project that --project names.',
+                      `--project ${String(requestedProject)} names that Project.`) +
+                    ' Replacing the link needs the replaceLink consent, which the command asks for. ' +
                     `To keep the link, pass the linked Project's id, ${existing.manifest.project.id}, to --project.`,
-                ],
             );
         }
         // A repeated link reuses the manifest and reruns plugin setup.
@@ -1538,8 +1576,7 @@ function reportInaccessibleAccount(
  * registered a repair reports the link and changes nothing. Non-interactive
  * runs proceed: the backfill this command exists to provide has to work in CI,
  * where the manifest is part of the checked-out source the operator chose to
- * run and there is nobody to ask. `--yes` is the answer given in advance, for
- * repeating a repair in a project whose manifest the developer already trusts.
+ * run and there is nobody to ask.
  *
  * The replaceLink consent is not that answer. It links to a different Project, so it never
  * reaches here.
@@ -1549,7 +1586,7 @@ async function confirmRepair(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
 ): Promise<boolean> {
-    if (options.yes || dependencies.hooks.length === 0 || dependencies.isNonInteractive()) {
+    if (dependencies.hooks.length === 0 || dependencies.isNonInteractive()) {
         return true;
     }
     const result = await dependencies.prompt(
@@ -1678,7 +1715,18 @@ function createConsoleLinkContext(
         signal,
         reporter: dependencies.reporter,
         outputMode: dependencies.outputMode,
-        options: freezeOptions(structuredClone({ ...options })),
+        // The command's input. The CLI's own decisions are `force` and the other fields above.
+        options: freezeOptions(
+            structuredClone(
+                Object.fromEntries(
+                    Object.entries({
+                        dir: options.dir,
+                        project: options.project,
+                        organization: options.organization,
+                    }).filter(([, value]) => value !== undefined),
+                ),
+            ),
+        ),
         contributeResult,
         confirm: message => confirmForHook(message, isNonInteractive, dependencies.prompt),
         isNonInteractive,
@@ -1765,17 +1813,6 @@ export function readConsoleStatus(projectRoot: string, env: NodeJS.ProcessEnv): 
               ? { state: 'attributed', installationId: attribution.installationId }
               : { state: 'not-attributed' },
     };
-}
-
-/** Reports the Project Link only. `vendure auth status` reports the login. */
-function status(projectRoot: string, env: NodeJS.ProcessEnv, state: ConsoleCommandState): number {
-    const result = readConsoleStatus(projectRoot, env);
-    state.status = result;
-    if (result.kind === 'invalid') {
-        state.failure = `Invalid Project Link Manifest at ${result.manifestPath}: ${result.reason}`;
-        return 1;
-    }
-    return 0;
 }
 
 function reportProjectLinkGitignore(projectRoot: string, reporter: ConsoleReporter): void {

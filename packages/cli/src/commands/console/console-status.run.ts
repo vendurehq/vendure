@@ -1,17 +1,22 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
 
+import { resolveConsoleProject } from './console-context.js';
 import { consoleErrors } from './console.errors.js';
-import { ConsoleStatus, readConsoleStatus } from './console.js';
+import { assertNoRemovedConsoleEnvironment, ConsoleStatus, readConsoleStatus } from './console.js';
 import { DirInput, StatusOutput } from './console.schema.js';
-import { resolveProjectRoot } from './project-link-manifest.js';
 
 const LOGIN_STATUS_HINT = 'Login: run vendure auth status';
 
 /** Reads the Project Link of the project, without calling Console. */
 export async function run(input: DirInput, ctx: CommandContext) {
+    const project = resolveConsoleProject(['console', 'status'], ctx.cwd, input.dir);
+    if ('error' in project) {
+        return project.error;
+    }
     let status: ConsoleStatus;
     try {
-        status = readConsoleStatus(resolveProjectRoot(ctx.cwd, input.dir), process.env);
+        assertNoRemovedConsoleEnvironment(process.env);
+        status = readConsoleStatus(project.projectRoot, process.env);
     } catch (error) {
         return fail(consoleErrors.statusFailed, {
             message: error instanceof Error ? error.message : String(error),

@@ -21,8 +21,13 @@ import {
     singleAccountBody,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, consoleCommand } from './console.js';
+import { ConsoleCommandDependencies, runConsole } from './console.js';
 import { getProjectLinkManifestPath } from './project-link-manifest.js';
+
+/** Runs a `vendure console` action through the engine, for its exit code. */
+async function runExitCode(...args: Parameters<typeof runConsole>): Promise<number> {
+    return (await runConsole(...args)).exitCode;
+}
 
 // Two plugins, so the tests that care about order can name which is which.
 const FIRST_PLUGIN = '@example/first-cli-plugin';
@@ -156,7 +161,7 @@ describe('console link hooks', () => {
         const registry = registryWith(plugin(FIRST_PLUGIN, hook));
         const root = vendureProject();
 
-        await consoleCommand(action, {}, { ...offlineDependencies(root), hooks: consoleLinkHooks(registry) });
+        await runExitCode(action, {}, { ...offlineDependencies(root), hooks: consoleLinkHooks(registry) });
 
         expect(hook).not.toHaveBeenCalled();
     });
@@ -167,7 +172,7 @@ describe('console link hooks', () => {
         const fetchMock = vi.fn() as unknown as typeof fetch;
         const root = vendureProject();
 
-        const exitCode = await consoleCommand(
+        const exitCode = await runExitCode(
             'link',
             {},
             {
@@ -230,7 +235,7 @@ describe('console link hooks', () => {
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
         const fetchMock = vi.fn() as unknown as typeof fetch;
 
-        const exitCode = await consoleCommand(
+        const exitCode = await runExitCode(
             'link',
             {},
             { ...offlineDependencies(root), fetch: fetchMock, hooks: consoleLinkHooks(registry) },
@@ -259,7 +264,7 @@ describe('console link hooks', () => {
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
         const messages: string[] = [];
 
-        const exitCode = await consoleCommand(
+        const exitCode = await runExitCode(
             'link',
             {},
             { ...offlineDependencies(root, messages), hooks: consoleLinkHooks(registry) },
@@ -445,7 +450,7 @@ async function runLink(
         VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
     };
     storeLogin(env, apiUrl);
-    const exitCode = await consoleCommand(
+    const exitCode = await runExitCode(
         'link',
         {},
         {

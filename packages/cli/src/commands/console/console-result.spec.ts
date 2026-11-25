@@ -172,7 +172,7 @@ describe('structured Console linking', () => {
         const fetch = vi.fn();
         const hook = vi.fn();
         const { exitCode, result } = await linkWithoutPerson(
-            { dir: root, force: true, yes: true },
+            { dir: root, force: true },
             { fetch, hooks: [{ pluginId: '@example/setup', hook }] },
         );
         expect(exitCode).toBe(1);

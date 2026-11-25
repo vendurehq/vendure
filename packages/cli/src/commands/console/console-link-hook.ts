@@ -87,7 +87,15 @@ export interface ConsoleLinkContext {
     reporter: ConsoleReporter;
     /** Requested output format. @since 3.8.0 */
     outputMode: 'human' | 'json';
-    /** Isolated, immutable parsed options, including plugin flags. Never report secret values. @since 3.8.0 */
+    /**
+     * An isolated, immutable copy of the command's input: `dir`, `project` (the Console Project)
+     * and `organization`, as given. Never report secret values.
+     *
+     * Since 4.0.0, `project` is the Console Project rather than the project directory, which is
+     * `dir`, and `consoleProject`, `json`, `nonInteractive`, `yes` and plugin flags are gone.
+     *
+     * @since 3.8.0
+     */
     options: Readonly<Record<string, unknown>>;
     /**
      * Adds safe setup data under this plugin's ID in Core's result. Incomplete

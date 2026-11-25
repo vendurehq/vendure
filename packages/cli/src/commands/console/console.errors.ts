@@ -15,6 +15,17 @@ export const consoleErrors = {
             },
         ],
     }),
+    projectNotFound: defineError<{ message: string; command: string[]; candidates: string[] }>({
+        code: 'console.project-not-found',
+        exit: 1,
+        message: ({ message }) => message,
+        fix: ({ command, candidates }) =>
+            candidates.map(candidate => ({
+                description: `Select the Vendure project in ${candidate} with --dir`,
+                path: command,
+                input: { dir: candidate },
+            })),
+    }),
     linkFailed: defineError<{ message: string }>({
         code: 'console.link-failed',
         exit: 1,
