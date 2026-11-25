@@ -427,7 +427,12 @@ export class IndexerController {
                 }
                 productMap.set(variant.productId, product);
             }
-            const availableLanguageCodes = unique(ctx.channel.availableLanguageCodes);
+            // Every channel of the variant gets rows for the languages of all its channels, so an
+            // update made from a channel that lacks a language still refreshes that language elsewhere.
+            const availableLanguageCodes = unique([
+                ...ctx.channel.availableLanguageCodes,
+                ...variant.channels.flatMap(c => c.availableLanguageCodes),
+            ]);
             for (const languageCode of availableLanguageCodes) {
                 const productTranslation = this.getTranslation(product, languageCode);
                 const variantTranslation = this.getTranslation(variant, languageCode);

@@ -1781,6 +1781,67 @@ describe('Default search plugin', () => {
                 const search2 = await searchSecondChannelForDEProduct();
                 expect(search2.items.map(i => i.productName)).toEqual([]);
             });
+
+            // https://github.com/vendurehq/vendure/issues/5979
+            it('updating product from a channel without a language updates that language in other channels', async () => {
+                // The default channel offers only en here; the second channel also offers de.
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                const { createProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'lamp en',
+                                slug: 'lamp-en',
+                                description: '',
+                            },
+                            {
+                                languageCode: LanguageCode.de,
+                                name: 'lamp de',
+                                slug: 'lamp-de',
+                                description: '',
+                            },
+                        ],
+                    },
+                });
+                await adminClient.query(createProductVariantsDocument, {
+                    input: [
+                        {
+                            productId: createProduct.id,
+                            sku: 'LAMP01',
+                            price: 100,
+                            translations: [{ languageCode: LanguageCode.en, name: 'lamp variant' }],
+                        },
+                    ],
+                });
+                try {
+                    await adminClient.query(assignProductToChannelDocument, {
+                        input: { channelId: secondChannel.id, productIds: [createProduct.id] },
+                    });
+                    await awaitRunningJobs(adminClient);
+
+                    await adminClient.query(updateProductDocument, {
+                        input: {
+                            id: createProduct.id,
+                            translations: [{ languageCode: LanguageCode.de, name: 'lamp de updated' }],
+                        },
+                    });
+                    await awaitRunningJobs(adminClient);
+
+                    adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                    const { search } = await adminClient.query(
+                        searchProductsAdminDocument,
+                        { input: { term: 'lamp', groupByProduct: true } },
+                        { languageCode: LanguageCode.de },
+                    );
+                    expect(search.items.map(i => i.productName)).toEqual(['lamp de updated']);
+                } finally {
+                    // The later language tests list every product of the default channel.
+                    adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                    await adminClient.query(deleteProductDocument, { id: createProduct.id });
+                    await awaitRunningJobs(adminClient);
+                }
+            });
         });
 
         describe('multiple language handling', () => {
