@@ -21,9 +21,13 @@ export function ZoneCountriesTable({
     canAddCountries = false,
     title,
 }: Readonly<ZoneCountriesTableProps>) {
-    const { data, refetch, isFetching } = useQuery({
+    // No placeholder data: the key names one zone, so another zone's countries
+    // must not show while this one loads. `isPending` shows the skeleton on the
+    // first load and on a zone switch, not on the refetch after adding a country.
+    const { data, refetch, isPending } = useQuery({
         queryKey: ['zone', zoneId],
         queryFn: () => api.query(zoneMembersQuery, { zoneId }),
+        placeholderData: undefined,
     });
 
     const { mutate: addCountryToZone } = useMutation({
@@ -77,7 +81,7 @@ export function ZoneCountriesTable({
         <DataTable
             columns={columns as any}
             data={paginatedItems ?? []}
-            isLoading={isFetching}
+            isLoading={isPending}
             onPageChange={(table, page, itemsPerPage) => {
                 setPage(page);
                 setPageSize(itemsPerPage);
