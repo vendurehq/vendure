@@ -721,6 +721,11 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/deployment/production-configuration/index.mdx'),
                 },
                 {
+                    title: 'Self-hosting',
+                    slug: 'self-hosting',
+                    file: file('docs/guides/deployment/self-hosting.mdx'),
+                },
+                {
                     title: 'Using Docker',
                     slug: 'using-docker',
                     file: file('docs/guides/deployment/using-docker.mdx'),

@@ -59,12 +59,6 @@ export function isForeignSecretPlaceholder(value: unknown): boolean {
     );
 }
 
-// An environment variable which is set when the @vendure/create
-// script is run. Can be used to modify normal behaviour
-// to fit with the initial create task.
-export type CREATING_VENDURE_APP = 'CREATING_VENDURE_APP';
-export const CREATING_VENDURE_APP: CREATING_VENDURE_APP = 'CREATING_VENDURE_APP';
-
 /**
  * When this environment variable is `true` and `apiOptions.includeStackInErrors` is not set, the
  * Vendure APIs add stacks to their errors. `vendure dev` sets it for the server it starts.
