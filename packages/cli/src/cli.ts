@@ -98,7 +98,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     );
     for (const failure of reportedFailures) {
         const headline =
-            failure.part === 'commandManifest'
+            failure.failedPart === 'manifest-missing' || failure.failedPart === 'manifest-invalid'
                 ? 'Failed to load the defineCommand commands of CLI plugin'
                 : 'Failed to load CLI plugin';
         writePluginSkipped(failure.packageName, headline, failure.reason, failure.scope);

@@ -198,6 +198,24 @@ describe('mergeProjectManifests', () => {
         ]);
     });
 
+    it.each([['doctor x'], ['-x'], ['Acme']])(
+        'refuses a path segment such as "%s" before Commander sees it',
+        segment => {
+            const { commands, refused } = mergeProjectManifests(
+                core,
+                [plugin('acme-cli', [segment])],
+                [],
+                () => {
+                    throw new Error('registration must not be reached');
+                },
+            );
+            expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+                ['plugin.manifest-invalid', expect.stringContaining('is not a lowercase word')],
+            ]);
+            expect(commands).toHaveLength(3);
+        },
+    );
+
     it('refuses a plugin command named after a reserved command, such as help', () => {
         const { refused } = mergeProjectManifests(core, [plugin('acme-cli', ['help'])]);
         expect(refused.map(r => [r.error.code, r.error.message])).toEqual([

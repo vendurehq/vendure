@@ -277,6 +277,17 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             );
         });
 
+        it('keeps its defineCommand commands when its cliPlugin entry is missing', async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            const dir = addCliPlugin(p, 'legacy');
+            rmSync(join(p.projectDir, dir, 'cli-plugin.cjs'));
+
+            const greet = await p.runCliCommand(['example', 'greet', 'Ada', '--json']);
+            expect(envelopeOf(greet.stdout).output).toEqual({ message: 'Hello, Ada!' });
+            expect(greet.stderr).toContain(`Failed to load CLI plugin "${EXAMPLE}"`);
+            expect((await listCommands(p)).output.refused).toBeUndefined();
+        });
+
         it("refuses a defineCommand command that its own cliPlugin's command takes", async () => {
             const p = projectWith(['defined-commands-cli-plugin']);
             addCliPlugin(p, 'example');
@@ -311,6 +322,13 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             ]);
             // Startup has written the refusal to stderr already, so it is not repeated as a notice.
             expect(envelope.notices).toEqual([]);
+
+            // `vendure plugins` agrees, and names the clash.
+            const plugins = JSON.parse((await p.runCliCommand(['plugins', '--json'])).stdout).plugins;
+            expect(plugins.find((entry: any) => entry.packageName === CLASHING)).toMatchObject({
+                status: 'enabled',
+                manifestReason: expect.stringContaining('[plugin.command-clash]'),
+            });
             const sources = new Set(envelope.output.commands.map((c: any) => c.source));
             expect(sources).toEqual(new Set(['@vendure/cli', EXAMPLE]));
 

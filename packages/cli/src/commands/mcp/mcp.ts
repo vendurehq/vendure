@@ -78,7 +78,7 @@ const LIST_COMMANDS_TIMEOUT_MS = 30_000;
  * The commands of the project, as `vendure commands --json` lists them in the directory the tool
  * calls run in. A child process lists them because `--dir` can name another project than the one
  * this process started in, and that project's `cliPlugin` commands decide which of its plugins'
- * commands are refused. The child also keeps plugin code out of this process. Refused plugins are
+ * commands are refused. Refused plugins are
  * written to stderr, which MCP clients keep in their server log.
  */
 async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]> {

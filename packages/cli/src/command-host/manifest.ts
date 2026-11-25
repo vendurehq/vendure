@@ -17,6 +17,7 @@ import { pathToFileURL } from 'node:url';
 
 import { RESERVED_COMMANDS } from '../shared/command-registry-store.js';
 import {
+    failureAffectsCommandManifest,
     ResolveCliPluginsOptions,
     resolveCommandManifests,
     ResolvedCommandManifest,
@@ -137,19 +138,15 @@ export async function loadProjectCommands(
         await registrationCheck(),
     );
     // A package that failed to resolve has no manifest to merge, and its commands are left out too.
-    // A globally enabled package that is not installed is normal in a project that does not use it.
-    const unavailable = failures
-        .filter(
-            failure =>
-                failure.declaresCommandManifest && !(failure.scope === 'global' && failure.notInstalled),
-        )
-        .map(failure => ({
-            package: failure.packageName,
-            error: errorBody(
-                failure.manifestInvalid ? hostErrors.pluginManifestInvalid : hostErrors.pluginUnavailable,
-                { plugin: failure.packageName, reason: failure.reason },
-            ),
-        }));
+    const unavailable = failures.filter(failureAffectsCommandManifest).map(failure => ({
+        package: failure.packageName,
+        error: errorBody(
+            failure.failedPart === 'manifest-invalid'
+                ? hostErrors.pluginManifestInvalid
+                : hostErrors.pluginUnavailable,
+            { plugin: failure.packageName, reason: failure.reason },
+        ),
+    }));
     return { ...merged, refused: [...unavailable, ...merged.refused] };
 }
 

@@ -82,12 +82,19 @@ export interface CliPluginLoadFailure {
     /** Whether the package declares `vendure.commandManifest`, so has `defineCommand` commands. */
     declaresCommandManifest?: boolean;
     /**
-     * Set when only the package's command manifest failed. Its `cliPlugin`, if it has one, is
-     * loaded anyway.
+     * Set when only one part of a package that declares both a `cliPlugin` and a command manifest
+     * failed, so the other part loads anyway: its `cliPlugin`, or its manifest, which is either
+     * missing (with its module) or there but not a valid command manifest. Unset when the whole
+     * package failed.
      */
-    part?: 'commandManifest';
-    /** Set when the manifest is there but is not a valid command manifest. */
-    manifestInvalid?: boolean;
+    failedPart?: 'cliPlugin' | 'manifest-missing' | 'manifest-invalid';
+}
+
+/** Whether a failure leaves out the package's `defineCommand` commands. */
+export function failureAffectsCommandManifest(failure: CliPluginLoadFailure): boolean {
+    return failure.failedPart === undefined
+        ? failure.declaresCommandManifest === true
+        : failure.failedPart !== 'cliPlugin';
 }
 
 /**
@@ -463,12 +470,13 @@ function checkDeclaresPlugin(
     if (!entryRel && !declaredManifest(resolved.packageJson)) {
         return 'Does not declare vendure.cliPlugin or vendure.commandManifest in its package.json';
     }
-    if (entryRel) {
-        // A problem with the manifest of a package that also has a `cliPlugin` leaves out only its
-        // `defineCommand` commands, so it is reported when the package loads, not here.
-        return missingFile(resolved.dir, 'Entry', entryRel);
+    if (entryRel && declaredManifest(resolved.packageJson)) {
+        // Each part of a package that has both fails on its own, so both are checked when it loads.
+        return undefined;
     }
-    return commandManifestProblem(resolved.dir, resolved.packageJson);
+    return entryRel
+        ? missingFile(resolved.dir, 'Entry', entryRel)
+        : commandManifestProblem(resolved.dir, resolved.packageJson);
 }
 
 function missingFile(dir: string, label: string, rel: string): string | undefined {
@@ -620,13 +628,14 @@ function loadInto(
 ): void {
     const declared = scope.resolvePackage(packageName);
     const declaresCommandManifest = declared ? declaredManifest(declared.packageJson) !== undefined : false;
-    const fail = (reason: string) =>
+    const fail = (reason: string, failedPart?: CliPluginLoadFailure['failedPart']) =>
         result.failures.push({
             packageName,
             reason,
             scope: scope.kind,
-            notInstalled: !scope.resolvePackage(packageName),
+            notInstalled: !declared,
             declaresCommandManifest,
+            ...(failedPart ? { failedPart } : {}),
         });
 
     const ineligible = scope.check(packageName);
@@ -647,21 +656,23 @@ function loadInto(
         // own rules and still loads.
         const loaded = loadCommandManifest(resolved, packageName);
         if ('problem' in loaded) {
-            result.failures.push({
-                packageName,
-                reason: loaded.problem,
-                scope: scope.kind,
-                notInstalled: false,
-                declaresCommandManifest: true,
-                part: 'commandManifest',
-                manifestInvalid: loaded.invalid,
-            });
+            fail(loaded.problem, loaded.invalid ? 'manifest-invalid' : 'manifest-missing');
         } else {
             result.manifests.push({ packageName, ...loaded, scope: scope.kind });
         }
     }
 
-    if (!entryRel || !loadModules) {
+    if (!entryRel) {
+        return;
+    }
+    // Only the `cliPlugin` part fails here when the package also has `defineCommand` commands.
+    const cliPluginPart = declaresCommandManifest ? 'cliPlugin' : undefined;
+    const missingEntry = missingFile(resolved.dir, 'Entry', entryRel);
+    if (missingEntry) {
+        fail(missingEntry, cliPluginPart);
+        return;
+    }
+    if (!loadModules) {
         return;
     }
     const entryPath = path.resolve(resolved.dir, entryRel);
@@ -673,7 +684,7 @@ function loadInto(
             scope: scope.kind,
         });
     } catch (e: any) {
-        fail(e?.message ?? String(e));
+        fail(e?.message ?? String(e), cliPluginPart);
     }
 }
 
