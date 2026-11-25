@@ -320,9 +320,15 @@ function renderExamples(command: MergedManifestCommand): string[] {
 function renderFlag(command: MergedManifestCommand, field: string, schema: JsonSchema, positional: string[]) {
     const short = command.cli.flags?.[field]?.short;
     const type = primaryType(schema);
-    const placeholder = rules.kebab(field);
+    const placeholder = command.cli.flags?.[field]?.placeholder ?? rules.kebab(field);
+    // As the CLI registers it: a field that is a boolean or a string takes an optional value.
+    const types = new Set(
+        Array.isArray(schema.anyOf) ? (schema.anyOf as JsonSchema[]).map(part => String(part.type)) : [],
+    );
     let value = ` <${placeholder}>`;
-    if (type === 'boolean') {
+    if (types.size === 2 && types.has('boolean') && types.has('string')) {
+        value = ` [${placeholder}]`;
+    } else if (type === 'boolean') {
         value = '';
     } else if (type === 'array') {
         value = ` <${placeholder}...>`;

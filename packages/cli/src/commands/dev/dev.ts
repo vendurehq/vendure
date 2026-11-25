@@ -52,6 +52,44 @@ export interface DevOptions {
     reloadIgnoredPaths?: string[];
 }
 
+/**
+ * Where a dev run writes what a person reads: the output of its processes, its status lines and
+ * its messages. The host gives the command its own, so the run never writes to the terminal itself.
+ */
+export interface DevIo {
+    /** Text from a process, or a status line, for stdout or stderr as it came. */
+    write(stream: 'stdout' | 'stderr', text: string): void;
+    info(message: string): void;
+    warn(message: string): void;
+    error(message: string): void;
+}
+
+/** The terminal, for a caller that runs `dev` outside the command host. */
+export const terminalDevIo: DevIo = {
+    write: (stream, text) => (stream === 'stderr' ? process.stderr : process.stdout).write(text),
+    info: message => log.info(message),
+    warn: message => log.warn(message),
+    error: message => log.error(message),
+};
+
+/** How a dev run ended. */
+export interface DevRunResult {
+    exitCode: number;
+    /** The run was stopped from outside, by Ctrl+C, a signal or `signal`, not by a process ending. */
+    stopped: boolean;
+    /** Why the run could not start, such as a missing entry file. No process was started. */
+    startError?: string;
+}
+
+export interface RunDevOptions {
+    io?: DevIo;
+    /**
+     * Stops the run when it aborts, as Ctrl+C does. Without it, the run stops on SIGINT and SIGTERM
+     * itself.
+     */
+    signal?: AbortSignal;
+}
+
 const validTargets: DevTarget[] = ['all', 'server', 'worker', 'dashboard'];
 const DEFAULT_INSPECT_PORT = 9229;
 const reloadDebounceMs = 100;
@@ -77,7 +115,21 @@ const reloadIgnoredFileNames = new Set([
     'vite.config.ts',
 ]);
 
+/** Runs `vendure dev` on the terminal, as it ran before the command host. */
 export async function devCommand(targetArg?: string, options: DevOptions = {}): Promise<number> {
+    const result = await runDev(targetArg, options);
+    if (result.stopped) {
+        showStarPromptOnce();
+    }
+    return result.exitCode;
+}
+
+/** Runs the dev processes of a project until they end or the run is stopped. */
+export async function runDev(
+    targetArg?: string,
+    options: DevOptions = {},
+    { io = terminalDevIo, signal }: RunDevOptions = {},
+): Promise<DevRunResult> {
     try {
         const target = normalizeDevTarget(targetArg);
         const projectDir = resolveVendureProjectDirectory(process.cwd(), options.project);
@@ -92,7 +144,7 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
 
         validateProjectFiles(projectDir, processes);
         // Once per process start. File-watcher restarts happen inside startDevProcess.
-        showConsoleHintIfUnlinked(projectDir);
+        showConsoleHintIfUnlinked(projectDir, message => io.info(message));
 
         // A run started by `vendure devserver start` writes to a file, not a terminal, and the dev
         // log already holds its processes' output.
@@ -105,16 +157,13 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
             targets: processes.map(processDefinition => processDefinition.target),
             writeState: runsServer,
             requireStateFile: detached,
-            warn: message => log.warn(message),
+            warn: message => io.warn(message),
             print: (processTarget, stream, text) => {
                 if (!detached) {
                     printChildOutput(
                         devProcessDefinitions[processTarget as keyof typeof devProcessDefinitions],
-                        {
-                            stream,
-                            text,
-                            prefixOutput,
-                        },
+                        { stream, text, prefixOutput },
+                        io,
                     );
                 }
             },
@@ -127,23 +176,26 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
                     reloadIgnoredPaths,
                     env: run.childEnv(processDefinition.target),
                     monitor: run.monitor(processDefinition.target),
+                    io,
                 }),
             );
             let shutdownSignal: NodeJS.Signals | undefined;
             const exitCode = await waitForDevProcesses(children, {
-                onError: error => log.error(error.message),
-                onShutdownSignal: signal => (shutdownSignal = signal),
+                onError: error => io.error(error.message),
+                onShutdownSignal: received => (shutdownSignal = received),
+                signal,
             });
-            if (shutdownSignal === 'SIGINT') {
-                showStarPromptOnce();
-            }
-            return exitCode;
+            return { exitCode, stopped: shutdownSignal === 'SIGINT' };
         } finally {
             run.end();
         }
     } catch (e: unknown) {
-        log.error(e instanceof Error ? e.message : String(e));
-        return 1;
+        const message = e instanceof Error ? e.message : String(e);
+        // A caller with its own io reports the error itself, as a coded error.
+        if (io === terminalDevIo) {
+            io.error(message);
+        }
+        return { exitCode: 1, stopped: false, startError: message };
     }
 }
 
@@ -204,9 +256,10 @@ function discoverGeneratedPaths(projectDir: string, options: DevOptions): string
 function printChildOutput(
     processDefinition: DevProcessDefinition,
     { stream, text, prefixOutput }: { stream: 'stdout' | 'stderr'; text: string; prefixOutput: boolean },
+    io: DevIo,
 ) {
     const prefix = prefixOutput ? `${getProcessPrefix(processDefinition)} ` : '';
-    writePrefixedLines(stream === 'stderr' ? process.stderr : process.stdout, prefix, text);
+    writePrefixedLines({ write: (chunk: string) => io.write(stream, chunk) }, prefix, text);
 }
 
 export function getDevProcessDefinitions(
@@ -263,7 +316,7 @@ export function normalizeDevTarget(targetArg?: string): DevTarget {
 }
 
 export function resolveVendureProjectDirectory(cwd: string, project?: string): string {
-    return resolveCoreProjectDirectory(cwd, project);
+    return resolveCoreProjectDirectory(cwd, project, '--dir');
 }
 
 interface DevChildOptions {
@@ -275,6 +328,8 @@ interface DevChildOptions {
      * monitor decides what reaches the terminal.
      */
     monitor: DevChildMonitor;
+    /** Where status lines go. Defaults to the terminal. */
+    io?: DevIo;
 }
 
 function startDevProcess(
@@ -467,6 +522,11 @@ export function startSupervisedDevProcess(
 interface WaitForDevProcessesOptions {
     onError?: (error: Error) => void;
     onShutdownSignal?: (signal: NodeJS.Signals) => void;
+    /**
+     * Stops the processes when it aborts, as SIGINT does. With it, the run leaves SIGINT and
+     * SIGTERM to its caller, such as the command host, which aborts it on either.
+     */
+    signal?: AbortSignal;
 }
 
 export function waitForDevProcesses(
@@ -488,6 +548,7 @@ export function waitForDevProcesses(
         const cleanup = () => {
             process.off('SIGINT', handleSigint);
             process.off('SIGTERM', handleSigterm);
+            options.signal?.removeEventListener('abort', handleSigint);
         };
         const resolveOnce = (code: number) => {
             if (!resolved) {
@@ -546,8 +607,16 @@ export function waitForDevProcesses(
         const handleSigint = () => handleSignal('SIGINT');
         const handleSigterm = () => handleSignal('SIGTERM');
 
-        process.once('SIGINT', handleSigint);
-        process.once('SIGTERM', handleSigterm);
+        if (options.signal) {
+            if (options.signal.aborted) {
+                handleSigint();
+            } else {
+                options.signal.addEventListener('abort', handleSigint, { once: true });
+            }
+        } else {
+            process.once('SIGINT', handleSigint);
+            process.once('SIGTERM', handleSigterm);
+        }
 
         for (const child of children) {
             child.once('error', error => {
@@ -593,12 +662,13 @@ export class ManagedDevProcess extends EventEmitter {
 function writeDevStatus(
     processDefinition: DevProcessDefinition,
     message: string,
-    options: { prefixOutput: boolean },
+    options: { prefixOutput: boolean; io?: DevIo },
 ) {
+    const io = options.io ?? terminalDevIo;
     if (options.prefixOutput) {
-        process.stdout.write(`${getProcessPrefix(processDefinition)} ${message}\n`);
+        io.write('stdout', `${getProcessPrefix(processDefinition)} ${message}\n`);
     } else {
-        log.info(message);
+        io.info(message);
     }
 }
 

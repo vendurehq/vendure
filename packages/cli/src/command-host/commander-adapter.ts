@@ -97,8 +97,16 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const flag = `--${kebab(field)}`;
         const short = manifestCommand.cli.flags?.[field]?.short;
         const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-        const placeholder = field in manifestCommand.consents ? 'digest' : kebab(field);
-        const value = type === 'array' ? ` <${placeholder}...>` : ` <${placeholder}>`;
+        const placeholder =
+            manifestCommand.cli.flags?.[field]?.placeholder ??
+            (field in manifestCommand.consents ? 'digest' : kebab(field));
+        // A field that is either a flag or a value, such as `--inspect [host:port]`.
+        const optionalValue = isBooleanOrString(schema);
+        const value = optionalValue
+            ? ` [${placeholder}]`
+            : type === 'array'
+              ? ` <${placeholder}...>`
+              : ` <${placeholder}>`;
         const flags = `${short ? `${short}, ` : ''}${flag}${type === 'boolean' ? '' : value}`;
         const option = new Option(flags, (schema.description as string | undefined) ?? '');
         if (type === 'number' || type === 'integer') {
@@ -147,6 +155,16 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const code = await runLeaf(manifestCommand, command, positionalValues, opts, options, replacedBy);
         process.exit(code);
     });
+}
+
+/** Whether a field's JSON Schema is `boolean | string`, which a flag with an optional value gives. */
+function isBooleanOrString(schema: Record<string, any>): boolean {
+    const types = new Set<string>(
+        Array.isArray(schema.type)
+            ? schema.type
+            : ((schema.anyOf as Array<{ type?: string }> | undefined) ?? []).map(part => String(part.type)),
+    );
+    return types.size === 2 && types.has('boolean') && types.has('string');
 }
 
 /** Whether this process runs a tool call for `vendure mcp`, which marks its child processes. */
@@ -288,6 +306,10 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             process.stderr.write(`${event.level === 'warning' ? 'Warning: ' : ''}${String(event.message)}\n`);
         } else if (event.type === 'progress') {
             process.stderr.write(`${String(event.message)}\n`);
+        } else if (event.type === 'output') {
+            // The output of a process a `service` command runs, such as `vendure dev`, passed on as
+            // it came. Under `--json` it is an event on stderr like any other.
+            (event.stream === 'stderr' ? process.stderr : process.stdout).write(String(event.text));
         }
     };
     return {

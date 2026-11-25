@@ -155,7 +155,7 @@ describe('dev command', () => {
             }
         });
 
-        it('uses --project before root discovery and ambiguous workspace members', () => {
+        it('uses --dir before root discovery and ambiguous workspace members', () => {
             const dir = createTempDir();
             try {
                 for (const name of ['server', 'other']) {
@@ -165,7 +165,7 @@ describe('dev command', () => {
                 writePackageJson(dir, { workspaces: ['server', 'other'] });
                 expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
                 expect(() => resolveVendureProjectDirectory(dir)).toThrow(
-                    `Multiple Vendure projects found in "${dir}": other, server. Use --project <dir> to select one.`,
+                    `Multiple Vendure projects found in "${dir}": other, server. Use --dir <dir> to select one.`,
                 );
                 writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
                 expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
@@ -177,7 +177,7 @@ describe('dev command', () => {
             }
         });
 
-        it('rejects invalid --project paths without falling back', () => {
+        it('rejects invalid --dir paths without falling back', () => {
             const dir = createTempDir();
             try {
                 writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
@@ -185,7 +185,7 @@ describe('dev command', () => {
                 writePackageJson(path.join(dir, 'empty'), {});
                 for (const name of ['missing', 'empty', 'package.json']) {
                     expect(() => resolveVendureProjectDirectory(dir, name)).toThrow(
-                        `Invalid --project directory "${path.join(dir, name)}"`,
+                        `Invalid --dir directory "${path.join(dir, name)}"`,
                     );
                 }
             } finally {
@@ -193,12 +193,12 @@ describe('dev command', () => {
             }
         });
 
-        it('names the searched directory and --project when no project exists', () => {
+        it('names the searched directory and --dir when no project exists', () => {
             const dir = createTempDir();
             try {
                 writePackageJson(dir, { workspaces: ['missing'] });
                 expect(() => resolveVendureProjectDirectory(dir)).toThrow(
-                    `No Vendure project found in "${dir}". Use --project <dir> to select a project directory.`,
+                    `No Vendure project found in "${dir}". Use --dir <dir> to select a project directory.`,
                 );
             } finally {
                 rmSync(dir, { recursive: true, force: true });

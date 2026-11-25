@@ -8,7 +8,7 @@ module.exports = defineCliPlugin({
     commands: [],
     extendCommands: [
         {
-            command: 'dev',
+            command: 'start',
             options: [
                 {
                     long: '--cloud-env <name>',

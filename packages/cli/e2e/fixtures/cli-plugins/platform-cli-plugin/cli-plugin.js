@@ -1,5 +1,5 @@
 /**
- * Mirrors what @vendure-platform/cli does to `dev`: add an option and wrap the
+ * Mirrors what @vendure-platform/cli does to `dev`, here on `start`: add an option and wrap the
  * action. The wrapper calls the action it is handed, so another plugin can wrap
  * it in turn.
  */
@@ -10,7 +10,7 @@ module.exports = defineCliPlugin({
     commands: [],
     extendCommands: [
         {
-            command: 'dev',
+            command: 'start',
             description: 'Run Vendure in development mode with linked Platform credentials',
             options: [
                 {

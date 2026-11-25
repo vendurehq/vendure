@@ -365,7 +365,11 @@ export type CommandRenderFn<Output = any> = (output: Output) => string | void;
 
 /** Command metadata used by the CLI only. MCP clients never see it. */
 export interface CommandCliMetadata {
-    flags?: Record<string, { short?: string; description?: string }>;
+    /**
+     * Per field: a short flag, a description for help, and the name of the value in help, such as
+     * `host:port` for `--inspect [host:port]`.
+     */
+    flags?: Record<string, { short?: string; description?: string; placeholder?: string }>;
     /** Input fields taken as positional arguments, in order. */
     positional?: string[];
     fields?: Record<

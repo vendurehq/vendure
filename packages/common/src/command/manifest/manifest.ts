@@ -27,7 +27,7 @@ export interface ManifestCommand {
     output?: JsonSchema;
     events?: JsonSchema;
     cli: {
-        flags?: Record<string, { short?: string; description?: string }>;
+        flags?: Record<string, { short?: string; description?: string; placeholder?: string }>;
         positional?: string[];
         fields?: Record<string, { prompt?: boolean; secret?: boolean; hasChoices?: boolean }>;
     };

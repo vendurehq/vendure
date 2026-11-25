@@ -8,7 +8,6 @@ import { registerManifestCommands } from './command-host/commander-adapter.js';
 import { loadMergedManifest } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
-import { devCommandDef } from './commands/dev/command.js';
 import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
@@ -65,16 +64,21 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // Select the dev project before loading plugins that extend its options and action.
     // Parse the full command only after those plugins have been registered.
     const pluginOptions: ResolveCliPluginsOptions = {};
-    const projectSelectingCommand = [devCommandDef, consoleCommandDef].find(
-        def => def.name === process.argv[2],
-    );
-    if (projectSelectingCommand) {
+    // `vendure dev` takes the project directory as `--dir`, and `vendure console` as `--project`.
+    const projectOption = { dev: '--dir', console: '--project' }[process.argv[2]];
+    if (projectOption) {
         const selection = new Command().allowUnknownOption().exitOverride();
-        for (const option of projectSelectingCommand.options ?? []) {
-            selection.option(buildOptionFlags(option), option.description);
+        if (process.argv[2] === 'console') {
+            for (const option of consoleCommandDef.options ?? []) {
+                selection.option(buildOptionFlags(option), option.description);
+            }
+        } else {
+            selection.option(`${projectOption} <dir>`);
         }
         selection.parseOptions(process.argv.slice(3));
-        pluginOptions.project = selection.opts<{ project?: string }>().project;
+        const selected = selection.opts<{ dir?: string; project?: string }>();
+        pluginOptions.project = process.argv[2] === 'console' ? selected.project : selected.dir;
+        pluginOptions.projectFlag = projectOption;
     }
     const { loaded, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
     for (const scopeError of scopeErrors) {
@@ -148,7 +152,7 @@ function writeScopeError({ scope, origin, reason }: CliPluginScopeError): void {
     process.stderr.write(pc.red(`${reason}\n`));
     if (scope === 'project') {
         process.stderr.write(
-            'No project CLI plugins were loaded. Run from a project directory or use dev --project <dir>.\n',
+            'No project CLI plugins were loaded. Run from a project directory or use dev --dir <dir>.\n',
         );
     } else {
         process.stderr.write(

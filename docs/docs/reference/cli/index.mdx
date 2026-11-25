@@ -25,6 +25,7 @@ Run `vendure commands --json` in a project for the commands it really has, inclu
 | [`vendure auth status`](/reference/cli/auth#auth-status) | readonly | Show who is signed in, after checking that the login can still be renewed. Never shows a token |
 | [`vendure auth wait`](/reference/cli/auth#auth-wait) | mutating | Wait until the login that `auth login --json` started is approved. Returns the pending login again when the timeout passes first |
 | [`vendure commands`](/reference/cli/commands#commands) | readonly | List the commands of this project with their input and output schemas |
+| [`vendure dev`](/reference/cli/dev#dev) | service | Run Vendure in development mode |
 | [`vendure devserver logs`](/reference/cli/devserver#devserver-logs) | readonly | Read the logs of the vendure dev run, filtered by time, request ID or severity |
 | [`vendure devserver start`](/reference/cli/devserver#devserver-start) | mutating | Start vendure dev in the background for this project |
 | [`vendure devserver status`](/reference/cli/devserver#devserver-status) | readonly | Show the status, URLs and last error of the vendure dev run serving this project |
@@ -54,7 +55,6 @@ With `--json`, a command writes one envelope: `{ schemaVersion, status, output, 
 These commands are not declared with `defineCommand` yet, so they have no generated reference. Run `vendure <command> --help` for their options. The [CLI guide](/guides/developer-guide/cli/) covers several of them.
 
 - `vendure add`: Add a feature to your Vendure project. Its subcommands are on the [`vendure add`](/reference/cli/add) page.
-- `vendure dev`: Run Vendure in development mode.
 - `vendure build`: Build a Vendure project.
 - `vendure start`: Start a built Vendure project.
 - `vendure migrate`: Generate, run or revert a database migration. Its subcommands are on the [`vendure migrate`](/reference/cli/migrate) page.
