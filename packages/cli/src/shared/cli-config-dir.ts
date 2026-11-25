@@ -17,7 +17,8 @@ import { readStartupRecord } from './startup-record.js';
  *
  * With no `env`, it is the directory as the CLI resolved it at startup, so a
  * project's `.env` loaded later can't move it. Outside the CLI, where nothing
- * recorded it, it is resolved from `process.env`.
+ * recorded it, it is resolved from `process.env`. An `env` a caller passes
+ * decides it and skips the record, on purpose: that is how tests choose one.
  */
 export function getVendureCliConfigDir(env?: NodeJS.ProcessEnv): string {
     if (env) {

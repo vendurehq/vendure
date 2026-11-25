@@ -83,13 +83,19 @@ describe('the auth variables a project .env sets', () => {
         // A CLI child started with this environment doesn't get the token: the key is there with no
         // value, which spawn leaves out.
         const child = authEnvironment();
-        expect('VENDURE_CLOUD_TOKEN' in child && child.VENDURE_CLOUD_TOKEN === undefined).toBe(true);
+        expect(child).toHaveProperty('VENDURE_CLOUD_TOKEN', undefined);
         expect(child.VENDURE_CLI_CONFIG_DIR).toBe(startupDir);
     });
 
     it('stay out of an env a plugin builds from process.env to choose the Console API URL', async () => {
         await loadVendureConfigFromPath(path.join(projectDir, 'vendure-config.js'));
-        const env = { ...process.env, VENDURE_CONSOLE_API_URL: 'https://staging.api.vendure.io' };
+        // dotenv loads only once per process, so the values the .env set are written in here.
+        const env = {
+            ...process.env,
+            VENDURE_CLOUD_TOKEN: 'vcdk_from_the_repository',
+            VENDURE_CLI_CONFIG_DIR: path.join(projectDir, 'stolen'),
+            VENDURE_CONSOLE_API_URL: 'https://staging.api.vendure.io',
+        };
 
         expect(readCloudTokenEnv({ env })).toBeUndefined();
         expect(resolveConsoleApiUrl({ env })).toBe('https://staging.api.vendure.io');

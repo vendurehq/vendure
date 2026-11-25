@@ -62,6 +62,8 @@ export const notProjectCli = defineError<{
         "back to. Start the server from the project, where npx runs the project's own CLI.",
 });
 
+// The two listing errors below are notices: the server writes them and keeps running, so their
+// `exit` is never used.
 export const commandsListingTimedOut = defineError<{ project: string; seconds: number }>({
     code: 'mcp.commands-listing-timed-out',
     exit: 1,

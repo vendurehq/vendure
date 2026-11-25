@@ -87,8 +87,9 @@ const LIST_COMMANDS_TIMEOUT_MS = 5_000;
  * commands are refused. Refused plugins are written to stderr, which MCP clients keep in their
  * server log.
  *
- * MCP clients give a server a few seconds to start, so after {@link LIST_COMMANDS_TIMEOUT_MS} the
- * server offers the CLI's own commands, with a coded notice on stderr, and stops the child.
+ * The server answers `initialize` only once the listing is done, so a plugin that is slow to load
+ * would hold up the client. After {@link LIST_COMMANDS_TIMEOUT_MS} the server offers the CLI's own
+ * commands instead, with a coded notice on stderr, and stops the child.
  */
 async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]> {
     const controller = new AbortController();
