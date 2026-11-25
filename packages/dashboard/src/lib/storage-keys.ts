@@ -14,5 +14,10 @@ export const LS_KEY_USER_SETTINGS = 'vendure-user-settings';
 export const LS_KEY_SELECTED_CHANNEL_TOKEN = 'vendure-selected-channel-token';
 export const LS_KEY_SHIPPING_TEST_ORDER = 'vendure-shipping-test-order';
 export const LS_KEY_SHIPPING_TEST_ADDRESS = 'vendure-shipping-test-address';
+/**
+ * The base path of the app while an administrator is signed in. The boot screen of `index.html`
+ * reads it, so a load that will open a signed-in page shows the app shell from the first paint.
+ */
+export const LS_KEY_BOOT_SHELL = 'vendure-boot-shell';
 /** The settings store key under which the server stores the user settings. */
 export const SETTINGS_STORE_KEY_USER_SETTINGS = 'vendure.dashboard.userSettings';

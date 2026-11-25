@@ -1,3 +1,5 @@
+import { LS_KEY_BOOT_SHELL } from '@/vdb/storage-keys.js';
+import type { AuthContext } from '@/vdb/providers/auth.js';
 import type { AnyRouter } from '@tanstack/react-router';
 
 /**
@@ -25,4 +27,18 @@ export function removeBootSplashWhenResolved(router: Pick<AnyRouter, 'state' | '
         removeBootSplash();
     });
     return unsubscribe;
+}
+
+/**
+ * Keeps the base path under `LS_KEY_BOOT_SHELL` while an administrator is
+ * signed in, and removes it on sign-out. The boot screen of `index.html` shows
+ * the app shell only when the key is set and the address is below that path,
+ * so a load that ends on the sign-in page keeps the spinner.
+ */
+export function rememberBootShell(status: AuthContext['status'], basepath: string) {
+    if (status === 'authenticated') {
+        localStorage.setItem(LS_KEY_BOOT_SHELL, basepath.replace(/\/+$/, ''));
+    } else if (status === 'unauthenticated') {
+        localStorage.removeItem(LS_KEY_BOOT_SHELL);
+    }
 }

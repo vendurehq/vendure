@@ -22,12 +22,39 @@
                 (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
             document.documentElement.classList.add(dark ? 'dark' : 'light');
         })();
+        /*
+            The app shell for the boot screen, when an administrator was signed in at the last load:
+            src/app/boot-splash.ts keeps the app's base path under this key while signed in. The
+            page skeleton follows the address: the home page, a list, or a page below a list. The
+            sign-in pages, and a load without the key, keep the spinner.
+        */
+        (function () {
+            try {
+                var base = localStorage.getItem('vendure-boot-shell');
+                var pathname = location.pathname;
+                if (base === null || (pathname + '/').indexOf(base + '/') !== 0) {
+                    return;
+                }
+                var path = pathname.slice(base.length).replace(/^\/+|\/+$/g, '');
+                if (/^(login|forgot-password|reset-password)$/.test(path)) {
+                    return;
+                }
+                var depth = path ? path.split('/').length : 0;
+                document.documentElement.setAttribute(
+                    'data-boot-shell',
+                    depth === 0 ? 'home' : depth === 1 ? 'list' : 'detail',
+                );
+            } catch (e) {}
+        })();
     </script>
     <!--
         The boot screen shows until the router has rendered the first page (src/app/boot-splash.ts
         removes it). The stylesheet loads with the app, so the colours come from a style that the
         theme Vite plugin adds to this head. Every variable used here must be in BOOT_VARIABLES in
         vite/vite-plugin-theme.ts. The icon is the one that Spinner of @vendure-io/ui renders.
+        With data-boot-shell, the boot screen is the app shell instead: the sizes below are those
+        of AppLayout, the Sidebar and AppShellHeader of @vendure-io/ui, and the page frame, so the
+        app replaces it without a shift. The bones are the Skeleton atom.
     -->
     <style>
         html {
@@ -58,12 +85,338 @@
                 transform: rotate(360deg);
             }
         }
+        #boot-splash .boot-shell,
+        [data-boot-shell] #boot-splash > svg {
+            display: none;
+        }
+        [data-boot-shell] #boot-splash .boot-shell {
+            display: flex;
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            text-align: start;
+        }
+        .boot-shell,
+        .boot-shell * {
+            box-sizing: border-box;
+        }
+        .boot-bone {
+            display: block;
+            flex-shrink: 0;
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 50%, var(--muted) 75%) 0 0 /
+                200% 100%;
+            animation: boot-shimmer 1.75s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .boot-bone {
+                animation: none;
+                background: var(--muted);
+            }
+        }
+        @keyframes boot-shimmer {
+            from {
+                background-position: 200% 0;
+            }
+            to {
+                background-position: -200% 0;
+            }
+        }
+        .boot-sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 14.5rem;
+            flex-shrink: 0;
+            background-color: var(--sidebar);
+            border-inline-end: 1px solid var(--sidebar-border);
+        }
+        .boot-identity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 48px;
+            margin: 8px;
+            padding: 0 8px;
+        }
+        .boot-sidebar > .boot-identity:first-child {
+            margin-top: 0;
+        }
+        .boot-identity-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .boot-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            padding: 8px 10px;
+        }
+        .boot-nav-bottom {
+            margin-top: auto;
+        }
+        .boot-nav-label {
+            display: flex;
+            align-items: center;
+            height: 22px;
+            padding: 0 8px;
+        }
+        .boot-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 32px;
+            padding: 0 10px;
+        }
+        .boot-inset {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+        .boot-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 52px;
+            flex-shrink: 0;
+            padding-inline: 18px 20px;
+            box-shadow: inset 0 -1px 0 var(--border);
+        }
+        .boot-separator {
+            width: 1px;
+            height: 16px;
+            margin-inline: 12px 8px;
+            background-color: var(--border);
+        }
+        .boot-search {
+            width: 220px;
+            height: 28px;
+        }
+        .boot-header-end {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-inline-start: auto;
+        }
+        .boot-main {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            max-width: 96rem;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .boot-page {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+            margin: 16px;
+        }
+        .boot-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 34px;
+            flex-shrink: 0;
+        }
+        .boot-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background-color: var(--card);
+            overflow: hidden;
+        }
+        .boot-list,
+        .boot-detail,
+        .boot-home {
+            display: none;
+        }
+        [data-boot-shell='list'] .boot-list,
+        [data-boot-shell='home'] .boot-home {
+            display: flex;
+        }
+        [data-boot-shell='detail'] .boot-detail {
+            display: grid;
+        }
+        .boot-list {
+            flex-direction: column;
+        }
+        .boot-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 70px;
+            flex-shrink: 0;
+            padding: 0 16px;
+        }
+        .boot-row {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            height: 48px;
+            flex-shrink: 0;
+            padding: 0 16px;
+            border-top: 1px solid var(--border);
+        }
+        .boot-row:not(.boot-footer) > .boot-bone {
+            flex: 1;
+            height: 12px;
+        }
+        .boot-row:not(.boot-footer) > .boot-bone:last-child {
+            flex: 0 0 80px;
+        }
+        .boot-row-head {
+            height: 40px;
+        }
+        .boot-row.boot-footer {
+            justify-content: space-between;
+            height: 67px;
+        }
+        .boot-row-head > .boot-bone {
+            height: 10px;
+        }
+        .boot-detail {
+            grid-template-columns: 3fr 1fr;
+            align-items: start;
+            gap: 16px;
+        }
+        .boot-side {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .boot-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding: 24px;
+        }
+        .boot-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .boot-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .boot-home {
+            flex-direction: column;
+            gap: 16px;
+        }
+        .boot-home-row {
+            display: flex;
+            gap: 16px;
+        }
+        .boot-home-row > .boot-card {
+            flex: 1;
+        }
+        @media (min-width: 1280px) {
+            .boot-main {
+                padding-inline: 44px;
+            }
+        }
+        @media (max-width: 1023px) {
+            .boot-detail {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 767px) {
+            .boot-sidebar,
+            .boot-separator,
+            .boot-hide-narrow {
+                display: none;
+            }
+            .boot-search {
+                width: 28px;
+            }
+            .boot-main {
+                padding: 0;
+            }
+            .boot-fields,
+            .boot-home-row {
+                grid-template-columns: 1fr;
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="boot-splash" role="status" aria-label="Loading">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+    <div class="boot-shell" aria-hidden="true">
+        <div class="boot-sidebar">
+            <div class="boot-identity"><span class="boot-bone" style="width:32px;height:32px"></span><div class="boot-identity-lines"><span class="boot-bone" style="width:96px;height:10px"></span><span class="boot-bone" style="width:72px;height:8px"></span></div></div>
+            <div class="boot-nav">
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:64px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:72px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:100px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:60px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:84px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:56px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:76px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:92px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:68px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:60px;height:10px"></span></div>
+            </div>
+            <div class="boot-nav boot-nav-bottom">
+                <div class="boot-nav-label"><span class="boot-bone" style="width:80px;height:8px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:60px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:104px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:56px;height:10px"></span></div>
+            </div>
+            <div class="boot-identity"><span class="boot-bone" style="width:32px;height:32px;border-radius:9999px"></span><div class="boot-identity-lines"><span class="boot-bone" style="width:80px;height:10px"></span><span class="boot-bone" style="width:64px;height:8px"></span></div></div>
+        </div>
+        <div class="boot-inset">
+            <div class="boot-header">
+                <span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span>
+                <span class="boot-separator"></span>
+                <span class="boot-bone" style="width:120px;height:10px"></span>
+                <div class="boot-header-end">
+                    <span class="boot-bone boot-search"></span>
+                    <span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span></span>
+                </div>
+            </div>
+            <div class="boot-main">
+                <div class="boot-page">
+                    <div class="boot-page-header"><span class="boot-bone" style="width:128px;height:18px"></span><span class="boot-bone" style="width:128px;height:34px;border-radius:8px"></span></div>
+                    <div class="boot-list boot-card">
+                        <div class="boot-toolbar"><span class="boot-bone" style="width:40px;height:14px"></span><span style="flex:1"></span><span class="boot-bone boot-hide-narrow" style="width:256px;height:34px"></span><span class="boot-bone" style="width:80px;height:34px"></span></div>
+                        <div class="boot-row boot-row-head"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
+                        <div class="boot-row boot-footer"><span class="boot-bone" style="width:48px;height:12px"></span><span class="boot-bone" style="width:200px;height:34px"></span></div>
+                    </div>
+                    <div class="boot-detail">
+                        <div class="boot-card"><div class="boot-card-body">
+                            <div class="boot-fields"><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div></div>
+                            <div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:112px"></span></div>
+                            <div class="boot-fields"><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div></div>
+                        </div></div>
+                        <div class="boot-side">
+                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone" style="width:112px;height:12px"></span><span class="boot-bone" style="width:100%;height:24px"></span><span class="boot-bone" style="width:100%;height:24px"></span></div></div>
+                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone" style="width:112px;height:12px"></span><span class="boot-bone" style="width:100%;height:24px"></span><span class="boot-bone" style="width:100%;height:24px"></span><span class="boot-bone" style="width:100%;height:24px"></span></div></div>
+                        </div>
+                    </div>
+                    <div class="boot-home">
+                        <div class="boot-card" style="height:650px"></div>
+                        <div class="boot-home-row"><div class="boot-card" style="height:320px"></div><div class="boot-card" style="height:320px"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 <script type="module" src="/src/app/main.tsx"></script>
 </body>

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { removeBootSplashWhenResolved } from './boot-splash.js';
+import { LS_KEY_BOOT_SHELL } from '../lib/storage-keys.js';
+import { rememberBootShell, removeBootSplashWhenResolved } from './boot-splash.js';
 
 type Router = Parameters<typeof removeBootSplashWhenResolved>[0];
 
@@ -70,3 +71,27 @@ describe('removeBootSplashWhenResolved', () => {
         expect(splash()).not.toBeNull();
     });
 });
+
+// OSS-1508 — the boot screen shows the app shell only for a signed-in load
+describe('rememberBootShell', () => {
+    afterEach(() => {
+        localStorage.removeItem(LS_KEY_BOOT_SHELL);
+    });
+
+    it('keeps the base path, without its trailing slash, while signed in', () => {
+        rememberBootShell('authenticated', '/dashboard/');
+        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBe('/dashboard');
+        rememberBootShell('authenticated', '/');
+        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBe('');
+    });
+
+    it('removes it on sign-out and keeps it while the session is checked', () => {
+        rememberBootShell('authenticated', '/dashboard');
+        rememberBootShell('initial', '/dashboard');
+        rememberBootShell('verifying', '/dashboard');
+        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBe('/dashboard');
+        rememberBootShell('unauthenticated', '/dashboard');
+        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBeNull();
+    });
+});
+
