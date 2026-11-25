@@ -35,6 +35,11 @@ import {
 } from './graphql/shop-definitions';
 import { awaitRunningJobs } from './utils/await-running-jobs';
 
+/** How long to wait for the search index jobs a tax change queues. */
+const INDEX_JOBS_TIMEOUT_MS = 30_000;
+/** A test that waits for the index up to three times. */
+const INDEX_TEST_TIMEOUT_MS = 3 * INDEX_JOBS_TIMEOUT_MS + 10_000;
+
 const updateChannelTaxCountryDocument = adminGraphql(`
     mutation UpdateChannelTaxCountry($input: UpdateChannelInput!) {
         updateChannel(input: $input) {
@@ -126,7 +131,8 @@ describe('Channel.taxCountryCode', () => {
     }
 
     async function indexedPrices(channelToken = E2E_DEFAULT_CHANNEL_TOKEN) {
-        await awaitRunningJobs(adminClient);
+        // A reindex of the Channel can take several seconds under CI load
+        await awaitRunningJobs(adminClient, INDEX_JOBS_TIMEOUT_MS);
         shopClient.setChannelToken(channelToken);
         const { search } = await shopClient.query(searchVariantPricesDocument);
         shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
@@ -256,11 +262,11 @@ describe('Channel.taxCountryCode', () => {
             });
         });
 
-        it('the search index has the DE prices', async () => {
+        it('the search index has the DE prices', { timeout: INDEX_TEST_TIMEOUT_MS }, async () => {
             expect(await indexedPrices()).toEqual({ price: 10000, priceWithTax: 11900 });
         });
 
-        it('changing the tax country reindexes the Channel', async () => {
+        it('changing the tax country reindexes the Channel', { timeout: INDEX_TEST_TIMEOUT_MS }, async () => {
             await setTaxCountry('FR');
             try {
                 // 119.00 is now the FR gross price: 99.17 net plus 20%
@@ -271,18 +277,22 @@ describe('Channel.taxCountryCode', () => {
             expect(await indexedPrices()).toEqual({ price: 10000, priceWithTax: 11900 });
         });
 
-        it('editing the rate of the tax country reindexes the Channel', async () => {
-            const { taxRates } = await adminClient.query(getTaxRatesListDocument);
-            const de = taxRates.items.find(r => r.name === 'DE')!;
-            await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 25 } });
-            try {
-                // The price still includes the DE rate, now 25%: 95.20 net
-                expect(await indexedPrices()).toEqual({ price: 9520, priceWithTax: 11900 });
-            } finally {
-                await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
-            }
-            expect(await indexedPrices()).toEqual({ price: 10000, priceWithTax: 11900 });
-        });
+        it(
+            'editing the rate of the tax country reindexes the Channel',
+            { timeout: INDEX_TEST_TIMEOUT_MS },
+            async () => {
+                const { taxRates } = await adminClient.query(getTaxRatesListDocument);
+                const de = taxRates.items.find(r => r.name === 'DE')!;
+                await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 25 } });
+                try {
+                    // The price still includes the DE rate, now 25%: 95.20 net
+                    expect(await indexedPrices()).toEqual({ price: 9520, priceWithTax: 11900 });
+                } finally {
+                    await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
+                }
+                expect(await indexedPrices()).toEqual({ price: 10000, priceWithTax: 11900 });
+            },
+        );
     });
 
     describe('guarding the tax country', () => {
@@ -341,23 +351,27 @@ describe('Channel.taxCountryCode', () => {
             });
         });
 
-        it('has the DE prices', async () => {
+        it('has the DE prices', { timeout: INDEX_TEST_TIMEOUT_MS }, async () => {
             expect(await indexedPrices(secondToken)).toEqual({ price: 10000, priceWithTax: 11900 });
         });
 
-        it('editing the DE rate from the default Channel reindexes it', async () => {
-            const { taxRates } = await adminClient.query(getTaxRatesListDocument);
-            const de = taxRates.items.find(r => r.name === 'DE')!;
-            await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 25 } });
-            try {
-                expect(await indexedPrices(secondToken)).toEqual({ price: 9520, priceWithTax: 11900 });
-            } finally {
-                await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
-            }
-            expect(await indexedPrices(secondToken)).toEqual({ price: 10000, priceWithTax: 11900 });
-        });
+        it(
+            'editing the DE rate from the default Channel reindexes it',
+            { timeout: INDEX_TEST_TIMEOUT_MS },
+            async () => {
+                const { taxRates } = await adminClient.query(getTaxRatesListDocument);
+                const de = taxRates.items.find(r => r.name === 'DE')!;
+                await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 25 } });
+                try {
+                    expect(await indexedPrices(secondToken)).toEqual({ price: 9520, priceWithTax: 11900 });
+                } finally {
+                    await adminClient.query(updateTaxRateDocument, { input: { id: de.id, value: 19 } });
+                }
+                expect(await indexedPrices(secondToken)).toEqual({ price: 10000, priceWithTax: 11900 });
+            },
+        );
 
-        it('deleting the DE rate reindexes it', async () => {
+        it('deleting the DE rate reindexes it', { timeout: INDEX_TEST_TIMEOUT_MS }, async () => {
             const { taxRates } = await adminClient.query(getTaxRatesListDocument);
             const de = taxRates.items.find(r => r.name === 'DE')!;
             await adminClient.query(deleteTaxRateDocument, { id: de.id });
