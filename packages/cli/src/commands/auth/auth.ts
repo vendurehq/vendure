@@ -145,6 +145,11 @@ export async function authLoginCommand(
             }
             deps.reporter.info('Waiting for approval...');
         },
+        onRateLimited: seconds => {
+            deps.reporter.info(
+                `Vendure Console is rate-limiting requests. Trying again in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}...`,
+            );
+        },
     };
     try {
         const status = await loginWithDevice(loginOptions);

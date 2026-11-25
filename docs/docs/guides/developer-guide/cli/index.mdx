@@ -391,6 +391,11 @@ The CLI looks the organization up in Vendure Console after you sign in. It refus
 organizations share, and lists their Account identifiers so you can pick one. To change organization later, run
 `vendure auth login --organization` again.
 
+When Vendure Console answers that lookup with HTTP 429 (too many requests), the CLI waits for the time its
+`Retry-After` header names, up to one minute, and asks once more. If the lookup, or the switch to the organization, is
+still refused, the CLI keeps the login you approved in the browser, scoped to the organization chosen there, and says
+when the limit resets. You do not need a new code for it.
+
 Check who is signed in, or sign out:
 
 ```bash
