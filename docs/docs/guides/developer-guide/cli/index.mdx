@@ -1226,6 +1226,9 @@ activation](#explicit-activation)). Then:
 
 - `vendure acme sync` and `vendure acme sync --json` run the command on the CLI host, and
   `vendure commands --json` lists it with `"source": "@acme/vendure-cli"`;
+- the Developer MCP (`vendure mcp`) offers it as the tool `acme_sync`, under the executor for its
+  `behavior`. It reads the tool list from the manifest, and runs each call as `vendure acme sync --json`
+  in a child process;
 - the CLI reads `vendure-commands.json` to build the command line, and imports
   `commandDefinitions` only when one of the package's commands runs;
 - before it runs, the CLI checks that the declaration matches the manifest, and returns a
