@@ -12,6 +12,8 @@ The package manager is {{ packageManager }}.{{#if serverPath}} Run the `vendure`
 - `{{ exec }} vendure guide`: the agent guide for the Vendure CLI. Read it before you use the CLI.
 - `{{ exec }} vendure commands --json`: the commands that accept `--json`.
 
+Known issue in the 4.0 previews: `vendure doctor`'s `config` and `schema` checks and `vendure seed` with a preset fail in this project with "Could not find the VendureConfig declaration in your project". A later preview fixes it. Until then, run `{{ exec }} vendure doctor --check project dependencies`, and set up the store with the `admin_*` tools of the `vendure` MCP server, as the `vendure-store-setup` skill describes.
+
 ## Rules
 
 - Change the database schema only through migrations. After you change an entity or a custom field, run `{{ exec }} vendure migrate -g <name>`, and commit the file it writes in `{{ serverPath }}src/migrations/`.

@@ -48,6 +48,12 @@ know the cause.
    collect the context in `context.md` and match a support case below. The
    case files were written for Vendure 3.x. Use their checks where they fit
    the project's version.
+   Known issue in the 4.0 previews: in a Vendure Cloud app
+   (`defineCloudConfig()`), the `config` and `schema` checks fail with
+   "Could not find the VendureConfig declaration in your project". A later preview fixes it. Until then, run
+   `vendure doctor --check project dependencies --json`, and read config
+   errors from `lastError` in `vendure devserver status --json` and from
+   `vendure devserver logs`.
 5. **Fix the cause.** Use the fixes that the error, the check or the support
    case names. Ask the user before a fix changes files, dependencies or the
    database. If no fix fits, say so. Do not invent one. Ask the user to make

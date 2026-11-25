@@ -56,6 +56,11 @@ channel's tax country, so its rates are the ones entered prices include.
   start: an already seeded database returns at once.
 - On demand: `vendure seed --preset <name> [--country XX] [--currency XXX]`.
 
+Known issue in the 4.0 previews: in a Vendure Cloud app (`defineCloudConfig()`),
+`vendure seed --preset` and `vendure seed --first-run` with a recorded preset fail
+with "Could not find the VendureConfig declaration in your project". A later preview fixes it. Until then, set
+the store up with the MCP admin tools below, and check it with `vendure store check`.
+
 Rules that matter when something looks wrong:
 
 - A preset runs only on an empty database. If the database has countries, zones,
