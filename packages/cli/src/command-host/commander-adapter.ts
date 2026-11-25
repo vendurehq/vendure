@@ -54,6 +54,69 @@ function findChild(parent: Command, name: string): Command | undefined {
 }
 
 /**
+ * The command line with every option moved after the full command path, when the arguments name a
+ * command of the program, such as `vendure cloud project list --json` for
+ * `vendure cloud --json project list`. Undefined when they don't.
+ */
+export function commandLineWithOptionsLast(program: Command, args: readonly string[]): string | undefined {
+    const path: string[] = [];
+    const rest: string[] = [];
+    let command = program;
+    for (const arg of args) {
+        const child =
+            arg.startsWith('-') || command.commands.length === 0 ? undefined : findChild(command, arg);
+        if (child) {
+            path.push(arg);
+            command = child;
+        } else {
+            rest.push(arg);
+        }
+    }
+    if (path.length === 0 || command.commands.length > 0) {
+        return undefined;
+    }
+    return ['vendure', ...path, ...rest].join(' ');
+}
+
+/**
+ * A group of manifest commands, such as `cloud`, takes no options of its own, so Commander refuses
+ * an option given before the subcommand. When the arguments after it name a command, the run
+ * stops with a coded error whose fix is the same command line with the options at the end.
+ * Anything else is reported by Commander as before.
+ */
+function reportOptionsBeforeSubcommand(group: Command): void {
+    let root = group;
+    while (root.parent) {
+        root = root.parent;
+    }
+    const correctedLine = () => commandLineWithOptionsLast(root, process.argv.slice(2));
+    group.configureOutput({
+        writeErr: text => {
+            // The coded error below replaces Commander's own message.
+            if (!(text.includes('unknown option') && correctedLine())) {
+                process.stderr.write(text);
+            }
+        },
+    });
+    group.exitOverride(error => {
+        const line = error.code === 'commander.unknownOption' ? correctedLine() : undefined;
+        if (!line) {
+            process.exit(error.exitCode);
+        }
+        const option = /'([^']+)'/.exec(error.message)?.[1] ?? 'An option';
+        const result = errorResult(hostErrors.optionBeforeCommand, { option, line });
+        if (jsonRequested(process.argv)) {
+            fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+        } else {
+            process.stderr.write(
+                `[${hostErrors.optionBeforeCommand.code}] ${result.envelope.error?.message ?? ''}\n`,
+            );
+        }
+        process.exit(result.exitCode);
+    });
+}
+
+/**
  * Adds the commands of a manifest to a Commander program. Every field is an optional flag, so
  * that Commander never rejects a run before the host has read `--input` and decided what is
  * missing. A command goes under the group that already exists for its path, such as `add`.
@@ -69,6 +132,7 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                reportOptionsBeforeSubcommand(group);
                 if (parent === program && manifestCommand.source !== CORE_SOURCE) {
                     group.helpGroup(pluginCommandsHeading(manifestCommand.source));
                 }

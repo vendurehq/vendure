@@ -4,11 +4,26 @@ import { describeFix, formatFix } from './format-fix.js';
 import { HostResult } from './host.js';
 import { kebab } from './naming.js';
 
+/**
+ * The lines that describe one need for a person. A secret input is never shown as a flag, because
+ * a secret never comes from a flag: it is passed in the `--input` document on stdin, or comes from
+ * the environment. A need's fix is shown as the command line that answers it.
+ */
 function describeNeed(need: CommandNeed): string[] {
+    const lines = needLines(need);
+    if (need.fix) {
+        lines.push(`      ${describeFix(need.fix)}`);
+    }
+    return lines;
+}
+
+function needLines(need: CommandNeed): string[] {
     switch (need.kind) {
         case 'input': {
             const choices = need.choices?.length ? ` One of: ${need.choices.join(', ')}.` : '';
-            return [`  --${kebab(need.field)}: ${need.description}.${choices}`];
+            return need.secret
+                ? [`  ${need.field} (secret, never a flag): ${need.description}.${choices}`]
+                : [`  --${kebab(need.field)}: ${need.description}.${choices}`];
         }
         case 'consent': {
             const lines = [`  --${kebab(need.consent)} ${need.digest}: ${need.description}`];

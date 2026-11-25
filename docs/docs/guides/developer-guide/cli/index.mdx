@@ -65,6 +65,14 @@ A need is one of:
 `--input <json>` passes all of a command's options as one JSON document, and `--input -` reads that
 document from stdin. Options set as flags win over the same field in the document.
 
+Options go after the full command path: `vendure auth status --json`, not `vendure auth --json status`.
+An option before the end of the path stops the run with the `cli.option-before-command` error, which
+names the corrected command line.
+
+A secret field, such as the `token` of a credential, is never a flag. Without `--json`, the CLI lists
+it by name instead, as `token (secret, never a flag)`, and shows the command that supplies it, such as
+`vendure auth login --json`.
+
 The CLI prompts only when stdin and stdout are both terminals, and neither `CI` nor
 `VENDURE_CLI_NON_INTERACTIVE` is set. Otherwise a missing required option returns `incomplete` at once.
 
@@ -1244,6 +1252,12 @@ that exports `commands` in the package's `package.json`:
     }
 }
 ```
+
+The declarations module and the modules it loads may import only the package's own dependencies.
+The CLI imports them from where the package is installed, so a package they get only through the
+project, or through the CLI, may be missing, for example in a global install. List
+`@vendure/common` as a dependency, at the same version as `@vendure/cli`: its command helpers return
+plain objects, so a copy of its own does not change how the CLI reads them.
 
 Commands that share input fields, such as a `--project` that every `vendure acme` command takes,
 declare them once on a group. Export the groups from the same module as the commands, and pass them to
