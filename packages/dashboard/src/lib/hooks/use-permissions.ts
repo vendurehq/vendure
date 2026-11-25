@@ -6,7 +6,8 @@ import { useChannel } from './use-channel.js';
 /**
  * @description
  * Returns a `hasPermissions` function that can be used to determine whether the active user
- * has the given permissions on the active channel.
+ * has the given permissions on the active channel. `permissionsLoaded` is false until the
+ * permissions of the active channel are known (since 4.0.0).
  *
  * @example
  * ```tsx
@@ -43,5 +44,9 @@ export function usePermissions() {
         [channels, activeChannel?.id],
     );
 
-    return { hasPermissions };
+    // `hasPermissions` answers false until the active channel is found among the
+    // administrator's channels. This tells that apart from a missing permission.
+    const permissionsLoaded = (channels ?? []).some(channel => channel.id === activeChannel?.id);
+
+    return { hasPermissions, permissionsLoaded };
 }

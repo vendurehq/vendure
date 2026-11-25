@@ -2,6 +2,7 @@ import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { cn } from '@/vdb/lib/utils.js';
 import React, { useEffect, useState } from 'react';
@@ -152,11 +153,18 @@ export interface ActionBarItemProps {
  */
 export function ActionBarItem({ children, itemId, requiresPermission }: Readonly<ActionBarItemProps>) {
     const { settings } = useUserSettings();
+    const { permissionsLoaded } = usePermissions();
 
-    const content = requiresPermission ? (
+    // Until the permissions load, the item holds its place, hidden and inert, so the
+    // bar does not grow when it appears. Without the permission it then goes away.
+    const content = !requiresPermission ? (
+        children
+    ) : permissionsLoaded ? (
         <PermissionGuard requires={requiresPermission}>{children}</PermissionGuard>
     ) : (
-        children
+        <span className="contents invisible" aria-hidden inert>
+            {children}
+        </span>
     );
 
     if (settings.devMode) {
