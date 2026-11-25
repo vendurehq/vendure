@@ -37,6 +37,16 @@ const pageId = 'shipping-method-detail';
 
 export const Route = createFileRoute('/_authenticated/_shipping-methods/shipping-methods_/$id')({
     component: ShippingMethodDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', rows: 2, editor: true },
+                { column: 'main', blockId: 'conditions', content: 'list', rows: 2, title: true },
+                { column: 'main', blockId: 'calculator', content: 'list', rows: 2, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: shippingMethodDetailDocument,

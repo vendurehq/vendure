@@ -39,6 +39,15 @@ const pageId = 'api-key-detail';
 
 export const Route = createFileRoute('/_authenticated/_api-keys/api-keys_/$id')({
     component: ApiKeyDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                { column: 'side', blockId: 'metadata', content: 'list', rows: 3, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: apiKeyDetailDocument,

@@ -27,6 +27,15 @@ const pageId = 'role-detail';
 
 export const Route = createFileRoute('/_authenticated/_roles/roles_/$id')({
     component: RoleDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'permissions', content: 'list', rows: 6 },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: roleDetailDocument,

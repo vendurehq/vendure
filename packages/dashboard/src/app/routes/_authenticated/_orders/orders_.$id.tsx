@@ -9,6 +9,19 @@ import { loadRegularOrder } from './utils/order-detail-loaders.js';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders_/$id')({
     component: OrderDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId: 'order-detail',
+            blocks: [
+                { column: 'main', blockId: 'order-table', content: 'table', rows: 3 },
+                { column: 'main', blockId: 'payment-details', content: 'list', rows: 4, title: true },
+                { column: 'main', blockId: 'fulfillment-details', content: 'list', rows: 4, title: true },
+                { column: 'main', blockId: 'order-history', content: 'list', rows: 4, title: true },
+                { column: 'side', blockId: 'customer', content: 'list', rows: 14, title: true },
+                { column: 'side', blockId: 'tax-summary', content: 'list', rows: 2, title: true },
+            ],
+        },
+    },
     loader: ({ context, params }) => loadRegularOrder(context, params),
     errorComponent: ({ error }) => <ErrorPage error={error} />,
 });

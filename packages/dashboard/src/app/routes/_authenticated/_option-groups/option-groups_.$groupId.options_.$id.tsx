@@ -37,6 +37,12 @@ const pageId = 'option-group-option-detail';
 
 export const Route = createFileRoute('/_authenticated/_option-groups/option-groups_/$groupId/options_/$id')({
     component: OptionGroupOptionDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [{ column: 'main', blockId: 'main-form' }],
+        },
+    },
     loader: async ({
         context,
         params,

@@ -25,6 +25,12 @@ const pageId = 'seller-detail';
 
 export const Route = createFileRoute('/_authenticated/_sellers/sellers_/$id')({
     component: SellerDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [{ column: 'main', blockId: 'main-form' }],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: sellerDetailDocument,

@@ -61,6 +61,16 @@ function withDefaultLanguage<T extends string>(
 
 export const Route = createFileRoute('/_authenticated/_channels/channels_/$id')({
     component: ChannelDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', rows: 3 },
+                { column: 'main', blockId: 'channel-defaults', rows: 4, title: true },
+                { column: 'side', blockId: 'appearance', content: 'list', rows: 2, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: channelDetailDocument,

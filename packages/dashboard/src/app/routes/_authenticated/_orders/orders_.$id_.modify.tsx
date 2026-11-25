@@ -36,6 +36,18 @@ const pageId = 'order-modify';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders_/$id_/modify')({
     component: ModifyOrderPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'order-lines', content: 'list', rows: 4, title: true },
+                { column: 'main', blockId: 'add-surcharge', rows: 1, title: true },
+                { column: 'side', blockId: 'modification-summary', content: 'list', rows: 3, title: true },
+                { column: 'side', blockId: 'customer', content: 'list', rows: 3, title: true },
+                { column: 'side', blockId: 'addresses', content: 'list', rows: 4, title: true },
+            ],
+        },
+    },
     loader: async ({ context, params }) => loadModifyingOrder(context, params),
     errorComponent: ({ error }) => <ErrorPage error={error} />,
 });

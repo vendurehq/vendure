@@ -49,6 +49,15 @@ const getQueryKey = (id: string) => ['DetailPage', 'product', id, 'manage-varian
 
 export const Route = createFileRoute('/_authenticated/_products/products_/$id_/variants')({
     component: ManageProductVariants,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'option-groups', content: 'list', rows: 3, title: true },
+                { column: 'main', blockId: 'product-variants', content: 'list', rows: 6, title: true },
+            ],
+        },
+    },
     loader: async ({ context, params, location }) => {
         if (!params.id) {
             throw new Error('ID param is required');

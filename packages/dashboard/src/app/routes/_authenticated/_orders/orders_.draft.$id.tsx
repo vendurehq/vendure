@@ -52,6 +52,19 @@ import { toCustomFieldsInput } from './utils/order-utils.js';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders_/draft/$id')({
     component: DraftOrderPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId: 'draft-order',
+            blocks: [
+                { column: 'side', blockId: 'draft-order-status', content: 'list', rows: 2, title: true },
+                { column: 'main', blockId: 'order-table', content: 'list', rows: 4 },
+                { column: 'main', blockId: 'order-custom-fields', content: 'list', rows: 2, title: true },
+                { column: 'side', blockId: 'customer', content: 'list', rows: 3, title: true },
+                { column: 'side', blockId: 'shipping-address', content: 'list', rows: 3, title: true },
+                { column: 'side', blockId: 'billing-address', content: 'list', rows: 3, title: true },
+            ],
+        },
+    },
     loader: ({ context, params }) => loadDraftOrder(context, params),
     errorComponent: ({ error }) => <ErrorPage error={error} />,
 });

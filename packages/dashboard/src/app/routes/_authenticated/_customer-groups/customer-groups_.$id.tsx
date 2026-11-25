@@ -29,6 +29,15 @@ const pageId = 'customer-group-detail';
 
 export const Route = createFileRoute('/_authenticated/_customer-groups/customer-groups_/$id')({
     component: CustomerGroupDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'customers', content: 'table' },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: customerGroupDetailDocument,

@@ -28,6 +28,15 @@ const pageId = 'tax-rate-detail';
 
 export const Route = createFileRoute('/_authenticated/_tax-rates/tax-rates_/$id')({
     component: TaxRateDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
+                { column: 'main', blockId: 'main-form', rows: 2 },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: taxRateDetailDocument,
