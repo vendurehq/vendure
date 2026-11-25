@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { RoutePending } from './route-pending.js';
 
-const pendingMatch = vi.hoisted(() => ({ routeId: '' }));
+const pendingMatch = vi.hoisted(() => ({
+    routeId: '',
+    staticData: {} as { pendingSkeleton?: 'list' | 'detail' },
+}));
 
 vi.mock('@tanstack/react-router', () => ({
     useMatch: () => pendingMatch,
@@ -14,8 +17,9 @@ vi.mock('@lingui/react', () => ({
     Trans: ({ message, id }: { message?: string; id: string }) => <>{message ?? id}</>,
 }));
 
-function render(routeId: string): string {
+function render(routeId: string, staticData: typeof pendingMatch.staticData = {}): string {
     pendingMatch.routeId = routeId;
+    pendingMatch.staticData = staticData;
     return renderToStaticMarkup(<RoutePending />);
 }
 
@@ -36,6 +40,14 @@ describe('RoutePending', () => {
         expect(
             skeletonKind(
                 render('/_authenticated/_orders/orders_/$aggregateOrderId_/seller-orders/$sellerOrderId'),
+            ),
+        ).toBe('detail');
+    });
+
+    it('shows the skeleton that the route declares', () => {
+        expect(
+            skeletonKind(
+                render('/_authenticated/_global-settings/global-settings', { pendingSkeleton: 'detail' }),
             ),
         ).toBe('detail');
     });

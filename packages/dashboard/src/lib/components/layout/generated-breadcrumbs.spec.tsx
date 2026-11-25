@@ -22,6 +22,8 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@lingui/react', () => ({
     useLingui: () => ({ i18n: { t: (value: string) => value, messages: {} } }),
+    // The Trans macro compiles to this runtime Trans
+    Trans: ({ message, id }: { message?: string; id: string }) => <>{message ?? id}</>,
 }));
 
 function render(pathname: string, breadcrumb: unknown): string {
@@ -141,32 +143,47 @@ describe('GeneratedBreadcrumbs', () => {
             return crumbTexts(container.innerHTML);
         };
         const products = [{ path: '/products', label: 'Products' }];
+        const showsLoadingCrumb = () => container.querySelector('[data-slot="skeleton"]') !== null;
 
-        // OSS-1486 — while the next page loads, the breadcrumb dropped to the section crumb
-        it('keeps the crumbs of the resolved page while the next page loads', () => {
-            expect(show('success', '/products', products)).toEqual(['Catalog', 'Products']);
-            // The new match has no loader data yet
+        // OSS-1486 — while the next page loads, the breadcrumb showed the previous page
+        it('shows the crumbs of the next list page while it loads', () => {
+            show('success', '/customers', [{ path: '/customers', label: 'Customers' }]);
+
+            expect(show('pending', '/products')).toEqual(['Catalog', 'Products']);
+            expect(showsLoadingCrumb()).toBe(false);
+        });
+
+        // OSS-1486 — the crumb that needs loader data is a skeleton until the data arrives
+        it('shows a loading crumb for the entity of the next detail page', () => {
+            show('success', '/products', products);
+
             expect(show('pending', '/products/1')).toEqual(['Catalog', 'Products']);
+            expect(showsLoadingCrumb()).toBe(true);
             expect(show('success', '/products/1', [...products, 'Laptop'])).toEqual([
                 'Catalog',
                 'Products',
                 'Laptop',
             ]);
+            expect(showsLoadingCrumb()).toBe(false);
         });
 
         // OSS-1486 — the section crumb of the next page joined the crumbs of the current one
-        it('keeps the section of the rendered page before the next page matches', () => {
-            expect(show('success', '/products', products)).toEqual(['Catalog', 'Products']);
+        it('never mixes the crumbs of the current and the next page', () => {
+            show('success', '/products', products);
+
             // The location is the next page, the matches are still the current page
-            expect(show('success', '/products', products, '/customers/5')).toEqual(['Catalog', 'Products']);
-            expect(show('pending', '/customers/5')).toEqual(['Catalog', 'Products']);
+            const crumbs = show('success', '/products', products, '/customers/5');
+            expect(crumbs).toEqual(['Customers']);
+            expect(crumbs).not.toContain('Products');
+            expect(showsLoadingCrumb()).toBe(true);
         });
 
-        it('drops the crumbs of the previous page when the next page fails to load', () => {
+        it('shows the crumbs of the page when the next page fails to load', () => {
             show('success', '/products', products);
             show('pending', '/customers/5');
 
             expect(show('error', '/customers/5')).toEqual(['Customers']);
+            expect(showsLoadingCrumb()).toBe(false);
         });
     });
 });

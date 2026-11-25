@@ -7,6 +7,16 @@ import { Trans } from '@lingui/react/macro';
 import { useMatch } from '@tanstack/react-router';
 import React from 'react';
 
+declare module '@tanstack/react-router' {
+    interface StaticDataRouteOption {
+        /**
+         * The skeleton that shows while the route loads. Without it, a route whose
+         * path has a param gets the detail skeleton, any other the list skeleton.
+         */
+        pendingSkeleton?: 'list' | 'detail';
+    }
+}
+
 const LIST_ROWS = 10;
 
 /**
@@ -138,17 +148,19 @@ function RouteSpinner() {
 }
 
 /**
- * The pending component of every route. A page of the app shell gets the shape
- * of a detail page when its path has a param, else of a list page. The home
- * page and the routes outside the shell get a spinner.
+ * The pending component of every route. A page of the app shell gets the
+ * skeleton of its `pendingSkeleton` static data, else the shape of a detail page
+ * when its path has a param, else of a list page. The home page and the routes
+ * outside the shell get a spinner.
  */
 export function RoutePending() {
-    const { routeId } = useMatch({ strict: false });
+    const { routeId, staticData } = useMatch({ strict: false });
     if (
         !routeId.startsWith(`${AUTHENTICATED_ROUTE_PREFIX}/`) ||
         routeId === `${AUTHENTICATED_ROUTE_PREFIX}/`
     ) {
         return <RouteSpinner />;
     }
-    return routeId.includes('/$') ? <DetailPageSkeleton /> : <ListPageSkeleton />;
+    const kind = staticData?.pendingSkeleton ?? (routeId.includes('/$') ? 'detail' : 'list');
+    return kind === 'detail' ? <DetailPageSkeleton /> : <ListPageSkeleton />;
 }
