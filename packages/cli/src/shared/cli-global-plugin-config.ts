@@ -71,7 +71,7 @@ export function readGlobalCliConfig(env?: NodeJS.ProcessEnv): {
         if (invalid) {
             return { config: {}, path: configPath, error: invalid };
         }
-        return { config: parsed, path: configPath };
+        return { config: parsed as GlobalCliConfig, path: configPath };
     } catch (e) {
         return { config: {}, path: configPath, error: e instanceof Error ? e.message : String(e) };
     }

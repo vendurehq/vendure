@@ -1,3 +1,4 @@
+import fs from 'fs-extra';
 import path from 'node:path';
 import {
     Node,
@@ -69,7 +70,10 @@ export class VendureConfigRef {
         this.getPluginsArray()?.addElement(text).formatText();
     }
 
-    private isVendureConfigFile(sourceFile: SourceFile, options: { checkFileName?: boolean } = {}): boolean {
+    private isVendureConfigFile(
+        sourceFile: SourceFile,
+        options: { checkFileName?: boolean } = {},
+    ): boolean {
         const checkFileName = options.checkFileName ?? true;
         return (
             (checkFileName ? sourceFile.getFilePath().endsWith('vendure-config.ts') : true) &&

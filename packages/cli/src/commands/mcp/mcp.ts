@@ -112,7 +112,6 @@ async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]
     if (envelope === 'timed-out') {
         // The child is stopped in the background. The server does not wait for it.
         controller.abort();
-        void listing.catch(() => undefined);
         writeNotice(commandsListingTimedOut, { project: cwd, seconds: LIST_COMMANDS_TIMEOUT_MS / 1000 });
         return loadMergedManifest({ plugins: [] });
     }

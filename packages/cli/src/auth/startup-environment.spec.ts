@@ -9,21 +9,19 @@ import { DEFAULT_CONSOLE_API_URL } from '../commands/console/console-origins.js'
 import { getVendureCliConfigDir } from '../shared/cli-config-dir.js';
 import { getGlobalCliConfigPath } from '../shared/cli-global-plugin-config.js';
 import { loadVendureConfigFromPath } from '../shared/load-vendure-config-file.js';
+import { clearStartupRecord } from '../shared/startup-record.js';
 
 import { getAuthFilePath, resolveConsoleApiUrl } from './auth-options.js';
 import { readCloudTokenEnv, requireCredential } from './credential.js';
-import {
-    AUTH_ENVIRONMENT_VARIABLES,
-    authEnvironment,
-    clearStartupEnvironment,
-    recordStartupEnvironment,
-} from './startup-environment.js';
+import { authEnvironment, recordStartupEnvironment } from './startup-environment.js';
+
+const AUTH_VARIABLES = ['VENDURE_CLOUD_TOKEN', 'VENDURE_CONSOLE_API_URL', 'VENDURE_CLI_CONFIG_DIR'] as const;
 
 describe('the auth variables a project .env sets', () => {
     let projectDir: string;
     let configDir: string;
     const cwd = process.cwd();
-    const saved = Object.fromEntries(AUTH_ENVIRONMENT_VARIABLES.map(name => [name, process.env[name]]));
+    const saved = Object.fromEntries(AUTH_VARIABLES.map(name => [name, process.env[name]]));
 
     beforeEach(() => {
         projectDir = mkdtempSync(path.join(tmpdir(), 'vendure-cli-dotenv-'));
@@ -43,7 +41,7 @@ describe('the auth variables a project .env sets', () => {
             path.join(projectDir, 'vendure-config.js'),
             'module.exports = { config: { dbConnectionOptions: {} } };\n',
         );
-        for (const name of AUTH_ENVIRONMENT_VARIABLES) {
+        for (const name of AUTH_VARIABLES) {
             delete process.env[name];
         }
         // The CLI started with no token and its own config directory.
@@ -54,7 +52,7 @@ describe('the auth variables a project .env sets', () => {
 
     afterEach(() => {
         process.chdir(cwd);
-        clearStartupEnvironment();
+        clearStartupRecord();
         for (const [name, value] of Object.entries(saved)) {
             if (value === undefined) {
                 delete process.env[name];
@@ -95,7 +93,7 @@ describe('a project .env that moves the config directory it falls back to', () =
     });
 
     afterEach(() => {
-        clearStartupEnvironment();
+        clearStartupRecord();
         for (const [name, value] of Object.entries(saved)) {
             if (value === undefined) {
                 delete process.env[name];
@@ -127,10 +125,10 @@ describe('a project .env that moves the config directory it falls back to', () =
 });
 
 describe('authEnvironment outside the CLI', () => {
-    afterEach(() => clearStartupEnvironment());
+    afterEach(() => clearStartupRecord());
 
     it('reads the process environment as it is when nothing recorded it, and an env it is given', () => {
-        clearStartupEnvironment();
+        clearStartupRecord();
         expect(readCloudTokenEnv({ env: { VENDURE_CLOUD_TOKEN: 'given' } })).toBe('given');
         const saved = process.env.VENDURE_CLOUD_TOKEN;
         process.env.VENDURE_CLOUD_TOKEN = 'live';

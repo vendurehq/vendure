@@ -1,6 +1,7 @@
 import type { SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
 import crossSpawn from 'cross-spawn';
 
+import { authEnvironment } from '../auth/startup-environment.js';
 import { withoutLocalTrustSecret } from '../shared/local-trust-env.js';
 
 /**
@@ -52,7 +53,7 @@ export function createSpawn(
                 cwd: options.cwd ?? cwd,
                 // The local-trust secret is only for the server of a `vendure dev` run, which that
                 // run passes itself. Nothing started through `ctx.spawn` inherits it from the shell.
-                env: { ...withoutLocalTrustSecret(process.env), ...options.env },
+                env: { ...withoutLocalTrustSecret(authEnvironment()), ...options.env },
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
             const quiet = options.quiet === true;
