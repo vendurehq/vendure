@@ -567,6 +567,14 @@ describe('viteConfigPlugin', () => {
         expect(result.optimizeDeps.exclude).toContain('virtual:dashboard-extensions');
     });
 
+    // A pre-bundled `@vendure-io/ui/lib/base-ui` carries its own @base-ui/react, so its
+    // primitives lose the context of the source-served atoms ("ComboboxRootContext is missing").
+    it('excludes @vendure-io/ui from the dep optimizer', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        expect(result.optimizeDeps.exclude).toContain('@vendure-io/ui');
+    });
+
     it('sets optimizeDeps.include with recharts etc', () => {
         const plugin = viteConfigPlugin({ packageRoot });
         const result = callConfig(plugin, {}, { command: 'serve' });
