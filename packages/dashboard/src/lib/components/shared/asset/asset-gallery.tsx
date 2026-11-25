@@ -17,6 +17,7 @@ import {
     PaginationPrevious,
 } from '@/vdb/components/ui/pagination.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { ToggleGroup, ToggleGroupItem } from '@/vdb/components/ui/toggle-group.js';
@@ -31,6 +32,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
+import { SkeletonLine } from '@vendure-io/ui/components/molecules/state-views/skeleton-parts';
 import { ChevronRight, LayoutGrid, LayoutList, Search, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { DragEvent, memo, useCallback, useMemo, useRef, useState } from 'react';
@@ -619,6 +621,7 @@ export function AssetGallery({
                     <AssetGridView
                         assets={assets}
                         isLoading={isLoading}
+                        itemsPerPage={itemsPerPage}
                         isError={isError}
                         error={error}
                         retry={refetch}
@@ -636,7 +639,12 @@ export function AssetGallery({
             {viewMode === 'grid' && (
                 <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    <Plural value={totalItems} one="# asset found" other="# assets found" />
+                    {isLoading ? (
+                        // The count is unknown until the page loads: a skeleton on a line of the same height, not "0 assets found".
+                        <SkeletonLine className="w-24" />
+                    ) : (
+                        <Plural value={totalItems} one="# asset found" other="# assets found" />
+                    )}
                     {selected.length > 0 && (
                         <Trans>, {selected.length} selected</Trans>
                     )}
@@ -798,6 +806,7 @@ export function AssetGallery({
 interface AssetViewProps {
     assets: Asset[];
     isLoading: boolean;
+    itemsPerPage: number;
     isError: boolean;
     error: Error | null;
     retry: () => void;
@@ -846,6 +855,7 @@ function AssetEmptyState({
 function AssetGridView({
     assets,
     isLoading,
+    itemsPerPage,
     isError,
     error,
     retry,
@@ -858,11 +868,7 @@ function AssetGridView({
     onToggleAsset,
 }: Readonly<AssetViewProps>) {
     if (isLoading) {
-        return (
-            <div data-asset-gallery className="py-12">
-                <LoadingState variant="spinner" />
-            </div>
-        );
+        return <AssetGridSkeleton count={itemsPerPage} />;
     }
 
     if (isError) {
@@ -892,10 +898,7 @@ function AssetGridView({
     }
 
     return (
-        <div
-            data-asset-gallery
-            className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-1"
-        >
+        <div data-asset-gallery className={ASSET_GRID_CLASS}>
             {assets.map(asset => (
                 <AssetCard
                     key={asset.id}
@@ -907,6 +910,34 @@ function AssetGridView({
                 />
             ))}
         </div>
+    );
+}
+
+const ASSET_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-1';
+
+/**
+ * One page of the grid while it loads: cards in the grid's own columns, each in
+ * the shape of `AssetCard` (the square thumbnail, the name, the size and Open).
+ */
+function AssetGridSkeleton({ count }: Readonly<{ count: number }>) {
+    return (
+        <LoadingState data-asset-gallery>
+            <div className={ASSET_GRID_CLASS} aria-hidden="true">
+                {Array.from({ length: count }, (_, index) => (
+                    <div key={index} className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+                        <Skeleton className="aspect-square rounded-none" />
+                        <div className="px-2 py-1.5">
+                            <SkeletonLine className="w-3/4 text-sm leading-tight" />
+                            {/* The Open link is 24px tall with -2px margins, so this row is 20px. */}
+                            <div className="mt-0.5 flex h-5 items-center justify-between">
+                                <SkeletonLine className="w-10 text-xs" />
+                                <SkeletonLine className="w-8 text-xs" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </LoadingState>
     );
 }
 
