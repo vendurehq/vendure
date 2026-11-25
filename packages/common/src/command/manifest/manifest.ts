@@ -8,8 +8,12 @@ export const MANIFEST_FILE_NAME = 'vendure-commands.json';
 
 /**
  * Field names a command may not use. The host adds `--json`, `--input` and `--format` to every
- * command, and `--yes` is reserved for a host flag. `--project` is not reserved: it names the VC
- * Project of Vendure Cloud's commands, and the project directory option is `--dir`.
+ * command, and `--yes` is reserved for a host flag.
+ *
+ * `--project` is not reserved, and is never a host flag: it names the VC Project of Vendure Cloud's
+ * commands, which declare it as group input. The project directory option of a command declared
+ * with `defineCommand` is `--dir`. `vendure dev` and `vendure console` still take
+ * `--project <dir>` until they are declared this way too.
  */
 export const RESERVED_FIELD_NAMES = ['json', 'input', 'format', 'yes'];
 

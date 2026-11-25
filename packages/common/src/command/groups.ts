@@ -8,7 +8,8 @@ import type {
     StandardSchemaResult,
 } from './types';
 
-const JSON_SCHEMA_TARGET = 'draft-2020-12';
+/** The JSON Schema draft that manifests and combined schemas are produced for. */
+export const JSON_SCHEMA_TARGET = 'draft-2020-12';
 
 function startsWith(path: string[], prefix: string[]): boolean {
     return prefix.length <= path.length && prefix.every((segment, index) => path[index] === segment);
@@ -53,11 +54,45 @@ export function applyCommandGroups(
             schemas: async () => {
                 const schemas = await command.schemas();
                 const groupInputs = await Promise.all(own.map(async group => (await group.schemas()).input));
-                return { ...schemas, input: combineInputs(command.path, [...groupInputs, schemas.input]) };
+                return {
+                    ...schemas,
+                    input: combineInputs(command.path, [
+                        ...own.map((group, index) => ({
+                            label: `the group "${group.path.join(' ')}"`,
+                            schema: groupInputs[index],
+                        })),
+                        { label: `the command "${command.path.join(' ')}"`, schema: schemas.input },
+                    ]),
+                };
             },
             cli: mergeCli(own, command.cli),
         };
     });
+}
+
+/**
+ * @description
+ * The command declarations a package's declarations module exports, with its groups applied: the
+ * module's `commands`, with the shared input of its `groups`. A host that runs a package's
+ * commands loads them through this, so the shared fields reach `run()`.
+ *
+ * A CommonJS module's exports can arrive as the default export of `import()`, so `default` is
+ * read too.
+ *
+ * @since 4.0.0
+ */
+export function commandDeclarations(declarationsModule: unknown): CommandDefinition[] {
+    const mod = (declarationsModule ?? {}) as { commands?: unknown; groups?: unknown; default?: unknown };
+    const fallback = (mod.default ?? {}) as { commands?: unknown; groups?: unknown };
+    const commands = mod.commands ?? fallback.commands;
+    const groups = mod.groups ?? fallback.groups ?? [];
+    if (!Array.isArray(commands)) {
+        throw new Error('The module does not export its commands as "commands"');
+    }
+    if (!Array.isArray(groups)) {
+        throw new Error('The module exports "groups" that is not a list');
+    }
+    return applyCommandGroups(commands as CommandDefinition[], groups as CommandGroupDefinition[]);
 }
 
 function mergeCli(groups: CommandGroupDefinition[], cli: CommandCliMetadata | undefined): CommandCliMetadata {
@@ -82,17 +117,35 @@ function propertiesOf(schema: JsonSchema): Record<string, unknown> {
  * the command's part also gets every field no group declares, so it still rejects or strips an
  * unknown one as it would alone.
  */
-function combineInputs(commandPath: string[], parts: StandardSchema[]): StandardSchema {
-    const jsonParts = parts.map(part => part['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET }));
+function combineInputs(
+    commandPath: string[],
+    parts: Array<{ label: string; schema: StandardSchema }>,
+): StandardSchema {
+    const jsonParts = parts.map(part =>
+        part.schema['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET }),
+    );
     const owner = new Map<string, number>();
+    const defs: Record<string, unknown> = {};
     jsonParts.forEach((jsonPart, index) => {
         for (const field of Object.keys(propertiesOf(jsonPart))) {
-            if (owner.has(field)) {
+            const other = owner.get(field);
+            if (other !== undefined) {
                 throw new Error(
-                    `"${commandPath.join(' ')}" declares the field "${field}", which a group of the command already declares`,
+                    `${parts[index].label} and ${parts[other].label} both declare the field "${field}" ` +
+                        `of "${commandPath.join(' ')}"`,
                 );
             }
             owner.set(field, index);
+        }
+        // Definitions that `$ref`s point to, as a schema library writes for a shared or recursive
+        // schema. Two parts may share one only when it is the same.
+        for (const [name, definition] of Object.entries((jsonPart.$defs as Record<string, unknown>) ?? {})) {
+            if (name in defs && JSON.stringify(defs[name]) !== JSON.stringify(definition)) {
+                throw new Error(
+                    `Two parts of the input of "${commandPath.join(' ')}" define "$defs/${name}" differently`,
+                );
+            }
+            defs[name] = definition;
         }
     });
     const commandIndex = parts.length - 1;
@@ -100,6 +153,7 @@ function combineInputs(commandPath: string[], parts: StandardSchema[]): Standard
         ...jsonParts[commandIndex],
         properties: Object.assign({}, ...jsonParts.map(propertiesOf)),
         required: jsonParts.flatMap(jsonPart => (jsonPart.required as string[] | undefined) ?? []),
+        ...(Object.keys(defs).length ? { $defs: defs } : {}),
     };
     const jsonSchema = () => combinedJson;
     return {
@@ -118,7 +172,7 @@ function combineInputs(commandPath: string[], parts: StandardSchema[]): Standard
                 // A Standard Schema may validate synchronously or not, so each result is awaited.
                 const results: StandardSchemaResult[] = [];
                 for (const [index, part] of parts.entries()) {
-                    results.push(await part['~standard'].validate(slices[index]));
+                    results.push(await part.schema['~standard'].validate(slices[index]));
                 }
                 const issues: StandardSchemaIssue[] = results.flatMap(result => result.issues ?? []);
                 if (issues.length > 0) {

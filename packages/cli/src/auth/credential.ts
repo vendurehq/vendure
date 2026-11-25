@@ -1,4 +1,10 @@
-import { CommandFix, IncompleteResult, InputNeed, incomplete } from '@vendure/common/lib/command';
+import {
+    CommandCredential,
+    CommandFix,
+    IncompleteResult,
+    InputNeed,
+    incomplete,
+} from '@vendure/common/lib/command';
 
 import { NotLoggedInError, isRenewalRefused } from './auth-errors.js';
 import { AuthOptions } from './auth-options.js';
@@ -26,18 +32,16 @@ export const LOGIN_FIX: CommandFix = {
  *
  * @since 4.0.0
  */
-export type CredentialSource = 'stored-login' | 'environment';
+export type CredentialSource = CommandCredential['source'];
 
 /**
- * The credential a command sends to Vendure Cloud or Vendure Console. `token` is a bearer token:
- * never print, log or return it.
+ * The credential a command sends to Vendure Cloud or Vendure Console. The host hands it to a
+ * `requires.auth` command as `ctx.credential`. `token` is a bearer token: never print, log or
+ * return it.
  *
  * @since 4.0.0
  */
-export interface CloudCredential {
-    source: CredentialSource;
-    token: string;
-}
+export type CloudCredential = CommandCredential;
 
 /** @since 4.0.0 */
 export interface RequireCredentialOptions extends AuthOptions {

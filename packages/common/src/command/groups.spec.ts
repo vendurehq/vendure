@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { defineCommand, defineCommandGroup } from './define';
-import { applyCommandGroups } from './groups';
+import { applyCommandGroups, commandDeclarations } from './groups';
 import { buildCommandManifest } from './manifest/build';
 import { StandardSchema } from './types';
 
@@ -100,7 +100,7 @@ describe('applyCommandGroups', () => {
             [cloudGroup],
         );
         await expect(clash.schemas()).rejects.toThrow(
-            '"cloud link" declares the field "project", which a group of the command already declares',
+            'the command "cloud link" and the group "cloud" both declare the field "project" of "cloud link"',
         );
     });
 
@@ -108,6 +108,101 @@ describe('applyCommandGroups', () => {
         expect(() =>
             applyCommandGroups([command(['doctor'], { check: { type: 'string' } })], [cloudGroup]),
         ).toThrow('The command group "cloud" holds no command');
+    });
+});
+
+describe('nested groups', () => {
+    const deploymentGroup = defineCommandGroup({
+        path: ['cloud', 'deployment'],
+        schemas: async () => ({
+            input: objectSchema({ deployment: { type: 'string' } }, { required: ['deployment'] }),
+        }),
+        cli: { flags: { project: { short: '-P' } } },
+    });
+
+    it('applies the outermost group first, and lets an inner group override its CLI metadata', async () => {
+        const [wait] = applyCommandGroups(
+            [command(['cloud', 'deployment', 'wait'], { timeout: { type: 'number' } }, ['timeout'])],
+            [deploymentGroup, cloudGroup],
+        );
+        const json = (await wait.schemas()).input['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
+        expect(Object.keys(json.properties as object)).toEqual([
+            'project',
+            'environment',
+            'deployment',
+            'timeout',
+        ]);
+        expect(wait.cli?.flags?.project).toEqual({ short: '-P' });
+    });
+
+    it('collects the issues of every part in one result', async () => {
+        const [wait] = applyCommandGroups(
+            [command(['cloud', 'deployment', 'wait'], { timeout: { type: 'number' } }, ['timeout'])],
+            [cloudGroup, deploymentGroup],
+        );
+        const result = await (await wait.schemas()).input['~standard'].validate({});
+        expect(result.issues).toEqual([
+            { message: 'Required', path: ['deployment'] },
+            { message: 'Required', path: ['timeout'] },
+        ]);
+    });
+
+    it('names both groups when two of them declare one field', async () => {
+        const clashing = defineCommandGroup({
+            path: ['cloud', 'deployment'],
+            schemas: async () => ({ input: objectSchema({ environment: { type: 'string' } }) }),
+        });
+        const [wait] = applyCommandGroups(
+            [command(['cloud', 'deployment', 'wait'], { timeout: { type: 'number' } })],
+            [cloudGroup, clashing],
+        );
+        await expect(wait.schemas()).rejects.toThrow(
+            'the group "cloud deployment" and the group "cloud" both declare the field "environment"',
+        );
+    });
+});
+
+describe('$defs', () => {
+    it("keeps the definitions a group's JSON Schema refers to", async () => {
+        const withDefs = objectSchema({ region: { $ref: '#/$defs/Region' } as any });
+        const json = withDefs['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
+        json.$defs = { Region: { type: 'string', enum: ['eu', 'us'] } };
+        const regionGroup = defineCommandGroup({
+            path: ['cloud'],
+            schemas: async () => ({ input: withDefs }),
+        });
+        const [deploy] = applyCommandGroups(
+            [command(['cloud', 'deploy'], { commit: { type: 'string' } })],
+            [regionGroup],
+        );
+        const combined = (await deploy.schemas()).input['~standard'].jsonSchema.input({
+            target: 'draft-2020-12',
+        });
+        expect(combined.$defs).toEqual({ Region: { type: 'string', enum: ['eu', 'us'] } });
+    });
+});
+
+describe('commandDeclarations', () => {
+    it("applies a declarations module's groups to its commands", async () => {
+        const [deploy] = commandDeclarations({
+            commands: [command(['cloud', 'deploy'], { commit: { type: 'string' } })],
+            groups: [cloudGroup],
+        });
+        const json = (await deploy.schemas()).input['~standard'].jsonSchema.input({
+            target: 'draft-2020-12',
+        });
+        expect(Object.keys(json.properties as object)).toContain('project');
+    });
+
+    it('reads a CommonJS module through its default export', () => {
+        const doctor = command(['doctor'], { check: { type: 'string' } });
+        expect(commandDeclarations({ default: { commands: [doctor] } })).toEqual([doctor]);
+    });
+
+    it('fails for a module that does not export its commands', () => {
+        expect(() => commandDeclarations({ default: [] })).toThrow(
+            'does not export its commands as "commands"',
+        );
     });
 });
 
@@ -139,8 +234,9 @@ describe('buildCommandManifest with groups', () => {
     });
 
     it('accepts a field named project, which the host no longer reserves', async () => {
-        await expect(
-            buildCommandManifest('acme', '1.0.0', [command(['acme'], { project: { type: 'string' } })]),
-        ).resolves.toBeDefined();
+        const manifest = await buildCommandManifest('acme', '1.0.0', [
+            command(['acme'], { project: { type: 'string' } }),
+        ]);
+        expect(Object.keys(manifest.commands[0].input.properties as object)).toEqual(['project']);
     });
 });

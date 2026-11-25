@@ -343,7 +343,8 @@ export interface CommandContext {
 /**
  * @description
  * A Vendure Cloud credential, as the host found it for a command with `requires.auth: 'cloud'`:
- * the stored login of `vendure auth login`, or `VENDURE_CLOUD_TOKEN`.
+ * the stored login of `vendure auth login`, or `VENDURE_CLOUD_TOKEN`. `token` is a bearer token:
+ * never print, log or return it.
  *
  * @since 4.0.0
  */
@@ -457,10 +458,10 @@ export interface CommandDefinition {
          * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
          * secret `token` field, whose fix is `vendure auth login --json`.
          *
-         * `run()` then reads the credential with `requireCredential` from `@vendure/cli`, with
-         * `mayPrompt: false`, and returns an `incomplete` result from it unchanged. That can happen
-         * when the command needs a login for one organization, because the host only checks that
-         * some credential exists.
+         * `run()` receives the credential the host found as `ctx.credential`. A command that needs
+         * a login for one organization can call `requireCredential` from `@vendure/cli` with
+         * `mayPrompt: false` and that organization, and return an `incomplete` result from it
+         * unchanged, because the host only checks that some credential exists.
          *
          * @since 4.0.0
          */

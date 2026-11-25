@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { applyCommandGroups } from '../groups';
+import { applyCommandGroups, JSON_SCHEMA_TARGET } from '../groups';
 import { CommandDefinition, CommandGroupDefinition, JsonSchema } from '../types';
 
 import {
@@ -20,8 +20,6 @@ export interface BuildCommandManifestOptions {
      */
     groups?: CommandGroupDefinition[];
 }
-
-const JSON_SCHEMA_TARGET = 'draft-2020-12';
 
 /**
  * Builds the manifest of a package from its command definitions. This is the build step. It
