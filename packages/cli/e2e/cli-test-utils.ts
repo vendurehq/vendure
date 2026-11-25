@@ -471,3 +471,54 @@ export function installThisCli(projectDir: string): void {
     mkdirSync(join(target, '..'), { recursive: true });
     symlinkSync(join(import.meta.dirname, '..'), target, 'dir');
 }
+
+/**
+ * Runs `vendure mcp` in `cwd` and talks to it over stdio, one JSON-RPC message per line. A request
+ * still pending when the server exits is rejected with what it wrote to stderr, so a server that
+ * fails to start fails the test at once.
+ */
+export function startMcpServer(cwd: string) {
+    const child = spawn(process.execPath, [join(CLI_PACKAGE_DIR, 'dist', 'cli.js'), 'mcp'], {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const pending = new Map<number, { resolve: (message: any) => void; reject: (error: Error) => void }>();
+    let buffer = '';
+    let stderr = '';
+    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+    child.stdout.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines.filter(Boolean)) {
+            const message = JSON.parse(line);
+            pending.get(message.id)?.resolve(message);
+            pending.delete(message.id);
+        }
+    });
+    const exited = new Promise<void>(resolve =>
+        child.on('close', code => {
+            for (const { reject } of pending.values()) {
+                reject(new Error(`vendure mcp exited with code ${String(code)}: ${stderr}`));
+            }
+            pending.clear();
+            resolve();
+        }),
+    );
+    let nextId = 1;
+    const request = (method: string, params?: object): Promise<any> => {
+        const id = nextId++;
+        const reply = new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+        child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+        return reply;
+    };
+    return {
+        request,
+        callTool: (name: string, args: object) => request('tools/call', { name, arguments: args }),
+        stderr: () => stderr,
+        close: async () => {
+            child.stdin.end();
+            await exited;
+        },
+    };
+}

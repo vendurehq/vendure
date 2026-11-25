@@ -149,15 +149,28 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     });
 
     command.action(async (...args: any[]) => {
-        // With the options of the commands above it: a CLI plugin can declare a shared `--json` on
-        // the program, which then takes the flag before this command sees it.
-        const opts = command.optsWithGlobals();
+        const opts = hostFlags(command);
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
         );
         const code = await runLeaf(manifestCommand, command, positionalValues, opts, options, replacedBy);
         process.exit(code);
     });
+}
+
+/**
+ * The host's own flags of a run. A CLI plugin can declare a shared `--json` on the program, which
+ * then takes the flag before this command sees it, so a flag not given to the command is read from
+ * the commands above it, unless it only has its default there.
+ */
+function hostFlags(command: Command): { json?: boolean; format?: string; input?: string } {
+    const opts = command.opts();
+    const read = (name: 'json' | 'format' | 'input') => opts[name] ?? ancestorOptionValue(command, name);
+    return {
+        json: read('json') as boolean | undefined,
+        format: read('format') as string | undefined,
+        input: read('input') as string | undefined,
+    };
 }
 
 /** Whether this process runs a tool call for `vendure mcp`, which marks its child processes. */

@@ -86,6 +86,8 @@ export interface CliPluginLoadFailure {
      * loaded anyway.
      */
     part?: 'commandManifest';
+    /** Set when the manifest is there but is not a valid command manifest. */
+    manifestInvalid?: boolean;
 }
 
 /**
@@ -169,6 +171,11 @@ export interface DiscoveredCliPlugin {
      * file, so known without loading the package's code.
      */
     manifestCommands?: string[];
+    /**
+     * Why the package's `defineCommand` commands are left out, when its `cliPlugin` loads anyway.
+     * Known only for an enabled package that was validated.
+     */
+    manifestReason?: string;
     /**
      * Top-level command names read from the plugin module itself. Only known
      * when the plugin was actually loaded, which `validate` does for enabled
@@ -332,7 +339,10 @@ function discoverInScope(
             continue;
         }
         const load = validate && entry.status !== 'failed' && mayLoad(packageName);
-        discovered.set(packageName, load ? withLoadedCommands(entry, packageName) : entry);
+        discovered.set(
+            packageName,
+            load ? withLoadedCommands(entry, packageName, scope.resolvePackage(packageName)) : entry,
+        );
     }
 
     return Array.from(discovered.values());
@@ -350,8 +360,8 @@ function describePackage(
 ): DiscoveredCliPlugin | undefined {
     const resolved = scope.resolvePackage(packageName);
     const vendure = resolved?.packageJson.vendure;
-    const entryRel = typeof vendure?.cliPlugin === 'string' ? vendure.cliPlugin : undefined;
-    const manifestRel = typeof vendure?.commandManifest === 'string' ? vendure.commandManifest : undefined;
+    const entryRel = resolved ? declaredEntry(resolved.packageJson) : undefined;
+    const manifestRel = resolved ? declaredManifest(resolved.packageJson) : undefined;
     if (!resolved || (!entryRel && !manifestRel)) {
         return undefined;
     }
@@ -408,16 +418,25 @@ function describeEnabledPackage(
  * loaded to read them, so a module that cannot be loaded is reported as failed
  * here rather than at the next startup.
  */
-function withLoadedCommands(entry: DiscoveredCliPlugin, packageName: string): DiscoveredCliPlugin {
+function withLoadedCommands(
+    entry: DiscoveredCliPlugin,
+    packageName: string,
+    resolved: { dir: string; packageJson: PackageJsonLike } | null,
+): DiscoveredCliPlugin {
+    // As at startup: a broken manifest leaves out only the `defineCommand` commands, so it fails
+    // the package only when the package has no `cliPlugin` to load instead.
+    const manifest = resolved && entry.manifestPath ? loadCommandManifest(resolved, packageName) : undefined;
+    const manifestReason = manifest && 'problem' in manifest ? manifest.problem : undefined;
+    if (!entry.entryPath) {
+        return manifestReason ? { ...entry, status: 'failed', reason: manifestReason } : entry;
+    }
     try {
-        if (entry.manifestPath) {
-            readCommandManifest(entry.manifestPath, packageName);
-        }
-        if (!entry.entryPath) {
-            return entry;
-        }
         const plugin = loadCliPluginModule(entry.entryPath, packageName);
-        return { ...entry, loadedCommands: plugin.commands.map(command => command.name) };
+        return {
+            ...entry,
+            loadedCommands: plugin.commands.map(command => command.name),
+            ...(manifestReason ? { manifestReason } : {}),
+        };
     } catch (e: any) {
         return { ...entry, status: 'failed', reason: e?.message ?? String(e) };
     }
@@ -440,15 +459,11 @@ function checkDeclaresPlugin(
         // The scope's own rule already reported this; nothing to add.
         return undefined;
     }
-    const vendure = resolved.packageJson.vendure;
-    const entryRel = vendure?.cliPlugin;
-    const manifestRel = vendure?.commandManifest;
-    const hasEntry = typeof entryRel === 'string' && entryRel.length > 0;
-    const hasManifest = typeof manifestRel === 'string' && manifestRel.length > 0;
-    if (!hasEntry && !hasManifest) {
+    const entryRel = declaredEntry(resolved.packageJson);
+    if (!entryRel && !declaredManifest(resolved.packageJson)) {
         return 'Does not declare vendure.cliPlugin or vendure.commandManifest in its package.json';
     }
-    if (hasEntry) {
+    if (entryRel) {
         // A problem with the manifest of a package that also has a `cliPlugin` leaves out only its
         // `defineCommand` commands, so it is reported when the package loads, not here.
         return missingFile(resolved.dir, 'Entry', entryRel);
@@ -463,15 +478,55 @@ function missingFile(dir: string, label: string, rel: string): string | undefine
         : `${label} "${rel}" not found at ${file}. If this is a workspace package, it may need to be built.`;
 }
 
+/** The `cliPlugin` entry a package declares, if any. */
+function declaredEntry(packageJson: PackageJsonLike): string | undefined {
+    return nonEmptyString(packageJson.vendure?.cliPlugin);
+}
+
+/** The command manifest a package declares, if any. Every check of the declaration uses this. */
+function declaredManifest(packageJson: PackageJsonLike): string | undefined {
+    return nonEmptyString(packageJson.vendure?.commandManifest);
+}
+
+function declaredDefinitions(packageJson: PackageJsonLike): string | undefined {
+    return nonEmptyString(packageJson.vendure?.commandDefinitions);
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+/**
+ * Reads the command manifest a package declares. `invalid` tells a manifest that is there but
+ * wrong from one that is missing, since one is fixed by rebuilding it and the other by building.
+ */
+function loadCommandManifest(
+    resolved: { dir: string; packageJson: PackageJsonLike },
+    packageName: string,
+): { manifest: CommandManifest; definitionsPath: string } | { problem: string; invalid: boolean } {
+    const problem = commandManifestProblem(resolved.dir, resolved.packageJson);
+    if (problem) {
+        return { problem, invalid: false };
+    }
+    const manifestRel = declaredManifest(resolved.packageJson) as string;
+    try {
+        return {
+            manifest: readCommandManifest(path.resolve(resolved.dir, manifestRel), packageName),
+            definitionsPath: path.resolve(resolved.dir, declaredDefinitions(resolved.packageJson) as string),
+        };
+    } catch (e: any) {
+        return { problem: e?.message ?? String(e), invalid: true };
+    }
+}
+
 /** Why the `defineCommand` commands of a package that declares a manifest cannot load, if they can't. */
 function commandManifestProblem(dir: string, packageJson: PackageJsonLike): string | undefined {
-    const vendure = packageJson.vendure;
-    const manifestRel = vendure?.commandManifest;
-    const definitionsRel = vendure?.commandDefinitions;
-    if (typeof manifestRel !== 'string' || manifestRel.length === 0) {
+    const manifestRel = declaredManifest(packageJson);
+    const definitionsRel = declaredDefinitions(packageJson);
+    if (!manifestRel) {
         return undefined;
     }
-    if (typeof definitionsRel !== 'string' || definitionsRel.length === 0) {
+    if (!definitionsRel) {
         return (
             'Declares vendure.commandManifest but not vendure.commandDefinitions, the module ' +
             'that exports its commands'
@@ -563,8 +618,8 @@ function loadInto(
     packageName: string,
     loadModules: boolean,
 ): void {
-    const declaresCommandManifest =
-        typeof scope.resolvePackage(packageName)?.packageJson.vendure?.commandManifest === 'string';
+    const declared = scope.resolvePackage(packageName);
+    const declaresCommandManifest = declared ? declaredManifest(declared.packageJson) !== undefined : false;
     const fail = (reason: string) =>
         result.failures.push({
             packageName,
@@ -581,44 +636,32 @@ function loadInto(
     }
 
     const resolved = scope.resolvePackage(packageName);
-    const vendure = resolved?.packageJson.vendure;
-    const entryRel = vendure?.cliPlugin;
-    const manifestRel = vendure?.commandManifest;
-    if (!resolved || (typeof entryRel !== 'string' && typeof manifestRel !== 'string')) {
+    const entryRel = resolved ? declaredEntry(resolved.packageJson) : undefined;
+    if (!resolved || (!entryRel && !declaresCommandManifest)) {
         fail('Passed every check but no plugin entry could be resolved');
         return;
     }
 
-    if (typeof manifestRel === 'string') {
+    if (declaresCommandManifest) {
         // Only the `defineCommand` commands are left out, as for a clash. A `cliPlugin` follows its
         // own rules and still loads.
-        const manifestFailed = (reason: string) =>
+        const loaded = loadCommandManifest(resolved, packageName);
+        if ('problem' in loaded) {
             result.failures.push({
                 packageName,
-                reason,
+                reason: loaded.problem,
                 scope: scope.kind,
                 notInstalled: false,
                 declaresCommandManifest: true,
                 part: 'commandManifest',
+                manifestInvalid: loaded.invalid,
             });
-        const problem = commandManifestProblem(resolved.dir, resolved.packageJson);
-        if (problem) {
-            manifestFailed(problem);
         } else {
-            try {
-                result.manifests.push({
-                    packageName,
-                    manifest: readCommandManifest(path.resolve(resolved.dir, manifestRel), packageName),
-                    definitionsPath: path.resolve(resolved.dir, vendure?.commandDefinitions as string),
-                    scope: scope.kind,
-                });
-            } catch (e: any) {
-                manifestFailed(e?.message ?? String(e));
-            }
+            result.manifests.push({ packageName, ...loaded, scope: scope.kind });
         }
     }
 
-    if (typeof entryRel !== 'string' || !loadModules) {
+    if (!entryRel || !loadModules) {
         return;
     }
     const entryPath = path.resolve(resolved.dir, entryRel);
@@ -707,6 +750,29 @@ function malformedCommandField(command: unknown): string | undefined {
     }
     if (typeof c.hasPlan !== 'boolean') {
         return 'no "hasPlan"';
+    }
+    const cli = c.cli as { flags?: unknown; positional?: unknown };
+    const input = c.input as Record<string, unknown>;
+    const properties = isPlainObject(input.properties) ? input.properties : {};
+    if (
+        cli.positional !== undefined &&
+        (!isStringArray(cli.positional) || cli.positional.some(field => !(field in properties)))
+    ) {
+        return 'a "cli.positional" list that names fields the input does not have';
+    }
+    if (cli.flags !== undefined) {
+        if (!isPlainObject(cli.flags)) {
+            return 'a "cli.flags" that is not an object';
+        }
+        for (const [field, flag] of Object.entries(cli.flags)) {
+            const short = isPlainObject(flag) ? flag.short : undefined;
+            if (
+                short !== undefined &&
+                (typeof short !== 'string' || !/^-[A-Za-z]$/.test(short) || ['-h', '-V'].includes(short))
+            ) {
+                return `the short flag ${JSON.stringify(short)} for "${field}", which is not "-" and one letter other than h and V`;
+            }
+        }
     }
     return undefined;
 }

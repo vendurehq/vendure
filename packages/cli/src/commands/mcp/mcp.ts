@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import { loadMergedManifest } from '../../command-host/manifest.js';
+import { loadMergedManifest, RefusedManifest } from '../../command-host/manifest.js';
 import { AdminProxy } from '../../command-host/mcp/admin-proxy.js';
 import { checkProjectCli, findMcpProject } from '../../command-host/mcp/project.js';
 import { runToolInChild } from '../../command-host/mcp/run-tool-in-child.js';
@@ -95,10 +95,7 @@ async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]
         },
     );
     const output = envelope.output as
-        | {
-              commands?: MergedManifestCommand[];
-              refused?: Array<{ package: string; error: { code: string; message: string } }>;
-          }
+        | { commands?: MergedManifestCommand[]; refused?: RefusedManifest[] }
         | undefined;
     if (envelope.status !== 'ok' || !Array.isArray(output?.commands)) {
         process.stderr.write(

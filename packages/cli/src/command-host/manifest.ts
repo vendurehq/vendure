@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { RESERVED_COMMANDS } from '../shared/command-registry-store.js';
 import {
     ResolveCliPluginsOptions,
     resolveCommandManifests,
@@ -121,10 +122,20 @@ export async function loadProjectCommands(
 ): Promise<ProjectCommands> {
     const core = await loadCoreManifest(options.coreManifestFile);
     if (options.plugins) {
-        return mergeProjectManifests(core, options.plugins, options.takenPaths ?? commanderPaths);
+        return mergeProjectManifests(
+            core,
+            options.plugins,
+            options.takenPaths ?? commanderPaths,
+            await registrationCheck(),
+        );
     }
     const { manifests, failures } = resolveCommandManifests(options.pluginOptions);
-    const merged = mergeProjectManifests(core, manifests, options.takenPaths ?? commanderPaths);
+    const merged = mergeProjectManifests(
+        core,
+        manifests,
+        options.takenPaths ?? commanderPaths,
+        await registrationCheck(),
+    );
     // A package that failed to resolve has no manifest to merge, and its commands are left out too.
     // A globally enabled package that is not installed is normal in a project that does not use it.
     const unavailable = failures
@@ -134,10 +145,10 @@ export async function loadProjectCommands(
         )
         .map(failure => ({
             package: failure.packageName,
-            error: errorBody(hostErrors.pluginUnavailable, {
-                plugin: failure.packageName,
-                reason: failure.reason,
-            }),
+            error: errorBody(
+                failure.manifestInvalid ? hostErrors.pluginManifestInvalid : hostErrors.pluginUnavailable,
+                { plugin: failure.packageName, reason: failure.reason },
+            ),
         }));
     return { ...merged, refused: [...unavailable, ...merged.refused] };
 }
@@ -150,6 +161,7 @@ export function mergeProjectManifests(
     core: CommandManifest,
     plugins: ResolvedCommandManifest[],
     takenPaths: TakenCommandPath[] = [],
+    checkRegistration?: (commands: MergedManifestCommand[]) => void,
 ): ProjectCommands {
     const accepted: CommandManifest[] = [core];
     const definitionsPaths = new Map<string, string>();
@@ -167,6 +179,12 @@ export function mergeProjectManifests(
                 : entry,
         ),
         ...corePaths,
+        // Commander adds `help` itself, so it is not among the Commander paths.
+        ...RESERVED_COMMANDS.map(name => ({
+            path: [name],
+            owner: `the reserved command "${name}"`,
+            leaf: true,
+        })),
     ];
 
     for (const plugin of plugins) {
@@ -188,6 +206,12 @@ export function mergeProjectManifests(
                 continue;
             }
             mergeManifests([...accepted, plugin.manifest]);
+            // Commander refuses some flags the merge rules allow, such as two fields that share a
+            // flag name. Registering the commands on a command line of their own finds them here,
+            // so they refuse this package instead of breaking the command line for everyone.
+            checkRegistration?.(
+                plugin.manifest.commands.map(command => ({ ...command, source: plugin.packageName })),
+            );
         } catch (e) {
             refuse(hostErrors.pluginManifestInvalid, {
                 plugin: plugin.packageName,
@@ -214,6 +238,15 @@ export function mergeProjectManifests(
             return importDefinitions(file);
         },
     };
+}
+
+/** Registers commands on a command line of their own, which throws where Commander refuses them. */
+async function registrationCheck(): Promise<(commands: MergedManifestCommand[]) => void> {
+    const [{ Command }, { registerManifestCommands }] = await Promise.all([
+        import('commander'),
+        import('./commander-adapter.js'),
+    ]);
+    return commands => registerManifestCommands(new Command(), commands, { loadDefinitions: async () => [] });
 }
 
 /** The commands of a manifest, and the groups that hold them. */

@@ -364,7 +364,12 @@ function printTextList(plugins: DiscoveredCliPlugin[]): void {
         return;
     }
     for (const plugin of plugins) {
-        const detail = plugin.status === 'failed' && plugin.reason ? ` — ${plugin.reason}` : '';
+        const detail =
+            plugin.status === 'failed' && plugin.reason
+                ? ` — ${plugin.reason}`
+                : plugin.manifestReason
+                  ? ` — its defineCommand commands are not loaded: ${plugin.manifestReason}`
+                  : '';
         process.stdout.write(`${plugin.packageName}\t${plugin.scope}\t${plugin.status}${detail}\n`);
         const commands = cliPluginCommandNames(plugin);
         if (commands.length > 0) {
@@ -389,6 +394,7 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
                     loadedCommands: plugin.loadedCommands,
                     manifestPath: plugin.manifestPath,
                     manifestCommands: plugin.manifestCommands,
+                    manifestReason: plugin.manifestReason,
                 })),
             },
             null,

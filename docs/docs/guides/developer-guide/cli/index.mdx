@@ -1241,8 +1241,10 @@ package's own included. The CLI then leaves out all the commands the package dec
 `defineCommand`, with a `plugin.command-clash` error that it writes to stderr and lists under
 `refused` in `vendure commands --json`. Every other command keeps working, including the package's
 own `cliPlugin` commands, which follow the rules in [Collisions](#collisions). A manifest that is
-missing or can't be read leaves out the same commands: the CLI writes the reason to stderr, and
-`vendure commands --json` lists the package under `refused` as `plugin.unavailable`. `admin` and `shop` are reserved, and so
+missing, or a module that is, leaves out the same commands: the CLI writes the reason to stderr, and
+`vendure commands --json` lists the package under `refused` as `plugin.unavailable`. A manifest that
+can't be parsed, or whose commands don't have the shape `writeCommandManifest` writes, is listed as
+`plugin.manifest-invalid`. The command names `admin`, `shop`, `help` and `plugins` are reserved, and so
 are the field names `json`, `input`, `format`, `yes` and `project`. A manifest that breaks these rules
 is refused with `plugin.manifest-invalid`.
 

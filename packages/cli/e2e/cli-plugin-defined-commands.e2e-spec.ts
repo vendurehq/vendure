@@ -6,12 +6,17 @@
  * discovery, the manifest merge and the host the same way a real installation does.
  */
 import { buildCommandManifest, readManifestFile } from '@vendure/common/lib/command/manifest';
-import { spawn } from 'node:child_process';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CliTestProject, createTestProject, installCliPluginFixture, readMarker } from './cli-test-utils.js';
+import {
+    CliTestProject,
+    createTestProject,
+    installCliPluginFixture,
+    readMarker,
+    startMcpServer,
+} from './cli-test-utils.js';
 
 const FIXTURES_DIR = join(import.meta.dirname, 'fixtures', 'cli-plugins');
 const EXAMPLE = '@vendure-e2e/defined-commands-cli-plugin';
@@ -21,41 +26,6 @@ function envelopeOf(stdout: string) {
     const lines = stdout.split('\n').filter(line => line.trim());
     expect(lines).toHaveLength(1);
     return JSON.parse(lines[0]);
-}
-
-/** Runs `vendure mcp` in the project, and talks to it over stdio. */
-function startMcp(cwd: string) {
-    const child = spawn(process.execPath, [join(import.meta.dirname, '..', 'dist', 'cli.js'), 'mcp'], {
-        cwd,
-        stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    const replies = new Map<number, (message: any) => void>();
-    let buffer = '';
-    child.stdout.on('data', (chunk: Buffer) => {
-        buffer += chunk.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines.filter(Boolean)) {
-            const message = JSON.parse(line);
-            replies.get(message.id)?.(message);
-        }
-    });
-    let nextId = 1;
-    const request = (method: string, params?: object): Promise<any> => {
-        const id = nextId++;
-        const reply = new Promise(resolve => replies.set(id, resolve));
-        child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
-        return reply;
-    };
-    return {
-        request,
-        callTool: (name: string, args: object) => request('tools/call', { name, arguments: args }),
-        close: () =>
-            new Promise<void>(resolve => {
-                child.on('close', () => resolve());
-                child.stdin.end();
-            }),
-    };
 }
 
 async function listCommands(project: CliTestProject) {
@@ -171,7 +141,7 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
 
         it('offers its commands as Developer MCP tools, and runs them in a child process', async () => {
             const p = projectWith(['defined-commands-cli-plugin']);
-            const mcp = startMcp(p.projectDir);
+            const mcp = startMcpServer(p.projectDir);
             try {
                 await mcp.request('initialize', { protocolVersion: '2025-06-18' });
                 const search = await mcp.callTool('search_tools', { query: 'greet' });
@@ -230,7 +200,7 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             expect(run.stderr).toContain('Unknown command "example"');
             expect(run.stderr).toContain(`vendure plugins add ${EXAMPLE}`);
 
-            const mcp = startMcp(p.projectDir);
+            const mcp = startMcpServer(p.projectDir);
             try {
                 await mcp.request('initialize', { protocolVersion: '2025-06-18' });
                 const search = await mcp.callTool('search_tools', { query: 'greet' });
@@ -268,13 +238,14 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
         });
 
         it.each([
-            ['cannot be parsed', '{ not json'],
-            ['is missing', undefined],
+            ['cannot be parsed', '{ not json', 'plugin.manifest-invalid'],
+            ['is missing', undefined, 'plugin.unavailable'],
             [
                 'has a malformed command',
                 JSON.stringify({ manifestVersion: 1, package: EXAMPLE, version: '1.0.0', commands: [{}] }),
+                'plugin.manifest-invalid',
             ],
-        ])('leaves out only the defineCommand commands when the manifest %s', async (_, content) => {
+        ])('leaves out only the defineCommand commands when the manifest %s', async (_, content, code) => {
             const p = projectWith(['defined-commands-cli-plugin']);
             const dir = addCliPlugin(p, 'legacy');
             const manifestFile = join(p.projectDir, dir, 'vendure-commands.json');
@@ -286,9 +257,16 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
 
             const envelope = await listCommands(p);
             expect(envelope.output.refused).toEqual([
-                { package: EXAMPLE, error: expect.objectContaining({ code: 'plugin.unavailable' }) },
+                { package: EXAMPLE, error: expect.objectContaining({ code }) },
             ]);
             expect(envelope.output.commands.filter((c: any) => c.source === EXAMPLE)).toEqual([]);
+            // `vendure plugins` agrees: the package works, without its defineCommand commands.
+            const plugins = JSON.parse((await p.runCliCommand(['plugins', '--json'])).stdout).plugins;
+            expect(plugins.find((entry: any) => entry.packageName === EXAMPLE)).toMatchObject({
+                status: 'enabled',
+                loadedCommands: ['legacy'],
+                manifestReason: expect.any(String),
+            });
             // The CLI's own commands are still there.
             expect(envelope.output.commands.some((c: any) => c.path.join(' ') === 'doctor')).toBe(true);
 

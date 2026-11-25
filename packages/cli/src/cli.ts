@@ -5,7 +5,12 @@ import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
 import { registerManifestCommands } from './command-host/commander-adapter.js';
-import { loadProjectCommands, setCommanderPaths, TakenCommandPath } from './command-host/manifest.js';
+import {
+    CORE_SOURCE,
+    loadProjectCommands,
+    setCommanderPaths,
+    TakenCommandPath,
+} from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { consoleCommandDef } from './commands/console/command.js';
 import { devCommandDef } from './commands/dev/command.js';
@@ -129,9 +134,30 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
                 scope,
             );
         }
-        registerManifestCommands(program, projectCommands.commands, {
-            loadDefinitions: source => projectCommands.loadDefinitions(source),
-        });
+        const loadDefinitions = (source: string) => projectCommands.loadDefinitions(source);
+        // The CLI's own commands first, then each plugin's on its own, so that a plugin whose
+        // commands Commander refuses cannot take the rest of the command line with it. The merge has
+        // already checked them, so this is a last resort.
+        const sources = [...new Set(projectCommands.commands.map(command => command.source))];
+        for (const source of sources) {
+            const commands = projectCommands.commands.filter(command => command.source === source);
+            try {
+                registerManifestCommands(program, commands, { loadDefinitions });
+            } catch (e) {
+                if (source === CORE_SOURCE) {
+                    throw e;
+                }
+                unavailablePackages.set(source, 'register');
+                const scope = manifests.find(manifest => manifest.packageName === source)?.scope ?? 'project';
+                const reason = e instanceof Error ? e.message : String(e);
+                writePluginSkipped(
+                    source,
+                    'Failed to register the defineCommand commands of CLI plugin',
+                    reason,
+                    scope,
+                );
+            }
+        }
     } catch (e) {
         process.stderr.write(
             `Could not load the command manifest: ${e instanceof Error ? e.message : String(e)}\n`,

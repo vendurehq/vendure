@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { ResolvedCommandManifest } from '../shared/resolve-cli-plugins.js';
 
 import { consentDigest } from './digest.js';
-import { loadMergedManifest, mergeProjectManifests } from './manifest.js';
+import { loadMergedManifest, loadProjectCommands, mergeProjectManifests } from './manifest.js';
 
 describe('consentDigest', () => {
     it('does not depend on the order of keys', () => {
@@ -196,6 +196,29 @@ describe('mergeProjectManifests', () => {
                 expect.stringContaining('"acme", which clashes with the command "acme sync" of acme-cli'),
             ],
         ]);
+    });
+
+    it('refuses a plugin command named after a reserved command, such as help', () => {
+        const { refused } = mergeProjectManifests(core, [plugin('acme-cli', ['help'])]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            ['plugin.command-clash', expect.stringContaining('the reserved command "help"')],
+        ]);
+    });
+
+    it.each([
+        ['two fields with one flag name', { fooBar: { type: 'string' }, 'foo-bar': { type: 'string' } }, {}],
+        ['a short flag Commander cannot parse', { foo: { type: 'string' } }, { foo: { short: '-ab' } }],
+    ])('refuses a plugin with %s, and still registers the next plugin', async (_, properties, flags) => {
+        const bad = plugin('bad-cli', ['bad']);
+        bad.manifest.commands[0].input = { type: 'object', properties };
+        bad.manifest.commands[0].cli = { flags };
+        const { commands, refused } = await loadProjectCommands({
+            coreManifestFile: '/nonexistent/vendure-commands.json',
+            plugins: [bad, plugin('good-cli', ['good'])],
+            takenPaths: [],
+        });
+        expect(refused.map(r => [r.package, r.error.code])).toEqual([['bad-cli', 'plugin.manifest-invalid']]);
+        expect(commands.map(c => c.source)).toContain('good-cli');
     });
 
     it("refuses a malformed manifest, and keeps the CLI's own commands", () => {
