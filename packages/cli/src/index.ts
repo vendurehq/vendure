@@ -101,7 +101,7 @@ export type {
     StoredOrganization,
     WorkosClient,
 } from './auth/index.js';
-export type { AskInputOptions, HostResult, Prompter } from './command-host/host.js';
+export type { AskInputOptions, HostResult, Prompter, SpawnFn, WriteSecretFn } from './command-host/host.js';
 export { testCommand } from './command-host/test-command.js';
 export type { TestCommandOptions, TestCommandResult } from './command-host/test-command.js';
 export { builtinCommands } from './commands/builtins.js';

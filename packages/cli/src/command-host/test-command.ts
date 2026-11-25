@@ -3,14 +3,13 @@ import type {
     CommandDefinition,
     CommandEvent,
     SpawnOptions,
-    SpawnResult,
 } from '@vendure/common/lib/command';
 
 import { format } from 'node:util';
 
 import { credentialNeed } from '../auth/credential.js';
 
-import { executeCommand, HostEnvironment, HostResult, Prompter } from './host.js';
+import { executeCommand, HostEnvironment, HostResult, Prompter, SpawnFn, WriteSecretFn } from './host.js';
 
 /** The `console` methods a command could print with. */
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug'] as const;
@@ -32,13 +31,16 @@ function captureConsole(printed: string[]): () => void {
                 run.push(text);
             }
         };
-        // A stream write records its chunk, and calls a callback it was given, as a stream would.
+        // A stream write records its chunk, and calls a callback it was given on the next tick, with no
+        // error, as a stream does once it has written.
         const captureWrite = ((chunk: unknown, ...rest: unknown[]) => {
-            record(String(chunk));
+            record(typeof chunk === 'string' ? chunk : Buffer.from(chunk as Uint8Array).toString());
             const callback = rest.find(argument => typeof argument === 'function') as
-                | (() => void)
+                | ((error: Error | null) => void)
                 | undefined;
-            callback?.();
+            if (callback) {
+                process.nextTick(() => callback(null));
+            }
             return true;
         }) as typeof process.stdout.write;
         // The original methods are put back on the same objects, so they keep their `this`.
@@ -65,8 +67,11 @@ function captureConsole(printed: string[]): () => void {
         };
         /* eslint-enable no-console */
     }
+    // Releasing twice is harmless: on an abort, and again when the run settles.
     return () => {
-        activeRuns.delete(printed);
+        if (!activeRuns.delete(printed)) {
+            return;
+        }
         if (activeRuns.size === 0) {
             restoreConsole?.();
         }
@@ -95,18 +100,19 @@ export interface TestCommandOptions {
      */
     projectRoot?: string | undefined;
     /** Answers `ctx.spawn`. Defaults to a process that exits with 0 and prints nothing. */
-    spawn?: (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult>;
+    spawn?: SpawnFn;
     signal?: AbortSignal;
     /**
      * The credential a `requires.auth` command receives as `ctx.credential`. Without it, such a
      * command stops with the `token` input need, as it does without a login.
+     * The device login is not simulated, so that happens with a `prompter` too.
      */
     credential?: CommandCredential;
     /**
      * Writes a secret output to a file, and returns its path. Without it, a run that no person sees
      * refuses a command with secret outputs, as a host that cannot keep them safe does.
      */
-    writeSecret?: (command: string[], field: string, value: string) => string;
+    writeSecret?: WriteSecretFn;
 }
 
 /**
@@ -133,7 +139,9 @@ export interface TestCommandResult extends HostResult {
  *
  * It needs no test framework. Import it from `@vendure/cli` in a plugin's tests only: declaring
  * commands never loads `@vendure/cli`. It replaces the process's console while runs are in progress.
- * Runs may overlap, but then something written to the console counts for each of them.
+ * Runs may overlap, but then something written to the console counts for each of them. A run that
+ * never settles keeps the console replaced until `options.signal` aborts, so pass a signal that a
+ * test's timeout aborts when a command may hang.
  *
  * @example
  * ```ts
@@ -197,9 +205,12 @@ export async function runInTestHost(
     // `console` methods, which test runners replace with their own that bypass the streams.
     let result: HostResult;
     const release = captureConsole(printed);
+    // A run that never settles, such as one a test timed out and aborted, must not keep the console.
+    env.signal.addEventListener('abort', release, { once: true });
     try {
         result = await executeCommand(definition, input, env);
     } finally {
+        env.signal.removeEventListener('abort', release);
         release();
     }
     if (printed.length > 0) {

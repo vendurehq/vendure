@@ -602,8 +602,9 @@ A command that needs your Vendure account uses the stored login first, then `VEN
 cannot share your login, because each renewal spends its single-use refresh token. Give it its own credential, such
 as a delegated agent key, in `VENDURE_CLOUD_TOKEN`. Only a person at a terminal is signed in automatically. Every
 other run returns `incomplete` with an `input` need for the secret `token` field, whose fix is
-`vendure auth login --json`. `VENDURE_CLOUD_TOKEN` is read from the process environment only, never from
-a project's `.env` file, so a cloned repository cannot choose the credential the CLI acts with.
+`vendure auth login --json`. The CLI checks for `VENDURE_CLOUD_TOKEN` in the process environment before it
+loads a project's `.env` file, so a cloned repository's `.env` cannot choose the credential the CLI finds for
+a command.
 
 When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
 asks before it is replaced. A login that can no longer be renewed is replaced without asking.

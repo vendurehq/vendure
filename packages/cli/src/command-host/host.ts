@@ -74,6 +74,22 @@ export interface Prompter {
     text(message: string, options?: CommandTextOptions): Promise<string | undefined>;
 }
 
+/**
+ * @description
+ * Starts a process for `ctx.spawn`.
+ *
+ * @since 4.0.0
+ */
+export type SpawnFn = (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult>;
+
+/**
+ * @description
+ * Writes a secret output value to a file that only the user can read, and returns its path.
+ *
+ * @since 4.0.0
+ */
+export type WriteSecretFn = (command: string[], field: string, value: string) => string;
+
 export interface HostEnvironment {
     cwd: string;
     signal: AbortSignal;
@@ -82,7 +98,7 @@ export interface HostEnvironment {
     /** Set only when stdin and stdout are TTYs, CI is not set, and `--json` is not used. */
     prompter?: Prompter;
     emit(event: CommandEvent): void;
-    spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
+    spawn: SpawnFn;
     findProjectRoot(): string | undefined;
     /**
      * Finds the credential a command with `requires.auth` needs, signing a person in only when
@@ -97,7 +113,7 @@ export interface HostEnvironment {
      * Writes a secret output value to a file that only the user can read, and returns its
      * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
      */
-    writeSecret?(command: string[], field: string, value: string): string;
+    writeSecret?: WriteSecretFn;
 }
 
 export interface HostResult {

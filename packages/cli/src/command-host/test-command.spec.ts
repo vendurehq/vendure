@@ -165,4 +165,38 @@ describe('testCommand', () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(process.stdout.write).toBe(originalWrite);
     });
+
+    it('reports the cwd it is given, and runs a project command outside a project', async () => {
+        const whereAmI = defineCommand({
+            path: ['acme', 'where'],
+            description: 'Where',
+            behavior: 'readonly',
+            requires: { project: true },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({ run: async (_input: object, ctx) => ({ cwd: ctx.cwd }) }),
+        });
+        const inside = await testCommand(whereAmI, {}, { cwd: '/tmp/acme' });
+        expect(inside.envelope.output).toEqual({ cwd: '/tmp/acme' });
+
+        const outside = await testCommand(whereAmI, {}, { projectRoot: undefined });
+        expect(outside.envelope.error?.code).toBe('project.required');
+    });
+
+    it('puts the console back when the run is aborted, even if the command never settles', async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalWrite = process.stdout.write;
+        const hanging = defineCommand({
+            path: ['acme', 'hang'],
+            description: 'Hang',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({ run: () => new Promise<object>(() => undefined) }),
+        });
+        const controller = new AbortController();
+        void testCommand(hanging, {}, { signal: controller.signal }).catch(() => undefined);
+        await new Promise(resolve => setImmediate(resolve));
+        controller.abort();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(process.stdout.write).toBe(originalWrite);
+    });
 });
