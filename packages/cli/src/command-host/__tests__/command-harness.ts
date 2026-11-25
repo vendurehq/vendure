@@ -7,8 +7,9 @@ export type HarnessRun = TestCommandResult;
 
 /**
  * Runs a command through the host the way the CLI does, and fails when `run` or `plan` writes to
- * stdout or stderr. It is `testCommand`, the helper plugins use, with the credential check
- * replaceable, so the CLI's specs test the same path.
+ * stdout or stderr. It runs on `testCommand`'s host, the one plugins use, with one difference:
+ * without `requireCredential` the host has no credential check, so a `requires.auth` command is an
+ * internal error here, where `testCommand` gives the `token` need. Specs pass the check they test.
  */
 export function runCommandInHarness(
     def: CommandDefinition,

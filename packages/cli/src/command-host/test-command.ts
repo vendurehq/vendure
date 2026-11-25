@@ -6,6 +6,8 @@ import type {
     SpawnResult,
 } from '@vendure/common/lib/command';
 
+import { format } from 'node:util';
+
 import { credentialNeed } from '../auth/credential.js';
 
 import { executeCommand, HostEnvironment, HostResult, Prompter } from './host.js';
@@ -142,9 +144,16 @@ export async function runInTestHost(
         throw new Error('testCommand runs must not overlap: another run is still in progress');
     }
     activeRun = true;
-    const capture = (...chunks: unknown[]) => {
-        printed.push(chunks.map(String).join(' '));
+    // A stream write records its chunk, and calls a callback it was given, as a stream would.
+    const captureWrite = ((chunk: unknown, ...rest: unknown[]) => {
+        printed.push(String(chunk));
+        const callback = rest.find(argument => typeof argument === 'function') as (() => void) | undefined;
+        callback?.();
         return true;
+    }) as typeof process.stdout.write;
+    // A console call records a line, formatted as the console would.
+    const captureConsole = (...args: unknown[]) => {
+        printed.push(`${format(...args)}\n`);
     };
     // The original methods are put back on the same objects, so they keep their `this`.
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -154,10 +163,10 @@ export async function runInTestHost(
     /* eslint-disable no-console -- the console is what this replaces, to catch a command that prints */
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const consoleMethods = CONSOLE_METHODS.map(name => [name, console[name]] as const);
-    process.stdout.write = capture;
-    process.stderr.write = capture;
+    process.stdout.write = captureWrite;
+    process.stderr.write = captureWrite;
     for (const name of CONSOLE_METHODS) {
-        console[name] = capture;
+        console[name] = captureConsole;
     }
     let result: HostResult;
     try {

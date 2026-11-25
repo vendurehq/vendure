@@ -117,19 +117,42 @@ describe('testCommand', () => {
         await expect(testCommand(logging, {})).rejects.toThrow('The command wrote to the console: chatty');
     });
 
+    it('records a stream write by its chunk, and calls the write callback', async () => {
+        const writing = defineCommand({
+            path: ['acme', 'write'],
+            description: 'Write',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: () =>
+                    new Promise<object>(resolve => {
+                        process.stdout.write('x\n', 'utf8', () => resolve({}));
+                    }),
+            }),
+        });
+        await expect(testCommand(writing, {})).rejects.toThrow(/wrote to the console: x\n$/);
+    });
+
     it('refuses a run that overlaps another', async () => {
         let release: () => void = () => undefined;
+        let started: () => void = () => undefined;
+        const reached = new Promise<void>(resolve => (started = resolve));
         const slow = defineCommand({
             path: ['acme', 'slow'],
             description: 'Slow',
             behavior: 'readonly',
             schemas: async () => ({ input: z.object({}) }),
-            run: async () => ({ run: () => new Promise<object>(resolve => (release = () => resolve({}))) }),
+            run: async () => ({
+                run: () =>
+                    new Promise<object>(resolve => {
+                        release = () => resolve({});
+                        started();
+                    }),
+            }),
         });
         const first = testCommand(slow, {});
         await expect(testCommand(greet, { name: 'Ada' })).rejects.toThrow('must not overlap');
-        // Let the first run reach run() before releasing it.
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await reached;
         release();
         await expect(first).resolves.toMatchObject({ envelope: { status: 'ok' } });
     });

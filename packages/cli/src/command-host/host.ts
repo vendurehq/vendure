@@ -28,7 +28,12 @@ import {
 import { consentDigest } from './digest.js';
 import { hostErrors } from './host-errors.js';
 
-/** Asks a person. Only given to the host when a person is present. */
+/**
+ * @description
+ * How the host asks for one input field: the check of an answer, and what kind of field it is.
+ *
+ * @since 4.0.0
+ */
 export interface AskInputOptions {
     /**
      * The problem with an answer, or `undefined` when it is valid, so a person can correct a bad
@@ -41,6 +46,14 @@ export interface AskInputOptions {
     boolean: boolean;
 }
 
+/**
+ * @description
+ * Asks a person. The host is given one only when a person is present at a terminal. A test passes
+ * its own to `testCommand` to answer as a person would: each method resolves to the answer, or to
+ * `undefined` for a cancel.
+ *
+ * @since 4.0.0
+ */
 export interface Prompter {
     /** Asks for an input field. Resolves to `undefined` when the person cancels. */
     askInput(need: InputNeed, options: AskInputOptions): Promise<string | undefined>;

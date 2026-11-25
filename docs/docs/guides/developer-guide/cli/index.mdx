@@ -1271,12 +1271,13 @@ import { commandDeclarations } from '@vendure/common/lib/command';
 import * as declarations from '../src/commands.js';
 
 const [sync] = commandDeclarations(declarations);
-const result = await testCommand(sync, { dryRun: true }, { spawn: async () => ({ exitCode: 0, stdout: '', stderr: '' }) });
+const result = await testCommand(sync, { dryRun: true });
 // result.envelope, result.exitCode, result.events and result.spawned
 ```
 
-`commandDeclarations` applies the package's groups, as the CLI does. Pass `credential` for a command
-with `requires.auth`, and `prompter` to answer as a person would.
+`commandDeclarations` applies the package's groups, as the CLI does. Pass `spawn` to answer the
+processes the command starts, `credential` for a command with `requires.auth`, and `prompter` to answer
+as a person would.
 
 A package can declare both these keys and a `cliPlugin`. It is enabled the same way, with
 `vendure plugins add`, and only an enabled package's commands are loaded ([Explicit
