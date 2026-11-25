@@ -4,8 +4,10 @@ import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
+
+import { getTaxRate } from '../utils/tax-rate.js';
 
 const taxRatesDocument = graphql(`
     query TaxRates($options: TaxRateListOptions) {
@@ -24,6 +26,8 @@ const taxRatesDocument = graphql(`
     }
 `);
 
+export const TAX_RATES_QUERY_KEY = ['taxRates'];
+
 interface VariantPriceDetailProps {
     priceIncludesTax: boolean;
     price: number | undefined;
@@ -37,20 +41,21 @@ export function VariantPriceDetail({
     currencyCode,
     taxCategoryId,
 }: VariantPriceDetailProps) {
+    const { t } = useLingui();
     const { activeChannel } = useChannel();
 
-    const { data: taxRatesData } = useQuery({
-        queryKey: ['taxRates'],
+    const { data: taxRatesData, isError } = useQuery({
+        queryKey: TAX_RATES_QUERY_KEY,
         queryFn: () => api.query(taxRatesDocument, { options: { take: 999, skip: 0 } }),
     });
 
     // The rate is unknown until the tax rates and the Channel have loaded. Until then the rate
-    // and the gross price show as skeletons, not as 0% and the net price.
+    // and the gross price show as skeletons, not as 0% and the net price. If the tax rates
+    // cannot load, the rate falls back to 0%, as the stock labels fall back to their plain text.
     const taxRate = getTaxRate(
-        taxRatesData?.taxRates.items,
-        activeChannel?.defaultTaxZone?.id,
+        taxRatesData?.taxRates.items ?? (isError ? [] : undefined),
+        activeChannel,
         taxCategoryId,
-        !!activeChannel,
     );
     const grossPrice =
         taxRate === undefined
@@ -65,7 +70,11 @@ export function VariantPriceDetail({
                 <Trans>Gross price</Trans>{' '}
                 <span className="text-muted-foreground">
                     {taxRate === undefined ? (
-                        <Skeleton className="inline-block h-[0.8lh] w-20 align-middle" aria-hidden="true" />
+                        <Skeleton
+                            data-slot="tax-rate-skeleton"
+                            className="inline-block h-[0.8lh] w-20 align-middle"
+                            aria-hidden="true"
+                        />
                     ) : (
                         <Trans>(incl. {taxRate}% tax)</Trans>
                     )}
@@ -73,35 +82,18 @@ export function VariantPriceDetail({
             </FieldLabel>
             <div className="text-sm pt-1.5">
                 {grossPrice === undefined ? (
-                    <Skeleton className="inline-block h-[1lh] w-20 align-top" aria-hidden="true" />
+                    <>
+                        <Skeleton
+                            data-slot="gross-price-skeleton"
+                            className="inline-block h-[1lh] w-20 align-top"
+                            aria-hidden="true"
+                        />
+                        <span className="sr-only">{t`Loading…`}</span>
+                    </>
                 ) : (
                     <Money value={grossPrice} currency={currencyCode} />
                 )}
             </div>
         </Field>
-    );
-}
-
-type TaxRateItem = { value: number; zone: { id: string }; category: { id: string } };
-
-/**
- * The rate that applies to the tax category in the Channel's default tax zone, 0 when there
- * is none, or undefined while the tax rates or the Channel are still loading.
- */
-export function getTaxRate(
-    taxRates: TaxRateItem[] | undefined,
-    defaultTaxZoneId: string | undefined,
-    taxCategoryId: string | undefined,
-    channelLoaded: boolean,
-): number | undefined {
-    if (!taxRates || !channelLoaded) {
-        return undefined;
-    }
-    if (!defaultTaxZoneId) {
-        return 0;
-    }
-    return (
-        taxRates.find(rate => rate.zone.id === defaultTaxZoneId && rate.category.id === taxCategoryId)
-            ?.value ?? 0
     );
 }

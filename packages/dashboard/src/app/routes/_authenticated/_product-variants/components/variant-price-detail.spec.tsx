@@ -2,10 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getTaxRate, VariantPriceDetail } from './variant-price-detail.js';
+import { TAX_RATES_QUERY_KEY, VariantPriceDetail } from './variant-price-detail.js';
+
+const channelState = vi.hoisted(() => ({
+    activeChannel: { defaultTaxZone: { id: 'zone-1' } } as { defaultTaxZone: { id: string } } | undefined,
+}));
 
 vi.mock('@/vdb/hooks/use-channel.js', () => ({
-    useChannel: () => ({ activeChannel: { defaultTaxZone: { id: 'zone-1' } } }),
+    useChannel: () => channelState,
 }));
 
 vi.mock('@/vdb/components/data-display/money.js', () => ({
@@ -13,6 +17,7 @@ vi.mock('@/vdb/components/data-display/money.js', () => ({
 }));
 
 vi.mock('@lingui/react', () => ({
+    useLingui: () => ({ _: (d: { message?: string; id: string }) => d.message ?? d.id }),
     Trans: ({ message, id, values }: { message?: string; id: string; values?: Record<string, unknown> }) => (
         <>{(message ?? id).replace(/\{(\w+)\}/g, (_, key: string) => String(values?.[key]))}</>
     ),
@@ -23,15 +28,15 @@ const rates = [
     { value: 5, zone: { id: 'zone-2' }, category: { id: 'standard' } },
 ];
 
-function render(taxRates?: typeof rates) {
+function render(taxRates?: typeof rates, priceIncludesTax = false) {
     const queryClient = new QueryClient();
     if (taxRates) {
-        queryClient.setQueryData(['taxRates'], { taxRates: { items: taxRates } });
+        queryClient.setQueryData(TAX_RATES_QUERY_KEY, { taxRates: { items: taxRates } });
     }
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <VariantPriceDetail
-                priceIncludesTax={false}
+                priceIncludesTax={priceIncludesTax}
                 price={1000}
                 currencyCode="USD"
                 taxCategoryId="standard"
@@ -47,7 +52,16 @@ describe('VariantPriceDetail', () => {
 
         expect(markup).not.toContain('0% tax');
         expect(markup).not.toContain('money:');
-        expect(markup.match(/data-slot="skeleton"/g)).toHaveLength(2);
+        expect(markup).toContain('data-slot="tax-rate-skeleton"');
+        expect(markup).toContain('data-slot="gross-price-skeleton"');
+    });
+
+    it('shows skeletons while the Channel loads', () => {
+        channelState.activeChannel = undefined;
+        const markup = render(rates);
+        channelState.activeChannel = { defaultTaxZone: { id: 'zone-1' } };
+
+        expect(markup).toContain('data-slot="gross-price-skeleton"');
     });
 
     it('shows the rate and the gross price once the tax rates have loaded', () => {
@@ -55,19 +69,10 @@ describe('VariantPriceDetail', () => {
 
         expect(markup).toContain('(incl. 20% tax)');
         expect(markup).toContain('money:1200');
-        expect(markup).not.toContain('data-slot="skeleton"');
-    });
-});
-
-describe('getTaxRate', () => {
-    it('is unknown until the tax rates and the Channel have loaded', () => {
-        expect(getTaxRate(undefined, 'zone-1', 'standard', true)).toBeUndefined();
-        expect(getTaxRate(rates, undefined, 'standard', false)).toBeUndefined();
+        expect(markup).not.toContain('skeleton');
     });
 
-    it('takes the rate of the category in the default tax zone, or 0', () => {
-        expect(getTaxRate(rates, 'zone-1', 'standard', true)).toBe(20);
-        expect(getTaxRate(rates, 'zone-1', 'reduced', true)).toBe(0);
-        expect(getTaxRate(rates, undefined, 'standard', true)).toBe(0);
+    it('shows the price as the gross price when prices include tax', () => {
+        expect(render(rates, true)).toContain('money:1000');
     });
 });
