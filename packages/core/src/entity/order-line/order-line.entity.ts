@@ -5,7 +5,7 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
+import { grossPriceOf, hasTaxAmounts, netPriceOf } from '../../common/tax-utils';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { Asset } from '../asset/asset.entity';
 import { VendureEntity } from '../base/base.entity';
@@ -381,14 +381,15 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     /**
      * @description
      * The tax-inclusive value of this line in refund order: each earlier cancellation at the value it
-     * was recorded with, followed by the remaining units at their current price. Returns an empty
-     * array for lines without a quote from `calculateLinePrice`, whose refunds use
+     * was recorded with, followed by the remaining units at their current price. Refunds of these
+     * parts add up to exactly what was paid. Returns an empty array for lines that have neither a
+     * quote from `calculateLinePrice` nor absolute tax amounts, whose refunds use
      * `proratedUnitPriceWithTax`. Requires the `cancellationLines` relation.
      *
      * @internal
      */
     getRefundPriceParts(): Array<{ priceWithTax: number; quantity: number }> {
-        if (this.quotedLinePrice == null) {
+        if (this.quotedLinePrice == null && !hasTaxAmounts(this.taxLines)) {
             return [];
         }
         const parts = (this.cancellationLines ?? [])
@@ -466,7 +467,8 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      * Sets this line's quantity to `newQuantity`, rescaling its `PROMOTION`-type adjustments to
      * match. Used where a quantity reduction bypasses `OrderCalculator` recalculation (see
      * `OrderModifier.cancelOrderByOrderLines()`), to preserve the invariant that `PROMOTION`
-     * amounts are stored scaled to the current quantity.
+     * amounts are stored scaled to the current quantity. Absolute tax amounts from a
+     * TaxLineCalculationStrategy are rescaled to the new quantity in the same way.
      *
      * A `newQuantity` of 0 sets the quantity but leaves the adjustments untouched: the getters
      * short-circuit on an empty line either way, so scaling them to zero would only erase the
@@ -482,6 +484,39 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
             );
         }
         this.quantity = newQuantity;
+        this.rescaleTaxAmounts();
+    }
+
+    /**
+     * Absolute tax amounts apply to the taxable total they were calculated for. When that total
+     * changes without the TaxLineCalculationStrategy being called again, as in a partial
+     * cancellation, this gives each TaxLine its share of the new total, so that the stored amounts
+     * remain the tax of the line as it now is.
+     */
+    private rescaleTaxAmounts() {
+        const taxLines = this.taxLines as StoredTaxLine[] | undefined;
+        if (!taxLines || !hasTaxAmounts(taxLines)) {
+            return;
+        }
+        const oldBase = taxLines[0].taxBase ?? 0;
+        const newBase = this.getTaxableLineTotal();
+        if (newBase === oldBase) {
+            return;
+        }
+        const oldTotal = summate(taxLines as Array<Required<StoredTaxLine>>, 'amount');
+        // The same total that the price getters derive from the old amounts.
+        const newTotal = oldBase ? roundMoney((newBase * oldTotal) / oldBase) : 0;
+        let allocated = 0;
+        this.taxLines = taxLines.map((taxLine, i) => {
+            const amount =
+                i === taxLines.length - 1
+                    ? newTotal - allocated
+                    : oldTotal
+                      ? roundMoney((newTotal * (taxLine.amount ?? 0)) / oldTotal)
+                      : 0;
+            allocated += amount;
+            return { ...taxLine, amount, taxBase: newBase };
+        });
     }
 
     /**
@@ -560,7 +595,7 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
      */
     private getTaxShare(): number | undefined {
         const taxLines = (this.taxLines ?? []) as StoredTaxLine[];
-        if (!taxLines.length || taxLines.some(taxLine => taxLine.amount == null)) {
+        if (!hasTaxAmounts(taxLines)) {
             return undefined;
         }
         const taxBase = taxLines[0].taxBase;

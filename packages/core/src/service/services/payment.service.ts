@@ -752,8 +752,9 @@ export class PaymentService {
             where: { id: In(inputs.map(input => input.orderLineId)) },
             relations: { cancellationLines: true },
         });
+        // Lines with a quote or absolute tax amounts are refunded from their recorded values.
         const quotedIds = lines
-            .filter(line => line.quotedLinePrice != null)
+            .filter(line => line.getRefundPriceParts().length > 0)
             .map(line => line.id);
         const previousRefunds = quotedIds.length
             ? await this.connection.getRepository(ctx, RefundLine).find({

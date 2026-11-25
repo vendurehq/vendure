@@ -80,6 +80,9 @@ const orderTaxesDocument = adminGraphql(`
                 proratedLinePrice
                 proratedLinePriceWithTax
                 proratedUnitPriceWithTax
+                taxLines {
+                    amount
+                }
             }
         }
     }
@@ -118,6 +121,7 @@ describe('OrderLine tax amounts from a TaxLineCalculationStrategy', () => {
     let orderId: string;
     let lineId: string;
     let paymentId: string;
+    let paidLineTotal: number;
 
     it('uses the amount as the tax of the line and the order', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
@@ -148,6 +152,7 @@ describe('OrderLine tax amounts from a TaxLineCalculationStrategy', () => {
 
         expect(payment.amount).toBe(order.totalWithTax);
         expect(order.subTotalWithTax).toBe(activeOrder.subTotalWithTax);
+        paidLineTotal = activeOrder.lines[0].proratedLinePriceWithTax;
         orderId = order.id;
         paymentId = payment.id;
     });
@@ -172,14 +177,23 @@ describe('OrderLine tax amounts from a TaxLineCalculationStrategy', () => {
         expect(after.subTotalWithTax - after.subTotal).toBe(
             lineAfter.proratedLinePriceWithTax - lineAfter.proratedLinePrice,
         );
+        // The stored amount is the tax of the remaining units.
+        expect(lineAfter.taxLines[0].amount).toBe(
+            lineAfter.proratedLinePriceWithTax - lineAfter.proratedLinePrice,
+        );
     });
 
-    it('refunds a unit at its price including its share of the amount', async () => {
+    it('refunds the cancelled and remaining units for exactly what was paid', async () => {
         const { order } = await adminClient.query(orderTaxesDocument, { id: orderId });
-        const { refundOrder } = await adminClient.query(refundOrderDocument, {
-            input: { lines: [{ orderLineId: lineId, quantity: 1 }], paymentId },
-        });
+        if (!order) throw new Error('Expected an order');
+        const totals: number[] = [];
+        for (let i = 0; i < 3; i++) {
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
+                input: { lines: [{ orderLineId: lineId, quantity: 1 }], paymentId },
+            });
+            totals.push((refundOrder as { total: number }).total);
+        }
 
-        expect(refundOrder).toMatchObject({ total: order?.lines[0].proratedUnitPriceWithTax });
+        expect(totals.reduce((sum, total) => sum + total, 0)).toBe(paidLineTotal);
     });
 });

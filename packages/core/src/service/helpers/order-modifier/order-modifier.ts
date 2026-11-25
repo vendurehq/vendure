@@ -378,6 +378,7 @@ export class OrderModifier {
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
                     quantity: orderLine.quantity,
                     adjustments: orderLine.adjustments,
+                    taxLines: orderLine.taxLines,
                 });
 
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, orderLine, 'cancelled'));

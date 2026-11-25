@@ -247,6 +247,42 @@ describe('OrderLine entity', () => {
             expect(line.discounts[0].amountWithTax).toBe(-360);
         });
 
+        it('rewrites the stored amount for the remaining units after a partial cancellation', () => {
+            const line = lineWithTaxAmount(false);
+            line.setQuantityRescalingAdjustments(2);
+            expect(line.taxLines[0]).toMatchObject({ amount: 403, taxBase: 2000 });
+            expect(line.proratedLineTax).toBe(403);
+        });
+
+        it('refunds units of a line with a tax amount so that the refunds add up to what was paid', () => {
+            // 3 units at 1,299.00 net with 779.41 tax cost 4,676.41, but 3 × the unit price with
+            // tax of 1,558.80 is 4,676.40.
+            const line = new OrderLine({
+                quantity: 3,
+                orderPlacedQuantity: 3,
+                listPrice: 129900,
+                listPriceIncludesTax: false,
+                taxLines: [{ description: 'VAT', taxRate: 20, amount: 77941, taxBase: 389700 } as any],
+                adjustments: [],
+                cancellationLines: [],
+            });
+            expect(line.proratedLinePriceWithTax).toBe(467641);
+            const refunds = [0, 1, 2].map(refunded => getLineRefundAmount(line, 1, refunded));
+            expect(refunds.reduce((sum, refund) => sum + refund, 0)).toBe(467641);
+        });
+
+        // An `amount` key stored by a custom strategy before v3.9 has no `taxBase`.
+        it('derives the tax from the rate when an amount has no recorded taxable total', () => {
+            const line = new OrderLine({
+                quantity: 1,
+                listPrice: 398975,
+                listPriceIncludesTax: false,
+                taxLines: [{ description: 'VAT', taxRate: 5, amount: 19950 }],
+                adjustments: [],
+            });
+            expect(line.proratedLineTax).toBe(19949);
+        });
+
         it('derives the tax from the rate when the tax lines have no amount', () => {
             const line = new OrderLine({
                 quantity: 3,
