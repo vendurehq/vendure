@@ -1,18 +1,17 @@
-import type { CommandDefinition, CommandEvent, SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
-import { vi } from 'vitest';
+import type { CommandDefinition, SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
 
-import { executeCommand, HostEnvironment, HostResult, Prompter } from '../host.js';
+import type { HostEnvironment, Prompter } from '../host.js';
+import { runInTestHost, TestCommandResult } from '../test-command.js';
 
-export interface HarnessRun extends HostResult {
-    events: CommandEvent[];
-    spawned: Array<{ command: string; args: string[] }>;
-}
+export type HarnessRun = TestCommandResult;
 
 /**
  * Runs a command through the host the way the CLI does, and fails when `run` or `plan` writes to
- * stdout or stderr. A command reports through the context only. It does not print.
+ * stdout or stderr. It runs on `testCommand`'s host, the one plugins use, with one difference:
+ * without `requireCredential` the host has no credential check, so a `requires.auth` command is an
+ * internal error here, where `testCommand` gives the `token` need. Specs pass the check they test.
  */
-export async function runCommandInHarness(
+export function runCommandInHarness(
     def: CommandDefinition,
     input: Record<string, unknown>,
     options: {
@@ -25,39 +24,6 @@ export async function runCommandInHarness(
         writeSecret?: HostEnvironment['writeSecret'];
     } = {},
 ): Promise<HarnessRun> {
-    const events: CommandEvent[] = [];
-    const spawned: HarnessRun['spawned'] = [];
-    const printed: string[] = [];
-    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
-        printed.push(String(chunk));
-        return true;
-    });
-    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(chunk => {
-        printed.push(String(chunk));
-        return true;
-    });
-    const env: HostEnvironment = {
-        cwd: process.cwd(),
-        signal: options.signal ?? new AbortController().signal,
-        mcp: options.mcp ?? false,
-        prompter: options.prompter,
-        ...(options.requireCredential ? { requireCredential: options.requireCredential } : {}),
-        ...(options.writeSecret ? { writeSecret: options.writeSecret } : {}),
-        emit: event => events.push(event),
-        spawn: async (command, args, spawnOptions) => {
-            spawned.push({ command, args });
-            return options.spawn?.(command, args, spawnOptions) ?? { exitCode: 0, stdout: '', stderr: '' };
-        },
-        findProjectRoot: () => ('projectRoot' in options ? options.projectRoot : '/project'),
-    };
-    try {
-        const result = await executeCommand(def, input, env);
-        if (printed.length > 0) {
-            throw new Error(`The command wrote to the console: ${printed.join('')}`);
-        }
-        return { ...result, events, spawned };
-    } finally {
-        stdout.mockRestore();
-        stderr.mockRestore();
-    }
+    const { requireCredential, ...testOptions } = options;
+    return runInTestHost(def, input, testOptions, requireCredential ? { requireCredential } : {});
 }
