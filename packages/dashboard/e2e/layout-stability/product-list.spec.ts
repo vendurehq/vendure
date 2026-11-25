@@ -52,9 +52,19 @@ const rowsFrom = (index: number) => Array.from({ length: 100 - index }, (_, i) =
 
 const pagination = (page: Page) => page.locator(`${TABLE} [data-slot="table-pagination"]`);
 
-/** Content may change height below the first row when the number of rows changes. */
+/**
+ * The number of rows changes (a page size, a search with fewer or no results):
+ * the body may grow or shrink below its top edge, and the footer follows it.
+ * Nothing above the first row moves, and the columns keep their widths.
+ */
 const ROWS_BELOW_MAY_MOVE: AllowRule[] = [
+    { anchor: /^row:first$/, props: ['height'] },
     { anchor: /^(row:last|body|footer|content)$/, props: ['y', 'height'] },
+    // Layout-shift entries of the footer and the body's rows (the source path ends in one).
+    {
+        anchor: /^$/,
+        node: /(^|> )(\w+\[data-slot="(card-footer|table-body|table-row|table-cell)"\]|t[rd](:nth-child\(\d+\))?)$/,
+    },
 ];
 
 for (const viewport of VIEWPORTS) {

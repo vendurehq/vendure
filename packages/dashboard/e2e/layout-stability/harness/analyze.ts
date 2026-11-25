@@ -1,10 +1,15 @@
 import type { AnchorProp, AnchorSpec, FrameSample, ShiftEntry, Timeline } from './recorder.js';
 
-/** An intended change: anchors matching `anchor` may change `props` in frames whose label matches `label`. */
+/**
+ * An intended change: anchors matching `anchor` may change `props` in frames
+ * whose label matches `label`. With `node`, a layout-shift entry whose sources
+ * all match `node` is part of the change too, and does not count in CLS.
+ */
 export interface AllowRule {
     anchor: RegExp;
     props?: AnchorProp[];
     label?: RegExp;
+    node?: RegExp;
 }
 
 export interface Violation {
@@ -76,7 +81,12 @@ export function analyze(timeline: Timeline, allow: AllowRule[] = []): Analysis {
         previousT = frame.t;
     }
 
-    const clsEntries = timeline.shifts.filter(s => !s.hadRecentInput);
+    const excused = (s: ShiftEntry) =>
+        s.sources.length > 0 &&
+        s.sources.every(src =>
+            allow.some(rule => rule.node?.test(src.node) && (!rule.label || rule.label.test(s.label))),
+        );
+    const clsEntries = timeline.shifts.filter(s => !s.hadRecentInput && !excused(s));
     const cls = clsEntries.reduce((sum, s) => sum + s.value, 0);
     return { violations, cls, clsEntries };
 }

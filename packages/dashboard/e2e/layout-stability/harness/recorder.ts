@@ -107,6 +107,16 @@ export function installRecorder(specs: AnchorSpec[]) {
         round(r.height),
     ];
 
+    const scrollOffset = (el: Element) => {
+        let x = window.scrollX;
+        let y = window.scrollY;
+        for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+            x += parent.scrollLeft;
+            y += parent.scrollTop;
+        }
+        return { x, y };
+    };
+
     const sample = (): Record<string, number[]> => {
         const out: Record<string, number[]> = {};
         for (const spec of specs) {
@@ -114,9 +124,15 @@ export function installRecorder(specs: AnchorSpec[]) {
                 // Not rendered (display: none, detached): absent in this frame.
                 if (!el.isConnected || el.getClientRects().length === 0) return;
                 const r = el.getBoundingClientRect();
-                out[key] = spec.props.map(p =>
-                    p === 'height' && spec.scrollHeight ? round(el.scrollHeight) : round(r[p]),
-                );
+                // Page coordinates: scrolling (Playwright scrolls a control into view
+                // before it clicks) moves nothing on the page.
+                const offset = scrollOffset(el);
+                out[key] = spec.props.map(p => {
+                    if (p === 'height' && spec.scrollHeight) return round(el.scrollHeight);
+                    if (p === 'x') return round(r.x + offset.x);
+                    if (p === 'y') return round(r.y + offset.y);
+                    return round(r[p]);
+                });
             };
             if (!spec.each) {
                 const el = document.querySelector(spec.selector);
