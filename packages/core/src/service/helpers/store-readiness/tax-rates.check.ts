@@ -10,6 +10,7 @@ import { Order } from '../../../entity/order/order.entity';
 import { TaxCategory } from '../../../entity/tax-category/tax-category.entity';
 import { Zone } from '../../../entity/zone/zone.entity';
 import { TaxRateService } from '../../services/tax-rate.service';
+import { resolveTaxCountryCode } from '../utils/resolve-tax-country-code';
 
 import {
     adminToolPath,
@@ -59,15 +60,23 @@ export const noApplicableTaxRate = defineError<NoRateDetails>({
     ],
 });
 
-/** An order to one country, or with no address, as the tax zone strategy sees it. */
+/**
+ * An order to one country, or with no address, with the tax zone and tax country that the
+ * configured strategy gives it.
+ */
 export interface TaxTarget {
+    /** The shipping country of the sample order, if it has an address. */
     countryCode?: string;
+    zone: Zone;
+    /** The country whose country rates apply, as checkout resolves it. */
+    taxCountryCode?: string;
 }
 
 /**
  * For each tax category the Channel's variants use, an order to each country the Channel ships to,
- * and an order with no address yet, get a configured tax rate. The tax zone of each order comes from
- * the configured {@link TaxZoneStrategy}, and the rate from {@link TaxRateService}, as at checkout.
+ * and an order with no address yet, get a configured tax rate. The tax zone and the tax country of
+ * each order come from the configured {@link TaxZoneStrategy}, and the rate from
+ * {@link TaxRateService}, as at checkout.
  */
 export async function checkTaxRates(
     input: ChannelReadinessInput,
@@ -82,14 +91,21 @@ export async function checkTaxRates(
     if (categoryIds.length === 0) {
         return [];
     }
-    const taxZones = await resolveTaxZones(input, services.taxZoneStrategy);
+    const taxTargets = await resolveTaxTargets(input, services.taxZoneStrategy);
     const categories = await services.connection
         .getRepository(ctx, TaxCategory)
         .find({ where: { id: In(categoryIds) } });
     const findings: StoreReadinessFinding[] = [];
     for (const taxCategory of categories) {
-        const missing = await findMissingRates(input, services.taxRateService, taxZones, taxCategory);
-        for (const details of missing.filter(d => !isTaxInclusiveDefaultZone(channel, d.zone))) {
+        const missing = await findMissingRates(input, services.taxRateService, taxTargets, taxCategory);
+        // When core cannot tell which rate the entered prices include, checkTaxInclusiveRates reports
+        // the default tax zone, with the orders it leaves untaxed, so it is not reported twice.
+        const includedRateUnknown =
+            channel.pricesIncludeTax &&
+            !(await services.taxRateService.findIncludedTaxRate(input.ctx, channel, taxCategory.id));
+        for (const details of missing.filter(
+            d => !(includedRateUnknown && isDefaultTaxZone(channel, d.zone)),
+        )) {
             findings.push(
                 toFinding(noApplicableTaxRate, StoreReadinessSeverity.ERROR, details, {
                     channelId: channel.id,
@@ -103,14 +119,8 @@ export async function checkTaxRates(
     return findings;
 }
 
-/**
- * A tax-inclusive Channel needs a zone rate on its default tax zone, and a country rate is not
- * enough. `checkTaxInclusiveRates` reports that zone, with the orders it leaves untaxed, so this
- * check leaves it out rather than report it twice with a fix that says a country rate would be
- * enough.
- */
-function isTaxInclusiveDefaultZone(channel: Channel, zone: Zone): boolean {
-    return channel.pricesIncludeTax && idsAreEqual(channel.defaultTaxZone?.id, zone.id);
+function isDefaultTaxZone(channel: Channel, zone: Zone): boolean {
+    return idsAreEqual(channel.defaultTaxZone?.id, zone.id);
 }
 
 /** The enabled countries the Channel ships to, by code. */
@@ -124,43 +134,42 @@ function shippingCountryCodes(shippingZones: Zone[]): string[] {
 }
 
 /**
- * The tax zone of an order with no address yet, and of an order to each country the Channel ships
- * to, as the configured strategy picks it.
+ * The tax zone and tax country of an order with no address yet, and of an order to each country the
+ * Channel ships to, as the configured strategy picks them. The sample orders have an empty billing
+ * address, so that a strategy which reads it works as on a real order.
  */
-export async function resolveTaxZones(
+export async function resolveTaxTargets(
     { ctx, channel, allZones, shippingZones }: ChannelReadinessInput,
     taxZoneStrategy: TaxZoneStrategy,
-): Promise<Map<TaxTarget, Zone>> {
-    const targets: TaxTarget[] = [
-        {},
-        ...shippingCountryCodes(shippingZones).map(countryCode => ({ countryCode })),
-    ];
-    const taxZones = new Map<TaxTarget, Zone>();
-    for (const target of targets) {
-        const order = target.countryCode
-            ? new Order({ shippingAddress: { countryCode: target.countryCode }, lines: [] })
+): Promise<TaxTarget[]> {
+    const countryCodes: Array<string | undefined> = [undefined, ...shippingCountryCodes(shippingZones)];
+    const targets: TaxTarget[] = [];
+    for (const countryCode of countryCodes) {
+        const order = countryCode
+            ? new Order({ shippingAddress: { countryCode }, billingAddress: {}, lines: [] })
             : undefined;
         const zone = await taxZoneStrategy.determineTaxZone(ctx, allZones, channel, order);
         // With no tax zone, no rate applies to anything. The default-zones check reports that.
         if (zone) {
-            taxZones.set(target, zone);
+            const taxCountryCode = await resolveTaxCountryCode(taxZoneStrategy, ctx, channel, zone, order);
+            targets.push({ countryCode, zone, taxCountryCode });
         }
     }
-    return taxZones;
+    return targets;
 }
 
 /** The orders of one tax category that get no rate, grouped by their tax zone. */
 async function findMissingRates(
     { ctx, channel }: ChannelReadinessInput,
     taxRateService: TaxRateService,
-    taxZones: Map<TaxTarget, Zone>,
+    taxTargets: TaxTarget[],
     taxCategory: TaxCategory,
 ): Promise<NoRateDetails[]> {
     const missing = new Map<ID, NoRateDetails>();
-    for (const [target, zone] of taxZones) {
+    for (const { countryCode, zone, taxCountryCode } of taxTargets) {
         const rate = await taxRateService.findApplicableTaxRate(
             ctx,
-            { countryCode: target.countryCode, zone },
+            { countryCode: taxCountryCode, zone },
             taxCategory.id,
         );
         if (rate) {
@@ -173,8 +182,8 @@ async function findMissingRates(
             countryCodes: [],
             withoutAddress: false,
         };
-        if (target.countryCode) {
-            details.countryCodes.push(target.countryCode);
+        if (countryCode) {
+            details.countryCodes.push(countryCode);
         } else {
             details.withoutAddress = true;
         }

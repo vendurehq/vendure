@@ -12,7 +12,7 @@
           "title": "Installation",
           "slug": "installation",
           "file": "docs/guides/getting-started/installation/index.mdx",
-          "lastModified": "2026-11-06T13:48:45Z"
+          "lastModified": "2026-11-25T06:29:48+01:00"
         },
         {
           "title": "Introducing GraphQL",
@@ -24,7 +24,7 @@
           "title": "Try the API",
           "slug": "try-the-api",
           "file": "docs/guides/getting-started/try-the-api/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-25T06:29:48+01:00"
         }
       ]
     },
@@ -133,7 +133,7 @@
           "title": "Taxes",
           "slug": "taxes",
           "file": "docs/guides/core-concepts/taxes/index.mdx",
-          "lastModified": "2026-11-24T22:45:19+01:00"
+          "lastModified": "2026-11-25T06:25:59+01:00"
         },
         {
           "title": "User Management",
@@ -230,7 +230,7 @@
           "title": "Configuration",
           "slug": "configuration",
           "file": "docs/guides/developer-guide/configuration/index.mdx",
-          "lastModified": "2026-03-30T21:48:02+02:00"
+          "lastModified": "2026-11-25T06:29:48+01:00"
         },
         {
           "title": "Custom Fields",
@@ -260,7 +260,7 @@
           "title": "Migrations",
           "slug": "migrations",
           "file": "docs/guides/developer-guide/migrations/index.mdx",
-          "lastModified": "2026-07-14T11:47:02+02:00"
+          "lastModified": "2026-11-25T06:29:48+01:00"
         },
         {
           "title": "Plugins",
@@ -412,7 +412,7 @@
           "title": "Importing Data",
           "slug": "importing-data",
           "file": "docs/guides/developer-guide/importing-data/index.mdx",
-          "lastModified": "2026-10-19T08:14:21+02:00"
+          "lastModified": "2026-11-25T06:29:48+01:00"
         },
         {
           "title": "Logging",
@@ -785,13 +785,19 @@
           "title": "Production Configuration",
           "slug": "production-configuration",
           "file": "docs/guides/deployment/production-configuration/index.mdx",
-          "lastModified": "2026-11-17T19:55:26+01:00"
+          "lastModified": "2026-11-25T06:29:48+01:00"
+        },
+        {
+          "title": "Self-hosting",
+          "slug": "self-hosting",
+          "file": "docs/guides/deployment/self-hosting.mdx",
+          "lastModified": "2026-11-25T06:29:48+01:00"
         },
         {
           "title": "Using Docker",
           "slug": "using-docker",
           "file": "docs/guides/deployment/using-docker.mdx",
-          "lastModified": "2026-11-17T11:14:10+01:00"
+          "lastModified": "2026-11-25T06:29:48+01:00"
         },
         {
           "title": "Horizontal Scaling",
@@ -842,7 +848,7 @@
           "lastModified": "2026-06-19T16:37:02+02:00"
         }
       ],
-      "lastModified": "2026-11-05T13:13:02+01:00"
+      "lastModified": "2026-11-25T06:29:48+01:00"
     },
     {
       "title": "Legacy APIs",
@@ -3678,7 +3684,7 @@
                   "title": "StoreReadinessService",
                   "slug": "store-readiness-service",
                   "file": "docs/reference/typescript-api/services/store-readiness-service.mdx",
-                  "lastModified": "2026-11-24T15:38:59Z"
+                  "lastModified": "2026-11-25T05:27:10Z"
                 },
                 {
                   "title": "TagService",

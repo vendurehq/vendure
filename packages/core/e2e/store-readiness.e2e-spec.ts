@@ -340,8 +340,12 @@ describe('storeReadiness', () => {
             expect(finding.message).toContain('"Inclusive test"');
             expect(finding.message).toContain('orders with no address yet');
             expect(finding.message).toContain('are taxed at 0%');
-            expect(finding.fixes[0].path).toEqual(['admin_create_tax_rate']);
-            const fixInput = finding.fixes[0].input.input;
+            // Setting a tax country comes first, then the zone rate
+            expect(finding.fixes.map(f => f.path[0])).toEqual([
+                'admin_update_channel',
+                'admin_create_tax_rate',
+            ]);
+            const fixInput = finding.fixes[1].input.input;
             expect(`T_${String(fixInput.target.zoneId)}`).toBe(defaultTaxZone.id);
             expect(`T_${String(fixInput.taxCategoryId)}`).toBe(createTaxCategory.id);
 
