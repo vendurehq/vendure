@@ -58,11 +58,13 @@ describe('getServerPackageJson()', () => {
         expect(CLOUD_PACKAGE_RANGE).toBe('>=0.9.0-0 <0.10.0');
     });
 
-    it('accepts the 0.9 prereleases and releases of @vendure/cloud, and nothing else', () => {
+    it('accepts the 0.9.0 prereleases and the 0.9.x releases of @vendure/cloud, and nothing else', () => {
         const accepts = (version: string) => semver.satisfies(version, CLOUD_PACKAGE_RANGE);
         expect(accepts('0.9.0-dev.20261123092810.g887b3f3')).toBe(true);
         expect(accepts('0.9.0')).toBe(true);
         expect(accepts('0.9.3')).toBe(true);
+        // A prerelease of a later patch does not match: semver takes prereleases only on 0.9.0.
+        expect(accepts('0.9.1-dev.1')).toBe(false);
         expect(accepts('0.8.0')).toBe(false);
         expect(accepts('0.10.0')).toBe(false);
         expect(accepts('0.10.0-dev.1')).toBe(false);
