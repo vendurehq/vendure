@@ -201,7 +201,7 @@ function parseRetryAfter(value: string, now: number): number | undefined {
         return Number(value);
     }
     // An HTTP date names its weekday and month. This keeps `Date.parse` from reading other values as dates.
-    const date = /[a-z]/i.test(value) ? Date.parse(value) : NaN;
+    const date = /[a-z]/i.test(value) ? Date.parse(value) : Number.NaN;
     return Number.isNaN(date) ? undefined : Math.max(0, Math.ceil((date - now) / 1000));
 }
 

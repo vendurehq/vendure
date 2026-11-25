@@ -392,15 +392,7 @@ export async function loginWithDevice(
             writeStoredAuth(toSession(kept), options);
             return Promise.resolve();
         });
-        const scope = kept
-            ? `, scoped to ${kept.name ?? kept.workosOrganizationId}`
-            : ' without an organization';
-        throw new Error(
-            `Signed in as ${authentication.user.email}, but the login could not be scoped to ` +
-                `${wanted ?? 'an organization'}: ${rateLimit} The login is stored${scope}. ` +
-                'To use another Customer Account, run `vendure auth login --organization <Account identifier>` ' +
-                'once the limit has reset.',
-        );
+        throw new Error(describeKeptLogin(authentication.user.email, wanted, rateLimit, kept));
     }
     const session = toSession(organization);
     return withSessionLock(options, () => {
@@ -443,6 +435,22 @@ function describeRateLimit(error: unknown): string | undefined {
         return 'the authentication service is receiving too many requests (HTTP 429).';
     }
     return undefined;
+}
+
+/** Says that a rate-limited login was stored, and with which organization. */
+function describeKeptLogin(
+    email: string,
+    wanted: string | undefined,
+    rateLimit: string,
+    kept: StoredOrganization | null,
+): string {
+    const scope = kept ? `, scoped to ${kept.name ?? kept.workosOrganizationId}` : ' without an organization';
+    return (
+        `Signed in as ${email}, but the login could not be scoped to ${wanted ?? 'an organization'}: ` +
+        `${rateLimit} The login is stored${scope}. ` +
+        'To use another Customer Account, run `vendure auth login --organization <Account identifier>` ' +
+        'once the limit has reset.'
+    );
 }
 
 /** The organization a token is scoped to, named when Console listed it. */
