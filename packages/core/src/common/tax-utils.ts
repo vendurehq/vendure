@@ -39,7 +39,15 @@ export function grossPriceOf(netPrice: number, taxRatePc: number): number {
  *
  * @internal
  */
-export type StoredTaxLine = TaxLine & { taxBase?: number | null };
+export type StoredTaxLine = TaxLine & {
+    taxBase?: number | null;
+    /**
+     * The number of OrderLines in the Order when an OrderLine's amount was given. An external
+     * system may spread rounding differences across the lines of an order, so a cart whose lines
+     * were added or removed asks again about all of them.
+     */
+    orderLineCount?: number | null;
+};
 
 /**
  * @description
@@ -65,7 +73,7 @@ export function sumTaxAmounts(taxLines: readonly StoredTaxLine[]): number {
  * Returns the TaxLines without their absolute tax amounts, so that the tax is derived from the rates.
  */
 export function withoutTaxAmounts(taxLines: StoredTaxLine[]): TaxLine[] {
-    return taxLines.map(({ amount, taxBase, ...rest }) => rest);
+    return taxLines.map(({ amount, taxBase, orderLineCount, ...rest }) => rest);
 }
 
 /**

@@ -80,8 +80,9 @@ For shipping lines and surcharges, implement the optional `calculateShippingLine
 
 #### When Vendure asks again
 
-- `calculate()` is called per order line: for the lines that changed, and for every line when promotions change the order's subtotal. Cache the external system's answers for the duration of a request.
-- A shipping line or surcharge whose price did not change keeps its amount, and Vendure does not ask about it again. The same applies to an order line, unless promotions changed the subtotal.
+- `calculate()` is called per order line. Cache the external system's answer for the whole order for the duration of a request, so that one request to it serves all the lines.
+- In a cart, when a line is added, removed or repriced, Vendure asks again about every line, shipping line and surcharge with an amount. An external system that rounds the tax on the order total may move a rounding difference from one line to another, so the amounts of the unchanged lines can change too.
+- When no line changed, for example when only the shipping method changed, the lines keep their amounts and Vendure does not ask about them again. A shipping line or surcharge is asked again only when its own price changed.
 - On a placed order, an unchanged line keeps the amount that was paid, even if the external system would answer differently today. To replace the amounts, for example after a change of address, use the `recalculateTax` option of `modifyOrder`, with `dryRun` first to see the result. The Dashboard offers it on the order modification page.
 
 #### Promotions see the rate

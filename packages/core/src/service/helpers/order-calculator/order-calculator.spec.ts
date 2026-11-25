@@ -2152,7 +2152,7 @@ describe('OrderCalculator', () => {
             expect(order.subTotalWithTax).toBe(418925);
         });
 
-        it('does not ask again about a line whose price did not change', async () => {
+        it('asks again about every line of a cart when one of its lines changes', async () => {
             const ctx = createRequestContext({ pricesIncludeTax: false });
             const order = createOrder({
                 ctx,
@@ -2166,9 +2166,110 @@ describe('OrderCalculator', () => {
             order.lines[1].quantity = 2;
             await orderCalculator.applyPriceAdjustments(ctx, order, [], [order.lines[1]]);
 
-            expect(erpCalls).toBe(1);
+            expect(erpCalls).toBe(2);
             expect(order.lines[0].proratedLineTax).toBe(19950);
             expect(order.lines[1].proratedLineTax).toBe(5000);
+        });
+
+        it('does not ask again about a cart whose lines did not change', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [
+                    { listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 },
+                    { listPrice: 50000, taxCategory: taxCategoryStandard, quantity: 1 },
+                ],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+            erpCalls = 0;
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+
+            expect(erpCalls).toBe(0);
+            expect(order.lines[0].proratedLineTax).toBe(19950);
+        });
+
+        it('only asks about the changed line of a placed order', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [
+                    { listPrice: 398975, taxCategory: taxCategoryStandard, quantity: 1 },
+                    { listPrice: 50000, taxCategory: taxCategoryStandard, quantity: 1 },
+                ],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+            order.orderPlacedAt = new Date();
+            erpCalls = 0;
+            order.lines[1].quantity = 2;
+            await orderCalculator.applyPriceAdjustments(ctx, order, [], [order.lines[1]]);
+
+            expect(erpCalls).toBe(1);
+        });
+
+        // An ERP that rounds the tax once on the order total, and puts the rounding difference on
+        // the largest line, as SAP does with rounding on totals.
+        describe('when the ERP spreads rounding differences across the lines', () => {
+            const documentStrategy: TaxLineCalculationStrategy = {
+                calculate({ order, orderLine }: CalculateTaxLinesArgs): TaxLine[] {
+                    const lines = order.lines.filter(line => 0 < line.quantity);
+                    const exact = (line: OrderLine) => (line.proratedLinePrice * 5) / 100;
+                    const rounded = new Map(lines.map(line => [line, Math.floor(exact(line))]));
+                    const total = Math.round(lines.reduce((sum, line) => sum + exact(line), 0));
+                    const largest = lines.reduce((a, b) =>
+                        b.proratedLinePrice > a.proratedLinePrice ? b : a,
+                    );
+                    const rest = total - [...rounded.values()].reduce((sum, value) => sum + value, 0);
+                    rounded.set(largest, (rounded.get(largest) ?? 0) + rest);
+                    return [{ description: 'VAT', taxRate: 5, amount: rounded.get(orderLine) ?? 0 }];
+                },
+            };
+            beforeAll(() => {
+                mockConfigService.taxOptions.taxLineCalculationStrategy = documentStrategy;
+            });
+            afterAll(() => {
+                mockConfigService.taxOptions.taxLineCalculationStrategy = erpStrategy;
+            });
+
+            it('moves the rounding difference when another line of the cart changes', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [
+                        { listPrice: 1010, taxCategory: taxCategoryStandard, quantity: 1 },
+                        { listPrice: 1030, taxCategory: taxCategoryStandard, quantity: 1 },
+                    ],
+                });
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+                // 50.5 + 51.5 = 102: the line of 1030 is the largest, and takes the difference.
+                expect(order.lines.map(line => line.proratedLineTax)).toEqual([50, 52]);
+                expect(order.subTotalWithTax - order.subTotal).toBe(102);
+
+                // 3 units of the first line make it the largest: 151.5 + 51.5 = 203.
+                order.lines[0].quantity = 3;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], [order.lines[0]]);
+                expect(order.lines.map(line => line.proratedLineTax)).toEqual([152, 51]);
+                expect(order.subTotalWithTax - order.subTotal).toBe(203);
+            });
+
+            it('asks again about the remaining lines when a line is removed from the cart', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [
+                        { listPrice: 1010, taxCategory: taxCategoryStandard, quantity: 1 },
+                        { listPrice: 1030, taxCategory: taxCategoryStandard, quantity: 1 },
+                        { listPrice: 1050, taxCategory: taxCategoryStandard, quantity: 1 },
+                    ],
+                });
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines);
+                // 50.5 + 51.5 + 52.5 = 154.5, rounded to 155, with the difference on the 1050 line.
+                expect(order.lines.map(line => line.proratedLineTax)).toEqual([50, 51, 54]);
+
+                order.lines = order.lines.slice(0, 2);
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines.map(line => line.proratedLineTax)).toEqual([50, 52]);
+                expect(order.subTotalWithTax - order.subTotal).toBe(102);
+            });
         });
 
         it('keeps the paid amount of an unchanged line on a placed order', async () => {
@@ -2240,7 +2341,7 @@ describe('OrderCalculator', () => {
                 expect(order.shippingLines[0].taxLines[0].amount).toBe(101);
                 expect(itemCalls).toBe(2);
 
-                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines, options);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], [], options);
                 expect(itemCalls).toBe(2);
                 expect(order.shippingWithTax).toBe(601);
 
@@ -2253,7 +2354,7 @@ describe('OrderCalculator', () => {
                         data: {},
                     },
                 ];
-                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines, options);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], [], options);
                 expect(itemCalls).toBe(3);
                 expect(order.shippingWithTax).toBe(481);
             } finally {

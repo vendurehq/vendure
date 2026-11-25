@@ -123,6 +123,7 @@ export class OrderCalculator {
         // in the previous calculation, and turn on and off on every recalculation.
         const recalculateTax = options?.recalculateTax === true;
         const settledTaxAmounts = this.detachTaxAmounts(order.lines);
+        const linesWithTaxAmounts = new Set(settledTaxAmounts.keys());
         const settledItemTaxAmounts = this.detachTaxAmounts([
             ...(order.shippingLines ?? []),
             ...(order.surcharges ?? []),
@@ -152,8 +153,23 @@ export class OrderCalculator {
                 // altered the unit prices, which in turn will alter the tax payable.
                 await this.applyTaxes(ctx, order, activeTaxZone, providedTaxAmounts);
             }
+            // An external system may spread rounding differences across the lines of an order, so in
+            // a cart whose lines changed, the amounts of the unchanged lines are not kept either.
+            const keepSettled =
+                !!order.orderPlacedAt || !this.orderLinesChanged(order, updatedOrderLines, settledTaxAmounts);
+            if (!keepSettled) {
+                settledTaxAmounts.clear();
+                settledItemTaxAmounts.clear();
+            }
             // Shipping is judged on the final tax, as are the eligibility checks outside this method.
-            await this.attachTaxAmounts(ctx, order, settledTaxAmounts, providedTaxAmounts, getTaxRate);
+            await this.attachTaxAmounts(
+                ctx,
+                order,
+                settledTaxAmounts,
+                providedTaxAmounts,
+                getTaxRate,
+                linesWithTaxAmounts,
+            );
             this.calculateOrderTotals(order);
         }
         const recalculateShipping = options?.recalculateShipping !== false;
@@ -192,6 +208,28 @@ export class OrderCalculator {
     }
 
     /**
+     * Whether lines were added to, removed from or repriced in the Order since the stored tax amounts
+     * were given.
+     */
+    private orderLinesChanged(
+        order: Order,
+        updatedOrderLines: OrderLine[],
+        settled: Map<OrderLine, TaxLine[]>,
+    ): boolean {
+        if (updatedOrderLines.length) {
+            return true;
+        }
+        return order.lines.some(line => {
+            const stored = settled.get(line) as StoredTaxLine[] | undefined;
+            return (
+                !!stored &&
+                (stored[0].taxBase !== line.getTaxableLineTotal() ||
+                    (stored[0].orderLineCount != null && stored[0].orderLineCount !== order.lines.length))
+            );
+        });
+    }
+
+    /**
      * Removes the absolute tax amounts from the OrderLines, so that their tax is derived from the
      * rates, and returns the TaxLines with the amounts.
      */
@@ -219,12 +257,13 @@ export class OrderCalculator {
         settled: Map<OrderLine, TaxLine[]>,
         provided: Map<OrderLine, TaxLine[] | null>,
         getTaxRate: (taxCategoryId: ID) => Promise<TaxRate>,
+        hadTaxAmounts: ReadonlySet<OrderLine>,
     ) {
         for (const line of order.lines) {
             const candidates = order.orderPlacedAt
                 ? [settled.get(line), provided.get(line)]
                 : [provided.get(line), settled.get(line)];
-            if (!candidates.some(candidate => candidate)) {
+            if (!candidates.some(candidate => candidate) && !hadTaxAmounts.has(line)) {
                 continue;
             }
             const taxableTotal = line.getTaxableLineTotal();
@@ -302,7 +341,7 @@ export class OrderCalculator {
             order,
             orderLine: line,
         });
-        const withBase = withTaxBase(taxLines, () => line.getTaxableLineTotal());
+        const withBase = withTaxBase(taxLines, () => line.getTaxableLineTotal(), order.lines.length);
         if (!hasTaxAmounts(withBase)) {
             // Records that the line was asked, and gave no amounts.
             providedTaxAmounts?.set(line, null);
@@ -603,7 +642,7 @@ export class OrderCalculator {
  * TaxLine the taxable total that the amounts apply to, so that the tax of any part of the item can
  * be derived later, such as the units that remain after a partial cancellation.
  */
-function withTaxBase(taxLines: TaxLine[], getTaxableTotal: () => number): TaxLine[] {
+function withTaxBase(taxLines: TaxLine[], getTaxableTotal: () => number, orderLineCount?: number): TaxLine[] {
     const amounts = taxLines.filter(taxLine => taxLine.amount != null).length;
     if (!amounts) {
         return taxLines;
@@ -617,5 +656,8 @@ function withTaxBase(taxLines: TaxLine[], getTaxableTotal: () => number): TaxLin
         throw new InternalServerError('TaxLineCalculationStrategy must return integer tax amounts');
     }
     const taxBase = getTaxableTotal();
-    return taxLines.map((taxLine): StoredTaxLine => ({ ...taxLine, taxBase }));
+    return taxLines.map(
+        (taxLine): StoredTaxLine =>
+            orderLineCount == null ? { ...taxLine, taxBase } : { ...taxLine, taxBase, orderLineCount },
+    );
 }
