@@ -1,5 +1,5 @@
 /**
- * A project-scoped plugin with an `afterConsoleLink` hook, as the Platform plugins have. The hook
+ * A project-scoped plugin with an `afterConsoleLink` hook. The hook
  * records that it ran, in the project it ran for, and contributes its setup to the result.
  */
 const fs = require('node:fs');
