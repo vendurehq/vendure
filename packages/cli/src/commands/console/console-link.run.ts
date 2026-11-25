@@ -40,7 +40,9 @@ export async function run(input: LinkInput, ctx: CommandContext) {
     if ('error' in project) {
         return project.error;
     }
-    const mismatch = pluginProjectMismatch(project.projectRoot);
+    // Only a dir the caller gave can name another project than the one the plugins came from. Without
+    // one, as from a workspace root, both are found from the working directory.
+    const mismatch = dir ? pluginProjectMismatch(project.projectRoot) : undefined;
     if (mismatch) {
         ctx.notice('warning', mismatch);
     }

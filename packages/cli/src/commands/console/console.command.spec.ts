@@ -479,6 +479,20 @@ describe('vendure console link', () => {
         });
     });
 
+    it('does not warn about the plugins without a dir, as from a workspace root', async () => {
+        const workspace = createVendureProject(directories, 'console-command-');
+        fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true, workspaces: ['apps/*'] });
+        const server = path.join(workspace, 'apps', 'server');
+        fs.outputJsonSync(path.join(server, 'package.json'), { dependencies: { '@vendure/core': '4.0.0' } });
+        fs.outputJsonSync(getProjectLinkManifestPath(server), manifest);
+        setPluginProjectRoot(workspace);
+
+        const result = await testCommand(consoleLinkDefinition, {}, { cwd: workspace });
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { outcome: 'repaired' } });
+        expect(result.envelope.notices.map(notice => notice.message).join('\n')).not.toContain('--dir');
+    });
+
     it('returns the link as failed when a hook fails after it, without what the hook threw', async () => {
         const root = project();
         const thrown = 'The registry refused vcli_hook-secret';
