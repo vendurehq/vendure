@@ -1440,7 +1440,7 @@ describe('console command', () => {
         expect(outcomes).toEqual(['repaired']);
     });
 
-    it('skips the repair prompt for --yes without linking to a different Project', async () => {
+    it('asks a person before a repair runs plugin setup, without linking to a different Project', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), localManifest);

@@ -1,7 +1,6 @@
 import { CommandContext, CommandPlan } from '@vendure/common/lib/command';
 
-import { consoleDependencies, silentReporter } from './console-context.js';
-import { previewConsoleChange } from './console.js';
+import { planConsoleChange } from './console-context.js';
 import { DirInput } from './console.schema.js';
 
 /**
@@ -9,6 +8,5 @@ import { DirInput } from './console.schema.js';
  * consent, whose digest covers the link it names. A project that is not linked needs none.
  */
 export async function plan(input: DirInput, ctx: CommandContext): Promise<CommandPlan> {
-    const { dependencies } = consoleDependencies(ctx);
-    return previewConsoleChange('unlink', input, { ...dependencies, reporter: silentReporter });
+    return planConsoleChange('unlink', input, ctx);
 }

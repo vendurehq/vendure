@@ -349,7 +349,8 @@ export interface ConsoleChangePreview {
  * The change `vendure console link` or `unlink` would make to the Project Link, and whether it
  * needs a consent. A link needs `replaceLink` when it would replace a valid link with another
  * Project, when the CLI cannot tell whether `--project` names the linked one, or when the manifest
- * cannot be read. An unlink needs `removeLink` whenever there is a manifest.
+ * cannot be read. An unlink needs `removeLink` whenever there is a manifest. A lookup of the
+ * Project that fails counts as one the CLI cannot tell.
  *
  * For `plan()`, anything that stops the preview, such as a project that cannot be found, needs no
  * consent: the run reports it. With `strict`, it throws instead, so a run never takes a failed
@@ -406,14 +407,24 @@ export async function previewConsoleChange(
         }
         const organization = options.organization?.trim() || undefined;
         const endpoints = resolveConsoleEndpoints(resolved.env, existing.manifest.console);
-        const linked = await namesLinkedProject(
-            requested,
-            organization,
-            existing.manifest,
-            endpoints,
-            resolved,
-            signal,
-        );
+        let linked: LinkedProject;
+        try {
+            linked = await namesLinkedProject(
+                requested,
+                organization,
+                existing.manifest,
+                endpoints,
+                resolved,
+                signal,
+            );
+        } catch (error) {
+            if (signal.aborted || error instanceof CommandInterruptedError) {
+                throw error;
+            }
+            // A lookup that failed cannot show that the link stays, so the link needs the consent,
+            // as when the CLI cannot tell. The run reports what the lookup found, if it fails again.
+            linked = 'unknown';
+        }
         if (linked === 'same') {
             return {
                 ...none({ action: 'Repair the Project Link', manifestPath: existing.path, current }),
@@ -1721,7 +1732,8 @@ function createConsoleLinkContext(
                 Object.fromEntries(
                     Object.entries({
                         dir: options.dir,
-                        project: options.project,
+                        // The name a hook has read the Console Project by since 3.8.
+                        consoleProject: options.project,
                         organization: options.organization,
                     }).filter(([, value]) => value !== undefined),
                 ),

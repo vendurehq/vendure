@@ -86,11 +86,16 @@ export function consoleDependencies(
 
 /**
  * `--project` names a Console Project. A value that is a Vendure project directory is the
- * `--project <dir>` of earlier versions, which is `--dir` now.
+ * `--project <dir>` of earlier versions, which is `--dir` now. With `--dir` given, the caller has
+ * already chosen the directory, so `--project` is the Console Project whatever its name.
  */
-export function projectIsDirectory(project: string | undefined, cwd: string): ErrorResult | undefined {
+export function projectIsDirectory(
+    project: string | undefined,
+    cwd: string,
+    dir?: string,
+): ErrorResult | undefined {
     const value = project?.trim();
-    if (!value) {
+    if (!value || dir?.trim()) {
         return undefined;
     }
     // Only a Vendure project directory, which is what `--project` named in 3.x. A slug that happens
@@ -138,8 +143,32 @@ export function resolveConsoleProject(
 }
 
 /**
- * The preview a run works from. A failed preview is reported, never taken for one that needs no
- * consent: a need without a person, and otherwise the command's coded error.
+ * The preview `plan()` computed for a run, by its context. The host passes the same context to
+ * `plan()` and `run()`, and asks for the consents of that preview in between, so a run works from
+ * the preview the caller consented to rather than from a second lookup that could differ.
+ */
+const plannedPreviews = new WeakMap<CommandContext, ConsoleChangePreview>();
+
+/** Computes the preview for `plan()`, and records it for the run with the same context. */
+export async function planConsoleChange(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    ctx: CommandContext,
+): Promise<ConsoleChangePreview> {
+    const { dependencies } = consoleDependencies(ctx);
+    const preview = await previewConsoleChange(action, options, {
+        ...dependencies,
+        reporter: silentReporter,
+    });
+    plannedPreviews.set(ctx, preview);
+    return preview;
+}
+
+/**
+ * The preview a run works from: the one `plan()` recorded, whose consents the host asked for.
+ * Without one, nobody was asked, so a change that needs a consent is refused. A failed preview is
+ * reported, never taken for one that needs no consent: a need without a person, and otherwise the
+ * command's coded error.
  */
 export async function previewForRun(
     action: 'link' | 'unlink',
@@ -148,15 +177,18 @@ export async function previewForRun(
     dependencies: ConsoleCommandDependencies,
     failed: CommandErrorDefinition<{ message: string }>,
 ): Promise<{ preview: ConsoleChangePreview } | { result: ErrorResult | IncompleteResult }> {
+    const planned = plannedPreviews.get(ctx);
+    if (planned) {
+        return { preview: planned };
+    }
+    let preview: ConsoleChangePreview;
     try {
-        return {
-            preview: await previewConsoleChange(
-                action,
-                options,
-                { ...dependencies, reporter: silentReporter },
-                { strict: true },
-            ),
-        };
+        preview = await previewConsoleChange(
+            action,
+            options,
+            { ...dependencies, reporter: silentReporter },
+            { strict: true },
+        );
     } catch (error) {
         const described = describeConsoleError(error, dependencies.outputMode, ctx.signal);
         if (described.kind === 'interrupted') {
@@ -171,6 +203,16 @@ export async function previewForRun(
         }
         return { result: fail(failed, { message: described.message }) };
     }
+    if (preview.requiredConsents.length > 0) {
+        return {
+            result: fail(failed, {
+                message:
+                    `This change needs the ${preview.requiredConsents.join(' and ')} consent, which ` +
+                    'nobody was asked for. Run the command again to be asked.',
+            }),
+        };
+    }
+    return { preview };
 }
 
 /** A need, worded for a person who reads it as a notice. */

@@ -1,4 +1,4 @@
-import type { ConsentNeed } from '@vendure/common/lib/command';
+import type { CommandContext, CommandNeed, ConsentNeed } from '@vendure/common/lib/command';
 import fs from 'fs-extra';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import { testCommand } from '../../command-host/test-command.js';
 import { setPluginExtensionAccessor } from '../../shared/plugin-extensions.js';
 
 import { ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook.js';
+import { run as runLink } from './console-link.run.js';
 import {
     consoleLinkDefinition,
     consoleStatusDefinition,
@@ -245,29 +246,49 @@ describe('vendure console link', () => {
         expect(result.envelope.notices).toContainEqual({ level: 'warning', message: 'The store token' });
     });
 
-    it('returns what a plugin hook still needs as needs', async () => {
-        const root = project();
+    function withHookNeeds(needs: CommandNeed[]) {
         const hook: ConsoleLinkHookRegistration = async context => {
-            context.contributeResult({
-                outcome: 'incomplete',
-                data: { credential: 'missing' },
-                needs: [{ kind: 'input', field: 'storeToken', description: 'The store token' }],
-            });
+            context.contributeResult({ outcome: 'incomplete', data: { credential: 'missing' }, needs });
         };
         setPluginExtensionAccessor(<T>(point: string) =>
             point === 'afterConsoleLink' ? [{ pluginId: '@example/setup', extension: hook as T }] : [],
         );
+    }
+
+    it('returns a hook need with a fix as a need, without a person', async () => {
+        const root = project();
+        const need: CommandNeed = {
+            kind: 'input',
+            field: 'token',
+            description: 'A Console login',
+            fix: { description: 'Sign in', path: ['auth', 'login'], input: { json: true } },
+        };
+        withHookNeeds([need]);
 
         const result = await testCommand(consoleLinkDefinition, { dir: root });
 
         expect(result.envelope.status).toBe('incomplete');
-        expect(result.envelope.needs).toEqual([
-            { kind: 'input', field: 'storeToken', description: 'The store token' },
-        ]);
+        expect(result.envelope.needs).toEqual([need]);
         expect(result.envelope.output).toMatchObject({
             outcome: 'repaired',
             plugins: { '@example/setup': { credential: 'missing' } },
         });
+    });
+
+    it('reports a hook need without a fix as a next step, because the link does not take its field', async () => {
+        const root = project();
+        withHookNeeds([{ kind: 'input', field: 'storeToken', description: 'The store token' }]);
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope.status).toBe('failed');
+        expect(result.envelope.needs).toBeUndefined();
+        expect(result.envelope.output).toMatchObject({
+            outcome: 'repaired',
+            plugins: { '@example/setup': { credential: 'missing' } },
+            nextSteps: ['The store token'],
+        });
+        expect(result.envelope.notices).toContainEqual({ level: 'warning', message: 'The store token' });
     });
 
     it('refuses a --project that is a directory, and points to --dir', async () => {
@@ -298,7 +319,102 @@ describe('vendure console link', () => {
 
         const result = await testCommand(consoleLinkDefinition, { project: 'storefront' }, { cwd: root });
 
+        // No login can read the linked Project's slug, so the CLI cannot tell whether it is the one.
+        expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs).toEqual([
+            expect.objectContaining({
+                kind: 'consent',
+                consent: 'replaceLink',
+                preview: expect.objectContaining({ requested: { project: 'storefront' } }),
+            }),
+        ]);
+    });
+
+    it('takes --project as the Console Project when --dir selects the directory', async () => {
+        const workspace = createVendureProject(directories, 'console-command-');
+        const server = path.join(workspace, 'parts-counter');
+        fs.outputJsonSync(path.join(server, 'package.json'), { dependencies: { '@vendure/core': '4.0.0' } });
+        fs.outputJsonSync(getProjectLinkManifestPath(server), manifest);
+
+        const result = await testCommand(
+            consoleLinkDefinition,
+            { dir: 'parts-counter', project: 'parts-counter' },
+            { cwd: workspace },
+        );
+
         expect(result.envelope.error?.code).not.toBe('console.project-is-directory');
+        expect(result.envelope.needs).toEqual([
+            expect.objectContaining({
+                consent: 'replaceLink',
+                preview: expect.objectContaining({ requested: { project: 'parts-counter' } }),
+            }),
+        ]);
+    });
+
+    it('asks for the replaceLink consent when the lookup of the Project fails, and changes nothing', async () => {
+        const root = project();
+        storeLogin(process.env, 'https://api.vendure.io');
+        const console = fakeConsole({
+            projects: projectList([
+                { id: PROJECT_ID, name: 'Storefront' },
+                { id: OTHER_PROJECT_ID, name: 'Wholesale' },
+            ]),
+        });
+        let projectLookups = 0;
+        vi.stubGlobal('fetch', (input: string | URL, init?: RequestInit) => {
+            if (new URL(String(input)).pathname === '/v1/projects' && projectLookups++ === 0) {
+                return Promise.resolve(new Response('{}', { status: 503 }));
+            }
+            return console.fetch(input, init);
+        });
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root, project: 'wholesale' });
+
+        expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs).toEqual([
+            expect.objectContaining({
+                kind: 'consent',
+                consent: 'replaceLink',
+                preview: expect.objectContaining({ requested: { project: 'wholesale' } }),
+            }),
+        ]);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(
+            console.requests.some(request => request.method === 'POST' && request.url.includes('/link')),
+        ).toBe(false);
+    });
+
+    it('does not take yes in the input for the replaceLink consent', async () => {
+        const root = project();
+
+        const result = await testCommand(consoleLinkDefinition, {
+            dir: root,
+            project: 'storefront',
+            yes: true,
+        });
+
+        expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs).toEqual([expect.objectContaining({ consent: 'replaceLink' })]);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('refuses a replacement in a run that no plan asked a consent for', async () => {
+        const root = project();
+        const notice = vi.fn();
+        const ctx: CommandContext = {
+            cwd: root,
+            signal: new AbortController().signal,
+            mcp: false,
+            notice,
+            progress: () => undefined,
+            event: () => undefined,
+            spawn: () => Promise.reject(new Error('no processes in tests')),
+        };
+
+        const result = await runLink({ dir: root, project: 'storefront' }, ctx);
+
+        expect(result).toMatchObject({ vendureResult: 'error', code: 'console.link-failed' });
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 });
 

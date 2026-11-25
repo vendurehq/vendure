@@ -1,7 +1,6 @@
 import { CommandContext, CommandPlan, ErrorResult } from '@vendure/common/lib/command';
 
-import { consoleDependencies, projectIsDirectory, silentReporter } from './console-context.js';
-import { previewConsoleChange } from './console.js';
+import { planConsoleChange, projectIsDirectory } from './console-context.js';
 import { LinkInput } from './console.schema.js';
 
 /**
@@ -11,10 +10,9 @@ import { LinkInput } from './console.schema.js';
  * for one replacement never applies to another.
  */
 export async function plan(input: LinkInput, ctx: CommandContext): Promise<CommandPlan | ErrorResult> {
-    const refused = projectIsDirectory(input.project, ctx.cwd);
+    const refused = projectIsDirectory(input.project, ctx.cwd, input.dir);
     if (refused) {
         return refused;
     }
-    const { dependencies } = consoleDependencies(ctx);
-    return previewConsoleChange('link', input, { ...dependencies, reporter: silentReporter });
+    return planConsoleChange('link', input, ctx);
 }

@@ -88,11 +88,12 @@ export interface ConsoleLinkContext {
     /** Requested output format. @since 3.8.0 */
     outputMode: 'human' | 'json';
     /**
-     * An isolated, immutable copy of the command's input: `dir`, `project` (the Console Project)
-     * and `organization`, as given. Never report secret values.
+     * An isolated, immutable copy of the command's input, as given: `dir` (the project directory),
+     * `consoleProject` (the Console Project, which `--project` names) and `organization`. Never
+     * report secret values.
      *
-     * Since 4.0.0, `project` is the Console Project rather than the project directory, which is
-     * `dir`, and `consoleProject`, `json`, `nonInteractive`, `yes` and plugin flags are gone.
+     * Since 4.0.0, the project directory is `dir` rather than `project`, which hooks no longer
+     * get, and `force`, `yes`, `json`, `nonInteractive` and plugin flags are gone.
      *
      * @since 3.8.0
      */

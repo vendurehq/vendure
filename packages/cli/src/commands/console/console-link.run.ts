@@ -1,4 +1,4 @@
-import { CommandContext, fail, failed, incomplete } from '@vendure/common/lib/command';
+import { CommandContext, CommandNeed, fail, failed, incomplete } from '@vendure/common/lib/command';
 
 import { hostErrors } from '../../command-host/host-errors.js';
 
@@ -12,7 +12,14 @@ import {
 } from './console-context.js';
 import { consoleErrors } from './console.errors.js';
 import { runConsole } from './console.js';
-import { LinkInput, LinkOutput } from './console.schema.js';
+import { link, LinkInput, LinkOutput } from './console.schema.js';
+
+/** The fields of `vendure console link`, which a caller can pass when it runs it again. */
+const LINK_FIELDS = new Set(Object.keys(link.input.shape));
+
+function isAnswerable(need: CommandNeed): boolean {
+    return need.fix !== undefined || (need.kind === 'input' && LINK_FIELDS.has(need.field));
+}
 
 /**
  * Links the project, or repairs the link on disk, then runs the `afterConsoleLink` hooks of the
@@ -22,7 +29,7 @@ import { LinkInput, LinkOutput } from './console.schema.js';
  * way, the link it ran after stays in place.
  */
 export async function run(input: LinkInput, ctx: CommandContext) {
-    const refused = projectIsDirectory(input.project, ctx.cwd);
+    const refused = projectIsDirectory(input.project, ctx.cwd, input.dir);
     if (refused) {
         return refused;
     }
@@ -59,15 +66,26 @@ export async function run(input: LinkInput, ctx: CommandContext) {
               }
             : undefined;
     if (result.outcome === 'incomplete' && result.needs.length > 0) {
-        if (!ctx.ask) {
-            return incomplete(result.needs, output);
-        }
-        for (const need of result.needs) {
+        // A need goes back to the caller only when the caller can answer it without a person: an
+        // input of this command, or a need with a fix, which names the command that answers it.
+        // Any other need, such as an input a plugin hook names that this command does not take,
+        // is a next step. So is every need when a person is there, who would otherwise be asked
+        // for fields this command drops, and see the link and its hooks run again.
+        const answerable = ctx.ask ? [] : result.needs.filter(isAnswerable);
+        const steps = result.needs.filter(need => !answerable.includes(need));
+        for (const need of steps) {
             ctx.notice('warning', describeNeed(need));
         }
-        return output
-            ? failed(output)
-            : fail(consoleErrors.linkFailed, { message: result.needs.map(describeNeed).join(' ') });
+        const withSteps = output && {
+            ...output,
+            nextSteps: [...output.nextSteps, ...steps.map(describeNeed)],
+        };
+        if (answerable.length > 0) {
+            return incomplete(answerable, withSteps);
+        }
+        return withSteps
+            ? failed(withSteps)
+            : fail(consoleErrors.linkFailed, { message: steps.map(describeNeed).join(' ') });
     }
     if (exitCode === 0 && output) {
         return output;
