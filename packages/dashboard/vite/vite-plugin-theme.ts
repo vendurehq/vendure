@@ -298,13 +298,11 @@ function generateTextStyleUtilities(): string {
 /**
  * The variables that the boot screen in `index.html` reads. The stylesheet loads
  * with the app, so `index.html` gets these in an inline style to paint the boot
- * screen in the saved theme from the first frame. A token that reads another
- * variable (`card` reads `--surface-raised`) needs that variable here too.
+ * screen in the saved theme from the first frame. The variables that their
+ * values read (`card` reads `--surface-raised`) are added when the style is built.
  */
 export const BOOT_VARIABLES = [
     'background',
-    'foreground',
-    'surface-raised',
     'muted-foreground',
     'sidebar',
     'sidebar-border',
@@ -315,13 +313,33 @@ export const BOOT_VARIABLES = [
 ];
 
 /**
+ * The boot variables and every theme variable that their values read through
+ * `var(--…)`, followed through the theme with the user's overrides.
+ */
+export function resolveBootVariables(theme: ThemeColors): string[] {
+    const keys: string[] = [];
+    const visit = (key: string) => {
+        const value = theme[key];
+        if (keys.includes(key) || typeof value !== 'string') {
+            return;
+        }
+        keys.push(key);
+        for (const match of value.matchAll(/var\(--([\w-]+)\)/g)) {
+            visit(match[1]);
+        }
+    };
+    BOOT_VARIABLES.forEach(visit);
+    return keys;
+}
+
+/**
  * Generates the inline style for `index.html`: the boot variables of the light
  * theme in `:root` and of the dark theme in `.dark`, with the user's overrides,
  * as the stylesheet declares them once it loads.
  */
 function generateBootStyle(light: ThemeColors, dark: ThemeColors): string {
     const declarations = (theme: ThemeColors) =>
-        BOOT_VARIABLES.filter(key => theme[key] !== undefined)
+        resolveBootVariables(theme)
             .map(key => `--${key}: ${theme[key] as string};`)
             .join(' ');
     return `:root { ${declarations(light)} } .dark { ${declarations(dark)} }`;

@@ -1,3 +1,4 @@
+// Not from constants.js: that imports the generated schema enums, which the unit tests cannot load.
 import { LS_KEY_BOOT_SHELL } from '@/vdb/storage-keys.js';
 import type { AuthContext } from '@/vdb/providers/auth.js';
 import type { AnyRouter } from '@tanstack/react-router';
@@ -9,6 +10,7 @@ import type { AnyRouter } from '@tanstack/react-router';
  */
 export function removeBootSplash() {
     document.getElementById('boot-splash')?.remove();
+    document.documentElement.removeAttribute('data-boot-shell');
 }
 
 /**
@@ -30,15 +32,30 @@ export function removeBootSplashWhenResolved(router: Pick<AnyRouter, 'state' | '
 }
 
 /**
- * Keeps the base path under `LS_KEY_BOOT_SHELL` while an administrator is
- * signed in, and removes it on sign-out. The boot screen of `index.html` shows
- * the app shell only when the key is set and the address is below that path,
- * so a load that ends on the sign-in page keeps the spinner.
+ * What the boot screen of `index.html` needs to draw the app shell: the base
+ * path of the app, and the text direction of the display language.
  */
-export function rememberBootShell(status: AuthContext['status'], basepath: string) {
-    if (status === 'authenticated') {
-        localStorage.setItem(LS_KEY_BOOT_SHELL, basepath.replace(/\/+$/, ''));
-    } else if (status === 'unauthenticated') {
-        localStorage.removeItem(LS_KEY_BOOT_SHELL);
+export interface BootShellHint {
+    base: string;
+    dir: 'ltr' | 'rtl';
+}
+
+/**
+ * Keeps the boot shell hint under `LS_KEY_BOOT_SHELL` while an administrator is
+ * signed in, and removes it on sign-out. The boot screen of `index.html` shows
+ * the app shell only when the hint is set and the address is below its base
+ * path, so a load that ends on the sign-in page keeps the spinner.
+ */
+export function rememberBootShell(status: AuthContext['status'], basepath: string, dir: BootShellHint['dir']) {
+    try {
+        if (status === 'authenticated') {
+            const hint: BootShellHint = { base: basepath.replace(/\/+$/, ''), dir };
+            localStorage.setItem(LS_KEY_BOOT_SHELL, JSON.stringify(hint));
+        } else if (status === 'unauthenticated') {
+            localStorage.removeItem(LS_KEY_BOOT_SHELL);
+        }
+    } catch (e) {
+        // Storage can be full or blocked. The next load then shows the spinner.
+        console.warn('Failed to store the boot shell hint', e);
     }
 }

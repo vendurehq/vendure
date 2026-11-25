@@ -24,25 +24,31 @@
         })();
         /*
             The app shell for the boot screen, when an administrator was signed in at the last load:
-            src/app/boot-splash.ts keeps the app's base path under this key while signed in. The
-            page skeleton follows the address: the home page, a list, or a page below a list. The
-            sign-in pages, and a load without the key, keep the spinner.
+            src/app/boot-splash.ts keeps the base path and the text direction under this key while
+            signed in. The page skeleton follows the address: the home page, a list, or a form (a
+            page below a list, or one of FORM_PAGES). A load without the key keeps the spinner, and
+            so do the pages outside the shell: the route files next to _authenticated.tsx in
+            src/app/routes. Extension routes outside the shell are not known here.
         */
         (function () {
+            var SIGN_IN_PAGES = ['login', 'forgot-password', 'reset-password'];
+            var FORM_PAGES = ['global-settings', 'profile', 'settings-store'];
             try {
-                var base = localStorage.getItem('vendure-boot-shell');
+                var hint = JSON.parse(localStorage.getItem('vendure-boot-shell') || 'null');
                 var pathname = location.pathname;
-                if (base === null || (pathname + '/').indexOf(base + '/') !== 0) {
+                if (!hint || typeof hint.base !== 'string' || (pathname + '/').indexOf(hint.base + '/') !== 0) {
                     return;
                 }
-                var path = pathname.slice(base.length).replace(/^\/+|\/+$/g, '');
-                if (/^(login|forgot-password|reset-password)$/.test(path)) {
+                var path = pathname.slice(hint.base.length).replace(/^\/+|\/+$/g, '');
+                if (SIGN_IN_PAGES.indexOf(path) !== -1) {
                     return;
                 }
                 var depth = path ? path.split('/').length : 0;
-                document.documentElement.setAttribute(
+                var html = document.documentElement;
+                html.setAttribute('dir', hint.dir === 'rtl' ? 'rtl' : 'ltr');
+                html.setAttribute(
                     'data-boot-shell',
-                    depth === 0 ? 'home' : depth === 1 ? 'list' : 'detail',
+                    depth === 0 ? 'home' : depth === 1 && FORM_PAGES.indexOf(path) === -1 ? 'list' : 'detail',
                 );
             } catch (e) {}
         })();
@@ -100,6 +106,7 @@
         .boot-shell * {
             box-sizing: border-box;
         }
+        /* The Skeleton atom of @vendure-io/ui: its colours, gradient and animate-shimmer timing. */
         .boot-bone {
             display: block;
             flex-shrink: 0;
@@ -121,6 +128,18 @@
             to {
                 background-position: -200% 0;
             }
+        }
+        .boot-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .boot-avatar {
+            width: 32px;
+            height: 32px;
+        }
+        .boot-avatar-round {
+            border-radius: 9999px;
         }
         .boot-sidebar {
             display: flex;
@@ -146,6 +165,14 @@
             flex-direction: column;
             gap: 8px;
         }
+        .boot-identity-title {
+            width: 96px;
+            height: 10px;
+        }
+        .boot-identity-caption {
+            width: 72px;
+            height: 8px;
+        }
         .boot-nav {
             display: flex;
             flex-direction: column;
@@ -161,12 +188,27 @@
             height: 22px;
             padding: 0 8px;
         }
+        .boot-nav-label > .boot-bone {
+            width: 80px;
+            height: 8px;
+        }
         .boot-nav-item {
             display: flex;
             align-items: center;
             gap: 10px;
             height: 32px;
             padding: 0 10px;
+        }
+        /* Labels of different lengths, so the items read as a menu. */
+        .boot-nav-text {
+            width: 64px;
+            height: 10px;
+        }
+        .boot-nav-item:nth-child(3n + 2) .boot-nav-text {
+            width: 84px;
+        }
+        .boot-nav-item:nth-child(3n) .boot-nav-text {
+            width: 100px;
         }
         .boot-inset {
             display: flex;
@@ -189,15 +231,26 @@
             margin-inline: 12px 8px;
             background-color: var(--border);
         }
-        .boot-search {
-            width: 220px;
-            height: 28px;
+        .boot-breadcrumb {
+            width: 120px;
+            height: 10px;
         }
         .boot-header-end {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-inline-start: auto;
+        }
+        .boot-search {
+            width: 220px;
+            height: 28px;
+        }
+        .boot-icon-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
         }
         .boot-main {
             flex: 1;
@@ -220,6 +273,15 @@
             justify-content: space-between;
             height: 34px;
             flex-shrink: 0;
+        }
+        .boot-heading {
+            width: 128px;
+            height: 18px;
+        }
+        .boot-action {
+            width: 128px;
+            height: 34px;
+            border-radius: 8px;
         }
         .boot-card {
             border: 1px solid var(--border);
@@ -250,6 +312,19 @@
             flex-shrink: 0;
             padding: 0 16px;
         }
+        .boot-tabs {
+            width: 40px;
+            height: 14px;
+            margin-inline-end: auto;
+        }
+        .boot-input {
+            width: 256px;
+            height: 34px;
+        }
+        .boot-button {
+            width: 80px;
+            height: 34px;
+        }
         .boot-row {
             display: flex;
             align-items: center;
@@ -259,22 +334,30 @@
             padding: 0 16px;
             border-top: 1px solid var(--border);
         }
-        .boot-row:not(.boot-footer) > .boot-bone {
+        .boot-cell {
             flex: 1;
             height: 12px;
         }
-        .boot-row:not(.boot-footer) > .boot-bone:last-child {
+        .boot-cell:last-child {
             flex: 0 0 80px;
         }
         .boot-row-head {
             height: 40px;
         }
-        .boot-row.boot-footer {
+        .boot-row-head > .boot-cell {
+            height: 10px;
+        }
+        .boot-footer {
             justify-content: space-between;
             height: 67px;
         }
-        .boot-row-head > .boot-bone {
-            height: 10px;
+        .boot-count {
+            width: 48px;
+            height: 12px;
+        }
+        .boot-pager {
+            width: 200px;
+            height: 34px;
         }
         .boot-detail {
             grid-template-columns: 3fr 1fr;
@@ -302,9 +385,31 @@
             flex-direction: column;
             gap: 8px;
         }
+        .boot-field-label {
+            width: 96px;
+            height: 12px;
+        }
+        .boot-field-input {
+            width: 100%;
+            height: 36px;
+        }
+        .boot-field-area {
+            height: 112px;
+        }
+        .boot-card-heading {
+            width: 112px;
+            height: 12px;
+        }
+        .boot-card-line {
+            width: 100%;
+            height: 24px;
+        }
         .boot-home {
             flex-direction: column;
             gap: 16px;
+        }
+        .boot-home-chart {
+            height: 650px;
         }
         .boot-home-row {
             display: flex;
@@ -312,6 +417,7 @@
         }
         .boot-home-row > .boot-card {
             flex: 1;
+            height: 320px;
         }
         @media (min-width: 1280px) {
             .boot-main {
@@ -335,9 +441,10 @@
             .boot-main {
                 padding: 0;
             }
-            .boot-fields,
-            .boot-home-row {
+            .boot-fields {
                 grid-template-columns: 1fr;
+            }
+            .boot-home-row {
                 flex-direction: column;
             }
         }
@@ -349,69 +456,71 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
     <div class="boot-shell" aria-hidden="true">
         <div class="boot-sidebar">
-            <div class="boot-identity"><span class="boot-bone" style="width:32px;height:32px"></span><div class="boot-identity-lines"><span class="boot-bone" style="width:96px;height:10px"></span><span class="boot-bone" style="width:72px;height:8px"></span></div></div>
+            <div class="boot-identity"><span class="boot-bone boot-avatar"></span><div class="boot-identity-lines"><span class="boot-bone boot-identity-title"></span><span class="boot-bone boot-identity-caption"></span></div></div>
             <div class="boot-nav">
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:64px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:72px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:100px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:60px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:84px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:56px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:76px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:92px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:68px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:60px;height:10px"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
             </div>
             <div class="boot-nav boot-nav-bottom">
-                <div class="boot-nav-label"><span class="boot-bone" style="width:80px;height:8px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:60px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:104px;height:10px"></span></div>
-                <div class="boot-nav-item"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span><span class="boot-bone" style="width:56px;height:10px"></span></div>
+                <div class="boot-nav-label"><span class="boot-bone"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
             </div>
-            <div class="boot-identity"><span class="boot-bone" style="width:32px;height:32px;border-radius:9999px"></span><div class="boot-identity-lines"><span class="boot-bone" style="width:80px;height:10px"></span><span class="boot-bone" style="width:64px;height:8px"></span></div></div>
+            <div class="boot-identity"><span class="boot-bone boot-avatar boot-avatar-round"></span><div class="boot-identity-lines"><span class="boot-bone boot-identity-title"></span><span class="boot-bone boot-identity-caption"></span></div></div>
         </div>
         <div class="boot-inset">
             <div class="boot-header">
-                <span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span>
+                <span class="boot-bone boot-icon"></span>
                 <span class="boot-separator"></span>
-                <span class="boot-bone" style="width:120px;height:10px"></span>
+                <span class="boot-bone boot-breadcrumb"></span>
                 <div class="boot-header-end">
                     <span class="boot-bone boot-search"></span>
-                    <span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px"><span class="boot-bone" style="width:16px;height:16px;border-radius:4px"></span></span>
+                    <span class="boot-icon-button"><span class="boot-bone boot-icon"></span></span>
                 </div>
             </div>
             <div class="boot-main">
                 <div class="boot-page">
-                    <div class="boot-page-header"><span class="boot-bone" style="width:128px;height:18px"></span><span class="boot-bone" style="width:128px;height:34px;border-radius:8px"></span></div>
+                    <div class="boot-page-header"><span class="boot-bone boot-heading"></span><span class="boot-bone boot-action"></span></div>
                     <div class="boot-list boot-card">
-                        <div class="boot-toolbar"><span class="boot-bone" style="width:40px;height:14px"></span><span style="flex:1"></span><span class="boot-bone boot-hide-narrow" style="width:256px;height:34px"></span><span class="boot-bone" style="width:80px;height:34px"></span></div>
-                        <div class="boot-row boot-row-head"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row"><span class="boot-bone"></span><span class="boot-bone"></span><span class="boot-bone boot-hide-narrow"></span><span class="boot-bone"></span></div>
-                        <div class="boot-row boot-footer"><span class="boot-bone" style="width:48px;height:12px"></span><span class="boot-bone" style="width:200px;height:34px"></span></div>
+                        <div class="boot-toolbar"><span class="boot-bone boot-tabs"></span><span class="boot-bone boot-input boot-hide-narrow"></span><span class="boot-bone boot-button"></span></div>
+                        <div class="boot-row boot-row-head"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row boot-footer"><span class="boot-bone boot-count"></span><span class="boot-bone boot-pager"></span></div>
                     </div>
                     <div class="boot-detail">
-                        <div class="boot-card"><div class="boot-card-body">
-                            <div class="boot-fields"><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div></div>
-                            <div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:112px"></span></div>
-                            <div class="boot-fields"><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div><div class="boot-field"><span class="boot-bone" style="width:96px;height:12px"></span><span class="boot-bone" style="width:100%;height:36px"></span></div></div>
-                        </div></div>
+                        <div class="boot-card">
+                            <div class="boot-card-body">
+                                <div class="boot-fields"><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div></div>
+                                <div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input boot-field-area"></span></div>
+                                <div class="boot-fields"><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div></div>
+                            </div>
+                        </div>
                         <div class="boot-side">
-                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone" style="width:112px;height:12px"></span><span class="boot-bone" style="width:100%;height:24px"></span><span class="boot-bone" style="width:100%;height:24px"></span></div></div>
-                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone" style="width:112px;height:12px"></span><span class="boot-bone" style="width:100%;height:24px"></span><span class="boot-bone" style="width:100%;height:24px"></span><span class="boot-bone" style="width:100%;height:24px"></span></div></div>
+                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone boot-card-heading"></span><span class="boot-bone boot-card-line"></span><span class="boot-bone boot-card-line"></span></div></div>
+                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone boot-card-heading"></span><span class="boot-bone boot-card-line"></span><span class="boot-bone boot-card-line"></span><span class="boot-bone boot-card-line"></span></div></div>
                         </div>
                     </div>
                     <div class="boot-home">
-                        <div class="boot-card" style="height:650px"></div>
-                        <div class="boot-home-row"><div class="boot-card" style="height:320px"></div><div class="boot-card" style="height:320px"></div></div>
+                        <div class="boot-card boot-home-chart"></div>
+                        <div class="boot-home-row"><div class="boot-card"></div><div class="boot-card"></div></div>
                     </div>
                 </div>
             </div>

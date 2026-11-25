@@ -99,8 +99,8 @@ function InnerApp() {
     }, [isRTL]);
 
     useEffect(() => {
-        rememberBootShell(auth.status, router.basepath);
-    }, [auth.status, router]);
+        rememberBootShell(auth.status, router.basepath, isRTL ? 'rtl' : 'ltr');
+    }, [auth.status, router, isRTL]);
 
     const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
 

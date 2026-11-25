@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LS_KEY_BOOT_SHELL } from '../lib/storage-keys.js';
-import { rememberBootShell, removeBootSplashWhenResolved } from './boot-splash.js';
+import { rememberBootShell, removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
 
 type Router = Parameters<typeof removeBootSplashWhenResolved>[0];
 
@@ -74,24 +74,44 @@ describe('removeBootSplashWhenResolved', () => {
 
 // OSS-1508 — the boot screen shows the app shell only for a signed-in load
 describe('rememberBootShell', () => {
+    const hint = () => JSON.parse(localStorage.getItem(LS_KEY_BOOT_SHELL) ?? 'null');
+
     afterEach(() => {
         localStorage.removeItem(LS_KEY_BOOT_SHELL);
+        vi.restoreAllMocks();
     });
 
-    it('keeps the base path, without its trailing slash, while signed in', () => {
-        rememberBootShell('authenticated', '/dashboard/');
-        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBe('/dashboard');
-        rememberBootShell('authenticated', '/');
-        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBe('');
+    it('keeps the base path, without its trailing slash, and the direction while signed in', () => {
+        rememberBootShell('authenticated', '/dashboard/', 'ltr');
+        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr' });
+        rememberBootShell('authenticated', '/', 'rtl');
+        expect(hint()).toEqual({ base: '', dir: 'rtl' });
     });
 
     it('removes it on sign-out and keeps it while the session is checked', () => {
-        rememberBootShell('authenticated', '/dashboard');
-        rememberBootShell('initial', '/dashboard');
-        rememberBootShell('verifying', '/dashboard');
-        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBe('/dashboard');
-        rememberBootShell('unauthenticated', '/dashboard');
-        expect(localStorage.getItem(LS_KEY_BOOT_SHELL)).toBeNull();
+        rememberBootShell('authenticated', '/dashboard', 'ltr');
+        rememberBootShell('initial', '/dashboard', 'ltr');
+        rememberBootShell('verifying', '/dashboard', 'ltr');
+        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr' });
+        rememberBootShell('unauthenticated', '/dashboard', 'ltr');
+        expect(hint()).toBeNull();
+    });
+
+    it('does not throw when the storage refuses the write', () => {
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new DOMException('full', 'QuotaExceededError');
+        });
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        expect(() => rememberBootShell('authenticated', '/dashboard', 'ltr')).not.toThrow();
     });
 });
 
+describe('removeBootSplash', () => {
+    it('removes the boot screen and its shell attribute', () => {
+        document.body.innerHTML = '<div id="boot-splash"></div>';
+        document.documentElement.setAttribute('data-boot-shell', 'list');
+        removeBootSplash();
+        expect(document.getElementById('boot-splash')).toBeNull();
+        expect(document.documentElement.hasAttribute('data-boot-shell')).toBe(false);
+    });
+});
