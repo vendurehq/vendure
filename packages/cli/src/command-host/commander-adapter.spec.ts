@@ -418,3 +418,97 @@ describe('the credential check of createHostEnvironment', () => {
         });
     });
 });
+
+describe('options of a command that has commands under it', () => {
+    const shared = {
+        environment: z.string().optional().describe('The environment'),
+        dryRun: z.boolean().optional().describe('Only show what would change'),
+    };
+    const deploy = defineCommand({
+        path: ['acme', 'deploy'],
+        description: 'Deploy',
+        behavior: 'mutating',
+        schemas: async () => ({ input: z.object({ ...shared, force: z.boolean().optional() }) }),
+        cli: { flags: { environment: { short: '-e' } } },
+        run: async () => ({ run: async () => ({}) }),
+    });
+    const plan = defineCommand({
+        path: ['acme', 'deploy', 'plan'],
+        description: 'Plan',
+        behavior: 'readonly',
+        schemas: async () => ({ input: z.object(shared) }),
+        cli: { flags: { environment: { short: '-e' } } },
+        run: async () => ({ run: async () => ({}) }),
+    });
+    const argv = process.argv;
+
+    afterEach(() => {
+        process.argv = argv;
+        vi.restoreAllMocks();
+    });
+
+    /** Parses a command line, and returns the options `plan` received, or how the run stopped. */
+    async function parse(args: string[]) {
+        const built = await buildCommandManifest('@test/pkg', '1.0.0', [deploy, plan]);
+        const root = new Command('vendure');
+        registerManifestCommands(root, mergeManifests([built]), { loadDefinitions: async () => [] });
+        const deployCommand = (root.commands.find(c => c.name() === 'acme') as Command).commands[0];
+        const planCommand = deployCommand.commands[0];
+        let received: Record<string, unknown> | undefined;
+        planCommand.action(() => {
+            received = planCommand.opts();
+        });
+        const stderr: string[] = [];
+        vi.spyOn(process.stderr, 'write').mockImplementation(text => {
+            stderr.push(String(text));
+            return true;
+        });
+        vi.spyOn(process, 'exit').mockImplementation(code => {
+            throw new Error(`exit ${String(code)}`);
+        });
+        process.argv = ['node', 'vendure', ...args];
+        let stopped: string | undefined;
+        try {
+            await root.parseAsync(process.argv);
+        } catch (e) {
+            stopped = (e as Error).message;
+        }
+        return { received, stopped, stderr: stderr.join('') };
+    }
+
+    it('passes on an option given after the command under it, in each form', async () => {
+        expect((await parse(['acme', 'deploy', 'plan', '--environment=prod'])).received).toMatchObject({
+            environment: 'prod',
+        });
+        expect((await parse(['acme', 'deploy', 'plan', '-eprod'])).received).toMatchObject({
+            environment: 'prod',
+        });
+        expect((await parse(['acme', 'deploy', 'plan', '--dry-run'])).received).toMatchObject({
+            dryRun: true,
+        });
+        expect((await parse(['acme', 'deploy', 'plan', '--no-dry-run'])).received).toMatchObject({
+            dryRun: false,
+        });
+    });
+
+    it('stops an option given before the command under it, with the corrected line', async () => {
+        const result = await parse(['acme', 'deploy', '--environment', 'prod', 'plan']);
+        expect(result.stopped).toBe('exit 1');
+        expect(result.received).toBeUndefined();
+        expect(result.stderr).toContain(
+            '[cli.option-before-command] --environment comes before the end of the command path. ' +
+                'Options go after it: vendure acme deploy plan --environment prod',
+        );
+    });
+
+    it('stops an option the command under it does not take, wherever it is', async () => {
+        for (const args of [
+            ['acme', 'deploy', 'plan', '--force'],
+            ['acme', 'deploy', '--force', 'plan'],
+        ]) {
+            const result = await parse(args);
+            expect(result.stopped).toBe('exit 1');
+            expect(result.stderr).toContain('[cli.usage] --force is not an option of "plan"');
+        }
+    });
+});

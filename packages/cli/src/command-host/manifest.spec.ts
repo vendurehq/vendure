@@ -202,9 +202,12 @@ describe('mergeProjectManifests', () => {
         ]) {
             const { commands, refused } = mergeProjectManifests(core, [plugin('acme-cli', ...paths)]);
             expect(refused).toEqual([]);
-            expect(commands.map(command => command.path.join(' '))).toEqual(
-                expect.arrayContaining(['acme deploy', 'acme deploy plan']),
-            );
+            expect(
+                commands
+                    .map(command => command.path.join(' '))
+                    .filter(name => name.startsWith('acme'))
+                    .sort(),
+            ).toEqual(['acme deploy', 'acme deploy plan']);
         }
     });
 
@@ -250,6 +253,15 @@ describe('mergeProjectManifests', () => {
         shortFlags.manifest.commands[1].cli = { flags: { exclude: { short: '-e' } } };
         expect(mergeProjectManifests(core, [shortFlags]).refused.map(r => r.error.code)).toEqual([
             'plugin.parent-flag-conflict',
+        ]);
+    });
+
+    it('refuses a command under a command of the package with a group between them', () => {
+        const { refused } = mergeProjectManifests(core, [
+            plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan', 'x']),
+        ]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            ['plugin.parent-gap', expect.stringContaining('but not "acme deploy plan" between them')],
         ]);
     });
 

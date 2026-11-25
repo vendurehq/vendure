@@ -8,12 +8,12 @@ import {
 import {
     buildCommandManifest,
     CommandManifest,
-    flagValueSyntax,
     MANIFEST_FILE_NAME,
     ManifestCommand,
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
+    takesOptionalValue,
 } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -205,6 +205,15 @@ export function mergeProjectManifests(
         // commands from loading: any problem refuses this package's commands alone.
         try {
             const clash = findClash(plugin.manifest, taken);
+            if (clash?.kind === 'parent-gap') {
+                refuse(hostErrors.pluginParentGap, {
+                    plugin: plugin.packageName,
+                    command: clash.command,
+                    child: clash.child,
+                    missing: clash.missing,
+                });
+                continue;
+            }
             if (clash?.kind === 'parent-flag-conflict') {
                 refuse(hostErrors.pluginParentFlagConflict, {
                     plugin: plugin.packageName,
@@ -313,7 +322,9 @@ function findClash(
     | { kind: 'clash'; command: string; other: string }
     | { kind: 'parent-positional'; command: string; child: string }
     | { kind: 'parent-flag-conflict'; command: string; child: string; flag: string }
+    | { kind: 'parent-gap'; command: string; child: string; missing: string }
     | undefined {
+    const ownPaths = new Set(manifest.commands.map(command => command.path.join(' ')));
     for (const command of manifest.commands) {
         const name = command.path.join(' ');
         const other = taken.find(
@@ -337,6 +348,22 @@ function findClash(
             if (startsWith(own.path, command.path) && command.cli.positional?.length) {
                 return { kind: 'parent-positional', command: name, child: own.path.join(' ') };
             }
+            // Every path between a command and a command under it is a command of the package too.
+            // A group there would take no options, so the options of the command above could not
+            // reach the command under it.
+            if (startsWith(own.path, command.path)) {
+                for (let length = command.path.length + 1; length < own.path.length; length++) {
+                    const between = own.path.slice(0, length).join(' ');
+                    if (!ownPaths.has(between)) {
+                        return {
+                            kind: 'parent-gap',
+                            command: name,
+                            child: own.path.join(' '),
+                            missing: between,
+                        };
+                    }
+                }
+            }
             const flag = startsWith(own.path, command.path) ? sharedFlagConflict(command, own) : undefined;
             if (flag) {
                 return { kind: 'parent-flag-conflict', command: name, child: own.path.join(' '), flag };
@@ -352,19 +379,17 @@ function flagDeclarations(command: ManifestCommand): Map<string, string> {
     const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
     for (const [field, schema] of Object.entries(properties)) {
         const long = `--${kebab(field)}`;
-        const { value, negatable } = flagValueSyntax(command, field, schema, kebab(field));
+        const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
         const declaration = JSON.stringify({
             field,
-            // The placeholder is only a label, so the kind of value is what counts.
-            value:
-                value === ''
-                    ? 'switch'
-                    : value.startsWith(' [')
-                      ? 'optional'
-                      : value.endsWith('...>')
-                        ? 'list'
-                        : 'value',
-            negatable,
+            // The kind of value the flag takes. A placeholder is only a label, so it does not count.
+            value: takesOptionalValue(schema)
+                ? 'optional'
+                : type === 'boolean'
+                  ? 'switch'
+                  : type === 'array'
+                    ? 'list'
+                    : 'value',
             type: schema.type,
             items: (schema.items as JsonSchema | undefined)?.type,
             enum: schema.enum,

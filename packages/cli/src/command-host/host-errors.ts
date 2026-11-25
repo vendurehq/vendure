@@ -68,6 +68,14 @@ export const hostErrors = {
             'A command with commands under it takes no positional fields, so that a value is never taken for a command name. ' +
             `None of the commands ${plugin} declares with defineCommand are loaded.`,
     }),
+    pluginParentGap: defineError<{ plugin: string; command: string; child: string; missing: string }>({
+        code: 'plugin.parent-gap',
+        exit: 1,
+        message: ({ plugin, command, child, missing }) =>
+            `${plugin} declares the command "${command}" and the command "${child}" under it, but not "${missing}" between them. ` +
+            'Declare it too, so that the options of each command reach it. ' +
+            `None of the commands ${plugin} declares with defineCommand are loaded.`,
+    }),
     pluginParentFlagConflict: defineError<{ plugin: string; command: string; child: string; flag: string }>({
         code: 'plugin.parent-flag-conflict',
         exit: 1,

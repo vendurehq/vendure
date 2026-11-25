@@ -1324,8 +1324,9 @@ another package's group into a command, or add a command under another package's
 commands of a `cliPlugin` count, the package's own included. The CLI then leaves out all the commands
 the package declares with `defineCommand`, with a `plugin.command-clash` error that it writes to stderr
 and lists under `refused` in `vendure commands --json`. A command with positional fields and commands
-under it, or a flag declared differently on a command and a command under it, leaves them out the same
-way, with `plugin.parent-positional` or `plugin.parent-flag-conflict`. Every other command keeps
+under it, a flag declared differently on a command and a command under it, or a command under another
+command of the package with no command between them, leaves them out the same way, with
+`plugin.parent-positional`, `plugin.parent-flag-conflict` or `plugin.parent-gap`. Every other command keeps
 working, including the package's own `cliPlugin` commands, which follow the rules in
 [Collisions](#collisions). A manifest that is
 missing, or a module that is, leaves out the same commands: the CLI writes the reason to stderr, and

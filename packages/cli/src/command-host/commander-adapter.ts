@@ -81,17 +81,19 @@ function routeParentOptions(command: Command): void {
             const positions = args
                 .map((arg, index) => (flags.some(flag => namesOption(flag, arg)) ? index : -1))
                 .filter(index => index !== -1);
+            const flag = option.long ?? option.flags;
+            // Wherever it is, an option the command under it doesn't take can't be passed on.
+            if (!subcommand.options.some(candidate => candidate.attributeName() === name)) {
+                stop(
+                    errorResult(hostErrors.usage, {
+                        message: `${flag} is not an option of "${subcommand.name()}"`,
+                    }),
+                    `[${hostErrors.usage.code}]`,
+                );
+            }
             // An option the CLI cannot find on the line, such as `-ye` for two short flags, is
             // passed on rather than reported in the wrong place.
             if (positions.every(index => index > subcommandAt)) {
-                if (!subcommand.options.some(candidate => candidate.attributeName() === name)) {
-                    stop(
-                        errorResult(hostErrors.usage, {
-                            message: `${option.long ?? option.flags} is not an option of "${subcommand.name()}"`,
-                        }),
-                        `[${hostErrors.usage.code}]`,
-                    );
-                }
                 subcommand.setOptionValueWithSource(name, parent.getOptionValue(name), 'cli');
                 continue;
             }
@@ -99,10 +101,14 @@ function routeParentOptions(command: Command): void {
             while (root.parent) {
                 root = root.parent;
             }
-            const line = commandLineWithOptionsLast(root, args) ?? 'the full command path first';
+            const line = commandLineWithOptionsLast(root, args);
             stop(
-                errorResult(hostErrors.optionBeforeCommand, { option: option.long ?? option.flags, line }),
-                `[${hostErrors.optionBeforeCommand.code}]`,
+                line
+                    ? errorResult(hostErrors.optionBeforeCommand, { option: flag, line })
+                    : errorResult(hostErrors.usage, {
+                          message: `${flag} comes before the end of the command path. Options go after the full command path.`,
+                      }),
+                `[${line ? hostErrors.optionBeforeCommand.code : hostErrors.usage.code}]`,
             );
         }
     });
