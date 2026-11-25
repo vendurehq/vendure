@@ -11,6 +11,7 @@ import { pick } from '@vendure/common/lib/pick';
 import {
     AccountRegistrationEvent,
     AccountVerifiedEvent,
+    Address,
     ConfigService,
     EventBus,
     NativeAuthenticationMethod,
@@ -25,6 +26,7 @@ import {
     ErrorResultGuard,
 } from '@vendure/testing';
 import path from 'path';
+import { EntitySubscriberInterface } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -387,6 +389,59 @@ describe('Customer resolver', () => {
             expect(defaultAddress.length).toBe(1);
             expect(otherAddress.length).toBe(1);
         });
+
+        // https://github.com/vendurehq/vendure/issues/5819
+        // Needs READ COMMITTED with a second connection free to commit while the first
+        // create is held; on SQLite the second create would wait on the held write.
+        it.skipIf(process.env.DB !== 'postgres')(
+            'keeps both addresses when two createCustomerAddress calls for one customer overlap',
+            async () => {
+                const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                    input: { emailAddress: 'overlap@test.com', firstName: 'Over', lastName: 'Lap' },
+                });
+                customerErrorGuard.assertSuccess(createCustomer);
+                const dataSource = server.app.get(TransactionalConnection).rawConnection;
+
+                // Holds the "held" create after it has read customer.addresses and inserted
+                // its address, before the rest of createAddress runs.
+                let reached: () => void = () => undefined;
+                const paused = new Promise<void>(resolve => (reached = resolve));
+                let release: () => void = () => undefined;
+                const gate = new Promise<void>(resolve => (release = resolve));
+                const subscriber: EntitySubscriberInterface<Address> = {
+                    listenTo: () => Address,
+                    afterInsert: async event => {
+                        if (event.entity.streetLine1 === 'held') {
+                            reached();
+                            await gate;
+                        }
+                    },
+                };
+                dataSource.subscribers.push(subscriber);
+                try {
+                    const held = adminClient.query(createAddressDocument, {
+                        id: createCustomer.id,
+                        input: { streetLine1: 'held', countryCode: 'GB' },
+                    });
+                    // A pass is only meaningful if the race was actually set up.
+                    expect(
+                        await Promise.race([paused.then(() => 'paused'), held.then(() => 'finished')]),
+                    ).toBe('paused');
+                    await adminClient.query(createAddressDocument, {
+                        id: createCustomer.id,
+                        input: { streetLine1: 'overtaking', countryCode: 'GB' },
+                    });
+                    release();
+                    await held;
+                } finally {
+                    release();
+                    dataSource.subscribers.splice(dataSource.subscribers.indexOf(subscriber), 1);
+                }
+
+                const { customer } = await adminClient.query(getCustomerDocument, { id: createCustomer.id });
+                expect(customer!.addresses!.map(a => a.streetLine1).sort()).toEqual(['held', 'overtaking']);
+            },
+        );
     });
 
     describe('orders', () => {
