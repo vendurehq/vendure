@@ -1,6 +1,7 @@
 import { parseCreateRecord } from '@vendure/common/lib/create-record';
 import fs from 'node:fs';
 import path from 'node:path';
+import semver from 'semver';
 import { describe, expect, it } from 'vitest';
 
 import { CLOUD_PACKAGE_RANGE, TYPEORM_VERSION } from './constants.js';
@@ -54,7 +55,24 @@ describe('getServerPackageJson()', () => {
     });
 
     it('pins the @vendure/cloud range', () => {
-        expect(CLOUD_PACKAGE_RANGE).toBe('^0.9.0');
+        expect(CLOUD_PACKAGE_RANGE).toBe('>=0.9.0-0 <0.10.0');
+    });
+
+    it('accepts the 0.9 prereleases and releases of @vendure/cloud, and nothing else', () => {
+        const accepts = (version: string) => semver.satisfies(version, CLOUD_PACKAGE_RANGE);
+        expect(accepts('0.9.0-dev.20261123092810.g887b3f3')).toBe(true);
+        expect(accepts('0.9.0')).toBe(true);
+        expect(accepts('0.9.3')).toBe(true);
+        expect(accepts('0.8.0')).toBe(false);
+        expect(accepts('0.10.0')).toBe(false);
+        expect(accepts('0.10.0-dev.1')).toBe(false);
+        // npm picks the highest match, so a release wins over a prerelease.
+        expect(
+            semver.maxSatisfying(
+                ['0.8.0', '0.9.0-dev.20261123092810.g887b3f3', '0.9.0'],
+                CLOUD_PACKAGE_RANGE,
+            ),
+        ).toBe('0.9.0');
     });
 
     it('declares typeorm for pnpm only, with the range @vendure/core uses', () => {

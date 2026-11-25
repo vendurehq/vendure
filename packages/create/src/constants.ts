@@ -10,9 +10,10 @@ export const SERVER_PORT = 3000;
 export const STOREFRONT_PORT = 3001;
 /**
  * The `@vendure/cloud` range a generated project depends on. It is bumped by hand when a
- * `@vendure/cloud` release is needed by what create writes, and a test pins it.
+ * `@vendure/cloud` release is needed by what create writes, and a test pins it. The `-0` lower
+ * bound also accepts the 0.9.0 prereleases, such as `0.9.0-dev.*`, which `^0.9.0` does not.
  */
-export const CLOUD_PACKAGE_RANGE = '^0.9.0';
+export const CLOUD_PACKAGE_RANGE = '>=0.9.0-0 <0.10.0';
 /**
  * The TypeScript version needs to pinned because minor versions often
  * introduce breaking changes.
