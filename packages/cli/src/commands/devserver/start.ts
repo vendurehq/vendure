@@ -87,7 +87,7 @@ export async function run(input: StartInput, ctx: CommandContext, cliEntryPath =
 
     const outputFile = path.join(projectDir, DEV_LOG_DIRECTORY, DEVSERVER_START_LOG_FILE_NAME);
     mkdirSync(path.dirname(outputFile), { recursive: true });
-    const devArgs = [cliEntryPath, 'dev', input.target ?? 'all', '--project', projectDir];
+    const devArgs = [cliEntryPath, 'dev', input.target ?? 'all', '--dir', projectDir];
     ctx.progress('Starting vendure dev');
     // `ctx.spawn` removes a local-trust secret inherited from the shell, and the detached run
     // inherits the launcher's environment.

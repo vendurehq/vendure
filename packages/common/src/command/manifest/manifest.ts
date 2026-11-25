@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 import { isValidErrorCode } from '../define';
-import { CommandBehavior, JsonSchema } from '../types';
+import { CommandBehavior, CommandCliMetadata, JsonSchema } from '../types';
 
 /** The name of the manifest file a package ships. */
 export const MANIFEST_FILE_NAME = 'vendure-commands.json';
@@ -27,7 +27,7 @@ export interface ManifestCommand {
     output?: JsonSchema;
     events?: JsonSchema;
     cli: {
-        flags?: Record<string, { short?: string; description?: string }>;
+        flags?: CommandCliMetadata['flags'];
         positional?: string[];
         fields?: Record<string, { prompt?: boolean; secret?: boolean; hasChoices?: boolean }>;
     };
@@ -49,6 +49,46 @@ export interface CommandManifest {
 export interface MergedManifestCommand extends ManifestCommand {
     /** The package whose manifest declared the command. */
     source: string;
+}
+
+/**
+ * Whether a field's JSON Schema is `boolean | string`, either as `anyOf` or as a `type` list. The
+ * CLI registers such a field as a flag with an optional value, such as `--inspect [host:port]`,
+ * and the generated reference shows it that way.
+ *
+ * @since 4.0.0
+ */
+export function takesOptionalValue(schema: JsonSchema): boolean {
+    const types = new Set<string>(
+        Array.isArray(schema.type)
+            ? (schema.type as string[])
+            : ((schema.anyOf as JsonSchema[] | undefined) ?? []).map(part => String(part.type)),
+    );
+    return types.size === 2 && types.has('boolean') && types.has('string');
+}
+
+/**
+ * How the CLI writes a field's flag, after `--<field>`: the value it takes, such as ` <name>`,
+ * ` <path...>` or ` [host:port]`, or nothing for a boolean, and whether it also has `--no-<field>`.
+ * The command line and the generated reference both use it, so help and the docs agree.
+ *
+ * @since 4.0.0
+ */
+export function flagValueSyntax(
+    command: Pick<ManifestCommand, 'cli' | 'consents'>,
+    field: string,
+    schema: JsonSchema,
+    kebabName: string,
+): { value: string; negatable: boolean } {
+    const placeholder = command.cli.flags?.[field]?.placeholder ?? (field in command.consents ? 'digest' : kebabName);
+    const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+    if (takesOptionalValue(schema)) {
+        return { value: ` [${placeholder}]`, negatable: false };
+    }
+    if (type === 'boolean') {
+        return { value: '', negatable: true };
+    }
+    return { value: type === 'array' ? ` <${placeholder}...>` : ` <${placeholder}>`, negatable: false };
 }
 
 export function readManifestFile(file: string): CommandManifest {

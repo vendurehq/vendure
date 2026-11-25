@@ -27,8 +27,8 @@
  *   ],
  *   extendCommands: [
  *     {
- *       // Adds to the built-in dev command, so other plugins can wrap it too
- *       command: 'dev',
+ *       // Adds to the built-in start command, so other plugins can wrap it too
+ *       command: 'start',
  *       options: [{ long: '--rotate-credential', description: 'Replace the credential' }],
  *       decorate: ({ next }) => async (...args) => {
  *         // optional setup...

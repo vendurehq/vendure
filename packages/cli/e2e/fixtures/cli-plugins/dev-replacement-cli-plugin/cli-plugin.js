@@ -9,6 +9,9 @@ module.exports = defineCliPlugin({
             name: 'dev',
             description: 'Replaces the built-in dev command outright',
             replaces: true,
+            // Takes the project directory like the built-in `dev`, which the CLI reads before it
+            // loads plugins.
+            options: [{ long: '--dir <dir>', description: 'Vendure project directory' }],
             action: async () => {
                 process.stdout.write('REPLACEMENT_DEV\n');
                 return 0;

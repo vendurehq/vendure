@@ -31,6 +31,7 @@ describe('core command definitions', () => {
             'auth status',
             'auth wait',
             'commands',
+            'dev',
             'devserver logs',
             'devserver start',
             'devserver status',

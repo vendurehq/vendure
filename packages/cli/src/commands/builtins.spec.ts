@@ -51,7 +51,7 @@ describe('builtinCommandDefs project gate', () => {
             .map(command => command.name)
             .sort();
 
-        expect(ungated).toEqual(['codemod', 'console', 'dev', 'mcp', 'plugins']);
+        expect(ungated).toEqual(['codemod', 'console', 'mcp', 'plugins']);
     });
 
     /**
