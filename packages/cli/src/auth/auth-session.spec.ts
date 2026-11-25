@@ -486,16 +486,19 @@ describe('loginWithDevice', () => {
                 authentication(accessToken(300, { org_id: 'org_2' }), 'refresh_2', 'org_2'),
             ]);
             const { waits, sleep } = recordSleeps();
+            const announced: number[] = [];
 
             const status = await loginWithDevice({
                 ...options,
                 fetch: workos.fetch,
                 sleep,
                 organization: ACCOUNT_2,
+                onRateLimited: seconds => announced.push(seconds),
             });
 
             // The first wait is the device poll interval.
             expect(waits.slice(1)).toEqual([7000]);
+            expect(announced).toEqual([7]);
             expect(status.organization?.name).toBe('Example GmbH');
             expect(readStoredAuth(options)?.refreshToken).toBe('refresh_2');
         });

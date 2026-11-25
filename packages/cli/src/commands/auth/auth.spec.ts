@@ -414,6 +414,25 @@ describe('vendure auth login with more than one organization', () => {
         expect(readStoredAuth(dependencies)?.organization?.name).toBe('Example GmbH');
     });
 
+    // CLO-1525: the wait for Console's rate limit is announced, not silent.
+    it('says when it waits for the rate limit before asking Vendure Console again', async () => {
+        const answers = deviceLoginAnswers();
+        let throttled = false;
+        dependencies.fetch = ((url: string, init?: RequestInit) => {
+            if (url === 'https://api.vendure.io/v1/me' && !throttled) {
+                throttled = true;
+                return Promise.resolve(new Response('{}', { status: 429, headers: { 'Retry-After': '1' } }));
+            }
+            return answers(url, init);
+        }) as typeof globalThis.fetch;
+
+        const code = await authLoginCommand({}, dependencies);
+
+        expect(code).toBe(0);
+        expect(messages).toContain('Vendure Console is rate-limiting requests. Trying again in 1 second...');
+        expect(readStoredAuth(dependencies)?.organization?.name).toBe('Bromley Art Supplies');
+    });
+
     it('stores nothing when the choice is cancelled', async () => {
         const code = await authLoginCommand(
             {},

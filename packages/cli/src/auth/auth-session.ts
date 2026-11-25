@@ -98,6 +98,13 @@ export interface DeviceLoginOptions extends AuthOptions {
     /** Shows the user the code and URL to approve. Called once, before polling starts. */
     onDeviceAuthorization?: (device: DeviceAuthorization) => void | Promise<void>;
     /**
+     * Called before the login waits for Vendure Console's rate limit to reset,
+     * with the seconds it waits. The wait is at most a minute.
+     *
+     * @since 3.8.3
+     */
+    onRateLimited?: (retryAfterSeconds: number) => void;
+    /**
      * Scope the new session to this organization rather than the one chosen in
      * the browser: a Customer Account id (Console's "Account identifier") or
      * its name, ignoring case. Resolved through Vendure Console after sign-in.
@@ -406,7 +413,10 @@ export async function loginWithDevice(
  * most {@link MAX_RATE_LIMIT_WAIT_SECONDS}. Without a Retry-After, or with a
  * longer one, the 429 is thrown at once. Two attempts and one wait at most.
  */
-async function retryWhenRateLimited<T>(request: () => Promise<T>, options: PollOptions): Promise<T> {
+async function retryWhenRateLimited<T>(
+    request: () => Promise<T>,
+    options: PollOptions & Pick<DeviceLoginOptions, 'onRateLimited'>,
+): Promise<T> {
     try {
         return await request();
     } catch (error) {
@@ -417,6 +427,7 @@ async function retryWhenRateLimited<T>(request: () => Promise<T>, options: PollO
         ) {
             throw error;
         }
+        options.onRateLimited?.(error.retryAfterSeconds);
         const wait = options.sleep ?? ((ms, signal) => sleep(ms, undefined, { signal }));
         await wait(error.retryAfterSeconds * 1000, options.signal);
         return request();
