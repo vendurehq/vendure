@@ -1,3 +1,4 @@
+import { RoutePending } from '@/vdb/components/layout/route-pending.js';
 import { Toaster } from '@/vdb/components/ui/sonner.js';
 import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { registerDefaults } from '@/vdb/framework/defaults.js';
@@ -37,19 +38,11 @@ const routerOptions: RouterOptions<AnyRoute, any> = {
     scrollRestoration: true,
     basepath: processedBaseUrl,
     // Wait a short moment before showing the pending UI on navigation, so
-    // fast transitions (cached / preloaded routes) don't flash a spinner.
-    // After 200ms the route hasn't resolved → show a non-jumpy fallback.
+    // fast transitions (cached / preloaded routes) show nothing.
+    // After 200ms the route hasn't resolved → show a skeleton of the next page.
     defaultPendingMs: 200,
     defaultPendingMinMs: 300,
-    defaultPendingComponent: () => (
-        <div
-            className="flex items-center justify-center w-full text-muted-foreground"
-            style={{ minHeight: '60vh' }}
-            aria-busy="true"
-        >
-            <Spinner />
-        </div>
-    ),
+    defaultPendingComponent: RoutePending,
     context: {
         auth: undefined!, // This will be set after we wrap the app in an AuthProvider
         queryClient,
