@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import type { AnchorSpec } from './recorder.js';
 
 const TABLE = '[data-slot="data-table"]';
@@ -55,3 +57,8 @@ export const EVERY_ROW: AnchorSpec = {
     props: ['y', 'height'],
     each: 'index',
 };
+
+/** Resolves once a list page has loaded: the body has rows (data or the empty state) and is not busy. */
+export async function waitForList(page: Page) {
+    await page.locator(`${TABLE} tbody:not([aria-busy="true"]) > tr`).first().waitFor({ state: 'attached' });
+}

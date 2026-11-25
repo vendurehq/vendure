@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import type { AllowRule } from './harness/analyze.js';
-import { EVERY_ROW, LIST_PAGE_ANCHORS } from './harness/anchors.js';
+import { EVERY_ROW, LIST_PAGE_ANCHORS, waitForList } from './harness/anchors.js';
 import { test, VIEWPORTS } from './harness/fixtures.js';
 import { forEachOrder, type LayoutContext, once, settle } from './harness/scenario.js';
 import { fillPage, LIST_VARIANTS, type ListVariant, listVariant } from './harness/variants.js';
@@ -15,16 +15,6 @@ import { fillPage, LIST_VARIANTS, type ListVariant, listVariant } from './harnes
 
 const LIST = 'ProductList';
 const TABLE = '[data-slot="data-table"]';
-
-/** The list after a load: data rows, or the empty state. */
-async function waitForList(page: Page) {
-    await page
-        .locator(
-            `${TABLE} [data-slot="data-table-row-link"], ${TABLE} [data-slot="empty-state"], ${TABLE} tbody td[colspan]`,
-        )
-        .first()
-        .waitFor();
-}
 
 async function openList(ctx: LayoutContext) {
     await ctx.page.goto('/products');

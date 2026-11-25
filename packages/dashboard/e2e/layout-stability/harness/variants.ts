@@ -53,17 +53,23 @@ export function listVariant(variant: ListVariant): ResponseRewrite | undefined {
         case 'oneRow':
             return (data, vars) =>
                 mapList(data, list => ({ ...list, items: list.items.slice(0, 1), totalItems: 1 }), vars);
-        case 'fullPage':
+        case 'fullPage': {
+            // A later page of a short list is empty on the server: fill it from the rows seen before.
+            let seen: any[] = [];
             return (data, vars) =>
                 mapList(
                     data,
-                    (list, v) => ({
-                        ...list,
-                        items: fillPage(list.items, pageSize(v), Number(v?.options?.skip) || 0),
-                        totalItems: 120,
-                    }),
+                    (list, v) => {
+                        if (list.items.length) seen = list.items;
+                        return {
+                            ...list,
+                            items: fillPage(seen, pageSize(v), Number(v?.options?.skip) || 0),
+                            totalItems: 120,
+                        };
+                    },
                     vars,
                 );
+        }
         case 'longNames':
             return (data, vars) =>
                 mapList(

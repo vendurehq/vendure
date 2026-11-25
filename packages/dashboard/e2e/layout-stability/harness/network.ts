@@ -43,6 +43,7 @@ export class HeldNetwork {
     private inFlight = new Set<Promise<unknown>>();
     private rewrites = new Map<string, ResponseRewrite>();
     private fakes = new Map<string, FakeResponse>();
+    private listRewrite: ResponseRewrite | undefined;
     /** Names of the operations that arrived while holding, in arrival order. */
     readonly arrivals: string[] = [];
 
@@ -55,6 +56,14 @@ export class HeldNetwork {
     rewrite(name: string, fn: ResponseRewrite | undefined) {
         if (fn) this.rewrites.set(name, fn);
         else this.rewrites.delete(name);
+    }
+
+    /**
+     * Rewrites every paginated list query (one with `options.take`), whatever its
+     * name. A rewrite by name takes precedence.
+     */
+    rewriteLists(fn: ResponseRewrite | undefined) {
+        this.listRewrite = fn;
     }
 
     fake(name: string, fn: FakeResponse | undefined) {
@@ -144,7 +153,8 @@ export class HeldNetwork {
         if (fake) return Promise.resolve<Answer>({ json: { data: fake(variables) } });
         const result = route.fetch().then(async response => {
             let json = await response.json();
-            const rewrite = this.rewrites.get(name);
+            const rewrite =
+                this.rewrites.get(name) ?? (variables?.options?.take != null ? this.listRewrite : undefined);
             if (rewrite && json?.data) json = { ...json, data: rewrite(json.data, variables) };
             return { response, json };
         });
