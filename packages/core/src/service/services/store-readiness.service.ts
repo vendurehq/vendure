@@ -11,6 +11,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Channel } from '../../entity/channel/channel.entity';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
+import { checkChannelTaxCountry } from '../helpers/store-readiness/channel-tax-country.check';
 import { checkDefaultZones } from '../helpers/store-readiness/default-zones.check';
 import { checkPaymentMethods } from '../helpers/store-readiness/payment-methods.check';
 import { checkPrices } from '../helpers/store-readiness/prices.check';
@@ -145,6 +146,7 @@ export class StoreReadinessService {
             };
             await run('default-zones', () => Promise.resolve(checkDefaultZones(input)), channel);
             await run('prices', () => checkPrices(input, this.connection), channel);
+            await run('channel-tax-country', () => checkChannelTaxCountry(input, this.connection), channel);
             await run(
                 'tax-rates',
                 () =>
