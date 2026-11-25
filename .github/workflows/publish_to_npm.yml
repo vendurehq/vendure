@@ -151,9 +151,9 @@ jobs:
           NEW_VERSION="${VERSION_PARTS[0]}.${MINOR}.0-minor-${{ steps.date.outputs.date }}"
           bunx lerna version $NEW_VERSION --no-git-tag-version --yes --no-push --force-publish
 
-      # The major branch versions with its own script, not Lerna. Its packages carry the version of
-      # the last release until the major release is prepared: 3.8.2 gives 4.0.0, and a prerelease
-      # such as 4.0.0-preview.3 keeps its 4.0.0.
+      # `packages/core` on major holds either the last release, whose next major is published
+      # (3.8.2 gives 4.0.0), or a prerelease of the next major, whose version is kept (4.0.0-preview.3
+      # gives 4.0.0). The step runs major's own `release:version` script.
       - name: Version packages (major-nightly)
         if: matrix.type == 'major-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
