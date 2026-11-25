@@ -48,11 +48,11 @@ import {
 } from '@/vdb/components/ui/page-header.js';
 import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provider.js';
 import { PageContext, PageContextValue } from '@/vdb/framework/layout-engine/page-provider.js';
+import { useIsPageSkeleton } from '@/vdb/hooks/use-is-page-skeleton.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { getLockedPageCard } from '../platform-promotion/locked-capabilities.js';
 import { getDashboardActionBarItems, getDashboardPageBlocks } from './layout-extensions.js';
 import { LocationWrapper } from './location-wrapper.js';
-import { useIsPageSkeleton } from './page-skeleton-context.js';
 
 /**
  * @description

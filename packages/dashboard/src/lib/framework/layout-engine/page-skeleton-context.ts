@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext } from 'react';
 
 /**
  * True inside the skeleton of a page while its route loads. `PageLayout` then
@@ -6,7 +6,3 @@ import { createContext, useContext } from 'react';
  * their components need the entity that is still loading.
  */
 export const PageSkeletonContext = createContext(false);
-
-export function useIsPageSkeleton() {
-    return useContext(PageSkeletonContext);
-}
