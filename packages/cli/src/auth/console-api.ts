@@ -25,6 +25,26 @@ export class ConsoleTokenRefusedError extends Error {
 }
 
 /**
+ * Console answered 429. `retryAfterSeconds` is when its limit resets, when
+ * Console said so.
+ */
+export class ConsoleRateLimitedError extends Error {
+    constructor(readonly retryAfterSeconds?: number) {
+        super(
+            `Vendure Console is receiving too many requests (HTTP 429).${describeReset(retryAfterSeconds)}`,
+        );
+        this.name = 'ConsoleRateLimitedError';
+    }
+}
+
+function describeReset(seconds: number | undefined): string {
+    if (seconds === undefined) {
+        return '';
+    }
+    return ` The limit resets in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}.`;
+}
+
+/**
  * The signed-in user is not an active member of the Customer Account that was
  * asked for. `organizations` are the accounts the user is a member of.
  */
@@ -99,6 +119,11 @@ export async function fetchOrganizations(
     if (response.status === 401) {
         throw new ConsoleTokenRefusedError();
     }
+    if (response.status === 429) {
+        throw new ConsoleRateLimitedError(
+            readRetryAfterSeconds(response.headers, (options.now ?? Date.now)()),
+        );
+    }
     if (!response.ok) {
         throw new Error(`Vendure Console answered the organization lookup with HTTP ${response.status}.`);
     }
@@ -150,6 +175,34 @@ async function consoleRequest(
         if (options.signal?.aborted) throw error;
         throw new Error(`Could not reach Vendure Console at ${consoleApi.apiOrigin}.`);
     }
+}
+
+/**
+ * Seconds until Console's rate limit resets. Console's throttlers send
+ * `Retry-After` and a named `Retry-After-<throttler>` header per throttler,
+ * each as seconds or an HTTP date. The longest wait is the one that matters.
+ */
+function readRetryAfterSeconds(headers: Headers, now: number): number | undefined {
+    let longest: number | undefined;
+    headers.forEach((value, name) => {
+        if (name !== 'retry-after' && !name.startsWith('retry-after-')) {
+            return;
+        }
+        const seconds = parseRetryAfter(value.trim(), now);
+        if (seconds !== undefined && (longest === undefined || seconds > longest)) {
+            longest = seconds;
+        }
+    });
+    return longest;
+}
+
+function parseRetryAfter(value: string, now: number): number | undefined {
+    if (/^\d+$/.test(value)) {
+        return Number(value);
+    }
+    // An HTTP date names its weekday and month. This keeps `Date.parse` from reading other values as dates.
+    const date = /[a-z]/i.test(value) ? Date.parse(value) : NaN;
+    return Number.isNaN(date) ? undefined : Math.max(0, Math.ceil((date - now) / 1000));
 }
 
 async function readJson(response: Response): Promise<unknown> {

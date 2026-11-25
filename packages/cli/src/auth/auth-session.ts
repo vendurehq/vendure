@@ -1,3 +1,5 @@
+import { setTimeout as sleep } from 'node:timers/promises';
+
 import {
     NotLoggedInError,
     ReauthenticationRequiredError,
@@ -20,6 +22,7 @@ import {
 } from './auth-store';
 import {
     AuthOrganization,
+    ConsoleRateLimitedError,
     ConsoleTokenRefusedError,
     fetchOrganizations,
     fetchWorkosClient,
@@ -29,6 +32,7 @@ import {
 import { FileLockOptions, withFileLock } from './file-lock';
 import {
     DeviceAuthorization,
+    PollOptions,
     WORKOS_REQUEST_TIMEOUT_MS,
     WorkosAuthentication,
     WorkosClient,
@@ -118,6 +122,13 @@ export interface DeviceLoginOptions extends AuthOptions {
  * is still in flight when the token runs out.
  */
 const ACCESS_TOKEN_SKEW_MS = 60_000;
+
+/**
+ * The longest Retry-After the login waits for before it asks Vendure Console
+ * once more. Console's throttlers block for at most a minute, and the Vendure
+ * Cloud CLI waits up to the same limit.
+ */
+const MAX_RATE_LIMIT_WAIT_SECONDS = 60;
 
 /**
  * `staleMs` covers the worst case of two refresh exchanges timing out (a
@@ -289,10 +300,18 @@ function discardIfStillSpent(spentRefreshToken: string, options: AuthOptions): v
  * login already on this machine. The WorkOS client is the one the selected
  * Vendure Console publishes, so Console accepts the tokens.
  *
+ * When Vendure Console answers the organization lookup with a 429, the lookup
+ * is retried once after its Retry-After, if that is at most a minute. When the
+ * lookup or the scoping to an organization is still rate-limited, the approved
+ * login is stored with the organization chosen in the browser, so it costs no
+ * new device code, and an error says so.
+ *
  * @throws SessionLockUnavailableError when the login's lock cannot be taken.
  * @since 3.8.0
  */
-export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise<AuthStatus> {
+export async function loginWithDevice(
+    options: DeviceLoginOptions & Pick<PollOptions, 'sleep'> = {},
+): Promise<AuthStatus> {
     const consoleApiUrl = resolveConsoleApiUrl(options);
     // Before the browser step, so a Console that cannot be reached fails before
     // the user approves anything.
@@ -310,7 +329,10 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
         user: authentication.user,
         organization: scope,
     });
+    // The organization the login is being scoped to, for the rate-limit message.
+    let wanted = options.organization;
     const scopeTo = async (target: AuthOrganization): Promise<StoredOrganization> => {
+        wanted = target.name;
         const scoped = toStoredOrganization(target);
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
             assertStorable(toSession(scoped), options);
@@ -323,45 +345,114 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
         }
         return scoped;
     };
-    let organization: StoredOrganization | null;
-    if (options.organization) {
-        organization = await scopeTo(
-            resolveOrganization(
-                await fetchOrganizations(consoleApiUrl, authentication.accessToken, options),
-                options.organization,
-            ),
-        );
-    } else {
-        const tokenOrganization = tokenOrganizationId(authentication);
-        const organizations = await fetchOrganizations(
-            consoleApiUrl,
-            authentication.accessToken,
+    let organizations: AuthOrganization[] | undefined;
+    const lookUpOrganizations = () =>
+        retryWhenRateLimited(
+            () => fetchOrganizations(consoleApiUrl, authentication.accessToken, options),
             options,
-        ).catch(() => undefined);
-        const current = organizations?.find(org => org.workosOrganizationId === tokenOrganization);
-        const chosen =
-            organizations && organizations.length > 1
-                ? await options.chooseOrganization?.(organizations, current)
-                : undefined;
-        // A first device login often has no organization; with only one to choose, use it.
-        const only = !current && organizations?.length === 1 ? organizations[0] : undefined;
-        const target = chosen ?? only;
-        if (target) {
-            organization = await scopeTo(target);
-        } else if (current) {
-            organization = toStoredOrganization(current);
+        );
+    let organization: StoredOrganization | null;
+    try {
+        if (options.organization) {
+            organizations = await lookUpOrganizations();
+            organization = await scopeTo(resolveOrganization(organizations, options.organization));
         } else {
-            // Console could not list the organizations, or the token's is not among them.
-            organization = tokenOrganization
-                ? { workosOrganizationId: tokenOrganization, customerAccountId: null, name: null }
-                : null;
+            const tokenOrganization = tokenOrganizationId(authentication);
+            organizations = await lookUpOrganizations().catch(() => undefined);
+            const current = organizations?.find(org => org.workosOrganizationId === tokenOrganization);
+            const chosen =
+                organizations && organizations.length > 1
+                    ? await options.chooseOrganization?.(organizations, current)
+                    : undefined;
+            // A first device login often has no organization; with only one to choose, use it.
+            const only = !current && organizations?.length === 1 ? organizations[0] : undefined;
+            const target = chosen ?? only;
+            if (target) {
+                organization = await scopeTo(target);
+            } else if (current) {
+                organization = toStoredOrganization(current);
+            } else {
+                // Console could not list the organizations, or the token's is not among them.
+                organization = describeKnownOrganization(tokenOrganization, undefined);
+            }
         }
+    } catch (error) {
+        const rateLimit = describeRateLimit(error);
+        if (!rateLimit) {
+            throw error;
+        }
+        // The device flow is complete and its refresh token unspent: WorkOS
+        // spends nothing on a 429. Storing it saves the user a new device code.
+        const kept = describeKnownOrganization(tokenOrganizationId(authentication), organizations);
+        await withSessionLock(options, () => {
+            writeStoredAuth(toSession(kept), options);
+            return Promise.resolve();
+        });
+        const scope = kept
+            ? `, scoped to ${kept.name ?? kept.workosOrganizationId}`
+            : ' without an organization';
+        throw new Error(
+            `Signed in as ${authentication.user.email}, but the login could not be scoped to ` +
+                `${wanted ?? 'an organization'}: ${rateLimit} The login is stored${scope}. ` +
+                'To use another Customer Account, run `vendure auth login --organization <Account identifier>` ' +
+                'once the limit has reset.',
+        );
     }
     const session = toSession(organization);
     return withSessionLock(options, () => {
         writeStoredAuth(session, options);
         return Promise.resolve(readAuthStatus(options));
     });
+}
+
+/**
+ * Runs a Vendure Console request once more after a 429 whose Retry-After is at
+ * most {@link MAX_RATE_LIMIT_WAIT_SECONDS}. Without a Retry-After, or with a
+ * longer one, the 429 is thrown at once. Two attempts and one wait at most.
+ */
+async function retryWhenRateLimited<T>(request: () => Promise<T>, options: PollOptions): Promise<T> {
+    try {
+        return await request();
+    } catch (error) {
+        if (
+            !(error instanceof ConsoleRateLimitedError) ||
+            error.retryAfterSeconds === undefined ||
+            error.retryAfterSeconds > MAX_RATE_LIMIT_WAIT_SECONDS
+        ) {
+            throw error;
+        }
+        const wait = options.sleep ?? ((ms, signal) => sleep(ms, undefined, { signal }));
+        await wait(error.retryAfterSeconds * 1000, options.signal);
+        return request();
+    }
+}
+
+/**
+ * Describes a rate-limited request during login, or returns `undefined` for
+ * any other failure. A 429 from WorkOS carries no reset time the CLI reads.
+ */
+function describeRateLimit(error: unknown): string | undefined {
+    if (error instanceof ConsoleRateLimitedError) {
+        return error.message;
+    }
+    if (error instanceof SessionRefreshUnavailableError && error.status === 429) {
+        return 'the authentication service is receiving too many requests (HTTP 429).';
+    }
+    return undefined;
+}
+
+/** The organization a token is scoped to, named when Console listed it. */
+function describeKnownOrganization(
+    workosOrganizationId: string | null,
+    organizations: AuthOrganization[] | undefined,
+): StoredOrganization | null {
+    if (!workosOrganizationId) {
+        return null;
+    }
+    const known = organizations?.find(org => org.workosOrganizationId === workosOrganizationId);
+    return known
+        ? toStoredOrganization(known)
+        : { workosOrganizationId, customerAccountId: null, name: null };
 }
 
 /**
@@ -465,15 +556,10 @@ async function describeTokenOrganization(
     options: AuthOptions,
 ): Promise<StoredOrganization | null> {
     const workosOrganizationId = tokenOrganizationId(authentication);
-    if (!workosOrganizationId) {
-        return null;
-    }
-    const known = await fetchOrganizations(consoleApiUrl, authentication.accessToken, options)
-        .then(organizations => organizations.find(org => org.workosOrganizationId === workosOrganizationId))
-        .catch(() => undefined);
-    return known
-        ? toStoredOrganization(known)
-        : { workosOrganizationId, customerAccountId: null, name: null };
+    const organizations = workosOrganizationId
+        ? await fetchOrganizations(consoleApiUrl, authentication.accessToken, options).catch(() => undefined)
+        : undefined;
+    return describeKnownOrganization(workosOrganizationId, organizations);
 }
 
 /**
