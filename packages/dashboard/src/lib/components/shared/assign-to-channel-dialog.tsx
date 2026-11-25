@@ -196,8 +196,6 @@ export function AssignToChannelDialog({
     );
 }
 
-const MAX_PRICE_FACTOR = 99999;
-
 /**
  * Hook for managing price factor state in assign-to-channel dialogs.
  *
@@ -219,8 +217,7 @@ export function usePriceFactor() {
     }, []);
     const parsed = Number.parseFloat(value);
     const isEmpty = value === '' && !badInput;
-    const priceFactorValid =
-        isEmpty || (Number.isFinite(parsed) && parsed >= 0 && parsed <= MAX_PRICE_FACTOR);
+    const priceFactorValid = isEmpty || (Number.isFinite(parsed) && parsed >= 0);
     const priceFactor = !isEmpty && priceFactorValid ? parsed : 1;
 
     const priceFactorField = (
@@ -232,7 +229,7 @@ export function usePriceFactor() {
                 ref={syncBadInput}
                 type="number"
                 min="0"
-                max={MAX_PRICE_FACTOR}
+                max="99999"
                 step="0.01"
                 placeholder="1"
                 value={value}

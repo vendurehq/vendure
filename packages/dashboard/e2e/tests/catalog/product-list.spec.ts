@@ -545,8 +545,8 @@ test.describe('Product List', () => {
             const dialog = await openBulkAssignDialog(page, fixture);
             const assign = dialog.getByRole('button', { name: 'Assign' });
 
-            // Negative, unparseable (reported by the browser as an empty value) and above the maximum
-            for (const text of ['-1', '1e', '100000']) {
+            // Negative, and unparseable (reported by the browser as an empty value)
+            for (const text of ['-1', '1e']) {
                 const factor = await typePriceFactor(dialog, text);
                 await expect(factor).toHaveAttribute('aria-invalid', 'true');
                 await expect(assign).toBeDisabled();
