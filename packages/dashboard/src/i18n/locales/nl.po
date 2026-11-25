@@ -7031,6 +7031,10 @@ msgstr "Subtotaal"
 msgid "is less than"
 msgstr "is kleiner dan"
 
+#: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
+msgid "Recalculate tax, replacing the tax that was paid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund ID"
 msgstr "Terugbetalings-ID"

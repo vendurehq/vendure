@@ -2902,6 +2902,12 @@ export type ModifyOrderInput = {
 export type ModifyOrderOptions = {
   freezePromotions?: InputMaybe<Scalars['Boolean']['input']>;
   recalculateShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  /**
+   * Asks the TaxLineCalculationStrategy again for the tax of every OrderLine, replacing the
+   * absolute tax amounts that were paid even on lines that did not change. Use it after a change of
+   * address when the tax may differ, and check the result with `dryRun` first. Defaults to false.
+   */
+  recalculateTax?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type ModifyOrderResult = CouponCodeExpiredError | CouponCodeInvalidError | CouponCodeLimitError | IneligibleShippingMethodError | InsufficientStockError | NegativeQuantityError | NoChangesSpecifiedError | Order | OrderLimitError | OrderModificationStateError | PaymentMethodMissingError | RefundPaymentIdMissingError;
@@ -5676,7 +5682,7 @@ export type Query = {
   /**
    * Returns the tax-inclusive refund amount for the given units, excluding shipping. Units that were
    * cancelled are valued at the price recorded when they were cancelled, for lines priced by
-   * `OrderItemPriceCalculationStrategy.calculateLinePrice`. Returns an error if more units are
+   * `OrderItemPriceCalculationStrategy.calculateLinePrices`. Returns an error if more units are
    * requested than the line can still refund.
    */
   previewRefundLineTotal: Scalars['Money']['output'];

@@ -7036,6 +7036,10 @@ msgstr "جمع جزء"
 msgid "is less than"
 msgstr "کوچکتر از است"
 
+#: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
+msgid "Recalculate tax, replacing the tax that was paid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund ID"
 msgstr "شناسه بازپرداخت"

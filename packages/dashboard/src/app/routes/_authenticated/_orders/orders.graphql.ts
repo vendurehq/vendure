@@ -201,6 +201,9 @@ export const orderDetailFragment = graphql(
             }
             lines {
                 ...OrderLine
+                taxLines {
+                    amount
+                }
             }
             surcharges {
                 id

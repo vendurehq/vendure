@@ -7036,6 +7036,10 @@ msgstr "Delsum"
 msgid "is less than"
 msgstr "er mindre enn"
 
+#: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
+msgid "Recalculate tax, replacing the tax that was paid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund ID"
 msgstr "Refusjons-ID"

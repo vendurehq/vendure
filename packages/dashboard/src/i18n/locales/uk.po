@@ -7036,6 +7036,10 @@ msgstr "Проміжний підсумок"
 msgid "is less than"
 msgstr "менше ніж"
 
+#: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
+msgid "Recalculate tax, replacing the tax that was paid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund ID"
 msgstr "ID повернення"

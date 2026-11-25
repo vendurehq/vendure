@@ -95,6 +95,7 @@ function ModifyOrderPage() {
         addSurcharge,
         setNote,
         setRecalculateShipping,
+        setRecalculateTax,
         hasModifications,
     } = useModifyOrder(entity);
 
@@ -249,6 +250,7 @@ function ModifyOrderPage() {
                         }
                         onNoteChange={setNote}
                         onRecalculateShippingChange={setRecalculateShipping}
+                        onRecalculateTaxChange={setRecalculateTax}
                     />
                     <div className="mt-4 flex justify-end">
                         <Button

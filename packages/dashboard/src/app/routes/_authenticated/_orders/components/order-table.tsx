@@ -165,7 +165,7 @@ export function OrderTable({ order, pageId }: Readonly<OrderTableProps>) {
     const fields = getFieldsFromDocumentNode(
         addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine'] }),
         ['order', 'lines'],
-    );
+    ).filter(field => field.name !== 'taxLines');
 
     const customizeColumns = useMemo(() => createCustomizeColumns(currencyCode), [currencyCode]);
 
