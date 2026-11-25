@@ -1,4 +1,16 @@
-import { ConsoleSession } from './cli-auth.js';
+/**
+ * The session `vendure console link` gives an `afterConsoleLink` hook that requested one: the
+ * stored login's access token and when it expires. The refresh token stays in the login, because
+ * it is single-use. The CLI does not write this anywhere; storing it is the plugin's to do, under
+ * its own rules.
+ *
+ * @since 3.8.0
+ */
+export interface ConsoleSession {
+    accessToken: string;
+    /** Epoch milliseconds. */
+    expiresAt: number;
+}
 import { ConsoleOriginEnvironment } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { ConsoleLinkResultContribution } from './console-result.js';

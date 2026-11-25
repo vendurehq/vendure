@@ -33,10 +33,10 @@ import { CliCommandExit } from '../../shared/cli-command-exit.js';
 import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
 import { openConsoleBrowser } from './authentication.js';
-import { ConsoleSession } from './cli-auth.js';
 import {
     ConsoleLinkContext,
     ConsoleLinkOutcome,
+    ConsoleSession,
     ConsoleSessionUnavailableReason,
     RegisteredConsoleLinkHook,
 } from './console-link-hook.js';
