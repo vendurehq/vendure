@@ -123,6 +123,16 @@ export class CommandRegistry {
         pluginIds: new Set(),
         pluginExtensions: new Map(),
     };
+    /** Paths of the commands the CLI declares with `defineCommand`, which `extendCommands` cannot reach. */
+    private hostCommands = new Set<string>();
+
+    /**
+     * Records the paths of the commands the CLI declares with `defineCommand`, such as `dev`, so an
+     * extension of one of them is refused with a reason that names it.
+     */
+    setHostDeclaredCommands(paths: string[][]): void {
+        this.hostCommands = new Set(paths.map(path => path.join(' ')));
+    }
 
     /**
      * Registers the built-in commands. Plugins go through {@link applyPlugin},
@@ -180,7 +190,7 @@ export class CommandRegistry {
             draftCommand(draft, node, plugin.id, conflicts, notices);
         }
         for (const extension of plugin.extendCommands ?? []) {
-            draftExtension(draft, extension, plugin.id, conflicts, notices);
+            draftExtension(draft, extension, plugin.id, conflicts, notices, this.hostCommands);
         }
         for (const { extensionPoint, extension } of getCliPluginExtensionEntries(plugin)) {
             const entries = draft.pluginExtensions.get(extensionPoint) ?? [];
@@ -396,6 +406,7 @@ function draftExtension(
     source: string,
     conflicts: string[],
     notices: string[],
+    hostCommands: ReadonlySet<string> = new Set(),
 ): void {
     const before = conflicts.length;
     const path = normalizeCommandPath(extension.command);
@@ -408,6 +419,13 @@ function draftExtension(
 
     const entry = draft.commands.get(path[0]);
     const target = entry && findNodeAtPath(entry.node, path.slice(1));
+    if (!target && hostCommands.has(label)) {
+        conflicts.push(
+            `"vendure ${label}" is declared with defineCommand, so extendCommands cannot extend it. ` +
+                'A plugin adds to it with a command extension declared with defineCommand instead.',
+        );
+        return;
+    }
     if (!entry || !target) {
         conflicts.push(
             `No command is registered at "vendure ${label}", so there is nothing to extend. ` +

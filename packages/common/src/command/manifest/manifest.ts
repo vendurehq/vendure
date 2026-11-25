@@ -51,6 +51,22 @@ export interface MergedManifestCommand extends ManifestCommand {
     source: string;
 }
 
+/**
+ * Whether a field's JSON Schema is `boolean | string`, either as `anyOf` or as a `type` list. The
+ * CLI registers such a field as a flag with an optional value, such as `--inspect [host:port]`,
+ * and the generated reference shows it that way.
+ *
+ * @since 4.0.0
+ */
+export function takesOptionalValue(schema: JsonSchema): boolean {
+    const types = new Set<string>(
+        Array.isArray(schema.type)
+            ? (schema.type as string[])
+            : ((schema.anyOf as JsonSchema[] | undefined) ?? []).map(part => String(part.type)),
+    );
+    return types.size === 2 && types.has('boolean') && types.has('string');
+}
+
 export function readManifestFile(file: string): CommandManifest {
     const manifest = JSON.parse(fs.readFileSync(file, 'utf-8')) as CommandManifest;
     if (manifest.manifestVersion !== 1 || !Array.isArray(manifest.commands)) {

@@ -59,8 +59,13 @@ export interface DevOptions {
 export interface DevIo {
     /** Text from a process, or a status line, for stdout or stderr as it came. */
     write(stream: 'stdout' | 'stderr', text: string): void;
+    /** A one-off message, such as the Console hint. */
     info(message: string): void;
     warn(message: string): void;
+    /**
+     * An error while the processes run, such as a process that could not be spawned. The command
+     * host shows it as a warning notice: the run goes on, or ends with its exit code.
+     */
     error(message: string): void;
 }
 
@@ -75,17 +80,23 @@ export const terminalDevIo: DevIo = {
 /** How a dev run ended. */
 export interface DevRunResult {
     exitCode: number;
-    /** The run was stopped from outside, by Ctrl+C, a signal or `signal`, not by a process ending. */
+    /**
+     * The run was stopped from outside, by SIGINT, SIGTERM or `signal`, not by a process ending.
+     */
     stopped: boolean;
-    /** Why the run could not start, such as a missing entry file. No process was started. */
+    /** The signal that stopped the run. `signal` counts as SIGINT. */
+    stopSignal?: NodeJS.Signals;
+    /** Why the run failed before it could supervise its processes, such as a missing entry file. */
     startError?: string;
 }
 
 export interface RunDevOptions {
     io?: DevIo;
     /**
-     * Stops the run when it aborts, as Ctrl+C does. Without it, the run stops on SIGINT and SIGTERM
-     * itself.
+     * Stops the run when it aborts. The processes get SIGINT, as for Ctrl+C, whatever made the
+     * caller abort: the command host aborts on SIGINT, on SIGTERM and on a cancel from
+     * `vendure mcp`. Without it, the run stops on SIGINT and SIGTERM itself, and passes the signal
+     * on.
      */
     signal?: AbortSignal;
 }
@@ -118,7 +129,10 @@ const reloadIgnoredFileNames = new Set([
 /** Runs `vendure dev` on the terminal, as it ran before the command host. */
 export async function devCommand(targetArg?: string, options: DevOptions = {}): Promise<number> {
     const result = await runDev(targetArg, options);
-    if (result.stopped) {
+    if (result.startError !== undefined) {
+        terminalDevIo.error(result.startError);
+    }
+    if (result.stopSignal === 'SIGINT') {
         showStarPromptOnce();
     }
     return result.exitCode;
@@ -185,17 +199,16 @@ export async function runDev(
                 onShutdownSignal: received => (shutdownSignal = received),
                 signal,
             });
-            return { exitCode, stopped: shutdownSignal === 'SIGINT' };
+            return {
+                exitCode,
+                stopped: shutdownSignal !== undefined,
+                ...(shutdownSignal ? { stopSignal: shutdownSignal } : {}),
+            };
         } finally {
             run.end();
         }
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : String(e);
-        // A caller with its own io reports the error itself, as a coded error.
-        if (io === terminalDevIo) {
-            io.error(message);
-        }
-        return { exitCode: 1, stopped: false, startError: message };
+        return { exitCode: 1, stopped: false, startError: e instanceof Error ? e.message : String(e) };
     }
 }
 
@@ -664,12 +677,9 @@ function writeDevStatus(
     message: string,
     options: { prefixOutput: boolean; io?: DevIo },
 ) {
-    const io = options.io ?? terminalDevIo;
-    if (options.prefixOutput) {
-        io.write('stdout', `${getProcessPrefix(processDefinition)} ${message}\n`);
-    } else {
-        io.info(message);
-    }
+    // A status line is output like the processes' own, so it never piles up as a notice.
+    const prefix = options.prefixOutput ? `${getProcessPrefix(processDefinition)} ` : '';
+    (options.io ?? terminalDevIo).write('stdout', `${prefix}${message}\n`);
 }
 
 function stopChildWithGrace(child: ChildProcess, signal: NodeJS.Signals, graceMs: number): void {

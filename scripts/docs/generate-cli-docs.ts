@@ -13,6 +13,7 @@ import {
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
+    takesOptionalValue,
 } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -117,6 +118,11 @@ function renderIndex(groups: Map<string, MergedManifestCommand[]>, builtins: Bui
         'Run `vendure commands --json` in a project for the commands it really has, including those that ' +
             'plugins add' +
             (groups.has('guide') ? ', and `vendure guide` for how an agent works with the CLI.' : '.'),
+        '',
+        'A plugin package declares its own commands with `defineCommand` in the same way, and ships its own ' +
+            'manifest. See [Commands declared with `defineCommand`](' +
+            cliGuideUrl +
+            '#commands-declared-with-definecommand).',
         '',
         '## Every command',
         '',
@@ -322,11 +328,9 @@ function renderFlag(command: MergedManifestCommand, field: string, schema: JsonS
     const type = primaryType(schema);
     const placeholder = command.cli.flags?.[field]?.placeholder ?? rules.kebab(field);
     // As the CLI registers it: a field that is a boolean or a string takes an optional value.
-    const types = new Set(
-        Array.isArray(schema.anyOf) ? (schema.anyOf as JsonSchema[]).map(part => String(part.type)) : [],
-    );
+    const optionalValue = takesOptionalValue(schema);
     let value = ` <${placeholder}>`;
-    if (types.size === 2 && types.has('boolean') && types.has('string')) {
+    if (optionalValue) {
         value = ` [${placeholder}]`;
     } else if (type === 'boolean') {
         value = '';
@@ -337,7 +341,7 @@ function renderFlag(command: MergedManifestCommand, field: string, schema: JsonS
     if (short) {
         flags.unshift(`\`${short}\``);
     }
-    if (type === 'boolean') {
+    if (type === 'boolean' && !optionalValue) {
         flags.push(`\`--no-${rules.kebab(field)}\``);
     }
     if (positional.includes(field)) {

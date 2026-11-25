@@ -1,14 +1,16 @@
 import { CommandDefinition, CommandEvent, isIncompleteResult } from '@vendure/common/lib/command';
-import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
+import { MergedManifestCommand, takesOptionalValue } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
 import { requireCredential } from '../auth/credential.js';
+import { pluginCommandsHeading, pluginFromCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
+import { CORE_SOURCE } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
@@ -21,10 +23,11 @@ const CANCEL_GRACE_MS = 10_000;
 
 export interface AdapterOptions {
     /**
-     * Loads the command declarations. Called only when a command runs, never to build the
-     * command line, which is built from the manifest alone.
+     * Loads the command declarations of the package that declared a command, its manifest's
+     * `source`. Called only when a command runs, never to build the command line, which is built
+     * from the manifests alone.
      */
-    loadDefinitions(): Promise<CommandDefinition[]>;
+    loadDefinitions(source: string): Promise<CommandDefinition[]>;
 }
 
 /**
@@ -61,6 +64,9 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                if (parent === program && manifestCommand.source !== CORE_SOURCE) {
+                    group.helpGroup(pluginCommandsHeading(manifestCommand.source));
+                }
             }
             parent = group;
         }
@@ -76,7 +82,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         // A CLI plugin already replaced this command. The plugin's command wins for people and
         // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
         // coded error instead of the plugin's output.
-        replacedBy = /^Commands from (.+):$/.exec(existing.helpGroup())?.[1] ?? 'a CLI plugin';
+        replacedBy = pluginFromCommandsHeading(existing.helpGroup()) ?? 'a CLI plugin';
         if (!isMcpCall()) {
             process.stderr.write(`Replaced command "${manifestCommand.path.join(' ')}" via ${replacedBy}\n`);
             return;
@@ -86,6 +92,9 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         siblings.splice(siblings.indexOf(existing), 1);
     }
     const command = parent.command(name).description(manifestCommand.description);
+    if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
+        command.helpGroup(pluginCommandsHeading(manifestCommand.source));
+    }
     const positional = manifestCommand.cli.positional ?? [];
     const properties = (manifestCommand.input.properties ?? {}) as Record<string, Record<string, any>>;
 
@@ -101,13 +110,13 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
             manifestCommand.cli.flags?.[field]?.placeholder ??
             (field in manifestCommand.consents ? 'digest' : kebab(field));
         // A field that is either a flag or a value, such as `--inspect [host:port]`.
-        const optionalValue = isBooleanOrString(schema);
+        const optionalValue = takesOptionalValue(schema);
         const value = optionalValue
             ? ` [${placeholder}]`
             : type === 'array'
               ? ` <${placeholder}...>`
               : ` <${placeholder}>`;
-        const flags = `${short ? `${short}, ` : ''}${flag}${type === 'boolean' ? '' : value}`;
+        const flags = `${short ? `${short}, ` : ''}${flag}${type === 'boolean' && !optionalValue ? '' : value}`;
         const option = new Option(flags, (schema.description as string | undefined) ?? '');
         if (type === 'number' || type === 'integer') {
             option.argParser(raw => Number(raw));
@@ -116,7 +125,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
             option.choices(schema.enum as string[]);
         }
         command.addOption(option);
-        if (type === 'boolean') {
+        if (type === 'boolean' && !optionalValue) {
             // `--no-<flag>` sets the field to false. Defined after `--<flag>`, it leaves the value
             // undefined when neither is given, so the command's own default applies, for example
             // a `wait` field that is true for people and false under `vendure mcp`.
@@ -148,7 +157,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     });
 
     command.action(async (...args: any[]) => {
-        const opts = command.opts();
+        const opts = hostFlags(command);
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
         );
@@ -157,14 +166,19 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     });
 }
 
-/** Whether a field's JSON Schema is `boolean | string`, which a flag with an optional value gives. */
-function isBooleanOrString(schema: Record<string, any>): boolean {
-    const types = new Set<string>(
-        Array.isArray(schema.type)
-            ? schema.type
-            : ((schema.anyOf as Array<{ type?: string }> | undefined) ?? []).map(part => String(part.type)),
-    );
-    return types.size === 2 && types.has('boolean') && types.has('string');
+/**
+ * The host's own flags of a run. A CLI plugin can declare a shared `--json` on the program, which
+ * then takes the flag before this command sees it, so a flag not given to the command is read from
+ * the commands above it, unless it only has its default there.
+ */
+function hostFlags(command: Command): { json?: boolean; format?: string; input?: string } {
+    const opts = command.opts();
+    const read = (name: 'json' | 'format' | 'input') => opts[name] ?? ancestorOptionValue(command, name);
+    return {
+        json: read('json') as boolean | undefined,
+        format: read('format') as string | undefined,
+        input: read('input') as string | undefined,
+    };
 }
 
 /** Whether this process runs a tool call for `vendure mcp`, which marks its child processes. */
@@ -276,8 +290,19 @@ async function runLeaf(
     }
     Object.assign(input, collectFlagInput(command, properties, positionalValues));
 
-    const definitions = await options.loadDefinitions();
     const key = manifestCommand.path.join(' ');
+    let definitions: CommandDefinition[];
+    try {
+        definitions = await options.loadDefinitions(manifestCommand.source);
+    } catch (e) {
+        return finish(
+            errorResult(hostErrors.pluginDefinitionsFailed, {
+                plugin: manifestCommand.source,
+                command: key,
+                reason: e instanceof Error ? e.message : String(e),
+            }),
+        );
+    }
     const def = definitions.find(candidate => candidate.path.join(' ') === key);
     const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
     if (!def || mismatch) {

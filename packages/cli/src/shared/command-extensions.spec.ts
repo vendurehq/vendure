@@ -309,6 +309,21 @@ describe('Command extensions: registration through Commander', () => {
 });
 
 describe('Command extensions: collisions', () => {
+    // `vendure dev` is declared with defineCommand, which extendCommands cannot reach.
+    it('names a command the CLI declares with defineCommand when a plugin tries to extend it', () => {
+        const registry = new CommandRegistry();
+        registry.setHostDeclaredCommands([['dev'], ['migrate', 'generate']]);
+        const plugin = defineCliPlugin({
+            id: '@example/dev-extender',
+            commands: [],
+            extendCommands: [{ command: 'dev', options: [{ long: '--x', description: 'X' }] }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(
+            /"vendure dev" is declared with defineCommand, so extendCommands cannot extend it/,
+        );
+    });
+
     it('rejects an extension of a command that is not registered', () => {
         const registry = registryWithCore();
         const plugin = defineCliPlugin({

@@ -111,7 +111,8 @@ Running from inside `server/` also works.
 
 The CLI reads `--dir` before it loads plugins and parses the full `dev` command. It reads the plugin
 allowlist from the selected project's `package.json` and resolves plugin packages from that project.
-A plugin must still be a direct project dependency and declare `vendure.cliPlugin`.
+A plugin must still be a direct project dependency and declare `vendure.cliPlugin` or
+`vendure.commandManifest`.
 Workspace project discovery also selects the plugin allowlist for other CLI commands. Their own project
 validation and actions keep their existing behavior. From a project subdirectory, plugin lookup walks up
 to the project directory.
@@ -1124,8 +1125,8 @@ export default defineCliPlugin({
     ],
     extendCommands: [
         {
-            // Add to the built-in `dev` command rather than replacing it
-            command: 'dev',
+            // Add to the built-in `start` command rather than replacing it
+            command: 'start',
             options: [{ long: '--rotate-credential', description: 'Replace the stored credential' }],
             decorate:
                 ({ next }) =>
@@ -1155,6 +1156,102 @@ what an installed but not yet enabled package would add when you run `vendure
 plugins`. Once a plugin is enabled the CLI reads its commands from the
 plugin itself, so this list only has to be right for a package that is not
 enabled yet.
+
+### Commands declared with `defineCommand`
+
+A package can also ship commands declared with `defineCommand`, the way the CLI declares its own.
+Such a command gets everything a built-in command has: `--json` with one envelope on stdout,
+`--input`, `incomplete` results, named consents with a preview, secret output fields, and a place in
+`vendure commands --json`. The `cliPlugin` commands above get none of these, and keep working as they
+are.
+
+Declare each command as plain data. Its schemas and its implementation are loaded lazily, so
+declaring it loads neither, and nothing in it comes from `@vendure/cli`:
+
+```ts title="src/commands.ts"
+import { defineCommand } from '@vendure/common/lib/command';
+
+export const commands = [
+    defineCommand({
+        path: ['acme', 'sync'],
+        description: 'Sync the catalog with Acme',
+        behavior: 'mutating',
+        schemas: () => import('./sync.schema.js'),
+        run: () => import('./sync.run.js'),
+    }),
+];
+```
+
+```ts title="src/sync.schema.ts"
+import { z } from 'zod';
+
+export const input = z.object({ dryRun: z.boolean().default(false).describe('Only report what would change') });
+export const output = z.object({ synced: z.number() });
+```
+
+```ts title="src/sync.run.ts"
+import type { CommandContext } from '@vendure/common/lib/command';
+
+export async function run(input: { dryRun: boolean }, ctx: CommandContext) {
+    ctx.progress('Syncing the catalog');
+    return { synced: 0 };
+}
+```
+
+`run` never prints or prompts. It reports through `ctx`, and returns its output, or `incomplete()`,
+`failed()` or `fail()` from `@vendure/common/lib/command`.
+
+At build time, write the package's command manifest with the builder in `@vendure/common`. The
+builder turns each command's schemas into JSON Schema, so the CLI and the Developer MCP know every
+command's input and output without loading its code:
+
+```ts title="scripts/build-manifest.ts"
+import { writeCommandManifest } from '@vendure/common/lib/command/manifest';
+
+import { commands } from '../dist/commands.js';
+
+await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands);
+```
+
+The name you pass must be the package's own name. Then point to the manifest and to the module
+that exports `commands` in the package's `package.json`:
+
+```json
+{
+    "vendure": {
+        "commandManifest": "./dist/vendure-commands.json",
+        "commandDefinitions": "./dist/commands.js"
+    }
+}
+```
+
+A package can declare both these keys and a `cliPlugin`. It is enabled the same way, with
+`vendure plugins add`, and only an enabled package's commands are loaded ([Explicit
+activation](#explicit-activation)). Then:
+
+- `vendure acme sync` and `vendure acme sync --json` run the command on the CLI host, and
+  `vendure commands --json` lists it with `"source": "@acme/vendure-cli"`;
+- the Developer MCP (`vendure mcp`) offers it as the tool `acme_sync`, under the executor for its
+  `behavior`. It reads the tool list from the manifest, and runs each call as `vendure acme sync --json`
+  in a child process;
+- the CLI reads `vendure-commands.json` to build the command line, and imports
+  `commandDefinitions` only when one of the package's commands runs;
+- before it runs, the CLI checks that the declaration matches the manifest, and returns a
+  `manifest.mismatch` error when it doesn't. Rebuild the manifest after you change a command.
+
+A package may add commands to a group that exists already, such as `vendure acme` or `vendure auth`.
+It may not declare a command that another package or a built-in command already has, turn a group
+into a command, or add a command under another command. The commands of a `cliPlugin` count, the
+package's own included. The CLI then leaves out all the commands the package declares with
+`defineCommand`, with a `plugin.command-clash` error that it writes to stderr and lists under
+`refused` in `vendure commands --json`. Every other command keeps working, including the package's
+own `cliPlugin` commands, which follow the rules in [Collisions](#collisions). A manifest that is
+missing, or a module that is, leaves out the same commands: the CLI writes the reason to stderr, and
+`vendure commands --json` lists the package under `refused` as `plugin.unavailable`. A manifest that
+can't be parsed, or whose commands don't have the shape `writeCommandManifest` writes, is listed as
+`plugin.manifest-invalid`. The command names `admin`, `shop`, `help` and `plugins` are reserved, and so
+are the field names `json`, `input`, `format`, `yes` and `project`. A manifest that breaks these rules
+is refused with `plugin.manifest-invalid`.
 
 ### How plugin commands appear in the help
 
@@ -1305,8 +1402,13 @@ error: unknown command 'plann'
 
 ### Extending an existing command
 
+`extendCommands` reaches the commands registered as `cliPlugin` commands and the built-ins that are
+not declared with `defineCommand`, such as `start`, `build` and `add`. A command declared with
+`defineCommand`, such as `vendure dev`, cannot be extended this way: a plugin that tries is refused,
+with a message naming the command.
+
 More than one plugin may need the same command. One plugin might add a
-credential to `vendure dev`, and another might need to add to it as well.
+credential to `vendure start`, and another might need to add to it as well.
 `extendCommands` lets each of them contribute without discarding the others:
 their options are merged onto one command and their decorators are composed.
 
@@ -1318,8 +1420,8 @@ export default defineCliPlugin({
     commands: [],
     extendCommands: [
         {
-            command: 'dev',
-            description: 'Run Vendure in development mode with linked credentials',
+            command: 'start',
+            description: 'Start a built Vendure project with linked credentials',
             options: [{ long: '--rotate-credential', description: 'Replace the stored credential' }],
             decorate:
                 ({ command, next }) =>
@@ -1353,7 +1455,7 @@ the array. Both throw a named error if handed anything else.
   arguments and description already contributed.
 
 Never import the original action to call it, for example
-`builtinCommands.dev.action`. That binds to the built-in and skips whatever
+`builtinCommands.start.action`. That binds to the built-in and skips whatever
 other plugins have added, so only one of the wrappers would survive. `next` is
 what makes several plugins able to wrap the same command.
 
@@ -1377,7 +1479,7 @@ plugin is the outermost wrapper and its decorator runs first**. With:
 }
 ```
 
-running `vendure dev` calls the telemetry wrapper, which calls the credentials
+running `vendure start` calls the telemetry wrapper, which calls the credentials
 wrapper, which calls the built-in. Each wrapper runs once per invocation. The
 telemetry plugin, being applied last, also sees the option the credentials
 plugin added in its `command` argument; reverse the list and the roles swap.
@@ -1589,6 +1691,10 @@ if (!supported.includes('afterConsoleLink')) {
 }
 ```
 
+`commandManifest` is in the list when the CLI loads the `defineCommand` commands that a package
+declares through `vendure.commandManifest`. An older CLI ignores those keys. A package that also has
+a `cliPlugin` can check for the entry there, and say that its commands need a newer CLI.
+
 Entries are only added, never removed or renamed, so a check written against one
 release keeps working.
 
@@ -1768,14 +1874,17 @@ registered at all, and the reason is written to stderr. This applies to:
   plugin is disabled, or the `help` command, which is how a user finds their way
   out of a broken one.
 
+The commands a package declares with `defineCommand` follow their own rules,
+described in [Commands declared with `defineCommand`](#commands-declared-with-definecommand).
+
 Conflicts are collected and reported together where the CLI can carry on
 checking. The rest of the CLI keeps working either way, so
 `vendure plugins remove <package>` is always available to disable the plugin.
 
 ### Explicit activation
 
-The CLI discovers **direct** dependencies that declare `vendure.cliPlugin`, but
-does **not** load them until they are listed in the project `package.json`:
+The CLI discovers **direct** dependencies that declare `vendure.cliPlugin` or
+`vendure.commandManifest`, but does **not** load them until they are listed in the project `package.json`:
 
 ```json
 {
@@ -1818,9 +1927,9 @@ hint on stderr rather than being loaded:
 
 `vendure plugins` lists each discovered package as `enabled`, `not-enabled` or
 `failed`. `failed` means the package is listed in `plugins` but could not be
-resolved or loaded — for example it is not a direct dependency, does not declare
-`vendure.cliPlugin`, or its entry file is missing because a workspace package has
-not been built. The reason is shown alongside it.
+resolved or loaded — for example it is not a direct dependency, declares neither
+`vendure.cliPlugin` nor `vendure.commandManifest`, or its entry file or manifest is
+missing because a workspace package has not been built. The reason is shown alongside it.
 
 A package named in `plugins` must also be a direct project dependency.
 Disabling a plugin is simply removing it from the list (`vendure plugins remove`).

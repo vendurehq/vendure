@@ -731,5 +731,48 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
             secondChild.emitClose(null, 'SIGTERM');
             await expect(promise).resolves.toBe(143);
         });
+
+        it('stops the processes with SIGINT when the signal aborts, and leaves process signals alone', async () => {
+            const stop = vi.fn();
+            const child = new ManagedDevProcess(stop);
+            const controller = new AbortController();
+            const sigintListenerCount = process.listenerCount('SIGINT');
+            const sigtermListenerCount = process.listenerCount('SIGTERM');
+            const onShutdownSignal = vi.fn();
+            const promise = waitForDevProcesses([child], { signal: controller.signal, onShutdownSignal });
+
+            // The caller owns SIGINT and SIGTERM, so the run adds no handler of its own.
+            expect(process.listenerCount('SIGINT')).toBe(sigintListenerCount);
+            expect(process.listenerCount('SIGTERM')).toBe(sigtermListenerCount);
+
+            controller.abort();
+            expect(stop).toHaveBeenCalledWith('SIGINT');
+            expect(onShutdownSignal).toHaveBeenCalledWith('SIGINT');
+            child.emitClose(null, 'SIGINT');
+            await expect(promise).resolves.toBe(130);
+        });
+
+        it('stops at once when the signal has already aborted', async () => {
+            const stop = vi.fn();
+            const child = new ManagedDevProcess(stop);
+            const controller = new AbortController();
+            controller.abort();
+            const promise = waitForDevProcesses([child], { signal: controller.signal });
+
+            expect(stop).toHaveBeenCalledWith('SIGINT');
+            child.emitClose(0, null);
+            await expect(promise).resolves.toBe(130);
+        });
+
+        it('stops listening to the signal once the processes have ended', async () => {
+            const child = new ManagedDevProcess(vi.fn());
+            const controller = new AbortController();
+            const removeEventListener = vi.spyOn(controller.signal, 'removeEventListener');
+            const promise = waitForDevProcesses([child], { signal: controller.signal });
+
+            child.emitClose(0, null);
+            await expect(promise).resolves.toBe(0);
+            expect(removeEventListener).toHaveBeenCalledWith('abort', expect.any(Function));
+        });
     });
 });
