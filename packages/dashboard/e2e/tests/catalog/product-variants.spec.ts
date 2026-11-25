@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
+import { BaseListPage } from '../../page-objects/list-page.base.js';
+import {
+    createPriceFactorFixture,
+    selectAssignChannel,
+    typePriceFactor,
+} from '../../utils/price-factor-fixture.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 const productDetailConfig = {
@@ -1088,5 +1094,38 @@ test.describe('variant update sends only changed fields (OSS-567)', () => {
         await client.login();
         await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
         await page.close();
+    });
+});
+
+test.describe('product variants list assign to channel', () => {
+    // #5950 — the variant bulk action uses the same price conversion factor as the product one
+    test('blocks an invalid price conversion factor and assigns with a typed one', async ({ page }) => {
+        const fixture = await createPriceFactorFixture(page, 'variants');
+        try {
+            const lp = new BaseListPage(page, {
+                path: '/product-variants',
+                title: 'Product Variants',
+                newButtonLabel: 'New',
+            });
+            await lp.goto();
+            await lp.expectLoaded();
+            await lp.search(fixture.productName);
+            await lp.getRows().filter({ hasText: fixture.productName }).getByRole('checkbox').click();
+            await page.getByRole('button', { name: /Actions/i }).click();
+            await page.getByRole('menuitem', { name: 'Assign to channel' }).click();
+            const dialog = await selectAssignChannel(page, fixture.channelCode);
+            const assign = dialog.getByRole('button', { name: 'Assign' });
+
+            await typePriceFactor(dialog, '-1');
+            await expect(assign).toBeDisabled();
+
+            const factor = await typePriceFactor(dialog, '2');
+            await expect(factor).toHaveValue('2');
+            await assign.click();
+            await lp.expectSuccessToast();
+            await expect.poll(fixture.priceInChannel).toBe(2000);
+        } finally {
+            await fixture.cleanup();
+        }
     });
 });
