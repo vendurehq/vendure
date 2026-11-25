@@ -99,7 +99,7 @@ Parameters
 <GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-registry.ts" sourceLine="46" packageName="@vendure/core" since="4.0.0" />
 
 Lists the released base-data presets: `eu`, `uk`, `us`, `au` and `single-country`. `eu` is
-released once its VAT rates have been reviewed.
+listed only while its VAT rates have a review date, see `EU_VAT_RATES_REVIEWED_AT`.
 
 ```ts title="Signature"
 function listPresets(): PresetDescription[]
@@ -244,6 +244,8 @@ interface PresetResult {
     channel: {
         defaultCurrencyCode: CurrencyCode;
         pricesIncludeTax: boolean;
+        /** The channel's tax country, when the preset sets one. */
+        taxCountryCode?: string;
         defaultTaxZone: string;
         defaultShippingZone: string;
     };
@@ -274,7 +276,7 @@ interface PresetResult {
 
 ### channel
 
-<MemberInfo kind="property" type={`{         defaultCurrencyCode: <a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>;         pricesIncludeTax: boolean;         defaultTaxZone: string;         defaultShippingZone: string;     }`}   />
+<MemberInfo kind="property" type={`{         defaultCurrencyCode: <a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>;         pricesIncludeTax: boolean;         /** The channel's tax country, when the preset sets one. */         taxCountryCode?: string;         defaultTaxZone: string;         defaultShippingZone: string;     }`}   />
 
 
 
@@ -282,7 +284,7 @@ interface PresetResult {
 </div>
 ## Preset
 
-<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-types.ts" sourceLine="89" packageName="@vendure/core" since="4.0.0" />
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-types.ts" sourceLine="91" packageName="@vendure/core" since="4.0.0" />
 
 A base-data preset: a typical starting point for a new store. It sets the default Channel's
 currencies, languages and `pricesIncludeTax`, and creates countries, zones, tax categories and
