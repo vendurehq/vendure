@@ -158,7 +158,7 @@ describe('vendure console link', () => {
     it('refuses a --project that is a directory, and points to --dir', async () => {
         const root = project();
         const server = path.join(root, 'apps', 'server');
-        fs.ensureDirSync(server);
+        fs.outputJsonSync(path.join(server, 'package.json'), { dependencies: { '@vendure/core': '4.0.0' } });
 
         const result = await testCommand(consoleLinkDefinition, { project: 'apps/server' }, { cwd: root });
 
@@ -173,6 +173,17 @@ describe('vendure console link', () => {
         });
         expect(result.envelope.error?.message).toContain('--dir');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('takes a --project that matches a directory of another kind as a slug', async () => {
+        const root = project();
+        fs.outputJsonSync(path.join(root, 'storefront', 'package.json'), {
+            dependencies: { next: '15.0.0' },
+        });
+
+        const result = await testCommand(consoleLinkDefinition, { project: 'storefront' }, { cwd: root });
+
+        expect(result.envelope.error?.code).not.toBe('console.project-is-directory');
     });
 });
 

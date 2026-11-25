@@ -5,7 +5,7 @@ export const consoleErrors = {
         code: 'console.project-is-directory',
         exit: 1,
         message: ({ project }) =>
-            `--project names the Console Project to link, by its id or slug, but "${project}" is a directory. ` +
+            `--project names the Console Project to link, by its id or slug, but "${project}" is a Vendure project directory. ` +
             'Pass the project directory with --dir, and the Console Project with --project.',
         fix: ({ project }) => [
             {

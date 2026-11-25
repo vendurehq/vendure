@@ -68,20 +68,26 @@ export function consoleDependencies(
 }
 
 /**
- * `--project` names a Console Project. A value that is a directory is the `--project <dir>` of
- * earlier versions, which is `--dir` now.
+ * `--project` names a Console Project. A value that is a Vendure project directory is the
+ * `--project <dir>` of earlier versions, which is `--dir` now.
  */
 export function projectIsDirectory(project: string | undefined, cwd: string): ErrorResult | undefined {
     const value = project?.trim();
     if (!value) {
         return undefined;
     }
+    // Only a Vendure project directory, which is what `--project` named in 3.x. A slug that happens
+    // to match another directory, such as `storefront` in a monorepo, is still a slug.
     try {
-        if (fs.statSync(path.resolve(cwd, value)).isDirectory()) {
+        const packageJson = JSON.parse(fs.readFileSync(path.resolve(cwd, value, 'package.json'), 'utf8')) as {
+            dependencies?: Record<string, string>;
+            devDependencies?: Record<string, string>;
+        } | null;
+        if (packageJson?.dependencies?.['@vendure/core'] || packageJson?.devDependencies?.['@vendure/core']) {
             return fail(consoleErrors.projectIsDirectory, { project: value });
         }
     } catch {
-        // Not a path on disk, so it is an id or a slug.
+        // Not a directory with a package.json, so it is an id or a slug.
     }
     return undefined;
 }

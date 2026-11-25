@@ -275,7 +275,7 @@ commands. They are also tools of the Developer MCP.
 | Before | In v4 |
 |---|---|
 | `vendure console link --project <dir>` | `vendure console link --dir <dir>`. The same applies to `status` and `unlink`. |
-| `vendure console link --console-project <id\|slug>` | `vendure console link --project <id\|slug>`. A `--project` value that is a directory is refused with the coded error `console.project-is-directory`. |
+| `vendure console link --console-project <id\|slug>` | `vendure console link --project <id\|slug>`. A `--project` value that is a Vendure project directory is refused with the coded error `console.project-is-directory`. |
 | `--force` replaced a link with another Console Project, or removed a link, without asking | Each needs a named consent: `replaceLink` for `link`, and `removeLink` for `unlink`. A person at a terminal is asked. Without one, the command returns `incomplete` with a `consent` need, and you run it again with `--replace-link <digest>` or `--remove-link <digest>`. |
 | `vendure console link --force` without `--console-project` chose a new Project in the terminal | Run `vendure console unlink`, then `vendure console link`. |
 | `--yes` answered the CLI's confirmations, including replacing and removing a link | `--yes` is gone from `vendure console`. It never gives a consent. Without a person at a terminal, a repair runs plugin setup without asking, as before. |
