@@ -1,7 +1,9 @@
 import {
+    applyCommandGroups,
     CommandDefinition,
     CommandPlan,
     defineCommand,
+    defineCommandGroup,
     defineError,
     fail,
     failed,
@@ -613,6 +615,46 @@ describe('executeCommand prompting', () => {
         expect(checks.count('1.5')).toBe('Use a whole number');
         // An empty answer keeps the default of an optional field.
         expect(checks.count('')).toBeUndefined();
+    });
+
+    it('checks a prompted answer for a field of a command group', async () => {
+        const [grouped] = applyCommandGroups(
+            [
+                defineCommand({
+                    path: ['cloud', 'deploy'],
+                    description: 'A grouped command',
+                    behavior: 'mutating',
+                    schemas: () => Promise.resolve({ input: z.object({ commit: z.string() }) }),
+                    run: () => Promise.resolve({ run: (i: unknown) => Promise.resolve(i) }),
+                }),
+            ],
+            [
+                defineCommandGroup({
+                    path: ['cloud'],
+                    schemas: () =>
+                        Promise.resolve({
+                            input: z.object({ project: z.string().regex(/^[a-z]+$/, 'Use a slug') }),
+                        }),
+                }),
+            ],
+        );
+        const checks: Record<string, (answer: string) => string | undefined> = {};
+        const askInput = vi.fn(
+            (need: { field: string }, { validate }: { validate: (answer: string) => string | undefined }) => {
+                checks[need.field] = validate;
+                return Promise.resolve(need.field === 'project' ? 'shop' : 'abc');
+            },
+        );
+
+        const result = await runCommandInHarness(
+            grouped,
+            {},
+            { prompter: { ...noAsk, askInput, askConsent: () => Promise.resolve(true) } },
+        );
+
+        expect(checks.project('Not A Slug')).toBe('Use a slug');
+        expect(checks.project('shop')).toBeUndefined();
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { project: 'shop', commit: 'abc' } });
     });
 
     it('uses the answer for an optional field marked prompt', async () => {

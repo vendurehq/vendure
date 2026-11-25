@@ -39,7 +39,18 @@ export function applyCommandGroups(
     commands: CommandDefinition[],
     groups: CommandGroupDefinition[] = [],
 ): CommandDefinition[] {
+    const paths = new Set<string>();
     for (const group of groups) {
+        if (group.path.length === 0) {
+            throw new Error(
+                'A command group has an empty path, which would give its fields to every command',
+            );
+        }
+        const key = group.path.join(' ');
+        if (paths.has(key)) {
+            throw new Error(`Two command groups have the path "${key}"`);
+        }
+        paths.add(key);
         if (!commands.some(command => groupsOf(command, [group]).length > 0)) {
             throw new Error(`The command group "${group.path.join(' ')}" holds no command`);
         }
@@ -121,71 +132,78 @@ function combineInputs(
     commandPath: string[],
     parts: Array<{ label: string; schema: StandardSchema }>,
 ): StandardSchema {
-    const jsonParts = parts.map(part =>
-        part.schema['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET }),
-    );
-    const owner = new Map<string, number>();
-    const defs: Record<string, unknown> = {};
-    jsonParts.forEach((jsonPart, index) => {
-        for (const field of Object.keys(propertiesOf(jsonPart))) {
-            const other = owner.get(field);
-            if (other !== undefined) {
-                throw new Error(
-                    `${parts[index].label} and ${parts[other].label} both declare the field "${field}" ` +
-                        `of "${commandPath.join(' ')}"`,
-                );
-            }
-            owner.set(field, index);
-        }
-        // Definitions that `$ref`s point to, as a schema library writes for a shared or recursive
-        // schema. Two parts may share one only when it is the same.
-        for (const [name, definition] of Object.entries((jsonPart.$defs as Record<string, unknown>) ?? {})) {
-            if (name in defs && JSON.stringify(defs[name]) !== JSON.stringify(definition)) {
-                throw new Error(
-                    `Two parts of the input of "${commandPath.join(' ')}" define "$defs/${name}" differently`,
-                );
-            }
-            defs[name] = definition;
-        }
-    });
     const commandIndex = parts.length - 1;
-    const combinedJson: JsonSchema = {
-        ...jsonParts[commandIndex],
-        properties: Object.assign({}, ...jsonParts.map(propertiesOf)),
-        required: jsonParts.flatMap(jsonPart => (jsonPart.required as string[] | undefined) ?? []),
-        ...(Object.keys(defs).length ? { $defs: defs } : {}),
+    const owner = new Map<string, number>();
+    // The fields are checked once, from the input side, when the schemas load.
+    parts
+        .map(part => part.schema['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET }))
+        .forEach((jsonPart, index) => {
+            for (const field of Object.keys(propertiesOf(jsonPart))) {
+                const other = owner.get(field);
+                if (other !== undefined) {
+                    const first = parts[index].label;
+                    throw new Error(
+                        `${first[0].toUpperCase()}${first.slice(1)} and ${parts[other].label} ` +
+                            `both declare the field "${field}"`,
+                    );
+                }
+                owner.set(field, index);
+            }
+        });
+    const combine = (side: 'input' | 'output') => (options: { readonly target: string }) => {
+        const jsonParts = parts.map(part => part.schema['~standard'].jsonSchema[side](options));
+        const defs: Record<string, unknown> = {};
+        for (const jsonPart of jsonParts) {
+            // Definitions that `$ref`s point to, as a schema library writes for a shared or
+            // recursive schema. Two parts may share one only when it is the same.
+            for (const [name, definition] of Object.entries(
+                (jsonPart.$defs as Record<string, unknown>) ?? {},
+            )) {
+                if (name in defs && JSON.stringify(defs[name]) !== JSON.stringify(definition)) {
+                    throw new Error(
+                        `Two parts of the input of "${commandPath.join(' ')}" define "$defs/${name}" differently`,
+                    );
+                }
+                defs[name] = definition;
+            }
+        }
+        return {
+            ...jsonParts[commandIndex],
+            properties: Object.assign({}, ...jsonParts.map(propertiesOf)),
+            required: jsonParts.flatMap(jsonPart => (jsonPart.required as string[] | undefined) ?? []),
+            ...(Object.keys(defs).length ? { $defs: defs } : {}),
+        } as JsonSchema;
     };
-    const jsonSchema = () => combinedJson;
+    const merge = (results: StandardSchemaResult[]): StandardSchemaResult => {
+        const issues: StandardSchemaIssue[] = results.flatMap(result => result.issues ?? []);
+        if (issues.length > 0) {
+            return { issues };
+        }
+        return { value: Object.assign({}, ...results.map(result => (result as { value: unknown }).value)) };
+    };
     return {
         '~standard': {
             version: 1,
             vendor: 'vendure-command-group',
-            validate: async (value: unknown) => {
+            // Synchronous when every part is, as a schema library's own objects are, so a host that
+            // checks an answer at a prompt synchronously can still check it.
+            validate: (value: unknown) => {
                 const input = (value ?? {}) as Record<string, unknown>;
-                const slices = parts.map((_, index) =>
-                    Object.fromEntries(
-                        Object.entries(input).filter(
-                            ([field]) => (owner.get(field) ?? commandIndex) === index,
+                const results = parts.map((part, index) =>
+                    part.schema['~standard'].validate(
+                        Object.fromEntries(
+                            Object.entries(input).filter(
+                                ([field]) => (owner.get(field) ?? commandIndex) === index,
+                            ),
                         ),
                     ),
                 );
-                // A Standard Schema may validate synchronously or not, so each result is awaited.
-                const results: StandardSchemaResult[] = [];
-                for (const [index, part] of parts.entries()) {
-                    results.push(await part.schema['~standard'].validate(slices[index]));
+                if (results.some(result => result instanceof Promise)) {
+                    return Promise.all(results).then(merge);
                 }
-                const issues: StandardSchemaIssue[] = results.flatMap(result => result.issues ?? []);
-                if (issues.length > 0) {
-                    return { issues };
-                }
-                return {
-                    value: Object.assign(
-                        {},
-                        ...results.map(result => (result as { value: unknown }).value),
-                    ) as unknown,
-                };
+                return merge(results as StandardSchemaResult[]);
             },
-            jsonSchema: { input: jsonSchema, output: jsonSchema },
+            jsonSchema: { input: combine('input'), output: combine('output') },
         },
     };
 }

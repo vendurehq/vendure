@@ -100,8 +100,31 @@ describe('applyCommandGroups', () => {
             [cloudGroup],
         );
         await expect(clash.schemas()).rejects.toThrow(
-            'the command "cloud link" and the group "cloud" both declare the field "project" of "cloud link"',
+            'The command "cloud link" and the group "cloud" both declare the field "project"',
         );
+    });
+
+    it.each([
+        ['an empty path', [{ ...cloudGroup, path: [] }], 'empty path'],
+        [
+            'a path another group has',
+            [cloudGroup, { ...cloudGroup }],
+            'Two command groups have the path "cloud"',
+        ],
+    ])('fails for a group with %s', (_, groups, message) => {
+        expect(() =>
+            applyCommandGroups([command(['cloud', 'deploy'], { commit: { type: 'string' } })], groups),
+        ).toThrow(message);
+    });
+
+    it('validates synchronously when every part does, so a prompt can check an answer', async () => {
+        const [deploy] = applyCommandGroups(
+            [command(['cloud', 'deploy'], { commit: { type: 'string' } }, ['commit'])],
+            [cloudGroup],
+        );
+        const result = (await deploy.schemas()).input['~standard'].validate({ commit: 'abc' });
+        expect(result).not.toBeInstanceOf(Promise);
+        expect(result).toEqual({ value: { environment: 'production', commit: 'abc' } });
     });
 
     it('fails for a group that holds no command', () => {
@@ -157,7 +180,7 @@ describe('nested groups', () => {
             [cloudGroup, clashing],
         );
         await expect(wait.schemas()).rejects.toThrow(
-            'the group "cloud deployment" and the group "cloud" both declare the field "environment"',
+            'The group "cloud deployment" and the group "cloud" both declare the field "environment"',
         );
     });
 });
@@ -207,24 +230,13 @@ describe('commandDeclarations', () => {
 });
 
 describe('buildCommandManifest with groups', () => {
-    it('lists the groups and writes the shared fields into each command they hold', async () => {
+    it('writes the shared fields into each command a group holds', async () => {
         const manifest = await buildCommandManifest(
             '@vendure/cloud',
             '1.0.0',
             [command(['cloud', 'deploy'], { commit: { type: 'string' } }, ['commit'])],
             { groups: [cloudGroup] },
         );
-        expect(manifest.groups).toEqual([
-            {
-                path: ['cloud'],
-                description: 'Vendure Cloud commands',
-                input: {
-                    type: 'object',
-                    properties: { project: { type: 'string' }, environment: { type: 'string' } },
-                    required: [],
-                },
-            },
-        ]);
         expect(Object.keys(manifest.commands[0].input.properties as object)).toEqual([
             'project',
             'environment',

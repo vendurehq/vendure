@@ -17,6 +17,7 @@ import {
     isErrorResult,
     isFailedResult,
     isIncompleteResult,
+    JSON_SCHEMA_TARGET,
     SpawnOptions,
     SpawnResult,
     StandardSchema,
@@ -143,12 +144,12 @@ function classifyIssues(
 }
 
 function propertySchema(schema: StandardSchema, field: string): Record<string, any> {
-    const json = schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
+    const json = schema['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
     return ((json.properties as Record<string, Record<string, any>> | undefined) ?? {})[field] ?? {};
 }
 
 function isRequired(schema: StandardSchema, field: string): boolean {
-    const json = schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' });
+    const json = schema['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
     return Array.isArray(json.required) && (json.required as unknown[]).includes(field);
 }
 

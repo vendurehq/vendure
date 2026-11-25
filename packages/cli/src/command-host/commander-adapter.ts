@@ -1,4 +1,9 @@
-import { CommandDefinition, CommandEvent, isIncompleteResult } from '@vendure/common/lib/command';
+import {
+    CommandDefinition,
+    CommandEvent,
+    isIncompleteResult,
+    JSON_SCHEMA_TARGET,
+} from '@vendure/common/lib/command';
 import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
@@ -398,9 +403,8 @@ export async function findMismatch(
     // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
     // in place, so a field that was added, renamed or removed is caught here.
     const declared = Object.keys(
-        ((await def.schemas()).input['~standard'].jsonSchema.input({ target: 'draft-2020-12' }).properties as
-            | object
-            | undefined) ?? {},
+        ((await def.schemas()).input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET })
+            .properties as object | undefined) ?? {},
     );
     const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
         field => !(field in manifestCommand.consents),
