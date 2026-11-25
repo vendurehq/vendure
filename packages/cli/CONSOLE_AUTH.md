@@ -172,8 +172,10 @@ own credential in `VENDURE_CLOUD_TOKEN`: a delegated agent key that a person
 mints with `vendure cloud key delegate`, a command of the Vendure Cloud CLI
 plugin. The stored login wins when both are there. The CLI never renews the
 token, never prints it, and never gives it to a `vendure console link` plugin
-hook that asks for a session: such a hook gets
-`sessionUnavailable: 'environment-credential'` instead.
+hook that asks for a session. When `console link` creates a link with the token,
+such a hook gets `sessionUnavailable: 'environment-credential'`. A repeated link
+looks for a person's login for the hook instead, so with only the token it gets
+`not-signed-in`, or signs a person in at a terminal.
 
 `vendure auth status` reports which credential commands use, `stored-login`,
 `environment` or `none`, and never prints the token.
@@ -229,7 +231,8 @@ current)` is called when the person belongs to several, and resolves to the
   time and throws `DeviceLoginPendingError`. A denied code throws
   `DeviceLoginDeniedError`, an expired one `DeviceLoginExpiredError`.
 - `getAccessToken()` returns the stored login's access token, renewed first
-  when it is about to expire. Send it as `Authorization: Bearer <token>`. When
+  when it is about to expire, or `undefined` when no login is stored. It throws
+  `SessionRejectedError` when the authentication service refuses the renewal. Send it as `Authorization: Bearer <token>`. When
   the server still answers 401, call `refreshAccessToken(failedToken)` and
   retry once.
 - `readAuthStatus()` describes the stored login without tokens, and makes no
@@ -260,5 +263,7 @@ When the hook gets no session, `context.sessionUnavailable` says why:
 - `account-inaccessible`: the signed-in person is not a member of the linked
   account. Do not fall back to `getAccessToken()`.
 - `sign-in-failed`: the sign-in failed, and the CLI has said why.
-- `environment-credential`: the run uses `VENDURE_CLOUD_TOKEN`, which is never
-  given to a hook. Do not fall back to `getAccessToken()`.
+- `environment-credential`: `console link` created the link with
+  `VENDURE_CLOUD_TOKEN`, which is never given to a hook. Do not fall back to
+  `getAccessToken()`. A repeated link with only the token gives
+  `not-signed-in`.

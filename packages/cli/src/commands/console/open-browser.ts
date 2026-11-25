@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from 'node:child_process';
 
-/** Opens a URL in the system browser, for the device login of `vendure auth` and `vendure console`. */
+/** Opens a URL in the system browser. */
 export function openConsoleBrowser(url: string): Promise<void> {
     const windows = process.platform === 'win32';
     let command = 'xdg-open';

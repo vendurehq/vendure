@@ -32,7 +32,6 @@ import {
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
-import { openConsoleBrowser } from './authentication.js';
 import {
     ConsoleLinkContext,
     ConsoleLinkOutcome,
@@ -49,6 +48,7 @@ import {
 } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { ConsoleCommandResult, ConsoleLinkResultContribution, missingInputToNeed } from './console-result.js';
+import { openConsoleBrowser } from './open-browser.js';
 import { ensureProjectLinkGitignore } from './project-link-gitignore.js';
 import {
     ManifestReadResult,
