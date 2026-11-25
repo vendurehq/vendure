@@ -30,10 +30,11 @@ export interface ConsoleLinkResultContribution {
     data: ConsoleResultData;
     /**
      * What the caller must supply or do before setup can finish, in the shape every CLI command
-     * uses. Without a person at a terminal, `vendure console link` returns a need with a `fix`,
-     * which names the command that answers it, as an `incomplete` result. A need without a `fix`
-     * names an input the link does not take, so it is reported as a next step, and the setup as
-     * failed. With a person, every need is shown and reported as a next step.
+     * uses. Without a person at a terminal, `vendure console link` returns a need as an
+     * `incomplete` result when the caller can answer it: when it has a `fix`, which names the
+     * command that answers it, or when it is an `input` need for `dir`, `project` or
+     * `organization`, the link's own fields. Any other need is reported as a next step, and the
+     * setup as failed. With a person, every need is shown and reported as a next step.
      *
      * @since 4.0.0
      */

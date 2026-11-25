@@ -10,9 +10,10 @@ import {
     createVendureProject,
     fakeConsole,
     manifest as legacyManifest,
+    runConsoleForTest,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, ConsoleCommandOptions, runConsole } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /** A value that must never reach the result. */
@@ -46,7 +47,7 @@ async function linkWithoutPerson(
         warn: report,
         url: report,
     };
-    const run = await runConsole('link', options, {
+    const run = await runConsoleForTest('link', options, {
         env: { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) },
         reporter,
         outputMode: 'json',
@@ -138,7 +139,7 @@ describe('structured Console linking', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
-    it('reports reused links and hides raw hook errors', async () => {
+    it('reports reused links and the real reason a hook failed', async () => {
         const root = linkedProject();
         const run = await linkWithoutPerson(
             { dir: root },
@@ -155,7 +156,9 @@ describe('structured Console linking', () => {
         );
         expect(run.exitCode).toBe(1);
         expect(JSON.stringify(run.result)).not.toContain(SECRET);
-        expect(run.messages).not.toContain(SECRET);
+        // The reason goes into the coded error, the channel a program reads, also without a person.
+        expect(run.messages).toContain(SECRET);
+        expect(run.failure ?? run.messages).not.toContain('Setup did not finish');
         expect(run.result).toMatchObject({ outcome: 'failed', data: { link: { outcome: 'repaired' } } });
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });

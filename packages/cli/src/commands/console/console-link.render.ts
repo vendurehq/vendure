@@ -4,5 +4,5 @@ import { LinkOutput } from './console.schema.js';
 export function render(output: LinkOutput): string {
     return output.outcome === 'linked'
         ? `Linked ${output.project.name} in ${output.account.name}. Manifest: ${output.manifestPath}`
-        : `Linked to ${output.project.name} in ${output.account.name}. Manifest: ${output.manifestPath}`;
+        : `Already linked to ${output.project.name} in ${output.account.name}. Manifest: ${output.manifestPath}`;
 }

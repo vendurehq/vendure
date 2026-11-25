@@ -18,15 +18,20 @@ import {
     createCliConfigDir,
     manifest,
     projectList,
+    runConsoleForTest,
     singleAccountBody,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, runConsole } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /** Runs a `vendure console` action through the engine, for its exit code. */
-async function runExitCode(...args: Parameters<typeof runConsole>): Promise<number> {
-    return (await runConsole(...args)).exitCode;
+async function runExitCode(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies>,
+): Promise<number> {
+    return (await runConsoleForTest(action, options, dependencies)).exitCode;
 }
 
 // Two plugins, so the tests that care about order can name which is which.
@@ -156,7 +161,8 @@ describe('console link hooks', () => {
         expect(output).not.toContain('No Project Link Manifest was changed');
     });
 
-    it.each(['status', 'unlink', 'nonsense'])('does not run hooks for %s', async action => {
+    it('does not run hooks for unlink', async () => {
+        const action = 'unlink' as const;
         const hook = vi.fn<ConsoleLinkHook>(async () => undefined);
         const registry = registryWith(plugin(FIRST_PLUGIN, hook));
         const root = vendureProject();

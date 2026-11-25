@@ -5,11 +5,11 @@ export const consoleErrors = {
         code: 'console.project-is-directory',
         exit: 1,
         message: ({ project }) =>
-            `--project names the Console Project to link, by its id or slug, but "${project}" is a Vendure project directory. ` +
-            'Pass the project directory with --dir, and the Console Project with --project.',
+            `project names the Console Project to link, by its id or slug, but "${project}" is a Vendure project directory. ` +
+            'Pass the project directory as dir, and the Console Project as project.',
         fix: ({ project }) => [
             {
-                description: 'Select the project directory with --dir',
+                description: 'Select the project directory',
                 path: ['console', 'link'],
                 input: { dir: project },
             },
@@ -21,7 +21,7 @@ export const consoleErrors = {
         message: ({ message }) => message,
         fix: ({ command, candidates }) =>
             candidates.map(candidate => ({
-                description: `Select the Vendure project in ${candidate} with --dir`,
+                description: `Select the Vendure project in ${candidate}`,
                 path: command,
                 input: { dir: candidate },
             })),

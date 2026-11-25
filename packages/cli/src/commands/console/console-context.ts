@@ -146,6 +146,9 @@ export function resolveConsoleProject(
  * The preview `plan()` computed for a run, by its context. The host passes the same context to
  * `plan()` and `run()`, and asks for the consents of that preview in between, so a run works from
  * the preview the caller consented to rather than from a second lookup that could differ.
+ *
+ * This depends on the host passing `run()` the very context object it passed `plan()`, which a
+ * spec of the host asserts. It goes away once the host passes the consents it was given to `run()`.
  */
 const plannedPreviews = new WeakMap<CommandContext, ConsoleChangePreview>();
 
@@ -190,7 +193,7 @@ export async function previewForRun(
             { strict: true },
         );
     } catch (error) {
-        const described = describeConsoleError(error, dependencies.outputMode, ctx.signal);
+        const described = describeConsoleError(error, ctx.signal);
         if (described.kind === 'interrupted') {
             return { result: fail(hostErrors.cancelled, {}) };
         }

@@ -18,6 +18,7 @@ import {
     fakeConsole,
     manifest,
     projectList,
+    runConsoleForTest,
     storeLogin,
     withSingleAccount,
 } from './console.fixtures.js';
@@ -26,7 +27,6 @@ import {
     ConsoleCommandOptions,
     readConsoleStatus,
     resolveConsoleEndpoints,
-    runConsole,
 } from './console.js';
 import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore.js';
 import {
@@ -36,8 +36,12 @@ import {
 } from './project-link-manifest.js';
 
 /** Runs a `vendure console` action through the engine, for its exit code. */
-async function runExitCode(...args: Parameters<typeof runConsole>): Promise<number> {
-    return (await runConsole(...args)).exitCode;
+async function runExitCode(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies>,
+): Promise<number> {
+    return (await runConsoleForTest(action, options, dependencies)).exitCode;
 }
 
 const UUID_V7_LINK_ID = '33333333-3333-7333-8333-333333333333';
@@ -73,17 +77,6 @@ afterEach(() => {
 });
 
 describe('console command', () => {
-    it('reports missing and unknown actions', async () => {
-        const root = vendureProject();
-        const first = testDependencies(root, vi.fn());
-        const second = testDependencies(root, vi.fn());
-
-        expect(await runExitCode(undefined, {}, first.dependencies)).toBe(1);
-        expect(await runExitCode('unknown', {}, second.dependencies)).toBe(1);
-        expect(first.messages.join('\n')).toContain('Missing console action');
-        expect(second.messages.join('\n')).toContain('Unknown console action');
-    });
-
     it.each([
         ['VENDURE_CONSOLE_LINK_URL', 'VENDURE_CONSOLE_APP_URL', 'https://console.example.com'],
         ['VENDURE_CONSOLE_LINK_API_URL', 'VENDURE_CONSOLE_API_URL', ''],
@@ -655,7 +648,7 @@ describe('console command', () => {
         const output = test.messages.join('\n');
         expect(output).toContain('could not check whether --project storefront names that Project');
         expect(output).toContain(
-            `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
+            `To keep the link, pass the linked Project's id, ${PROJECT_ID}, as project.`,
         );
         expect(output).not.toContain('--force');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
@@ -687,7 +680,7 @@ describe('console command', () => {
 
         async function runJson(root: string, fetchMock: typeof fetch, options: ConsoleCommandOptions) {
             const test = testDependencies(root, fetchMock, { outputMode: 'json' });
-            const run = await runConsole('link', options, test.dependencies);
+            const run = await runConsoleForTest('link', options, test.dependencies);
             return {
                 exitCode: run.exitCode,
                 result: run.result,
@@ -740,7 +733,7 @@ describe('console command', () => {
             const test = testDependencies(root, fetchMock, { outputMode: 'json' });
 
             // Without a person, a link does not prompt.
-            const { exitCode, result } = await runConsole('link', {}, test.dependencies);
+            const { exitCode, result } = await runConsoleForTest('link', {}, test.dependencies);
             expect(exitCode).toBe(1);
             expect(result.outcome).toBe('incomplete');
             expect(result.needs).toEqual([
@@ -770,7 +763,7 @@ describe('console command', () => {
                 'Replacing the link needs the replaceLink consent, which the command asks for.',
             );
             expect(run.stderr).toContain(
-                `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
+                `To keep the link, pass the linked Project's id, ${PROJECT_ID}, as project.`,
             );
             expect(run.stderr).toContain(
                 `This project is already linked to Storefront (${PROJECT_ID}) in Acme.`,
@@ -796,12 +789,12 @@ describe('console command', () => {
                 'Replacing the link needs the replaceLink consent, which the command asks for.',
             );
             expect(run.stderr).toContain(
-                `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
+                `To keep the link, pass the linked Project's id, ${PROJECT_ID}, as project.`,
             );
             expect(run.stderr).toContain('could not check whether --project storefront names that Project');
         });
 
-        it('still hides a raw error, such as a failed Console request', async () => {
+        it('reports the real reason of a failed Console request', async () => {
             const root = vendureProject();
             fs.outputJsonSync(getProjectLinkManifestPath(root), localManifest);
             const run = await runJson(root, sequenceFetch(new Response('{}', { status: 503 })), {
@@ -811,8 +804,8 @@ describe('console command', () => {
             expect(run.exitCode).toBe(1);
             expect(run.result.outcome).toBe('failed');
             expect(run.result.needs).toEqual([]);
-            expect(run.stderr).toContain('The Console command failed.');
-            expect(run.stderr).not.toContain('HTTP 503');
+            expect(run.stderr).toContain('HTTP 503');
+            expect(run.stderr).not.toContain('The Console command failed.');
         });
     });
 

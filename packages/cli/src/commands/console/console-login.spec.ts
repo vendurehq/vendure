@@ -27,9 +27,10 @@ import {
     jsonResponse,
     manifest,
     projectList,
+    runConsoleForTest,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, ConsoleCommandOptions, runConsole } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /**
@@ -821,7 +822,7 @@ describe('console link --non-interactive --console-project', () => {
         expect(run.urls()).toEqual([]);
         const output = run.messages.join('\n');
         expect(output).toContain(
-            `To keep the link, pass the linked Project's id, ${PROJECT_ID}, to --project.`,
+            `To keep the link, pass the linked Project's id, ${PROJECT_ID}, as project.`,
         );
         expect(output).toContain(
             'Replacing the link needs the replaceLink consent, which the command asks for.',
@@ -1129,7 +1130,7 @@ async function runLink(options: RunOptions = {}) {
         reporter,
         signal: options.signal,
     };
-    const { exitCode, result } = await runConsole('link', options.options ?? {}, dependencies);
+    const { exitCode, result } = await runConsoleForTest('link', options.options ?? {}, dependencies);
     return {
         exitCode,
         result,

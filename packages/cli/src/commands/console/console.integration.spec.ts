@@ -13,15 +13,20 @@ import {
     createCliConfigDir,
     manifest,
     projectList,
+    runConsoleForTest,
     singleAccountBody,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, runConsole } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /** Runs a `vendure console` action through the engine, for its exit code. */
-async function runExitCode(...args: Parameters<typeof runConsole>): Promise<number> {
-    return (await runConsole(...args)).exitCode;
+async function runExitCode(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies>,
+): Promise<number> {
+    return (await runConsoleForTest(action, options, dependencies)).exitCode;
 }
 
 let server: Server | undefined;

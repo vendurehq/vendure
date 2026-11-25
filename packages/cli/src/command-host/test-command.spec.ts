@@ -36,6 +36,36 @@ describe('testCommand', () => {
         ]);
     });
 
+    // `vendure console` hands the preview its plan() computed to run() by the context, so a run
+    // works from the preview whose consents the host asked for.
+    it('passes plan() and run() the same context object', async () => {
+        const contexts: unknown[] = [];
+        const planned = defineCommand({
+            path: ['acme', 'planned'],
+            description: 'Planned',
+            behavior: 'mutating',
+            schemas: async () => ({ input: z.object({}) }),
+            plan: async () => ({
+                plan: async (_input: object, ctx) => {
+                    contexts.push(ctx);
+                    return { preview: {}, requiredConsents: [] };
+                },
+            }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    contexts.push(ctx);
+                    return {};
+                },
+            }),
+        });
+
+        const result = await testCommand(planned, {});
+
+        expect(result.envelope.status).toBe('ok');
+        expect(contexts).toHaveLength(2);
+        expect(contexts[0]).toBe(contexts[1]);
+    });
+
     it('reports a missing input as an input need, as without a person', async () => {
         const result = await testCommand(greet, {});
         expect(result.envelope).toMatchObject({

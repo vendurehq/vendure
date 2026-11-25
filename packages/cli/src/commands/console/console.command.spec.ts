@@ -307,7 +307,8 @@ describe('vendure console link', () => {
                 ],
             },
         });
-        expect(result.envelope.error?.message).toContain('--dir');
+        expect(result.envelope.error?.message).toContain('as dir');
+        expect(result.envelope.error?.message).not.toContain('--');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
@@ -384,18 +385,69 @@ describe('vendure console link', () => {
         ).toBe(false);
     });
 
-    it('does not take yes in the input for the replaceLink consent', async () => {
+    it('gives a run without a person the real reason a link failed', async () => {
         const root = project();
+        vi.stubEnv('VENDURE_CONSOLE_APP_URL', 'https://console.vendure.io');
 
-        const result = await testCommand(consoleLinkDefinition, {
-            dir: root,
-            project: 'storefront',
-            yes: true,
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope).toMatchObject({ status: 'error', error: { code: 'console.link-failed' } });
+        expect(result.envelope.error?.message).toContain(
+            'Set both VENDURE_CONSOLE_APP_URL and VENDURE_CONSOLE_API_URL',
+        );
+    });
+
+    it('returns the link as failed, with the reason, when a hook fails after it', async () => {
+        const root = project();
+        const hook: ConsoleLinkHookRegistration = async () => {
+            throw new Error('The registry refused the token');
+        };
+        setPluginExtensionAccessor(<T>(point: string) =>
+            point === 'afterConsoleLink' ? [{ pluginId: '@example/setup', extension: hook as T }] : [],
+        );
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope).toMatchObject({
+            status: 'failed',
+            output: {
+                outcome: 'repaired',
+                manifestPath: getProjectLinkManifestPath(root),
+                project: manifest.project,
+                account: manifest.account,
+            },
         });
+        expect(result.envelope.notices).toContainEqual(
+            expect.objectContaining({
+                level: 'warning',
+                message: expect.stringContaining('The registry refused the token'),
+            }),
+        );
+    });
 
-        expect(result.envelope.status).toBe('incomplete');
-        expect(result.envelope.needs).toEqual([expect.objectContaining({ consent: 'replaceLink' })]);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    it('tells a person why the link failed, then what it needs', async () => {
+        const root = project('none');
+        vi.stubEnv('VENDURE_DISABLE_TELEMETRY', '1');
+        storeLogin(process.env, 'https://api.vendure.io');
+        vi.stubGlobal('fetch', fakeConsole().fetch);
+        const prompter: Prompter = {
+            askInput: vi.fn(async () => undefined),
+            askConsent: vi.fn(async () => true),
+            confirm: vi.fn(async () => true),
+            select: vi.fn(async () => undefined),
+            text: vi.fn(async () => undefined),
+        };
+
+        const result = await testCommand(
+            consoleLinkDefinition,
+            { dir: root, project: 'parts-counter' },
+            { prompter },
+        );
+
+        expect(result.envelope).toMatchObject({ status: 'error', error: { code: 'console.link-failed' } });
+        const message = result.envelope.error?.message ?? '';
+        expect(message.startsWith('--project parts-counter is not an active project of Acme')).toBe(true);
+        expect(message).toContain('The Console Project to link');
     });
 
     it('refuses a replacement in a run that no plan asked a consent for', async () => {

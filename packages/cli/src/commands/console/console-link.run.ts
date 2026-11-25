@@ -83,14 +83,23 @@ export async function run(input: LinkInput, ctx: CommandContext) {
         if (answerable.length > 0) {
             return incomplete(answerable, withSteps);
         }
-        return withSteps
-            ? failed(withSteps)
-            : fail(consoleErrors.linkFailed, { message: steps.map(describeNeed).join(' ') });
+        if (withSteps) {
+            return failed(withSteps);
+        }
+        // Nothing was linked. The reason the engine gave, such as a Project that is not one of the
+        // account's, comes first.
+        return fail(consoleErrors.linkFailed, {
+            message: [...errors.slice(-1), ...steps.map(describeNeed)].join(' '),
+        });
     }
     if (exitCode === 0 && output) {
         return output;
     }
-    return fail(consoleErrors.linkFailed, {
-        message: failure ?? errors.at(-1) ?? 'The Console link did not finish.',
-    });
+    const reason = failure ?? errors.at(-1) ?? 'The Console link did not finish.';
+    if (output) {
+        // The link is on disk, and the setup after it did not finish.
+        ctx.notice('warning', reason);
+        return failed(output);
+    }
+    return fail(consoleErrors.linkFailed, { message: reason });
 }

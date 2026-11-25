@@ -23,7 +23,7 @@ export async function run(input: DirInput, ctx: CommandContext) {
         return previewed.result;
     }
     const { preview, requiredConsents } = previewed.preview;
-    const { exitCode, failure, interrupted } = await runConsole(
+    const { exitCode, failure, interrupted, removed } = await runConsole(
         'unlink',
         { dir: input.dir, force: requiredConsents.includes('removeLink') },
         dependencies,
@@ -37,7 +37,7 @@ export async function run(input: DirInput, ctx: CommandContext) {
         });
     }
     return {
-        removed: requiredConsents.length > 0,
+        removed: removed === true,
         manifestPath: preview.manifestPath,
     } satisfies UnlinkOutput;
 }

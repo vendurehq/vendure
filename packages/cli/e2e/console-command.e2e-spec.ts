@@ -1,6 +1,10 @@
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CliTestProject, createTestProject } from './cli-test-utils.js';
+import { CliTestProject, createTestProject, installCliPluginFixture } from './cli-test-utils.js';
 
 const MANIFEST = JSON.stringify({
     schemaVersion: 1,
@@ -73,6 +77,55 @@ describe('CLI Console Command E2E', () => {
         expect(envelopeOf(result.stdout)).toMatchObject({ status: 'ok', output: { removed: true } });
         expect(testProject.fileExists('.vendure/project.json')).toBe(false);
         expect(testProject.readFile('.vendure/credentials.json')).toBe('machine-local');
+    });
+
+    // The plugins of the project that --dir names load, also from a working directory outside it.
+    it("runs the afterConsoleLink hook of the --dir project's plugin, from outside the project", () => {
+        testProject = createTestProject('console-hook');
+        installCliPluginFixture(testProject, 'console-hook-cli-plugin');
+        testProject.writeFile('.vendure/project.json', MANIFEST);
+        const outside = mkdtempSync(join(tmpdir(), 'vendure-console-outside-'));
+        const configDir = mkdtempSync(join(tmpdir(), 'vendure-console-config-'));
+        try {
+            const result = spawnSync(
+                process.execPath,
+                [
+                    join(import.meta.dirname, '..', 'dist', 'cli.js'),
+                    'console',
+                    'link',
+                    '--dir',
+                    testProject.projectDir,
+                    '--json',
+                ],
+                {
+                    cwd: outside,
+                    encoding: 'utf-8',
+                    env: {
+                        ...process.env,
+                        VENDURE_RUNNING_IN_CLI: undefined,
+                        VENDURE_CLI_CONFIG_DIR: configDir,
+                        VENDURE_CONSOLE_APP_URL: undefined,
+                        VENDURE_CONSOLE_API_URL: undefined,
+                        VENDURE_DISABLE_TELEMETRY: '1',
+                    },
+                },
+            );
+
+            expect(envelopeOf(result.stdout)).toMatchObject({
+                status: 'ok',
+                output: {
+                    outcome: 'repaired',
+                    plugins: { '@vendure-e2e/console-hook-cli-plugin': { hook: 'ran' } },
+                },
+            });
+            expect(JSON.parse(testProject.readFile('console-hook-ran.json'))).toEqual({
+                outcome: 'repaired',
+                options: { dir: testProject.projectDir },
+            });
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+            rmSync(configDir, { recursive: true, force: true });
+        }
     });
 
     it('refuses a --project that is a directory, and points to --dir', async () => {

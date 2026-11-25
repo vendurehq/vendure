@@ -226,42 +226,6 @@ function loginNextStep(organization?: string, rerun = 'this command'): string {
 /** Whether `--project` names the Project of a valid link, or the CLI cannot tell. */
 export type LinkedProject = 'same' | 'different' | 'unknown';
 
-/**
- * A refusal the CLI words itself, with no raw error or credential in it, so it is reported as it is
- * also when no person reads the output.
- */
-class ConsoleRefusalError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'ConsoleRefusalError';
-    }
-}
-
-const defaultReporter: ConsoleReporter = {
-    error: message => process.stderr.write(`${message}\n`),
-    info: message => process.stderr.write(`${message}\n`),
-    success: message => process.stderr.write(`${message}\n`),
-    warn: message => process.stderr.write(`${message}\n`),
-    url: value => process.stdout.write(`${value}\n`),
-};
-
-/** What a run without a host uses. The host passes its own prompts when a person is there. */
-function createDefaultDependencies(): ConsoleCommandDependencies {
-    return {
-        cwd: process.cwd(),
-        env: process.env,
-        fetch: globalThis.fetch,
-        hooks: [],
-        isNonInteractive: () => true,
-        now: () => Date.now(),
-        openUrl: openConsoleBrowser,
-        prompt: async () => undefined,
-        select: async () => undefined,
-        reporter: defaultReporter,
-        outputMode: 'human',
-    };
-}
-
 /** What a `vendure console` action did: its exit code, and the result the command reports. */
 export interface ConsoleRun {
     exitCode: number;
@@ -270,6 +234,8 @@ export interface ConsoleRun {
     manifest?: ProjectLinkManifest;
     /** What stopped the run, worded for the caller. Never a credential. */
     failure?: string;
+    /** For an unlink: whether it removed a manifest. */
+    removed?: boolean;
     /** The run was cancelled. */
     interrupted?: boolean;
 }
@@ -279,12 +245,10 @@ export interface ConsoleRun {
  * `dependencies.signal` stops the run, and the result is returned rather than printed.
  */
 export async function runConsole(
-    action?: string,
-    options: ConsoleCommandOptions = {},
-    dependencies: Partial<ConsoleCommandDependencies> = {},
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleRun> {
-    const normalizedAction = action?.trim().toLowerCase();
-    const resolvedDependencies = { ...createDefaultDependencies(), ...dependencies };
     const abortController = new AbortController();
     const externalSignal = dependencies.signal;
     const onExternalAbort = () => abortController.abort();
@@ -297,10 +261,7 @@ export async function runConsole(
     const state: ConsoleCommandState = {
         result: {
             schemaVersion: 1,
-            operation:
-                normalizedAction && ['link', 'unlink'].includes(normalizedAction)
-                    ? `console.${normalizedAction}`
-                    : 'console',
+            operation: `console.${action}`,
             outcome: 'failed',
             data: { plugins: Object.create(null) },
             needs: [],
@@ -312,16 +273,11 @@ export async function runConsole(
         result: state.result,
         ...(state.manifest ? { manifest: state.manifest } : {}),
         ...(state.failure ? { failure: state.failure } : {}),
+        ...(state.removed !== undefined ? { removed: state.removed } : {}),
         ...(interrupted ? { interrupted } : {}),
     });
     try {
-        const code = await runConsoleCommand(
-            action,
-            options,
-            resolvedDependencies,
-            abortController.signal,
-            state,
-        );
+        const code = await runConsoleCommand(action, options, dependencies, abortController.signal, state);
         if (state.setupIncomplete) {
             return done(1);
         }
@@ -331,7 +287,7 @@ export async function runConsole(
         return done(code);
     } catch (error) {
         const interrupted = abortController.signal.aborted || error instanceof CommandInterruptedError;
-        return done(reportConsoleCommandError(error, interrupted, resolvedDependencies, state), interrupted);
+        return done(reportConsoleCommandError(error, interrupted, dependencies, state), interrupted);
     } finally {
         externalSignal?.removeEventListener('abort', onExternalAbort);
     }
@@ -359,10 +315,10 @@ export interface ConsoleChangePreview {
 export async function previewConsoleChange(
     action: 'link' | 'unlink',
     options: ConsoleCommandOptions,
-    dependencies: Partial<ConsoleCommandDependencies> = {},
+    dependencies: ConsoleCommandDependencies,
     { strict = false }: { strict?: boolean } = {},
 ): Promise<ConsoleChangePreview> {
-    const resolved = { ...createDefaultDependencies(), ...dependencies };
+    const resolved = dependencies;
     const signal = resolved.signal ?? new AbortController().signal;
     const none = (preview: Record<string, unknown> = {}): ConsoleChangePreview => ({
         preview,
@@ -454,12 +410,10 @@ export async function previewConsoleChange(
 
 /**
  * How a run reports an error it caught outside the engine, such as a failed preview: an input it
- * can name as a need, a cancellation, or a message. Raw errors are hidden when no person reads the
- * output, as the engine hides them.
+ * can name as a need, a cancellation, or the error's own message.
  */
 export function describeConsoleError(
     error: unknown,
-    outputMode: ConsoleCommandDependencies['outputMode'],
     signal?: AbortSignal,
 ):
     | { kind: 'need'; need: InputNeed; message: string; nextSteps: string[] }
@@ -472,16 +426,10 @@ export function describeConsoleError(
         return { kind: 'need', need: error.need, message: error.message, nextSteps: error.nextSteps };
     }
     const detail = error instanceof Error ? error.message : String(error);
-    return {
-        kind: 'failed',
-        message:
-            outputMode === 'json' && !(error instanceof ConsoleRefusalError)
-                ? 'The Console command failed.'
-                : detail,
-    };
+    return { kind: 'failed', message: detail };
 }
 
-/** Reports a failure without exposing raw errors when no person reads the output. */
+/** Reports a failure, with the error's own message: the command returns it as a coded error. */
 function reportConsoleCommandError(
     error: unknown,
     interrupted: boolean,
@@ -511,11 +459,7 @@ function reportConsoleCommandError(
     if (error instanceof CliCommandExit) {
         return error.exitCode || 1;
     }
-    const detail = error instanceof Error ? error.message : String(error);
-    state.failure =
-        dependencies.outputMode === 'json' && !(error instanceof ConsoleRefusalError)
-            ? 'The Console command failed.'
-            : detail;
+    state.failure = error instanceof Error ? error.message : String(error);
     reporter.error(state.failure);
     return 1;
 }
@@ -530,6 +474,8 @@ interface ConsoleCommandState {
     manifest?: ProjectLinkManifest;
     /** What stopped the run, for the coded error the command returns. Never a credential. */
     failure?: string;
+    /** For an unlink: whether it removed a manifest. */
+    removed?: boolean;
     setupIncomplete?: boolean;
     /** Set once the Project Link Manifest is on disk, written or reused. */
     manifestPath?: string;
@@ -537,25 +483,17 @@ interface ConsoleCommandState {
 }
 
 async function runConsoleCommand(
-    action: string | undefined,
+    action: 'link' | 'unlink',
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
     state: ConsoleCommandState,
 ): Promise<number> {
-    const normalizedAction = action?.trim().toLowerCase();
-    if (!normalizedAction || !['link', 'unlink'].includes(normalizedAction)) {
-        dependencies.reporter.error(
-            normalizedAction ? `Unknown console action "${String(action)}".` : 'Missing console action.',
-        );
-        return 1;
-    }
-
     assertNoRemovedConsoleEnvironment(dependencies.env);
 
     const projectRoot = resolveProjectRoot(dependencies.cwd, options.dir);
-    if (normalizedAction === 'unlink') {
-        return unlink(projectRoot, options, dependencies, signal);
+    if (action === 'unlink') {
+        return unlink(projectRoot, options, dependencies, signal, state);
     }
     return link(projectRoot, options, dependencies, signal, state);
 }
@@ -649,13 +587,13 @@ async function link(
     if (existing.kind === 'valid' && (linked === 'same' || !options.force)) {
         if (linked !== 'same') {
             const current = `${existing.manifest.project.name} (${existing.manifest.project.id}) in ${existing.manifest.account.name}`;
-            throw new ConsoleRefusalError(
+            throw new Error(
                 (linked === 'different'
                     ? `This project is already linked to ${current}.`
                     : `This project is already linked to ${current}, and the CLI could not check whether ` +
                       `--project ${String(requestedProject)} names that Project.`) +
                     ' Replacing the link needs the replaceLink consent, which the command asks for. ' +
-                    `To keep the link, pass the linked Project's id, ${existing.manifest.project.id}, to --project.`,
+                    `To keep the link, pass the linked Project's id, ${existing.manifest.project.id}, as project.`,
             );
         }
         // A repeated link reuses the manifest and reruns plugin setup.
@@ -1691,7 +1629,7 @@ async function runConsoleLinkHooks(
                 throw error;
             }
             const rawDetail = error instanceof Error ? error.message : String(error);
-            const detail = dependencies.outputMode === 'json' ? 'Setup did not finish.' : rawDetail;
+            const detail = rawDetail;
             state.result.outcome = 'failed';
             state.result.nextSteps.push(`Rerun vendure console link to finish setup for ${pluginId}.`);
             dependencies.reporter.error(`The ${pluginId} plugin failed after linking: ${detail}`);
@@ -1851,8 +1789,11 @@ async function unlink(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
+    state: ConsoleCommandState,
 ): Promise<number> {
     const existing = readProjectLinkManifest(projectRoot);
+    state.removed = false;
+    state.manifestPath = existing.path;
     if (existing.kind === 'missing') {
         dependencies.reporter.info(`Project is not linked. No manifest exists at ${existing.path}.`);
         return 0;
@@ -1867,6 +1808,7 @@ async function unlink(
         await detachTelemetry(existing.manifest, attribution, 'unlink', dependencies, signal);
     }
     removeProjectLinkManifest(projectRoot);
+    state.removed = true;
     removeTelemetryAttribution(projectRoot);
     dependencies.reporter.success(`Removed local Project Link Manifest at ${existing.path}.`);
     dependencies.reporter.info(
