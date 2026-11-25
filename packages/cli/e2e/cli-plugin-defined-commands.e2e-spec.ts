@@ -53,9 +53,11 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
         'ships a %s manifest built from its declarations, without @vendure/cli',
         async fixture => {
             const dir = join(FIXTURES_DIR, fixture);
-            const { commands } = await import(join(dir, 'commands.js'));
+            const { commands, groups } = await import(join(dir, 'commands.js'));
             const shipped = readManifestFile(join(dir, 'vendure-commands.json'));
-            expect(await buildCommandManifest(shipped.package, shipped.version, commands)).toEqual(shipped);
+            expect(
+                await buildCommandManifest(shipped.package, shipped.version, commands, { groups }),
+            ).toEqual(shipped);
         },
     );
 
@@ -99,6 +101,25 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
                 output: { message: 'HELLO, ADA!' },
                 notices: [{ level: 'info', message: 'Greeting Ada' }],
             });
+        });
+
+        it("hands run() the shared input of the package's command group", async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            const listed = await listCommands(p);
+            const greet = listed.output.commands.find((c: any) => c.path.join(' ') === 'example greet');
+            expect(Object.keys(greet.input.properties)).toContain('audience');
+
+            const result = await p.runCliCommand(['example', 'greet', 'Ada', '-a', 'team', '--json']);
+            expect(envelopeOf(result.stdout).output).toEqual({ message: 'Hello, Ada and team!' });
+
+            const viaInput = await p.runCliCommand([
+                'example',
+                'greet',
+                '--input',
+                '{"name":"Grace","audience":"all"}',
+                '--json',
+            ]);
+            expect(envelopeOf(viaInput.stdout).output).toEqual({ message: 'Hello, Grace and all!' });
         });
 
         it('takes the whole input through --input, and names a missing field as an input need', async () => {

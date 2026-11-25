@@ -19,6 +19,10 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "audience": {
+            "description": "Who the command speaks to",
+            "type": "string"
+          },
           "name": {
             "type": "string",
             "description": "Who to greet"
@@ -50,6 +54,9 @@
         "flags": {
           "shout": {
             "short": "-s"
+          },
+          "audience": {
+            "short": "-a"
           }
         },
         "positional": [
@@ -83,11 +90,16 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "audience": {
+            "description": "Who the command speaks to",
+            "type": "string"
+          },
           "resetData": {
             "type": "string",
             "description": "The digest of the preview for this consent: Delete example-data.json and the data in it"
           }
-        }
+        },
+        "required": []
       },
       "output": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -103,6 +115,11 @@
         "additionalProperties": false
       },
       "cli": {
+        "flags": {
+          "audience": {
+            "short": "-a"
+          }
+        },
         "fields": {}
       },
       "errors": [
