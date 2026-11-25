@@ -3,6 +3,7 @@ import { HistoryEntryType } from '@vendure/common/lib/generated-types';
 import {
     configureDefaultOrderProcess,
     defaultFulfillmentProcess,
+    defaultPaymentProcess,
     FulfillmentHandler,
     FulfillmentProcess,
     Injector,
@@ -12,6 +13,7 @@ import {
     OrderHistoryEntry,
     OrderProcess,
     PaymentMethodHandler,
+    PaymentProcess,
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
@@ -31,6 +33,7 @@ import {
     getOrderListDocument,
     getProductVariantListDocument,
     refundOrderDocument,
+    transitionPaymentToStateDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
@@ -180,6 +183,8 @@ const misbehavingOrderProcess: OrderProcess<any> = {
                     }),
                 );
             } finally {
+                // SET applies to the session, which outlives release() on the pooled connection.
+                await queryRunner.query('RESET lock_timeout');
                 await queryRunner.release();
             }
         }
@@ -208,6 +213,38 @@ const misbehavingFulfillmentProcess: FulfillmentProcess<any> = {
         ) {
             deadlockAfterFulfillmentThrown = true;
             throw Object.assign(new Error('simulated deadlock after fulfillment'), { code: DEADLOCK_CODE });
+        }
+    },
+};
+
+let voidCalls = 0;
+let deadlockAfterVoidThrown = false;
+/** Authorizes payments, and counts how often the provider is asked to void one. */
+const voidingPaymentMethod = new PaymentMethodHandler({
+    code: 'voiding-payment-method',
+    description: [{ languageCode: LanguageCode.en, value: 'Voiding payment method' }],
+    args: {},
+    createPayment: (ctx, order, amount) => ({
+        amount,
+        state: 'Authorized',
+        transactionId: `auth-${order.code}`,
+    }),
+    settlePayment: () => ({ success: true }),
+    // Providers often capture or void in this hook. Settled and Cancelled go through
+    // settlePayment() and cancelPayment(), the other states only through this hook.
+    onStateTransitionStart: (fromState, toState) => {
+        if (toState === 'Error') {
+            voidCalls++;
+        }
+        return true;
+    },
+});
+/** Hits a simulated deadlock once, after a Payment of the voiding method was voided. */
+const misbehavingPaymentProcess: PaymentProcess<any> = {
+    onTransitionEnd(fromState, toState, { payment }) {
+        if (toState === 'Error' && payment.method === voidingPaymentMethod.code && !deadlockAfterVoidThrown) {
+            deadlockAfterVoidThrown = true;
+            throw Object.assign(new Error('simulated deadlock after void'), { code: DEADLOCK_CODE });
         }
     },
 };
@@ -257,7 +294,9 @@ describeOnRealDb('Order concurrency', () => {
                     testSuccessfulPaymentMethod,
                     countingPaymentMethod,
                     slowPaymentMethod,
+                    voidingPaymentMethod,
                 ],
+                process: [defaultPaymentProcess, misbehavingPaymentProcess],
             },
             shippingOptions: {
                 fulfillmentHandlers: [manualFulfillmentHandler, countingFulfillmentHandler],
@@ -336,6 +375,10 @@ describeOnRealDb('Order concurrency', () => {
                         name: slowPaymentMethod.code,
                         handler: { code: slowPaymentMethod.code, arguments: [] },
                     },
+                    {
+                        name: voidingPaymentMethod.code,
+                        handler: { code: voidingPaymentMethod.code, arguments: [] },
+                    },
                 ],
             },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
@@ -353,9 +396,9 @@ describeOnRealDb('Order concurrency', () => {
         await server.destroy();
     });
 
-    // #4152 — this pair already survives on master, because applyPriceAdjustments omits both
-    // address columns from the object it saves for exactly this reason. The test pins that
-    // mitigation in place, since removing the omit list would reintroduce the lost update.
+    // #4152 — on master this pair survives because applyPriceAdjustments omits both address
+    // columns from the object it saves. On major that mitigation no longer holds, and the address
+    // was lost: the Order lock is what keeps it.
     it('does not lose an address written concurrently with a shipping method', async () => {
         const client = await newShopClient();
         await client.query(addItemToOrderDocument, {
@@ -682,5 +725,27 @@ describeOnRealDb('Order concurrency', () => {
 
         expect(deadlockAfterFulfillmentThrown).toBe(true);
         expect(carrierCalls).toBe(1);
+    });
+
+    // #4152 — a provider which voids in onStateTransitionStart must not be asked to void again
+    // because the transaction which called it was retried after a deadlock.
+    it('does not call the payment provider again when a deadlock follows a payment transition', async () => {
+        const client = await newShopClient();
+        await checkoutToArrangingPayment(client, 'deadlock-after-capture@test.com');
+        const { addPaymentToOrder: authorized } = await client.query(addPaymentDocument, {
+            input: { method: voidingPaymentMethod.code, metadata: {} },
+        });
+        expect((authorized as any).state).toBe('PaymentAuthorized');
+        voidCalls = 0;
+
+        await adminClient
+            .query(transitionPaymentToStateDocument, {
+                id: (authorized as any).payments[0].id,
+                state: 'Error',
+            })
+            .catch(() => undefined);
+
+        expect(deadlockAfterVoidThrown).toBe(true);
+        expect(voidCalls).toBe(1);
     });
 });

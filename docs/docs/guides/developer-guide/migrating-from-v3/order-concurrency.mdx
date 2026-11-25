@@ -13,7 +13,7 @@ In v3, two requests which changed the same Order at the same time could overwrit
 - On MySQL and MariaDB, transactions run at `READ COMMITTED` instead of InnoDB's default `REPEATABLE READ`. Postgres already uses `READ COMMITTED`.
 - A transaction which the database rejects with a deadlock or a serialization failure is retried, unless it has already called a payment provider.
 
-SQLite is not affected: it runs one write at a time anyway. Aurora Postgres is covered like Postgres. Aurora MySQL keeps the v3 behaviour: TypeORM's Aurora MySQL driver never applies an isolation level, so Vendure takes no row locks there.
+SQLite is not affected: it runs one write at a time anyway. Aurora Postgres is covered like Postgres. Aurora MySQL keeps the v3 behaviour: TypeORM's Aurora MySQL driver never applies an isolation level, so transactions there stay at `REPEATABLE READ` and Vendure does not serialize Order writes. The locks v3 already took there, for coupon codes, merging Orders on login and recalculating stale Orders, are still taken.
 
 ## Why the isolation level changes
 
@@ -74,11 +74,11 @@ export class MyErpService {
 The lock is taken when `OrderService` reads an Order to change it, and when the active Order is determined in the Shop API. If a plugin updates an Order through its own queries, lock the row before you read it, inside the same transaction:
 
 ```ts
-await this.connection.lockRow(ctx, Order, orderId);
+await this.connection.lockRow(ctx, Order, orderId, { requireReadCommitted: true });
 const order = await this.connection.getRepository(ctx, Order).findOne({ where: { id: orderId } });
 ```
 
-`lockRow()` does nothing outside a transaction and on SQLite. When a request locks several rows, take them in the order Session, User, Order, which is the order Vendure uses, or two requests can deadlock.
+`lockRow()` does nothing outside a transaction and on SQLite. `requireReadCommitted` also skips the lock where the read after it would not see the previous writer's changes, which is the case on Aurora MySQL, so that concurrent writes do not overwrite each other every time. When a request locks several rows, take them in the lock order documented on `TransactionalConnection.lockRow()` (Session, User, Order, then the Promotion of a coupon code and StockLevels), or two requests can deadlock.
 
 **Done when:** each plugin which saves an Order either goes through `OrderService` or locks the Order first.
 

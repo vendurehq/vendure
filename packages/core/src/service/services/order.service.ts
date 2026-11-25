@@ -92,7 +92,7 @@ import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { isRetriableTransactionError } from '../../connection/is-retriable-transaction-error';
-import { TransactionalConnection } from '../../connection/transactional-connection';
+import { LockRowOptions, TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
@@ -177,6 +177,13 @@ class RefusedCancellation extends Error {
         super(result.message);
     }
 }
+
+/**
+ * The Order lock which serializes the read-modify-write of an Order. See LockRowOptions: where the
+ * reads after the lock would not see the previous writer's changes, the lock is skipped rather than
+ * making every concurrent write overwrite the one before it.
+ */
+const READ_COMMITTED_LOCK: LockRowOptions = { requireReadCommitted: true };
 
 /**
  * @description
@@ -1983,7 +1990,7 @@ export class OrderService implements OnApplicationBootstrap {
     ): Promise<ErrorResultUnion<CancelOrderResult, Order>> {
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
-                await this.connection.lockRow(txCtx, Order, input.orderId);
+                await this.connection.lockRow(txCtx, Order, input.orderId, READ_COMMITTED_LOCK);
                 // Cancelling lines publishes events (OrderLineEvent, StockMovementEvent, HistoryEntryEvent)
                 // which subscribers receive once the outermost transaction commits, even when a savepoint
                 // inside it was rolled back. So a refusal must be known before the lines are cancelled.
@@ -2426,10 +2433,9 @@ export class OrderService implements OnApplicationBootstrap {
         }
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
-                // Acquire a pessimistic lock on the existing order to prevent concurrent merges
-                // from interleaving their DB operations. See https://github.com/vendurehq/vendure/issues/4481
-                // Note: SQLite does not support pessimistic locks — the try-catch ensures we
-                // degrade gracefully (SQLite serializes writes at the engine level anyway).
+                // Lock the existing order to prevent concurrent merges from interleaving their DB
+                // operations. See https://github.com/vendurehq/vendure/issues/4481. lockRow() is a
+                // no-op on SQLite, which runs every write on a single connection anyway.
                 if (existingOrder) {
                     await this.connection.lockRow(txCtx, Order, existingOrder.id);
                 }
@@ -2605,7 +2611,7 @@ export class OrderService implements OnApplicationBootstrap {
         const unique = [...new Map(orderIds.map(id => [String(id), id])).values()];
         unique.sort(compareIdsForLockOrder);
         for (const id of unique) {
-            await this.connection.lockRow(ctx, Order, id);
+            await this.connection.lockRow(ctx, Order, id, READ_COMMITTED_LOCK);
         }
     }
 
@@ -2619,7 +2625,7 @@ export class OrderService implements OnApplicationBootstrap {
             .where('payment.id = :paymentId', { paymentId })
             .getRawOne<{ orderId: ID }>();
         if (row) {
-            await this.connection.lockRow(ctx, Order, row.orderId);
+            await this.connection.lockRow(ctx, Order, row.orderId, READ_COMMITTED_LOCK);
         }
     }
 
@@ -2648,7 +2654,7 @@ export class OrderService implements OnApplicationBootstrap {
         // It is taken before the read, so that what is read is what the lock protects.
         // No-op outside a transaction and on databases without row locking, which is what keeps
         // read-only requests from locking anything. See TransactionalConnection.lockRow.
-        await this.connection.lockRow(ctx, Order, orderId);
+        await this.connection.lockRow(ctx, Order, orderId, READ_COMMITTED_LOCK);
         const order = await this.findOne(
             ctx,
             orderId,

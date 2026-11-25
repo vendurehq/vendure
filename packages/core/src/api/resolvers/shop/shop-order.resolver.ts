@@ -495,7 +495,7 @@ export class ShopOrderResolver {
             // deletes the Session and then merges the Orders, could deadlock with this request
             // after the payment provider has been called.
             if (ctx.session) {
-                await this.connection.lockRow(ctx, Session, ctx.session.id);
+                await this.connection.lockRow(ctx, Session, ctx.session.id, { requireReadCommitted: true });
             }
             const sessionOrder = await this.activeOrderService.getActiveOrder(
                 ctx,

@@ -43,11 +43,34 @@ import { GetEntityOrThrowOptions, VendureFindManyOptions, VendureFindOneOptions 
 
 /**
  * The databases on which `lockRow()` takes a lock. SQLite and sql.js support no row locks, and run
- * every write on a single connection. Aurora MySQL is left out because TypeORM's Aurora MySQL driver
- * never applies an isolation level, so it stays at `REPEATABLE READ`: a lock there would serialize
- * writers without letting a writer that waited see what the one before it committed.
+ * every write on a single connection.
  */
-const ROW_LOCKING_DB_TYPES: string[] = ['postgres', 'aurora-postgres', 'mysql', 'mariadb'];
+const ROW_LOCKING_DB_TYPES: string[] = ['postgres', 'aurora-postgres', 'mysql', 'mariadb', 'aurora-mysql'];
+
+/**
+ * @description
+ * Options for {@link TransactionalConnection}`.lockRow()`.
+ *
+ * @docsCategory data-access
+ * @since 4.0.0
+ */
+export interface LockRowOptions {
+    /**
+     * @description
+     * Only take the lock where the reads which follow it see what the previous lock holder
+     * committed, which needs `READ COMMITTED`. Set this when the lock serializes a
+     * read-modify-write: there, a writer which waited for the lock but still read its first
+     * snapshot would overwrite the changes of the writer before it every time, which is worse than
+     * not serializing at all.
+     *
+     * The lock is skipped on Aurora MySQL, whose TypeORM driver never applies an isolation level so
+     * that it always runs at `REPEATABLE READ`, and on MySQL and MariaDB when
+     * `entityOptions.transactionIsolationLevel` is `REPEATABLE READ`.
+     *
+     * @default false
+     */
+    requireReadCommitted?: boolean;
+}
 
 /**
  * Repository methods intercepted by the access control Proxy.
@@ -347,11 +370,17 @@ export class TransactionalConnection {
      *
      * When several rows are locked in one request, always lock them in the same order across the
      * whole codebase, or two requests can deadlock by taking the same pair in opposite orders.
-     * The order used for order mutations is Session, then User, then Order.
+     * The lock order Vendure uses is:
+     *
+     * 1. Session
+     * 2. User
+     * 3. Order, several of them in ascending id order
+     * 4. the rows an order operation goes on to lock: the Promotion of a coupon code, then StockLevels
+     *    in ascending ProductVariant id order
      *
      * Reads which follow the lock only see what the previous lock holder committed under
      * `READ COMMITTED`. Under `REPEATABLE READ` they keep reading the transaction's first
-     * snapshot. See `entityOptions.transactionIsolationLevel`.
+     * snapshot. See `entityOptions.transactionIsolationLevel` and {@link LockRowOptions}.
      *
      * @since 4.0.0
      */
@@ -359,8 +388,12 @@ export class TransactionalConnection {
         ctx: RequestContext,
         entityType: ObjectType<T>,
         id: ID,
+        options?: LockRowOptions,
     ): Promise<void> {
         if (!ROW_LOCKING_DB_TYPES.includes(this.rawConnection.options.type)) {
+            return;
+        }
+        if (options?.requireReadCommitted && !this.readsSeeCommitsAfterLock()) {
             return;
         }
         const transactionManager = this.getTransactionManager(ctx);
@@ -386,6 +419,21 @@ export class TransactionalConnection {
             )
             .where('entity.id = :id', { id })
             .getOne();
+    }
+
+    /**
+     * Whether a read made after a row lock sees what the previous holder of the lock committed. See
+     * {@link LockRowOptions}.
+     */
+    private readsSeeCommitsAfterLock(): boolean {
+        const dbType = getDatabaseType(this.rawConnection);
+        if (dbType === 'aurora-mysql') {
+            return false;
+        }
+        if (dbType === 'mysql' || dbType === 'mariadb') {
+            return this.getDefaultIsolationLevel() !== 'REPEATABLE READ';
+        }
+        return true;
     }
 
     /**

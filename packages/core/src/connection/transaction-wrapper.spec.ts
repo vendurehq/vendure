@@ -222,17 +222,30 @@ describe('TransactionWrapper', () => {
         expect(attempts).toBe(1);
     });
 
-    it('only stops retrying the attempt which was marked', async () => {
+    it('does not carry a mark over from an earlier transaction on the same runner', async () => {
+        // SQLite drivers share one runner between transactions, so a mark set by one must not stop
+        // the retry of the next.
         const connection = mockConnection();
+        const w = wrapper();
+        await w.executeInTransaction(
+            ctx,
+            async () => {
+                runner.data[TRANSACTION_NO_RETRY_KEY] = true;
+                return 'charged';
+            },
+            'auto',
+            undefined,
+            connection,
+        );
+        runner.isReleased = false;
         let attempts = 0;
-        const result = await wrapper().executeInTransaction(
+        const result = await w.executeInTransaction(
             ctx,
             async () => {
                 attempts++;
                 if (attempts === 1) {
                     throw deadlock();
                 }
-                runner.data[TRANSACTION_NO_RETRY_KEY] = true;
                 return 'done';
             },
             'auto',

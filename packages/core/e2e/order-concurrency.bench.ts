@@ -15,7 +15,8 @@
  *
  * Env:
  *   BENCH_SCENARIOS  comma-separated scenario names, default all correctness scenarios. Add
- *                    `throughput`, `hotCart` and `paymentPileUp` for the latency scenarios.
+ *                    `throughput`, `hotCart`, `paymentPileUp` and `cheapBehindSlowPayment` for the
+ *                    latency scenarios.
  *   BENCH_TRIALS     trials per correctness scenario (default 20)
  *   BENCH_OUT        output JSON path (default /tmp/order-concurrency-<variant>-<db>.json)
  *   BENCH_VARIANT    label written to the results, e.g. the branch name
@@ -23,6 +24,7 @@
  *   BENCH_PAYMENT_DELAY_MS  latency of the payment handler, to model a payment provider call
  *   BENCH_P, BENCH_ROUNDS, BENCH_H, BENCH_B  size of the throughput and hotCart scenarios
  *   BENCH_K, BENCH_R  orders, and payment attempts per order, of the paymentPileUp scenario
+ *   BENCH_C  cheap mutations, and as many reads, of the cheapBehindSlowPayment scenario
  */
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { DefaultLogger, LogLevel, mergeConfig, PaymentMethodHandler, VendureLogger } from '@vendure/core';
@@ -759,6 +761,42 @@ describe(`Order concurrency load [${VARIANT} / ${DB}]`, () => {
             });
         }
         results.paymentPileUp = { trials };
+    }, 900_000);
+
+    // A slow payment provider call holds a cart (BENCH_PAYMENT_DELAY_MS) while the storefront sends
+    // cheap requests for the same cart: mutations, which wait for the Order lock, and reads, which
+    // take none. This is the case in which the lock makes requests slower than before.
+    it('cheapBehindSlowPayment', async () => {
+        if (!SCENARIOS.includes('cheapBehindSlowPayment')) return;
+        const C = +(process.env.BENCH_C ?? 5);
+        const rounds = +(process.env.BENCH_ROUNDS ?? 3);
+        const trials: Trial[] = [];
+        for (let r = 0; r < rounds; r++) {
+            const client = await newClient();
+            await toArrangingPayment(client, [V[2]]);
+            const errors: string[] = [];
+            const t0 = performance.now();
+            const payment = attempt('slow:addPayment', errors, () => client.query(D.addPayment));
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await Promise.all([
+                ...Array.from({ length: C }, () =>
+                    attempt('cheap:mutation', errors, () => client.query(D.addItem, { v: V[3], q: 1 })),
+                ),
+                ...Array.from({ length: C }, () =>
+                    attempt('cheap:activeOrder', errors, () => client.query(D.activeOrder)),
+                ),
+                payment,
+            ]);
+            // The mutations are refused once the Order is in ArrangingPayment, which is expected.
+            const dbErrors = errors.filter(e => !/: [A-Z_]+_ERROR$/.test(e));
+            trials.push({
+                ok: dbErrors.length === 0,
+                anomalies: [],
+                errors: dbErrors,
+                ms: performance.now() - t0,
+            });
+        }
+        results.cheapBehindSlowPayment = { trials };
     }, 900_000);
 
     // One cart receives H concurrent mutations while B bystanders shop normally. Measures

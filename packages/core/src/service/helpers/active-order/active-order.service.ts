@@ -115,18 +115,19 @@ export class ActiveOrderService {
      * whenever an order is about to be created, including when the session points at an order
      * which is no longer active or belongs to another channel.
      *
-     * Locks are taken in the order Session, User, Order. Every caller has to use that same order,
-     * or two requests can deadlock by taking the same pair the other way round.
+     * Locks are taken in the lock order defined on {@link TransactionalConnection}`.lockRow()`, which
+     * starts Session, User, Order. Every caller has to use that same order, or two requests can
+     * deadlock by taking the same pair the other way round.
      *
      * This is a no-op outside a transaction and on databases without row locking, see
      * {@link TransactionalConnection.lockRow}.
      */
     private async lockActiveOrderOwner(ctx: RequestContext): Promise<void> {
         if (ctx.session) {
-            await this.connection.lockRow(ctx, Session, ctx.session.id);
+            await this.connection.lockRow(ctx, Session, ctx.session.id, { requireReadCommitted: true });
         }
         if (ctx.activeUserId) {
-            await this.connection.lockRow(ctx, User, ctx.activeUserId);
+            await this.connection.lockRow(ctx, User, ctx.activeUserId, { requireReadCommitted: true });
         }
         if (ctx.session) {
             // ctx.session is a snapshot taken from the session cache when the request arrived,
