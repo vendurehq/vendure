@@ -157,9 +157,10 @@ export const devConfig: VendureConfig = {
                 adminPasswordResetUrl: `${dashboardUrl}/reset-password`,
             },
         }),
-        // The Store MCP, which `vendure store check` and the MCP tools use. `vendure dev` trusts the
-        // local `vendure mcp` server, so no OAuth is configured.
-        McpPlugin.init({ shopAccess: 'anonymous' }),
+        // The Store MCP, which `vendure store check` and the MCP tools use. With no oauth block, the
+        // CLI's local trust gives `vendure mcp` admin access, and `/mcp/shop` takes anonymous callers
+        // by default.
+        McpPlugin.init({}),
         ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
         SERVE_STATIC_DASHBOARD
             ? DashboardPlugin.init({
