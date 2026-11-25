@@ -14,7 +14,7 @@ export function writeSecretFile(
     command: string[],
     field: string,
     value: string,
-    env: NodeJS.ProcessEnv = process.env,
+    env?: NodeJS.ProcessEnv,
 ): string {
     const stamp = new Date().toISOString().replace(/[:.]/g, '');
     const name = `${[...command, field].join('-')}-${stamp}-${randomBytes(4).toString('hex')}`;

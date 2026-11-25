@@ -302,6 +302,7 @@ describe('the credential check of createHostEnvironment', () => {
         mcp: false,
         notice: () => undefined,
         progress: () => undefined,
+        output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
     };

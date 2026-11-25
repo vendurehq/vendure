@@ -426,6 +426,7 @@ setInterval(() => {}, 1000);
             mcp,
             notice: vi.fn(),
             progress: vi.fn(),
+            output: vi.fn(),
             event: vi.fn(),
             spawn: createSpawn(projectDir, controller.signal, text => (forwardedStdout += text)),
         };

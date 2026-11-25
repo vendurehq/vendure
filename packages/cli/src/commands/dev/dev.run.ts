@@ -24,7 +24,7 @@ type DevInput = {
 export async function run(input: DevInput, ctx: CommandContext) {
     const { runDev } = await import('./dev.js');
     const io: DevIo = {
-        write: (stream, text) => ctx.event('output', { stream, text }),
+        write: (stream, text) => ctx.output(text, stream),
         info: message => ctx.notice('info', message),
         warn: message => ctx.notice('warning', message),
         error: message => ctx.notice('warning', message),

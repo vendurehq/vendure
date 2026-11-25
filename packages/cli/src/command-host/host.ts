@@ -11,6 +11,7 @@ import {
     CommandEvent,
     CommandNeed,
     CommandNotice,
+    CommandOutputEvent,
     CommandSelectOptions,
     CommandTextOptions,
     ConsentNeed,
@@ -266,6 +267,10 @@ function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandC
                 ...(current === undefined ? {} : { current }),
                 ...(total === undefined ? {} : { total }),
             });
+        },
+        output: (text, stream = 'stdout') => {
+            const event: CommandOutputEvent = { vendure: 'event', type: 'output', stream, text };
+            env.emit(event);
         },
         event: (type, data = {}) => {
             env.emit({ ...data, vendure: 'event', type });

@@ -66,6 +66,30 @@ describe('testCommand', () => {
         expect(contexts[0]).toBe(contexts[1]);
     });
 
+    it('reports ctx.output as an output event, on stdout unless the command says otherwise', async () => {
+        const follow = defineCommand({
+            path: ['acme', 'follow'],
+            description: 'Follow',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    ctx.output('line 1\n');
+                    ctx.output('oops\n', 'stderr');
+                    return {};
+                },
+            }),
+        });
+
+        const result = await testCommand(follow, {});
+
+        expect(result.envelope.status).toBe('ok');
+        expect(result.events.filter(event => event.type === 'output')).toEqual([
+            { vendure: 'event', type: 'output', stream: 'stdout', text: 'line 1\n' },
+            { vendure: 'event', type: 'output', stream: 'stderr', text: 'oops\n' },
+        ]);
+    });
+
     it('reports a missing input as an input need, as without a person', async () => {
         const result = await testCommand(greet, {});
         expect(result.envelope).toMatchObject({

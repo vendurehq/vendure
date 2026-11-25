@@ -40,7 +40,8 @@ export interface GlobalCliConfig {
  */
 export const CLI_PLUGINS_ENV_VAR = 'VENDURE_CLI_PLUGINS';
 
-export function getGlobalCliConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+/** With no `env`, in the config directory the CLI resolved at startup. */
+export function getGlobalCliConfigPath(env?: NodeJS.ProcessEnv): string {
     return path.join(getVendureCliConfigDir(env), 'cli.json');
 }
 
@@ -52,7 +53,7 @@ export function getGlobalCliConfigPath(env: NodeJS.ProcessEnv = process.env): st
  * is not: the CLI has to stay usable enough to fix the problem. The reason is
  * returned so the caller can report it.
  */
-export function readGlobalCliConfig(env: NodeJS.ProcessEnv = process.env): {
+export function readGlobalCliConfig(env?: NodeJS.ProcessEnv): {
     config: GlobalCliConfig;
     path: string;
     error?: string;
@@ -121,7 +122,7 @@ export function readEnvPluginNames(env: NodeJS.ProcessEnv = process.env): string
  * `replaces: true` the last listed wins. The file is listed first so that
  * naming a package in the environment is what decides.
  */
-export function getGlobalPluginAllowlist(env: NodeJS.ProcessEnv = process.env): string[] {
+export function getGlobalPluginAllowlist(env?: NodeJS.ProcessEnv): string[] {
     return mergeEnvPluginNames(readGlobalCliConfig(env).config.plugins ?? [], env);
 }
 
@@ -129,7 +130,7 @@ export function getGlobalPluginAllowlist(env: NodeJS.ProcessEnv = process.env): 
  * As {@link getGlobalPluginAllowlist}, for a caller that has already read the
  * config file and should not read it a second time.
  */
-export function mergeEnvPluginNames(configured: string[], env: NodeJS.ProcessEnv = process.env): string[] {
+export function mergeEnvPluginNames(configured: string[], env?: NodeJS.ProcessEnv): string[] {
     const names = [...new Set(configured)];
     for (const name of readEnvPluginNames(env)) {
         if (!names.includes(name)) {
@@ -145,7 +146,7 @@ export function mergeEnvPluginNames(configured: string[], env: NodeJS.ProcessEnv
  */
 export function writeGlobalPluginAllowlist(
     plugins: string[],
-    env: NodeJS.ProcessEnv = process.env,
+    env?: NodeJS.ProcessEnv,
 ): { path: string; plugins: string[] } {
     const configPath = getGlobalCliConfigPath(env);
     const { config } = readGlobalCliConfig(env);
@@ -156,7 +157,7 @@ export function writeGlobalPluginAllowlist(
 
 export function addGlobalPlugin(
     packageName: string,
-    env: NodeJS.ProcessEnv = process.env,
+    env?: NodeJS.ProcessEnv,
 ): { path: string; plugins: string[] } {
     const { config } = readGlobalCliConfig(env);
     const plugins = [...(config.plugins ?? [])];
@@ -168,7 +169,7 @@ export function addGlobalPlugin(
 
 export function removeGlobalPlugin(
     packageName: string,
-    env: NodeJS.ProcessEnv = process.env,
+    env?: NodeJS.ProcessEnv,
 ): { path: string; plugins: string[] } {
     const { config } = readGlobalCliConfig(env);
     return writeGlobalPluginAllowlist(

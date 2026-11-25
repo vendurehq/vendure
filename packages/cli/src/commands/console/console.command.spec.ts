@@ -67,6 +67,7 @@ function contextFor(cwd: string): CommandContext {
         mcp: false,
         notice: () => undefined,
         progress: () => undefined,
+        output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
     };
@@ -613,6 +614,7 @@ describe('vendure console link', () => {
             mcp: false,
             notice,
             progress: () => undefined,
+            output: () => undefined,
             event: () => undefined,
             spawn: () => Promise.reject(new Error('no processes in tests')),
         };

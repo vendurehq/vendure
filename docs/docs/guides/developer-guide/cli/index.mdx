@@ -607,9 +607,13 @@ A command that needs your Vendure account uses the stored login first, then `VEN
 cannot share your login, because each renewal spends its single-use refresh token. Give it its own credential, such
 as a delegated agent key, in `VENDURE_CLOUD_TOKEN`. Only a person at a terminal is signed in automatically. Every
 other run returns `incomplete` with an `input` need for the secret `token` field, whose fix is
-`vendure auth login --json`. The CLI checks for `VENDURE_CLOUD_TOKEN` in the process environment before it
-loads a project's `.env` file, so a cloned repository's `.env` cannot choose the credential the CLI finds for
-a command.
+`vendure auth login --json`. `VENDURE_CLOUD_TOKEN` and the CLI's config directory are read from the environment the
+CLI started with, never from a project's `.env` file. A repository's `.env` therefore cannot choose the credential the
+CLI acts with or where the login is stored. `VENDURE_CONSOLE_API_URL`, which chooses where the CLI sends the
+credential, is read from the startup environment as well, unless a CLI plugin passes its own. It can only name the
+production Console, its staging Console, or a loopback address. The config directory is
+`VENDURE_CLI_CONFIG_DIR`, or else `vendure` in `XDG_CONFIG_HOME`, `APPDATA` on Windows, or `~/.config`. Commands that
+load the Vendure config also run the project's own code, so only run them in a repository you trust.
 
 When a login is already stored, `vendure auth login` checks it the same way first. A login that can still be renewed
 asks before it is replaced. A login that can no longer be renewed is replaced without asking.
@@ -1199,6 +1203,13 @@ export async function run(input: { dryRun: boolean }, ctx: CommandContext) {
 `run` never prints or prompts. It reports through `ctx`, and returns its output, or `incomplete()`,
 `failed()` or `fail()` from `@vendure/common/lib/command`.
 
+`ctx.output(text, stream)` passes text on to the caller as it comes, such as the lines of a log the command
+follows. A person sees the text on stdout, or on stderr when `stream` is `'stderr'`. The host adds no newline, so end
+each line with one. Under `--json` each call is an `output` event on stderr, and stdout holds only the envelope.
+Through the Developer MCP each call is an `info` log notification. What the caller needs once the run ends belongs in
+the output `run` returns. Declare the event in the command's `events` schema, with `type: 'output'`, `stream` and
+`text`, so the manifest lists it.
+
 `ctx.spawn` starts a process, and passes its output on to the caller. Pass `quiet: true` to keep the
 output in the result only, for a process whose answer the command reads, such as `git status
 --porcelain`. Pass `timeoutMs` to stop a process that runs too long: the result then has
@@ -1306,7 +1317,7 @@ missing, or a module that is, leaves out the same commands: the CLI writes the r
 `vendure commands --json` lists the package under `refused` as `plugin.unavailable`. A manifest that
 can't be parsed, or whose commands don't have the shape `writeCommandManifest` writes, is listed as
 `plugin.manifest-invalid`. The command names `admin`, `shop`, `help` and `plugins` are reserved, and so
-are the field names `json`, `input`, `format`, `yes` and `project`. A manifest that breaks these rules
+are the field names `json`, `input`, `format` and `yes`. A manifest that breaks these rules
 is refused with `plugin.manifest-invalid`.
 
 ### How plugin commands appear in the help

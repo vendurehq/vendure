@@ -11,6 +11,7 @@ import {
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { authEnvironment } from '../../auth/startup-environment.js';
 import { hostErrors } from '../../command-host/host-errors.js';
 import { getPluginExtensions, getPluginProjectRoot } from '../../shared/plugin-extensions.js';
 import { findProjectDirectoryHints } from '../../utilities/monorepo-utils.js';
@@ -60,7 +61,8 @@ export function consoleDependencies(
     const { ask } = ctx;
     const dependencies: ConsoleCommandDependencies = {
         cwd: ctx.cwd,
-        env: process.env,
+        // The auth variables as the CLI started with them, never as a project's `.env` set them.
+        env: authEnvironment(),
         fetch: globalThis.fetch,
         hooks,
         isNonInteractive: () => !ask,
@@ -77,7 +79,7 @@ export function consoleDependencies(
             warn: message => ctx.notice('warning', message),
             info: message => ctx.notice('info', message),
             success: message => ctx.notice('info', message),
-            url: value => ctx.event('output', { stream: 'stdout', text: `${value}\n` }),
+            url: value => ctx.output(`${value}\n`),
         },
         // Nobody reads raw errors when nobody is asked: an agent, a script or CI.
         outputMode: ask ? 'human' : 'json',

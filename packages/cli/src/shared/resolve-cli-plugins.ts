@@ -242,7 +242,8 @@ export interface ResolveCliPluginsOptions {
     resolvePackage?: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
     /**
      * Environment the global scope reads its allowlist and config directory
-     * from. Defaults to `process.env`.
+     * from. The config directory defaults to the one the CLI resolved at startup. The
+     * allowlist variable defaults to `process.env`.
      */
     env?: NodeJS.ProcessEnv;
     /**
@@ -1069,7 +1070,7 @@ function readDirectory(dir: string): string[] {
  * exactly the install layouts this would otherwise fail on.
  */
 function getGlobalPluginScope(
-    env: NodeJS.ProcessEnv,
+    env: NodeJS.ProcessEnv | undefined,
     findInstall: () => CliInstallLocation | undefined,
 ): PluginScope {
     const { config, path: configPath, error } = readGlobalCliConfig(env);
@@ -1174,7 +1175,7 @@ function getPluginScopes(options: ResolveCliPluginsOptions): PluginScope[] {
     const findInstall = options.findCliInstall ?? (() => findCliInstallLocation());
 
     if (wanted.includes('global')) {
-        scopes.push(getGlobalPluginScope(options.env ?? process.env, findInstall));
+        scopes.push(getGlobalPluginScope(options.env, findInstall));
     }
     if (wanted.includes('project')) {
         const projectScope = getProjectPluginScope(options);

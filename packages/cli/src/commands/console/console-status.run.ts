@@ -1,5 +1,7 @@
 import { CommandContext, fail } from '@vendure/common/lib/command';
 
+import { authEnvironment } from '../../auth/startup-environment.js';
+
 import { resolveConsoleProject } from './console-context.js';
 import { consoleErrors } from './console.errors.js';
 import { assertNoRemovedConsoleEnvironment, ConsoleStatus, readConsoleStatus } from './console.js';
@@ -15,8 +17,9 @@ export async function run(input: DirInput, ctx: CommandContext) {
     }
     let status: ConsoleStatus;
     try {
-        assertNoRemovedConsoleEnvironment(process.env);
-        status = readConsoleStatus(project.projectRoot, process.env);
+        const env = authEnvironment();
+        assertNoRemovedConsoleEnvironment(env);
+        status = readConsoleStatus(project.projectRoot, env);
     } catch (error) {
         return fail(consoleErrors.statusFailed, {
             message: error instanceof Error ? error.message : String(error),
