@@ -223,6 +223,8 @@ export interface ResolveCliPluginsOptions {
     cwd?: string;
     /** Explicit Core project directory, resolved against cwd. */
     project?: string;
+    /** The option `project` came from, named in errors. Defaults to `--project`. */
+    projectFlag?: string;
     /**
      * Optional override for tests — skip filesystem discovery.
      */
@@ -267,9 +269,13 @@ export interface DiscoverCliPluginsOptions extends ResolveCliPluginsOptions {
  * Uses the selected Core project, including workspace discovery. Otherwise walks up from
  * `cwd` to a package that configures `vendure.cli` or depends on Core or the CLI.
  */
-export function resolveCliProjectRoot(cwd: string = process.cwd(), project?: string): string {
+export function resolveCliProjectRoot(
+    cwd: string = process.cwd(),
+    project?: string,
+    projectFlag?: string,
+): string {
     if (project !== undefined || findPackageJsonWithDependency(cwd, '@vendure/core')) {
-        return resolveCoreProjectDirectory(cwd, project);
+        return resolveCoreProjectDirectory(cwd, project, projectFlag);
     }
     let current = path.resolve(cwd);
     const roots: string[] = [];
@@ -1172,7 +1178,7 @@ function getProjectPluginContext(options: ResolveCliPluginsOptions): ProjectPlug
     const cwd = options.cwd ?? process.cwd();
     const projectRoot = options.projectPackageJson
         ? path.resolve(cwd)
-        : resolveCliProjectRoot(cwd, options.project);
+        : resolveCliProjectRoot(cwd, options.project, options.projectFlag);
     const projectPackageJson =
         options.projectPackageJson ?? readPackageJson(path.join(projectRoot, 'package.json'));
 

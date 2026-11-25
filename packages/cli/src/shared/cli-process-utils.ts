@@ -75,7 +75,7 @@ export function forEachLine(stream: NodeJS.ReadableStream | null, onLine: (line:
  * Writes each line of `text` to `output` with `prefix` in front of it. An empty line is written
  * without the prefix.
  */
-export function writePrefixedLines(output: NodeJS.WritableStream, prefix: string, text: string) {
+export function writePrefixedLines(output: { write(text: string): unknown }, prefix: string, text: string) {
     for (const line of text.split('\n')) {
         output.write(line.length ? `${prefix}${line}\n` : '\n');
     }

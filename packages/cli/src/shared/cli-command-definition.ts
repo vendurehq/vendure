@@ -309,7 +309,7 @@ export function readCommandOptions<TOptions extends Record<string, any> = Record
  */
 export interface CliCommandExtension {
     /**
-     * The command to extend: `'dev'`, or `['config', 'server', 'set']` for a
+     * The command to extend: `'start'`, or `['config', 'server', 'set']` for a
      * nested one.
      */
     command: string | string[];

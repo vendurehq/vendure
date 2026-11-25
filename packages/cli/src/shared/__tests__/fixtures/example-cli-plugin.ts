@@ -62,16 +62,16 @@ export default defineCliPlugin({
     ],
     extendCommands: [
         {
-            // Adds to the built-in dev command instead of replacing it, so
+            // Adds to the built-in start command instead of replacing it, so
             // other plugins can wrap it too.
-            command: 'dev',
-            options: [{ long: '--example-flag', description: 'An option added to dev' }],
+            command: 'start',
+            options: [{ long: '--example-flag', description: 'An option added to start' }],
             decorate:
                 ({ next }) =>
                 async (...args) => {
-                    process.stdout.write('Running wrapped vendure dev via plugin\n');
-                    // Call the action handed to us, never builtinCommands.dev.action,
-                    // so any other plugin wrapping dev still runs.
+                    process.stdout.write('Running wrapped vendure start via plugin\n');
+                    // Call the action handed to us, never builtinCommands.start.action,
+                    // so any other plugin wrapping start still runs.
                     return next(...args);
                 },
         },

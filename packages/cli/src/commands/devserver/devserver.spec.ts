@@ -395,7 +395,7 @@ describe('devserver start', () => {
     const fakeDevScript = `
 const fs = require('node:fs');
 const path = require('node:path');
-const projectDir = process.argv[process.argv.indexOf('--project') + 1];
+const projectDir = process.argv[process.argv.indexOf('--dir') + 1];
 const file = path.join(projectDir, '.vendure', 'devserver.json');
 const write = status => {
     fs.mkdirSync(path.dirname(file), { recursive: true });
