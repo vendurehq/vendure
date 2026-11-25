@@ -21,8 +21,16 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
+import { orderWithModificationsFragment } from './graphql/fragments-admin';
+import { FragmentOf as AdminFragmentOf } from './graphql/graphql-admin';
 import { FragmentOf } from './graphql/graphql-shop';
-import { createShippingMethodDocument } from './graphql/shared-definitions';
+import {
+    adminTransitionToStateDocument,
+    createShippingMethodDocument,
+    getCustomerListDocument,
+    modifyOrderDocument,
+} from './graphql/shared-definitions';
 import {
     activeOrderCustomerDocument,
     addItemToOrderDocument,
@@ -33,8 +41,10 @@ import {
     setShippingMethodDocument,
     testOrderFragment,
     testOrderWithPaymentsFragment,
+    transitionToStateDocument,
     updatedOrderFragment,
 } from './graphql/shop-definitions';
+import { addPaymentToOrder } from './utils/test-order-utils';
 
 declare module '@vendure/core/dist/entity/custom-entity-fields' {
     interface CustomShippingMethodFields {
@@ -66,8 +76,13 @@ describe('Multiple shipping orders', () => {
             shippingOptions: {
                 shippingLineAssignmentStrategy: new CustomShippingLineAssignmentStrategy(),
             },
+            paymentOptions: {
+                paymentMethodHandlers: [testSuccessfulPaymentMethod],
+            },
         }),
     );
+    const modificationGuard: ErrorResultGuard<AdminFragmentOf<typeof orderWithModificationsFragment>> =
+        createErrorResultGuard(input => !!input.modifications);
 
     type OrderSuccessResult =
         | FragmentOf<typeof updatedOrderFragment>
@@ -84,7 +99,15 @@ describe('Multiple shipping orders', () => {
 
     beforeAll(async () => {
         await server.init({
-            initialData,
+            initialData: {
+                ...initialData,
+                paymentMethods: [
+                    {
+                        name: testSuccessfulPaymentMethod.code,
+                        handler: { code: testSuccessfulPaymentMethod.code, arguments: [] },
+                    },
+                ],
+            },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 3,
         });
@@ -244,6 +267,83 @@ describe('Multiple shipping orders', () => {
         const { activeOrder: activeOrder2 } = await shopClient.query(getActiveOrderDocument);
 
         expect(activeOrder2?.shippingWithTax).toBe(0);
+    });
+
+    // Setting fewer shipping methods than the Order has ShippingLines keeps one ShippingLine per
+    // method. An OrderLine which the strategy no longer assigns must not keep its old ShippingLine.
+    it('keeps one shipping line per method when fewer shipping methods are set', async () => {
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_11', quantity: 1 });
+        const { setOrderShippingMethod: both } = await shopClient.query(setShippingMethodDocument, {
+            id: [lessThan100MethodId, greaterThan100MethodId],
+        });
+        orderResultGuard.assertSuccess(both);
+        expect(both.shippingWithTax).toBe(3000);
+
+        const { setOrderShippingMethod: one } = await shopClient.query(setShippingMethodDocument, {
+            id: [greaterThan100MethodId],
+        });
+        orderResultGuard.assertSuccess(one);
+
+        expect(one.shippingLines.map(l => l.shippingMethod.code)).toEqual(['greater-than-100']);
+        expect(one.shippingWithTax).toBe(2000);
+        const order = await getInternalOrder(one.id);
+        expect(order.shippingLines.length).toBe(1);
+        const assigned = order.lines
+            .filter(l => l.shippingLine)
+            .map(l => l.shippingLine!.shippingMethod.code);
+        expect(assigned).toEqual(['greater-than-100']);
+    });
+
+    // modifyOrder works on the in-memory Order, so an OrderLine left without a ShippingLine
+    // must not be saved with a reference to the removed ShippingLine
+    it('modifyOrder refunds only the shipping of the removed method', async () => {
+        const { customers } = await adminClient.query(getCustomerListDocument, { options: { take: 1 } });
+        await shopClient.asUserWithCredentials(customers.items[0].emailAddress, 'test');
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_11', quantity: 1 });
+        await shopClient.query(setShippingAddressDocument, {
+            input: {
+                fullName: 'name',
+                streetLine1: '12 the street',
+                postalCode: '123456',
+                countryCode: 'US',
+            },
+        });
+        const { setOrderShippingMethod } = await shopClient.query(setShippingMethodDocument, {
+            id: [lessThan100MethodId, greaterThan100MethodId],
+        });
+        orderResultGuard.assertSuccess(setOrderShippingMethod);
+        await shopClient.query(transitionToStateDocument, { state: 'ArrangingPayment' });
+        const placed = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+        orderResultGuard.assertSuccess(placed);
+        expect(placed.state).toBe('PaymentSettled');
+        expect(placed.shippingWithTax).toBe(3000);
+        const orderId = placed.id;
+
+        await adminClient.query(adminTransitionToStateDocument, { id: orderId, state: 'Modifying' });
+
+        const { modifyOrder: dryRun } = await adminClient.query(modifyOrderDocument, {
+            input: { dryRun: true, orderId, shippingMethodIds: [lessThan100MethodId] },
+        });
+        modificationGuard.assertSuccess(dryRun);
+        expect(dryRun.shippingWithTax).toBe(1000);
+        expect(dryRun.totalWithTax).toBe(placed.totalWithTax - 2000);
+
+        const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+            input: {
+                dryRun: false,
+                orderId,
+                shippingMethodIds: [lessThan100MethodId],
+                refunds: [{ paymentId: placed.payments![0].id, reason: 'removed shipping method' }],
+            },
+        });
+        modificationGuard.assertSuccess(modifyOrder);
+        expect(modifyOrder.shippingWithTax).toBe(1000);
+        expect(modifyOrder.modifications[0].priceChange).toBe(-2000);
+        expect(modifyOrder.modifications[0].refund?.total).toBe(2000);
+        const order = await getInternalOrder(orderId);
+        expect(order.shippingLines.map(l => l.shippingMethod.code)).toEqual(['less-than-100']);
     });
 
     async function getInternalOrder(externalOrderId: string): Promise<Order> {
