@@ -444,6 +444,55 @@ export interface CommandContext {
      * @since 4.0.0
      */
     credential?: CommandCredential;
+    /**
+     * Renews the credential once, for a command whose request was refused with 401, and resolves
+     * to the new one, which also replaces `ctx.credential`. Concurrent renewals of the same login
+     * share one.
+     *
+     * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
+     * which only its owner can replace, or a login the authentication service refused to renew.
+     * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
+     * failure, such as no network, and when `ctx.signal` fires.
+     *
+     * Present only for a command with `requires.auth`.
+     *
+     * @since 4.0.0
+     */
+    refreshCredential?(): Promise<CommandCredential | undefined>;
+    /**
+     * The Vendure Console the credential belongs to, and the organization of a stored login.
+     * Present only for a command with `requires.auth`. A command that calls the Console API sends
+     * `ctx.credential.token` to `ctx.account.apiUrl`, and after a 401 calls `ctx.refreshCredential()`
+     * and retries once.
+     *
+     * @since 4.0.0
+     */
+    account?: CommandAccount;
+}
+
+/**
+ * @description
+ * The Vendure Console account a command with `requires.auth` acts in. It holds no secret.
+ *
+ * @since 4.0.0
+ */
+export interface CommandAccount {
+    /** The Vendure Console app, for links a person opens. */
+    consoleUrl: string;
+    /** The Vendure Console API that accepts `ctx.credential.token`. */
+    apiUrl: string;
+    /**
+     * The organization the stored login is scoped to. Absent for a `VENDURE_CLOUD_TOKEN`, whose
+     * organization only the Console API knows, and for a login that is not scoped to one.
+     */
+    organization?: {
+        /** The authentication service's organization id, which scopes the token. */
+        id: string;
+        /** The Customer Account identifier, as Vendure Console shows it. `null` when Console could not be asked at login. */
+        customerAccountId: string | null;
+        /** `null` when Console could not be asked at login. */
+        name: string | null;
+    };
 }
 
 /**

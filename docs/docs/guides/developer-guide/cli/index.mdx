@@ -1292,6 +1292,27 @@ A command with `requires: { auth: 'cloud' }` receives the credential the CLI fou
 `ctx.credential`, `{ source: 'stored-login' | 'environment', token }`. The token is a secret: never
 print, log or return it.
 
+Such a command also receives `ctx.account`: `consoleUrl`, the Vendure Console app for links a person opens,
+`apiUrl`, the Console API that accepts the token, and for a stored login the `organization` it is scoped to. Both
+come from the environment the CLI started with. To call the Console API, send the token to `ctx.account.apiUrl`.
+When the API answers 401, call `ctx.refreshCredential()` once and retry with the credential it returns, which also
+replaces `ctx.credential`. It returns `undefined` when the credential cannot be renewed, such as a
+`VENDURE_CLOUD_TOKEN` or a login the authentication service refused: return `incomplete([credentialNeed()])`, with
+`credentialNeed` from `@vendure/cli`, so the caller signs in again.
+
+```ts
+let response = await call(ctx.account!.apiUrl, ctx.credential!.token);
+if (response.status === 401) {
+    const renewed = await ctx.refreshCredential?.();
+    if (!renewed) {
+        return incomplete([credentialNeed()]);
+    }
+    response = await call(ctx.account!.apiUrl, renewed.token);
+}
+```
+
+In a test with `testCommand`, pass `account` for `ctx.account`, and `refreshCredential` to answer a renewal.
+
 Test a command with `testCommand` from `@vendure/cli`, in your tests only. It runs the command through
 the CLI's command host, as `vendure <command> --json` would, and fails when the command writes to the
 console itself:

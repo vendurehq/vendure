@@ -1,6 +1,7 @@
 import {
     COMMAND_ENVELOPE_SCHEMA_VERSION,
     COMMAND_EXIT_CODES,
+    CommandAccount,
     CommandChoice,
     CommandContext,
     CommandCredential,
@@ -110,6 +111,17 @@ export interface HostEnvironment {
         kind: 'cloud',
         ctx: CommandContext,
     ): Promise<{ credential: CommandCredential } | { needs: CommandNeed[] }>;
+    /**
+     * Renews a credential that `requireCredential` found, for `ctx.refreshCredential`. Resolves
+     * to `undefined` when it cannot be renewed. Without it, `ctx.refreshCredential` never renews.
+     */
+    refreshCredential?(
+        kind: 'cloud',
+        credential: CommandCredential,
+        ctx: CommandContext,
+    ): Promise<CommandCredential | undefined>;
+    /** The Console account a credential belongs to, for `ctx.account`. */
+    describeAccount?(kind: 'cloud', credential: CommandCredential): CommandAccount | undefined;
     /**
      * Writes a secret output value to a file that only the user can read, and returns its
      * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
@@ -487,6 +499,22 @@ export async function executeCommand(
                 return incompleteResult(found.needs, notices);
             }
             ctx.credential = found.credential;
+            const kind = def.requires.auth;
+            const account = env.describeAccount?.(kind, found.credential);
+            if (account) {
+                ctx.account = account;
+            }
+            ctx.refreshCredential = async () => {
+                const current = ctx.credential;
+                if (!current || !env.refreshCredential) {
+                    return undefined;
+                }
+                const renewed = await env.refreshCredential(kind, current, ctx);
+                if (renewed) {
+                    ctx.credential = renewed;
+                }
+                return renewed;
+            };
         }
         const schemas = await def.schemas();
 
