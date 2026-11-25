@@ -110,3 +110,40 @@ export function resolveNavMenu(
             return 'items' in section ? !!section.items && section.items.length > 0 : true;
         });
 }
+
+/**
+ * @description
+ * The ids of the entries in a resolved menu: each section, and each item as
+ * `<sectionId>/<itemId>`. Kept between visits by {@link rememberedNavMenu}.
+ */
+export function navMenuEntryIds(resolved: Array<NavMenuSection | NavMenuItem>): string[] {
+    return resolved.flatMap(section => [
+        section.id,
+        ...('items' in section ? (section.items ?? []).map(item => `${section.id}/${item.id}`) : []),
+    ]);
+}
+
+/**
+ * @description
+ * The menu with only the entries in `ids`, sorted as {@link resolveNavMenu} sorts
+ * them. Permissions and `isVisible` predicates are not evaluated: `ids` come from
+ * the last menu resolved for this administrator, and stand in for it until the
+ * permissions have loaded, so the sidebar does not grow when they arrive.
+ */
+export function rememberedNavMenu(config: NavMenuConfig, ids: string[]): Array<NavMenuSection | NavMenuItem> {
+    const shown = new Set(ids);
+    return config.sections
+        .filter(section => shown.has(section.id))
+        .slice()
+        .sort(sortByOrder)
+        .map(section => {
+            if (!('items' in section)) {
+                return section;
+            }
+            const items = (section.items ?? [])
+                .filter(item => shown.has(`${section.id}/${item.id}`))
+                .sort(sortByOrder);
+            return { ...section, items };
+        })
+        .filter(section => !('items' in section) || (section.items ?? []).length > 0);
+}
