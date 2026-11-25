@@ -1,5 +1,9 @@
 import { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import {
+    readRememberedNavEntries,
+    rememberNavEntries,
+} from '@/vdb/framework/nav-menu/remembered-nav-menu.js';
+import {
     navMenuEntryIds,
     rememberedNavMenu,
     resolveNavMenu,
@@ -9,26 +13,6 @@ import { getLockedNavItemCapability } from '@/vdb/framework/platform-promotion/r
 import { useDashboardUserContext } from '@/vdb/hooks/use-dashboard-user-context.js';
 import { usePlatformPromotion } from '@/vdb/hooks/use-platform-promotion.js';
 import * as React from 'react';
-
-// The entries of the last resolved menu, shown until the permissions load.
-const REMEMBERED_NAV_KEY = 'vendure-dashboard:nav-menu-entries';
-
-function readRememberedEntries(): string[] | null {
-    try {
-        const stored = JSON.parse(localStorage.getItem(REMEMBERED_NAV_KEY) ?? 'null');
-        return Array.isArray(stored) && stored.every(id => typeof id === 'string') ? stored : null;
-    } catch {
-        return null;
-    }
-}
-
-function writeRememberedEntries(ids: string[]) {
-    try {
-        localStorage.setItem(REMEMBERED_NAV_KEY, JSON.stringify(ids));
-    } catch {
-        // Storage can be full or blocked.
-    }
-}
 
 /**
  * The navigation entries the current administrator sees: permissions, `isVisible`
@@ -80,14 +64,14 @@ export function useResolvedNavMenu(allItems: Array<NavMenuSection | NavMenuItem>
         [items, ctx, ready, hasUserDependentRules],
     );
 
-    // Permissions are known once the active channel is resolved against the
-    // administrator's channels. Until then every entry that requires a permission
-    // would be hidden, and appear a moment later: the sections below would move
-    // down. The entries of the last visit stand in for them meanwhile.
+    // Until the permissions load, every entry that requires one would be hidden,
+    // and appear a moment later: the sections below would move down. The entries
+    // of the last visit stand in for them meanwhile. The menu is resolved from
+    // `ctx`, whose permissions are known once it has the active channel.
     const settled = !!ctx.activeChannel && (!hasUserDependentRules || ready);
-    const [remembered] = React.useState(readRememberedEntries);
+    const [remembered] = React.useState(readRememberedNavEntries);
     React.useEffect(() => {
-        if (settled) writeRememberedEntries(navMenuEntryIds(resolved));
+        if (settled) rememberNavEntries(navMenuEntryIds(resolved));
     }, [settled, resolved]);
 
     return React.useMemo(

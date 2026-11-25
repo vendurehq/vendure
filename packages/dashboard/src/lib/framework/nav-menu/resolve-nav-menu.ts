@@ -134,7 +134,6 @@ export function rememberedNavMenu(config: NavMenuConfig, ids: string[]): Array<N
     const shown = new Set(ids);
     return config.sections
         .filter(section => shown.has(section.id))
-        .slice()
         .sort(sortByOrder)
         .map(section => {
             if (!('items' in section)) {

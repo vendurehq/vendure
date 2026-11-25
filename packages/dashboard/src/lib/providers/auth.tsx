@@ -1,4 +1,5 @@
 import { LS_KEY_SELECTED_CHANNEL_TOKEN } from '@/vdb/constants.js';
+import { forgetRememberedNavEntries } from '@/vdb/framework/nav-menu/remembered-nav-menu.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
@@ -342,6 +343,8 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
                 } catch {
                     // intentionally swallowed — see comment above
                 }
+                // The next administrator must not see this one's navigation.
+                forgetRememberedNavEntries();
                 setStatus('unauthenticated');
                 setIsLoginLogoutInProgress(false);
                 onLogoutSuccess?.();
