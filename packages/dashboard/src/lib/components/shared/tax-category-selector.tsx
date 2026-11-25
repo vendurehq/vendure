@@ -40,7 +40,7 @@ export function TaxCategorySelector({ value, onChange }: Readonly<TaxCategorySel
             }),
     });
     if (isLoading || isPending) {
-        return <Skeleton className="h-10 w-full" />;
+        return <Skeleton className="h-8.5 w-full" />;
     }
 
     return (
