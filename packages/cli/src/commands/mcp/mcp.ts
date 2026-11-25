@@ -141,6 +141,6 @@ function writeNotice<Details>(error: CommandErrorDefinition<Details>, details: D
 
 /** Writes a coded error to stderr, since stdout carries the protocol, and returns its exit code. */
 function stop<Details>(error: CommandErrorDefinition<Details>, details: Details): number {
-    process.stderr.write(`[${error.code}] ${error.message(details)}\n`);
+    writeNotice(error, details);
     return error.exit;
 }

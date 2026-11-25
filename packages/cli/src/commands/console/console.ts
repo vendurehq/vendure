@@ -29,6 +29,7 @@ import {
     findCredential,
     matchesOrganization,
 } from '../../auth/credential.js';
+import { authEnvironment } from '../../auth/startup-environment.js';
 import { CliCommandExit } from '../../shared/cli-command-exit.js';
 import { isNonInteractiveEnvironment } from '../../utilities/utils.js';
 
@@ -242,7 +243,8 @@ const defaultReporter: ConsoleReporter = {
 function createDefaultDependencies(): ConsoleCommandDependencies {
     return {
         cwd: process.cwd(),
-        env: process.env,
+        // The auth variables as the CLI started with them, never as a project's `.env` set them.
+        env: authEnvironment(),
         fetch: globalThis.fetch,
         hooks: [],
         isNonInteractive: () => isNonInteractiveEnvironment(),

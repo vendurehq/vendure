@@ -4,12 +4,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { writeSecretFile } from '../command-host/secret-file.js';
+import { DEFAULT_CONSOLE_API_URL } from '../commands/console/console-origins.js';
+import { getVendureCliConfigDir } from '../shared/cli-config-dir.js';
+import { getGlobalCliConfigPath } from '../shared/cli-global-plugin-config.js';
 import { loadVendureConfigFromPath } from '../shared/load-vendure-config-file.js';
 
 import { getAuthFilePath, resolveConsoleApiUrl } from './auth-options.js';
 import { readCloudTokenEnv, requireCredential } from './credential.js';
 import {
     AUTH_ENVIRONMENT_VARIABLES,
+    authEnvironment,
     clearStartupEnvironment,
     recordStartupEnvironment,
 } from './startup-environment.js';
@@ -67,11 +72,58 @@ describe('the auth variables a project .env sets', () => {
         expect(process.env.VENDURE_CLOUD_TOKEN).toBe('vcdk_from_the_repository');
 
         expect(readCloudTokenEnv()).toBeUndefined();
-        expect(resolveConsoleApiUrl()).toBe('https://api.vendure.io');
+        expect(resolveConsoleApiUrl()).toBe(DEFAULT_CONSOLE_API_URL);
         expect(getAuthFilePath()).toBe(path.join(configDir, 'auth.json'));
         const found = await requireCredential({ mayPrompt: false });
         expect(isIncompleteResult(found)).toBe(true);
     });
+});
+
+describe('a project .env that moves the config directory it falls back to', () => {
+    const FALLBACK_VARIABLES = ['VENDURE_CLI_CONFIG_DIR', 'XDG_CONFIG_HOME', 'HOME'] as const;
+    const saved = Object.fromEntries(FALLBACK_VARIABLES.map(name => [name, process.env[name]]));
+    let homeDir: string;
+
+    beforeEach(() => {
+        homeDir = mkdtempSync(path.join(tmpdir(), 'vendure-cli-home-'));
+        // The usual setup: no VENDURE_CLI_CONFIG_DIR and no XDG_CONFIG_HOME, so the directory is in
+        // the home directory.
+        delete process.env.VENDURE_CLI_CONFIG_DIR;
+        delete process.env.XDG_CONFIG_HOME;
+        process.env.HOME = homeDir;
+        recordStartupEnvironment();
+    });
+
+    afterEach(() => {
+        clearStartupEnvironment();
+        for (const [name, value] of Object.entries(saved)) {
+            if (value === undefined) {
+                delete process.env[name];
+            } else {
+                process.env[name] = value;
+            }
+        }
+        rmSync(homeDir, { recursive: true, force: true });
+    });
+
+    // On Windows the home directory comes from USERPROFILE, which this test doesn't set up.
+    it.skipIf(process.platform === 'win32')(
+        'keeps the login, cli.json, secret files and CLI children in the startup directory',
+        () => {
+            // What a repository's .env does once it is loaded. dotenv only loads once per process, and
+            // the spec above loads a real one.
+            process.env.XDG_CONFIG_HOME = path.join(homeDir, 'stolen');
+            process.env.HOME = path.join(homeDir, 'stolen-home');
+
+            const startupDir = path.join(homeDir, '.config', 'vendure');
+            expect(getVendureCliConfigDir()).toBe(startupDir);
+            expect(getAuthFilePath()).toBe(path.join(startupDir, 'auth.json'));
+            expect(getGlobalCliConfigPath()).toBe(path.join(startupDir, 'cli.json'));
+            expect(writeSecretFile(['test'], 'secret', 'value').startsWith(startupDir)).toBe(true);
+            // A CLI child started with this environment records the same directory.
+            expect(authEnvironment().VENDURE_CLI_CONFIG_DIR).toBe(startupDir);
+        },
+    );
 });
 
 describe('authEnvironment outside the CLI', () => {

@@ -1,7 +1,6 @@
 import { createColors } from 'picocolors';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-
 import { sectionAfter } from './__tests__/help-sections.js';
 import { runCli } from './__tests__/run-cli.js';
 import {
@@ -12,8 +11,8 @@ import {
     readCommandOptions,
 } from './cli-command-definition.js';
 import { exitCliCommand } from './cli-command-exit.js';
-import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
 import { parseOptionFlags } from './cli-command-options.js';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
 import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
 import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry.js';
 import { ANSI } from './strip-ansi.js';
@@ -128,12 +127,10 @@ describe('registerCommands() with nested commands', () => {
             },
         };
 
-        await runCli(
-            [command],
-            [],
-            ['inspect'],
-            (name => (name === 'example' ? [{ pluginId: '@example/plugin', extension }] : [])) as CliPluginExtensionAccessor,
-        );
+        await runCli([command], [], ['inspect'], (name =>
+            name === 'example'
+                ? [{ pluginId: '@example/plugin', extension }]
+                : []) as CliPluginExtensionAccessor);
 
         expect(received).toEqual({ pluginId: '@example/plugin', extension });
         expect((received as { extension: unknown }).extension).toBe(extension);

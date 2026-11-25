@@ -6,12 +6,11 @@ import {
     incomplete,
 } from '@vendure/common/lib/command';
 
-import { authEnvironment } from './startup-environment.js';
-
 import { NotLoggedInError, isRenewalRefused } from './auth-errors.js';
 import { AuthOptions } from './auth-options.js';
 import { getAccessToken, readAuthStatus } from './auth-session.js';
 import { StoredOrganization } from './auth-store.js';
+import { authEnvironment } from './startup-environment.js';
 
 /** The environment variable that holds a Vendure Cloud credential, such as a delegated agent key. */
 export const CLOUD_TOKEN_ENV = 'VENDURE_CLOUD_TOKEN';
