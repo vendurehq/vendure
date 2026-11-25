@@ -55,7 +55,7 @@ export function LatestCustomersWidget() {
             description={t`New registrations in the selected period`}
         >
             {isPending ? (
-                <ListRowsSkeleton rows={MAX_ITEMS} meta trailingClassName="w-16" />
+                <ListRowsSkeleton rows={MAX_ITEMS} meta trailingWidth="w-16" />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState

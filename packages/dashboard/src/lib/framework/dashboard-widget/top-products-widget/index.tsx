@@ -119,7 +119,7 @@ export function TopProductsWidget() {
             }
         >
             {isPending ? (
-                <ListRowsSkeleton rows={TOP_N} ranked trailingClassName="w-10" />
+                <ListRowsSkeleton rows={TOP_N} ranked trailingWidth="w-10" />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState

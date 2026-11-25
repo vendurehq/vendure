@@ -77,7 +77,7 @@ export function LowStockWidget() {
             }
         >
             {isPending ? (
-                <ListRowsSkeleton rows={MAX_ITEMS} meta trailingClassName="w-20" />
+                <ListRowsSkeleton rows={MAX_ITEMS} meta trailing="badge" trailingWidth="w-20" />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState
