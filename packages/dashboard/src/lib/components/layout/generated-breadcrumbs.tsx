@@ -26,6 +26,8 @@ export type PageBreadcrumb = BreadcrumbPair | BreadcrumbShorthand;
 
 type SectionCrumb = BreadcrumbPair & { repeatsItem?: boolean };
 
+const isBaseRoute = (p: string) => p === '' || p === `/`;
+
 export function GeneratedBreadcrumbs() {
     const matches = useRouterState({ select: s => s.matches });
     const currentPath = useRouterState({ select: s => s.location.pathname });
@@ -59,8 +61,10 @@ export function GeneratedBreadcrumbs() {
             .flatMap(({ pathname, loaderData }) => normalizeBreadcrumb(loaderData.breadcrumb, pathname));
     }, [matches]);
 
-    const isBaseRoute = (p: string) => p === '' || p === `/`;
-    const pageCrumbs: BreadcrumbPair[] = rawCrumbs.filter(c => !isBaseRoute(c.path));
+    const pageCrumbs: BreadcrumbPair[] = React.useMemo(
+        () => rawCrumbs.filter(c => !isBaseRoute(c.path)),
+        [rawCrumbs],
+    );
 
     const normalizePath = (path: string): string => {
         return path.startsWith('/') ? path : `/${path}`;
@@ -136,7 +140,15 @@ export function GeneratedBreadcrumbs() {
             (c, i, self) => self.findIndex(x => x.path === c.path && x.label === c.label) === i,
         );
     }, [sectionCrumb, pageCrumbs]);
-    const last = breadcrumbs.length - 1;
+    // While the next page loads, its match has no loader data yet, so the crumbs
+    // would drop to the section crumb. Keep the crumbs of the resolved page until then.
+    const isPending = useRouterState({ select: s => s.matches.some(match => match.status === 'pending') });
+    const [resolvedBreadcrumbs, setResolvedBreadcrumbs] = React.useState(breadcrumbs);
+    if (!isPending && resolvedBreadcrumbs !== breadcrumbs) {
+        setResolvedBreadcrumbs(breadcrumbs);
+    }
+    const shownBreadcrumbs = isPending ? resolvedBreadcrumbs : breadcrumbs;
+    const last = shownBreadcrumbs.length - 1;
     // Below 768px only the parent and the current page fit next to the sidebar
     // toggle. The crumbs before them collapse into the ellipsis.
     const collapsesBelowMd = (index: number) => index < last - 1;
@@ -151,7 +163,7 @@ export function GeneratedBreadcrumbs() {
                         <BreadcrumbSeparator className="md:hidden" />
                     </>
                 )}
-                {breadcrumbs.map(({ label, path }, index) => (
+                {shownBreadcrumbs.map(({ label, path }, index) => (
                     <Fragment key={`${path}-${index}`}>
                         <BreadcrumbItem
                             className={cn(
