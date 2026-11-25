@@ -303,7 +303,8 @@ export interface SpawnOptions {
     quiet?: boolean;
     /**
      * Stops the process with SIGTERM when it runs longer than this, in milliseconds, and sets
-     * `timedOut` in the result. For a probe that may never answer, such as a container runtime.
+     * `timedOut` in the result. A process still running two seconds later is killed, and the result
+     * holds the output so far. For a probe that may never answer, such as a container runtime.
      *
      * @since 4.0.0
      */

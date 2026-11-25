@@ -37,6 +37,9 @@ class LineWriter {
  * stderr under `--json`. Its stderr always goes to `process.stderr`. With `wholeLines`, both are
  * passed on in whole lines. The process is stopped when the signal fires.
  */
+/** How long a process that `timeoutMs` stopped has to exit after SIGTERM, before it is killed. */
+export const TIMEOUT_KILL_GRACE_MS = 2000;
+
 export function createSpawn(
     cwd: string,
     signal: AbortSignal,
@@ -83,25 +86,15 @@ export function createSpawn(
                 }
             });
             let timedOut = false;
-            const timer =
-                options.timeoutMs === undefined
-                    ? undefined
-                    : setTimeout(() => {
-                          timedOut = true;
-                          child.kill('SIGTERM');
-                      }, options.timeoutMs);
-            const onAbort = () => child.kill('SIGTERM');
-            if (signal.aborted) {
-                onAbort();
-            }
-            signal.addEventListener('abort', onAbort, { once: true });
-            child.on('error', error => {
+            let settled = false;
+            let killTimer: NodeJS.Timeout | undefined;
+            const finish = (exitCode: number | null) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
                 clearTimeout(timer);
-                signal.removeEventListener('abort', onAbort);
-                reject(error);
-            });
-            child.on('close', exitCode => {
-                clearTimeout(timer);
+                clearTimeout(killTimer);
                 signal.removeEventListener('abort', onAbort);
                 out?.flush();
                 err?.flush();
@@ -111,6 +104,36 @@ export function createSpawn(
                     stderr,
                     ...(timedOut ? { timedOut } : {}),
                 });
+            };
+            // A process that ignores SIGTERM, or a grandchild that keeps the pipes open, must not
+            // keep the caller waiting: after a grace period it is killed, and the result returned
+            // with the output so far.
+            const timer =
+                options.timeoutMs === undefined
+                    ? undefined
+                    : setTimeout(() => {
+                          timedOut = true;
+                          child.kill('SIGTERM');
+                          killTimer = setTimeout(() => {
+                              child.kill('SIGKILL');
+                              finish(null);
+                          }, TIMEOUT_KILL_GRACE_MS);
+                      }, options.timeoutMs);
+            const onAbort = () => child.kill('SIGTERM');
+            if (signal.aborted) {
+                onAbort();
+            }
+            signal.addEventListener('abort', onAbort, { once: true });
+            child.on('error', error => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearTimeout(timer);
+                clearTimeout(killTimer);
+                signal.removeEventListener('abort', onAbort);
+                reject(error);
             });
+            child.on('close', exitCode => finish(exitCode));
         });
 }

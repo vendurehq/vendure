@@ -7,10 +7,18 @@ import type {
     InputNeed,
 } from '@vendure/common/lib/command';
 
+import type { Prompter } from './host.js';
+
 /** The value of the choice that lets a person type their own. No real choice uses a NUL. */
 const OTHER = '\u0000other';
 
-import type { Prompter } from './host.js';
+/**
+ * The answer to a text prompt. Clack resolves `undefined` when the person presses Enter without
+ * typing, which is an empty answer, not a cancel.
+ */
+function typedAnswer(answer: unknown): string | undefined {
+    return isCancel(answer) ? undefined : String(answer ?? '');
+}
 
 /** Asks a person at a terminal with @clack/prompts. */
 export function createClackPrompter(): Prompter {
@@ -56,16 +64,12 @@ export function createClackPrompter(): Prompter {
             if (answer !== OTHER) {
                 return String(answer);
             }
-            const typed = await text({ message: options.other ?? message });
-            return isCancel(typed) ? undefined : String(typed);
+            return typedAnswer(await text({ message: options.other ?? message }));
         },
         async text(message: string, options: CommandTextOptions = {}) {
-            const answer = await text({
-                message,
-                placeholder: options.placeholder,
-                initialValue: options.initialValue,
-            });
-            return isCancel(answer) ? undefined : String(answer);
+            return typedAnswer(
+                await text({ message, placeholder: options.placeholder, initialValue: options.initialValue }),
+            );
         },
     };
 }

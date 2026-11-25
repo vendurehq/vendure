@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSpawn } from './spawn.js';
+import { createSpawn, TIMEOUT_KILL_GRACE_MS } from './spawn.js';
 
 describe('createSpawn', () => {
     it('forwards the process stdout to the given writer and returns the result', async () => {
@@ -52,7 +52,22 @@ describe('createSpawn', () => {
             quiet: true,
         });
         expect(result).toMatchObject({ exitCode: null, timedOut: true });
-        expect(Date.now() - started).toBeLessThan(10_000);
+        expect(Date.now() - started).toBeLessThan(2_000);
+    });
+
+    it('kills a timed-out process that ignores SIGTERM, and returns its output so far', async () => {
+        const spawn = createSpawn(process.cwd(), new AbortController().signal, () => undefined);
+        const started = Date.now();
+        const result = await spawn(
+            process.execPath,
+            [
+                '-e',
+                'process.on("SIGTERM", () => {}); process.stdout.write("partial"); setInterval(() => {}, 1000)',
+            ],
+            { timeoutMs: 300, quiet: true },
+        );
+        expect(result).toMatchObject({ exitCode: null, timedOut: true, stdout: 'partial' });
+        expect(Date.now() - started).toBeLessThan(300 + TIMEOUT_KILL_GRACE_MS + 1_500);
     });
 
     it('stops the process when the signal fires', async () => {

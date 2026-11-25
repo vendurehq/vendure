@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@clack/prompts', () => ({
     confirm: vi.fn(),
-    isCancel: () => false,
+    isCancel: vi.fn(() => false),
     password: vi.fn(async () => 'hidden'),
     select: vi.fn(async () => 'picked'),
     text: vi.fn(async () => 'typed'),
 }));
 
-import { confirm, password, select, text } from '@clack/prompts';
+import { confirm, isCancel, password, select, text } from '@clack/prompts';
 
 import { createClackPrompter } from './prompter.js';
 
@@ -106,5 +106,16 @@ describe('createClackPrompter', () => {
         expect(
             await prompter.select('Environment', [{ value: 'prod', label: 'prod' }], { other: 'New' }),
         ).toBe('prod');
+    });
+
+    it('returns an empty answer as an empty string, and a cancel as undefined', async () => {
+        const prompter = createClackPrompter();
+        vi.mocked(text).mockResolvedValueOnce(undefined as unknown as string);
+        expect(await prompter.text('Name it')).toBe('');
+
+        const cancelled = Symbol('cancel');
+        vi.mocked(text).mockResolvedValueOnce(cancelled);
+        vi.mocked(isCancel).mockImplementationOnce(value => value === cancelled);
+        expect(await prompter.text('Name it')).toBeUndefined();
     });
 });
