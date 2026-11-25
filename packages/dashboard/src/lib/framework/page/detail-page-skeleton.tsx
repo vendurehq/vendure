@@ -1,9 +1,16 @@
 import { Card, CardFooter } from '@/vdb/components/ui/card.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
-import { DetailFormGrid, PageBlock, PageLayout } from '@/vdb/framework/layout-engine/page-layout.js';
+import {
+    DetailFormGrid,
+    PageBlock,
+    PageBlockProps,
+    PageLayout,
+} from '@/vdb/framework/layout-engine/page-layout.js';
 import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
 import { PageSkeletonContext } from '@/vdb/framework/layout-engine/page-skeleton-context.js';
+import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
+import { useIsServerConfigLoaded } from '@/vdb/hooks/use-server-config.js';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import React from 'react';
@@ -13,7 +20,7 @@ import React from 'react';
  * column and order, drawn as a skeleton of what it holds.
  */
 export interface DetailPageSkeletonBlock {
-    column: 'main' | 'side' | 'full';
+    column: PageBlockProps['column'];
     /**
      * The `blockId` of the page's block. Extension blocks registered for the
      * page are placed before, after or instead of the block with this id.
@@ -26,8 +33,12 @@ export interface DetailPageSkeletonBlock {
      * - `table`: a data table with its header, column row, rows and pagination.
      * - `list`: lines of text or chips.
      * - `media`: an image or preview, with `rows` lines under it.
+     * - `custom-fields`: the fields of `entityType`, as `CustomFieldsPageBlock`
+     *   draws them. Nothing when the entity has no custom fields.
      */
-    content?: 'form' | 'table' | 'list' | 'media';
+    content?: 'form' | 'table' | 'list' | 'media' | 'custom-fields';
+    /** The entity type of a `custom-fields` block. */
+    entityType?: string;
     /** Rows of fields, table rows or lines. */
     rows?: number;
     /** The block has a title row. Tables always have one. */
@@ -148,15 +159,39 @@ function TableSkeleton({ rows }: Readonly<{ rows: number }>) {
 }
 
 /**
- * `column` and `blockId` are props of their own, as on `PageBlock`: `PageLayout`
+ * The custom fields card of `CustomFieldsPageBlock`: one field per custom
+ * field of the entity, in the same two-column grid.
+ */
+function CustomFieldsSkeleton({ column, blockId, entityType }: Readonly<DetailPageSkeletonBlock>) {
+    const customFields = useCustomFieldConfig(entityType ?? '');
+    const isServerConfigLoaded = useIsServerConfigLoaded();
+    const tab = customFields?.[0]?.ui?.tab;
+    const fields = isServerConfigLoaded
+        ? (customFields ?? []).filter(field => field.ui?.tab === tab).length
+        : 2;
+    if (fields === 0) {
+        return null;
+    }
+    return (
+        <PageBlock column={column} blockId={blockId}>
+            <div className="grid gap-6 @md:grid-cols-2">
+                {Array.from({ length: fields }, (_, index) => (
+                    <FieldSkeleton key={index} />
+                ))}
+            </div>
+        </PageBlock>
+    );
+}
+
+/**
+ * `column` and `blockId` stay props of their own, as on `PageBlock`: `PageLayout`
  * reads them from its children to sort the blocks into columns.
  */
-function BlockSkeleton({
-    column,
-    blockId,
-    block,
-}: Readonly<Pick<DetailPageSkeletonBlock, 'column' | 'blockId'> & { block: DetailPageSkeletonBlock }>) {
-    const { content = 'form', title } = block;
+function BlockSkeleton(block: Readonly<DetailPageSkeletonBlock>) {
+    const { column, blockId, content = 'form', title } = block;
+    if (content === 'custom-fields') {
+        return <CustomFieldsSkeleton {...block} />;
+    }
     if (content === 'table') {
         return (
             <PageBlock column={column} blockId={blockId} layout="bare">
@@ -191,12 +226,7 @@ export function DetailPageSkeletonBlocks({ layout }: Readonly<{ layout: DetailPa
             <PageSkeletonContext.Provider value={true}>
                 <PageLayout>
                     {layout.blocks.map(block => (
-                        <BlockSkeleton
-                            key={block.blockId}
-                            column={block.column}
-                            blockId={block.blockId}
-                            block={block}
-                        />
+                        <BlockSkeleton key={block.blockId} {...block} />
                     ))}
                 </PageLayout>
             </PageSkeletonContext.Provider>
