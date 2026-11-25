@@ -3,7 +3,7 @@ import { CommandContext } from '@vendure/common/lib/command';
 import { AuthOptions } from '../../auth/auth-options.js';
 import { AuthStatus, loginWithDevice } from '../../auth/auth-session.js';
 import { clearPendingLogin } from '../../auth/pending-login.js';
-import { openConsoleBrowser } from '../console/authentication.js';
+import { openConsoleBrowser } from '../console/open-browser.js';
 
 import { keptBrowserChoiceNotice, organizationChooser } from './auth.js';
 
