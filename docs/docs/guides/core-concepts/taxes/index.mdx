@@ -74,7 +74,23 @@ export class ErpTaxLineCalculationStrategy implements TaxLineCalculationStrategy
 
 The `amount` is the tax of the whole line, as an integer in minor units. It applies to the line total in the tax basis of the line's price: the net total when prices exclude tax, and the gross total when they include it. Set it on all or none of a line's TaxLines.
 
-The line's tax, the Order totals and the tax summary then use the amount, with both the default `OrderTaxCalculationStrategy` and the `OrderLevelTaxCalculationStrategy`. The `taxRate` remains the rate that the line displays. After a partial cancellation, the remaining units get their share of the amount. The amount applies to order lines only. Shipping and surcharges derive their tax from the rate.
+The line's tax, the Order totals and the tax summary then use the amount, with both the default `OrderTaxCalculationStrategy` and the `OrderLevelTaxCalculationStrategy`. The `taxRate` remains the rate that the line displays. After a partial cancellation, the remaining units get their share of the amount, and refunds add up to exactly what was paid.
+
+For shipping lines and surcharges, implement the optional `calculateShippingLineTaxLines()` and `calculateSurchargeTaxLines()` methods in the same way. Vendure calls them after the shipping price and shipping promotions are applied. Without them, shipping and surcharges derive their tax from the rate.
+
+#### When Vendure asks again
+
+- `calculate()` is called per order line: for the lines that changed, and for every line when promotions change the order's subtotal. Cache the external system's answers for the duration of a request.
+- A shipping line or surcharge whose price did not change keeps its amount, and Vendure does not ask about it again. The same applies to an order line, unless promotions changed the subtotal.
+- On a placed order, an unchanged line keeps the amount that was paid, even if the external system would answer differently today. To replace the amounts, for example after a change of address, use the `recalculateTax` option of `modifyOrder`, with `dryRun` first to see the result. The Dashboard offers it on the order modification page.
+
+#### Promotions see the rate
+
+Promotions and their conditions judge the order on the tax that the rates give, and the external system's amounts are applied afterwards. Otherwise a promotion whose tax-inclusive threshold sits within a cent of the order total could switch on and off on every recalculation. Shipping, and the shipping eligibility checks, see the external system's amounts.
+
+#### When the external system is unavailable
+
+If your strategy cannot reach the external system, it can either throw an error, which makes the cart operation fail, or return TaxLines without an `amount`, so that the tax comes from the rate. To keep a customer from paying an estimated tax, refuse the transition to `ArrangingPayment` in a custom [OrderProcess](/reference/typescript-api/orders/order-process/) while any line has an `amount` of `null`. A null `amount` means that the strategy provided none. A stored amount that was rescaled after a cancellation still has a value.
 
 ## Calculating tax on shipping
 

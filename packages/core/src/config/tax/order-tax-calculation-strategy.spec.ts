@@ -499,6 +499,36 @@ describe('OrderTaxCalculationStrategy', () => {
             ]);
         });
 
+        it('uses the absolute tax amounts of shipping lines and surcharges', () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [],
+                surcharges: [
+                    new Surcharge({
+                        description: 'Handling',
+                        listPrice: 1000,
+                        listPriceIncludesTax: false,
+                        taxLines: [{ description: 'VAT', taxRate: 20, amount: 205, taxBase: 1000 } as any],
+                        sku: 'handling',
+                    }),
+                ],
+            });
+            order.shippingLines = [
+                new ShippingLine({
+                    listPrice: 500,
+                    listPriceIncludesTax: false,
+                    adjustments: [],
+                    taxLines: [{ description: 'VAT', taxRate: 20, amount: 99, taxBase: 500 } as any],
+                }),
+            ];
+
+            const totals = strategy.calculateOrderTotals(order);
+
+            expect(totals.subTotalWithTax).toBe(1205);
+            expect(totals.shippingWithTax).toBe(599);
+        });
+
         it('returns zeroed totals and an empty summary when order relations are undefined', () => {
             // Undefined `lines`, `surcharges` and `shippingLines` exercise the `?? []`
             // fallbacks inside `groupOrder`.

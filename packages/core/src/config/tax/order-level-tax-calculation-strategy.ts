@@ -110,11 +110,21 @@ export class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStra
         }
         for (const surcharge of order.surcharges ?? []) {
             subTotal += surcharge.price;
-            this.accumulateIntoGroups(subTotalGroups, surcharge.taxLines, surcharge.price);
+            this.accumulateIntoGroups(
+                subTotalGroups,
+                surcharge.taxLines,
+                surcharge.price,
+                surcharge.priceWithTax - surcharge.price,
+            );
         }
         for (const shippingLine of order.shippingLines ?? []) {
             shipping += shippingLine.discountedPrice;
-            this.accumulateIntoGroups(shippingGroups, shippingLine.taxLines, shippingLine.discountedPrice);
+            this.accumulateIntoGroups(
+                shippingGroups,
+                shippingLine.taxLines,
+                shippingLine.discountedPrice,
+                shippingLine.discountedPriceWithTax - shippingLine.discountedPrice,
+            );
         }
 
         return { subTotal, subTotalGroups, shipping, shippingGroups };

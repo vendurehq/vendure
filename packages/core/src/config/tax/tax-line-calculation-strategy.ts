@@ -2,8 +2,10 @@ import { TaxLine } from '@vendure/common/lib/generated-types';
 
 import { RequestContext } from '../../api/common/request-context';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
-import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { Order } from '../../entity/order/order.entity';
+import { ShippingLine } from '../../entity/shipping-line/shipping-line.entity';
+import { Surcharge } from '../../entity/surcharge/surcharge.entity';
 import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
 
 /**
@@ -29,8 +31,8 @@ import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
  * until it calls this strategy again. If a partial cancellation removes units without
  * recalculating the Order, Vendure gives the remaining units their share of the amount.
  *
- * The amount applies to OrderLines only. ShippingLines and Surcharges derive their tax from the
- * rate.
+ * ShippingLines and Surcharges derive their tax from the rate, unless the strategy also implements
+ * `calculateShippingLineTaxLines()` or `calculateSurchargeTaxLines()` to return amounts for them.
  *
  * @example
  * ```ts
@@ -72,6 +74,34 @@ export interface TaxLineCalculationStrategy extends InjectableStrategy {
      * calling external APIs when absolutely necessary.
      */
     calculate(args: CalculateTaxLinesArgs): TaxLine[] | Promise<TaxLine[]>;
+
+    /**
+     * @description
+     * Optionally returns the TaxLines of a ShippingLine, with absolute tax `amount`s, for example
+     * from an ERP. The amount is the tax of the ShippingLine's discounted price, in the tax basis of
+     * its price: `shippingLine.discountedPrice` when it excludes tax, and
+     * `shippingLine.discountedPriceWithTax` when it includes it.
+     *
+     * Vendure calls this after the shipping price and shipping promotions are applied, and only when
+     * that price changed since the last call. `args.taxLines` holds the TaxLines that Vendure derived
+     * from the ShippingCalculator's rate. Return them unchanged to keep the rate.
+     *
+     * @since 3.9.0
+     */
+    calculateShippingLineTaxLines?(args: CalculateShippingLineTaxLinesArgs): TaxLine[] | Promise<TaxLine[]>;
+
+    /**
+     * @description
+     * Optionally returns the TaxLines of a Surcharge, with absolute tax `amount`s, for example from an
+     * ERP. The amount is the tax of the Surcharge's price, in the tax basis of that price.
+     *
+     * Vendure calls this when it recalculates the Order, and only when the Surcharge's price changed
+     * since the last call. `args.taxLines` holds the TaxLines that the Surcharge was created with.
+     * Return them unchanged to keep the rate.
+     *
+     * @since 3.9.0
+     */
+    calculateSurchargeTaxLines?(args: CalculateSurchargeTaxLinesArgs): TaxLine[] | Promise<TaxLine[]>;
 }
 
 /**
@@ -85,4 +115,32 @@ export interface CalculateTaxLinesArgs {
     order: Order;
     orderLine: OrderLine;
     applicableTaxRate: TaxRate;
+}
+
+/**
+ * @description
+ *
+ * @docsCategory tax
+ * @docsPage TaxLineCalculationStrategy
+ * @since 3.9.0
+ */
+export interface CalculateShippingLineTaxLinesArgs {
+    ctx: RequestContext;
+    order: Order;
+    shippingLine: ShippingLine;
+    taxLines: TaxLine[];
+}
+
+/**
+ * @description
+ *
+ * @docsCategory tax
+ * @docsPage TaxLineCalculationStrategy
+ * @since 3.9.0
+ */
+export interface CalculateSurchargeTaxLinesArgs {
+    ctx: RequestContext;
+    order: Order;
+    surcharge: Surcharge;
+    taxLines: TaxLine[];
 }

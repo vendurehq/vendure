@@ -5,14 +5,14 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Calculated } from '../../common/calculated-decorator';
 import { roundMoney } from '../../common/round-money';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
+import { applyTaxShare, getTaxShare, grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
 import { CustomShippingLineFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
-import { Order } from '../order/order.entity';
 import { OrderLine } from '../order-line/order-line.entity';
+import { Order } from '../order/order.entity';
 import { ShippingMethod } from '../shipping-method/shipping-method.entity';
 
 /**
@@ -60,26 +60,26 @@ export class ShippingLine extends VendureEntity implements HasCustomFields {
 
     @Calculated()
     get price(): number {
-        return this.listPriceIncludesTax ? netPriceOf(this.listPrice, this.taxRate) : this.listPrice;
+        return this.listPriceIncludesTax ? this.fromListPriceBasis(this.listPrice, false) : this.listPrice;
     }
 
     @Calculated()
     get priceWithTax(): number {
         return roundMoney(
-            this.listPriceIncludesTax ? this.listPrice : grossPriceOf(this.listPrice, this.taxRate),
+            this.listPriceIncludesTax ? this.listPrice : this.fromListPriceBasis(this.listPrice, true),
         );
     }
 
     @Calculated()
     get discountedPrice(): number {
         const result = this.listPrice + this.getAdjustmentsTotal();
-        return roundMoney(this.listPriceIncludesTax ? netPriceOf(result, this.taxRate) : result);
+        return roundMoney(this.listPriceIncludesTax ? this.fromListPriceBasis(result, false) : result);
     }
 
     @Calculated()
     get discountedPriceWithTax(): number {
         const result = this.listPrice + this.getAdjustmentsTotal();
-        return roundMoney(this.listPriceIncludesTax ? result : grossPriceOf(result, this.taxRate));
+        return roundMoney(this.listPriceIncludesTax ? result : this.fromListPriceBasis(result, true));
     }
 
     @Calculated()
@@ -93,13 +93,13 @@ export class ShippingLine extends VendureEntity implements HasCustomFields {
             this.adjustments?.map(adjustment => {
                 const amount = roundMoney(
                     this.listPriceIncludesTax
-                        ? netPriceOf(adjustment.amount, this.taxRate)
+                        ? this.fromListPriceBasis(adjustment.amount, false)
                         : adjustment.amount,
                 );
                 const amountWithTax = roundMoney(
                     this.listPriceIncludesTax
                         ? adjustment.amount
-                        : grossPriceOf(adjustment.amount, this.taxRate),
+                        : this.fromListPriceBasis(adjustment.amount, true),
                 );
                 return {
                     ...(adjustment as Omit<Adjustment, '__typename'>),
@@ -120,9 +120,32 @@ export class ShippingLine extends VendureEntity implements HasCustomFields {
 
     /**
      * @description
+     * The discounted price in the tax basis of `listPrice`. This is the value that the `amount` of
+     * a {@link TaxLine} is a share of.
+     *
+     * @internal
+     */
+    getTaxableTotal(): number {
+        return roundMoney(this.listPrice + this.getAdjustmentsTotal());
+    }
+
+    /**
+     * @description
      * The total of all price adjustments. Will typically be a negative number due to discounts.
      */
     private getAdjustmentsTotal(): number {
         return summate(this.adjustments, 'amount');
+    }
+
+    /**
+     * Converts a value in the tax basis of `listPrice` to the other basis: from the absolute tax
+     * amounts when the TaxLines have them, otherwise from the rate.
+     */
+    private fromListPriceBasis(value: number, withTax: boolean): number {
+        const taxShare = getTaxShare(this.taxLines);
+        if (taxShare != null) {
+            return applyTaxShare(roundMoney(value), taxShare, withTax, roundMoney);
+        }
+        return withTax ? grossPriceOf(value, this.taxRate) : netPriceOf(value, this.taxRate);
     }
 }

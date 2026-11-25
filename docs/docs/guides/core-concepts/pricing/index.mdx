@@ -61,7 +61,7 @@ Both strategies are configured at the server level and apply globally. For detai
 
 An external system such as an ERP sometimes prices a line as a total that no unit price reproduces. For example, it can price 20 units at €1.235 each as €24.70. At two decimal places Vendure would store the unit price as €1.24, and 20 × €1.24 is €24.80.
 
-For these cases, implement the optional `calculateLinePrice()` method of your OrderItemPriceCalculationStrategy. It returns the price of the whole line for the requested quantity, such as `2470` for 20 units. Vendure then uses that total as the line price. The unit price that the line shows is the rounded €1.24, for display only. Return `undefined` to price a line with `calculateUnitPrice()` instead.
+For these cases, implement the optional `calculateLinePrices()` method of your OrderItemPriceCalculationStrategy. Vendure calls it once each time it reprices lines, with every line it is repricing, so that the external system can price them in a single request. It returns the price of each whole line for its quantity, such as `2470` for 20 units, in the same order as the lines. Vendure then uses that total as the line price. The unit price that the line shows is the rounded €1.24, for display only. An entry of `undefined` prices that line with `calculateUnitPrice()` instead.
 
 ```ts
 import { OrderItemPriceCalculationStrategy, PriceCalculationResult } from '@vendure/core';
@@ -71,19 +71,21 @@ export class ErpPriceCalculationStrategy implements OrderItemPriceCalculationStr
         return { price: productVariant.listPrice, priceIncludesTax: productVariant.listPriceIncludesTax };
     }
 
-    async calculateLinePrice(ctx, productVariant, orderLineCustomFields, order, quantity) {
-        const quote = await erpClient.getLinePrice(productVariant.sku, quantity);
-        return { price: quote.totalInCents, priceIncludesTax: quote.grossPrices };
+    async calculateLinePrices(ctx, order, lines) {
+        const quotes = await erpClient.priceLines(
+            lines.map(line => ({ sku: line.productVariant.sku, quantity: line.quantity })),
+        );
+        return quotes.map(quote => ({ price: quote.totalInCents, priceIncludesTax: quote.grossPrices }));
     }
 }
 ```
 
 Vendure behaves as follows with a line price:
 
-- It asks for a new line price whenever it reprices the line, for example after a quantity change.
+- It asks for new line prices whenever it reprices lines: after a line is added or its quantity changes, and for every line when the order moves to `ArrangingPayment`. That last step reprices the order twice, so cache the external system's answers for the duration of a request, for example with the `RequestContextCacheService`.
 - Promotions apply to the line price. Promotion actions should use `orderLine.getUnitPriceForPromotion()` as the unit price they discount, so that a percentage discount matches the line price exactly. The built-in actions do this.
 - A partial cancellation scales the line price to the remaining units without asking for a new one. Vendure records the value of the cancelled units, and refunds of those units use it.
-- Placed orders keep their line prices if you later remove `calculateLinePrice()`.
+- Placed orders keep their line prices if you later remove `calculateLinePrices()`.
 
 If the external system also calculates the tax, return its tax amounts from your [TaxLineCalculationStrategy](/core-concepts/taxes/#tax-amounts-from-an-external-system).
 

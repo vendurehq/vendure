@@ -6662,6 +6662,7 @@ export type ShippingLine = {
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
   shippingMethod: ShippingMethod;
+  taxLines: Array<TaxLine>;
 };
 
 export type ShippingMethod = Node & {

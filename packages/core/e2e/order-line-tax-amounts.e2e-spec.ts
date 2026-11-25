@@ -1,4 +1,9 @@
-import { CalculateTaxLinesArgs, mergeConfig, TaxLineCalculationStrategy } from '@vendure/core';
+import {
+    CalculateShippingLineTaxLinesArgs,
+    CalculateTaxLinesArgs,
+    mergeConfig,
+    TaxLineCalculationStrategy,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -29,6 +34,14 @@ class ErpTaxLineCalculationStrategy implements TaxLineCalculationStrategy {
             },
         ];
     }
+
+    calculateShippingLineTaxLines({ shippingLine, taxLines }: CalculateShippingLineTaxLinesArgs) {
+        const [rateTaxLine] = taxLines;
+        const price = shippingLine.listPriceIncludesTax
+            ? shippingLine.discountedPriceWithTax
+            : shippingLine.discountedPrice;
+        return [{ ...rateTaxLine, amount: Math.round((price * rateTaxLine.taxRate) / 100) + 1 }];
+    }
 }
 
 const activeOrderTaxesDocument = graphql(`
@@ -37,6 +50,14 @@ const activeOrderTaxesDocument = graphql(`
             id
             subTotal
             subTotalWithTax
+            shipping
+            shippingWithTax
+            shippingLines {
+                taxLines {
+                    taxRate
+                    amount
+                }
+            }
             taxSummary {
                 taxRate
                 taxBase
@@ -152,6 +173,13 @@ describe('OrderLine tax amounts from a TaxLineCalculationStrategy', () => {
 
         expect(payment.amount).toBe(order.totalWithTax);
         expect(order.subTotalWithTax).toBe(activeOrder.subTotalWithTax);
+        // The shipping tax is the strategy's amount too.
+        const [shippingTaxLine] = activeOrder.shippingLines[0].taxLines;
+        expect(shippingTaxLine.amount).toBe(
+            Math.round((activeOrder.shipping * shippingTaxLine.taxRate) / 100) + 1,
+        );
+        expect(activeOrder.shippingWithTax - activeOrder.shipping).toBe(shippingTaxLine.amount);
+        expect(order.shippingWithTax).toBe(activeOrder.shippingWithTax);
         paidLineTotal = activeOrder.lines[0].proratedLinePriceWithTax;
         orderId = order.id;
         paymentId = payment.id;

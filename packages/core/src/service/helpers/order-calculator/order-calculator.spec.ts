@@ -2191,6 +2191,76 @@ describe('OrderCalculator', () => {
             expect(order.lines[1].proratedLineTax).toBe(2455);
         });
 
+        it('uses amounts for shipping lines and surcharges, and asks again only when their price changes', async () => {
+            let itemCalls = 0;
+            const withItems: TaxLineCalculationStrategy = {
+                calculate: erpStrategy.calculate,
+                calculateShippingLineTaxLines: ({ shippingLine }) => {
+                    itemCalls++;
+                    const amount = Math.round(shippingLine.discountedPrice * 0.2) + 1;
+                    return [{ description: 'shipping tax', taxRate: 20, amount }];
+                },
+                calculateSurchargeTaxLines: ({ surcharge }) => {
+                    itemCalls++;
+                    return [
+                        { description: 'VAT', taxRate: 20, amount: Math.round(surcharge.price * 0.2) + 1 },
+                    ];
+                },
+            };
+            mockConfigService.taxOptions.taxLineCalculationStrategy = withItems;
+            try {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 1000, taxCategory: taxCategoryStandard, quantity: 1 }],
+                    surcharges: [
+                        new Surcharge({
+                            description: 'Handling',
+                            listPrice: 1000,
+                            listPriceIncludesTax: false,
+                            taxLines: [{ description: 'VAT', taxRate: 20 }],
+                            sku: 'handling',
+                        }),
+                    ],
+                });
+                order.shippingLines = [
+                    new ShippingLine({
+                        listPrice: 500,
+                        listPriceIncludesTax: false,
+                        adjustments: [],
+                        taxLines: [{ description: 'shipping tax', taxRate: 20 }],
+                    }),
+                ];
+                const options = { recalculateShipping: false };
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines, options);
+
+                // The rate would give 100 and 200 of tax.
+                expect(order.shippingWithTax).toBe(601);
+                expect(order.surcharges[0].priceWithTax).toBe(1201);
+                expect(order.shippingLines[0].taxLines[0].amount).toBe(101);
+                expect(itemCalls).toBe(2);
+
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines, options);
+                expect(itemCalls).toBe(2);
+                expect(order.shippingWithTax).toBe(601);
+
+                order.shippingLines[0].adjustments = [
+                    {
+                        adjustmentSource: 'PROMOTION:1',
+                        type: AdjustmentType.PROMOTION,
+                        description: 'shipping discount',
+                        amount: -100,
+                        data: {},
+                    },
+                ];
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], order.lines, options);
+                expect(itemCalls).toBe(3);
+                expect(order.shippingWithTax).toBe(481);
+            } finally {
+                mockConfigService.taxOptions.taxLineCalculationStrategy = erpStrategy;
+            }
+        });
+
         it('replaces the amounts of a placed order when asked to recalculate tax', async () => {
             const ctx = createRequestContext({ pricesIncludeTax: false });
             const order = createOrder({
