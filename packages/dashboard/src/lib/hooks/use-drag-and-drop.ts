@@ -1,6 +1,6 @@
 import { DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface UseDragAndDropOptions<TData> {
     data: TData[];
@@ -29,15 +29,13 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
 
     const { data, onReorder, disabled = false } = options;
 
-    const [localData, setLocalData] = useState<TData[]>(data);
+    // The order of a drop, kept while `onReorder` runs and until `data` changes.
+    // Otherwise the rows are `data` itself, read during render: a copy made in an
+    // effect is one render behind, so the render where a query finishes would
+    // show no rows (the empty state) with `isLoading` already false.
+    const [dropped, setDropped] = useState<{ source: TData[]; rows: TData[] } | null>(null);
     const [isReordering, setIsReordering] = useState(false);
-
-    // Update local data when data prop changes (but not during reordering)
-    useEffect(() => {
-        if (!isReordering) {
-            setLocalData(data);
-        }
-    }, [data, isReordering]);
+    const localData = dropped && (isReordering || dropped.source === data) ? dropped.rows : data;
 
     const handleDragEnd = useCallback(
         async (event: DragEndEvent) => {
@@ -55,9 +53,7 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
             }
 
             // Optimistically update the UI
-            const originalState = [...localData];
-            const newData = arrayMove(localData, oldIndex, newIndex);
-            setLocalData(newData);
+            setDropped({ source: data, rows: arrayMove(localData, oldIndex, newIndex) });
             setIsReordering(true);
 
             try {
@@ -65,13 +61,13 @@ export function useDragAndDrop<TData = any>(options: UseDragAndDropOptions<TData
                 await onReorder(oldIndex, newIndex, localData[oldIndex], localData);
             } catch (error) {
                 // Revert on error
-                setLocalData(originalState);
+                setDropped(null);
                 options.onError?.(error as Error);
             } finally {
                 setIsReordering(false);
             }
         },
-        [localData, onReorder, disabled],
+        [data, localData, onReorder, disabled],
     );
 
     const itemIds = useMemo(() => localData.map(item => (item as { id: string }).id), [localData]);
