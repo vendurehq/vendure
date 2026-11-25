@@ -14,7 +14,8 @@ export const commands = [
         path: ['acme', 'deploy'],
         description: 'Deploy the project',
         behavior: 'mutating',
-        schemas: () => import('./deploy.schema.js'),
+        // `--force` is an option of `acme deploy` only, not of `acme deploy plan`.
+        schemas: () => import('./deploy-parent.schema.js'),
         run: () => import('./deploy.run.js'),
     }),
 ];

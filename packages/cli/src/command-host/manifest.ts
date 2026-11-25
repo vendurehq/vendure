@@ -3,11 +3,14 @@ import {
     CommandDefinition,
     CommandErrorBody,
     CommandErrorDefinition,
+    JsonSchema,
 } from '@vendure/common/lib/command';
 import {
     buildCommandManifest,
     CommandManifest,
+    flagValueSyntax,
     MANIFEST_FILE_NAME,
+    ManifestCommand,
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
@@ -26,6 +29,7 @@ import {
 
 import { hostErrors } from './host-errors.js';
 import { errorBody } from './host.js';
+import { kebab } from './naming.js';
 
 /** The package name the CLI's own commands have as their `source`. */
 export const CORE_SOURCE = '@vendure/cli';
@@ -201,6 +205,15 @@ export function mergeProjectManifests(
         // commands from loading: any problem refuses this package's commands alone.
         try {
             const clash = findClash(plugin.manifest, taken);
+            if (clash?.kind === 'parent-flag-conflict') {
+                refuse(hostErrors.pluginParentFlagConflict, {
+                    plugin: plugin.packageName,
+                    command: clash.command,
+                    child: clash.child,
+                    flag: clash.flag,
+                });
+                continue;
+            }
             if (clash?.kind === 'parent-positional') {
                 refuse(hostErrors.pluginParentPositional, {
                     plugin: plugin.packageName,
@@ -289,7 +302,9 @@ function startsWith(commandPath: string[], prefix: string[]): boolean {
  *
  * A package may declare a command and commands under it, such as `acme deploy` and
  * `acme deploy plan`, when the command above takes no positional fields: a positional value could
- * otherwise be taken for the name of a command under it. Another package may not add to either.
+ * otherwise be taken for the name of a command under it, and when a flag they share is declared the
+ * same way on both: Commander reads the flags of the command above first, with its declaration.
+ * Another package may not add to either.
  */
 function findClash(
     manifest: CommandManifest,
@@ -297,6 +312,7 @@ function findClash(
 ):
     | { kind: 'clash'; command: string; other: string }
     | { kind: 'parent-positional'; command: string; child: string }
+    | { kind: 'parent-flag-conflict'; command: string; child: string; flag: string }
     | undefined {
     for (const command of manifest.commands) {
         const name = command.path.join(' ');
@@ -321,6 +337,57 @@ function findClash(
             if (startsWith(own.path, command.path) && command.cli.positional?.length) {
                 return { kind: 'parent-positional', command: name, child: own.path.join(' ') };
             }
+            const flag = startsWith(own.path, command.path) ? sharedFlagConflict(command, own) : undefined;
+            if (flag) {
+                return { kind: 'parent-flag-conflict', command: name, child: own.path.join(' '), flag };
+            }
+        }
+    }
+    return undefined;
+}
+
+/** How a command declares each of its flags, by flag: the long flags and the short ones. */
+function flagDeclarations(command: ManifestCommand): Map<string, string> {
+    const flags = new Map<string, string>();
+    const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
+    for (const [field, schema] of Object.entries(properties)) {
+        const long = `--${kebab(field)}`;
+        const { value, negatable } = flagValueSyntax(command, field, schema, kebab(field));
+        const declaration = JSON.stringify({
+            field,
+            // The placeholder is only a label, so the kind of value is what counts.
+            value:
+                value === ''
+                    ? 'switch'
+                    : value.startsWith(' [')
+                      ? 'optional'
+                      : value.endsWith('...>')
+                        ? 'list'
+                        : 'value',
+            negatable,
+            type: schema.type,
+            items: (schema.items as JsonSchema | undefined)?.type,
+            enum: schema.enum,
+        });
+        flags.set(long, declaration);
+        const short = command.cli.flags?.[field]?.short;
+        if (short) {
+            flags.set(short, declaration);
+        }
+    }
+    return flags;
+}
+
+/**
+ * A flag that a command and a command under it both have, declared differently, such as
+ * `--target <a|b>` and `--target <c|d>`, or `-e` for two fields. Undefined when there is none.
+ */
+function sharedFlagConflict(parent: ManifestCommand, child: ManifestCommand): string | undefined {
+    const parentFlags = flagDeclarations(parent);
+    for (const [flag, declaration] of flagDeclarations(child)) {
+        const other = parentFlags.get(flag);
+        if (other !== undefined && other !== declaration) {
+            return flag;
         }
     }
     return undefined;

@@ -23,5 +23,10 @@ export function commandLineWithOptionsLast(program: Command, args: readonly stri
     if (path.length === 0) {
         return undefined;
     }
-    return ['vendure', ...path, ...rest].join(' ');
+    return ['vendure', ...path, ...rest.map(quoteForShell)].join(' ');
+}
+
+/** An argument as a POSIX shell reads it back: quoted when it holds a space or a special character. */
+function quoteForShell(arg: string): string {
+    return /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replace(/'/g, `'\\''`)}'`;
 }

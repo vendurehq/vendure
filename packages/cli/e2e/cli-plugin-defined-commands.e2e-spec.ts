@@ -100,6 +100,18 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             });
         });
 
+        it('refuses an option of the command above given after a command that does not take it', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', 'plan', '--force', '--json'], {
+                expectError: true,
+            });
+            expect(envelopeOf(result.stdout).error).toMatchObject({
+                code: 'cli.usage',
+                message: expect.stringContaining('--force is not an option of "plan"'),
+            });
+        });
+
         it('offers both as Developer MCP tools', async () => {
             const p = projectWith(['parent-commands-cli-plugin']);
             const mcp = startMcpServer(p.projectDir);

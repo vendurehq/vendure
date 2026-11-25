@@ -68,6 +68,14 @@ export const hostErrors = {
             'A command with commands under it takes no positional fields, so that a value is never taken for a command name. ' +
             `None of the commands ${plugin} declares with defineCommand are loaded.`,
     }),
+    pluginParentFlagConflict: defineError<{ plugin: string; command: string; child: string; flag: string }>({
+        code: 'plugin.parent-flag-conflict',
+        exit: 1,
+        message: ({ plugin, command, child, flag }) =>
+            `${plugin} declares ${flag} differently on the command "${command}" and on the command "${child}" under it. ` +
+            'A command and the commands under it must declare a shared flag the same way, because the command above reads it first. ' +
+            `None of the commands ${plugin} declares with defineCommand are loaded.`,
+    }),
     // Only a command line can put an option in the wrong place, so this message names the corrected
     // command line. `vendure mcp` builds its command lines itself and never gets this error.
     optionBeforeCommand: defineError<{ option: string; line: string }>({

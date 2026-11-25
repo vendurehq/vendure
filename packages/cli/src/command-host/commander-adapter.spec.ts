@@ -84,13 +84,16 @@ describe('registerManifestCommands', () => {
             const built = await buildCommandManifest('@test/pkg', '1.0.0', order);
             const root = new Command('vendure');
             const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+            let written: unknown[][];
             try {
                 registerManifestCommands(root, mergeManifests([built]), { loadDefinitions: async () => [] });
             } finally {
+                // Read before mockRestore(), which clears the recorded calls.
+                written = [...stderr.mock.calls];
                 stderr.mockRestore();
             }
             // The parent took the group over instead of counting as a replaced command.
-            expect(stderr).not.toHaveBeenCalled();
+            expect(written).toEqual([]);
             const acme = root.commands.find(c => c.name() === 'acme') as Command;
             const deploy = acme.commands.find(c => c.name() === 'deploy') as Command;
             expect(acme.commands.filter(c => c.name() === 'deploy')).toHaveLength(1);

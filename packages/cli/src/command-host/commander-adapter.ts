@@ -65,7 +65,7 @@ function findChild(parent: Command, name: string): Command | undefined {
  * - An option given before the subcommand's name would be lost without a word. That run stops with
  *   a coded error that names the command line with the options at the end.
  */
-function rejectOptionsBeforeSubcommand(command: Command): void {
+function routeParentOptions(command: Command): void {
     command.hook('preSubcommand', (parent, subcommand) => {
         const args = process.argv.slice(2);
         const subcommandAt = subcommandIndex(parent, subcommand, args);
@@ -81,7 +81,9 @@ function rejectOptionsBeforeSubcommand(command: Command): void {
             const positions = args
                 .map((arg, index) => (flags.some(flag => namesOption(flag, arg)) ? index : -1))
                 .filter(index => index !== -1);
-            if (positions.length > 0 && positions.every(index => index > subcommandAt)) {
+            // An option the CLI cannot find on the line, such as `-ye` for two short flags, is
+            // passed on rather than reported in the wrong place.
+            if (positions.every(index => index > subcommandAt)) {
                 if (!subcommand.options.some(candidate => candidate.attributeName() === name)) {
                     stop(
                         errorResult(hostErrors.usage, {
@@ -133,11 +135,12 @@ function subcommandIndex(parent: Command, subcommand: Command, args: readonly st
     return next - 1;
 }
 
-function namesOption(option: { long?: string; short?: string; negate: boolean }, arg: string): boolean {
+function namesOption(option: { long?: string; short?: string }, arg: string): boolean {
     const long = option.long;
     return (
         (long !== undefined && (arg === long || arg.startsWith(`${long}=`))) ||
-        (option.short !== undefined && arg === option.short)
+        // `-e` alone, or with its value attached, as in `-eprod`.
+        (option.short !== undefined && !arg.startsWith('--') && arg.startsWith(option.short))
     );
 }
 
@@ -197,7 +200,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     if (group) {
         manifestGroups.delete(group);
     }
-    rejectOptionsBeforeSubcommand(command);
+    routeParentOptions(command);
     if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
         command.helpGroup(pluginCommandsHeading(manifestCommand.source));
     }

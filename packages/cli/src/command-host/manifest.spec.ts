@@ -222,6 +222,37 @@ describe('mergeProjectManifests', () => {
         ]);
     });
 
+    it('refuses a flag that a command and a command under it declare differently', () => {
+        const conflicting = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        conflicting.manifest.commands[0].input = {
+            type: 'object',
+            properties: { target: { type: 'string', enum: ['a', 'b'] } },
+        };
+        conflicting.manifest.commands[1].input = {
+            type: 'object',
+            properties: { target: { type: 'string', enum: ['c', 'd'] } },
+        };
+        const { refused } = mergeProjectManifests(core, [conflicting]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            ['plugin.parent-flag-conflict', expect.stringContaining('declares --target differently')],
+        ]);
+
+        const shortFlags = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        shortFlags.manifest.commands[0].input = {
+            type: 'object',
+            properties: { environment: { type: 'string' } },
+        };
+        shortFlags.manifest.commands[0].cli = { flags: { environment: { short: '-e' } } };
+        shortFlags.manifest.commands[1].input = {
+            type: 'object',
+            properties: { exclude: { type: 'string' } },
+        };
+        shortFlags.manifest.commands[1].cli = { flags: { exclude: { short: '-e' } } };
+        expect(mergeProjectManifests(core, [shortFlags]).refused.map(r => r.error.code)).toEqual([
+            'plugin.parent-flag-conflict',
+        ]);
+    });
+
     it("still refuses a plugin that adds a command under another package's command", () => {
         const { refused } = mergeProjectManifests(core, [
             plugin('acme-cli', ['acme', 'deploy']),

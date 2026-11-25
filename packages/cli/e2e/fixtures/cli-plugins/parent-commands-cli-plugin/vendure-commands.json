@@ -60,6 +60,11 @@
                         "default": "staging",
                         "description": "The environment to deploy to",
                         "type": "string"
+                    },
+                    "force": {
+                        "default": false,
+                        "description": "Deploy even when nothing changed",
+                        "type": "boolean"
                     }
                 }
             },
