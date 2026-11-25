@@ -2,13 +2,12 @@
 title: "BigIntMoneyStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/entity/bigint-money-strategy.ts" sourceLine="18" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/entity/bigint-money-strategy.ts" sourceLine="17" packageName="@vendure/core" since="2.0.0" />
 
 A [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy) that stores monetary values as a `bigint` type in the database, which
 allows values up to ~9 quadrillion to be stored (limited by JavaScript's `MAX_SAFE_INTEGER` limit).
 
-This strategy also slightly differs in the way rounding is performed, with rounding being done _after_
-multiplying the unit price, rather than before (as is the case with the [DefaultMoneyStrategy](/reference/typescript-api/money/default-money-strategy#defaultmoneystrategy).
+Like [DefaultMoneyStrategy](/reference/typescript-api/money/default-money-strategy#defaultmoneystrategy), this rounds after multiplying by quantity.
 
 ```ts title="Signature"
 class BigIntMoneyStrategy implements MoneyStrategy {

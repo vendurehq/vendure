@@ -75,7 +75,8 @@ interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, orderLineCustomFields: { [key: string]: any }, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, quantity: number) => <a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a> | Promise<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a>>`}   />
 
 Receives the ProductVariant to be added to the Order as well as any OrderLine custom fields and returns
-the price for a single unit.
+the price for a single unit as an integer at the configured [MoneyStrategy](/reference/typescript-api/money/money-strategy#moneystrategy) precision.
+For example, at precision 4, return `9595` for a unit price of 0.9595.
 
 Note: if you have any `relation` type custom fields defined on the OrderLine entity, they will only be
 passed in to this method if they are set to `eager: true`. Otherwise, you can use the [EntityHydrator](/reference/typescript-api/data-access/entity-hydrator#entityhydrator)to join the missing relations.
