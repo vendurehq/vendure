@@ -160,7 +160,10 @@ import {
  *
  * The following helper functions are available for use in email templates:
  *
- * * `formatMoney`: Formats an amount of money (which are always stored as integers in Vendure) as a decimal, e.g. `123` => `1.23`
+ * * `formatMoney`: Formats an amount of money (which are always stored as integers in Vendure) as a decimal, with the number
+ *   of decimal places of the configured {@link MoneyStrategy}. At the default precision of 2, `123` => `1.23`. At precision 4,
+ *   `9595` => `0.9595`. With a currency code, e.g. `{{ formatMoney total currencyCode }}`, it is formatted as that currency,
+ *   still with every decimal place of the configured precision: `€0.9595`.
  * * `formatDate`: Formats a Date value with the [dateformat](https://www.npmjs.com/package/dateformat) package.
  *
  * ## Extending the default email handler

@@ -17,6 +17,11 @@ interface AssignToChannelBulkActionProps {
     additionalFields?: React.ReactNode;
     additionalData?: Record<string, any>;
     /**
+     * Whether the values in `additionalFields` are valid. While false, the Assign button is
+     * disabled. Defaults to true.
+     */
+    additionalFieldsValid?: boolean;
+    /**
      * Additional callback to run on success, after the standard refetch and reset
      */
     onSuccess?: () => void;
@@ -31,6 +36,7 @@ export function AssignToChannelBulkAction({
     buildInput,
     additionalFields,
     additionalData = {},
+    additionalFieldsValid,
     onSuccess,
 }: Readonly<AssignToChannelBulkActionProps>) {
     const { refetchPaginatedList } = usePaginatedList();
@@ -66,6 +72,7 @@ export function AssignToChannelBulkAction({
                 buildInput={buildInput}
                 additionalFields={additionalFields}
                 additionalData={additionalData}
+                additionalFieldsValid={additionalFieldsValid}
             />
         </>
     );

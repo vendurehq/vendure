@@ -19,7 +19,7 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
  * ## Range
  *
  * The {@link DefaultMoneyStrategy} uses an `int` field in the database, which puts an
- * effective limit of ~21.4 million on any stored value. For certain use cases
+ * effective limit of ~21.4 million major currency units at the default precision of 2. For certain use cases
  * (e.g. business sales with very high amounts, or currencies with very large
  * denominations), this may cause issues. In this case, you can use the
  * {@link BigIntMoneyStrategy} which will use the `bigint` type to store monetary values,
@@ -27,12 +27,12 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
  *
  * ## Precision
  *
- * Both the `DefaultMoneyStrategy` and `BigIntMoneyStrategy` store monetary values as integers, representing
- * the price in the minor units of the currency (i.e. _cents_ in USD or _pennies_ in GBP).
+ * Both strategies store money as integers. At precision 4, a unit price of 1.235 is `12350`,
+ * and 20 units at this price give a line price of `247000`, which is 24.70. Product CSV files
+ * express prices in major currency units.
  *
- * Since v2.2.0, you can configure the precision of the stored values via the `precision` property of the
- * strategy. Changing the precision has **no effect** on the stored value. It is merely a hint to the
- * UI as to how many decimal places to display.
+ * Changing precision on an existing installation requires rescaling stored monetary amounts.
+ * Payment integrations must convert amounts to the units their provider accepts.
  *
  * @example
  * ```ts
@@ -74,8 +74,8 @@ export interface MoneyStrategy extends InjectableStrategy {
      * - If the precision is `2`, then the price is `123.45`.
      * - If the precision is `3`, then the price is `12.345`.
      *
-     * Changing the precision has **no effect** on the stored value. It is merely a hint to the
-     * UI as to how many decimal places to display.
+     * Vendure uses this scale to convert between integer amounts and major currency units.
+     * Changing it does not rescale existing data.
      *
      * @default 2
      * @since 2.2.0
@@ -101,4 +101,31 @@ export interface MoneyStrategy extends InjectableStrategy {
      * ```
      */
     round(value: number, quantity?: number): number;
+}
+
+/**
+ * @description
+ * The number of decimal places that a {@link MoneyStrategy} uses when it does not set `precision`.
+ *
+ * @docsCategory money
+ * @since 3.8.3
+ */
+export const DEFAULT_MONEY_PRECISION = 2;
+
+/**
+ * @description
+ * Returns the number of decimal places of the given {@link MoneyStrategy}, which is
+ * {@link DEFAULT_MONEY_PRECISION} unless the strategy sets `precision`.
+ *
+ * @example
+ * ```ts
+ * const precision = getMoneyPrecision(configService.entityOptions.moneyStrategy);
+ * const majorUnits = amount / 10 ** precision;
+ * ```
+ *
+ * @docsCategory money
+ * @since 3.8.3
+ */
+export function getMoneyPrecision(moneyStrategy: Pick<MoneyStrategy, 'precision'>): number {
+    return moneyStrategy.precision ?? DEFAULT_MONEY_PRECISION;
 }

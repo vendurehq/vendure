@@ -2,7 +2,7 @@
 title: "FacetValueChecker"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/facet-value-checker/facet-value-checker.ts" sourceLine="53" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/facet-value-checker/facet-value-checker.ts" sourceLine="54" packageName="@vendure/core" />
 
 The FacetValueChecker is a helper class used to determine whether a given OrderLine consists
 of ProductVariants containing the given FacetValues.
@@ -29,7 +29,7 @@ export const hasFacetValues = new PromotionCondition({
   async check(ctx, order, args) {
     let matches = 0;
     for (const line of order.lines) {
-      if (await facetValueChecker.hasFacetValues(line, args.facets)) {
+      if (await facetValueChecker.hasFacetValues(line, args.facets, ctx)) {
           matches += line.quantity;
       }
     }
@@ -40,7 +40,7 @@ export const hasFacetValues = new PromotionCondition({
 
 ```ts title="Signature"
 class FacetValueChecker implements OnModuleInit {
-    constructor(connection: TransactionalConnection, cacheService: CacheService, eventBus?: EventBus)
+    constructor(connection: TransactionalConnection, cacheService: CacheService, eventBus?: EventBus, requestContextCache?: RequestContextCacheService)
     onModuleInit() => any;
     hasFacetValues(orderLine: OrderLine, facetValueIds: ID[], ctx?: RequestContext) => Promise<boolean>;
 }

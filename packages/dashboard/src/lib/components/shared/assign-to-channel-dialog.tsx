@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { toast } from '@/vdb/components/ui/sonner.js';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
@@ -43,6 +43,11 @@ interface AssignToChannelDialogProps {
      * Optional additional data to pass to buildInput
      */
     additionalData?: Record<string, any>;
+    /**
+     * Whether the values in `additionalFields` are valid. While false, the Assign button is
+     * disabled. Defaults to true.
+     */
+    additionalFieldsValid?: boolean;
 }
 
 export function AssignToChannelDialog({
@@ -55,6 +60,7 @@ export function AssignToChannelDialog({
     buildInput,
     additionalFields,
     additionalData = {},
+    additionalFieldsValid = true,
 }: Readonly<AssignToChannelDialogProps>) {
     const { t } = useLingui();
     const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
@@ -128,7 +134,7 @@ export function AssignToChannelDialog({
     });
 
     const handleAssign = () => {
-        if (selectedChannelIds.length === 0) {
+        if (selectedChannelIds.length === 0 || !additionalFieldsValid) {
             return;
         }
         mutate();
@@ -181,7 +187,7 @@ export function AssignToChannelDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         <Trans>Cancel</Trans>
                     </Button>
-                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isPending}>
+                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isPending || !additionalFieldsValid}>
                         <Trans>Assign</Trans>
                     </Button>
                 </DialogFooter>
@@ -191,10 +197,28 @@ export function AssignToChannelDialog({
 }
 
 /**
- * Hook for managing price factor state in assign-to-channel dialogs
+ * Hook for managing price factor state in assign-to-channel dialogs.
+ *
+ * Pass `priceFactorValid` to the dialog's `additionalFieldsValid` prop, so that an invalid
+ * factor cannot be submitted.
  */
 export function usePriceFactor() {
-    const [priceFactor, setPriceFactor] = useState<number>(1);
+    // The input keeps the text as typed, so that it can be cleared and intermediate values
+    // such as `0.` can be entered. An empty value falls back to the default of 1.
+    const [value, setValue] = useState('1');
+    // A number input reports text it cannot parse, such as `-` or `1e`, as an empty value.
+    // `validity.badInput` tells that apart from a cleared field. It is read in `onInput`,
+    // because React skips `onChange` when the reported value does not change.
+    const [badInput, setBadInput] = useState(false);
+    // The dialog unmounts the input when it closes, so a reopened input is empty even if the
+    // previous one held unparseable text. Re-read `badInput` from each newly mounted input.
+    const syncBadInput = useCallback((input: HTMLInputElement | null) => {
+        if (input) setBadInput(input.validity.badInput);
+    }, []);
+    const parsed = Number.parseFloat(value);
+    const isEmpty = value === '' && !badInput;
+    const priceFactorValid = isEmpty || (Number.isFinite(parsed) && parsed >= 0);
+    const priceFactor = !isEmpty && priceFactorValid ? parsed : 1;
 
     const priceFactorField = (
         <div className="grid gap-2">
@@ -202,15 +226,19 @@ export function usePriceFactor() {
                 <Trans>Price conversion factor</Trans>
             </label>
             <Input
+                ref={syncBadInput}
                 type="number"
                 min="0"
                 max="99999"
                 step="0.01"
-                value={priceFactor}
-                onChange={e => setPriceFactor(Number.parseFloat(e.target.value) || 1)}
+                placeholder="1"
+                value={value}
+                onChange={e => setValue(e.target.value)}
+                onInput={e => setBadInput(e.currentTarget.validity.badInput)}
+                aria-invalid={!priceFactorValid}
             />
         </div>
     );
 
-    return { priceFactor, priceFactorField };
+    return { priceFactor, priceFactorField, priceFactorValid };
 }
