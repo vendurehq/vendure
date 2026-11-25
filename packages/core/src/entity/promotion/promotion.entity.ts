@@ -173,17 +173,31 @@ export class Promotion
             if (promotionAction instanceof PromotionItemAction) {
                 if (this.isOrderItemArg(args)) {
                     const { orderLine } = args;
-                    amount += roundMoney(
-                        await promotionAction.execute(ctx, orderLine, action.args, state, this),
-                        orderLine.quantity,
+                    const unitAmount = await promotionAction.execute(
+                        ctx,
+                        orderLine,
+                        action.args,
+                        state,
+                        this,
                     );
+                    // OrderLine.getAdjustmentAmount() rounds a quoted line's discount once, on the line
+                    // total and after any tax basis conversion, as the quote is rounded.
+                    amount +=
+                        orderLine.quotedLinePrice != null
+                            ? unitAmount * orderLine.quantity
+                            : roundMoney(unitAmount, orderLine.quantity);
                 }
             } else if (promotionAction instanceof PromotionLineAction) {
                 if (this.isOrderLineArg(args)) {
                     const { orderLine } = args;
-                    amount += roundMoney(
-                        await promotionAction.execute(ctx, orderLine, action.args, state, this),
+                    const lineAmount = await promotionAction.execute(
+                        ctx,
+                        orderLine,
+                        action.args,
+                        state,
+                        this,
                     );
+                    amount += orderLine.quotedLinePrice != null ? lineAmount : roundMoney(lineAmount);
                 }
             } else if (promotionAction instanceof PromotionOrderAction) {
                 if (this.isOrderArg(args)) {

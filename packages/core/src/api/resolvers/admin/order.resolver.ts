@@ -22,6 +22,7 @@ import {
     Permission,
     QueryOrderArgs,
     QueryOrdersArgs,
+    QueryPreviewRefundLineTotalArgs,
     QueryRefundDestinationsArgs,
     RefundOrderResult,
     SettlePaymentResult,
@@ -80,6 +81,12 @@ export class OrderResolver {
         @Args() args: QueryRefundDestinationsArgs,
     ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
         return this.orderService.getRefundDestinations(ctx, args.orderId);
+    }
+
+    @Query()
+    @Allow(Permission.ReadOrder)
+    previewRefundLineTotal(@Ctx() ctx: RequestContext, @Args() args: QueryPreviewRefundLineTotalArgs) {
+        return this.orderService.previewRefundLineTotal(ctx, args.orderId, args.lines);
     }
 
     @Transaction()

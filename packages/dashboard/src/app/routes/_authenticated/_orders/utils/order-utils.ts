@@ -269,7 +269,12 @@ export function getRefundedQuantity(order: Order, lineId: string): number {
  * pattern (see OrderLine price/discount distribution).
  */
 export function getRefundableQuantity(line: Order['lines'][number]): number {
-    return Math.max(line.orderPlacedQuantity, line.quantity);
+    // Cancelled quoted units count only on lines that the placed order contains.
+    const quotedQuantity =
+        line.orderPlacedQuantity > 0
+            ? (line.refundPriceParts?.reduce((sum, part) => sum + part.quantity, 0) ?? 0)
+            : 0;
+    return Math.max(line.orderPlacedQuantity, line.quantity, quotedQuantity);
 }
 
 /**

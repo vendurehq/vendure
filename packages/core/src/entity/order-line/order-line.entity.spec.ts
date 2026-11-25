@@ -1,7 +1,9 @@
 import { Adjustment, AdjustmentType } from '@vendure/common/lib/generated-types';
+import { getLineRefundAmount } from '@vendure/common/lib/shared-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { ensureConfigLoaded } from '../../config/config-helpers';
+import { DefaultMoneyStrategy, RoundPerUnitMoneyStrategy } from '../../config/entity/default-money-strategy';
 
 import { OrderLine } from './order-line.entity';
 
@@ -25,6 +27,78 @@ describe('OrderLine entity', () => {
         amount: -400,
         data: {},
     };
+
+    it('can round a fractional unit before or after multiplying by quantity', () => {
+        expect(new DefaultMoneyStrategy().round(959.5, 20)).toBe(19190);
+        expect(new RoundPerUnitMoneyStrategy().round(959.5, 20)).toBe(19200);
+    });
+
+    it('keeps a cent-denominated quote when the unit price is between cents', () => {
+        const line = new OrderLine({
+            quotedLinePrice: 2470,
+            quotedQuantity: 20,
+            quantity: 20,
+            listPrice: 124,
+            listPriceIncludesTax: true,
+            taxLines: [],
+            adjustments: [],
+        });
+        expect(line.unitPriceWithTax).toBe(124);
+        expect(line.linePriceWithTax).toBe(2470);
+    });
+
+    it('refunds the difference between the paid and retained quantities at a rounding tie', () => {
+        const line = new OrderLine({
+            quotedLinePrice: 19190,
+            quotedCancellations: [{ quantity: 1, priceWithTax: 959 }],
+            quotedQuantity: 20,
+            quantity: 20,
+            listPrice: 960,
+            listPriceIncludesTax: true,
+            taxLines: [],
+            adjustments: [],
+        });
+        line.setQuantityRescalingAdjustments(19);
+        expect(line.linePriceWithTax).toBe(18231);
+        expect(getLineRefundAmount(line, 1, 0)).toBe(959);
+        expect(getLineRefundAmount(line, 19, 1)).toBe(18231);
+    });
+
+    it('applies tax and discounts to the remaining quoted units', () => {
+        const line = new OrderLine({
+            quotedLinePrice: 19190,
+            quotedQuantity: 20,
+            quantity: 20,
+            orderPlacedQuantity: 20,
+            listPrice: 960,
+            listPriceIncludesTax: false,
+            taxLines: [{ description: 'VAT', taxRate: 20 }],
+            adjustments: [{ ...itemPromotionAdjustment, amount: -1919 }],
+        });
+        expect(line.linePriceWithTax).toBe(23028);
+        expect(line.discountedLinePrice).toBe(17271);
+        expect(line.proratedLinePriceWithTax).toBe(20725);
+        expect(line.refundPriceParts).toEqual([{ priceWithTax: 20725, quantity: 20 }]);
+        line.setQuantityRescalingAdjustments(7);
+        line.setQuantityRescalingAdjustments(0);
+        expect(line.proratedLinePriceWithTax).toBe(0);
+        expect(line.refundPriceParts).toEqual([]);
+    });
+
+    it('does not report a negative total when a full quoted discount is rescaled', () => {
+        const line = new OrderLine({
+            quotedLinePrice: 101,
+            quotedQuantity: 20,
+            quantity: 20,
+            listPrice: 5,
+            listPriceIncludesTax: false,
+            taxLines: [{ description: 'VAT', taxRate: 20 }],
+            adjustments: [{ ...itemPromotionAdjustment, amount: -101 }],
+        });
+        line.setQuantityRescalingAdjustments(11);
+        expect(line.discountedLinePrice).toBe(0);
+        expect(line.discountedLinePriceWithTax).toBe(0);
+    });
 
     describe('discounts', () => {
         function createOrderLine(

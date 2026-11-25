@@ -29,18 +29,17 @@ export function getRefundablePayments(payments: Payment[] | undefined | null): R
  * Calculate total refund amount from line selections and shipping
  */
 export function calculateRefundTotal(
-    lines: Order['lines'],
+    order: Order,
     lineSelections: Record<string, LineSelection>,
-    shippingLines: Order['shippingLines'],
     refundShippingLineIds: string[],
+    quotedLineTotal: number,
 ): number {
-    const itemTotal = lines.reduce((total, line) => {
-        const selection = lineSelections[line.id];
-        const refundCount = selection?.quantity || 0;
-        return total + line.proratedUnitPriceWithTax * refundCount;
-    }, 0);
+    const itemTotal = order.lines.reduce((total, line) => {
+        if (line.refundPriceParts.length) return total;
+        return total + line.proratedUnitPriceWithTax * (lineSelections[line.id]?.quantity ?? 0);
+    }, quotedLineTotal);
 
-    const shippingTotal = shippingLines.reduce((total, line) => {
+    const shippingTotal = order.shippingLines.reduce((total, line) => {
         if (refundShippingLineIds.includes(line.id)) {
             return total + line.discountedPriceWithTax;
         }

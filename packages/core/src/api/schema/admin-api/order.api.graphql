@@ -1,3 +1,14 @@
+"A group of units from one order line that share a tax-inclusive refund value."
+type RefundPricePart {
+    priceWithTax: Money!
+    quantity: Int!
+}
+
+extend type OrderLine {
+    "Cancelled quantities in cancellation order, followed by the surviving units at their current price."
+    refundPriceParts: [RefundPricePart!]!
+}
+
 type Query {
     order(id: ID!): Order
     orders(options: OrderListOptions): OrderList!
@@ -9,6 +20,8 @@ type Query {
     any custom destinations registered via RefundDestinationStrategy.
     """
     refundDestinations(orderId: ID!): [RefundDestination!]!
+    "Returns the tax-inclusive refund for the selected units, excluding shipping and adjustments."
+    previewRefundLineTotal(orderId: ID!, lines: [OrderLineInput!]!): Money!
 }
 
 type Mutation {

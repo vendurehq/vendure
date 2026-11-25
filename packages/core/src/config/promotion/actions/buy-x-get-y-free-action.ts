@@ -19,7 +19,7 @@ export const buyXGetYFreeAction = new PromotionItemAction({
         const freeItemsPerLine = state.buy_x_get_y_free.freeItemsPerLine;
         const freeQuantity = freeItemsPerLine[orderLine.id];
         if (freeQuantity) {
-            const unitPrice = ctx.channel.pricesIncludeTax ? orderLine.unitPriceWithTax : orderLine.unitPrice;
+            const unitPrice = orderLine.getUnitPriceForPromotion(ctx.channel.pricesIncludeTax);
             return -unitPrice * (freeQuantity / orderLine.quantity);
         }
         return 0;

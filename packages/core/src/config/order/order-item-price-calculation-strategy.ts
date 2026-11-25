@@ -61,7 +61,8 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
     /**
      * @description
      * Receives the ProductVariant to be added to the Order as well as any OrderLine custom fields and returns
-     * the price for a single unit.
+     * the price for a single unit as an integer at the configured {@link MoneyStrategy} precision.
+     * For example, at precision 4, return `9595` for a unit price of 0.9595.
      *
      * Note: if you have any `relation` type custom fields defined on the OrderLine entity, they will only be
      * passed in to this method if they are set to `eager: true`. Otherwise, you can use the {@link EntityHydrator}
@@ -76,4 +77,23 @@ export interface OrderItemPriceCalculationStrategy extends InjectableStrategy {
         order: Order,
         quantity: number,
     ): PriceCalculationResult | Promise<PriceCalculationResult>;
+
+    /**
+     * @description
+     * Returns the price for the entire quantity as an integer at the configured money precision.
+     * For example, at precision 3, a quote of 19190 for 20 units totals 19.190, with a displayed
+     * unit price of 0.960. Vendure applies tax and promotions to the line price.
+     * Return undefined to use calculateUnitPrice for this line.
+     *
+     * Vendure stores the quote on the order line so it remains available after a strategy change.
+     *
+     * @since 3.8.3
+     */
+    calculateLinePrice?(
+        ctx: RequestContext,
+        productVariant: ProductVariant,
+        orderLineCustomFields: { [key: string]: any },
+        order: Order,
+        quantity: number,
+    ): PriceCalculationResult | undefined | Promise<PriceCalculationResult | undefined>;
 }

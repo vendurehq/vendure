@@ -42,7 +42,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError, Not } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -62,6 +62,7 @@ import {
     MultipleOrderError,
     NothingToRefundError,
     PaymentOrderMismatchError,
+    QuantityTooGreatError,
     RefundOrderStateError,
     RefundStateTransitionError,
     SettlePaymentError,
@@ -94,6 +95,7 @@ import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
 import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
@@ -135,6 +137,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { setOrderLinePrice } from '../helpers/utils/set-order-line-price';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -2162,6 +2165,20 @@ export class OrderService implements OnApplicationBootstrap {
         ) {
             return new RefundOrderStateError({ orderState: order.state });
         }
+        // The deprecated line-based amount excludes lines that were not part of the placed order.
+        // Recording RefundLines for them would mark unpaid units as refunded.
+        const legacyLineIds =
+            input.amount || input.targets?.length
+                ? []
+                : (input.lines ?? []).filter(line => 0 < line.quantity).map(line => line.orderLineId);
+        if (
+            legacyLineIds.length &&
+            (await this.connection.getRepository(ctx, OrderLine).count({
+                where: { id: In(legacyLineIds), orderPlacedQuantity: 0 },
+            }))
+        ) {
+            return new QuantityTooGreatError();
+        }
 
         const createdRefund = await this.paymentService.createRefund(ctx, input, order, payment);
 
@@ -2169,6 +2186,38 @@ export class OrderService implements OnApplicationBootstrap {
             await this.eventBus.publish(new RefundEvent(ctx, order, createdRefund, 'created'));
         }
         return createdRefund;
+    }
+
+    /** @internal */
+    async previewRefundLineTotal(ctx: RequestContext, orderId: ID, lines: OrderLineInput[]): Promise<number> {
+        const order = await this.getOrderOrThrow(ctx, orderId, ['lines', 'lines.quotedCancellations']);
+        const refundLines = await this.connection.getRepository(ctx, RefundLine).find({
+            where: { orderLineId: In(lines.map(line => line.orderLineId)), refund: { state: Not('Failed') } },
+        });
+        for (const input of lines) {
+            const line = this.getOrderLineOrThrow(order, input.orderLineId);
+            if (input.quantity < 0) {
+                throw new UserInputError('errorResult.NEGATIVE_QUANTITY_ERROR');
+            }
+            // The same refundable quantity as the Dashboard refund dialog uses.
+            const cancelled =
+                line.orderPlacedQuantity > 0 ? summate(line.quotedCancellations, 'quantity') : 0;
+            const refundable =
+                Math.max(line.orderPlacedQuantity, line.quantity, cancelled + line.quantity) -
+                summate(
+                    refundLines.filter(refundLine => idsAreEqual(refundLine.orderLineId, line.id)),
+                    'quantity',
+                );
+            const requested = summate(
+                lines.filter(other => idsAreEqual(other.orderLineId, line.id)),
+                'quantity',
+            );
+            if (refundable < requested) {
+                throw new UserInputError('errorResult.QUANTITY_TOO_GREAT_ERROR');
+            }
+        }
+        // The Dashboard refunds by amount, so lines that an order modification added are included.
+        return this.paymentService.getRefundLineTotal(ctx, lines, true);
     }
 
     /**
@@ -2665,28 +2714,14 @@ export class OrderService implements OnApplicationBootstrap {
                     ctx,
                     order,
                 );
-                let priceResult = await orderItemPriceCalculationStrategy.calculateUnitPrice(
+                await setOrderLinePrice(
                     ctx,
+                    orderItemPriceCalculationStrategy,
                     variant,
-                    updatedOrderLine.customFields || {},
                     order,
-                    updatedOrderLine.quantity,
+                    updatedOrderLine,
+                    changedPriceHandlingStrategy,
                 );
-                const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
-                if (initialListPrice !== priceResult.price) {
-                    priceResult = await changedPriceHandlingStrategy.handlePriceChange(
-                        ctx,
-                        priceResult,
-                        updatedOrderLine,
-                        order,
-                    );
-                }
-
-                if (updatedOrderLine.initialListPrice == null) {
-                    updatedOrderLine.initialListPrice = initialListPrice;
-                }
-                updatedOrderLine.listPrice = priceResult.price;
-                updatedOrderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
             }
         }
 
