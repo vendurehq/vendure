@@ -14,7 +14,7 @@ import {
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
-import { DataSource, EntitySubscriberInterface } from 'typeorm';
+import { DataSource, EntitySubscriberInterface, In } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -163,8 +163,6 @@ describe('SqlJobQueueStrategy next()', () => {
         const queueName = 'test-next-backlog';
         const pendingCount = 2000;
         const settledCount = 6000;
-        // The jobs that the tests of this block have taken from the queue
-        let picked = 0;
 
         beforeAll(async () => {
             const queueNames = [queueName, 'test-next-backlog-a', 'test-next-backlog-b'];
@@ -184,12 +182,26 @@ describe('SqlJobQueueStrategy next()', () => {
         }, TEST_SETUP_TIMEOUT_MS);
 
         it('picks the oldest pending jobs in order', async () => {
-            const tags: string[] = [];
+            const jobs: Array<Job | undefined> = [];
             for (let i = 0; i < 5; i++) {
-                tags.push((await strategy.next(queueName))?.data.tag);
-                picked++;
+                jobs.push(await strategy.next(queueName));
             }
-            expect(tags).toEqual(['backlog-0', 'backlog-1', 'backlog-2', 'backlog-3', 'backlog-4']);
+            expect(jobs.map(job => job?.data.tag)).toEqual([
+                'backlog-0',
+                'backlog-1',
+                'backlog-2',
+                'backlog-3',
+                'backlog-4',
+            ]);
+            // next() resolves before its transaction has committed. A job whose pick has not
+            // committed yet still looks PENDING, so the next test would load it and skip it.
+            await pollUntil(
+                async () =>
+                    (await connection.getRepository('JobRecord').countBy({
+                        id: In(jobs.map(job => job?.id)),
+                        state: JobState.RUNNING,
+                    })) === jobs.length,
+            );
         });
 
         // The rows read are counted with MySQL / MariaDB session status counters
@@ -217,13 +229,11 @@ describe('SqlJobQueueStrategy next()', () => {
                 };
                 // The first call also looks up the server version
                 await singleConnectionStrategy.next(queueName);
-                picked++;
 
                 let maxRowsRead = 0;
                 for (let i = 0; i < 10; i++) {
                     const before = await handlerReads();
                     const job = await singleConnectionStrategy.next(queueName);
-                    picked++;
                     const rowsRead = (await handlerReads()) - before;
                     expect(job).toBeDefined();
                     maxRowsRead = Math.max(maxRowsRead, rowsRead);
@@ -236,15 +246,6 @@ describe('SqlJobQueueStrategy next()', () => {
         });
 
         it('loads a bounded number of job records per pick', async () => {
-            // next() resolves before its transaction has committed. Until the picks of the tests
-            // above have committed, their jobs still look PENDING, and next() would load and skip
-            // them before it finds a job it can lock.
-            await pollUntil(
-                async () =>
-                    (await connection
-                        .getRepository('JobRecord')
-                        .countBy({ queueName, state: JobState.RUNNING })) === picked,
-            );
             let loadedCount = 0;
             const subscriber: EntitySubscriberInterface = {
                 afterLoad(entity, event) {
