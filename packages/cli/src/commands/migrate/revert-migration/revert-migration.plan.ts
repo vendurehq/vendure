@@ -13,7 +13,7 @@ export async function plan(
     input: { config?: string },
     ctx: CommandContext,
 ): Promise<CommandPlan | ErrorResult> {
-    const project = await openMigrationProject(input.config, ctx.signal);
+    const project = await openMigrationProject(input.config, ctx);
     if (isErrorResult(project)) {
         return project;
     }

@@ -11,7 +11,7 @@ vi.mock('../../../shared/open-project.js', () => ({
 }));
 vi.mock('../../../shared/vendure-config-ref.js', () => ({
     VendureConfigRef: vi.fn(function () {
-        throw new Error('Could not find the VendureConfig declaration');
+        throw new Error('Could not find the VendureConfig declaration in your project.');
     }),
 }));
 vi.mock('../../../shared/load-project-config.js', () => ({
@@ -33,7 +33,9 @@ describe('vendure add plugin without a VendureConfig in the source', () => {
         expect(result).toMatchObject({
             code: 'add.vendure-config-not-found',
             details: {
-                message: expect.stringContaining('may come from the config resolver of @acme/cloud'),
+                message:
+                    "Could not find the VendureConfig declaration in your project. This project's config may come " +
+                    'from the config resolver of @acme/cloud, which is not a file this command can add the plugin to',
             },
         });
     });
@@ -43,7 +45,7 @@ describe('vendure add plugin without a VendureConfig in the source', () => {
 
         expect(result).toMatchObject({
             code: 'add.vendure-config-not-found',
-            details: { message: 'Could not find the VendureConfig declaration' },
+            details: { message: 'Could not find the VendureConfig declaration in your project.' },
         });
     });
 });

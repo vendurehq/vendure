@@ -2,11 +2,9 @@ import type { RuntimeVendureConfig, VendureConfig } from '@vendure/core';
 import { satisfies } from 'semver';
 
 import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
-import { ConfigResolverFailedError, resolveProjectConfig } from '../../../shared/load-project-config.js';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { ConfigResolverFailedError, loadProjectConfig } from '../../../shared/load-project-config.js';
 import { requireProjectCore } from '../../../shared/project-core.js';
 import { analyzeProject } from '../../../shared/shared-prompts.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 import { CheckResult } from '../types.js';
 
 export interface ConfigCheckResult {
@@ -22,7 +20,7 @@ export interface ConfigCheckResult {
  * register entities, and run plugin configuration hooks. Then checks plugin
  * compatibility with the current Vendure version.
  */
-export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckResult> {
+export async function runConfigCheck(configFlag?: string, signal?: AbortSignal): Promise<ConfigCheckResult> {
     const details: string[] = [];
     let runtimeConfig: RuntimeVendureConfig | undefined;
     // Left undefined until the project's core has loaded, so a project that
@@ -42,7 +40,7 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
         // 1. Ask the config resolvers of the enabled packages, then
         // 2. find the VendureConfig in the source (ts-morph), and
         // 3. load it at runtime (ts-node, path mappings, dotenv)
-        const config = await loadDoctorConfig(configFlag, details);
+        const config = await loadDoctorConfig(configFlag, details, signal);
 
         // 4. Run preBootstrapConfig() -- validates custom fields, registers entities,
         //    runs plugin configuration() hooks, sets strategies
@@ -100,16 +98,28 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
  * The project's config, from the config resolver of an enabled package, or else from the
  * `VendureConfig` in its source. Says in `details` where it came from.
  */
-async function loadDoctorConfig(configFlag: string | undefined, details: string[]): Promise<VendureConfig> {
-    const resolved = await resolveProjectConfig({ configFile: configFlag });
-    if (resolved) {
-        details.push(`Config resolved by ${resolved.resolvedBy}`);
-        return resolved.config;
-    }
-    const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage: '', config: configFlag });
-    const vendureConfigRef = new VendureConfigRef(project, configFlag);
-    details.push(`Config loaded from ${vendureConfigRef.getPathRelativeToProjectRoot()}`);
-    return loadVendureConfigFile(vendureConfigRef, vendureTsConfig);
+async function loadDoctorConfig(
+    configFlag: string | undefined,
+    details: string[],
+    signal?: AbortSignal,
+): Promise<VendureConfig> {
+    const loaded = await loadProjectConfig({
+        configFile: configFlag,
+        signal,
+        openProject: async () => {
+            const { project, vendureTsConfig } = await analyzeProject({
+                cancelledMessage: '',
+                config: configFlag,
+            });
+            return { project, tsConfigPath: vendureTsConfig };
+        },
+    });
+    details.push(
+        loaded.ref
+            ? `Config loaded from ${loaded.ref.getPathRelativeToProjectRoot()}`
+            : `Config resolved by ${loaded.resolvedBy}`,
+    );
+    return loaded.config;
 }
 
 interface PluginCheckResult {

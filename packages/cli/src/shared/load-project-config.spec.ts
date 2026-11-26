@@ -20,7 +20,8 @@ vi.mock('./vendure-config-ref.js', () => ({
         this.sourceFile = { getFilePath: () => '/project/src/vendure-config.ts' };
     }),
 }));
-vi.mock('./load-vendure-config-file.js', () => ({
+vi.mock('./load-vendure-config-file.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('./load-vendure-config-file.js')>()),
     loadVendureConfigFile: vi.fn(() =>
         Promise.resolve({ dbConnectionOptions: { type: 'sqlite' }, from: 'source' }),
     ),
@@ -88,11 +89,34 @@ describe('loadProjectConfig()', () => {
         expect(result).toEqual({
             config: { dbConnectionOptions: { type: 'postgres' }, from: 'cloud' },
             resolvedBy: '@acme/cloud',
+            projectDir: dir,
         });
         expect(calls).toHaveLength(2);
-        expect(calls[1]).toMatchObject({ projectDir: dir, configFile: 'my-config.ts' });
+        expect(calls[1]).toMatchObject({ projectDir: dir, configFile: path.resolve('my-config.ts') });
         expect(calls[1].signal).toBeInstanceOf(AbortSignal);
         expect(loadVendureConfigFile).not.toHaveBeenCalled();
+    });
+
+    it('gives the resolver --config as an absolute path, resolved from the working directory', async () => {
+        await resolveProjectConfig({
+            cwd: path.join(dir, 'src'),
+            projectDir: dir,
+            configFile: '../cloud.json',
+            plugins: [plugin('@acme/other', 'return undefined;')],
+        });
+
+        expect(calls[0].configFile).toBe(path.join(dir, 'cloud.json'));
+    });
+
+    it('opens the project with the given opener to find a config in the source', async () => {
+        const opener = vi.fn(() =>
+            Promise.resolve({ project: {} as never, tsConfigPath: '/project/tsconfig.vendure.json' }),
+        );
+
+        const result = await loadProjectConfig({ projectDir: dir, plugins: [], openProject: opener });
+
+        expect(opener).toHaveBeenCalledOnce();
+        expect(loadVendureConfigFile).toHaveBeenCalledWith(result.ref, '/project/tsconfig.vendure.json');
     });
 
     it('passes the signal it was given to the resolver', async () => {

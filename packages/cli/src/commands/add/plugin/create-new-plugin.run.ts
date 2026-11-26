@@ -28,12 +28,11 @@ export async function run(input: { name: string; dir?: string; config?: string }
         // the plugin to. The resolver is not run: saying which package owns the config is enough.
         const resolvers = configResolverPackages().map(resolver => resolver.packageName);
         const message = e instanceof Error ? e.message : String(e);
-        const hint = resolvers.length
-            ? `. This project's config may come from the config resolver of ${resolvers.join(' or ')}, ` +
-              'which is not a file this command can add the plugin to'
-            : '';
         return fail(vendureConfigNotFound, {
-            message: message + hint,
+            message: resolvers.length
+                ? `${message.replace(/\.$/, '')}. This project's config may come from the config resolver of ` +
+                  `${resolvers.join(' or ')}, which is not a file this command can add the plugin to`
+                : message,
         });
     }
     const { plugin, created } = scaffoldPlugin(project, { name: input.name, pluginDir });

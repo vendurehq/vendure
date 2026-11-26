@@ -1,7 +1,11 @@
 import { VendurePlugin } from '@vendure/core';
-import { describe, expect, it, vi } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { resolveCommandManifests } from '../../../shared/resolve-cli-plugins.js';
 
 import { isCompatibleWithCore, runConfigCheck } from './config-check.js';
 
@@ -12,12 +16,21 @@ vi.mock('../../../shared/shared-prompts.js', () => ({
 vi.mock('../../../shared/vendure-config-ref.js', () => ({
     // A `function` (not an arrow function) because the code under test calls it with `new`.
     VendureConfigRef: vi.fn(function () {
-        return { getPathRelativeToProjectRoot: () => 'vendure-config.ts' };
+        return {
+            getPathRelativeToProjectRoot: () => 'vendure-config.ts',
+            sourceFile: { getFilePath: () => '/project/vendure-config.ts' },
+        };
     }),
 }));
 
-vi.mock('../../../shared/load-vendure-config-file.js', () => ({
+vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../../shared/load-vendure-config-file.js')>()),
     loadVendureConfigFile: vi.fn(),
+}));
+
+// No enabled package has a config resolver, unless a test says otherwise.
+vi.mock('../../../shared/resolve-cli-plugins.js', () => ({
+    resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
 }));
 
 // Use the workspace package as the "project" copy, so that the plugins below and the
@@ -47,6 +60,69 @@ describe('runConfigCheck()', () => {
         expect(check.status).toBe('fail');
         expect(check.details).toContain('2 plugin(s) loaded');
         expect(check.details?.join('\n')).toContain('Plugin "IncompatibleChildPlugin": incompatible');
+    });
+});
+
+describe('runConfigCheck() with a config resolver', () => {
+    let dir: string | undefined;
+
+    afterEach(() => {
+        vi.clearAllMocks();
+        if (dir) {
+            fs.rmSync(dir, { recursive: true, force: true });
+            dir = undefined;
+        }
+    });
+
+    /** Enables `@acme/cloud`, whose config resolver's `resolve(ctx)` runs `body`. */
+    function enableResolver(body: string) {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-doctor-resolver-'));
+        const definitionsPath = path.join(dir, 'cloud.mjs');
+        fs.writeFileSync(
+            definitionsPath,
+            `export const commands = [];
+export const configResolver = { resolve: async () => ({ resolve: async () => { ${body} } }) };`,
+        );
+        vi.mocked(resolveCommandManifests).mockReturnValueOnce({
+            manifests: [
+                {
+                    packageName: '@acme/cloud',
+                    definitionsPath,
+                    scope: 'project',
+                    manifest: {
+                        manifestVersion: 1,
+                        package: '@acme/cloud',
+                        version: '1.0.0',
+                        commands: [],
+                        hasConfigResolver: true,
+                    },
+                },
+            ],
+            failures: [],
+            scopeErrors: [],
+        });
+    }
+
+    it('says which package resolved the config', async () => {
+        enableResolver(
+            "return { apiOptions: {}, authOptions: {}, dbConnectionOptions: { type: 'better-sqlite3' }, plugins: [] };",
+        );
+
+        const { check } = await runConfigCheck();
+
+        expect(check.details).toContain('Config resolved by @acme/cloud');
+        expect(check.status).toBe('pass');
+    });
+
+    it('fails with the config.resolver-failed code when the resolver throws', async () => {
+        enableResolver("throw new Error('no Cloud config handle');");
+
+        const { check } = await runConfigCheck();
+
+        expect(check.status).toBe('fail');
+        expect(check.details).toContain(
+            'Error (config.resolver-failed): The config resolver of @acme/cloud failed: no Cloud config handle',
+        );
     });
 });
 

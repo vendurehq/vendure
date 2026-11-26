@@ -7,9 +7,16 @@
 export interface ConfigResolverContext {
     /** The absolute path of the project's root directory, the one with its `package.json`. */
     projectDir: string;
-    /** The config file the user named with `--config`, as they wrote it, when they named one. */
+    /**
+     * The absolute path of the config file the user named with `--config`, when they named one.
+     * Every resolver runs before the CLI loads that file, so a resolver returns `undefined` for a
+     * file it does not handle, and the CLI loads the file itself.
+     */
     configFile?: string;
-    /** Aborts when the command that needs the config is cancelled. */
+    /**
+     * Aborts when the command that needs the config is cancelled. A command that cannot be
+     * cancelled, such as `vendure schema`, gives a signal that never fires.
+     */
     signal: AbortSignal;
 }
 

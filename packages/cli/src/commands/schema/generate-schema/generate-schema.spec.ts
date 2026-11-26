@@ -24,12 +24,21 @@ vi.mock('../../../shared/shared-prompts.js', () => ({
 vi.mock('../../../shared/vendure-config-ref.js', () => ({
     // A `function` (not an arrow function) because the code under test calls it with `new`.
     VendureConfigRef: vi.fn(function () {
-        return { getPathRelativeToProjectRoot: () => 'vendure-config.ts' };
+        return {
+            getPathRelativeToProjectRoot: () => 'vendure-config.ts',
+            sourceFile: { getFilePath: () => '/project/vendure-config.ts' },
+        };
     }),
 }));
 
-vi.mock('../../../shared/load-vendure-config-file.js', () => ({
+vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../../shared/load-vendure-config-file.js')>()),
     loadVendureConfigFile: vi.fn(),
+}));
+
+// No enabled package has a config resolver.
+vi.mock('../../../shared/resolve-cli-plugins.js', () => ({
+    resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
 }));
 
 const projectCoreMode = vi.hoisted(() => ({ useRealProject: false }));

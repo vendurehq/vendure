@@ -12,6 +12,7 @@ vi.mock('../../shared/load-project-config.js', async importOriginal => ({
 }));
 
 const config = { dbConnectionOptions: { type: 'postgres' } } as unknown as VendureConfig;
+const ctx = { cwd: '/project', signal: new AbortController().signal };
 
 describe('openMigrationProject()', () => {
     afterEach(() => {
@@ -22,11 +23,15 @@ describe('openMigrationProject()', () => {
         vi.mocked(loadProjectConfig).mockResolvedValueOnce({ config, resolvedBy: '@acme/cloud' });
         const signal = new AbortController().signal;
 
-        expect(await openMigrationProject('my-config.ts', signal)).toEqual({
+        expect(await openMigrationProject('my-config.ts', { cwd: '/project/src', signal })).toEqual({
             config,
             resolvedBy: '@acme/cloud',
         });
-        expect(loadProjectConfig).toHaveBeenCalledWith({ configFile: 'my-config.ts', signal });
+        expect(loadProjectConfig).toHaveBeenCalledWith({
+            cwd: '/project/src',
+            configFile: 'my-config.ts',
+            signal,
+        });
     });
 
     it('reports a failed config resolver as config.resolver-failed', async () => {
@@ -34,7 +39,7 @@ describe('openMigrationProject()', () => {
             new ConfigResolverFailedError({ plugin: '@acme/cloud', message: 'no handle' }),
         );
 
-        expect(await openMigrationProject()).toMatchObject({
+        expect(await openMigrationProject(undefined, ctx)).toMatchObject({
             code: 'config.resolver-failed',
             details: { plugin: '@acme/cloud', message: 'no handle' },
         });
@@ -43,15 +48,15 @@ describe('openMigrationProject()', () => {
     it('reports any other failure as migrate.config-unreadable', async () => {
         vi.mocked(loadProjectConfig).mockRejectedValueOnce(new Error('no VendureConfig found'));
 
-        expect(await openMigrationProject()).toMatchObject({
+        expect(await openMigrationProject(undefined, ctx)).toMatchObject({
             code: 'migrate.config-unreadable',
         });
     });
 });
 
 describe('defaultMigrationDir()', () => {
-    it('uses migrations in the project directory for a resolved config without migration patterns', () => {
-        expect(defaultMigrationDir({ config, resolvedBy: '@acme/cloud' }, '/project')).toBe(
+    it('uses migrations in the project directory the resolver was given, not the working directory', () => {
+        expect(defaultMigrationDir({ config, resolvedBy: '@acme/cloud', projectDir: '/project' })).toBe(
             path.join('/project', 'migrations'),
         );
     });
@@ -61,8 +66,12 @@ describe('defaultMigrationDir()', () => {
             dbConnectionOptions: { type: 'postgres', migrations: ['/project/db/migrations/*.ts'] },
         } as unknown as VendureConfig;
 
-        expect(defaultMigrationDir({ config: withMigrations, resolvedBy: '@acme/cloud' }, '/project')).toBe(
-            path.normalize('/project/db/migrations'),
-        );
+        expect(
+            defaultMigrationDir({
+                config: withMigrations,
+                resolvedBy: '@acme/cloud',
+                projectDir: '/project',
+            }),
+        ).toBe(path.normalize('/project/db/migrations'));
     });
 });

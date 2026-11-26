@@ -8,7 +8,7 @@ import { runFailed } from './run-migration.errors.js';
 
 /** Runs the pending migrations, and reports what the database still lacks afterwards. */
 export async function run(input: { config?: string }, ctx: CommandContext) {
-    const project = await openMigrationProject(input.config, ctx.signal);
+    const project = await openMigrationProject(input.config, ctx);
     if (isErrorResult(project)) {
         return project;
     }

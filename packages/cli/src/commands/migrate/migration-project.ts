@@ -1,4 +1,4 @@
-import { ErrorResult, fail } from '@vendure/common/lib/command';
+import { CommandContext, ErrorResult, fail } from '@vendure/common/lib/command';
 import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
@@ -17,11 +17,11 @@ import { configUnreadable } from './migrate.errors.js';
  * command reports when the config cannot be found or loaded.
  */
 export async function openMigrationProject(
-    configFile?: string,
-    signal?: AbortSignal,
+    configFile: string | undefined,
+    ctx: Pick<CommandContext, 'cwd' | 'signal'>,
 ): Promise<ProjectConfig | ErrorResult> {
     try {
-        return await loadProjectConfig({ configFile, signal });
+        return await loadProjectConfig({ cwd: ctx.cwd, configFile, signal: ctx.signal });
     } catch (e) {
         if (e instanceof ConfigResolverFailedError) {
             return fail(configResolverFailed, e.details);
@@ -36,13 +36,13 @@ export async function openMigrationProject(
  * next to the config file's directory. A config from a config resolver has no file, so the last
  * two are `migrations` in the project's root directory.
  */
-export function defaultMigrationDir({ config, ref }: ProjectConfig, projectDir = process.cwd()): string {
+export function defaultMigrationDir({ config, ref, projectDir }: ProjectConfig): string {
     const migrations = config.dbConnectionOptions.migrations;
     if (Array.isArray(migrations) && typeof migrations[0] === 'string') {
         return path.normalize(path.dirname(migrations[0]));
     }
     if (!ref) {
-        return path.join(projectDir, 'migrations');
+        return path.join(projectDir ?? process.cwd(), 'migrations');
     }
     const migrationFile = ref.sourceFile
         .getProject()

@@ -6,11 +6,9 @@ import path from 'node:path';
 
 import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
 import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
-import { ConfigResolverFailedError, resolveProjectConfig } from '../../../shared/load-project-config.js';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { ConfigResolverFailedError, loadProjectConfig } from '../../../shared/load-project-config.js';
 import { requireFromProjectCore, requireProjectCore } from '../../../shared/project-core.js';
 import { analyzeProject } from '../../../shared/shared-prompts.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 import { type SchemaOptions } from '../schema.js';
 
 const cancelledMessage = 'Generate schema cancelled';
@@ -75,16 +73,21 @@ export async function generateSchema(options: SchemaOptions) {
 
 /**
  * The project's config, from the config resolver of an enabled package, or else from the
- * `VendureConfig` in its source.
+ * `VendureConfig` in its source. `vendure schema` is not a `defineCommand` command, so it has no
+ * signal for the resolver: a resolver it runs cannot be cancelled.
  */
 async function loadSchemaConfig(configFile: string | undefined): Promise<VendureConfig> {
-    const resolved = await resolveProjectConfig({ configFile });
-    if (resolved) {
-        log.info('Using the VendureConfig resolved by ' + resolved.resolvedBy);
-        return resolved.config;
-    }
-    const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
-    const vendureConfig = new VendureConfigRef(project, configFile);
-    log.info('Using VendureConfig from ' + vendureConfig.getPathRelativeToProjectRoot());
-    return loadVendureConfigFile(vendureConfig, vendureTsConfig);
+    const loaded = await loadProjectConfig({
+        configFile,
+        openProject: async () => {
+            const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
+            return { project, tsConfigPath: vendureTsConfig };
+        },
+    });
+    log.info(
+        loaded.ref
+            ? 'Using VendureConfig from ' + loaded.ref.getPathRelativeToProjectRoot()
+            : 'Using the VendureConfig resolved by ' + loaded.resolvedBy,
+    );
+    return loaded.config;
 }

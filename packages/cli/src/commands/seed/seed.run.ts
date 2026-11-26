@@ -68,7 +68,7 @@ export async function run(input: SeedInput, ctx: CommandContext): Promise<Comman
     } catch (e) {
         return seedErrorResult(e, core);
     }
-    const config = await loadConfig(ctx, input.config);
+    const config = await loadSeedConfig(ctx, input.config);
     if (isErrorResult(config)) {
         return config;
     }
@@ -97,7 +97,7 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
             : `there is no ${CREATE_RECORD_PATH}`;
         return { preset: { status: 'skipped', reason }, scenario: { status: 'skipped', reason } };
     }
-    const config = await loadConfig(ctx, input.config);
+    const config = await loadSeedConfig(ctx, input.config);
     if (isErrorResult(config)) {
         return config;
     }
@@ -283,10 +283,14 @@ async function readCreateRecord(
  * which is seconds faster than finding it by parsing the project, and matters because
  * `--first-run` runs on every `vendure dev` start.
  */
-async function loadConfig(ctx: CommandContext, configFile?: string): Promise<VendureConfig | ErrorResult> {
+export async function loadSeedConfig(
+    ctx: Pick<CommandContext, 'cwd' | 'signal'>,
+    configFile?: string,
+): Promise<VendureConfig | ErrorResult> {
     try {
         const projectRoot = findVendureProjectRoot(ctx.cwd) ?? ctx.cwd;
         const resolved = await resolveProjectConfig({
+            cwd: ctx.cwd,
             projectDir: projectRoot,
             configFile,
             signal: ctx.signal,

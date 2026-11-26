@@ -139,13 +139,16 @@ export async function loadVendureConfigFile(
 export async function loadVendureConfigFromPath(configFilePath: string): Promise<VendureConfig | undefined> {
     await prepareToRequireConfig(configFilePath);
     const configModule = createRequire(import.meta.url)(configFilePath) as Record<string, unknown>;
-    const isConfig = (value: unknown): value is VendureConfig =>
-        typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
-    if (isConfig(configModule.config)) {
+    if (isVendureConfig(configModule.config)) {
         return configModule.config;
     }
-    const configs = Object.values(configModule).filter(isConfig);
+    const configs = Object.values(configModule).filter(isVendureConfig);
     return configs.length === 1 ? configs[0] : undefined;
+}
+
+/** Whether a value looks like a `VendureConfig`: an object with `dbConnectionOptions`. */
+export function isVendureConfig(value: unknown): value is VendureConfig {
+    return typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
 }
 
 /**
