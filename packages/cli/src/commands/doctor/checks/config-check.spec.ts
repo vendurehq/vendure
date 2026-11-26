@@ -53,7 +53,7 @@ describe('runConfigCheck()', () => {
 describe('isCompatibleWithCore()', () => {
     type Core = Parameters<typeof isCompatibleWithCore>[0];
 
-    it("uses the project core's own check, which accepts a prerelease of a covered release", () => {
+    it("delegates to the project core's isCompatible", () => {
         const isCompatible = vi.fn(() => true);
         const core = { VENDURE_VERSION: '4.0.0-major-202611260711', isCompatible } as unknown as Core;
 
