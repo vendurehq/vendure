@@ -2,6 +2,8 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { setDisplayLocale } from '../../utils/display-locale.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Promotions require ConfigurableOperationMultiSelectors for conditions and actions.
 // We use the simplest built-in operations:
@@ -143,4 +145,69 @@ test.describe('Promotions CRUD', () => {
         await lp.bulkDelete('all');
         await lp.expectSuccessToast();
     });
+});
+
+// #5969 — configurable operation money args, such as a promotion condition amount, use the same
+// MoneyInput, but store the value as a string through the form engine
+test('saves a promotion amount typed with a comma decimal separator', async ({ page }) => {
+    const client = new VendureAdminClient(page);
+    await client.login();
+    let promotionId: string | undefined;
+    try {
+        const { createPromotion } = await client.gql(
+            `mutation ($input: CreatePromotionInput!) {
+                createPromotion(input: $input) { ... on Promotion { id } }
+            }`,
+            {
+                input: {
+                    enabled: false,
+                    translations: [{ languageCode: 'en', name: `E2E Comma Amount ${Date.now()}` }],
+                    conditions: [
+                        {
+                            code: 'minimum_order_amount',
+                            arguments: [
+                                { name: 'amount', value: '100' },
+                                { name: 'taxInclusive', value: 'false' },
+                            ],
+                        },
+                    ],
+                    actions: [{ code: 'free_shipping', arguments: [] }],
+                },
+            },
+        );
+        promotionId = createPromotion.id;
+
+        await setDisplayLocale(page, 'DE');
+        await page.goto(`/promotions/${promotionId}`);
+        await page.getByRole('button', { name: 'amount' }).click();
+        const amountInput = page
+            .locator('[data-slot="field"]')
+            .filter({ hasText: 'amount' })
+            .getByRole('textbox');
+        await amountInput.clear();
+        await amountInput.pressSequentially('1,50');
+        await expect(amountInput).toHaveValue('1,50');
+        await page.keyboard.press('Escape');
+
+        const dp = new BaseDetailPage(page, {
+            newPath: '/promotions/new',
+            pathPrefix: '/promotions/',
+            newTitle: 'New promotion',
+        });
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated promotion/);
+
+        const { promotion } = await client.gql(
+            `query ($id: ID!) { promotion(id: $id) { conditions { args { name value } } } }`,
+            { id: promotionId },
+        );
+        const amount = promotion.conditions[0].args.find((a: { name: string }) => a.name === 'amount');
+        expect(amount.value).toBe('150');
+    } finally {
+        if (promotionId) {
+            await client
+                .gql(`mutation ($id: ID!) { deletePromotion(id: $id) { result } }`, { id: promotionId })
+                .catch(() => undefined);
+        }
+    }
 });
