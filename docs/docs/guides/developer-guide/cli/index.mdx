@@ -1322,12 +1322,27 @@ activation](#explicit-activation)). Then:
   `manifest.mismatch` error when it doesn't. Rebuild the manifest after you change a command.
 
 A package may add commands to a group that exists already, such as `vendure acme` or `vendure auth`.
-It may not declare a command that another package or a built-in command already has, turn a group
-into a command, or add a command under another command. The commands of a `cliPlugin` count, the
-package's own included. The CLI then leaves out all the commands the package declares with
-`defineCommand`, with a `plugin.command-clash` error that it writes to stderr and lists under
-`refused` in `vendure commands --json`. Every other command keeps working, including the package's
-own `cliPlugin` commands, which follow the rules in [Collisions](#collisions). A manifest that is
+It may also declare a command and commands under it, such as `vendure acme deploy` and
+`vendure acme deploy plan`. The command above must not take positional fields, or flags that take an
+optional value or a list, such as `--wait [value]` or `--tags <tag...>`, because a value of either could
+be taken for the name of a command under it. A flag the two share must be declared the same
+way on both, because the command above reads it first. The options of the command above may go before or
+after the name of the command under it: `vendure acme deploy --environment prod plan` and `vendure acme
+deploy plan --environment prod` run the same. The options of the command under it go after its name. An
+option of the command above that the command that runs doesn't take, such as a `--force` of
+`acme deploy` given to `acme deploy plan`, stops the run with `cli.usage`. Because the command above reads
+its flags anywhere on the line, a value that starts with `-` takes the `=` form, as `--note=--force`.
+
+A package may not declare a command that another package or a built-in command already has, turn
+another package's group into a command, or add a command under another package's command. The
+commands of a `cliPlugin` count, the package's own included. The CLI then leaves out all the commands
+the package declares with `defineCommand`, with a `plugin.command-clash` error that it writes to stderr
+and lists under `refused` in `vendure commands --json`. A command with positional fields, or with flags that
+take an optional value or a list, and commands under it leaves them out the same way, with
+`plugin.parent-positional`. So does a flag that a command
+and a command under it declare differently, with `plugin.parent-flag-conflict`. Every other command keeps
+working, including the package's own `cliPlugin` commands, which follow the rules in
+[Collisions](#collisions). A manifest that is
 missing, or a module that is, leaves out the same commands: the CLI writes the reason to stderr, and
 `vendure commands --json` lists the package under `refused` as `plugin.unavailable`. A manifest that
 can't be parsed, or whose commands don't have the shape `writeCommandManifest` writes, is listed as

@@ -192,14 +192,109 @@ describe('mergeProjectManifests', () => {
         ]);
     });
 
-    it('refuses a plugin that declares both a command and a group at one path', () => {
-        const { refused } = mergeProjectManifests(core, [plugin('acme-cli', ['acme', 'sync'], ['acme'])]);
+    it('lets a plugin declare a command and commands under it, in either order', () => {
+        for (const paths of [
+            [
+                ['acme', 'deploy'],
+                ['acme', 'deploy', 'plan'],
+            ],
+            [
+                ['acme', 'deploy', 'plan'],
+                ['acme', 'deploy'],
+            ],
+        ]) {
+            const { commands, refused } = mergeProjectManifests(core, [plugin('acme-cli', ...paths)]);
+            expect(refused).toEqual([]);
+            expect(
+                commands
+                    .map(command => command.path.join(' '))
+                    .filter(name => name.startsWith('acme'))
+                    .sort(),
+            ).toEqual(['acme deploy', 'acme deploy plan']);
+        }
+    });
+
+    it('refuses a command with positional fields that has commands under it', () => {
+        const withPositional = plugin('acme-cli', ['acme', 'logs'], ['acme', 'logs', 'export']);
+        withPositional.manifest.commands[0].cli = { positional: ['service'] };
+        const { refused } = mergeProjectManifests(core, [withPositional]);
         expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
             [
-                'plugin.command-clash',
-                expect.stringContaining('"acme", which clashes with the command "acme sync" of acme-cli'),
+                'plugin.parent-positional',
+                expect.stringContaining(
+                    '"acme logs" with the positional field "service", and the command "acme logs export"',
+                ),
             ],
         ]);
+    });
+
+    it.each([
+        ['an optional value', { type: ['boolean', 'string'] }],
+        ['a list', { type: 'array', items: { type: 'string' } }],
+    ])('refuses a command with commands under it that has a flag taking %s', (kind, schema) => {
+        const parent = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        parent.manifest.commands[0].input = { type: 'object', properties: { wait: schema } };
+        const { refused } = mergeProjectManifests(core, [parent]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            ['plugin.parent-positional', expect.stringContaining(`the flag --wait, which takes ${kind}`)],
+        ]);
+    });
+
+    it('accepts a flag that a command and a command under it declare the same way', () => {
+        // The default and the description are not part of how the flag is read.
+        const same = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        same.manifest.commands[0].input = {
+            type: 'object',
+            properties: {
+                environment: { type: 'string', default: 'staging', description: 'Where to deploy' },
+            },
+        };
+        same.manifest.commands[1].input = {
+            type: 'object',
+            properties: {
+                environment: { type: 'string', default: 'prod', description: 'Where to plan for' },
+            },
+        };
+        expect(mergeProjectManifests(core, [same]).refused).toEqual([]);
+    });
+
+    it('refuses a flag that a command and a command under it declare differently', () => {
+        const conflicting = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        conflicting.manifest.commands[0].input = {
+            type: 'object',
+            properties: { target: { type: 'string', enum: ['a', 'b'] } },
+        };
+        conflicting.manifest.commands[1].input = {
+            type: 'object',
+            properties: { target: { type: 'string', enum: ['c', 'd'] } },
+        };
+        const { refused } = mergeProjectManifests(core, [conflicting]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            ['plugin.parent-flag-conflict', expect.stringContaining('declares --target differently')],
+        ]);
+
+        const shortFlags = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        shortFlags.manifest.commands[0].input = {
+            type: 'object',
+            properties: { environment: { type: 'string' } },
+        };
+        shortFlags.manifest.commands[0].cli = { flags: { environment: { short: '-e' } } };
+        shortFlags.manifest.commands[1].input = {
+            type: 'object',
+            properties: { exclude: { type: 'string' } },
+        };
+        shortFlags.manifest.commands[1].cli = { flags: { exclude: { short: '-e' } } };
+        expect(mergeProjectManifests(core, [shortFlags]).refused.map(r => r.error.code)).toEqual([
+            'plugin.parent-flag-conflict',
+        ]);
+    });
+
+    it("still refuses a plugin that adds a command under another package's command", () => {
+        const { refused } = mergeProjectManifests(core, [
+            plugin('acme-cli', ['acme', 'deploy']),
+            plugin('other-cli', ['acme', 'deploy', 'plan']),
+        ]);
+        expect(refused.map(r => [r.package, r.error.code])).toEqual([['other-cli', 'plugin.command-clash']]);
     });
 
     it.each([['doctor x'], ['-x'], ['Acme']])(

@@ -21,6 +21,7 @@ import {
 const FIXTURES_DIR = join(import.meta.dirname, 'fixtures', 'cli-plugins');
 const EXAMPLE = '@vendure-e2e/defined-commands-cli-plugin';
 const CLASHING = '@vendure-e2e/clashing-defined-commands-cli-plugin';
+const PARENT = '@vendure-e2e/parent-commands-cli-plugin';
 
 function envelopeOf(stdout: string) {
     const lines = stdout.split('\n').filter(line => line.trim());
@@ -49,17 +50,124 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
         return project;
     }
 
-    it.each(['defined-commands-cli-plugin', 'clashing-defined-commands-cli-plugin'])(
-        'ships a %s manifest built from its declarations, without @vendure/cli',
-        async fixture => {
-            const dir = join(FIXTURES_DIR, fixture);
-            const { commands, groups } = await import(join(dir, 'commands.js'));
-            const shipped = readManifestFile(join(dir, 'vendure-commands.json'));
+    it.each([
+        'defined-commands-cli-plugin',
+        'clashing-defined-commands-cli-plugin',
+        'parent-commands-cli-plugin',
+    ])('ships a %s manifest built from its declarations, without @vendure/cli', async fixture => {
+        const dir = join(FIXTURES_DIR, fixture);
+        const { commands, groups } = await import(join(dir, 'commands.js'));
+        const shipped = readManifestFile(join(dir, 'vendure-commands.json'));
+        expect(await buildCommandManifest(shipped.package, shipped.version, commands, { groups })).toEqual(
+            shipped,
+        );
+    });
+
+    // A plugin may declare a command and commands under it, such as `acme deploy` and
+    // `acme deploy plan`.
+    describe('a plugin with a command that has commands under it', () => {
+        it('lists both, and runs each under --json', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const envelope = await listCommands(p);
+            expect(envelope.output.refused).toBeUndefined();
             expect(
-                await buildCommandManifest(shipped.package, shipped.version, commands, { groups }),
-            ).toEqual(shipped);
-        },
-    );
+                envelope.output.commands
+                    .filter((c: any) => c.source === PARENT)
+                    .map((c: any) => c.path.join(' '))
+                    .sort(),
+            ).toEqual(['acme deploy', 'acme deploy plan']);
+
+            const deploy = await p.runCliCommand(['acme', 'deploy', '--environment', 'prod', '--json']);
+            expect(envelopeOf(deploy.stdout).output).toEqual({ ran: 'deploy', environment: 'prod' });
+
+            const plan = await p.runCliCommand(['acme', 'deploy', 'plan', '--environment', 'prod', '--json']);
+            expect(envelopeOf(plan.stdout).output).toEqual({ ran: 'plan', environment: 'prod' });
+        });
+
+        it('takes an option of the command above before or after the name of the command under it', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand([
+                'acme',
+                'deploy',
+                '--environment',
+                'prod',
+                'plan',
+                '--json',
+            ]);
+            expect(envelopeOf(result.stdout).output).toEqual({ ran: 'plan', environment: 'prod' });
+        });
+
+        it('refuses an option of the command above that the command that runs does not take', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            for (const args of [
+                ['acme', 'deploy', 'plan', '--force', '--json'],
+                ['acme', 'deploy', '--force', 'plan', '--json'],
+            ]) {
+                const result = await p.runCliCommand(args, { expectError: true });
+                expect(envelopeOf(result.stdout).error).toMatchObject({
+                    code: 'cli.usage',
+                    message: '--force is not an option of "acme deploy plan"',
+                });
+            }
+        });
+
+        // `acme deploy` takes over the group made for it, with the error handling of a command, so an
+        // option no command has is Commander's unknown option, not a line with the options moved.
+        it('reports an option that no command has as unknown, not as one before the subcommand', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', '--nope', 'plan', '--json'], {
+                expectError: true,
+            });
+            expect(envelopeOf(result.stdout).error).toMatchObject({
+                code: 'cli.usage',
+                message: expect.stringContaining("unknown option '--nope'"),
+            });
+        });
+
+        it('reports a name that is not a command under it as a coded line without --json', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', 'plna'], { expectError: true });
+            expect(result.exitCode).toBe(1);
+            expect(result.stderr).toContain('[cli.usage] "plna" is not a command of "acme deploy"');
+        });
+
+        it('reports a name that is not a command under it', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', 'plna', '--json'], { expectError: true });
+            expect(envelopeOf(result.stdout).error).toMatchObject({
+                code: 'cli.usage',
+                message: '"plna" is not a command of "acme deploy"',
+            });
+        });
+
+        it('offers both as Developer MCP tools', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+            const mcp = startMcpServer(p.projectDir);
+            try {
+                await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                const search = await mcp.callTool('search_tools', { query: 'deploy' });
+                expect(search.result.structuredContent.tools.map((t: any) => t.name)).toEqual(
+                    expect.arrayContaining(['acme_deploy', 'acme_deploy_plan']),
+                );
+                const plan = await mcp.callTool('execute_readonly', {
+                    tool: 'acme_deploy_plan',
+                    input: { environment: 'prod' },
+                });
+                expect(plan.result.structuredContent).toMatchObject({
+                    status: 'ok',
+                    output: { ran: 'plan', environment: 'prod' },
+                });
+            } finally {
+                await mcp.close();
+            }
+        });
+    });
 
     describe('an enabled plugin', () => {
         it('adds its commands to the merged set in vendure commands --json', async () => {
