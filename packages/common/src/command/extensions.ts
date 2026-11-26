@@ -9,6 +9,7 @@ import {
     CommandExtensionNextFn,
     CommandRunResult,
     JSON_SCHEMA_TARGET,
+    SpawnOptions,
     StandardSchema,
     StandardSchemaResult,
 } from './types';
@@ -27,12 +28,9 @@ export function internalFieldsOf(cli: Pick<CommandCliMetadata, 'fields'> | undef
 }
 
 /**
- * @description
  * The names of a command or extension that `commandExtensionViolation` compares. A part leaves
  * out what is not known yet, such as its fields before its schemas load, and the rules that need
  * it are skipped.
- *
- * @since 4.0.0
  */
 export interface CommandPartNames {
     /** The input fields, without the consents. */
@@ -53,7 +51,6 @@ export interface CommandPartNames {
 }
 
 /**
- * @description
  * The first rule that an extension of the command `key` breaks, as a phrase such as
  * `the consent "x" of "acme deploy" exists already`, or `undefined`. `command` holds the command
  * with the extensions before this one applied. The build checks an extension against an empty
@@ -61,8 +58,6 @@ export interface CommandPartNames {
  *
  * A consent is an input of its own, `--<consent> <digest>`, so a consent and an input field may not
  * share a name, in either direction.
- *
- * @since 4.0.0
  */
 export function commandExtensionViolation(
     key: string,
@@ -140,11 +135,8 @@ export function extensionDeclarations(declarationsModule: unknown): CommandExten
 }
 
 /**
- * @description
  * The loaded schemas of a command and its extensions, with the field names each declares, as
  * {@link commandExtensionParts} works them out.
- *
- * @since 4.0.0
  */
 export interface CommandExtensionParts {
     command: Awaited<ReturnType<CommandDefinition['schemas']>>;
@@ -159,12 +151,9 @@ export interface CommandExtensionParts {
 }
 
 /**
- * @description
  * The parts of a command and its extensions, from their loaded schemas. A host that loads the
  * schemas itself, to report an extension that fails to load, passes the parts to
  * {@link applyCommandExtensions}, so the schemas load once.
- *
- * @since 4.0.0
  */
 export function commandExtensionParts(
     command: CommandExtensionParts['command'],
@@ -210,12 +199,9 @@ function declaredNames(
 }
 
 /**
- * @description
  * The first rule that each extension of a command breaks, in order, checked against the command
  * with the extensions before it applied. Without `parts`, only the rules that need no schemas are
  * checked.
- *
- * @since 4.0.0
  */
 export function commandExtensionViolations(
     command: CommandDefinition,
@@ -255,16 +241,18 @@ export function commandExtensionViolations(
 }
 
 /**
- * @description
  * Options of {@link applyCommandExtensions}.
- *
- * @since 4.0.0
  */
 export interface ApplyCommandExtensionsOptions {
     /** The package of each extension, in the same order, for the errors that name it. */
     packages?: string[];
     /** The parts, when the host loaded the schemas already. See {@link commandExtensionParts}. */
     parts?: CommandExtensionParts;
+    /**
+     * The run module of each extension, in the same order, when the host imported them already, so
+     * that one that fails to import is left out before the command runs.
+     */
+    runs?: Array<Awaited<ReturnType<CommandExtensionDefinition['run']>>>;
 }
 
 /**
@@ -378,7 +366,7 @@ export function applyCommandExtensions(
             const loaded = await parts();
             const [{ run: commandRun }, ...extensionRuns] = await Promise.all([
                 command.run(),
-                ...extensions.map(extension => extension.run()),
+                ...(options.runs ?? extensions.map(extension => extension.run())),
             ]);
             return {
                 run: async (input: Record<string, unknown>, ctx: CommandContext) => {
@@ -413,12 +401,12 @@ export function applyCommandExtensions(
                                     `The input that ${labelOf(index)} gave next()`,
                                 );
                             }
-                            const scope = scopedContext(context, nextOptions?.signal);
-                            try {
-                                return await call(index + 1, nextInput, nextGiven, scope.ctx);
-                            } finally {
-                                scope.dispose();
-                            }
+                            return call(
+                                index + 1,
+                                nextInput,
+                                nextGiven,
+                                scopedContext(context, nextOptions?.signal),
+                            );
                         };
                         const result = await extensionRuns[index].run(extensionInput, context, next);
                         await checkOutput(result, index, loaded, labelOf(index));
@@ -509,60 +497,30 @@ async function checkOutput(
 }
 
 /**
- * The context for a call of `next`: the same as the outer one, except that its `ctx.signal` also
- * fires when `signal` does, and so do the processes `ctx.spawn` starts and a renewal in
- * `ctx.refreshCredential`. `dispose` stops listening for either.
+ * The context for a call of `next`: the outer one, except that its `ctx.signal` also fires when
+ * `signal` does, and so do the processes `ctx.spawn` starts and a renewal in
+ * `ctx.refreshCredential`. It inherits the rest from the outer context, so `ctx.credential` and
+ * `ctx.account` stay current when a renewal replaces them there.
  */
-function scopedContext(
-    ctx: CommandContext,
-    signal: AbortSignal | undefined,
-): { ctx: CommandContext; dispose: () => void } {
+function scopedContext(ctx: CommandContext, signal: AbortSignal | undefined): CommandContext {
     if (!signal) {
-        return { ctx, dispose: () => undefined };
+        return ctx;
     }
-    const controller = new AbortController();
-    const abort = () => controller.abort();
-    if (ctx.signal.aborted || signal.aborted) {
-        controller.abort();
-    }
-    ctx.signal.addEventListener('abort', abort, { once: true });
-    signal.addEventListener('abort', abort, { once: true });
-    const scoped = controller.signal;
+    const scoped = AbortSignal.any([ctx.signal, signal]);
+    const withScoped = (given: AbortSignal | undefined) =>
+        given ? AbortSignal.any([scoped, given]) : scoped;
     const refreshCredential = ctx.refreshCredential?.bind(ctx);
-    return {
-        ctx: {
-            ...ctx,
-            signal: scoped,
-            spawn: (command, args, options) =>
-                ctx.spawn(command, args, {
-                    ...options,
-                    signal: options?.signal ? eitherSignal(scoped, options.signal) : scoped,
-                }),
-            ...(refreshCredential
-                ? {
-                      refreshCredential: (failedToken, options) =>
-                          refreshCredential(failedToken, {
-                              signal: options?.signal ? eitherSignal(scoped, options.signal) : scoped,
-                          }),
-                  }
-                : {}),
-        },
-        dispose: () => {
-            ctx.signal.removeEventListener('abort', abort);
-            signal.removeEventListener('abort', abort);
-        },
-    };
-}
-
-/** A signal that fires when either does. */
-function eitherSignal(a: AbortSignal, b: AbortSignal): AbortSignal {
-    const controller = new AbortController();
-    const abort = () => controller.abort();
-    if (a.aborted || b.aborted) {
-        controller.abort();
-    } else {
-        a.addEventListener('abort', abort, { once: true });
-        b.addEventListener('abort', abort, { once: true });
-    }
-    return controller.signal;
+    const scopedCtx = Object.create(ctx) as CommandContext;
+    Object.assign(scopedCtx, {
+        signal: scoped,
+        spawn: (command: string, args: string[], options?: SpawnOptions) =>
+            ctx.spawn(command, args, { ...options, signal: withScoped(options?.signal) }),
+        ...(refreshCredential
+            ? {
+                  refreshCredential: (failedToken?: string, options?: { signal?: AbortSignal }) =>
+                      refreshCredential(failedToken, { signal: withScoped(options?.signal) }),
+              }
+            : {}),
+    });
+    return scopedCtx;
 }

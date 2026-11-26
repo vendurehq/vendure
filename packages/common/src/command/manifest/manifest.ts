@@ -203,8 +203,6 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
 
 /**
  * What {@link checkPartRules} reads of a command or an extension.
- *
- * @since 4.0.0
  */
 export interface CommandPartRulesInput {
     /** The input fields, without the consents. */
@@ -222,8 +220,6 @@ export interface CommandPartRulesInput {
  *
  * The build checks the fields of the schemas. A manifest lists a consent as an input property, so
  * a field of the same name no longer shows there.
- *
- * @since 4.0.0
  */
 export function checkPartRules(part: CommandPartRulesInput, label: string): void {
     for (const name of [...part.fields, ...part.consents]) {
@@ -303,10 +299,11 @@ function mergedDefs(
 /**
  * The names of a manifest command or extension that the rules of
  * {@link commandExtensionViolation} read.
- *
- * @since 4.0.0
  */
-export function manifestPartNames(part: ManifestCommand | ManifestExtension): CommandPartNames {
+export function manifestPartNames(
+    part: ManifestCommand | ManifestExtension,
+    kind: 'command' | 'extension',
+): CommandPartNames {
     const fields = Object.entries(part.cli.fields ?? {});
     return {
         inputFields: Object.keys((part.input.properties as object | undefined) ?? {}).filter(
@@ -315,8 +312,8 @@ export function manifestPartNames(part: ManifestCommand | ManifestExtension): Co
         outputFields: Object.keys((part.output?.properties as object | undefined) ?? {}),
         // A manifest command lists its internal fields by name. A build never writes an extension
         // field marked internal, so `markedInternal` is only for a manifest written by hand.
-        ...('internalFields' in part.cli
-            ? { internalFields: part.cli.internalFields ?? [] }
+        ...(kind === 'command'
+            ? { internalFields: 'internalFields' in part.cli ? (part.cli.internalFields ?? []) : [] }
             : { markedInternal: internalFieldsOf(part.cli) }),
         cliKeys: [...Object.keys(part.cli.flags ?? {}), ...fields.map(([field]) => field)],
         shortFlags: Object.values(part.cli.flags ?? {})
@@ -346,8 +343,8 @@ export function extendManifestCommand(
     }
     const violation = commandExtensionViolation(
         key,
-        manifestPartNames(command),
-        manifestPartNames(extension),
+        manifestPartNames(command, 'command'),
+        manifestPartNames(extension, 'extension'),
     );
     if (violation) {
         throw new Error(violation);

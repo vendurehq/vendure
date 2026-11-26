@@ -121,7 +121,7 @@ async function buildExtension(extension: CommandExtensionDefinition): Promise<Ma
     const violation = commandExtensionViolation(
         key,
         {},
-        { ...manifestPartNames(built), markedInternal: internalFieldsOf(extension.cli) },
+        { ...manifestPartNames(built, 'extension'), markedInternal: internalFieldsOf(extension.cli) },
     );
     if (violation) {
         throw new Error(`The extension of "${key}" breaks a rule: ${violation}`);
