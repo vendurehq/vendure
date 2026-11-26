@@ -79,7 +79,7 @@ export interface ManifestExtension {
     consents: Record<string, string>;
     errors: Array<{ code: string; exit: number }>;
     cli: {
-        flags?: CommandCliMetadata['flags'];
+        flags?: NonNullable<CommandCliMetadata['flags']>;
         fields?: Record<string, ManifestFieldMetadata>;
     };
 }
@@ -209,7 +209,7 @@ export interface CommandPartRulesInput {
     fields: string[];
     consents: string[];
     errorCodes: string[];
-    flags?: CommandCliMetadata['flags'];
+    flags?: NonNullable<CommandCliMetadata['flags']>;
 }
 
 /**
@@ -284,7 +284,7 @@ function mergedDefs(
     b: JsonSchema | undefined,
     key: string,
 ): Record<string, unknown> {
-    const defs: Record<string, unknown> = { ...((a?.$defs as Record<string, unknown> | undefined) ?? {}) };
+    const defs: Record<string, unknown> = { ...(a?.$defs as Record<string, unknown> | undefined) };
     for (const [name, definition] of Object.entries(
         (b?.$defs as Record<string, unknown> | undefined) ?? {},
     )) {

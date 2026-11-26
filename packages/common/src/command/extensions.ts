@@ -64,17 +64,35 @@ export function commandExtensionViolation(
     command: CommandPartNames,
     extension: CommandPartNames,
 ): string | undefined {
+    return (
+        ownViolation(extension) ??
+        inputViolation(key, command, extension) ??
+        takenViolation(key, command, extension)
+    );
+}
+
+/** A rule an extension breaks with its own names alone. */
+function ownViolation(extension: CommandPartNames): string | undefined {
     const [ownInternal] = extension.markedInternal ?? [];
     if (ownInternal !== undefined) {
         return `it marks its own field "${ownInternal}" internal`;
     }
-    if (extension.inputFields !== undefined) {
-        const own = new Set(extension.inputFields);
-        const foreign = [...(extension.cliKeys ?? [])].find(field => !own.has(field));
-        if (foreign !== undefined) {
-            return `its CLI metadata names "${foreign}", which is not one of its fields`;
-        }
+    if (extension.inputFields === undefined) {
+        return undefined;
     }
+    const own = new Set(extension.inputFields);
+    const foreign = [...(extension.cliKeys ?? [])].find(field => !own.has(field));
+    return foreign === undefined
+        ? undefined
+        : `its CLI metadata names "${foreign}", which is not one of its fields`;
+}
+
+/** A rule an extension's input fields or consents break against the command's inputs. */
+function inputViolation(
+    key: string,
+    command: CommandPartNames,
+    extension: CommandPartNames,
+): string | undefined {
     const internal = new Set(command.internalFields ?? []);
     const commandInput = new Set(command.inputFields ?? []);
     const commandConsents = new Set(command.consents ?? []);
@@ -89,11 +107,20 @@ export function commandExtensionViolation(
             return `the input field "${field}" of "${key}" is a consent of the command`;
         }
     }
-    for (const name of extension.consents ?? []) {
-        if (commandInput.has(name) || internal.has(name)) {
-            return `the consent "${name}" of "${key}" is an input field of the command`;
-        }
-    }
+    const consent = [...(extension.consents ?? [])].find(
+        name => commandInput.has(name) || internal.has(name),
+    );
+    return consent === undefined
+        ? undefined
+        : `the consent "${consent}" of "${key}" is an input field of the command`;
+}
+
+/** A name of an extension that the command has already: an output field, consent, error or short flag. */
+function takenViolation(
+    key: string,
+    command: CommandPartNames,
+    extension: CommandPartNames,
+): string | undefined {
     const taken = (mine: Iterable<string> | undefined, theirs: Iterable<string> | undefined) => {
         const names = new Set(theirs ?? []);
         return [...(mine ?? [])].find(name => names.has(name));
@@ -129,7 +156,7 @@ export function extensionDeclarations(declarationsModule: unknown): CommandExten
     const fallback = (mod.default ?? {}) as { extensions?: unknown };
     const extensions = mod.extensions ?? fallback.extensions ?? [];
     if (!Array.isArray(extensions)) {
-        throw new Error('The module exports "extensions" that is not a list');
+        throw new TypeError('The module exports "extensions" that is not a list');
     }
     return extensions as CommandExtensionDefinition[];
 }
