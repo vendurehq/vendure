@@ -1,137 +1,172 @@
 {
-  "manifestVersion": 1,
-  "package": "@vendure-e2e/defined-commands-cli-plugin",
-  "version": "1.0.0",
-  "commands": [
-    {
-      "path": [
-        "example",
-        "greet"
-      ],
-      "description": "Greet someone, to show a plugin command running on the host",
-      "keywords": [
-        "hello"
-      ],
-      "behavior": "readonly",
-      "requires": {},
-      "consents": {},
-      "input": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "audience": {
-            "description": "Who the command speaks to",
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "description": "Who to greet"
-          },
-          "shout": {
-            "default": false,
-            "description": "Greet in capitals",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "output": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "message"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "flags": {
-          "shout": {
-            "short": "-s"
-          },
-          "audience": {
-            "short": "-a"
-          }
-        },
-        "positional": [
-          "name"
-        ],
-        "fields": {}
-      },
-      "errors": [],
-      "examples": [
-        "vendure example greet Ada",
-        "vendure example greet Ada --shout --json"
-      ],
-      "expose": {
-        "mcp": true
-      },
-      "hasPlan": false
-    },
-    {
-      "path": [
-        "example",
-        "reset"
-      ],
-      "description": "Delete the example data file of the project",
-      "keywords": [],
-      "behavior": "destructive",
-      "requires": {},
-      "consents": {
-        "resetData": "Delete example-data.json and the data in it"
-      },
-      "input": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "audience": {
-            "description": "Who the command speaks to",
-            "type": "string"
-          },
-          "resetData": {
-            "type": "string",
-            "description": "The digest of the preview for this consent: Delete example-data.json and the data in it"
-          }
-        }
-      },
-      "output": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "properties": {
-          "deleted": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "deleted"
-        ],
-        "additionalProperties": false
-      },
-      "cli": {
-        "flags": {
-          "audience": {
-            "short": "-a"
-          }
-        },
-        "fields": {}
-      },
-      "errors": [
+    "manifestVersion": 1,
+    "package": "@vendure-e2e/defined-commands-cli-plugin",
+    "version": "1.0.0",
+    "commands": [
         {
-          "code": "example.nothing-to-reset",
-          "exit": 1
+            "path": ["example", "greet"],
+            "description": "Greet someone, to show a plugin command running on the host",
+            "keywords": ["hello"],
+            "behavior": "readonly",
+            "requires": {},
+            "consents": {},
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "audience": {
+                        "description": "Who the command speaks to",
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Who to greet"
+                    },
+                    "shout": {
+                        "default": false,
+                        "description": "Greet in capitals",
+                        "type": "boolean"
+                    }
+                },
+                "required": ["name"]
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": ["message"],
+                "additionalProperties": false
+            },
+            "cli": {
+                "flags": {
+                    "shout": {
+                        "short": "-s"
+                    },
+                    "audience": {
+                        "short": "-a"
+                    }
+                },
+                "positional": ["name"],
+                "fields": {}
+            },
+            "errors": [],
+            "examples": ["vendure example greet Ada", "vendure example greet Ada --shout --json"],
+            "expose": {
+                "mcp": true
+            },
+            "hasPlan": false
+        },
+        {
+            "path": ["example", "deploy"],
+            "description": "Deploy the example project, with a consent for production that run() asks for",
+            "keywords": [],
+            "behavior": "mutating",
+            "requires": {},
+            "consents": {
+                "deployToProduction": "Deploy to the production environment"
+            },
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "audience": {
+                        "description": "Who the command speaks to",
+                        "type": "string"
+                    },
+                    "environment": {
+                        "default": "staging",
+                        "description": "The environment to deploy to",
+                        "type": "string"
+                    },
+                    "deployToProduction": {
+                        "type": "string",
+                        "description": "The digest of the preview for this consent: Deploy to the production environment"
+                    }
+                }
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "deployed": {
+                        "type": "string"
+                    }
+                },
+                "required": ["deployed"],
+                "additionalProperties": false
+            },
+            "cli": {
+                "flags": {
+                    "audience": {
+                        "short": "-a"
+                    }
+                },
+                "fields": {}
+            },
+            "errors": [],
+            "examples": [],
+            "expose": {
+                "mcp": true
+            },
+            "hasPlan": false
+        },
+        {
+            "path": ["example", "reset"],
+            "description": "Delete the example data file of the project",
+            "keywords": [],
+            "behavior": "destructive",
+            "requires": {},
+            "consents": {
+                "resetData": "Delete example-data.json and the data in it"
+            },
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "audience": {
+                        "description": "Who the command speaks to",
+                        "type": "string"
+                    },
+                    "resetData": {
+                        "type": "string",
+                        "description": "The digest of the preview for this consent: Delete example-data.json and the data in it"
+                    }
+                }
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "deleted": {
+                        "type": "string"
+                    }
+                },
+                "required": ["deleted"],
+                "additionalProperties": false
+            },
+            "cli": {
+                "flags": {
+                    "audience": {
+                        "short": "-a"
+                    }
+                },
+                "fields": {}
+            },
+            "errors": [
+                {
+                    "code": "example.nothing-to-reset",
+                    "exit": 1
+                }
+            ],
+            "examples": [],
+            "expose": {
+                "mcp": true
+            },
+            "hasPlan": true
         }
-      ],
-      "examples": [],
-      "expose": {
-        "mcp": true
-      },
-      "hasPlan": true
-    }
-  ]
+    ]
 }

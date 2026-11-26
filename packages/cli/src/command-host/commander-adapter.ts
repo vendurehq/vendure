@@ -8,7 +8,7 @@ import { flagValueSyntax, MergedManifestCommand } from '@vendure/common/lib/comm
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
-import { requireCredential } from '../auth/credential.js';
+import { describeAccount, renewCredential, requireCredential } from '../auth/credential.js';
 import { pluginCommandsHeading, pluginFromCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
@@ -52,6 +52,69 @@ export function jsonRequested(argv: readonly string[]): boolean {
 function findChild(parent: Command, name: string): Command | undefined {
     return parent.commands.find(command => command.name() === name);
 }
+
+/**
+ * The commands this adapter registered from a manifest. {@link optionNotTaken} checks only these
+ * ancestors: a command with commands under it, such as `cloud deploy`, reads its options wherever
+ * they are on the line, and an option of it that the command that runs doesn't take would otherwise
+ * be ignored.
+ */
+const manifestCommands = new WeakSet<Command>();
+
+/**
+ * The first option given to a manifest command above `command` that `command` doesn't take, such as
+ * `--force` of `cloud deploy` in `cloud deploy --force plan`. Undefined when there is none.
+ */
+export function optionNotTaken(command: Command): string | undefined {
+    for (let ancestor = command.parent; ancestor; ancestor = ancestor.parent) {
+        if (!manifestCommands.has(ancestor)) {
+            continue;
+        }
+        for (const option of ancestor.options) {
+            const name = option.attributeName();
+            if (
+                ancestor.getOptionValueSource(name) !== 'cli' ||
+                command.options.some(candidate => candidate.attributeName() === name)
+            ) {
+                continue;
+            }
+            // `--x` and `--no-x` set the same value: name the one that set it.
+            const value: unknown = ancestor.getOptionValue(name);
+            const given =
+                ancestor.options.find(
+                    candidate => candidate.attributeName() === name && candidate.negate === (value === false),
+                ) ?? option;
+            return given.long ?? given.short ?? given.flags;
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Marks a manifest command as one with commands under it. Its action then sees a name that is none
+ * of them, and reports it as cli.usage instead of Commander's "too many arguments".
+ */
+function acceptsCommandsUnder(command: Command): void {
+    command.allowExcessArguments();
+}
+
+/** Ends the run with a host error: the envelope under `--json`, a coded line otherwise. */
+function stop(result: HostResult): never {
+    if (jsonRequested(process.argv)) {
+        fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+    } else {
+        const error = result.envelope.error;
+        process.stderr.write(`[${error?.code ?? 'cli.usage'}] ${error?.message ?? ''}\n`);
+    }
+    process.exit(result.exitCode);
+}
+
+/**
+ * The groups this adapter made only to hold manifest commands, such as `cloud deploy` before the
+ * command `cloud deploy` itself is registered. A manifest command at that path takes the group
+ * over, with its commands, instead of counting as a command a CLI plugin replaced.
+ */
+const manifestGroups = new WeakSet<Command>();
 
 /**
  * The command line with every option moved after the full command path, when the arguments name a
@@ -140,10 +203,14 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                manifestGroups.add(group);
                 reportOptionsBeforeSubcommand(group);
                 if (parent === program && manifestCommand.source !== CORE_SOURCE) {
                     group.helpGroup(pluginCommandsHeading(manifestCommand.source));
                 }
+            }
+            if (manifestCommands.has(group)) {
+                acceptsCommandsUnder(group);
             }
             parent = group;
         }
@@ -154,8 +221,9 @@ export function registerManifestCommands(
 function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, options: AdapterOptions) {
     const name = manifestCommand.path[manifestCommand.path.length - 1];
     const existing = findChild(parent, name);
+    const group = existing && manifestGroups.has(existing) ? existing : undefined;
     let replacedBy: string | undefined;
-    if (existing) {
+    if (existing && !group) {
         // A CLI plugin already replaced this command. The plugin's command wins for people and
         // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
         // coded error instead of the plugin's output.
@@ -168,7 +236,13 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const siblings = parent.commands as Command[];
         siblings.splice(siblings.indexOf(existing), 1);
     }
-    const command = parent.command(name).description(manifestCommand.description);
+    const command = (group ?? parent.command(name)).description(manifestCommand.description);
+    if (group) {
+        manifestGroups.delete(group);
+        // It has commands under it already.
+        acceptsCommandsUnder(command);
+    }
+    manifestCommands.add(command);
     if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
         command.helpGroup(pluginCommandsHeading(manifestCommand.source));
     }
@@ -215,16 +289,24 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const passThrough =
             error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
         if (jsonRequested(process.argv) && !passThrough) {
-            const result = errorResult(hostErrors.usage, {
-                message: error.message.replace(/^error: /, ''),
-            });
-            fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
-            process.exit(result.exitCode);
+            stop(errorResult(hostErrors.usage, { message: error.message.replace(/^error: /, '') }));
         }
         process.exit(error.exitCode);
     });
 
     command.action(async (...args: any[]) => {
+        const path = manifestCommand.path.join(' ');
+        if (command.commands.length > 0 && command.args.length > positional.length) {
+            stop(
+                errorResult(hostErrors.usage, {
+                    message: `"${command.args[positional.length]}" is not a command of "${path}"`,
+                }),
+            );
+        }
+        const notTaken = optionNotTaken(command);
+        if (notTaken) {
+            stop(errorResult(hostErrors.usage, { message: `${notTaken} is not an option of "${path}"` }));
+        }
         const opts = hostFlags(command);
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
@@ -427,6 +509,8 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             });
             return isIncompleteResult(result) ? { needs: result.needs } : { credential: result };
         },
+        refreshCredential: (_kind, credential, ctx) => renewCredential(credential, { signal: ctx.signal }),
+        describeAccount: (_kind, credential) => describeAccount(credential),
     };
 }
 
