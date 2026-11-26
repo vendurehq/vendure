@@ -119,6 +119,13 @@ export interface CliPluginScopeError {
  */
 export interface CliPluginLoadResult {
     loaded: ResolvedCliPlugin[];
+    /**
+     * The project whose `vendure.cli.plugins` were read, or undefined when no project scope was
+     * loaded, such as outside a project.
+     *
+     * @since 4.0.0
+     */
+    projectRoot?: string;
     /** The command manifests of the enabled packages that declare `vendure.commandManifest`. */
     manifests: ResolvedCommandManifest[];
     failures: CliPluginLoadFailure[];
@@ -588,6 +595,10 @@ function resolveEnabledPackages(
     const owner = owningScopes(scopes);
     const result: CliPluginLoadResult = { loaded: [], manifests: [], failures: [], scopeErrors: [] };
 
+    const projectScope = scopes.find(scope => scope.kind === 'project' && !scope.error);
+    if (projectScope) {
+        result.projectRoot = projectScope.origin;
+    }
     for (const scope of scopes) {
         if (scope.error) {
             result.scopeErrors.push({ scope: scope.kind, origin: scope.origin, reason: scope.error });

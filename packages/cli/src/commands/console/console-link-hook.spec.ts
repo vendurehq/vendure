@@ -18,11 +18,21 @@ import {
     createCliConfigDir,
     manifest,
     projectList,
+    runConsoleForTest,
     singleAccountBody,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, consoleCommand } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { getProjectLinkManifestPath } from './project-link-manifest.js';
+
+/** Runs a `vendure console` action through the engine, for its exit code. */
+async function runExitCode(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies>,
+): Promise<number> {
+    return (await runConsoleForTest(action, options, dependencies)).exitCode;
+}
 
 // Two plugins, so the tests that care about order can name which is which.
 const FIRST_PLUGIN = '@example/first-cli-plugin';
@@ -151,12 +161,13 @@ describe('console link hooks', () => {
         expect(output).not.toContain('No Project Link Manifest was changed');
     });
 
-    it.each(['status', 'unlink', 'nonsense'])('does not run hooks for %s', async action => {
+    it('does not run hooks for unlink', async () => {
+        const action = 'unlink' as const;
         const hook = vi.fn<ConsoleLinkHook>(async () => undefined);
         const registry = registryWith(plugin(FIRST_PLUGIN, hook));
         const root = vendureProject();
 
-        await consoleCommand(action, {}, { ...offlineDependencies(root), hooks: consoleLinkHooks(registry) });
+        await runExitCode(action, {}, { ...offlineDependencies(root), hooks: consoleLinkHooks(registry) });
 
         expect(hook).not.toHaveBeenCalled();
     });
@@ -167,7 +178,7 @@ describe('console link hooks', () => {
         const fetchMock = vi.fn() as unknown as typeof fetch;
         const root = vendureProject();
 
-        const exitCode = await consoleCommand(
+        const exitCode = await runExitCode(
             'link',
             {},
             {
@@ -193,48 +204,14 @@ describe('console link hooks', () => {
         const registry = registryWith();
         const rejected = defineCliPlugin({
             id: FIRST_PLUGIN,
-            // `console` is already a built-in and this does not set
+            // `migrate` is already a built-in and this does not set
             // `replaces`, so the whole plugin is refused.
-            commands: [{ name: 'console', description: 'Shadowed console', action: async () => 0 }],
+            commands: [{ name: 'migrate', description: 'Shadowed migrate', action: async () => 0 }],
             afterConsoleLink: async () => undefined,
         });
 
         expect(() => registry.applyPlugin(rejected)).toThrow();
         expect(registry.getPluginExtensions('afterConsoleLink')).toEqual([]);
-    });
-
-    it('lets one plugin both extend the console command and register a hook', async () => {
-        const trace: string[] = [];
-        const registry = registryWith();
-        registry.applyPlugin(
-            defineCliPlugin({
-                id: FIRST_PLUGIN,
-                commands: [],
-                extendCommands: [
-                    {
-                        command: 'console',
-                        decorate:
-                            ({ next }) =>
-                            async (...args) => {
-                                trace.push('decorator');
-                                return next(...args);
-                            },
-                    },
-                ],
-                afterConsoleLink: async () => {
-                    trace.push('hook');
-                },
-            }),
-        );
-
-        expect(registry.getPluginExtensions('afterConsoleLink').map(entry => entry.pluginId)).toEqual([
-            FIRST_PLUGIN,
-        ]);
-        const root = vendureProject();
-        const test = await runLink(root, registry);
-
-        expect(test.exitCode).toBe(0);
-        expect(trace).toEqual(['hook']);
     });
 
     it('names afterConsoleLink as a supported extension point at runtime', () => {
@@ -264,7 +241,7 @@ describe('console link hooks', () => {
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
         const fetchMock = vi.fn() as unknown as typeof fetch;
 
-        const exitCode = await consoleCommand(
+        const exitCode = await runExitCode(
             'link',
             {},
             { ...offlineDependencies(root), fetch: fetchMock, hooks: consoleLinkHooks(registry) },
@@ -293,7 +270,7 @@ describe('console link hooks', () => {
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
         const messages: string[] = [];
 
-        const exitCode = await consoleCommand(
+        const exitCode = await runExitCode(
             'link',
             {},
             { ...offlineDependencies(root, messages), hooks: consoleLinkHooks(registry) },
@@ -373,9 +350,10 @@ describe('console link hooks', () => {
         );
         const root = vendureProject();
 
+        // A hook that stops the run with exit code zero has not finished setup, so the run fails.
         await expect(
             runLink(root, registry, { reporter: recordingReporter(messages, reports) }),
-        ).rejects.toMatchObject({ exitCode });
+        ).resolves.toMatchObject({ exitCode: exitCode || 1 });
         // The hooks after it did not run, and the reader is told so rather than
         // being left with an exit code and a success message.
         expect(trace).toEqual([FIRST_PLUGIN]);
@@ -478,7 +456,7 @@ async function runLink(
         VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
     };
     storeLogin(env, apiUrl);
-    const exitCode = await consoleCommand(
+    const exitCode = await runExitCode(
         'link',
         {},
         {

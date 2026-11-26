@@ -117,6 +117,8 @@ describe('CLI plugin scopes', () => {
         }
         const result = resolveCliPlugins({ cwd: root, scopes: ['project'] });
         expect(result.loaded).toEqual([]);
+        // No project scope was loaded, so there is no project the plugins came from.
+        expect(result.projectRoot).toBeUndefined();
         expect(result.scopeErrors).toEqual([
             {
                 scope: 'project',
@@ -127,6 +129,7 @@ describe('CLI plugin scopes', () => {
         const selected = resolveCliPlugins({ cwd: root, project: 'server', scopes: ['project'] });
         expect(selected.scopeErrors).toEqual([]);
         expect(selected.loaded).toHaveLength(1);
+        expect(selected.projectRoot).toBe(fs.realpathSync(path.join(root, 'server')));
         expect(() => resolveCliPlugins({ cwd: root, project: 'missing', scopes: ['project'] })).toThrow(
             'Invalid --project directory',
         );
