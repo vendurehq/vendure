@@ -13,7 +13,7 @@ import {
     resolveConsoleProject,
 } from './console-context.js';
 import { consoleErrors } from './console.errors.js';
-import { runConsole } from './console.js';
+import { ConsoleRun, runConsole } from './console.js';
 import { link, LinkInput, LinkOutput } from './console.schema.js';
 
 /** The fields of `vendure console link`, which a caller can pass when it runs it again. */
@@ -67,52 +67,9 @@ export async function run(input: LinkInput, ctx: CommandContext) {
     if (changed) {
         return fail(consoleErrors.linkChanged, {});
     }
-    const output: LinkOutput | undefined =
-        manifest && result.data.link
-            ? {
-                  outcome: result.data.link.outcome,
-                  manifestPath: result.data.link.manifestPath,
-                  project: { id: manifest.project.id, name: manifest.project.name },
-                  account: { id: manifest.account.id, name: manifest.account.name },
-                  plugins: result.data.plugins,
-                  nextSteps: result.nextSteps,
-              }
-            : undefined;
+    const output = linkOutput(manifest, result);
     if (result.outcome === 'incomplete' && result.needs.length > 0) {
-        // A step for a person in Vendure Console is always a need: they take it in a browser, then
-        // run the link again. Any other need goes back only without a person, and only when the
-        // caller can answer it: an input of this command, or a need with a fix, which names the
-        // command that answers it. The rest, such as an input a plugin hook names that this command
-        // does not take, are next steps.
-        const answerable = result.needs.filter(
-            need => need.kind === 'person' || (!ctx.ask && isAnswerable(need)),
-        );
-        const steps = result.needs.filter(need => !answerable.includes(need));
-        for (const need of steps) {
-            ctx.notice('warning', describeNeed(need));
-        }
-        const withSteps = output && {
-            ...output,
-            nextSteps: [...output.nextSteps, ...steps.map(describeNeed)],
-        };
-        if (answerable.length > 0) {
-            // A step for a person says what the engine's message says, so that is not repeated.
-            const personStep = answerable.some(need => need.kind === 'person');
-            const notices = personStep ? errors.filter(message => message !== needMessage) : errors;
-            return reportErrors(ctx, notices, incomplete(answerable, withSteps));
-        }
-        if (withSteps) {
-            return reportErrors(ctx, errors, failed(withSteps));
-        }
-        // Nothing was linked. The reason the engine gave, such as a Project that is not one of the
-        // account's, comes first.
-        return reportErrors(
-            ctx,
-            errors,
-            fail(consoleErrors.linkFailed, {
-                message: [...errors.slice(-1), ...steps.map(describeNeed)].join(' '),
-            }),
-        );
+        return needsResult(ctx, result.needs, output, errors, needMessage);
     }
     if (exitCode === 0 && output) {
         return reportErrors(ctx, errors, output);
@@ -126,6 +83,64 @@ export async function run(input: LinkInput, ctx: CommandContext) {
         errors,
         fail(consoleErrors.linkFailed, {
             message: failure ?? errors.at(-1) ?? 'The Console link did not finish.',
+        }),
+    );
+}
+
+/** The output of a link that is on disk, written or repaired. */
+function linkOutput(manifest: ConsoleRun['manifest'], result: ConsoleRun['result']): LinkOutput | undefined {
+    if (!manifest || !result.data.link) {
+        return undefined;
+    }
+    return {
+        outcome: result.data.link.outcome,
+        manifestPath: result.data.link.manifestPath,
+        project: { id: manifest.project.id, name: manifest.project.name },
+        account: { id: manifest.account.id, name: manifest.account.name },
+        plugins: result.data.plugins,
+        nextSteps: result.nextSteps,
+    };
+}
+
+/**
+ * The result of a link that stopped with needs. A step for a person in Vendure Console is always a
+ * need: they take it in a browser, then run the link again. Any other need goes back only without a
+ * person, and only when the caller can answer it: an input of this command, or a need with a fix,
+ * which names the command that answers it. The rest, such as an input a plugin hook names that this
+ * command does not take, are next steps.
+ */
+function needsResult(
+    ctx: CommandContext,
+    needs: CommandNeed[],
+    output: LinkOutput | undefined,
+    errors: string[],
+    needMessage: string | undefined,
+) {
+    const answerable = needs.filter(need => need.kind === 'person' || (!ctx.ask && isAnswerable(need)));
+    const steps = needs.filter(need => !answerable.includes(need));
+    for (const need of steps) {
+        ctx.notice('warning', describeNeed(need));
+    }
+    const withSteps = output && {
+        ...output,
+        nextSteps: [...output.nextSteps, ...steps.map(describeNeed)],
+    };
+    if (answerable.length > 0) {
+        // A step for a person says what the engine's message says, so that is not repeated.
+        const personStep = answerable.some(need => need.kind === 'person');
+        const notices = personStep ? errors.filter(message => message !== needMessage) : errors;
+        return reportErrors(ctx, notices, incomplete(answerable, withSteps));
+    }
+    if (withSteps) {
+        return reportErrors(ctx, errors, failed(withSteps));
+    }
+    // Nothing was linked. The reason the engine gave, such as a Project that is not one of the
+    // account's, comes first.
+    return reportErrors(
+        ctx,
+        errors,
+        fail(consoleErrors.linkFailed, {
+            message: [...errors.slice(-1), ...steps.map(describeNeed)].join(' '),
         }),
     );
 }
