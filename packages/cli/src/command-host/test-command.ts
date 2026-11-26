@@ -118,12 +118,12 @@ export interface TestCommandOptions {
     account?: CommandAccount;
     /**
      * Answers `ctx.refreshCredential()` for a `requires.auth` command, such as a new credential
-     * after a test's server refused the first one. Without it, the credential cannot be renewed,
-     * as for `VENDURE_CLOUD_TOKEN`.
+     * after a test's server refused the first one. It receives the token that was refused. Without
+     * it, the credential cannot be renewed, as for `VENDURE_CLOUD_TOKEN`.
      *
      * @since 4.0.0
      */
-    refreshCredential?: () => Promise<CommandCredential | undefined>;
+    refreshCredential?: (failedToken: string) => Promise<CommandCredential | undefined>;
     /**
      * Writes a secret output to a file, and returns its path. Without it, a run that no person sees
      * refuses a command with secret outputs, as a host that cannot keep them safe does.
@@ -181,7 +181,8 @@ export function testCommand(
     const { credential, account, refreshCredential } = options;
     return runInTestHost(definition, input, options, {
         requireCredential: async () => (credential ? { credential } : { needs: [credentialNeed()] }),
-        refreshCredential: async () => (refreshCredential ? refreshCredential() : undefined),
+        refreshCredential: async (_kind, refused) =>
+            refreshCredential ? refreshCredential(refused.token) : undefined,
         describeAccount: () => account,
     });
 }

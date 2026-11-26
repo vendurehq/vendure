@@ -1224,8 +1224,10 @@ it is resolved, comes from `ctx.consent(name, preview)`. `name` must be one of t
 resolves to `true` when the caller already gave that consent for this preview, or when a person at the terminal
 agrees. Otherwise it resolves to the consent need: return it with `incomplete([need])`, and the caller runs the
 command again with the digest, as `--<consent> <digest>` or the input field. So the run must be safe to repeat up
-to that point. When a person declines, the run ends as cancelled. A consent that `plan()` can name before anything
-runs belongs in `plan()`.
+to that point. A consent a person agreed to holds when the CLI runs the command again to ask for more input. When a
+person declines, the run ends as cancelled (`cli.cancelled`), and the envelope keeps the output `run()` reported
+before it stopped. `ctx.consent` is for `run()` only: a consent that `plan()` can name before anything runs belongs
+in `plan()`'s `requiredConsents`.
 
 ```ts
 const answer = await ctx.consent('deployToProduction', { environment: target });
@@ -1303,26 +1305,27 @@ A command with `requires: { auth: 'cloud' }` receives the credential the CLI fou
 `ctx.credential`, `{ source: 'stored-login' | 'environment', token }`. The token is a secret: never
 print, log or return it.
 
-Such a command also receives `ctx.account`: `consoleUrl`, the Vendure Console app for links a person opens,
-`apiUrl`, the Console API that accepts the token, and for a stored login the `organization` it is scoped to. Both
-come from the environment the CLI started with. To call the Console API, send the token to `ctx.account.apiUrl`.
-When the API answers 401, call `ctx.refreshCredential()` once and retry with the credential it returns, which also
-replaces `ctx.credential`. It returns `undefined` when the credential cannot be renewed, such as a
-`VENDURE_CLOUD_TOKEN` or a login the authentication service refused: return `incomplete([credentialNeed()])`, with
-`credentialNeed` from `@vendure/cli`, so the caller signs in again.
+Such a command also receives `ctx.account`: `apiUrl`, the Console API that accepts the token, `consoleUrl`, the
+Vendure Console app for links a person opens, and for a stored login the `organization` it is scoped to. They come
+from the environment the CLI started with. `consoleUrl` is absent for a local Console API with no Console app
+beside it. To call the Console API, send the token to `ctx.account.apiUrl`. When the API answers 401, call
+`ctx.refreshCredential(token)` with the token that request sent, and retry once with the credential it returns,
+which also replaces `ctx.credential`. When several requests were refused, pass each one's token: a token another
+request already renewed gets the newer one back, without renewing again. It returns `undefined` when the credential
+cannot be renewed, such as a `VENDURE_CLOUD_TOKEN` or a login the authentication service refused: return
+`incomplete([credentialNeed()])`, with `credentialNeed` from `@vendure/cli`, so the caller signs in again.
 
 ```ts
-let response = await call(ctx.account!.apiUrl, ctx.credential!.token);
+const token = ctx.credential!.token;
+let response = await call(ctx.account!.apiUrl, token);
 if (response.status === 401) {
-    const renewed = await ctx.refreshCredential?.();
+    const renewed = await ctx.refreshCredential?.(token);
     if (!renewed) {
         return incomplete([credentialNeed()]);
     }
     response = await call(ctx.account!.apiUrl, renewed.token);
 }
 ```
-
-In a test with `testCommand`, pass `account` for `ctx.account`, and `refreshCredential` to answer a renewal.
 
 Test a command with `testCommand` from `@vendure/cli`, in your tests only. It runs the command through
 the CLI's command host, as `vendure <command> --json` would, and fails when the command writes to the
@@ -1341,7 +1344,8 @@ const result = await testCommand(sync, { dryRun: true });
 
 `commandDeclarations` applies the package's groups, as the CLI does. Pass `spawn` to answer the
 processes the command starts, `credential` for a command with `requires.auth`, and `prompter` to answer
-as a person would.
+as a person would. For a command with `requires.auth`, pass `account` for `ctx.account`, and
+`refreshCredential` to answer a renewal: it receives the token that was refused.
 
 A package can declare both these keys and a `cliPlugin`. It is enabled the same way, with
 `vendure plugins add`, and only an enabled package's commands are loaded ([Explicit

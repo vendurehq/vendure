@@ -45,6 +45,65 @@ describe('ctx.refreshCredential and ctx.account', () => {
         });
     });
 
+    it('renew from the token a request used, so a second refused request does not renew again', async () => {
+        // The stored login as refreshAccessToken() treats it: a refused token that is no longer the
+        // stored one gets the stored one back, without spending a refresh token.
+        let stored = 'A';
+        let spent = 0;
+        const refreshed: string[] = [];
+        const refreshCredential = async (failedToken: string) => {
+            refreshed.push(failedToken);
+            if (failedToken === stored) {
+                spent++;
+                stored = `${stored}'`;
+            }
+            return { source: 'stored-login' as const, token: stored };
+        };
+        const twoRequests = defineCommand({
+            path: ['acme', 'two-requests'],
+            description: 'Two requests',
+            behavior: 'readonly',
+            requires: { auth: 'cloud' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx: CommandContext) => {
+                    // Both requests were sent with A, and both were refused.
+                    const first = await ctx.refreshCredential?.('A');
+                    const second = await ctx.refreshCredential?.('A');
+                    return { first: first?.token, second: second?.token, current: ctx.credential?.token };
+                },
+            }),
+        });
+
+        const result = await testCommand(
+            twoRequests,
+            {},
+            { credential: { source: 'stored-login', token: 'A' }, refreshCredential },
+        );
+
+        expect(result.envelope.output).toEqual({ first: "A'", second: "A'", current: "A'" });
+        expect(refreshed).toEqual(['A', 'A']);
+        expect(spent).toBe(1);
+    });
+
+    it('renew from the current credential when no token is given', async () => {
+        const refreshed: string[] = [];
+
+        await testCommand(
+            call,
+            {},
+            {
+                credential: { source: 'stored-login', token: 'first' },
+                refreshCredential: async failedToken => {
+                    refreshed.push(failedToken);
+                    return { source: 'stored-login', token: 'second' };
+                },
+            },
+        );
+
+        expect(refreshed).toEqual(['first']);
+    });
+
     it('give nothing when the credential cannot be renewed, and keep the one there is', async () => {
         const result = await testCommand(call, {}, { credential: { source: 'environment', token: 'vcdk' } });
 

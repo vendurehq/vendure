@@ -429,10 +429,15 @@ export interface CommandContext {
      *
      * Otherwise it resolves to the {@link ConsentNeed}. Return it with `incomplete([need])`: the
      * caller gives the consent with its digest, as `--<consent> <digest>` or the input field
-     * `name`, and runs the command again. So the run must be safe to repeat up to this point. When
-     * a person declines, the run ends as cancelled, whatever `run()` returns.
+     * `name`, and runs the command again. So the run must be safe to repeat up to this point. A
+     * consent a person agreed to holds for a run the host repeats to ask for more input.
      *
-     * A consent `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
+     * When a person declines, the run ends as cancelled (`cli.cancelled`) whatever `run()` returns.
+     * The output it reports, the output of a `failed()` or a partial `incomplete()` or an ok output,
+     * is kept in the envelope, so a caller sees what happened before it stopped.
+     *
+     * It is for `run()` only, and throws when called before it, such as from `plan()`: a consent
+     * `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
      *
      * @since 4.0.0
      */
@@ -449,6 +454,11 @@ export interface CommandContext {
      * to the new one, which also replaces `ctx.credential`. Concurrent renewals of the same login
      * share one.
      *
+     * `failedToken` is the token the refused request sent, and defaults to the token of
+     * `ctx.credential` when it is called. A command with several requests in flight passes the
+     * token each one used: when another request already renewed it, the newer token comes back and
+     * no refresh token is spent again.
+     *
      * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
      * which only its owner can replace, or a login the authentication service refused to renew.
      * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
@@ -458,7 +468,7 @@ export interface CommandContext {
      *
      * @since 4.0.0
      */
-    refreshCredential?(): Promise<CommandCredential | undefined>;
+    refreshCredential?(failedToken?: string): Promise<CommandCredential | undefined>;
     /**
      * The Vendure Console the credential belongs to, and the organization of a stored login.
      * Present only for a command with `requires.auth`. A command that calls the Console API sends
@@ -477,8 +487,11 @@ export interface CommandContext {
  * @since 4.0.0
  */
 export interface CommandAccount {
-    /** The Vendure Console app, for links a person opens. */
-    consoleUrl: string;
+    /**
+     * The Vendure Console app, for links a person opens. Absent when the CLI does not know it: a
+     * loopback Console API with no trusted loopback `VENDURE_CONSOLE_APP_URL` beside it.
+     */
+    consoleUrl?: string;
     /** The Vendure Console API that accepts `ctx.credential.token`. */
     apiUrl: string;
     /**

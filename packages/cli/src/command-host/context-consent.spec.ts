@@ -28,14 +28,21 @@ const deploy = defineCommand({
 const preview = { environment: 'production' };
 const digest = consentDigest('deployToProduction', preview);
 
-function prompter(agrees: boolean): Prompter & { askConsent: ReturnType<typeof vi.fn> } {
-    return {
-        askInput: async () => undefined,
-        askConsent: vi.fn(async () => agrees),
+/** A person who agrees to every consent, or declines it. `askConsent` records what they were asked. */
+function person(agrees: boolean, answer?: string) {
+    const askConsent = vi.fn(async () => agrees);
+    const answers: Prompter = {
+        askInput: async () => answer,
+        askConsent,
         confirm: async () => undefined,
         select: async () => undefined,
         text: async () => undefined,
     };
+    return { prompter: answers, askConsent };
+}
+
+function prompter(agrees: boolean): Prompter {
+    return person(agrees).prompter;
 }
 
 describe('ctx.consent', () => {
@@ -66,14 +73,17 @@ describe('ctx.consent', () => {
         const result = await testCommand(deploy, { target: 'staging', deployToProduction: digest });
 
         expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs?.[0]).toMatchObject({
+            digest: consentDigest('deployToProduction', { environment: 'staging' }),
+        });
     });
 
     it('asks a person, and runs on when they agree', async () => {
-        const person = prompter(true);
+        const { prompter: agreeing, askConsent } = person(true);
 
-        const result = await testCommand(deploy, { target: 'production' }, { prompter: person });
+        const result = await testCommand(deploy, { target: 'production' }, { prompter: agreeing });
 
-        expect(person.askConsent).toHaveBeenCalledWith(expect.objectContaining({ digest }));
+        expect(askConsent).toHaveBeenCalledWith(expect.objectContaining({ digest }));
         expect(result.envelope).toMatchObject({ status: 'ok', output: { deployed: 'production' } });
     });
 
@@ -81,6 +91,91 @@ describe('ctx.consent', () => {
         const result = await testCommand(deploy, { target: 'production' }, { prompter: prompter(false) });
 
         expect(result.envelope).toMatchObject({ status: 'error', error: { code: 'cli.cancelled' } });
+        expect(result.envelope.output).toBeUndefined();
+    });
+
+    it('keeps what run() reported when a person declines', async () => {
+        const partial = defineCommand({
+            path: ['acme', 'partial'],
+            description: 'Partial',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    const answer = await ctx.consent('deployToProduction', preview);
+                    return answer === true
+                        ? { built: true, deployed: true }
+                        : incomplete([answer], { built: true });
+                },
+            }),
+        });
+
+        const result = await testCommand(partial, {}, { prompter: prompter(false) });
+
+        expect(result.envelope).toMatchObject({
+            status: 'error',
+            error: { code: 'cli.cancelled' },
+            output: { built: true },
+        });
+    });
+
+    it('does not ask again for a consent a person agreed to, when the host asks for more input', async () => {
+        let runs = 0;
+        const twoStep = defineCommand({
+            path: ['acme', 'two-step'],
+            description: 'Two step',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({ region: z.string().optional() }) }),
+            run: async () => ({
+                run: async (input: { region?: string }, ctx) => {
+                    runs++;
+                    const answer = await ctx.consent('deployToProduction', preview);
+                    if (answer !== true) {
+                        return incomplete([answer]);
+                    }
+                    if (!input.region) {
+                        return incomplete([{ kind: 'input', field: 'region', description: 'The region' }]);
+                    }
+                    return { region: input.region };
+                },
+            }),
+        });
+        const { prompter: agreeing, askConsent } = person(true, 'eu');
+
+        const result = await testCommand(twoStep, {}, { prompter: agreeing });
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { region: 'eu' } });
+        expect(runs).toBe(2);
+        expect(askConsent).toHaveBeenCalledTimes(1);
+    });
+
+    it('is for run() only: plan() and input choices name their consents in requiredConsents', async () => {
+        const early = defineCommand({
+            path: ['acme', 'early'],
+            description: 'Early',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({}) }),
+            plan: async () => ({
+                plan: async (_input: object, ctx) => {
+                    await ctx.consent('deployToProduction', preview);
+                    return { preview, requiredConsents: [] };
+                },
+            }),
+            run: async () => ({ run: async () => ({}) }),
+        });
+
+        const result = await testCommand(early, {});
+
+        expect(result.envelope).toMatchObject({
+            status: 'error',
+            error: {
+                code: 'cli.internal',
+                message: 'ctx.consent is for run(); plan() returns requiredConsents',
+            },
+        });
     });
 
     it('refuses a consent the command does not declare', async () => {
@@ -103,5 +198,37 @@ describe('ctx.consent', () => {
             status: 'error',
             error: { code: 'cli.internal', message: expect.stringContaining('"wipe"') },
         });
+    });
+
+    it('does not count a name every object inherits as declared, in run() or in plan()', async () => {
+        const inherited = (fromPlan: boolean) =>
+            defineCommand({
+                path: ['acme', 'inherited'],
+                description: 'Inherited',
+                behavior: 'mutating',
+                consents: { deployToProduction: 'Deploy to the production environment.' },
+                schemas: async () => ({ input: z.object({}) }),
+                ...(fromPlan
+                    ? {
+                          plan: async () => ({
+                              plan: async () => ({ preview, requiredConsents: ['toString'] }),
+                          }),
+                      }
+                    : {}),
+                run: async () => ({
+                    run: async (_input: object, ctx) => {
+                        const answer = await ctx.consent('toString', preview);
+                        return answer === true ? {} : incomplete([answer]);
+                    },
+                }),
+            });
+
+        for (const fromPlan of [false, true]) {
+            const result = await testCommand(inherited(fromPlan), {});
+            expect(result.envelope).toMatchObject({
+                status: 'error',
+                error: { code: 'cli.internal', message: expect.stringContaining('"toString"') },
+            });
+        }
     });
 });

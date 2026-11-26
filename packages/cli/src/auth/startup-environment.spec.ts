@@ -172,13 +172,25 @@ describe('a project .env that sets the Console app', () => {
         }
     });
 
+    it('names the Console app recorded at startup, when it pairs with the API', () => {
+        clearStartupRecord();
+        process.env.VENDURE_CONSOLE_APP_URL = 'http://127.0.0.1:3001';
+        recordStartupEnvironment();
+        process.env.VENDURE_CONSOLE_APP_URL = 'http://127.0.0.1:9999';
+
+        expect(describeAccount({ source: 'environment', token: 'vcdk' })).toEqual({
+            consoleUrl: 'http://127.0.0.1:3001',
+            apiUrl: 'http://127.0.0.1:3000',
+        });
+    });
+
     it('does not change the Console app the account names', () => {
         // What a repository's .env does once it is loaded.
         process.env.VENDURE_CONSOLE_APP_URL = 'http://127.0.0.1:9999';
 
         expect(authEnvironment().VENDURE_CONSOLE_APP_URL).toBeUndefined();
+        // With no Console app at startup, the account names none, rather than the one the .env set.
         expect(describeAccount({ source: 'environment', token: 'vcdk' })).toEqual({
-            consoleUrl: 'http://127.0.0.1:3000',
             apiUrl: 'http://127.0.0.1:3000',
         });
     });

@@ -230,7 +230,7 @@ export function describeAccount(credential: CommandCredential, options: AuthOpti
     const organization =
         credential.source === 'stored-login' ? readAuthStatus(options).organization : undefined;
     return {
-        consoleUrl,
+        ...(consoleUrl ? { consoleUrl } : {}),
         apiUrl,
         ...(organization
             ? {

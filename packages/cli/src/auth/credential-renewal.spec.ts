@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { clearStartupRecord } from '../shared/startup-record.js';
+
 import { NotLoggedInError, SessionRefreshUnavailableError, SessionRejectedError } from './auth-errors.js';
 import { readAuthStatus, refreshAccessToken } from './auth-session.js';
 import { describeAccount, renewCredential } from './credential.js';
-import { clearStartupRecord } from '../shared/startup-record.js';
-
 import { recordStartupEnvironment } from './startup-environment.js';
 
 vi.mock('./auth-session.js', async importOriginal => ({
@@ -26,6 +26,7 @@ describe('renewCredential', () => {
             source: 'stored-login',
             token: 'renewed',
         });
+        expect(refresh).toHaveBeenCalledTimes(1);
         expect(refresh).toHaveBeenCalledWith('refused', {});
     });
 
