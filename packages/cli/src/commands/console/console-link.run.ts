@@ -30,10 +30,11 @@ function isPersonStep(need: CommandNeed): boolean {
 
 /**
  * Links the project, or repairs the link on disk, then runs the `afterConsoleLink` hooks of the
- * CLI plugins. Without a person, a missing login or Project, and what a hook still needs, are
- * needs. With a person, they are notices: the host would ask the person for fields this command
- * does not take, and run the link and its hooks again. A hook that failed leaves the link it ran
- * after in place, and the result is failed.
+ * CLI plugins. A step only a person can take in Vendure Console, such as creating an account, is
+ * always a need. Any other need, such as a missing login or Project, or what a hook still needs, is
+ * a need only without a person, and only when a caller can answer it. Otherwise it is a notice: the
+ * host would ask a person for fields this command does not take, and run the link and its hooks
+ * again. A hook that failed leaves the link it ran after in place, and the result is failed.
  */
 export async function run(input: LinkInput, ctx: CommandContext) {
     const refused = projectIsDirectory(input, ctx.cwd);
@@ -82,13 +83,11 @@ export async function run(input: LinkInput, ctx: CommandContext) {
               }
             : undefined;
     if (result.outcome === 'incomplete' && result.needs.length > 0) {
-        // A need goes back to the caller only when the caller can answer it without a person: an
-        // input of this command, or a need with a fix, which names the command that answers it.
-        // Any other need, such as an input a plugin hook names that this command does not take,
-        // is a next step. So is every need when a person is there, who would otherwise be asked
-        // for fields this command drops, and see the link and its hooks run again.
-        // A step for a person, such as creating a Console account, is a need either way: a person
-        // takes it in a browser, then runs the link again.
+        // A step for a person in Vendure Console is always a need: they take it in a browser, then
+        // run the link again. Any other need goes back only without a person, and only when the
+        // caller can answer it: an input of this command, or a need with a fix, which names the
+        // command that answers it. The rest, such as an input a plugin hook names that this command
+        // does not take, are next steps.
         const answerable = result.needs.filter(
             need => isPersonStep(need) || (!ctx.ask && isAnswerable(need)),
         );
@@ -101,7 +100,10 @@ export async function run(input: LinkInput, ctx: CommandContext) {
             nextSteps: [...output.nextSteps, ...steps.map(describeNeed)],
         };
         if (answerable.length > 0) {
-            return reportErrors(ctx, errors, incomplete(answerable, withSteps));
+            // The step's own summary says what the engine's message says, so that is not repeated.
+            const urls = answerable.flatMap(need => (need.kind === 'person' ? [need.url] : []));
+            const notices = errors.filter(message => !urls.some(url => message.includes(url)));
+            return reportErrors(ctx, notices, incomplete(answerable, withSteps));
         }
         if (withSteps) {
             return reportErrors(ctx, errors, failed(withSteps));

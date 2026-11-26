@@ -877,13 +877,13 @@ describe('console command', () => {
                 {
                     kind: 'person',
                     code: 'console.no-active-project',
-                    action: 'Activate a Console project',
-                    summary: expect.stringContaining('It needs no plan or trial'),
+                    action: 'activate-project',
+                    summary: expect.stringContaining('which needs no plan or trial'),
                     url: `${LOCAL_CONSOLE.appOrigin}/projects?create=true`,
                 },
             ],
         });
-        expect(test.messages.join('\n')).toContain('Acme has no active project');
+        expect(test.messages.join('\n')).toContain('Acme has no active Project');
         expect(test.messages.join('\n')).toContain(LOCAL_CONSOLE.appOrigin);
         // PDEV-478: creating a Project is free, and the link still needs a real one.
         expect(test.messages.join('\n')).toContain('without a plan or trial');

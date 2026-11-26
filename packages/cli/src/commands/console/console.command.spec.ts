@@ -188,11 +188,36 @@ describe('vendure console link', () => {
             expect.objectContaining({
                 kind: 'person',
                 code: 'console.no-active-project',
-                action: 'Activate a Console project',
+                action: 'activate-project',
                 url: 'https://console.vendure.io/projects?create=true',
             }),
         ]);
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
+
+        // With a person at the terminal it is a need too, without asking them for anything here.
+        const askInput = vi.fn(async () => 'answer');
+        const withPerson = await testCommand(
+            consoleLinkDefinition,
+            { dir: root },
+            {
+                prompter: {
+                    askInput,
+                    askConsent: vi.fn(async () => true),
+                    confirm: vi.fn(async () => true),
+                    select: vi.fn(async () => undefined),
+                    text: vi.fn(async () => undefined),
+                },
+            },
+        );
+        expect(withPerson.exitCode).toBe(3);
+        expect(withPerson.envelope.needs).toEqual([
+            expect.objectContaining({ kind: 'person', code: 'console.no-active-project' }),
+        ]);
+        expect(askInput).not.toHaveBeenCalled();
+        // The step's summary says it, so the engine's message is not repeated as a notice.
+        expect(withPerson.envelope.notices.map(notice => notice.message).join('\n')).not.toContain(
+            'has no active Project',
+        );
     });
 
     it('replaces a link with another Project once the replaceLink consent is given', async () => {

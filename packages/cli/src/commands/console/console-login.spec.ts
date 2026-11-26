@@ -336,7 +336,7 @@ describe('console link command line login', () => {
                 {
                     kind: 'person',
                     code: 'console.no-account',
-                    action: 'Create a Vendure Console account',
+                    action: 'create-account',
                     url: 'https://console.vendure.io/onboarding',
                 },
             ],
