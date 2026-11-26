@@ -39,16 +39,49 @@ export interface ManifestCommand {
     secretOutputs?: string[];
 }
 
+/**
+ * An extension of a command, as the manifest describes it: the parts it adds to the command.
+ *
+ * @since 4.0.0
+ */
+export interface ManifestExtension {
+    /** The path of the command it extends. */
+    path: string[];
+    /** JSON Schema of the input fields it adds, with one string property for each consent. */
+    input: JsonSchema;
+    /** JSON Schema of the output fields it adds. */
+    output?: JsonSchema;
+    consents: Record<string, string>;
+    errors: Array<{ code: string; exit: number }>;
+    cli: {
+        flags?: CommandCliMetadata['flags'];
+        fields?: Record<string, { prompt?: boolean; secret?: boolean; hasChoices?: boolean }>;
+    };
+}
+
 export interface CommandManifest {
     manifestVersion: 1;
     package: string;
     version: string;
     commands: ManifestCommand[];
+    /**
+     * The extensions the package declares of other commands, its own or another package's.
+     *
+     * @since 4.0.0
+     */
+    extensions?: ManifestExtension[];
 }
 
 export interface MergedManifestCommand extends ManifestCommand {
     /** The package whose manifest declared the command. */
     source: string;
+    /**
+     * The packages that extend the command, in the order their extensions wrap it, outermost
+     * first, with the input fields each adds. The host loads their extensions to run it.
+     *
+     * @since 4.0.0
+     */
+    extendedBy?: Array<{ package: string; fields: string[] }>;
 }
 
 /**
@@ -161,6 +194,131 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
             }
             merged.push({ ...command, source: manifest.package });
         }
+        for (const extension of manifest.extensions ?? []) {
+            checkExtension(manifest.package, extension);
+        }
     }
     return merged;
+}
+
+/**
+ * The rules an extension follows on its own, before it is applied: field names the host does not
+ * reserve, error codes of the right shape, and short flags it uses once.
+ */
+function checkExtension(packageName: string, extension: ManifestExtension): void {
+    const label = `${packageName} declares an extension of "${extension.path.join(' ')}"`;
+    if (extension.path.length === 0) {
+        throw new Error(`${packageName} declares an extension with an empty path`);
+    }
+    for (const name of Object.keys((extension.input.properties as object | undefined) ?? {})) {
+        if (RESERVED_FIELD_NAMES.includes(name)) {
+            throw new Error(`${label} with the field "${name}", which the host reserves`);
+        }
+    }
+    const badCode = extension.errors.find(error => !isValidErrorCode(error.code));
+    if (badCode) {
+        throw new Error(`${label} with the error code "${badCode.code}", which is not <namespace>.<kebab-name>`);
+    }
+    const shorts = new Map<string, string>();
+    for (const [field, flag] of Object.entries(extension.cli.flags ?? {})) {
+        if (flag.short) {
+            const other = shorts.get(flag.short);
+            if (other) {
+                throw new Error(`${label} that uses the short flag ${flag.short} for both "${other}" and "${field}"`);
+            }
+            shorts.set(flag.short, field);
+        }
+    }
+}
+
+/**
+ * The command with an extension applied: the extension's input and output fields added to its
+ * JSON Schema, its consents, errors and CLI metadata merged in, and the package recorded in
+ * `extendedBy`, after the extensions applied before it. It throws, naming the part, for a field,
+ * short flag, consent or error code that the command or an earlier extension already has.
+ *
+ * @since 4.0.0
+ */
+export function extendManifestCommand(
+    command: MergedManifestCommand,
+    extension: ManifestExtension,
+    packageName: string,
+): MergedManifestCommand {
+    const key = command.path.join(' ');
+    if (extension.path.join(' ') !== key) {
+        throw new Error(`An extension of "${extension.path.join(' ')}" was applied to "${key}"`);
+    }
+    const inputProperties = (command.input.properties as Record<string, unknown> | undefined) ?? {};
+    const addedInput = (extension.input.properties as Record<string, unknown> | undefined) ?? {};
+    for (const field of Object.keys(addedInput)) {
+        if (field in inputProperties) {
+            throw new Error(`the input field "${field}" of "${key}" exists already`);
+        }
+    }
+    const outputProperties = (command.output?.properties as Record<string, unknown> | undefined) ?? {};
+    const addedOutput = (extension.output?.properties as Record<string, unknown> | undefined) ?? {};
+    for (const field of Object.keys(addedOutput)) {
+        if (field in outputProperties) {
+            throw new Error(`the output field "${field}" of "${key}" exists already`);
+        }
+    }
+    for (const consent of Object.keys(extension.consents)) {
+        if (consent in command.consents) {
+            throw new Error(`the consent "${consent}" of "${key}" exists already`);
+        }
+    }
+    for (const error of extension.errors) {
+        if (command.errors.some(other => other.code === error.code)) {
+            throw new Error(`the error "${error.code}" of "${key}" exists already`);
+        }
+    }
+    const takenShorts = new Set(
+        Object.values(command.cli.flags ?? {})
+            .map(flag => flag.short)
+            .filter((short): short is string => short !== undefined),
+    );
+    for (const flag of Object.values(extension.cli.flags ?? {})) {
+        if (flag.short && takenShorts.has(flag.short)) {
+            throw new Error(`the short flag ${flag.short} of "${key}" is taken already`);
+        }
+    }
+    const required = [
+        ...((command.input.required as string[] | undefined) ?? []),
+        ...((extension.input.required as string[] | undefined) ?? []),
+    ];
+    const outputRequired = [
+        ...((command.output?.required as string[] | undefined) ?? []),
+        ...((extension.output?.required as string[] | undefined) ?? []),
+    ];
+    return {
+        ...command,
+        input: {
+            ...command.input,
+            properties: { ...inputProperties, ...addedInput },
+            ...(required.length ? { required } : {}),
+        },
+        ...(command.output || extension.output
+            ? {
+                  output: {
+                      ...(command.output ?? { type: 'object' }),
+                      properties: { ...outputProperties, ...addedOutput },
+                      ...(outputRequired.length ? { required: outputRequired } : {}),
+                  },
+              }
+            : {}),
+        consents: { ...command.consents, ...extension.consents },
+        errors: [...command.errors, ...extension.errors],
+        cli: {
+            ...command.cli,
+            flags: { ...command.cli.flags, ...extension.cli.flags },
+            fields: { ...command.cli.fields, ...extension.cli.fields },
+        },
+        extendedBy: [
+            ...(command.extendedBy ?? []),
+            {
+                package: packageName,
+                fields: Object.keys(addedInput).filter(field => !(field in extension.consents)),
+            },
+        ],
+    };
 }

@@ -2,9 +2,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { applyCommandGroups } from '../groups';
-import { CommandDefinition, CommandGroupDefinition, JSON_SCHEMA_TARGET, JsonSchema } from '../types';
+import {
+    CommandCliMetadata,
+    CommandDefinition,
+    CommandExtensionDefinition,
+    CommandGroupDefinition,
+    JSON_SCHEMA_TARGET,
+    JsonSchema,
+} from '../types';
 
-import { CommandManifest, MANIFEST_FILE_NAME, ManifestCommand, mergeManifests } from './manifest';
+import {
+    CommandManifest,
+    MANIFEST_FILE_NAME,
+    ManifestCommand,
+    ManifestExtension,
+    mergeManifests,
+} from './manifest';
 
 /** @since 4.0.0 */
 export interface BuildCommandManifestOptions {
@@ -14,6 +27,75 @@ export interface BuildCommandManifestOptions {
      * the host applies them when it runs a command.
      */
     groups?: CommandGroupDefinition[];
+    /**
+     * Extensions of commands, the package's own or another package's. The declarations module
+     * exports the same list as `extensions`, so the host applies them when it runs the command.
+     *
+     * @since 4.0.0
+     */
+    extensions?: CommandExtensionDefinition[];
+}
+
+/**
+ * An input JSON Schema as the manifest lists it: without the fields marked `internal`, which only
+ * an extension sets, and with one string property for each consent.
+ */
+function manifestInput(
+    input: JsonSchema,
+    consents: Record<string, string>,
+    fields: CommandCliMetadata['fields'],
+): JsonSchema {
+    const internal = new Set(
+        Object.entries(fields ?? {})
+            .filter(([, meta]) => meta.internal)
+            .map(([field]) => field),
+    );
+    const properties = Object.fromEntries(
+        Object.entries((input.properties as Record<string, unknown> | undefined) ?? {}).filter(
+            ([field]) => !internal.has(field),
+        ),
+    );
+    for (const [consent, description] of Object.entries(consents)) {
+        properties[consent] = {
+            type: 'string',
+            description: `The digest of the preview for this consent: ${description}`,
+        };
+    }
+    const required = ((input.required as string[] | undefined) ?? []).filter(field => !internal.has(field));
+    const { required: _required, ...rest } = input;
+    return { ...rest, properties, ...(required.length ? { required } : {}) };
+}
+
+/** The CLI metadata of the fields, as the manifest lists it, without the internal ones. */
+function manifestFields(
+    fields: CommandCliMetadata['fields'],
+): Record<string, { prompt?: boolean; secret?: boolean; hasChoices?: boolean }> {
+    return Object.fromEntries(
+        Object.entries(fields ?? {})
+            .filter(([, meta]) => !meta.internal)
+            .map(([field, meta]) => [
+                field,
+                { prompt: meta.prompt, secret: meta.secret, hasChoices: meta.choices !== undefined },
+            ]),
+    );
+}
+
+async function buildExtension(extension: CommandExtensionDefinition): Promise<ManifestExtension> {
+    const schemas = await extension.schemas();
+    const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
+    return {
+        path: extension.path,
+        input: manifestInput(input, extension.consents ?? {}, extension.cli?.fields),
+        ...(schemas.output
+            ? { output: schemas.output['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }) }
+            : {}),
+        consents: extension.consents ?? {},
+        errors: (extension.errors ?? []).map(error => ({ code: error.code, exit: error.exit })),
+        cli: {
+            flags: extension.cli?.flags,
+            fields: manifestFields(extension.cli?.fields),
+        },
+    };
 }
 
 /**
@@ -31,13 +113,6 @@ export async function buildCommandManifest(
     for (const def of applyCommandGroups(definitions, options.groups)) {
         const schemas = await def.schemas();
         const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
-        const properties = { ...((input.properties as Record<string, unknown> | undefined) ?? {}) };
-        for (const [consent, description] of Object.entries(def.consents ?? {})) {
-            properties[consent] = {
-                type: 'string',
-                description: `The digest of the preview for this consent: ${description}`,
-            };
-        }
         commands.push({
             path: def.path,
             description: def.description,
@@ -45,7 +120,7 @@ export async function buildCommandManifest(
             behavior: def.behavior,
             requires: def.requires ?? {},
             consents: def.consents ?? {},
-            input: { ...input, properties },
+            input: manifestInput(input, def.consents ?? {}, def.cli?.fields),
             output: withSecretFileFields(
                 def.path,
                 schemas.output?.['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }),
@@ -55,12 +130,7 @@ export async function buildCommandManifest(
             cli: {
                 flags: def.cli?.flags,
                 positional: def.cli?.positional,
-                fields: Object.fromEntries(
-                    Object.entries(def.cli?.fields ?? {}).map(([field, meta]) => [
-                        field,
-                        { prompt: meta.prompt, secret: meta.secret, hasChoices: meta.choices !== undefined },
-                    ]),
-                ),
+                fields: manifestFields(def.cli?.fields),
             },
             errors: (def.errors ?? []).map(error => ({ code: error.code, exit: error.exit })),
             examples: def.examples ?? [],
@@ -69,7 +139,14 @@ export async function buildCommandManifest(
             ...(def.secretOutputs?.length ? { secretOutputs: [...def.secretOutputs] } : {}),
         });
     }
-    const manifest: CommandManifest = { manifestVersion: 1, package: packageName, version, commands };
+    const extensions = await Promise.all((options.extensions ?? []).map(buildExtension));
+    const manifest: CommandManifest = {
+        manifestVersion: 1,
+        package: packageName,
+        version,
+        commands,
+        ...(extensions.length ? { extensions } : {}),
+    };
     // Fails the build on a clash, so a bad declaration never ships.
     mergeManifests([manifest]);
     return manifest;
