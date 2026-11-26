@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-26T15:59:01+01:00"
+          "lastModified": "2026-11-26T20:55:54+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -260,7 +260,7 @@
           "title": "Migrations",
           "slug": "migrations",
           "file": "docs/guides/developer-guide/migrations/index.mdx",
-          "lastModified": "2026-11-25T06:29:48+01:00"
+          "lastModified": "2026-11-26T20:55:54+01:00"
         },
         {
           "title": "Plugins",
@@ -307,7 +307,7 @@
               "title": "Database Migration",
               "slug": "database-migration",
               "file": "docs/guides/developer-guide/migrating-from-v3/database-migration.mdx",
-              "lastModified": "2026-11-18T10:53:30+01:00"
+              "lastModified": "2026-11-26T20:55:54+01:00"
             },
             {
               "title": "Breaking API Changes",
@@ -544,7 +544,7 @@
           "title": "Extending Overview",
           "slug": "extending-overview",
           "file": "docs/guides/extending-the-dashboard/extending-overview/index.mdx",
-          "lastModified": "2026-11-17T11:14:10+01:00"
+          "lastModified": "2026-11-26T20:55:54+01:00"
         },
         {
           "title": "Public API & Imports",
@@ -809,7 +809,7 @@
           "title": "Getting Data into Production",
           "slug": "getting-data-into-production",
           "file": "docs/guides/deployment/getting-data-into-production.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-11-26T20:55:54+01:00"
         },
         {
           "title": "Server Resource Requirements",
