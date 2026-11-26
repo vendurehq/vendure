@@ -131,7 +131,7 @@ describe('executeWithCancellation', () => {
     }
 
     /** A command that stops 20 seconds after it is cancelled, as a service that winds down does. */
-    function slowToStop(behavior: 'service' | 'mutating') {
+    function slowToStop(behavior: 'service' | 'mutating', stopsAfter = 20_000) {
         return defineCommand({
             path: ['acme', 'serve'],
             description: 'Serve',
@@ -140,7 +140,7 @@ describe('executeWithCancellation', () => {
             run: async () => ({
                 run: async (_input: unknown, ctx: CommandContext) => {
                     await new Promise<void>(resolve =>
-                        ctx.signal.addEventListener('abort', () => setTimeout(resolve, 20_000)),
+                        ctx.signal.addEventListener('abort', () => setTimeout(resolve, stopsAfter)),
                     );
                     return { stopped: true };
                 },
@@ -148,7 +148,7 @@ describe('executeWithCancellation', () => {
         });
     }
 
-    it('waits for a service command to stop, however long it takes, so its finally blocks run', async () => {
+    it('gives a service command up to 30 seconds to stop, so its finally blocks run', async () => {
         vi.useFakeTimers();
         const controller = new AbortController();
         const running = executeWithCancellation(
@@ -178,6 +178,23 @@ describe('executeWithCancellation', () => {
 
         controller.abort();
         await vi.advanceTimersByTimeAsync(10_000);
+
+        expect((await running).envelope.error?.code).toBe('cli.cancelled');
+    });
+
+    it('gives up on a service command that has not stopped after 30 seconds', async () => {
+        vi.useFakeTimers();
+        const controller = new AbortController();
+        const running = executeWithCancellation(
+            slowToStop('service', 60_000),
+            {},
+            environment(controller),
+            controller,
+        );
+        await vi.advanceTimersByTimeAsync(0);
+
+        controller.abort();
+        await vi.advanceTimersByTimeAsync(30_000);
 
         expect((await running).envelope.error?.code).toBe('cli.cancelled');
     });

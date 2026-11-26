@@ -26,6 +26,14 @@ import { JsonOutput, redirectStdoutToStderr } from './stdio.js';
 /** How long a command has to stop after it is cancelled, before the host gives up on it. */
 const CANCEL_GRACE_MS = 10_000;
 
+/**
+ * How long a `service` command, such as `vendure dev`, has to stop after it is cancelled. It is
+ * longer than {@link CANCEL_GRACE_MS}, because an extension stops its own processes, such as a
+ * database, in a `finally` once the command has stopped. A process that never stops still can't
+ * hold a script forever.
+ */
+const SERVICE_CANCEL_GRACE_MS = 30_000;
+
 export interface AdapterOptions {
     /**
      * Loads the command declarations of the package that declared a command, its manifest's
@@ -517,9 +525,10 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
 /**
  * Runs a command, and gives up on it when it does not stop in time after it is cancelled.
  *
- * A `service` command, such as `vendure dev`, is never given up on: an extension that wraps it
- * stops its own processes once `next()` resolves, in its `finally`, and the host waits for that.
- * A second Ctrl+C still ends the process at once (see {@link createCancellation}).
+ * A `service` command, such as `vendure dev`, gets {@link SERVICE_CANCEL_GRACE_MS} instead of
+ * {@link CANCEL_GRACE_MS}: an extension that wraps it stops its own processes once `next()`
+ * resolves, in its `finally`, and the host waits for that. A second Ctrl+C still ends the process
+ * at once (see {@link createCancellation}).
  */
 export function executeWithCancellation(
     def: CommandDefinition,
@@ -527,14 +536,12 @@ export function executeWithCancellation(
     env: HostEnvironment,
     controller: AbortController,
 ): Promise<HostResult> {
-    if (def.behavior === 'service') {
-        return executeCommand(def, input, env);
-    }
+    const grace = def.behavior === 'service' ? SERVICE_CANCEL_GRACE_MS : CANCEL_GRACE_MS;
     return Promise.race([
         executeCommand(def, input, env),
         new Promise<HostResult>(resolve => {
             controller.signal.addEventListener('abort', () => {
-                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
+                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), grace).unref();
             });
         }),
     ]);
