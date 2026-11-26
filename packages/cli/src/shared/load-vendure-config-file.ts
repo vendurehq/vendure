@@ -104,7 +104,7 @@ async function resolveTsConfigWithExtends(tsConfigPath: string): Promise<any> {
 }
 
 /**
- * Deep merges two tsconfig objects, with special handling for compilerOptions.paths.
+ * Deep merges two tsconfig objects, as `extends` does.
  * The `current` config takes precedence over the `base` config.
  */
 function deepMergeConfigs(base: any, current: any): any {
@@ -117,13 +117,8 @@ function deepMergeConfigs(base: any, current: any): any {
                 ...current.compilerOptions,
             };
 
-            // Special handling for paths: merge both base and current paths
-            if (base.compilerOptions?.paths || current.compilerOptions?.paths) {
-                result.compilerOptions.paths = {
-                    ...base.compilerOptions?.paths,
-                    ...current.compilerOptions?.paths,
-                };
-            }
+            // As in TypeScript, the `paths` of the derived tsconfig replace those it inherits,
+            // which the spread above already does.
         } else if (key !== 'extends') {
             // Don't include 'extends' in the merged result
             result[key] = current[key];
@@ -195,13 +190,14 @@ export function isVendureConfig(value: unknown): value is VendureConfig {
     return typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
 }
 
-/**
- * Loads `.env`, and registers ts-node with the compiler options of the tsconfig nearest to the
- * config file, so the config can be required.
- */
 /** The tsconfig files whose path mappings, if any, are registered in this process. */
 const preparedTsConfigs = new Set<string>();
 
+/**
+ * Loads `.env`, and prepares the process to require a file under the tsconfig nearest to it. It
+ * registers ts-node with that tsconfig's compiler options, unless ts-node is already registered.
+ * It registers the tsconfig's path mappings once per tsconfig.
+ */
 async function prepareToRequireConfig(configFilePath: string, providedTsConfigPath?: string) {
     await import('dotenv/config');
     // Find the nearest tsconfig to the actual VendureConfig file.
@@ -225,10 +221,9 @@ async function prepareToRequireConfig(configFilePath: string, providedTsConfigPa
     // Each registration of tsconfig-paths wraps the module resolver once more, so a tsconfig is
     // read and its mappings registered only the first time it is seen.
     const tsConfigKey = path.resolve(tsConfigPath);
-    if (preparedTsConfigs.has(tsConfigKey) && isRunningInTsNode()) {
+    if (preparedTsConfigs.has(tsConfigKey)) {
         return;
     }
-    preparedTsConfigs.add(tsConfigKey);
 
     const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
     const compilerOptions = tsConfigJson.compilerOptions;
@@ -250,6 +245,8 @@ async function prepareToRequireConfig(configFilePath: string, providedTsConfigPa
             paths: compilerOptions.paths,
         });
     }
+    // Recorded last, so a tsconfig that failed to load is read again next time.
+    preparedTsConfigs.add(tsConfigKey);
 }
 
 function getErrorMessage(error: unknown): string {
