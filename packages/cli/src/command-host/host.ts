@@ -530,8 +530,8 @@ export async function executeCommand(
     env: HostEnvironment,
     attempt = 1,
 ): Promise<HostResult> {
-    const notices: CommandNotice[] = [...(env.notices ?? [])];
-    // A repeated run keeps them, but a person sees them once.
+    // A repeated run adds its notices to those of the first, which hold the host's.
+    const notices: CommandNotice[] = attempt === 1 ? [...(env.notices ?? [])] : [];
     if (attempt === 1) {
         for (const { level, message } of env.notices ?? []) {
             env.emit({ vendure: 'event', type: 'notice', level, message });

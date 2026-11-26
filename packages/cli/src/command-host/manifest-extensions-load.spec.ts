@@ -147,6 +147,47 @@ describe('extensions that clash with an internal field, or fail to load', () => 
         expect(sync).toEqual(before);
     });
 
+    it('runs a command without an extension whose run module throws on import, and lists it', async () => {
+        fs.writeFileSync(
+            path.join(dir, 'run-broken.mjs'),
+            `${SCHEMA}
+export const commands = [];
+export const extensions = [
+    {
+        path: ['explain'],
+        schemas: async () => ({ input: objectSchema({ shout: { type: 'boolean' } }) }),
+        run: async () => {
+            throw new Error('run module broken on import');
+        },
+    },
+];
+`,
+        );
+        const declared = await import(pathToFileURL(path.join(dir, 'run-broken.mjs')).href);
+        const core = await buildCommandManifest('@vendure/cli', '4.0.0', [explainDefinition]);
+        const merged = mergeProjectManifests(core, [
+            {
+                packageName: '@acme/run-broken',
+                manifest: await buildCommandManifest('@acme/run-broken', '1.0.0', [], {
+                    extensions: declared.extensions,
+                }),
+                definitionsPath: path.join(dir, 'run-broken.mjs'),
+                scope: 'project',
+            },
+        ]);
+
+        const loaded = await merged.loadCommand(commandAt(merged.commands, 'explain'));
+
+        expect(loaded.definition).toBe(explainDefinition);
+        expect(loaded.dropped).toEqual([
+            expect.objectContaining({
+                package: '@acme/run-broken',
+                reason: 'run module broken on import',
+                error: expect.objectContaining({ code: 'plugin.extension-failed' }),
+            }),
+        ]);
+    });
+
     it('runs a command of the CLI without an extension whose module throws on import, and lists it', async () => {
         fs.writeFileSync(path.join(dir, 'broken.mjs'), "throw new Error('broken on import');\n");
         const core = await buildCommandManifest('@vendure/cli', '4.0.0', [explainDefinition]);

@@ -5,11 +5,10 @@ import {
     CommandErrorBody,
     CommandErrorDefinition,
     CommandExtensionDefinition,
-    commandExtensionParts,
-    commandExtensionViolations,
     extensionDeclarations,
     JsonSchema,
 } from '@vendure/common/lib/command';
+import { commandExtensionParts, commandExtensionViolations } from '@vendure/common/lib/command/extensions';
 import {
     buildCommandManifest,
     CommandManifest,
@@ -360,11 +359,14 @@ export function mergeProjectManifests(
                 packageName: string;
                 extension: CommandExtensionDefinition;
                 schemas: Awaited<ReturnType<CommandExtensionDefinition['schemas']>>;
+                run: Awaited<ReturnType<CommandExtensionDefinition['run']>>;
             }> = [];
             for (const { package: packageName } of command.extendedBy) {
                 try {
                     const extension = await extensionOf(packageName, command);
-                    kept.push({ packageName, extension, schemas: await extension.schemas() });
+                    // Its run module too, so one that fails to import is left out like the rest.
+                    const [schemas, run] = await Promise.all([extension.schemas(), extension.run()]);
+                    kept.push({ packageName, extension, schemas, run });
                 } catch (e) {
                     const reason = e instanceof Error ? e.message : String(e);
                     const part = extensionParts.get(`${packageName}\n${key}`);
@@ -406,6 +408,7 @@ export function mergeProjectManifests(
                 definition: applyCommandExtensions(definition, extensions, {
                     packages: kept.map(entry => entry.packageName),
                     parts,
+                    runs: kept.map(entry => entry.run),
                 }),
             };
         },

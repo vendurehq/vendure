@@ -14,7 +14,7 @@ import { executeWithCancellation } from './commander-adapter.js';
 import { consentDigest } from './digest.js';
 import { executeCommand, HostEnvironment } from './host.js';
 import { createSpawn } from './spawn.js';
-import { testCommand } from './test-command.js';
+import { runInTestHost, testCommand } from './test-command.js';
 
 const received: Array<Record<string, unknown>> = [];
 
@@ -211,6 +211,82 @@ describe('an extended command with processes and notices', () => {
         // Stopped by the signal, long before the child's own 60 seconds.
         expect(exitCode).not.toBe(0);
         expect(Date.now() - started).toBeLessThan(10_000);
+    });
+
+    it('keeps ctx.credential and ctx.account current after a renewal inside a signalled next()', async () => {
+        const call = defineCommand({
+            path: ['acme', 'call'],
+            description: 'Call',
+            behavior: 'readonly',
+            requires: { auth: 'cloud' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx: CommandContext) => {
+                    await ctx.refreshCredential?.();
+                    return { token: ctx.credential?.token, apiUrl: ctx.account?.apiUrl };
+                },
+            }),
+        });
+        const signalled = defineCommandExtension({
+            path: ['acme', 'call'],
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input, _ctx, next) => next(undefined, { signal: new AbortController().signal }),
+            }),
+        });
+
+        const result = await runInTestHost(
+            applyCommandExtensions(call, [signalled]),
+            {},
+            { credential: { source: 'stored-login', token: 'first' } },
+            {
+                requireCredential: async () => ({ credential: { source: 'stored-login', token: 'first' } }),
+                refreshCredential: async () => ({ source: 'stored-login', token: 'second' }),
+                describeAccount: (_kind, credential) => ({ apiUrl: `https://${credential.token}.example` }),
+            },
+        );
+
+        expect(result.envelope.output).toEqual({ token: 'second', apiUrl: 'https://second.example' });
+    });
+
+    it("lists the host's notices once when a person is asked and the command runs again", async () => {
+        const named = defineCommand({
+            path: ['acme', 'named'],
+            description: 'Named',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({ name: z.string().optional() }) }),
+            run: async () => ({
+                run: async (input: { name?: string }) =>
+                    input.name
+                        ? { name: input.name }
+                        : incomplete([{ kind: 'input', field: 'name', description: 'A name' }]),
+            }),
+        });
+        const warning = {
+            level: 'warning' as const,
+            message: '[plugin.extension-failed] The extension failed to load',
+        };
+        const env: HostEnvironment = {
+            cwd: process.cwd(),
+            signal: new AbortController().signal,
+            mcp: false,
+            emit: () => undefined,
+            spawn: () => Promise.reject(new Error('no processes')),
+            findProjectRoot: () => undefined,
+            notices: [warning],
+            prompter: {
+                askInput: async () => 'storefront',
+                askConsent: async () => true,
+                confirm: async () => undefined,
+                select: async () => undefined,
+                text: async () => undefined,
+            },
+        };
+
+        const result = await executeCommand(named, {}, env);
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { name: 'storefront' } });
+        expect(result.envelope.notices).toEqual([warning]);
     });
 
     it("starts a run with the host's notices, in its envelope and as events", async () => {
