@@ -251,116 +251,116 @@ export const extensions = [
         expect(result.envelope.error?.code).toBe('devserver.project-not-found');
     });
 
-    /** A declarations module whose extension of `tools sync` adds `fields` and records its run. */
-    function wrapper(name: string, fields: string[], flags = false): string {
-        const properties = fields.map(field => `${field}: { type: 'string' }`).join(', ');
-        const cliFlags = fields.map(field => `${field}: { description: '${field}' }`).join(', ');
-        return `${SCHEMA}
-export const commands = [];
-export const extensions = [
-    {
-        path: ['tools', 'sync'],
-        schemas: async () => ({ input: objectSchema({ ${properties} }) }),
-        ${flags ? `cli: { flags: { ${cliFlags} } },` : ''}
-        run: async () => ({
-            run: async (_input, _ctx, next) => {
-                globalThis.__extensionOrder.push('${name} before');
-                const output = await next();
-                globalThis.__extensionOrder.push('${name} after');
-                return output;
-            },
-        }),
-    },
-];
-`;
-    }
-
-    /**
-     * Merges `@acme/tools` with `@acme/first` and `@acme/second`, enabled in that order, and loads
-     * `tools sync`. The manifests come from `manifests`; the host loads the declarations in
-     * `declarations`, which may have changed since, as after `watch`.
-     */
-    async function loadTwoExtensions(
-        manifests: { first: string; second: string },
-        declarations: { first: string; second: string } = manifests,
-    ) {
-        const order: string[] = [];
-        (globalThis as { __extensionOrder?: string[] }).__extensionOrder = order;
-        onTestFinished(() => {
-            delete (globalThis as { __extensionOrder?: string[] }).__extensionOrder;
-        });
-        const files: Record<string, string> = {
-            'tools.mjs': TOOLS,
-            'first-manifest.mjs': manifests.first,
-            'second-manifest.mjs': manifests.second,
-            'first.mjs': declarations.first,
-            'second.mjs': declarations.second,
-        };
-        for (const [file, source] of Object.entries(files)) {
-            fs.writeFileSync(path.join(dir, file), source);
-        }
-        const load = async (file: string) => import(pathToFileURL(path.join(dir, file)).href);
-        const toolsModule = await load('tools.mjs');
-        const tools = await buildCommandManifest('@acme/tools', '1.0.0', toolsModule.commands);
-        const enabled = await Promise.all(
-            (['first', 'second'] as const).map(async name => ({
-                packageName: `@acme/${name}`,
-                manifest: await buildCommandManifest(`@acme/${name}`, '1.0.0', [], {
-                    extensions: (await load(`${name}-manifest.mjs`)).extensions,
-                }),
-                definitionsPath: path.join(dir, `${name}.mjs`),
-                scope: 'project' as const,
-            })),
-        );
-        const merged = mergeProjectManifests(
-            { manifestVersion: 1, package: '@vendure/cli', version: '4.0.0', commands: [] },
-            [
-                {
-                    packageName: '@acme/tools',
-                    manifest: tools,
-                    definitionsPath: path.join(dir, 'tools.mjs'),
-                    scope: 'project',
+    describe('two packages extending one command', () => {
+        /** A declarations module whose extension of `tools sync` adds `fields` and records its run. */
+        function wrapper(name: string, fields: string[], flags = false): string {
+            const properties = fields.map(field => `${field}: { type: 'string' }`).join(', ');
+            const cliFlags = fields.map(field => `${field}: { description: '${field}' }`).join(', ');
+            return `${SCHEMA}
+    export const commands = [];
+    export const extensions = [
+        {
+            path: ['tools', 'sync'],
+            schemas: async () => ({ input: objectSchema({ ${properties} }) }),
+            ${flags ? `cli: { flags: { ${cliFlags} } },` : ''}
+            run: async () => ({
+                run: async (_input, _ctx, next) => {
+                    globalThis.__extensionOrder.push('${name} before');
+                    const output = await next();
+                    globalThis.__extensionOrder.push('${name} after');
+                    return output;
                 },
-                ...enabled,
-            ],
-        );
-        expect(merged.refused).toEqual([]);
-        return { order, loaded: await merged.loadCommand(commandAt(merged.commands, 'tools sync')) };
-    }
-
-    // Each extension wraps those enabled before it, as `extendCommands` wrappers do.
-    it('runs the extension of the last enabled package outermost', async () => {
-        const { order, loaded } = await loadTwoExtensions({
-            first: wrapper('first', ['alpha']),
-            second: wrapper('second', ['beta']),
-        });
-        if (!loaded.definition) {
-            throw new Error('The command did not load');
+            }),
+        },
+    ];
+    `;
         }
-        const result = await testCommand(loaded.definition, { target: 'x' }, { cwd: dir });
 
-        expect(result.envelope.error).toBeUndefined();
-        expect(order).toEqual(['second before', 'first before', 'first after', 'second after']);
-    });
+        /**
+         * Merges `@acme/tools` with `@acme/first` and `@acme/second`, enabled in that order, and loads
+         * `tools sync`. The manifests come from `manifests`; the host loads the declarations in
+         * `declarations`, which may have changed since, as after `watch`.
+         */
+        async function loadTwoExtensions(
+            manifests: { first: string; second: string },
+            declarations: { first: string; second: string } = manifests,
+        ) {
+            const order: string[] = [];
+            (globalThis as { __extensionOrder?: string[] }).__extensionOrder = order;
+            onTestFinished(() => {
+                delete (globalThis as { __extensionOrder?: string[] }).__extensionOrder;
+            });
+            const files: Record<string, string> = {
+                'tools.mjs': TOOLS,
+                'first-manifest.mjs': manifests.first,
+                'second-manifest.mjs': manifests.second,
+                'first.mjs': declarations.first,
+                'second.mjs': declarations.second,
+            };
+            for (const [file, source] of Object.entries(files)) {
+                fs.writeFileSync(path.join(dir, file), source);
+            }
+            const load = async (file: string) => import(pathToFileURL(path.join(dir, file)).href);
+            const toolsModule = await load('tools.mjs');
+            const tools = await buildCommandManifest('@acme/tools', '1.0.0', toolsModule.commands);
+            const enabled = await Promise.all(
+                (['first', 'second'] as const).map(async name => ({
+                    packageName: `@acme/${name}`,
+                    manifest: await buildCommandManifest(`@acme/${name}`, '1.0.0', [], {
+                        extensions: (await load(`${name}-manifest.mjs`)).extensions,
+                    }),
+                    definitionsPath: path.join(dir, `${name}.mjs`),
+                    scope: 'project' as const,
+                })),
+            );
+            const merged = mergeProjectManifests(
+                { manifestVersion: 1, package: '@vendure/cli', version: '4.0.0', commands: [] },
+                [
+                    {
+                        packageName: '@acme/tools',
+                        manifest: tools,
+                        definitionsPath: path.join(dir, 'tools.mjs'),
+                        scope: 'project',
+                    },
+                    ...enabled,
+                ],
+            );
+            expect(merged.refused).toEqual([]);
+            return { order, loaded: await merged.loadCommand(commandAt(merged.commands, 'tools sync')) };
+        }
 
-    it('checks each extension against its own fields when two declare CLI flags', async () => {
-        const { loaded } = await loadTwoExtensions({
-            first: wrapper('first', ['alpha'], true),
-            second: wrapper('second', ['beta'], true),
+        // Each extension wraps those enabled before it, as `extendCommands` wrappers do.
+        it('runs the extension of the last enabled package outermost', async () => {
+            const { order, loaded } = await loadTwoExtensions({
+                first: wrapper('first', ['alpha']),
+                second: wrapper('second', ['beta']),
+            });
+            if (!loaded.definition) {
+                throw new Error('The command did not load');
+            }
+            const result = await testCommand(loaded.definition, { target: 'x' }, { cwd: dir });
+
+            expect(result.envelope.error).toBeUndefined();
+            expect(order).toEqual(['second before', 'first before', 'first after', 'second after']);
         });
 
-        expect(loaded.mismatch).toBeUndefined();
-        expect(Object.keys(loaded.definition?.cli?.flags ?? {})).toEqual(
-            expect.arrayContaining(['alpha', 'beta']),
-        );
-    });
+        it('checks each extension against its own fields when two declare CLI flags', async () => {
+            const { loaded } = await loadTwoExtensions({
+                first: wrapper('first', ['alpha'], true),
+                second: wrapper('second', ['beta'], true),
+            });
 
-    it('names the later enabled package when the declarations now clash', async () => {
-        const { loaded } = await loadTwoExtensions(
-            { first: wrapper('first', ['alpha']), second: wrapper('second', ['beta']) },
-            { first: wrapper('first', ['alpha']), second: wrapper('second', ['beta', 'alpha']) },
-        );
+            expect(loaded.mismatch).toBeUndefined();
+            expect(Object.keys(loaded.definition?.cli?.flags ?? {}).sort()).toEqual(['alpha', 'beta']);
+        });
 
-        expect(loaded.mismatch).toMatch(/^the extension from @acme\/second breaks a rule: .*"alpha"/);
+        it('names the later enabled package when the declarations now clash', async () => {
+            const { loaded } = await loadTwoExtensions(
+                { first: wrapper('first', ['alpha']), second: wrapper('second', ['beta']) },
+                { first: wrapper('first', ['alpha']), second: wrapper('second', ['beta', 'alpha']) },
+            );
+
+            expect(loaded.mismatch).toMatch(/^the extension from @acme\/second breaks a rule: .*"alpha"/);
+        });
     });
 });

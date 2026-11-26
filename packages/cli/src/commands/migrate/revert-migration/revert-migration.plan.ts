@@ -1,5 +1,6 @@
 import { CommandContext, CommandPlan, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
 
+import { describeConfigSource } from '../../../shared/load-project-config.js';
 import { describeDatabase, lastAppliedMigration, openMigrationProject } from '../migration-project.js';
 
 import { databaseUnreadable } from './revert-migration.errors.js';
@@ -11,13 +12,13 @@ import { databaseUnreadable } from './revert-migration.errors.js';
  */
 export async function plan(
     input: { config?: string },
-    _ctx: CommandContext,
+    ctx: CommandContext,
 ): Promise<CommandPlan | ErrorResult> {
-    const project = await openMigrationProject(input.config);
+    const project = await openMigrationProject(input.config, ctx);
     if (isErrorResult(project)) {
         return project;
     }
-    const { config, configPath } = project;
+    const { config } = project;
     let migration: string | null;
     try {
         migration = await lastAppliedMigration(config);
@@ -28,7 +29,9 @@ export async function plan(
     return {
         preview: {
             action: 'Revert the last applied database migration',
-            config: configPath,
+            // The package whose resolver gave the config, or the absolute path of the config file. The
+            // consent digest covers the preview, so it binds the config's source and its database.
+            config: 'resolvedBy' in project ? describeConfigSource(project) : project.configPath,
             database: describeDatabase(config),
             lastAppliedMigration: migration,
         },

@@ -1,10 +1,13 @@
-import type { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig, VendureConfig } from '@vendure/core';
 import { satisfies } from 'semver';
 
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import {
+    describeConfigError,
+    describeConfigSource,
+    loadProjectConfig,
+} from '../../../shared/load-project-config.js';
 import { requireProjectCore } from '../../../shared/project-core.js';
-import { analyzeProject } from '../../../shared/shared-prompts.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { openAnalyzedProject } from '../../../shared/shared-prompts.js';
 import { CheckResult } from '../types.js';
 
 export interface ConfigCheckResult {
@@ -20,7 +23,7 @@ export interface ConfigCheckResult {
  * register entities, and run plugin configuration hooks. Then checks plugin
  * compatibility with the current Vendure version.
  */
-export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckResult> {
+export async function runConfigCheck(configFlag?: string, signal?: AbortSignal): Promise<ConfigCheckResult> {
     const details: string[] = [];
     let runtimeConfig: RuntimeVendureConfig | undefined;
     // Left undefined until the project's core has loaded, so a project that
@@ -37,27 +40,14 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
         core.resetConfig();
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
 
-        // 1. Analyze the project (finds tsconfig, creates ts-morph Project)
-        const { project, vendureTsConfig } = await analyzeProject({
-            cancelledMessage: '',
-            config: configFlag,
-        });
+        const config = await loadDoctorConfig(configFlag, details, signal);
 
-        // 2. Find the VendureConfig source file
-        const vendureConfigRef = new VendureConfigRef(project, configFlag);
-        const configPath = vendureConfigRef.getPathRelativeToProjectRoot();
-        details.push(`Config loaded from ${configPath}`);
-
-        // 3. Load the config at runtime (ts-node, path mappings, dotenv)
-        const config = await loadVendureConfigFile(vendureConfigRef, vendureTsConfig);
-
-        // 4. Run preBootstrapConfig() -- validates custom fields, registers entities,
-        //    runs plugin configuration() hooks, sets strategies
+        // Validates custom fields, registers entities, runs the plugins' configuration() hooks and
+        // sets the strategies.
         runtimeConfig = await core.preBootstrapConfig(config);
         details.push('Custom fields validated');
         details.push('Plugin configuration completed');
 
-        // 5. Check plugin compatibility
         const pluginResults = checkPlugins(runtimeConfig, core);
         details.push(...pluginResults.details);
 
@@ -82,8 +72,11 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
             vendureVersion,
         };
     } catch (e: any) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        details.push(`Error: ${errorMessage}`);
+        // Thrown, so the host reports the command as cancelled, not as a failed check.
+        if (signal?.aborted) {
+            throw e;
+        }
+        details.push(describeConfigError(e));
         return {
             check: {
                 name: 'Config',
@@ -97,6 +90,24 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }
+}
+
+/**
+ * The project's config, from the config resolver of an enabled package, or else from the
+ * `VendureConfig` in its source. Says in `details` where it came from.
+ */
+async function loadDoctorConfig(
+    configFlag: string | undefined,
+    details: string[],
+    signal?: AbortSignal,
+): Promise<VendureConfig> {
+    const loaded = await loadProjectConfig({
+        configFile: configFlag,
+        signal,
+        openProject: openAnalyzedProject({ cancelledMessage: '', config: configFlag }),
+    });
+    details.push(`Config loaded from ${describeConfigSource(loaded)}`);
+    return loaded.config;
 }
 
 interface PluginCheckResult {

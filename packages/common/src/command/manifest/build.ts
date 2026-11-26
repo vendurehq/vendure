@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { ConfigResolverDefinition, configResolverDeclaration } from '../config-resolver';
 import { commandExtensionViolation, internalFieldsOf } from '../extensions';
 import { applyCommandGroups } from '../groups';
 import {
@@ -38,6 +39,13 @@ export interface BuildCommandManifestOptions {
      * @since 4.0.0
      */
     extensions?: CommandExtensionDefinition[];
+    /**
+     * The package's config resolver. The declarations module exports the same resolver as
+     * `configResolver`, and the manifest records `hasConfigResolver: true`.
+     *
+     * @since 4.0.0
+     */
+    configResolver?: ConfigResolverDefinition;
 }
 
 /**
@@ -172,6 +180,10 @@ export async function buildCommandManifest(
             ...(def.secretOutputs?.length ? { secretOutputs: [...def.secretOutputs] } : {}),
         });
     }
+    if (options.configResolver) {
+        // Fails the build on a declaration with no resolve(), as the CLI would at run time.
+        configResolverDeclaration({ configResolver: options.configResolver });
+    }
     const extensions = await Promise.all((options.extensions ?? []).map(buildExtension));
     const manifest: CommandManifest = {
         manifestVersion: 1,
@@ -179,6 +191,7 @@ export async function buildCommandManifest(
         version,
         commands,
         ...(extensions.length ? { extensions } : {}),
+        ...(options.configResolver ? { hasConfigResolver: true as const } : {}),
     };
     // Fails the build on a clash, so a bad declaration never ships.
     mergeManifests([manifest]);

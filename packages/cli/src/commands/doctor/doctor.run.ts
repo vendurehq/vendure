@@ -8,6 +8,6 @@ import { DoctorOptions } from './types.js';
  * reported, and the exit code is not zero.
  */
 export async function run(input: DoctorOptions, ctx: CommandContext) {
-    const report = await collectDoctorReport(input, message => ctx.notice('warning', message));
+    const report = await collectDoctorReport(input, message => ctx.notice('warning', message), ctx.signal);
     return report.overallStatus === 'failed' ? failed(report) : report;
 }

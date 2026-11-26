@@ -10,7 +10,7 @@ export async function run(
     input: { name: string; outputDir?: string; fromEmpty?: boolean; config?: string },
     ctx: CommandContext,
 ) {
-    const project = await openMigrationProject(input.config);
+    const project = await openMigrationProject(input.config, ctx);
     if (isErrorResult(project)) {
         return project;
     }
