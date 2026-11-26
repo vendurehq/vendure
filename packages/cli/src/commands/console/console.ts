@@ -1229,8 +1229,8 @@ async function chooseProject(
             personNeed(
                 'console.no-active-project',
                 'Activate a Console project',
-                `Create or activate a Project of ${accountName} in Vendure Console, without a plan or trial if you like, then link again`,
-                endpoints.consoleUrl,
+                `Create a Project of ${accountName} in Vendure Console. It needs no plan or trial. Then link again`,
+                `${endpoints.consoleUrl}/projects?create=true`,
             ),
             [],
         );

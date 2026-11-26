@@ -189,7 +189,7 @@ describe('vendure console link', () => {
                 kind: 'person',
                 code: 'console.no-active-project',
                 action: 'Activate a Console project',
-                url: 'https://console.vendure.io',
+                url: 'https://console.vendure.io/projects?create=true',
             }),
         ]);
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
