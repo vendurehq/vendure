@@ -123,6 +123,13 @@ export interface InputNeed {
     /** The valid values, when the field declares them. */
     choices?: string[];
     fix?: CommandFix;
+    /**
+     * A stable name for this need, such as `console.no-account`, so that a caller can tell needs apart
+     * without matching their text.
+     *
+     * @since 4.0.0
+     */
+    code?: string;
 }
 
 /**
@@ -140,6 +147,13 @@ export interface ConsentNeed {
     /** What the consent answers, so the caller can show it to a person. */
     preview?: unknown;
     fix?: CommandFix;
+    /**
+     * A stable name for this need, such as `console.no-account`, so that a caller can tell needs apart
+     * without matching their text.
+     *
+     * @since 4.0.0
+     */
+    code?: string;
 }
 
 /**
@@ -152,6 +166,13 @@ export interface PersonNeed {
     summary: string;
     url: string;
     fix?: CommandFix;
+    /**
+     * A stable name for this need, such as `console.no-account`, so that a caller can tell needs apart
+     * without matching their text.
+     *
+     * @since 4.0.0
+     */
+    code?: string;
 }
 
 /**

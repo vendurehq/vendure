@@ -23,6 +23,11 @@ function isAnswerable(need: CommandNeed): boolean {
     return need.fix !== undefined || (need.kind === 'input' && LINK_FIELDS.has(need.field));
 }
 
+/** A step for a person in a browser, after which the link finishes when it runs again. */
+function isPersonStep(need: CommandNeed): boolean {
+    return need.kind === 'person';
+}
+
 /**
  * Links the project, or repairs the link on disk, then runs the `afterConsoleLink` hooks of the
  * CLI plugins. Without a person, a missing login or Project, and what a hook still needs, are
@@ -82,7 +87,11 @@ export async function run(input: LinkInput, ctx: CommandContext) {
         // Any other need, such as an input a plugin hook names that this command does not take,
         // is a next step. So is every need when a person is there, who would otherwise be asked
         // for fields this command drops, and see the link and its hooks run again.
-        const answerable = ctx.ask ? [] : result.needs.filter(isAnswerable);
+        // A step for a person, such as creating a Console account, is a need either way: a person
+        // takes it in a browser, then runs the link again.
+        const answerable = result.needs.filter(
+            need => isPersonStep(need) || (!ctx.ask && isAnswerable(need)),
+        );
         const steps = result.needs.filter(need => !answerable.includes(need));
         for (const need of steps) {
             ctx.notice('warning', describeNeed(need));

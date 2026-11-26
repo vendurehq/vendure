@@ -1,4 +1,4 @@
-import { InputNeed } from '@vendure/common/lib/command';
+import { CommandNeed, InputNeed, PersonNeed } from '@vendure/common/lib/command';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
@@ -188,7 +188,7 @@ class CommandInterruptedError extends Error {
 class ConsoleInputError extends ConsoleCliError {
     constructor(
         message: string,
-        readonly need: InputNeed,
+        readonly need: CommandNeed,
         readonly nextSteps: string[],
     ) {
         super(message);
@@ -197,6 +197,14 @@ class ConsoleInputError extends ConsoleCliError {
 }
 
 /** The `input` need for `--project`, the Console Project to link. */
+/**
+ * A step only a person can take in Vendure Console, in a browser. `vendure console link` finishes once
+ * they have, when it runs again.
+ */
+function personNeed(code: string, action: string, summary: string, url: string): PersonNeed {
+    return { kind: 'person', code, action, summary, url };
+}
+
 function consoleProjectNeed(projects?: Array<{ id: string; slug?: string }>): InputNeed {
     const choices = projects?.map(project => project.slug ?? project.id);
     return {
@@ -480,7 +488,7 @@ export function describeConsoleError(
     outputMode: ConsoleCommandDependencies['outputMode'],
     signal?: AbortSignal,
 ):
-    | { kind: 'need'; need: InputNeed; message: string; nextSteps: string[] }
+    | { kind: 'need'; need: CommandNeed; message: string; nextSteps: string[] }
     | { kind: 'interrupted' }
     | { kind: 'failed'; message: string } {
     if (signal?.aborted || error instanceof CommandInterruptedError) {
@@ -1107,9 +1115,16 @@ async function chooseOrganization(
     dependencies: ConsoleCommandDependencies,
 ): Promise<AuthOrganization> {
     if (organizations.length === 0) {
-        throw new ConsoleCliError(
-            `Your Vendure Console login has no Customer Account yet. Create one at ${endpoints.consoleUrl}/onboarding, ` +
-                'then run vendure console link again.',
+        const url = `${endpoints.consoleUrl}/onboarding`;
+        throw new ConsoleInputError(
+            `Your Vendure Console login has no Customer Account yet. Create one at ${url}, then run vendure console link again.`,
+            personNeed(
+                'console.no-account',
+                'Create a Vendure Console account',
+                'Create a Customer Account in Vendure Console, then link again',
+                url,
+            ),
+            [],
         );
     }
     if (organizations.length === 1) {
@@ -1208,9 +1223,16 @@ async function chooseProject(
     dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleProject> {
     if (projects.length === 0) {
-        throw new ConsoleCliError(
+        throw new ConsoleInputError(
             `${accountName} has no active project. Create one in Vendure Console at ${endpoints.consoleUrl}. ` +
                 'You can create it without a plan or trial. Then run vendure console link again.',
+            personNeed(
+                'console.no-active-project',
+                'Activate a Console project',
+                `Create or activate a Project of ${accountName} in Vendure Console, without a plan or trial if you like, then link again`,
+                endpoints.consoleUrl,
+            ),
+            [],
         );
     }
     if (requested) {

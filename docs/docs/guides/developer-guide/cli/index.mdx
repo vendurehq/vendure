@@ -798,8 +798,11 @@ with the output, and the reason as a notice. A link that fails is the coded erro
 reason as its message. An error a plugin hook throws can hold anything, so without a person at a terminal the CLI
 reports it only as `The <plugin> plugin failed after linking: Setup did not finish.`, as 3.x did under `--json`.
 Either way, a linked manifest stays. A project directory that cannot be found is the coded error
-`console.project-not-found`, with a fix for each Vendure project found nearby. The output contains no tokens or raw
-errors. Plugins must supply only safe setup metadata.
+`console.project-not-found`, with a fix for each Vendure project found nearby. A login with no Customer Account,
+and an account with no active project, are steps only a person can take in Vendure Console. Each is an `incomplete`
+result with a `person` need, with or without a person at a terminal. Each need has a `code`, `console.no-account` or
+`console.no-active-project`, and the `url` to open. Run `vendure console link` again once the step is done. The
+output contains no tokens or raw errors. Plugins must supply only safe setup metadata.
 
 ### Link status
 

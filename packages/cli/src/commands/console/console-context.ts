@@ -213,7 +213,10 @@ export async function previewForRun(
             }
             described.nextSteps.forEach(step => ctx.notice('info', step));
             return {
-                result: ctx.ask ? fail(failed, { message: described.message }) : incomplete([described.need]),
+                result:
+                    ctx.ask && described.need.kind !== 'person'
+                        ? fail(failed, { message: described.message })
+                        : incomplete([described.need]),
             };
         }
         return { result: fail(failed, { message: described.message }) };

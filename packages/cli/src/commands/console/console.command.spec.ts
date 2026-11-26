@@ -174,6 +174,26 @@ describe('vendure console link', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
+    it('returns a step for a person, with its code, when the account has no active project', async () => {
+        const root = project('none');
+        vi.stubEnv('VENDURE_DISABLE_TELEMETRY', '1');
+        storeLogin(process.env, 'https://api.vendure.io');
+        vi.stubGlobal('fetch', fakeConsole({ projects: projectList([]) }).fetch);
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs).toEqual([
+            expect.objectContaining({
+                kind: 'person',
+                code: 'console.no-active-project',
+                action: 'Activate a Console project',
+                url: 'https://console.vendure.io',
+            }),
+        ]);
+        expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
+    });
+
     it('replaces a link with another Project once the replaceLink consent is given', async () => {
         const root = project();
         vi.stubEnv('VENDURE_DISABLE_TELEMETRY', '1');
