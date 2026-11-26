@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { z } from 'zod';
 
 import { explainDefinition } from '../commands/explain/explain.command.js';
@@ -272,6 +272,9 @@ export const extensions = [
 `;
         const order: string[] = [];
         (globalThis as { __extensionOrder?: string[] }).__extensionOrder = order;
+        onTestFinished(() => {
+            delete (globalThis as { __extensionOrder?: string[] }).__extensionOrder;
+        });
         fs.writeFileSync(path.join(dir, 'tools.mjs'), TOOLS);
         fs.writeFileSync(path.join(dir, 'first.mjs'), wrapper('first', 'alpha'));
         fs.writeFileSync(path.join(dir, 'second.mjs'), wrapper('second', 'beta'));
@@ -315,6 +318,5 @@ export const extensions = [
 
         expect(result.envelope.error).toBeUndefined();
         expect(order).toEqual(['second before', 'first before', 'first after', 'second after']);
-        delete (globalThis as { __extensionOrder?: string[] }).__extensionOrder;
     });
 });

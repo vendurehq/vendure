@@ -326,9 +326,9 @@ export function manifestPartNames(
 
 /**
  * The command with an extension applied: the extension's input and output fields added to its
- * JSON Schema, its consents, errors and CLI metadata merged in, and the package recorded in
- * `extendedBy`, ahead of the extensions applied before it, because it wraps them. It throws for an extension that breaks a
- * rule of {@link commandExtensionViolation}, or defines a `$defs` entry differently.
+ * JSON Schema, its consents, errors and CLI metadata merged in, and the package recorded first in
+ * `extendedBy`, because it wraps the extensions applied before it. It throws for an extension that
+ * breaks a rule of {@link commandExtensionViolation}, or defines a `$defs` entry differently.
  *
  * @since 4.0.0
  */
@@ -389,7 +389,6 @@ export function extendManifestCommand(
             flags: { ...command.cli.flags, ...extension.cli.flags },
             fields: { ...command.cli.fields, ...extension.cli.fields },
         },
-        // Each extension wraps the ones applied before it, so it goes first: outermost.
         extendedBy: [
             {
                 package: packageName,

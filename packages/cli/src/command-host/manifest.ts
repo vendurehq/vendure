@@ -394,13 +394,19 @@ export function mergeProjectManifests(
                 kept.map(entry => entry.schemas),
             );
             // The merge checked the manifest. An old manifest, such as one `watch` left in place,
-            // can miss what the declarations say now, so the run is refused instead.
-            const violations = commandExtensionViolations(definition, extensions, parts);
+            // can miss what the declarations say now, so the run is refused instead. It checks them in
+            // the order their packages were enabled, as the merge does, so it names the same package.
+            const enabled = [...kept].reverse();
+            const violations = commandExtensionViolations(
+                definition,
+                enabled.map(entry => entry.extension),
+                { ...parts, extensions: [...parts.extensions].reverse() },
+            );
             const index = violations.findIndex(violation => violation !== undefined);
             if (index !== -1) {
                 return {
                     ...result,
-                    mismatch: `the extension from ${kept[index].packageName} breaks a rule: ${violations[index]}`,
+                    mismatch: `the extension from ${enabled[index].packageName} breaks a rule: ${violations[index]}`,
                 };
             }
             return {
