@@ -1,7 +1,13 @@
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AffixedInput } from './affixed-input.js';
-import { formatMoneyInputValue, getMoneyInputStep } from './money-input-utils.js';
+import {
+    formatMoneyInputValue,
+    getDecimalSeparator,
+    getMoneyInputStep,
+    isMoneyInputText,
+    parseMoneyInputValue,
+} from './money-input-utils.js';
 
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isFieldDisabled } from '@/vdb/framework/form-engine/utils.js';
@@ -30,15 +36,18 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
     const { toMinorUnits } = useLocalFormat();
     const precision = useServerConfig()?.moneyStrategyPrecision ?? 2;
     const step = getMoneyInputStep(precision);
-    const [displayValue, setDisplayValue] = useState(formatMoneyInputValue(value, precision));
+    const decimalSeparator = useMemo(() => getDecimalSeparator(bcp47Tag), [bcp47Tag]);
+    const [displayValue, setDisplayValue] = useState(
+        formatMoneyInputValue(value, precision, decimalSeparator),
+    );
     const isFocused = useRef(false);
 
     // Update display value when prop value changes externally (but not while the user is typing)
     useEffect(() => {
         if (!isFocused.current) {
-            setDisplayValue(formatMoneyInputValue(value, precision));
+            setDisplayValue(formatMoneyInputValue(value, precision, decimalSeparator));
         }
-    }, [value, precision]);
+    }, [value, precision, decimalSeparator]);
 
     // Determine if the currency symbol should be a prefix based on locale
     const shouldPrefix = useMemo(() => {
@@ -87,12 +96,13 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
                     onChange(0);
                     return;
                 }
-                // Only allow numbers and one decimal point
-                if (!/^[0-9.]*$/.test(inputValue)) {
+                // Only allow numbers and one decimal separator: a dot, or the locale's own
+                // separator, so that "1,50" is not read as 150 in a comma decimal locale.
+                if (!isMoneyInputText(inputValue, decimalSeparator)) {
                     return;
                 }
                 setDisplayValue(inputValue);
-                const parsed = parseFloat(inputValue);
+                const parsed = parseMoneyInputValue(inputValue, decimalSeparator);
                 if (!isNaN(parsed)) {
                     onChange(toMinorUnits(parsed));
                 }
@@ -100,12 +110,12 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
             onKeyDown={e => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
-                    const currentValue = parseFloat(displayValue) || 0;
+                    const currentValue = parseMoneyInputValue(displayValue, decimalSeparator) || 0;
                     const newValue = currentValue + (e.key === 'ArrowUp' ? step : -step);
                     if (newValue >= 0) {
                         const newMinorUnits = toMinorUnits(newValue);
                         onChange(newMinorUnits);
-                        setDisplayValue(formatMoneyInputValue(newMinorUnits, precision));
+                        setDisplayValue(formatMoneyInputValue(newMinorUnits, precision, decimalSeparator));
                     }
                 }
             }}
@@ -114,14 +124,14 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
                 const inputValue = displayValue;
                 if (inputValue === '') {
                     onChange(0);
-                    setDisplayValue(formatMoneyInputValue(0, precision));
+                    setDisplayValue(formatMoneyInputValue(0, precision, decimalSeparator));
                     return;
                 }
-                const newValue = parseFloat(inputValue);
+                const newValue = parseMoneyInputValue(inputValue, decimalSeparator);
                 if (!isNaN(newValue)) {
                     const newMinorUnits = toMinorUnits(newValue);
                     onChange(newMinorUnits);
-                    setDisplayValue(formatMoneyInputValue(newMinorUnits, precision));
+                    setDisplayValue(formatMoneyInputValue(newMinorUnits, precision, decimalSeparator));
                 }
             }}
             step={step}
