@@ -370,7 +370,7 @@
           "title": "Custom Strategies in Plugins",
           "slug": "custom-strategies-in-plugins",
           "file": "docs/guides/developer-guide/custom-strategies-in-plugins/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-26T10:58:49+01:00"
         },
         {
           "title": "Channel Aware",
@@ -883,7 +883,7 @@
           "title": "Assistant inside Vendure",
           "slug": "assistant-inside-vendure",
           "file": "docs/guides/mcp-server/assistant-inside-vendure/index.mdx",
-          "lastModified": "2026-11-22T20:20:28+01:00"
+          "lastModified": "2026-11-26T10:58:49+01:00"
         },
         {
           "title": "Assistant outside Vendure",
