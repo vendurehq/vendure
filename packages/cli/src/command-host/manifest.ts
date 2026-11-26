@@ -282,8 +282,9 @@ function startsWith(commandPath: string[], prefix: string[]): boolean {
  *
  * A package may also declare a command and commands under it, such as `acme deploy` and
  * `acme deploy plan`, with two conditions:
- * - The command above takes no positional fields. A positional value could otherwise be taken for
- *   the name of a command under it.
+ * - The command above takes no positional fields, and no flag that takes an optional value or a
+ *   list, such as `--wait [value]` or `--tags <tag...>`. A value of either could otherwise be the
+ *   name of a command under it: `acme deploy --wait plan` would run `acme deploy`.
  * - A flag they share is declared the same way on both. Commander reads it with the declaration of
  *   the command above.
  *
@@ -313,7 +314,7 @@ function findClash(manifest: CommandManifest, taken: TakenCommandPath[]): Refuse
                 continue;
             }
             const child = own.path.join(' ');
-            if (command.cli.positional?.length) {
+            if (command.cli.positional?.length || takesValueBeforeName(command)) {
                 return plugin =>
                     errorBody(hostErrors.pluginParentPositional, { plugin, command: name, child });
             }
@@ -329,6 +330,15 @@ function findClash(manifest: CommandManifest, taken: TakenCommandPath[]): Refuse
 
 /** A refusal of a package's commands, as the error body for the package of the given name. */
 type RefusedClash = (plugin: string) => CommandErrorBody;
+
+/** Whether a flag of the command takes an optional value or a list, which can take the next word. */
+function takesValueBeforeName(command: ManifestCommand): boolean {
+    const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
+    return Object.values(properties).some(schema => {
+        const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+        return takesOptionalValue(schema) || type === 'array';
+    });
+}
 
 /** How a command declares each of its flags, by flag: the long flags and the short ones. */
 function flagDeclarations(command: ManifestCommand): Map<string, string> {

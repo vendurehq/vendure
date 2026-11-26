@@ -64,8 +64,8 @@ export const hostErrors = {
         code: 'plugin.parent-positional',
         exit: 1,
         message: ({ plugin, command, child }) =>
-            `${plugin} declares the command "${command}" with positional fields, and the command "${child}" under it. ` +
-            'A command with commands under it takes no positional fields, so that a value is never taken for a command name. ' +
+            `${plugin} declares the command "${command}" with positional fields, or flags that take an optional value or a list, and the command "${child}" under it. ` +
+            'A command with commands under it takes neither, so that a value is never taken for a command name. ' +
             `None of the commands ${plugin} declares with defineCommand are loaded.`,
     }),
     pluginParentFlagConflict: defineError<{ plugin: string; command: string; child: string; flag: string }>({

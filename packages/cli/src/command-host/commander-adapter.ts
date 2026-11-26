@@ -54,11 +54,10 @@ function findChild(parent: Command, name: string): Command | undefined {
 }
 
 /**
- * The commands this adapter registered from a manifest. A command with commands under it, such as
- * `cloud deploy` with `cloud deploy plan`, reads the options it knows wherever they are on the line,
- * before or after the subcommand. The command that runs reads them from there (see
- * {@link ancestorOptionValue}). An option that only the command above takes would be ignored, so
- * the run stops instead (see {@link optionNotTaken}).
+ * The commands this adapter registered from a manifest. {@link optionNotTaken} checks only these
+ * ancestors: a command with commands under it, such as `cloud deploy`, reads its options wherever
+ * they are on the line, and an option of it that the command that runs doesn't take would otherwise
+ * be ignored.
  */
 const manifestCommands = new WeakSet<Command>();
 
@@ -85,7 +84,8 @@ export function optionNotTaken(command: Command): string | undefined {
                 ancestor.options.find(
                     candidate => candidate.attributeName() === name && candidate.negate === (value === false),
                 ) ?? option;
-            return given.long ?? given.flags;
+            // As declared, such as `-f, --force`, without the value it takes.
+            return given.flags.replace(/\s*[<[].*$/, '');
         }
     }
     return undefined;
@@ -131,7 +131,8 @@ export function registerManifestCommands(
                 }
             }
             if (manifestCommands.has(group)) {
-                // A command with commands under it reports a name that is none of them itself.
+                // Let the action see a name that is none of the commands under it, so that it reports
+                // cli.usage instead of Commander's "too many arguments".
                 group.allowExcessArguments();
             }
             parent = group;
@@ -161,7 +162,8 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     const command = (group ?? parent.command(name)).description(manifestCommand.description);
     if (group) {
         manifestGroups.delete(group);
-        // It has commands under it already: see registerManifestCommands.
+        // It has commands under it already, so let the action see a name that is none of them, and
+        // report cli.usage instead of Commander's "too many arguments".
         command.allowExcessArguments();
     }
     manifestCommands.add(command);

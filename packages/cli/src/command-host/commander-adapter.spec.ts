@@ -430,7 +430,7 @@ describe('options of a command that has commands under it', () => {
         description: 'Deploy',
         behavior: 'mutating',
         schemas: async () => ({ input: z.object({ ...shared, force: z.boolean().optional() }) }),
-        cli: { flags: { environment: { short: '-e' } } },
+        cli: { flags: { environment: { short: '-e' }, force: { short: '-f' } } },
         run: async () => ({ run: async () => ({}) }),
     });
     const plan = defineCommand({
@@ -471,7 +471,7 @@ describe('options of a command that has commands under it', () => {
         if (!ran) {
             throw new Error('no command ran');
         }
-        const fields = Object.keys((await ran.opts()) ?? {});
+        const fields = Object.keys(ran.opts());
         return {
             ran: ran.name(),
             input: collectFlagInput(ran, ['environment', 'dryRun', 'force', ...fields]),
@@ -496,7 +496,9 @@ describe('options of a command that has commands under it', () => {
     });
 
     it('names an option of the command above that the command that runs does not take', async () => {
-        expect((await parse(['acme', 'deploy', '--force', 'plan'])).notTaken).toBe('--force');
+        // Named as declared, short and long, whichever was given.
+        expect((await parse(['acme', 'deploy', '--force', 'plan'])).notTaken).toBe('-f, --force');
+        expect((await parse(['acme', 'deploy', 'plan', '-f'])).notTaken).toBe('-f, --force');
         expect((await parse(['acme', 'deploy', 'plan', '--no-force'])).notTaken).toBe('--no-force');
         // The command above itself takes it.
         expect((await parse(['acme', 'deploy', '--force'])).notTaken).toBeUndefined();

@@ -219,8 +219,23 @@ describe('mergeProjectManifests', () => {
             [
                 'plugin.parent-positional',
                 expect.stringContaining(
-                    '"acme logs" with positional fields, and the command "acme logs export"',
+                    '"acme logs" with positional fields, or flags that take an optional value or a list, and the command "acme logs export"',
                 ),
+            ],
+        ]);
+    });
+
+    it.each([
+        ['an optional value', { type: ['boolean', 'string'] }],
+        ['a list', { type: 'array', items: { type: 'string' } }],
+    ])('refuses a command with commands under it that has a flag taking %s', (_kind, schema) => {
+        const parent = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        parent.manifest.commands[0].input = { type: 'object', properties: { wait: schema } };
+        const { refused } = mergeProjectManifests(core, [parent]);
+        expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
+            [
+                'plugin.parent-positional',
+                expect.stringContaining('flags that take an optional value or a list'),
             ],
         ]);
     });
