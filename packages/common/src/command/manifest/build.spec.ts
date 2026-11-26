@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { defineCommand } from '../define';
+import { defineCommand, defineCommandExtension, defineError } from '../define';
 import { JsonSchema, StandardSchema } from '../types';
 
 import { buildCommandManifest, writeCommandManifest } from './build';
@@ -140,6 +140,81 @@ describe('buildCommandManifest', () => {
     it('refuses a declaration the host would refuse', async () => {
         const reserved = defineCommand({ ...wipeCommand().command, path: ['admin', 'wipe'] });
         await expect(buildCommandManifest('@a/one', '1.0.0', [reserved])).rejects.toThrow(/reserved/);
+    });
+
+    it('leaves out a field marked internal, which only an extension sets', async () => {
+        const { command } = wipeCommand();
+        const manifest = await buildCommandManifest('@a/one', '1.0.0', [
+            { ...command, cli: { fields: { force: { internal: true } } } },
+        ]);
+
+        expect(Object.keys(manifest.commands[0].input.properties as object)).toEqual(['name', 'wipeData']);
+        expect(manifest.commands[0].cli.fields).toEqual({});
+    });
+
+    it('writes the extensions of commands, with their consents, errors and CLI metadata', async () => {
+        const manifest = await buildCommandManifest('@a/cloud', '1.0.0', [], {
+            extensions: [
+                defineCommandExtension({
+                    path: ['dev'],
+                    consents: { deployPreview: 'Deploy a preview' },
+                    errors: [defineError({ code: 'cloud.not-linked', exit: 2, message: () => 'not linked' })],
+                    cli: { flags: { project: { short: '-p' } }, fields: { trace: { internal: true } } },
+                    schemas: () =>
+                        Promise.resolve({
+                            input: schema(
+                                {
+                                    type: 'object',
+                                    properties: { project: { type: 'string' }, trace: { type: 'string' } },
+                                    required: ['project'],
+                                },
+                                {},
+                            ),
+                            output: schema(
+                                {},
+                                { type: 'object', properties: { previewUrl: { type: 'string' } } },
+                            ),
+                        }),
+                    run: () => Promise.resolve({ run: (_input, _ctx, next) => next() }),
+                }),
+            ],
+        });
+
+        expect(manifest.commands).toEqual([]);
+        expect(manifest.extensions).toEqual([
+            {
+                path: ['dev'],
+                input: {
+                    type: 'object',
+                    properties: {
+                        project: { type: 'string' },
+                        deployPreview: {
+                            type: 'string',
+                            description: 'The digest of the preview for this consent: Deploy a preview',
+                        },
+                    },
+                    required: ['project'],
+                },
+                output: { type: 'object', properties: { previewUrl: { type: 'string' } } },
+                consents: { deployPreview: 'Deploy a preview' },
+                errors: [{ code: 'cloud.not-linked', exit: 2 }],
+                cli: { flags: { project: { short: '-p' } }, fields: {} },
+            },
+        ]);
+    });
+
+    it('refuses an extension that uses a field name the host reserves', async () => {
+        const reserved = defineCommandExtension({
+            path: ['dev'],
+            schemas: () =>
+                Promise.resolve({
+                    input: schema({ type: 'object', properties: { json: { type: 'boolean' } } }, {}),
+                }),
+            run: () => Promise.resolve({ run: (_input, _ctx, next) => next() }),
+        });
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], { extensions: [reserved] }),
+        ).rejects.toThrow(/"json", which the host reserves/);
     });
 });
 
