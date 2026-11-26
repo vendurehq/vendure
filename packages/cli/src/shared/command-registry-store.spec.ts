@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { builtinCommands } from '../commands/builtins.js';
 
@@ -291,7 +291,7 @@ describe('CommandRegistry nested commands and shared options', () => {
 describe('assertCommandTree() with nested commands', () => {
     it('accepts a nested tree with shared options', () => {
         expect(() =>
-            assertCommandTree('@vendure/cloud', [
+            assertCommandTree('builtins', [
                 {
                     name: 'config',
                     description: 'Manage configuration',
@@ -320,10 +320,10 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects a command group without subcommands', () => {
         expect(() =>
-            assertCommandTree('@example/empty', [
+            assertCommandTree('builtins', [
                 { name: 'project', description: 'Manage projects', subcommands: [] },
             ]),
-        ).toThrow(/at least one subcommand/);
+        ).toThrow(/^The command tree "builtins" command "project" declares "subcommands" but provides none/);
     });
 
     it('accepts a command that has both an action and subcommands', () => {
@@ -342,7 +342,7 @@ describe('assertCommandTree() with nested commands', () => {
             ],
         };
 
-        expect(() => assertCommandTree('@vendure/cloud', [deploy])).not.toThrow();
+        expect(() => assertCommandTree('builtins', [deploy])).not.toThrow();
         expect(isRunnableCliCommand(deploy) && hasCliSubcommands(deploy)).toBe(true);
     });
 
@@ -367,7 +367,7 @@ describe('assertCommandTree() with nested commands', () => {
             ],
         };
 
-        expect(() => assertCommandTree('@vendure/cloud', [backup])).not.toThrow();
+        expect(() => assertCommandTree('builtins', [backup])).not.toThrow();
         const db = backup.subcommands[0];
         expect(isCliCommandGroup(backup)).toBe(true);
         expect(isRunnableCliCommand(db) && hasCliSubcommands(db)).toBe(true);
@@ -377,7 +377,7 @@ describe('assertCommandTree() with nested commands', () => {
         // The first word after the command would be ambiguous: it could name a
         // subcommand or fill the argument.
         expect(() =>
-            assertCommandTree('@example/ambiguous', [
+            assertCommandTree('builtins', [
                 {
                     name: 'deploy',
                     description: 'Deploy the application',
@@ -393,7 +393,7 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects positional arguments on a command group', () => {
         expect(() =>
-            assertCommandTree('@example/ambiguous', [
+            assertCommandTree('builtins', [
                 {
                     name: 'backup',
                     description: 'Manage backups',
@@ -407,7 +407,7 @@ describe('assertCommandTree() with nested commands', () => {
     it('accepts an empty arguments array alongside subcommands', () => {
         // Only a declared positional is ambiguous; an empty array declares none.
         expect(() =>
-            assertCommandTree('@example/empty-args', [
+            assertCommandTree('builtins', [
                 {
                     name: 'deploy',
                     description: 'Deploy the application',
@@ -423,7 +423,7 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects a runnable parent that declares subcommands but provides none', () => {
         expect(() =>
-            assertCommandTree('@example/empty', [
+            assertCommandTree('builtins', [
                 {
                     name: 'deploy',
                     description: 'Deploy the application',
@@ -436,7 +436,7 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects an action that is not a function alongside subcommands', () => {
         expect(() =>
-            assertCommandTree('@example/broken', [
+            assertCommandTree('builtins', [
                 {
                     name: 'deploy',
                     description: 'Deploy the application',
@@ -451,7 +451,7 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects commands without an action', () => {
         expect(() =>
-            assertCommandTree('@example/broken', [
+            assertCommandTree('builtins', [
                 {
                     name: 'broken',
                     description: 'Broken',
@@ -463,7 +463,7 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects a nested command without an action', () => {
         expect(() =>
-            assertCommandTree('@example/broken', [
+            assertCommandTree('builtins', [
                 {
                     name: 'project',
                     description: 'Manage projects',
@@ -475,7 +475,7 @@ describe('assertCommandTree() with nested commands', () => {
 
     it('rejects duplicate sibling command names', () => {
         expect(() =>
-            assertCommandTree('@example/dupes', [
+            assertCommandTree('builtins', [
                 {
                     name: 'project',
                     description: 'Manage projects',
@@ -492,7 +492,15 @@ describe('assertCommandTree() with nested commands', () => {
 describe('resolveCliPlugins()', () => {
     const tempDirs: string[] = [];
 
+    beforeEach(() => {
+        // Keep the real global CLI config out of these tests.
+        const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-cli-config-'));
+        tempDirs.push(configDir);
+        vi.stubEnv('VENDURE_CLI_CONFIG_DIR', configDir);
+    });
+
     afterEach(() => {
+        vi.unstubAllEnvs();
         for (const dir of tempDirs.splice(0)) {
             fs.removeSync(dir);
         }

@@ -1122,8 +1122,9 @@ A package extends the CLI in two ways:
 
 - It adds commands by declaring them with `defineCommand` and shipping the command manifest built
   from them. The next section describes this.
-- It exports a CLI plugin, which adds options shared by every command, extends the built-in commands
-  that are not declared with `defineCommand`, and runs setup after `vendure console link`.
+- It exports a CLI plugin, which extends the built-in commands that are not declared with
+  `defineCommand`, adds root options that those extensions can read, and runs setup after
+  `vendure console link`.
 
 In the plugin package:
 
@@ -1161,8 +1162,9 @@ Declare the entry point in that package's `package.json`:
 
 A CLI plugin has no commands of its own. The `commands` key of 3.x CLI plugins is no longer read,
 and a plugin that still declares commands there fails to load with the error
-`plugin.commands-removed`. `commands: []` is accepted, so a 3.x plugin that only extends commands
-or runs a hook keeps loading. The [migration guide](/guides/developer-guide/migrating-from-v3/breaking-api-changes)
+`plugin.commands-removed`. A plugin that was built with `commands: []` keeps loading. `CliPlugin` no
+longer declares `commands`, so the source of a TypeScript plugin drops `commands: []` when it is
+rebuilt against v4. The [migration guide](/guides/developer-guide/migrating-from-v3/breaking-api-changes)
 lists what changed.
 
 ### Commands declared with `defineCommand`
@@ -1870,18 +1872,19 @@ the `commands` key of a CLI plugin. Every other entry has only ever been added t
 
 ### Shared options
 
-`rootOptions` on the plugin are added to `vendure` itself, so every command can
-be given them. A shared option can be given anywhere on the command line. These
-two are equivalent — same flag, same value, different position:
+`rootOptions` on the plugin are added to `vendure` itself, so every command line accepts them.
+Only a decorator reads the value. A shared option can be given anywhere on the command line. These
+two are equivalent, with the same flag and value in a different position:
 
 ```bash
 npx vendure --token abc start
 npx vendure start --token abc
 ```
 
-Values reach a decorated action through the `CliCommandContext` that the CLI
-appends after Commander's own arguments, which means an action never has to
-read or reparse `process.argv`:
+The `extendCommands` decorators of the built-in commands (`add`, `build`, `start`, `migrate`,
+`codemod`, `schema` and `mcp`) receive the values through the `CliCommandContext` that the CLI
+appends after Commander's own arguments. A decorator never has to read or reparse `process.argv`.
+Commands declared with `defineCommand` do not receive them.
 
 ```ts
 decorate: ({ next }) => async (...args) => {
@@ -1892,8 +1895,8 @@ decorate: ({ next }) => async (...args) => {
 };
 ```
 
-The options that every command of one `defineCommand` group shares are declared
-with `defineCommandGroup` instead.
+A package's own commands share options through `defineCommandGroup`. The options of a group are
+declared on the group and reach every command in it.
 
 `inheritedOptions` is keyed by the long flag without `--`, camel-cased, so
 `--api-token` is read as `apiToken`. An option that was neither supplied nor

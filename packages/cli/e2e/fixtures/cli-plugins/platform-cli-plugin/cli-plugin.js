@@ -7,6 +7,7 @@ const { defineCliPlugin, readCommandContext, readCommandOptions } = require('@ve
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/platform-cli-plugin',
+    rootOptions: [{ long: '--token <token>', description: 'Platform API token' }],
     extendCommands: [
         {
             command: 'start',
@@ -26,6 +27,7 @@ module.exports = defineCliPlugin({
                         `PLATFORM_BEFORE ${JSON.stringify({
                             command: context.commandPath,
                             rotate: options.rotateCredential === true,
+                            token: context.inheritedOptions.token ?? null,
                         })}\n`,
                     );
                     try {

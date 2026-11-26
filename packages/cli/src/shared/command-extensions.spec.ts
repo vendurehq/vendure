@@ -977,7 +977,7 @@ describe('Command extensions: shared-option scope is order-independent', () => {
 describe('Command extensions: sub-option depth', () => {
     it('rejects sub-options nested more than one level', () => {
         expect(() =>
-            assertCommandTree('@example/deep', [
+            assertCommandTree('builtins', [
                 {
                     name: 'deep',
                     description: 'Deep',
@@ -999,7 +999,7 @@ describe('Command extensions: sub-option depth', () => {
                     action: async () => 0,
                 },
             ]),
-        ).toThrow(/nests sub-options more than one level deep/);
+        ).toThrow(/^The command tree "builtins" nests sub-options more than one level deep/);
     });
 
     it('registers a one-level sub-option so Commander can parse it', async () => {
@@ -1090,7 +1090,7 @@ describe('Command extensions: value shape across levels', () => {
 
     it('rejects a leaf whose flag disagrees with its own group', () => {
         expect(() =>
-            assertCommandTree('@a/one', [
+            assertCommandTree('builtins', [
                 {
                     name: 'config',
                     description: 'Config',

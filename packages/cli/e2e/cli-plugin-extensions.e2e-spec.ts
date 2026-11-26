@@ -74,8 +74,25 @@ describe('Several plugins extending one command', () => {
         expect(readMarker(result.stdout, 'PLATFORM_BEFORE')).toEqual({
             command: ['start'],
             rotate: true,
+            token: null,
         });
         expect(readMarker(result.stdout, 'CLOUD_BEFORE').cloudEnv).toBe('staging');
+    });
+
+    it('gives a decorator the value of a root option from the plugin', async () => {
+        const result = await project.runCliCommand(['start', 'bogus', '--token', 'abc'], {
+            expectError: true,
+        });
+
+        expect(readMarker(result.stdout, 'PLATFORM_BEFORE').token).toBe('abc');
+    });
+
+    it('accepts a root option before the command too', async () => {
+        const result = await project.runCliCommand(['--token', 'abc', 'start', 'bogus'], {
+            expectError: true,
+        });
+
+        expect(readMarker(result.stdout, 'PLATFORM_BEFORE').token).toBe('abc');
     });
 
     it('hands the outer plugin the command the inner one already extended', async () => {
@@ -148,6 +165,28 @@ describe('Extension collisions and recovery', () => {
             const removed = await project.runCliCommand(['plugins', 'remove', broken]);
             expect(removed.exitCode).toBe(0);
             expect(readEnabledCliPlugins(project)).not.toContain(broken);
+        } finally {
+            project.cleanup();
+        }
+    });
+});
+
+describe('Root option collisions', () => {
+    it('reports a plugin that repeats a root option, keeping the first plugin working', async () => {
+        const project = createTestProject('cli-plugin-root-option-clash');
+        try {
+            installCliPluginFixture(project, 'platform-cli-plugin');
+            const clashing = installCliPluginFixture(project, 'clashing-root-option-cli-plugin');
+
+            const result = await project.runCliCommand(['start', 'bogus', '--token', 'abc'], {
+                expectError: true,
+            });
+
+            expect(result.stderr).toContain('Failed to register CLI plugin');
+            expect(result.stderr).toContain('--token');
+            expect(result.stderr).toContain(`vendure plugins remove ${clashing}`);
+            expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
+            expect(readMarker(result.stdout, 'PLATFORM_BEFORE').token).toBe('abc');
         } finally {
             project.cleanup();
         }
