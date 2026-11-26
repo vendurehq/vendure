@@ -88,6 +88,13 @@ export interface UserSettingsContextType {
      * seed from the authoritative (server) values rather than the transient local ones.
      */
     settingsReady: boolean;
+    /**
+     * @description
+     * Changes whenever the settings are initialized from the server, including after a late
+     * successful read that follows a failed one. Unlike `settingsReady` it is not a one-way flag,
+     * so consumers can re-seed their state from the stored value when it changes.
+     */
+    settingsInitializedAt: number;
     settings: UserSettings;
     /**
      * @description
@@ -142,6 +149,48 @@ export interface UserSettingsContextType {
     setHiddenWidgets: (widgetIds: string[]) => void;
 }
 
+/**
+ * Applies the changes the user made since a failed read (`base` is the local state at the time of
+ * the failure, `current` the local state now) over the stored value. Table settings are merged per
+ * table and per key, so a change to one key keeps the table's other stored keys.
+ */
+function mergeChangesSince(base: UserSettings, current: UserSettings, stored: UserSettings): UserSettings {
+    const changed = (a: unknown, b: unknown) => JSON.stringify(a) !== JSON.stringify(b);
+    const merged: Record<string, unknown> = { ...stored };
+    const currentRecord = current as unknown as Record<string, unknown>;
+    const baseRecord = base as unknown as Record<string, unknown>;
+    for (const key of Object.keys(currentRecord)) {
+        if (key !== 'tableSettings' && changed(currentRecord[key], baseRecord[key])) {
+            merged[key] = currentRecord[key];
+        }
+    }
+    const tableIds = new Set([
+        ...Object.keys(base.tableSettings ?? {}),
+        ...Object.keys(current.tableSettings ?? {}),
+    ]);
+    if (tableIds.size > 0) {
+        const tableSettings: Record<string, TableSettings> = {
+            ...(stored.tableSettings ?? {}),
+        };
+        for (const tableId of tableIds) {
+            const baseTable: Record<string, unknown> = { ...(base.tableSettings?.[tableId] ?? {}) };
+            const currentTable: Record<string, unknown> = {
+                ...(current.tableSettings?.[tableId] ?? {}),
+            };
+            const table: Record<string, unknown> = { ...(stored.tableSettings?.[tableId] ?? {}) };
+            const keys = new Set([...Object.keys(baseTable), ...Object.keys(currentTable)]);
+            for (const key of keys) {
+                if (changed(currentTable[key], baseTable[key])) {
+                    table[key] = currentTable[key];
+                }
+            }
+            tableSettings[tableId] = table as TableSettings;
+        }
+        merged.tableSettings = tableSettings;
+    }
+    return merged as unknown as UserSettings;
+}
+
 export const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
 
 interface UserSettingsProviderProps {
@@ -169,6 +218,10 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
     const [isReady, setIsReady] = useState(false);
     const previousContentLanguage = useRef(settings.contentLanguage);
     const saveInProgressRef = useRef(false);
+    // The local settings as they were when a read failed (other than FORBIDDEN). Changes made after
+    // that point are merged over the stored value once a later read succeeds.
+    const failedReadSnapshotRef = useRef<UserSettings | null>(null);
+    const [settingsInitializedAt, setSettingsInitializedAt] = useState<number>(0);
 
     // Load settings from server on mount
     const {
@@ -224,18 +277,27 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
             return;
         }
         if (serverSettingsLoaded) {
+            // Consume the snapshot taken at a failed read, so that it only applies to this read
+            const failedReadSnapshot = failedReadSnapshotRef.current;
+            failedReadSnapshotRef.current = null;
+            setSettingsInitializedAt(prev => Math.max(Date.now(), prev + 1));
             try {
                 const serverSettingsData =
                     serverSettingsResponse?.getSettingsStoreValue as UserSettings | null;
                 if (serverSettingsData) {
-                    // Server has settings, use them
-                    const mergedSettings = { ...defaultSettings, ...serverSettingsData };
+                    // Server has settings, use them. Changes made since a failed read are kept on top
+                    // of the stored value; the save effect then saves the merged result.
+                    const storedSettings: UserSettings = { ...defaultSettings, ...serverSettingsData };
+                    const mergedSettings = failedReadSnapshot
+                        ? mergeChangesSince(failedReadSnapshot, settings, storedSettings)
+                        : storedSettings;
                     setSettings(mergedSettings);
-                    setServerSettings(mergedSettings);
+                    setServerSettings(storedSettings);
                     setIsReady(true);
                 } else {
-                    // Server has no settings, use local settings
-                    setServerSettings(settings);
+                    // Server has no settings, use local settings. After a failed read they were never
+                    // compared with the server, so they are saved as changes from the defaults.
+                    setServerSettings(failedReadSnapshot ? { ...defaultSettings } : settings);
                     setIsReady(true);
                 }
             } catch (e) {
@@ -253,6 +315,9 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
             // `settingsReady` don't hang forever, but leave `serverSettings` unset: the local
             // copy was never read from the server, so it must not be saved over the stored
             // value. A later successful read still initializes the settings.
+            if (failedReadSnapshotRef.current === null) {
+                failedReadSnapshotRef.current = settings;
+            }
             setIsReady(true);
         }
     }, [
@@ -300,6 +365,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
     };
 
     const resetServerSettings = () => {
+        failedReadSnapshotRef.current = null;
         setServerSettings(null);
         setIsReady(false);
         // Without the SettingsStore, the local copy is the only place the settings are kept
@@ -311,6 +377,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
     const contextValue: UserSettingsContextType = {
         settingsStoreIsAvailable,
         settingsReady: isReady || !settingsStoreIsAvailable,
+        settingsInitializedAt,
         settings,
         resetServerSettings,
         setDisplayLanguage: language => updateSetting('displayLanguage', language),
@@ -375,7 +442,7 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
 };
 
 function logSettingsStoreWarning() {
-    // eslint-disable-next-line no-console
+     
     console.warn(
         [
             `User settings could not be fetched from the Vendure server.`,
