@@ -1435,8 +1435,9 @@ export async function run(input, ctx, next) {
 - **`input`** holds the command's validated input with the extension's own fields. Each part is validated with its
   own package's schema, so a missing or invalid field of the extension is a need or an error as for the command's own.
 - **`next(changes?, { signal })`** runs the command, or the next extension, with the command's fields only. It runs
-  with `{ ...commandInput, ...changes }`, so pass only the fields to change; the CLI validates the result with the
-  command's schema.
+  with `{ ...commandInput, ...changes }`, so pass only the fields to change. `commandInput` is what the caller gave,
+  and the CLI validates the result with the command's schema, so the command's transforms and defaults apply once.
+  Changes that are not valid make `next` throw, and the run ends with `cli.internal`.
   `next` resolves to the result as a value: the output, or an `incomplete()`, `failed()` or `fail()` result. It never
   throws for those. It may be called more than once, as in a retry loop, or not at all, and `options.signal` stops
   only that call. The command's events and `ctx.output` reach the caller as they happen.
@@ -1457,13 +1458,20 @@ The extension's fields are flags of the command, part of its input in `vendure c
 MCP tool, which lists the extending packages under `extendedBy`. A command may also mark a field
 `cli: { fields: { name: { internal: true } } }`: such a field is set only by an extension, through
 `next({ name: value })`. It is not a flag, is left out of the manifest, and is removed from what a caller passes.
+The manifest lists its name under `cli.internalFields`, so no extension can add a field of the same name.
 
 The CLI refuses all the extensions of a package, and keeps its commands, when one of them extends a command the
 project doesn't have, with `plugin.extension-target-missing`. It does the same when an extension adds a field, short
-flag, consent or error code that the command or an earlier extension has, with `plugin.extension-clash`. That code
-also covers an extension that breaks a rule of a command with commands under it: a flag that takes an optional value
-or a list on such a command, or a flag declared differently on a command and a command under it. An older
+flag, consent or error code that the command or an earlier extension has, an internal one included, with
+`plugin.extension-clash`. That code also covers an extension that breaks a rule of a command with commands under
+it: a flag that takes an optional value or a list on such a command, or a flag declared differently on a command and a command under it. An older
 `extendCommands` of a `CliPlugin` does not apply to a `defineCommand` command: the CLI skips it with a warning.
+
+An extension whose module fails to import, whose `schemas()` rejects, or that its module no longer exports, is left
+out when the command runs, with a `plugin.extension-failed` warning on stderr. The command runs without it, unless
+the caller passed one of its flags, which ends the run with `cli.usage`. A manifest older than the declarations, in
+which an extension's field is now an internal field of the command, ends the run with `manifest.mismatch`: rebuild
+the manifests.
 
 ### How plugin commands appear in the help
 
