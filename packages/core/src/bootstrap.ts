@@ -437,7 +437,8 @@ export async function preBootstrapConfig(
  *
  * A prerelease version also passes when its release version (`semver.coerce`) satisfies the
  * range. A range such as `^4.0.0` does not match `4.0.0-preview.3` or a `4.0.0-major-…` nightly
- * by itself, because those come before `4.0.0`.
+ * by itself, because those come before `4.0.0`. A range with an explicit upper bound, such as
+ * `>=3.0.0 <4.0.0`, still admits those prereleases, as it did before this fallback was added.
  *
  * @docsCategory plugin
  * @since 4.0.0
@@ -448,7 +449,7 @@ export function isCompatible(version: string, range: string): boolean {
         return true;
     }
     const release = coerce(version)?.version;
-    return release !== undefined && release !== version && satisfies(release, range, options);
+    return release !== undefined && satisfies(release, range, options);
 }
 
 function checkPluginCompatibility(

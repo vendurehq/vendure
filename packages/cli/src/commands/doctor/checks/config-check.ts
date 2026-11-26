@@ -147,7 +147,7 @@ function checkPlugins(config: RuntimeVendureConfig, core: typeof import('@vendur
  * Runs the project's own compatibility check, so the doctor agrees with what the server does at
  * startup. A core older than `isCompatible` checks the range with plain `satisfies`.
  */
-function isCompatibleWithCore(core: typeof import('@vendure/core'), compatibility: string): boolean {
+export function isCompatibleWithCore(core: typeof import('@vendure/core'), compatibility: string): boolean {
     const { isCompatible } = core as { isCompatible?: (version: string, range: string) => boolean };
     return typeof isCompatible === 'function'
         ? isCompatible(core.VENDURE_VERSION, compatibility)

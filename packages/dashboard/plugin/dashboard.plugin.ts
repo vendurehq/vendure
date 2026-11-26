@@ -150,7 +150,7 @@ export interface DashboardPluginOptions {
         ];
         return config;
     },
-    compatibility: '^4.0.0',
+    compatibility: '>=3.8.0',
 })
 export class DashboardPlugin implements NestModule {
     private static options: DashboardPluginOptions | undefined;
