@@ -128,6 +128,14 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             });
         });
 
+        it('reports a name that is not a command under it as a coded line without --json', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', 'plna'], { expectError: true });
+            expect(result.exitCode).toBe(1);
+            expect(result.stderr).toContain('[cli.usage] "plna" is not a command of "acme deploy"');
+        });
+
         it('reports a name that is not a command under it', async () => {
             const p = projectWith(['parent-commands-cli-plugin']);
 

@@ -497,9 +497,9 @@ describe('options of a command that has commands under it', () => {
     });
 
     it('names an option of the command above that the command that runs does not take', async () => {
-        // Named as declared, short and long, whichever was given.
-        expect((await parse(['acme', 'deploy', '--force', 'plan'])).notTaken).toBe('-f, --force');
-        expect((await parse(['acme', 'deploy', 'plan', '-f'])).notTaken).toBe('-f, --force');
+        // Named by its long flag, whichever form was given.
+        expect((await parse(['acme', 'deploy', '--force', 'plan'])).notTaken).toBe('--force');
+        expect((await parse(['acme', 'deploy', 'plan', '-f'])).notTaken).toBe('--force');
         expect((await parse(['acme', 'deploy', 'plan', '--no-force'])).notTaken).toBe('--no-force');
         // The command above itself takes it.
         expect((await parse(['acme', 'deploy', '--force'])).notTaken).toBeUndefined();

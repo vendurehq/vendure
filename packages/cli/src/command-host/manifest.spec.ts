@@ -222,7 +222,7 @@ describe('mergeProjectManifests', () => {
             [
                 'plugin.parent-positional',
                 expect.stringContaining(
-                    '"acme logs" with positional fields, or flags that take an optional value or a list, and the command "acme logs export"',
+                    '"acme logs" with the positional field "service", and the command "acme logs export"',
                 ),
             ],
         ]);
@@ -231,16 +231,31 @@ describe('mergeProjectManifests', () => {
     it.each([
         ['an optional value', { type: ['boolean', 'string'] }],
         ['a list', { type: 'array', items: { type: 'string' } }],
-    ])('refuses a command with commands under it that has a flag taking %s', (_kind, schema) => {
+    ])('refuses a command with commands under it that has a flag taking %s', (kind, schema) => {
         const parent = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
         parent.manifest.commands[0].input = { type: 'object', properties: { wait: schema } };
         const { refused } = mergeProjectManifests(core, [parent]);
         expect(refused.map(r => [r.error.code, r.error.message])).toEqual([
-            [
-                'plugin.parent-positional',
-                expect.stringContaining('flags that take an optional value or a list'),
-            ],
+            ['plugin.parent-positional', expect.stringContaining(`the flag --wait, which takes ${kind}`)],
         ]);
+    });
+
+    it('accepts a flag that a command and a command under it declare the same way', () => {
+        // The default and the description are not part of how the flag is read.
+        const same = plugin('acme-cli', ['acme', 'deploy'], ['acme', 'deploy', 'plan']);
+        same.manifest.commands[0].input = {
+            type: 'object',
+            properties: {
+                environment: { type: 'string', default: 'staging', description: 'Where to deploy' },
+            },
+        };
+        same.manifest.commands[1].input = {
+            type: 'object',
+            properties: {
+                environment: { type: 'string', default: 'prod', description: 'Where to plan for' },
+            },
+        };
+        expect(mergeProjectManifests(core, [same]).refused).toEqual([]);
     });
 
     it('refuses a flag that a command and a command under it declare differently', () => {

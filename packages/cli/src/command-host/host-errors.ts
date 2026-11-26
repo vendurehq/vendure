@@ -68,12 +68,12 @@ export const hostErrors = {
             `${plugin} declares the command "${command}", which clashes with ${other}. ` +
             `None of the commands ${plugin} declares with defineCommand are loaded. Disable one of the two packages, or rename the command.`,
     }),
-    pluginParentPositional: defineError<{ plugin: string; command: string; child: string }>({
+    pluginParentPositional: defineError<{ plugin: string; command: string; child: string; field: string }>({
         code: 'plugin.parent-positional',
         exit: 1,
-        message: ({ plugin, command, child }) =>
-            `${plugin} declares the command "${command}" with positional fields, or flags that take an optional value or a list, and the command "${child}" under it. ` +
-            'A command with commands under it takes neither, so that a value is never taken for a command name. ' +
+        message: ({ plugin, command, child, field }) =>
+            `${plugin} declares the command "${command}" with ${field}, and the command "${child}" under it. ` +
+            'A command with commands under it takes no positional fields, and no flags that take an optional value or a list, so that a value is never taken for a command name. ' +
             `None of the commands ${plugin} declares with defineCommand are loaded.`,
     }),
     pluginParentFlagConflict: defineError<{ plugin: string; command: string; child: string; flag: string }>({

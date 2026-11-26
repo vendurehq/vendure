@@ -84,11 +84,18 @@ export function optionNotTaken(command: Command): string | undefined {
                 ancestor.options.find(
                     candidate => candidate.attributeName() === name && candidate.negate === (value === false),
                 ) ?? option;
-            // As declared, such as `-f, --force`, without the value it takes.
-            return given.flags.replace(/\s*[<[].*$/, '');
+            return given.long ?? given.short ?? given.flags;
         }
     }
     return undefined;
+}
+
+/**
+ * Marks a manifest command as one with commands under it. Its action then sees a name that is none
+ * of them, and reports it as cli.usage instead of Commander's "too many arguments".
+ */
+function acceptsCommandsUnder(command: Command): void {
+    command.allowExcessArguments();
 }
 
 /** Ends the run with a host error: the envelope under `--json`, a coded line otherwise. */
@@ -203,9 +210,7 @@ export function registerManifestCommands(
                 }
             }
             if (manifestCommands.has(group)) {
-                // Let the action see a name that is none of the commands under it, so that it reports
-                // cli.usage instead of Commander's "too many arguments".
-                group.allowExcessArguments();
+                acceptsCommandsUnder(group);
             }
             parent = group;
         }
@@ -234,9 +239,8 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     const command = (group ?? parent.command(name)).description(manifestCommand.description);
     if (group) {
         manifestGroups.delete(group);
-        // It has commands under it already, so let the action see a name that is none of them, and
-        // report cli.usage instead of Commander's "too many arguments".
-        command.allowExcessArguments();
+        // It has commands under it already.
+        acceptsCommandsUnder(command);
     }
     manifestCommands.add(command);
     if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {

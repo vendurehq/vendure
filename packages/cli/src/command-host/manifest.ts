@@ -204,9 +204,9 @@ export function mergeProjectManifests(
         // A manifest is input from another package, so nothing about it may stop the CLI's own
         // commands from loading: any problem refuses this package's commands alone.
         try {
-            const clash = findClash(plugin.manifest, taken);
+            const clash = findClash(plugin.manifest, plugin.packageName, taken);
             if (clash) {
-                refused.push({ package: plugin.packageName, error: clash(plugin.packageName) });
+                refused.push({ package: plugin.packageName, error: clash });
                 continue;
             }
             mergeManifests([...accepted, plugin.manifest]);
@@ -290,7 +290,11 @@ function startsWith(commandPath: string[], prefix: string[]): boolean {
  *
  * Another package may not add to either.
  */
-function findClash(manifest: CommandManifest, taken: TakenCommandPath[]): RefusedClash | undefined {
+function findClash(
+    manifest: CommandManifest,
+    plugin: string,
+    taken: TakenCommandPath[],
+): CommandErrorBody | undefined {
     for (const command of manifest.commands) {
         const name = command.path.join(' ');
         const other = taken.find(
@@ -298,46 +302,53 @@ function findClash(manifest: CommandManifest, taken: TakenCommandPath[]): Refuse
                 (entry.leaf && startsWith(command.path, entry.path)) || startsWith(entry.path, command.path),
         );
         if (other) {
-            return plugin =>
-                errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: other.owner });
+            return errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: other.owner });
         }
         for (const own of manifest.commands) {
             if (own === command) {
                 continue;
             }
             if (own.path.join(' ') === name) {
-                const duplicate = `another command "${name}" of ${manifest.package}`;
-                return plugin =>
-                    errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: duplicate });
+                const duplicate = `another command "${name}" of ${plugin}`;
+                return errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: duplicate });
             }
             if (!startsWith(own.path, command.path)) {
                 continue;
             }
             const child = own.path.join(' ');
-            if (command.cli.positional?.length || takesValueBeforeName(command)) {
-                return plugin =>
-                    errorBody(hostErrors.pluginParentPositional, { plugin, command: name, child });
+            const field = valueBeforeName(command);
+            if (field) {
+                return errorBody(hostErrors.pluginParentPositional, { plugin, command: name, child, field });
             }
             const flag = sharedFlagConflict(command, own);
             if (flag) {
-                return plugin =>
-                    errorBody(hostErrors.pluginParentFlagConflict, { plugin, command: name, child, flag });
+                return errorBody(hostErrors.pluginParentFlagConflict, { plugin, command: name, child, flag });
             }
         }
     }
     return undefined;
 }
 
-/** A refusal of a package's commands, as the error body for the package of the given name. */
-type RefusedClash = (plugin: string) => CommandErrorBody;
-
-/** Whether a flag of the command takes an optional value or a list, which can take the next word. */
-function takesValueBeforeName(command: ManifestCommand): boolean {
+/**
+ * What of the command could take the name of a command under it as its value: a positional field,
+ * or a flag that takes an optional value or a list. Undefined when there is none.
+ */
+function valueBeforeName(command: ManifestCommand): string | undefined {
+    const positional = command.cli.positional?.[0];
+    if (positional) {
+        return `the positional field "${positional}"`;
+    }
     const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
-    return Object.values(properties).some(schema => {
+    for (const [field, schema] of Object.entries(properties)) {
         const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-        return takesOptionalValue(schema) || type === 'array';
-    });
+        if (takesOptionalValue(schema)) {
+            return `the flag --${kebab(field)}, which takes an optional value`;
+        }
+        if (type === 'array') {
+            return `the flag --${kebab(field)}, which takes a list`;
+        }
+    }
+    return undefined;
 }
 
 /** How a command declares each of its flags, by flag: the long flags and the short ones. */
