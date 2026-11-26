@@ -409,6 +409,20 @@ describe('applyCommandExtensions', () => {
         ).toThrow('the consent "trace" of "acme deploy" is an input field of the command');
     });
 
+    it('blames the outer of two extensions that clash, whose package was enabled later', async () => {
+        const regionExtension = () =>
+            defineCommandExtension({
+                path: ['acme', 'deploy'],
+                schemas: async () => ({ input: objectSchema({ region: { type: 'string' } }) }),
+                run: async () => ({ run: async (_input, _ctx, next) => next() }),
+            });
+        await expect(
+            applyCommandExtensions(deploy, [regionExtension(), regionExtension()], {
+                packages: ['@acme/second', '@acme/first'],
+            }).schemas(),
+        ).rejects.toThrow('The extension of "acme deploy" from @acme/second cannot be applied');
+    });
+
     it('runs two extensions with the first outermost, each with its own fields', async () => {
         const order: string[] = [];
         const second = defineCommandExtension({

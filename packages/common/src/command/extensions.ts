@@ -199,9 +199,10 @@ function declaredNames(
 }
 
 /**
- * The first rule that each extension of a command breaks, in order, checked against the command
- * with the extensions before it applied. Without `parts`, only the rules that need no schemas are
- * checked.
+ * The first rule that each extension of a command breaks, in the order given, outermost first.
+ * Each is checked against the command with the extensions inside it applied, so of two that clash
+ * the outer one, whose package was enabled later, breaks the rule. Without `parts`, only the
+ * rules that need no schemas are checked.
  */
 export function commandExtensionViolations(
     command: CommandDefinition,
@@ -220,9 +221,12 @@ export function commandExtensionViolations(
         consents: [...(commandNames.consents ?? [])],
         errorCodes: [...(commandNames.errorCodes ?? [])],
     };
-    return extensions.map((extension, index) => {
+    const violations: Array<string | undefined> = new Array(extensions.length).fill(undefined);
+    for (let index = extensions.length - 1; index >= 0; index--) {
+        const extension = extensions[index];
         if (extension.path.join(' ') !== key) {
-            return `it extends "${extension.path.join(' ')}" instead`;
+            violations[index] = `it extends "${extension.path.join(' ')}" instead`;
+            continue;
         }
         const names: CommandPartNames = {
             ...declaredNames(extension, 'extension'),
@@ -230,14 +234,14 @@ export function commandExtensionViolations(
                 ? { inputFields: parts.inputFields[index], outputFields: parts.outputFields[index] }
                 : {}),
         };
-        const violation = commandExtensionViolation(key, applied, names);
+        violations[index] = commandExtensionViolation(key, applied, names);
         for (const name of Object.keys(applied) as Array<keyof CommandPartNames>) {
             if (name !== 'internalFields' && name !== 'markedInternal') {
                 (applied[name] as string[]).push(...(names[name] ?? []));
             }
         }
-        return violation;
-    });
+    }
+    return violations;
 }
 
 /**
