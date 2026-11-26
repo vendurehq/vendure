@@ -32,9 +32,11 @@ type Project = Awaited<ReturnType<typeof openProject>>['project'];
 export class ConfigResolverFailedError extends Error {
     constructor(
         readonly details: { plugin: string; message: string },
+        // A property, not `super(message, { cause })`: the CLI's TypeScript lib predates ErrorOptions.
         readonly cause?: unknown,
     ) {
         super(configResolverFailed.message(details));
+        this.name = 'ConfigResolverFailedError';
     }
 }
 

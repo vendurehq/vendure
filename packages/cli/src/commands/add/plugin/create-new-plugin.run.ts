@@ -30,7 +30,8 @@ export async function run(input: { name: string; dir?: string; config?: string }
     } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         if (!(e instanceof VendureConfigNotDeclaredError)) {
-            // Several config files, or a --config path that is not there: the config is in the source.
+            // Several config files are in the source, or the user named a --config file that is not
+            // there. Either way the user chose a file, so the resolver hint does not apply.
             return fail(vendureConfigNotFound, { message });
         }
         // A config from a config resolver is not declared in the source, so there is nowhere to add
