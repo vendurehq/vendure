@@ -330,6 +330,17 @@ describe('console link command line login', () => {
         const run = await runLink({ storedOrganization: null, console: { memberships: [] } });
 
         expect(run.exitCode).toBe(1);
+        expect(run.result).toMatchObject({
+            outcome: 'incomplete',
+            needs: [
+                {
+                    kind: 'person',
+                    code: 'console.no-account',
+                    action: 'create-account',
+                    url: 'https://console.vendure.io/onboarding',
+                },
+            ],
+        });
         expect(run.messages.join('\n')).toContain(
             'Your Vendure Console login has no Customer Account yet. Create one at ' +
                 'https://console.vendure.io/onboarding, then run vendure console link again.',

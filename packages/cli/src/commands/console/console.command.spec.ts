@@ -175,6 +175,52 @@ describe('vendure console link', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
+    it('returns a step for a person, with its code, when the account has no active project', async () => {
+        const root = project('none');
+        vi.stubEnv('VENDURE_DISABLE_TELEMETRY', '1');
+        storeLogin(process.env, 'https://api.vendure.io');
+        vi.stubGlobal('fetch', fakeConsole({ projects: projectList([]) }).fetch);
+
+        const result = await testCommand(consoleLinkDefinition, { dir: root });
+
+        expect(result.envelope.status).toBe('incomplete');
+        expect(result.envelope.needs).toEqual([
+            expect.objectContaining({
+                kind: 'person',
+                code: 'console.no-active-project',
+                action: 'create-project',
+                url: 'https://console.vendure.io/projects?create=true',
+            }),
+        ]);
+        expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
+
+        // With a person at the terminal it is a need too, without asking them for anything here.
+        const askInput = vi.fn(async () => 'answer');
+        const withPerson = await testCommand(
+            consoleLinkDefinition,
+            { dir: root },
+            {
+                prompter: {
+                    askInput,
+                    askConsent: vi.fn(async () => true),
+                    confirm: vi.fn(async () => true),
+                    select: vi.fn(async () => undefined),
+                    text: vi.fn(async () => undefined),
+                },
+            },
+        );
+        expect(withPerson.exitCode).toBe(3);
+        expect(withPerson.envelope.needs).toEqual([
+            expect.objectContaining({ kind: 'person', code: 'console.no-active-project' }),
+        ]);
+        expect(askInput).not.toHaveBeenCalled();
+        // The step's summary says it, so the engine's message is not repeated as a notice.
+        expect(withPerson.envelope.notices).toEqual([]);
+        expect(withPerson.envelope.needs?.[0]).toMatchObject({
+            summary: expect.stringContaining('which needs no plan or trial'),
+        });
+    });
+
     it('replaces a link with another Project once the replaceLink consent is given', async () => {
         const root = project();
         vi.stubEnv('VENDURE_DISABLE_TELEMETRY', '1');

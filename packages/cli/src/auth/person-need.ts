@@ -47,6 +47,8 @@ export function personNeedFromApiError(error: unknown, context: PersonNeedContex
     const url = `${context.consoleUrl.replace(/\/+$/, '')}/${(context.path ?? '').replace(/^\/+/, '')}`;
     return {
         kind: 'person',
+        // The Console API names only the step, so that is its code too.
+        code: body.action,
         action: body.action,
         summary: PERSON_ACTION_SUMMARIES[body.action] ?? 'A person must take this step in Vendure Console',
         url,
