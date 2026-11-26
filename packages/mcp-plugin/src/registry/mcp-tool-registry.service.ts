@@ -509,6 +509,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 loggerCtx,
                 error instanceof Error ? error.stack : undefined,
             );
+            this.reportServerError(tool.name, error);
         }
         await this.toolCallLog.logToolCall({
             executionContext: callContext,
@@ -523,6 +524,31 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 ? callContext.ctx.translate(error.message, error.variables)
                 : GENERIC_TOOL_ERROR_MESSAGE,
             sessionToken,
+        );
+    }
+
+    // Tools call services directly, so Vendure's GraphQL exception filter, which invokes the
+    // configured ErrorHandlerStrategy instances, never sees their errors. Pass the server faults to
+    // the handlers here instead. A handler that throws or rejects must not change the tool's result.
+    private reportServerError(toolName: string, error: unknown): void {
+        const exception = error instanceof Error ? error : new Error(String(error));
+        for (const handler of this.configService.systemOptions.errorHandlers) {
+            try {
+                // There is no HTTP or GraphQL execution context for a tool call, so no host.
+                const pending = handler.handleServerError(exception, { host: undefined as any });
+                void Promise.resolve(pending).catch((e: unknown) => this.logErrorHandlerFailure(toolName, e));
+            } catch (e) {
+                this.logErrorHandlerFailure(toolName, e);
+            }
+        }
+    }
+
+    private logErrorHandlerFailure(toolName: string, e: unknown): void {
+        Logger.error(
+            `An error handler failed while handling the error of MCP tool "${toolName}": ${
+                e instanceof Error ? e.message : String(e)
+            }`,
+            loggerCtx,
         );
     }
 

@@ -76,6 +76,7 @@ function build(
     options: McpPluginOptions = {},
     store: Record<string, unknown> = {},
     customPermissions: PermissionDefinition[] = [],
+    errorHandlers: Array<{ handleServerError: (...args: any[]) => unknown }> = [],
 ) {
     const discoveryService = {
         getProviders: () => wrappers,
@@ -110,6 +111,7 @@ function build(
             entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
         },
         orderOptions: { activeOrderStrategy },
+        systemOptions: { errorHandlers: errorHandlers as any[] },
     };
     // Stands in for TransactionalConnection: mutating tools are handed a transactional context,
     // which here is just the context they were called with.
@@ -1734,6 +1736,106 @@ describe('McpToolRegistryService', () => {
                 expect.anything(),
             );
             error.mockRestore();
+        });
+
+        describe('error handlers', () => {
+            const callFailing = async (
+                thrown: unknown,
+                errorHandlers: Array<{ handleServerError: (...args: any[]) => unknown }>,
+            ) => {
+                const execute = () => {
+                    throw thrown;
+                };
+                const { service, toolCallLog } = build(
+                    [wrapper(shopTool(), execute)],
+                    {},
+                    {},
+                    [],
+                    errorHandlers,
+                );
+                service.onApplicationBootstrap();
+                const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+                return { result, toolCallLog };
+            };
+
+            it('passes a server fault to every configured ErrorHandlerStrategy', async () => {
+                const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+                const first = { handleServerError: vi.fn() };
+                const second = { handleServerError: vi.fn() };
+                const thrown = new InternalServerError('error.entity-has-no-translation-in-language');
+                const { result, toolCallLog } = await callFailing(thrown, [first, second]);
+                for (const handler of [first, second]) {
+                    expect(handler.handleServerError).toHaveBeenCalledTimes(1);
+                    expect(handler.handleServerError).toHaveBeenCalledWith(thrown, { host: undefined });
+                }
+                // The response and the tool call log stay as they were.
+                expect(result.isError).toBe(true);
+                expect((result.content as any)[0].text).toMatch(/^The tool failed unexpectedly\./);
+                expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'error' }),
+                );
+                error.mockRestore();
+            });
+
+            it('passes any non-I18nError and an I18nError with LogLevel.Error to the handlers', async () => {
+                const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+                class GatewayError extends I18nError {
+                    constructor() {
+                        super('gateway timed out', {}, 'GATEWAY_ERROR', LogLevel.Error);
+                    }
+                }
+                for (const thrown of [new TypeError('boom'), new GatewayError()]) {
+                    const handler = { handleServerError: vi.fn() };
+                    await callFailing(thrown, [handler]);
+                    expect(handler.handleServerError).toHaveBeenCalledWith(thrown, { host: undefined });
+                }
+                error.mockRestore();
+            });
+
+            it('wraps a thrown non-Error value in an Error for the handlers', async () => {
+                const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+                const handler = { handleServerError: vi.fn() };
+                await callFailing('oops', [handler]);
+                const [passed] = handler.handleServerError.mock.calls[0];
+                expect(passed).toBeInstanceOf(Error);
+                expect(passed.message).toBe('oops');
+                error.mockRestore();
+            });
+
+            it('does not call the handlers for an error meant for the caller', async () => {
+                const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+                const handler = { handleServerError: vi.fn() };
+                await callFailing(new UserInputError('bad input from caller'), [handler]);
+                expect(handler.handleServerError).not.toHaveBeenCalled();
+                warn.mockRestore();
+            });
+
+            it('keeps the tool result when a handler throws or rejects', async () => {
+                const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+                const throwing = {
+                    handleServerError: vi.fn(() => {
+                        throw new Error('sync handler failure');
+                    }),
+                };
+                const rejecting = {
+                    handleServerError: vi.fn(() => Promise.reject(new Error('async handler failure'))),
+                };
+                const last = { handleServerError: vi.fn() };
+                const { result } = await callFailing(new Error('tool broke'), [throwing, rejecting, last]);
+                await new Promise(resolve => setImmediate(resolve));
+                expect(result.isError).toBe(true);
+                expect((result.content as any)[0].text).toMatch(/^The tool failed unexpectedly\./);
+                expect(last.handleServerError).toHaveBeenCalledTimes(1);
+                expect(error).toHaveBeenCalledWith(
+                    expect.stringContaining('sync handler failure'),
+                    expect.anything(),
+                );
+                expect(error).toHaveBeenCalledWith(
+                    expect.stringContaining('async handler failure'),
+                    expect.anything(),
+                );
+                error.mockRestore();
+            });
         });
 
         it('treats a thrown non-Error value as internal, using the fallback message', async () => {
