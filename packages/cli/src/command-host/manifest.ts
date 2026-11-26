@@ -72,6 +72,21 @@ export async function loadCoreManifest(
 export interface RefusedManifest {
     package: string;
     error: CommandErrorBody;
+    /**
+     * What was left out: the package's own commands, the default, or only its extensions of other
+     * commands, which leaves its own commands working.
+     */
+    kind?: 'commands' | 'extensions';
+}
+
+/**
+ * How the CLI reports a refused package to a person: a headline, and whether the package is
+ * skipped. A package whose extensions were refused still has its own commands.
+ */
+export function describeRefusal(refused: RefusedManifest): { headline: string; skipped: boolean } {
+    return refused.kind === 'extensions'
+        ? { headline: 'Refused the command extensions of CLI plugin', skipped: false }
+        : { headline: 'Refused the defineCommand commands of CLI plugin', skipped: true };
 }
 
 /** A command path that is already on the command line, from a manifest or a Commander command. */
@@ -96,7 +111,7 @@ export interface ProjectCommands {
     /**
      * The definition of one command, with the extensions that extend it. It throws when the
      * package that declared the command fails to load; an extension that fails to load is left
-     * out with a warning instead.
+     * out instead, and listed in `dropped` for the run to warn about.
      */
     loadCommand(command: MergedManifestCommand): Promise<LoadedCommand>;
 }
@@ -111,8 +126,11 @@ export interface LoadedCommand {
     definition?: CommandDefinition;
     /** The manifest entry of the command without the extensions in `dropped`. */
     manifestCommand: MergedManifestCommand;
-    /** The extensions left out because they failed to load, with the input fields each adds. */
-    dropped: Array<{ package: string; fields: string[]; reason: string }>;
+    /**
+     * The extensions left out because they failed to load, with the input fields each adds and the
+     * `plugin.extension-failed` error the run reports as a warning.
+     */
+    dropped: Array<{ package: string; fields: string[]; reason: string; error: CommandErrorBody }>;
     /**
      * Why the command cannot run with its extensions, when the manifest no longer matches them,
      * such as an extension's field that is now an internal field of the command.
@@ -275,7 +293,7 @@ export function mergeProjectManifests(
         }
         const extended = applyExtensions(manifest, commands, checkRegistration);
         if ('error' in extended) {
-            refused.push({ package: manifest.package, error: extended.error });
+            refused.push({ package: manifest.package, error: extended.error, kind: 'extensions' });
             continue;
         }
         for (const command of extended.commands) {
@@ -349,12 +367,6 @@ export function mergeProjectManifests(
                     kept.push({ packageName, extension, schemas: await extension.schemas() });
                 } catch (e) {
                     const reason = e instanceof Error ? e.message : String(e);
-                    const error = errorBody(hostErrors.pluginExtensionFailed, {
-                        plugin: packageName,
-                        command: key,
-                        reason,
-                    });
-                    process.stderr.write(`[${error.code}] ${error.message}\n`);
                     const part = extensionParts.get(`${packageName}\n${key}`);
                     if (part) {
                         result.manifestCommand = withoutExtension(result.manifestCommand, part, packageName);
@@ -363,6 +375,11 @@ export function mergeProjectManifests(
                         package: packageName,
                         fields: Object.keys((part?.input.properties as object | undefined) ?? {}),
                         reason,
+                        error: errorBody(hostErrors.pluginExtensionFailed, {
+                            plugin: packageName,
+                            command: key,
+                            reason,
+                        }),
                     });
                 }
             }

@@ -18,6 +18,7 @@ import {
     ConsentNeed,
     ErrorResult,
     InputNeed,
+    internalFieldsOf,
     isErrorResult,
     isFailedResult,
     isIncompleteResult,
@@ -102,6 +103,11 @@ export interface HostEnvironment {
     emit(event: CommandEvent): void;
     spawn: SpawnFn;
     findProjectRoot(): string | undefined;
+    /**
+     * Notices the host found before the run, such as an extension that failed to load. They start
+     * the run's notices, and are emitted as notice events, as those of `ctx.notice` are.
+     */
+    notices?: CommandNotice[];
     /**
      * Finds the credential a command with `requires.auth` needs, signing a person in only when
      * `ctx.ask` is set. Resolves to the credential, which `run()` receives as `ctx.credential`, or
@@ -524,7 +530,13 @@ export async function executeCommand(
     env: HostEnvironment,
     attempt = 1,
 ): Promise<HostResult> {
-    const notices: CommandNotice[] = [];
+    const notices: CommandNotice[] = [...(env.notices ?? [])];
+    // A repeated run keeps them, but a person sees them once.
+    if (attempt === 1) {
+        for (const { level, message } of env.notices ?? []) {
+            env.emit({ vendure: 'event', type: 'notice', level, message });
+        }
+    }
     try {
         const commandName = def.path.join(' ');
         if (def.requires?.project && !env.findProjectRoot()) {
@@ -545,10 +557,8 @@ export async function executeCommand(
             delete input[name];
         }
         // An internal field is set only by an extension, through `next()`, never by a caller.
-        for (const [field, meta] of Object.entries(def.cli?.fields ?? {})) {
-            if (meta.internal) {
-                delete input[field];
-            }
+        for (const field of internalFieldsOf(def.cli)) {
+            delete input[field];
         }
         const ctx = createContext(def, env, notices, consents);
         if (def.requires?.auth) {
@@ -583,7 +593,11 @@ export async function executeCommand(
             if (account) {
                 ctx.account = account;
             }
-            ctx.refreshCredential = async failedToken => {
+            ctx.refreshCredential = async (failedToken, refreshOptions) => {
+                // The run's signal, and a sooner one, such as that of an extension's `next()`.
+                const signal = refreshOptions?.signal
+                    ? AbortSignal.any([env.signal, refreshOptions.signal])
+                    : env.signal;
                 const current = ctx.credential;
                 if (!current || !env.refreshCredential) {
                     return undefined;
@@ -593,9 +607,13 @@ export async function executeCommand(
                 const refused = { ...current, token: failedToken ?? current.token };
                 let renewed: CommandCredential | undefined;
                 try {
-                    renewed = await env.refreshCredential(kind, refused, ctx);
+                    renewed = await env.refreshCredential(
+                        kind,
+                        refused,
+                        signal === env.signal ? ctx : { ...ctx, signal },
+                    );
                 } catch (e) {
-                    throw env.signal.aborted ? e : new CredentialRenewalError(e);
+                    throw signal.aborted ? e : new CredentialRenewalError(e);
                 }
                 if (renewed) {
                     ctx.credential = renewed;

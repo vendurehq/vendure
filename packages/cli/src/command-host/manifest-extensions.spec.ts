@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ResolvedCommandManifest } from '../shared/resolve-cli-plugins.js';
 
-import { mergeProjectManifests } from './manifest.js';
+import { describeRefusal, mergeProjectManifests } from './manifest.js';
 
 function manifestCommand(commandPath: string[], properties: Record<string, unknown> = {}): ManifestCommand {
     return {
@@ -129,9 +129,62 @@ describe('mergeProjectManifests with extensions', () => {
             {
                 package: '@acme/cloud',
                 error: expect.objectContaining({ code: 'plugin.extension-target-missing' }),
+                kind: 'extensions',
             },
         ]);
         expect(commands.map(command => command.path.join(' '))).toContain('cloud deploy');
+        // A person is told only the extensions were left out, and the package is not skipped.
+        expect(describeRefusal(refused[0])).toEqual({
+            headline: 'Refused the command extensions of CLI plugin',
+            skipped: false,
+        });
+        expect(describeRefusal({ package: '@acme/cloud', error: refused[0].error })).toEqual({
+            headline: 'Refused the defineCommand commands of CLI plugin',
+            skipped: true,
+        });
+    });
+
+    it('refuses an extension field named like a consent of the command, and a consent named like its field', () => {
+        const withConsent = manifest('@vendure/cli', [
+            { ...manifestCommand(['doctor'], { strict: { type: 'boolean' } }), consents: { fix: 'Fix it' } },
+        ]);
+        withConsent.commands[0].input.properties = {
+            strict: { type: 'boolean' },
+            fix: { type: 'string', description: 'The digest of the preview for this consent: Fix it' },
+        };
+
+        const field = mergeProjectManifests(withConsent, [
+            plugin('@acme/cloud', [], [extension(['doctor'], { fix: { type: 'boolean' } })]),
+        ]);
+        expect(field.refused[0]?.error).toMatchObject({
+            code: 'plugin.extension-clash',
+            message: expect.stringContaining('the input field "fix" of "doctor" is a consent of the command'),
+        });
+
+        const consent = mergeProjectManifests(withConsent, [
+            plugin(
+                '@acme/cloud',
+                [],
+                [
+                    extension(
+                        ['doctor'],
+                        {
+                            strict: {
+                                type: 'string',
+                                description: 'The digest of the preview for this consent',
+                            },
+                        },
+                        { consents: { strict: 'Be strict' } },
+                    ),
+                ],
+            ),
+        ]);
+        expect(consent.refused[0]?.error).toMatchObject({
+            code: 'plugin.extension-clash',
+            message: expect.stringContaining(
+                'the consent "strict" of "doctor" is an input field of the command',
+            ),
+        });
     });
 
     it('refuses all the extensions of a package when one clashes, and changes no command', () => {

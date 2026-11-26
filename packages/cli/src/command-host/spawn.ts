@@ -39,7 +39,8 @@ export const TIMEOUT_KILL_GRACE_MS = 2000;
 /**
  * Builds `ctx.spawn`. The process's stdout goes to `forwardStdout`, which the host points at
  * stderr under `--json`. Its stderr always goes to `process.stderr`. With `wholeLines`, both are
- * passed on in whole lines. The process is stopped when the signal fires.
+ * passed on in whole lines. The process is stopped when the signal fires, or the `signal` of its
+ * options.
  */
 export function createSpawn(
     cwd: string,
@@ -49,6 +50,8 @@ export function createSpawn(
 ): (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult> {
     return (command, args, options = {}) =>
         new Promise<SpawnResult>((resolve, reject) => {
+            // The host's signal, and a sooner one the command passes, such as that of `next()`.
+            const stop = options.signal ? AbortSignal.any([signal, options.signal]) : signal;
             const child = crossSpawn(command, args, {
                 cwd: options.cwd ?? cwd,
                 // The local-trust secret is only for the server of a `vendure dev` run, which that
@@ -96,7 +99,7 @@ export function createSpawn(
                 settled = true;
                 clearTimeout(timer);
                 clearTimeout(killTimer);
-                signal.removeEventListener('abort', onAbort);
+                stop.removeEventListener('abort', onAbort);
                 if (timedOut) {
                     // A grandchild can hold the pipes open after the kill. Nothing reads them now.
                     child.stdout?.destroy();
@@ -126,10 +129,10 @@ export function createSpawn(
                           }, TIMEOUT_KILL_GRACE_MS);
                       }, options.timeoutMs);
             const onAbort = () => child.kill('SIGTERM');
-            if (signal.aborted) {
+            if (stop.aborted) {
                 onAbort();
             }
-            signal.addEventListener('abort', onAbort, { once: true });
+            stop.addEventListener('abort', onAbort, { once: true });
             child.on('error', error => {
                 if (settled) {
                     return;
@@ -137,7 +140,7 @@ export function createSpawn(
                 settled = true;
                 clearTimeout(timer);
                 clearTimeout(killTimer);
-                signal.removeEventListener('abort', onAbort);
+                stop.removeEventListener('abort', onAbort);
                 reject(error);
             });
             child.on('close', exitCode => finish(exitCode));

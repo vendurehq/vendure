@@ -122,6 +122,7 @@ describe('extensions that clash with an internal field, or fail to load', () => 
                         'the input field "trace" of "tools sync" is an internal field of the command',
                     ),
                 }),
+                kind: 'extensions',
             },
         ]);
         const sync = commandAt(commands, 'tools sync');
@@ -146,7 +147,7 @@ describe('extensions that clash with an internal field, or fail to load', () => 
         expect(sync).toEqual(before);
     });
 
-    it('runs a command of the CLI without an extension whose module throws on import, with a warning', async () => {
+    it('runs a command of the CLI without an extension whose module throws on import, and lists it', async () => {
         fs.writeFileSync(path.join(dir, 'broken.mjs'), "throw new Error('broken on import');\n");
         const core = await buildCommandManifest('@vendure/cli', '4.0.0', [explainDefinition]);
         const broken = await buildCommandManifest('@acme/broken', '1.0.0', [], {
@@ -176,16 +177,20 @@ describe('extensions that clash with an internal field, or fail to load', () => 
             throw new Error('The command did not load');
         }
 
-        const warning = stderr.mock.calls.join('');
-        expect(warning).toContain('[plugin.extension-failed]');
-        expect(warning).toContain('The extension of "explain" from @acme/broken failed to load');
-        expect(warning).toContain('broken on import');
+        // The run reports it, as a notice of its envelope, so loading it writes nothing itself.
+        expect(stderr).not.toHaveBeenCalled();
         expect(definition).toBe(explainDefinition);
         expect(loaded.dropped).toEqual([
             {
                 package: '@acme/broken',
                 fields: ['shout'],
                 reason: expect.stringContaining('broken on import'),
+                error: expect.objectContaining({
+                    code: 'plugin.extension-failed',
+                    message: expect.stringContaining(
+                        'The extension of "explain" from @acme/broken failed to load',
+                    ),
+                }),
             },
         ]);
         expect(explain.extendedBy).toEqual([{ package: '@acme/broken', fields: ['shout'] }]);

@@ -12,7 +12,8 @@ import { z } from 'zod';
 
 import { executeWithCancellation } from './commander-adapter.js';
 import { consentDigest } from './digest.js';
-import { HostEnvironment } from './host.js';
+import { executeCommand, HostEnvironment } from './host.js';
+import { createSpawn } from './spawn.js';
 import { testCommand } from './test-command.js';
 
 const received: Array<Record<string, unknown>> = [];
@@ -160,6 +161,86 @@ describe('an extended command through the host', () => {
         expect(result.envelope.error).toMatchObject({
             code: 'cli.internal',
             message: expect.stringContaining('gave next() is not valid'),
+        });
+    });
+});
+
+describe('an extended command with processes and notices', () => {
+    it('stops a process that ctx.spawn started when the signal of next() fires, and next() resolves', async () => {
+        let exitCode: number | null | undefined;
+        const serve = defineCommand({
+            path: ['acme', 'serve'],
+            description: 'Serve',
+            behavior: 'service',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: unknown, ctx: CommandContext) => {
+                    const child = await ctx.spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], {
+                        quiet: true,
+                    });
+                    exitCode = child.exitCode;
+                    return { stopped: true };
+                },
+            }),
+        });
+        const stopsSoon = defineCommandExtension({
+            path: ['acme', 'serve'],
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input, _ctx, next) => {
+                    const controller = new AbortController();
+                    setTimeout(() => controller.abort(), 200);
+                    return next(undefined, { signal: controller.signal });
+                },
+            }),
+        });
+        const runSignal = new AbortController().signal;
+        const env: HostEnvironment = {
+            cwd: process.cwd(),
+            signal: runSignal,
+            mcp: false,
+            emit: () => undefined,
+            spawn: createSpawn(process.cwd(), runSignal, () => undefined),
+            findProjectRoot: () => undefined,
+        };
+        const started = Date.now();
+
+        const result = await executeCommand(applyCommandExtensions(serve, [stopsSoon]), {}, env);
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { stopped: true } });
+        // Stopped by the signal, long before the child's own 60 seconds.
+        expect(exitCode).not.toBe(0);
+        expect(Date.now() - started).toBeLessThan(10_000);
+    });
+
+    it("starts a run with the host's notices, in its envelope and as events", async () => {
+        const events: unknown[] = [];
+        const env: HostEnvironment = {
+            cwd: process.cwd(),
+            signal: new AbortController().signal,
+            mcp: false,
+            emit: event => events.push(event),
+            spawn: () => Promise.reject(new Error('no processes')),
+            findProjectRoot: () => undefined,
+            notices: [
+                { level: 'warning', message: '[plugin.extension-failed] The extension failed to load' },
+            ],
+        };
+
+        const result = await executeCommand(
+            applyCommandExtensions(deploy, [cloud((_input, _ctx, next) => next())]),
+            { project: 'storefront' },
+            env,
+        );
+
+        expect(result.envelope.notices).toEqual([
+            { level: 'warning', message: '[plugin.extension-failed] The extension failed to load' },
+        ]);
+        expect(events).toContainEqual({
+            vendure: 'event',
+            type: 'notice',
+            level: 'warning',
+            message: '[plugin.extension-failed] The extension failed to load',
         });
     });
 });

@@ -1,6 +1,7 @@
 import {
     CommandDefinition,
     CommandEvent,
+    internalFieldsOf,
     isIncompleteResult,
     JSON_SCHEMA_TARGET,
 } from '@vendure/common/lib/command';
@@ -486,12 +487,13 @@ async function runLeaf(
         return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
 
-    const result = await executeWithCancellation(
-        def,
-        input,
-        createHostEnvironment(controller, out),
-        controller,
-    );
+    const env = createHostEnvironment(controller, out);
+    // An extension that failed to load is a warning of the run, in its envelope's notices too.
+    env.notices = loaded.dropped.map(dropped => ({
+        level: 'warning' as const,
+        message: `[${dropped.error.code}] ${dropped.error.message}`,
+    }));
+    const result = await executeWithCancellation(def, input, env, controller);
     return finish(result, def);
 }
 
@@ -657,7 +659,7 @@ export async function findMismatch(
     const declared = Object.keys(
         ((await def.schemas()).input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET })
             .properties as object | undefined) ?? {},
-    ).filter(field => !def.cli?.fields?.[field]?.internal);
+    ).filter(field => !internalFieldsOf(def.cli).includes(field));
     const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
         field => !(field in manifestCommand.consents),
     );
