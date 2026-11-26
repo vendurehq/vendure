@@ -234,18 +234,40 @@ describe('SqlJobQueueStrategy next()', () => {
             let loadedCount = 0;
             const subscriber: EntitySubscriberInterface = {
                 afterLoad(entity, event) {
-                    // Only the records of this queue: the server's own job queue workers poll the
-                    // other queues on the same connection meanwhile, which made this test flaky
                     if (event?.metadata.name === 'JobRecord' && entity.queueName === queueName) {
                         loadedCount++;
                     }
                 },
             };
-            connection.subscribers.push(subscriber);
+            // The server's own job queue workers poll on the server's connection meanwhile, which
+            // made a count on that connection flaky. So next() runs on a connection of its own,
+            // and only that connection is counted. SQLite has one connection, and runs queries
+            // one at a time, so there the server's connection is used.
+            const ownConnection = isSQLite
+                ? undefined
+                : new DataSource({
+                      ...(connection.options as any),
+                      entities: [connection.getMetadata('JobRecord').target],
+                      subscribers: [],
+                      migrations: [],
+                      synchronize: false,
+                  });
+            const countedConnection = ownConnection ?? connection;
+            let countedStrategy = strategy;
+            if (ownConnection) {
+                await ownConnection.initialize();
+                const StrategyClass = strategy.constructor as new () => PollingJobQueueStrategy;
+                countedStrategy = new StrategyClass();
+                countedStrategy.init({ get: () => ({ rawConnection: ownConnection }) } as any);
+                // The first call also looks up the server version
+                expect(await countedStrategy.next(queueName)).toBeDefined();
+            }
+            countedConnection.subscribers.push(subscriber);
             try {
-                expect(await strategy.next(queueName)).toBeDefined();
+                expect(await countedStrategy.next(queueName)).toBeDefined();
             } finally {
-                connection.subscribers.splice(connection.subscribers.indexOf(subscriber), 1);
+                countedConnection.subscribers.splice(countedConnection.subscribers.indexOf(subscriber), 1);
+                await ownConnection?.destroy();
             }
             // Loading every pending job of the queue would be at least 2000 records
             expect(loadedCount).toBeLessThanOrEqual(5);
