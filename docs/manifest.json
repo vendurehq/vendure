@@ -3087,6 +3087,12 @@
               "file": "docs/reference/typescript-api/plugin/index.mdx",
               "children": [
                 {
+                  "title": "IsCompatible",
+                  "slug": "is-compatible",
+                  "file": "docs/reference/typescript-api/plugin/is-compatible.mdx",
+                  "lastModified": "2026-11-26T10:00:34Z"
+                },
+                {
                   "title": "Plugin Utilities",
                   "slug": "plugin-utilities",
                   "file": "docs/reference/typescript-api/plugin/plugin-utilities.mdx",
@@ -3108,7 +3114,7 @@
                   "title": "VendurePluginMetadata",
                   "slug": "vendure-plugin-metadata",
                   "file": "docs/reference/typescript-api/plugin/vendure-plugin-metadata.mdx",
-                  "lastModified": "2026-10-19T08:14:21+02:00"
+                  "lastModified": "2026-11-26T10:00:34Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
