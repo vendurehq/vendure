@@ -7,6 +7,17 @@ import { pauseForPromptDisplay } from '../utilities/utils.js';
 
 import { VendurePluginRef } from './vendure-plugin-ref.js';
 
+/**
+ * The `openProject` option of `loadProjectConfig`, for a command that shows a spinner while it
+ * analyzes the project.
+ */
+export function openAnalyzedProject(options: Parameters<typeof analyzeProject>[0]) {
+    return async () => {
+        const { project, vendureTsConfig } = await analyzeProject(options);
+        return { project, tsConfigPath: vendureTsConfig };
+    };
+}
+
 export async function analyzeProject(options: {
     providedVendurePlugin?: VendurePluginRef;
     cancelledMessage?: string;

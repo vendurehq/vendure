@@ -1,5 +1,7 @@
 import { CommandFix, defineError } from '@vendure/common/lib/command';
 
+import { configResolverFailed } from '../../shared/config-resolver.errors.js';
+
 const listPresetsFix: CommandFix = {
     path: ['seed'],
     input: {},
@@ -111,6 +113,7 @@ export const allSeedErrors = [
     seedConflictingOptions,
     seedCoreUnsupported,
     seedConfigUnreadable,
+    configResolverFailed,
     seedDatabaseUnreadable,
     seedCreateRecordInvalid,
     seedFailed,

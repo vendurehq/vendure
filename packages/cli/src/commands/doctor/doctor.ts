@@ -30,6 +30,7 @@ export async function doctorCommand(options?: DoctorOptions) {
 export async function collectDoctorReport(
     options: DoctorOptions | undefined,
     warn: (message: string) => void,
+    signal?: AbortSignal,
 ): Promise<DoctorReport> {
     const checksToRun = resolveChecks(options?.check, warn);
     validateProfile(options?.profile, warn);
@@ -74,7 +75,7 @@ export async function collectDoctorReport(
 
     // Check 3: Config loading, validation, plugin compatibility
     if (checksToRun.includes('config')) {
-        const configResult = await runConfigCheck(options?.config);
+        const configResult = await runConfigCheck(options?.config, signal);
         results.push(configResult.check);
         loadedConfig = configResult.config;
         vendureVersion = configResult.vendureVersion;

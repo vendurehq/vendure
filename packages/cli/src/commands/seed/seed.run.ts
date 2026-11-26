@@ -20,10 +20,14 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import {
+    configErrorResult,
+    loadProjectConfigWith,
+    loadSourceConfig,
+} from '../../shared/load-project-config.js';
 import { loadVendureConfigFromPath } from '../../shared/load-vendure-config-file.js';
 import { requireProjectCore, withCoreRunningInCli } from '../../shared/project-core.js';
 import { findVendureProjectRoot } from '../../shared/project-validation.js';
-import { loadProjectConfig } from '../migrate/migration-project.js';
 
 import { readSeedState, SeedState } from './seed-state.js';
 import {
@@ -63,7 +67,7 @@ export async function run(input: SeedInput, ctx: CommandContext): Promise<Comman
     } catch (e) {
         return seedErrorResult(e, core);
     }
-    const config = await loadConfig(ctx.cwd, input.config);
+    const config = await loadSeedConfig(ctx, input.config);
     if (isErrorResult(config)) {
         return config;
     }
@@ -92,7 +96,7 @@ async function runFirstRun(input: SeedInput, ctx: CommandContext): Promise<Comma
             : `there is no ${CREATE_RECORD_PATH}`;
         return { preset: { status: 'skipped', reason }, scenario: { status: 'skipped', reason } };
     }
-    const config = await loadConfig(ctx.cwd, input.config);
+    const config = await loadSeedConfig(ctx, input.config);
     if (isErrorResult(config)) {
         return config;
     }
@@ -273,21 +277,31 @@ async function readCreateRecord(
 }
 
 /**
- * Loads the project's Vendure config. A config at `--config`, `src/vendure-config.ts` or
- * `vendure-config.ts` is required directly, which is seconds faster than finding it by parsing the
- * project, and matters because `--first-run` runs on every `vendure dev` start.
+ * Loads the project's Vendure config. The config resolvers of the enabled packages come first.
+ * Then a config at `--config`, `src/vendure-config.ts` or `vendure-config.ts` is required directly,
+ * which is seconds faster than finding it by parsing the project, and matters because a package's
+ * `dev` command may run `--first-run` on every start.
  */
-async function loadConfig(cwd: string, configFile?: string): Promise<VendureConfig | ErrorResult> {
+export async function loadSeedConfig(
+    ctx: Pick<CommandContext, 'cwd' | 'signal'>,
+    configFile?: string,
+): Promise<VendureConfig | ErrorResult> {
     try {
-        const projectRoot = findVendureProjectRoot(cwd) ?? cwd;
-        const candidates = configFile
-            ? [path.resolve(cwd, configFile)]
-            : DEFAULT_CONFIG_FILES.map(file => path.join(projectRoot, file));
-        const configPath = candidates.find(candidate => existsSync(candidate));
-        const config = configPath ? await loadVendureConfigFromPath(configPath) : undefined;
-        return config ?? (await loadProjectConfig(configFile)).config;
+        const projectRoot = findVendureProjectRoot(ctx.cwd) ?? ctx.cwd;
+        const loaded = await loadProjectConfigWith(
+            { cwd: ctx.cwd, projectDir: projectRoot, configFile, signal: ctx.signal },
+            async () => {
+                const candidates = configFile
+                    ? [path.resolve(ctx.cwd, configFile)]
+                    : DEFAULT_CONFIG_FILES.map(file => path.join(projectRoot, file));
+                const configPath = candidates.find(candidate => existsSync(candidate));
+                const config = configPath ? await loadVendureConfigFromPath(configPath) : undefined;
+                return { config: config ?? (await loadSourceConfig({ configFile })).config };
+            },
+        );
+        return loaded.config;
     } catch (e) {
-        return fail(seedConfigUnreadable, { message: errorMessage(e) });
+        return configErrorResult(e, ctx.signal, seedConfigUnreadable);
     }
 }
 

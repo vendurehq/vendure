@@ -131,21 +131,50 @@ export async function loadVendureConfigFile(
 }
 
 /**
+ * Loads `.env`, and registers ts-node with the project's tsconfig and its path mappings, so the
+ * project's TypeScript files, such as its migrations, can be required.
+ */
+export async function prepareToRequireProjectFiles(projectDir: string): Promise<void> {
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    if (!findNearestTsConfig(packageJsonPath)) {
+        // A project with no tsconfig has no TypeScript files to register ts-node for.
+        await import('dotenv/config');
+        return;
+    }
+    await prepareToRequireConfig(packageJsonPath);
+}
+
+/**
+ * Requires a TypeScript or JavaScript module the way a config file is required: it loads `.env`,
+ * and registers ts-node with the tsconfig nearest the file and its path mappings, first. Returns
+ * the module's exports.
+ */
+export async function requireProjectModule(filePath: string): Promise<Record<string, unknown>> {
+    await prepareToRequireConfig(filePath);
+    return createRequire(import.meta.url)(filePath) as Record<string, unknown>;
+}
+
+/**
  * Loads the Vendure config from a known file, without parsing the project with ts-morph, which
  * takes seconds. The config is the export named `config`, or else the only export that has
  * `dbConnectionOptions`. Returns `undefined` when that does not identify one export, so the caller
  * can fall back to {@link loadVendureConfigFile}.
  */
 export async function loadVendureConfigFromPath(configFilePath: string): Promise<VendureConfig | undefined> {
-    await prepareToRequireConfig(configFilePath);
-    const configModule = createRequire(import.meta.url)(configFilePath) as Record<string, unknown>;
-    const isConfig = (value: unknown): value is VendureConfig =>
-        typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
-    if (isConfig(configModule.config)) {
+    const configModule = await requireProjectModule(configFilePath);
+    if (isVendureConfig(configModule.config)) {
         return configModule.config;
     }
-    const configs = Object.values(configModule).filter(isConfig);
+    const configs = Object.values(configModule).filter(isVendureConfig);
     return configs.length === 1 ? configs[0] : undefined;
+}
+
+/**
+ * Whether a value is taken to be a `VendureConfig`: an object with a `dbConnectionOptions`
+ * property. Nothing else is checked.
+ */
+export function isVendureConfig(value: unknown): value is VendureConfig {
+    return typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
 }
 
 /**
