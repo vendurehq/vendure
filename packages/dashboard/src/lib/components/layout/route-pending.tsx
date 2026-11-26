@@ -21,7 +21,8 @@ const LIST_ROWS = 10;
 
 /**
  * The page frame of `Page`: the same margin, gap and header row, with a
- * skeleton title and action.
+ * skeleton title and action. The action has the height of a button, so the row
+ * is as tall as the page's own header row and the boot shell's in `index.html`.
  */
 function PageSkeleton({
     kind,
@@ -35,10 +36,10 @@ function PageSkeleton({
             </span>
             <PageHeader className="items-center" aria-hidden="true">
                 <PageHeaderContent>
-                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4.5 w-32" />
                 </PageHeaderContent>
                 <PageHeaderActions>
-                    <Skeleton className={`h-8 ${actionWidth}`} />
+                    <Skeleton className={`h-8.5 ${actionWidth}`} />
                 </PageHeaderActions>
             </PageHeader>
             <div aria-hidden="true">{children}</div>
