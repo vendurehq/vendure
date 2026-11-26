@@ -49,13 +49,13 @@ Doc: `developer-guide/updating#versioning-policy--breaking-changes`
 
 ## Remedies
 
-| Cause                               | Remedy                                                                         | Reference                                         |
-| ----------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------- |
-| Packages not all upgraded           | Set every `@vendure/*` package to the new version, then install                | `developer-guide/updating#how-to-update`          |
-| New version needs schema changes    | Back up, `vendure migrate -g <name>`, review, test on non-production data, run | `developer-guide/updating#database-migrations`    |
-| Plugin not compatible               | Update the plugin, or see `version-mismatch.md`                                | `cases/version-mismatch.md`                       |
-| Compiler errors in custom code      | Fix the code against the changelog entries                                     | `developer-guide/updating#typescript-api-changes` |
-| Storefront or plugin GraphQL errors | Generate the GraphQL types again and fix the queries                           | `developer-guide/updating#graphql-schema-changes` |
+| Cause                               | Remedy                                                                               | Reference                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| Packages not all upgraded           | Set every `@vendure/*` package to the new version, then install                      | `developer-guide/updating#how-to-update`          |
+| New version needs schema changes    | Back up, `vendure migrate generate <name>`, review, test on non-production data, run | `developer-guide/updating#database-migrations`    |
+| Plugin not compatible               | Update the plugin, or see `version-mismatch.md`                                      | `cases/version-mismatch.md`                       |
+| Compiler errors in custom code      | Fix the code against the changelog entries                                           | `developer-guide/updating#typescript-api-changes` |
+| Storefront or plugin GraphQL errors | Generate the GraphQL types again and fix the queries                                 | `developer-guide/updating#graphql-schema-changes` |
 
 Never set `synchronize: true` on a production database to apply an upgrade.
 

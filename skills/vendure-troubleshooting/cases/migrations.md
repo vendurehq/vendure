@@ -12,7 +12,7 @@ diagnostics below need the versions given in the notes.
   names the `migrations` patterns.
 - `An error occurred when running migrations:` and the server does not start.
 - A fresh deployment against an empty database has no tables.
-- `vendure migrate -g <name>` creates an empty migration, or none.
+- `vendure migrate generate <name>` creates an empty migration, or none.
 
 ## Checks
 
@@ -47,10 +47,10 @@ that the config points to. Confirm that this is the intended database.
 
 | Cause                             | Remedy                                                                                            | Reference                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Schema does not match the config  | `vendure migrate -g <name>`, review the file, then `vendure migrate -r`                           | `developer-guide/migrations#migration-workflow`                                      |
-| Pending migrations not applied    | `vendure migrate -r`, or keep `runMigrations(config)` before `bootstrap()`                        | `developer-guide/migrations#3-run-the-migration`                                     |
+| Schema does not match the config  | `vendure migrate generate <name>`, review the file, then `vendure migrate run`                    | `developer-guide/migrations#migration-workflow`                                      |
+| Pending migrations not applied    | `vendure migrate run`, or keep `runMigrations(config)` before `bootstrap()`                       | `developer-guide/migrations#3-run-the-migration`                                     |
 | Last migration is wrong           | `vendure migrate --revert` (v4: `vendure migrate revert`), fix or delete the file, generate again | `developer-guide/migrations#reverting-a-migration`                                   |
-| No initial migration              | `vendure migrate -g initial --from-empty`                                                         | `developer-guide/migrations#generating-a-baseline-migration-for-an-existing-project` |
+| No initial migration              | `vendure migrate generate initial --from-empty`                                                   | `developer-guide/migrations#generating-a-baseline-migration-for-an-existing-project` |
 | Pattern matches no files          | Fix `dbConnectionOptions.migrations`, or build the project first                                  | `reference/typescript-api/migration/migration-diagnostic`                            |
 | `synchronize: true` in production | Set `synchronize: false` and use migrations                                                       | `developer-guide/migrations#synchronize-vs-migrate`                                  |
 | Generated migration is empty      | Build the project if entities changed, then generate again                                        | `developer-guide/cli#the-migrate-command`                                            |
@@ -64,7 +64,7 @@ Notes for the remedies:
   manual edit to keep existing data.
   Doc: `developer-guide/updating#database-migrations`
 - With MySQL or MariaDB, tell the user to back up the database before
-  `vendure migrate -r`.
+  `vendure migrate run`.
 
 ## Version notes
 
