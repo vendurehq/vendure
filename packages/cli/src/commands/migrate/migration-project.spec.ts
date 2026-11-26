@@ -20,12 +20,17 @@ describe('openMigrationProject()', () => {
     });
 
     it('returns a config from a config resolver, and passes the signal on', async () => {
-        vi.mocked(loadProjectConfig).mockResolvedValueOnce({ config, resolvedBy: '@acme/cloud' });
+        vi.mocked(loadProjectConfig).mockResolvedValueOnce({
+            config,
+            resolvedBy: '@acme/cloud',
+            projectDir: '/project',
+        });
         const signal = new AbortController().signal;
 
         expect(await openMigrationProject('my-config.ts', { cwd: '/project/src', signal })).toEqual({
             config,
             resolvedBy: '@acme/cloud',
+            projectDir: '/project',
         });
         expect(loadProjectConfig).toHaveBeenCalledWith({
             cwd: '/project/src',
@@ -43,6 +48,17 @@ describe('openMigrationProject()', () => {
             code: 'config.resolver-failed',
             details: { plugin: '@acme/cloud', message: 'no handle' },
         });
+    });
+
+    it('rethrows when the command was cancelled, so the host reports it as cancelled', async () => {
+        const controller = new AbortController();
+        controller.abort();
+        const aborted = new ConfigResolverFailedError({ plugin: '@acme/cloud', message: 'aborted' });
+        vi.mocked(loadProjectConfig).mockRejectedValueOnce(aborted);
+
+        await expect(
+            openMigrationProject(undefined, { cwd: '/project', signal: controller.signal }),
+        ).rejects.toBe(aborted);
     });
 
     it('reports any other failure as migrate.config-unreadable', async () => {

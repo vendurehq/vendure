@@ -18,6 +18,17 @@ export interface ConfigResolverContext {
      * cancelled, such as `vendure schema`, gives a signal that never fires.
      */
     signal: AbortSignal;
+    /**
+     * Loads a TypeScript or JavaScript config file the way the CLI loads the project's own: it
+     * loads `.env` from the working directory, and registers ts-node with the tsconfig nearest the
+     * file and its path mappings. The CLI does neither before a resolver calls it. A relative path is resolved against `projectDir`. It
+     * returns the export named `config`, or else the only export that is a `VendureConfig`, and
+     * throws when the file has neither.
+     *
+     * The return type is `object` because `@vendure/common` does not depend on `@vendure/core`. It
+     * is a `VendureConfig`.
+     */
+    loadConfigFile(configFile: string): Promise<object>;
 }
 
 /**

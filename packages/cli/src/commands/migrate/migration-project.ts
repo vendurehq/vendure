@@ -23,6 +23,10 @@ export async function openMigrationProject(
     try {
         return await loadProjectConfig({ cwd: ctx.cwd, configFile, signal: ctx.signal });
     } catch (e) {
+        // Thrown, so the host reports the command as cancelled.
+        if (ctx.signal.aborted) {
+            throw e;
+        }
         if (e instanceof ConfigResolverFailedError) {
             return fail(configResolverFailed, e.details);
         }
@@ -36,14 +40,15 @@ export async function openMigrationProject(
  * next to the config file's directory. A config from a config resolver has no file, so the last
  * two are `migrations` in the project's root directory.
  */
-export function defaultMigrationDir({ config, ref, projectDir }: ProjectConfig): string {
-    const migrations = config.dbConnectionOptions.migrations;
+export function defaultMigrationDir(project: ProjectConfig): string {
+    const migrations = project.config.dbConnectionOptions.migrations;
     if (Array.isArray(migrations) && typeof migrations[0] === 'string') {
         return path.normalize(path.dirname(migrations[0]));
     }
-    if (!ref) {
-        return path.join(projectDir ?? process.cwd(), 'migrations');
+    if ('resolvedBy' in project) {
+        return path.join(project.projectDir, 'migrations');
     }
+    const { ref } = project;
     const migrationFile = ref.sourceFile
         .getProject()
         .getSourceFiles()

@@ -50,6 +50,7 @@ describe('loadSeedConfig()', () => {
         vi.mocked(resolveProjectConfig).mockResolvedValueOnce({
             config: resolved,
             resolvedBy: '@acme/cloud',
+            projectDir: dir,
         });
 
         expect(await loadSeedConfig(ctx, 'my-config.ts')).toBe(resolved);
@@ -80,5 +81,14 @@ describe('loadSeedConfig()', () => {
             details: { plugin: '@acme/cloud', message: 'no handle' },
         });
         expect(loadVendureConfigFromPath).not.toHaveBeenCalled();
+    });
+
+    it('rethrows when the command was cancelled, so the host reports it as cancelled', async () => {
+        const controller = new AbortController();
+        controller.abort();
+        const aborted = new Error('This operation was aborted');
+        vi.mocked(resolveProjectConfig).mockRejectedValueOnce(aborted);
+
+        await expect(loadSeedConfig({ cwd: dir, signal: controller.signal })).rejects.toBe(aborted);
     });
 });

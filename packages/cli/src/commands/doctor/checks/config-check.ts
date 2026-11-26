@@ -37,18 +37,15 @@ export async function runConfigCheck(configFlag?: string, signal?: AbortSignal):
         core.resetConfig();
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
 
-        // 1. Ask the config resolvers of the enabled packages, then
-        // 2. find the VendureConfig in the source (ts-morph), and
-        // 3. load it at runtime (ts-node, path mappings, dotenv)
         const config = await loadDoctorConfig(configFlag, details, signal);
 
-        // 4. Run preBootstrapConfig() -- validates custom fields, registers entities,
+        // Run preBootstrapConfig() -- validates custom fields, registers entities,
         //    runs plugin configuration() hooks, sets strategies
         runtimeConfig = await core.preBootstrapConfig(config);
         details.push('Custom fields validated');
         details.push('Plugin configuration completed');
 
-        // 5. Check plugin compatibility
+        // Check plugin compatibility
         const pluginResults = checkPlugins(runtimeConfig, core);
         details.push(...pluginResults.details);
 
@@ -115,9 +112,9 @@ async function loadDoctorConfig(
         },
     });
     details.push(
-        loaded.ref
-            ? `Config loaded from ${loaded.ref.getPathRelativeToProjectRoot()}`
-            : `Config resolved by ${loaded.resolvedBy}`,
+        'resolvedBy' in loaded
+            ? `Config resolved by ${loaded.resolvedBy}`
+            : `Config loaded from ${loaded.ref.getPathRelativeToProjectRoot()}`,
     );
     return loaded.config;
 }

@@ -9,9 +9,13 @@ import {
     loadProjectConfig,
     resolveProjectConfig,
 } from './load-project-config.js';
-import { loadVendureConfigFile } from './load-vendure-config-file.js';
-import { ResolvedCommandManifest } from './resolve-cli-plugins.js';
+import { loadVendureConfigFile, loadVendureConfigFromPath } from './load-vendure-config-file.js';
+import { ResolvedCommandManifest, resolveCommandManifests } from './resolve-cli-plugins.js';
 
+vi.mock('./resolve-cli-plugins.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('./resolve-cli-plugins.js')>()),
+    resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
+}));
 vi.mock('./open-project.js', () => ({
     openProject: vi.fn(() => Promise.resolve({ project: {}, tsConfigPath: '/project/tsconfig.json' })),
 }));
@@ -24,6 +28,9 @@ vi.mock('./load-vendure-config-file.js', async importOriginal => ({
     ...(await importOriginal<typeof import('./load-vendure-config-file.js')>()),
     loadVendureConfigFile: vi.fn(() =>
         Promise.resolve({ dbConnectionOptions: { type: 'sqlite' }, from: 'source' }),
+    ),
+    loadVendureConfigFromPath: vi.fn(() =>
+        Promise.resolve({ dbConnectionOptions: { type: 'sqlite' }, from: 'loadConfigFile' }),
     ),
 }));
 
@@ -84,7 +91,7 @@ describe('loadProjectConfig()', () => {
             plugin('@acme/later', "return { dbConnectionOptions: { type: 'mysql' }, from: 'later' };"),
         ];
 
-        const result = await loadProjectConfig({ projectDir: dir, configFile: 'my-config.ts', plugins });
+        const result = await loadProjectConfig({ cwd: dir, projectDir: dir, configFile: 'my-config.ts', plugins });
 
         expect(result).toEqual({
             config: { dbConnectionOptions: { type: 'postgres' }, from: 'cloud' },
@@ -92,9 +99,10 @@ describe('loadProjectConfig()', () => {
             projectDir: dir,
         });
         expect(calls).toHaveLength(2);
-        expect(calls[1]).toMatchObject({ projectDir: dir, configFile: path.resolve('my-config.ts') });
+        expect(calls[1]).toMatchObject({ projectDir: dir, configFile: path.join(dir, 'my-config.ts') });
         expect(calls[1].signal).toBeInstanceOf(AbortSignal);
         expect(loadVendureConfigFile).not.toHaveBeenCalled();
+        expect(loadVendureConfigFromPath).not.toHaveBeenCalled();
     });
 
     it('gives the resolver --config as an absolute path, resolved from the working directory', async () => {
@@ -116,7 +124,45 @@ describe('loadProjectConfig()', () => {
         const result = await loadProjectConfig({ projectDir: dir, plugins: [], openProject: opener });
 
         expect(opener).toHaveBeenCalledOnce();
-        expect(loadVendureConfigFile).toHaveBeenCalledWith(result.ref, '/project/tsconfig.vendure.json');
+        expect(loadVendureConfigFile).toHaveBeenCalledWith(
+            'ref' in result ? result.ref : undefined,
+            '/project/tsconfig.vendure.json',
+        );
+    });
+
+    it('loads a config file for the resolver, relative to the project, only when it asks', async () => {
+        const result = await resolveProjectConfig({
+            projectDir: dir,
+            plugins: [
+                plugin('@acme/other', 'return undefined;'),
+                plugin('@acme/cloud', "return { ...(await ctx.loadConfigFile('src/vendure-config.ts')), port: 1 };"),
+            ],
+        });
+
+        expect(loadVendureConfigFromPath).toHaveBeenCalledOnce();
+        expect(loadVendureConfigFromPath).toHaveBeenCalledWith(path.join(dir, 'src', 'vendure-config.ts'));
+        expect(result?.config).toEqual({
+            dbConnectionOptions: { type: 'sqlite' },
+            from: 'loadConfigFile',
+            port: 1,
+        });
+    });
+
+    it('reports a config file with no VendureConfig export as a failure of the resolver', async () => {
+        vi.mocked(loadVendureConfigFromPath).mockResolvedValueOnce(undefined);
+        const configFile = path.join(dir, 'cloud.config.ts');
+
+        await expect(
+            resolveProjectConfig({
+                projectDir: dir,
+                plugins: [plugin('@acme/cloud', `return ctx.loadConfigFile(${JSON.stringify(configFile)});`)],
+            }),
+        ).rejects.toMatchObject({
+            details: {
+                plugin: '@acme/cloud',
+                message: `${configFile} exports no "config", and not exactly one other VendureConfig`,
+            },
+        });
     });
 
     it('passes the signal it was given to the resolver', async () => {
@@ -137,9 +183,12 @@ describe('loadProjectConfig()', () => {
         });
 
         expect(result.config).toEqual({ dbConnectionOptions: { type: 'sqlite' }, from: 'source' });
-        expect(result.configPath).toBe('/project/src/vendure-config.ts');
-        expect(result.resolvedBy).toBeUndefined();
-        expect(loadVendureConfigFile).toHaveBeenCalledWith(result.ref, '/project/tsconfig.json');
+        expect(result).toMatchObject({ configPath: '/project/src/vendure-config.ts' });
+        expect('resolvedBy' in result).toBe(false);
+        expect(loadVendureConfigFile).toHaveBeenCalledWith(
+            'ref' in result ? result.ref : undefined,
+            '/project/tsconfig.json',
+        );
     });
 
     it('throws config.resolver-failed, naming the package, when a resolver throws', async () => {
@@ -171,6 +220,43 @@ describe('loadProjectConfig()', () => {
                 message: expect.stringContaining('exports no "configResolver", which its manifest lists'),
             },
         });
+    });
+
+    it('rethrows the error of a resolver that stops because the command was cancelled', async () => {
+        const controller = new AbortController();
+        controller.abort();
+        const plugins = [plugin('@acme/cloud', 'ctx.signal.throwIfAborted();')];
+
+        const error = await loadProjectConfig({ projectDir: dir, signal: controller.signal, plugins }).catch(
+            e => e,
+        );
+
+        expect(error).not.toBeInstanceOf(ConfigResolverFailedError);
+        expect(error.name).toBe('AbortError');
+    });
+
+    it('names the enabled packages whose manifest could not be read when the source has no config', async () => {
+        const withFailure = {
+            manifests: [],
+            failures: [
+                {
+                    packageName: '@acme/cloud',
+                    reason: 'vendure-commands.json is missing',
+                    scope: 'project',
+                    notInstalled: false,
+                    declaresCommandManifest: true,
+                },
+            ],
+            scopeErrors: [],
+        } as unknown as ReturnType<typeof resolveCommandManifests>;
+        // Once for the resolvers, and once for the error.
+        vi.mocked(resolveCommandManifests).mockReturnValueOnce(withFailure).mockReturnValueOnce(withFailure);
+        vi.mocked(loadVendureConfigFile).mockRejectedValueOnce(new Error('No VendureConfig found.'));
+
+        await expect(loadProjectConfig({ projectDir: dir })).rejects.toThrow(
+            'No VendureConfig found. The manifest of these enabled packages could not be read, so any ' +
+                'config resolver they have was not asked: @acme/cloud (vendure-commands.json is missing)',
+        );
     });
 
     it('lists only the packages whose manifests have a config resolver, without importing them', () => {

@@ -35,7 +35,8 @@ describe('vendure add plugin without a VendureConfig in the source', () => {
             details: {
                 message:
                     "Could not find the VendureConfig declaration in your project. This project's config may come " +
-                    'from the config resolver of @acme/cloud, which is not a file this command can add the plugin to',
+                    'from the config resolver of @acme/cloud. This command can add a plugin only to a ' +
+                    'VendureConfig declared in the source.',
             },
         });
     });

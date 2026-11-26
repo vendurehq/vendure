@@ -25,6 +25,7 @@ import {
     ConfigResolverFailedError,
     loadSourceConfig,
     resolveProjectConfig,
+    withUnreadableManifests,
 } from '../../shared/load-project-config.js';
 import { loadVendureConfigFromPath } from '../../shared/load-vendure-config-file.js';
 import { requireProjectCore, withCoreRunningInCli } from '../../shared/project-core.js';
@@ -303,8 +304,19 @@ export async function loadSeedConfig(
             : DEFAULT_CONFIG_FILES.map(file => path.join(projectRoot, file));
         const configPath = candidates.find(candidate => existsSync(candidate));
         const config = configPath ? await loadVendureConfigFromPath(configPath) : undefined;
-        return config ?? (await loadSourceConfig({ configFile })).config;
+        if (config) {
+            return config;
+        }
+        try {
+            return (await loadSourceConfig({ configFile })).config;
+        } catch (e) {
+            throw withUnreadableManifests(e, { cwd: ctx.cwd, projectDir: projectRoot });
+        }
     } catch (e) {
+        // Thrown, so the host reports the command as cancelled.
+        if (ctx.signal.aborted) {
+            throw e;
+        }
         if (e instanceof ConfigResolverFailedError) {
             return fail(configResolverFailed, e.details);
         }

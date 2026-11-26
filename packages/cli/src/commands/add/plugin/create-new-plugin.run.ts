@@ -30,8 +30,8 @@ export async function run(input: { name: string; dir?: string; config?: string }
         const message = e instanceof Error ? e.message : String(e);
         return fail(vendureConfigNotFound, {
             message: resolvers.length
-                ? `${message.replace(/\.$/, '')}. This project's config may come from the config resolver of ` +
-                  `${resolvers.join(' or ')}, which is not a file this command can add the plugin to`
+                ? `${message} This project's config may come from the config resolver of ${resolvers.join(' or ')}. ` +
+                  'This command can add a plugin only to a VendureConfig declared in the source.'
                 : message,
         });
     }

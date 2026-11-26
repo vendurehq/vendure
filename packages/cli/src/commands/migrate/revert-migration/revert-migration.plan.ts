@@ -17,7 +17,7 @@ export async function plan(
     if (isErrorResult(project)) {
         return project;
     }
-    const { config, configPath, resolvedBy } = project;
+    const { config } = project;
     let migration: string | null;
     try {
         migration = await lastAppliedMigration(config);
@@ -28,7 +28,8 @@ export async function plan(
     return {
         preview: {
             action: 'Revert the last applied database migration',
-            config: configPath ?? `the config resolver of ${resolvedBy}`,
+            config:
+                'resolvedBy' in project ? `the config resolver of ${project.resolvedBy}` : project.configPath,
             database: describeDatabase(config),
             lastAppliedMigration: migration,
         },

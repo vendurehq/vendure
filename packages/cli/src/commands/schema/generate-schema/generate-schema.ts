@@ -36,7 +36,7 @@ export async function generateSchema(options: SchemaOptions) {
         const typePaths =
             apiType === 'shop' ? core.VENDURE_SHOP_API_TYPE_PATHS : core.VENDURE_ADMIN_API_TYPE_PATHS;
 
-        const runtimeConfig = await core.runPluginConfigurations(core.getConfig() as any);
+        const runtimeConfig = await core.runPluginConfigurations(core.getConfig());
         const { GraphQLTypesLoader } = requireFromProjectCore<{
             GraphQLTypesLoader: new () => GraphQLTypesLoaderType;
         }>('@nestjs/graphql');
@@ -85,9 +85,9 @@ async function loadSchemaConfig(configFile: string | undefined): Promise<Vendure
         },
     });
     log.info(
-        loaded.ref
-            ? 'Using VendureConfig from ' + loaded.ref.getPathRelativeToProjectRoot()
-            : 'Using the VendureConfig resolved by ' + loaded.resolvedBy,
+        'resolvedBy' in loaded
+            ? 'Using the VendureConfig resolved by ' + loaded.resolvedBy
+            : 'Using VendureConfig from ' + loaded.ref.getPathRelativeToProjectRoot(),
     );
     return loaded.config;
 }
