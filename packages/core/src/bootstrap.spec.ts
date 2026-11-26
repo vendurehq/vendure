@@ -744,7 +744,7 @@ describe('isCompatible()', () => {
     it('accepts a prerelease of a release the range covers', () => {
         expect(isCompatible('4.0.0-major-202611260711', '^4.0.0')).toBe(true);
         expect(isCompatible('4.0.0-preview.3', '^4.0.0')).toBe(true);
-        expect(isCompatible('4.1.0-minor-202612010000', '^4.0.0')).toBe(true);
+        expect(isCompatible('4.0.0-preview.3', '>=4.0.0 <4.1.0')).toBe(true);
     });
 
     it('refuses a prerelease of a release outside the range', () => {
@@ -755,5 +755,6 @@ describe('isCompatible()', () => {
     it('keeps the ranges that already matched prereleases', () => {
         expect(isCompatible('4.0.0-major-202611260711', '>0.0.0')).toBe(true);
         expect(isCompatible('4.0.0-major-202611260711', '>=3.3.0')).toBe(true);
+        expect(isCompatible('4.1.0-minor-202612010000', '^4.0.0')).toBe(true);
     });
 });

@@ -431,9 +431,16 @@ export async function preBootstrapConfig(
 }
 
 /**
- * Whether a Vendure version satisfies a plugin's compatibility range. A prerelease, such as a
- * `4.0.0-major-…` nightly or a `4.0.0-preview.3`, also counts as the release it leads to, so a
- * plugin that declares `^4.0.0` can be tried on it.
+ * @description
+ * Returns whether a Vendure version satisfies a plugin's `compatibility` range. This is the
+ * check that runs at bootstrap.
+ *
+ * A prerelease version also passes when its release version (`semver.coerce`) satisfies the
+ * range. A range such as `^4.0.0` does not match `4.0.0-preview.3` or a `4.0.0-major-…` nightly
+ * by itself, because those come before `4.0.0`.
+ *
+ * @docsCategory plugin
+ * @since 4.0.0
  */
 export function isCompatible(version: string, range: string): boolean {
     const options = { loose: true, includePrerelease: true };
