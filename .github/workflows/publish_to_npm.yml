@@ -19,6 +19,7 @@ on:
           - release
           - master-nightly
           - minor-nightly
+          - major-nightly
 
 jobs:
   # Determine which publish type(s) to run based on trigger
@@ -48,7 +49,7 @@ jobs:
           if [ "${{ github.event_name }}" == "release" ]; then
             echo 'matrix=["release"]' >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "schedule" ]; then
-            echo 'matrix=["master-nightly", "minor-nightly"]' >> $GITHUB_OUTPUT
+            echo 'matrix=["master-nightly", "minor-nightly", "major-nightly"]' >> $GITHUB_OUTPUT
           else
             echo 'matrix=["${{ inputs.publish_type }}"]' >> $GITHUB_OUTPUT
           fi
@@ -58,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     # The OIDC token minted for this job carries an `environment: npm-publish`
     # claim, which the npm trusted publishers require (`npm trust --env`). The
-    # environment's deployment-branch policy (master, minor, v* tags) is
+    # environment's deployment-branch policy (master, minor, major, v* tags) is
     # enforced by GitHub before the job runs, so a publish cannot originate
     # from an arbitrary branch — closing the workflow_dispatch branch-bypass.
     # The environment has NO required reviewers, so nightlies stay unattended.
@@ -68,7 +69,7 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
-      # Both nightly jobs publish new versions of the same packages. npm rejects
+      # The nightly jobs publish new versions of the same packages. npm rejects
       # a publish with E409 while it is still processing a previous publish of
       # the same package, so the jobs must not run concurrently.
       max-parallel: 1
@@ -79,7 +80,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ matrix.type == 'minor-nightly' && 'minor' || matrix.type == 'master-nightly' && 'master' || '' }}
+          ref: ${{ matrix.type == 'minor-nightly' && 'minor' || matrix.type == 'master-nightly' && 'master' || matrix.type == 'major-nightly' && 'major' || '' }}
           fetch-depth: ${{ matrix.type == 'release' && 1 || 0 }}
 
       # For nightly builds: check if there were commits in the last 24 hours
@@ -150,6 +151,23 @@ jobs:
           NEW_VERSION="${VERSION_PARTS[0]}.${MINOR}.0-minor-${{ steps.date.outputs.date }}"
           bunx lerna version $NEW_VERSION --no-git-tag-version --yes --no-push --force-publish
 
+      # `packages/core` on major holds either the last release, whose next major is published
+      # (3.8.2 gives 4.0.0), or a prerelease of the next major, whose version is kept (4.0.0-preview.3
+      # gives 4.0.0). The step runs major's own `release:version` script.
+      - name: Version packages (major-nightly)
+        if: matrix.type == 'major-nightly' && steps.commit_check.outputs.should_publish == 'true'
+        run: |
+          CURRENT_VERSION=$(node -p "require('./packages/core/package.json').version")
+          BASE_VERSION="${CURRENT_VERSION%%-*}"
+          IFS='.' read -r -a VERSION_PARTS <<< "$BASE_VERSION"
+          if [ "$CURRENT_VERSION" = "$BASE_VERSION" ]; then
+            NEXT_VERSION="$((VERSION_PARTS[0] + 1)).0.0"
+          else
+            NEXT_VERSION="$BASE_VERSION"
+          fi
+          NEW_VERSION="${NEXT_VERSION}-major-${{ steps.date.outputs.date }}"
+          bun run release:version "$NEW_VERSION" --skip-git
+
       - name: Commit version changes
         if: matrix.type != 'release' && steps.commit_check.outputs.should_publish == 'true'
         run: |
@@ -166,7 +184,7 @@ jobs:
       # requires manual maintainer approval (with 2FA) before going live on the public registry.
       # Approve all staged packages at once with: scripts/npm-stage-approve-all.sh <version>
       # Nightly builds still use direct `npm publish` because they target non-default dist-tags
-      # (`master` / `minor`) that nobody installs unless they opt in explicitly.
+      # (`master` / `minor` / `major`) that nobody installs unless they opt in explicitly.
       #
       # No --tag here is intentional: releases go to the default `latest` tag.
       - name: Publish to NPM (release)
@@ -187,6 +205,24 @@ jobs:
         if: matrix.type == 'minor-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
           bunx lerna exec --no-private --no-bail -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && for i in 1 2 3; do npm publish --access public --tag minor && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done'
+
+      # A failed package discovery, or a publish directory that does not exist, fails the step
+      # instead of publishing nothing, or the wrong directory, and reporting success.
+      - name: Publish to NPM (major-nightly)
+        if: matrix.type == 'major-nightly' && steps.commit_check.outputs.should_publish == 'true'
+        run: |
+          dirs=$(node .github/workflows/scripts/public-package-dirs.js) || exit 1
+          if [ -z "$dirs" ]; then echo "No public packages found"; exit 1; fi
+          failed=0
+          for dir in $dirs; do
+            (
+              cd "$dir" || exit 1
+              publish_dir=$(node -p "require('./package.json').publishConfig?.directory || '.'") || exit 1
+              cd "$publish_dir" || exit 1
+              for i in 1 2 3; do npm publish --access public --tag major && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done
+            ) || failed=1
+          done
+          exit $failed
 
       - name: Skip publish (no new commits)
         if: matrix.type != 'release' && steps.commit_check.outputs.should_publish == 'false'
