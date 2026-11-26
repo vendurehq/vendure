@@ -5,10 +5,13 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
-import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
-import { ConfigResolverFailedError, loadProjectConfig } from '../../../shared/load-project-config.js';
+import {
+    describeConfigError,
+    describeConfigSource,
+    loadProjectConfig,
+} from '../../../shared/load-project-config.js';
 import { requireFromProjectCore, requireProjectCore } from '../../../shared/project-core.js';
-import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { openAnalyzedProject } from '../../../shared/shared-prompts.js';
 import { type SchemaOptions } from '../schema.js';
 
 const cancelledMessage = 'Generate schema cancelled';
@@ -63,10 +66,7 @@ export async function generateSchema(options: SchemaOptions) {
         log.info(`Generated schema: ${outFile}`);
     } catch (e: unknown) {
         rethrowCliCommandExit(e);
-        const message = e instanceof Error ? e.message : String(e);
-        log.error(
-            e instanceof ConfigResolverFailedError ? `${configResolverFailed.code}: ${message}` : message,
-        );
+        log.error(describeConfigError(e));
         exitCliCommand(1);
     }
 }
@@ -79,15 +79,8 @@ export async function generateSchema(options: SchemaOptions) {
 async function loadSchemaConfig(configFile: string | undefined): Promise<VendureConfig> {
     const loaded = await loadProjectConfig({
         configFile,
-        openProject: async () => {
-            const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
-            return { project, tsConfigPath: vendureTsConfig };
-        },
+        openProject: openAnalyzedProject({ cancelledMessage }),
     });
-    log.info(
-        'resolvedBy' in loaded
-            ? 'Using the VendureConfig resolved by ' + loaded.resolvedBy
-            : 'Using VendureConfig from ' + loaded.ref.getPathRelativeToProjectRoot(),
-    );
+    log.info(`Using the VendureConfig from ${describeConfigSource(loaded)}`);
     return loaded.config;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { configResolverDeclaration, defineConfigResolver } from './config-resolver';
+import { ConfigResolverDefinition, configResolverDeclaration, defineConfigResolver } from './config-resolver';
 import { buildCommandManifest } from './manifest/build';
 
 const resolver = defineConfigResolver({
@@ -34,5 +34,13 @@ describe('buildCommandManifest() with a config resolver', () => {
 
         expect(withResolver.hasConfigResolver).toBe(true);
         expect('hasConfigResolver' in without).toBe(false);
+    });
+
+    it('rejects a config resolver that has no resolve() function', async () => {
+        await expect(
+            buildCommandManifest('@acme/cloud', '1.0.0', [], {
+                configResolver: {} as unknown as ConfigResolverDefinition,
+            }),
+        ).rejects.toThrow('The module exports "configResolver" that has no resolve() function');
     });
 });

@@ -15,6 +15,7 @@ import { loadSeedConfig } from './seed.run.js';
 
 vi.mock('../../shared/load-project-config.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../shared/load-project-config.js')>()),
+    enabledManifests: vi.fn(() => ({ plugins: [], unreadable: [] })),
     resolveProjectConfig: vi.fn(),
     loadSourceConfig: vi.fn(),
 }));
@@ -59,6 +60,7 @@ describe('loadSeedConfig()', () => {
             projectDir: dir,
             configFile: 'my-config.ts',
             signal: ctx.signal,
+            plugins: [],
         });
         expect(loadVendureConfigFromPath).not.toHaveBeenCalled();
     });

@@ -1,10 +1,13 @@
 import type { RuntimeVendureConfig, VendureConfig } from '@vendure/core';
 import { satisfies } from 'semver';
 
-import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
-import { ConfigResolverFailedError, loadProjectConfig } from '../../../shared/load-project-config.js';
+import {
+    describeConfigError,
+    describeConfigSource,
+    loadProjectConfig,
+} from '../../../shared/load-project-config.js';
 import { requireProjectCore } from '../../../shared/project-core.js';
-import { analyzeProject } from '../../../shared/shared-prompts.js';
+import { openAnalyzedProject } from '../../../shared/shared-prompts.js';
 import { CheckResult } from '../types.js';
 
 export interface ConfigCheckResult {
@@ -70,12 +73,11 @@ export async function runConfigCheck(configFlag?: string, signal?: AbortSignal):
             vendureVersion,
         };
     } catch (e: any) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        details.push(
-            e instanceof ConfigResolverFailedError
-                ? `Error (${configResolverFailed.code}): ${errorMessage}`
-                : `Error: ${errorMessage}`,
-        );
+        // Thrown, so the host reports the command as cancelled, not as a failed check.
+        if (signal?.aborted) {
+            throw e;
+        }
+        details.push(describeConfigError(e));
         return {
             check: {
                 name: 'Config',
@@ -103,19 +105,9 @@ async function loadDoctorConfig(
     const loaded = await loadProjectConfig({
         configFile: configFlag,
         signal,
-        openProject: async () => {
-            const { project, vendureTsConfig } = await analyzeProject({
-                cancelledMessage: '',
-                config: configFlag,
-            });
-            return { project, tsConfigPath: vendureTsConfig };
-        },
+        openProject: openAnalyzedProject({ cancelledMessage: '', config: configFlag }),
     });
-    details.push(
-        'resolvedBy' in loaded
-            ? `Config resolved by ${loaded.resolvedBy}`
-            : `Config loaded from ${loaded.ref.getPathRelativeToProjectRoot()}`,
-    );
+    details.push(`Config loaded from ${describeConfigSource(loaded)}`);
     return loaded.config;
 }
 

@@ -8,9 +8,10 @@ import { isVendureConfig, loadVendureConfigFile, requireProjectModule } from './
 import { openProject } from './open-project.js';
 import { findVendureProjectRoot } from './project-validation.js';
 import {
+    CliPluginLoadFailure,
     failureAffectsCommandManifest,
-    ResolvedCommandManifest,
     resolveCommandManifests,
+    ResolvedCommandManifest,
 } from './resolve-cli-plugins.js';
 import { VendureConfigRef } from './vendure-config-ref.js';
 
@@ -77,24 +78,51 @@ export function configResolverPackages(
     return plugins.filter(plugin => plugin.manifest.hasConfigResolver === true);
 }
 
+/** Where a project's config came from, for a message: the resolver's package, or the config file. */
+export function describeConfigSource(loaded: ProjectConfig): string {
+    return 'resolvedBy' in loaded
+        ? `the config resolver of ${loaded.resolvedBy}`
+        : loaded.ref.getPathRelativeToProjectRoot();
+}
+
+/** The message of an error that stopped a config from loading, with its code for a failed resolver. */
+export function describeConfigError(e: unknown): string {
+    const message = e instanceof Error ? e.message : String(e);
+    return e instanceof ConfigResolverFailedError
+        ? `Error (${configResolverFailed.code}): ${message}`
+        : `Error: ${message}`;
+}
+
+/** The project's root directory for {@link LoadProjectConfigOptions}. */
+function projectDirOf(options: Pick<LoadProjectConfigOptions, 'cwd' | 'projectDir'>): string {
+    const cwd = options.cwd ?? process.cwd();
+    return path.resolve(cwd, options.projectDir ?? findVendureProjectRoot(cwd) ?? cwd);
+}
+
+/**
+ * The enabled packages' manifests, and the enabled packages whose manifest could not be read. It
+ * reads manifests only. Given `plugins`, it returns them, with no failures.
+ */
+export function enabledManifests(
+    options: Pick<LoadProjectConfigOptions, 'cwd' | 'projectDir' | 'plugins'> = {},
+): {
+    plugins: ResolvedCommandManifest[];
+    unreadable: CliPluginLoadFailure[];
+} {
+    if (options.plugins) {
+        return { plugins: options.plugins, unreadable: [] };
+    }
+    const { manifests, failures } = resolveCommandManifests({ cwd: projectDirOf(options) });
+    return { plugins: manifests, unreadable: failures.filter(failureAffectsCommandManifest) };
+}
+
 /**
  * The error of a config that could not be found in the source, naming the enabled packages whose
  * manifest could not be read. Any of them may have a config resolver that would have provided the
  * config, and nothing else reports a package that has no commands.
  */
-export function withUnreadableManifests(
-    error: unknown,
-    options: Pick<LoadProjectConfigOptions, 'cwd' | 'projectDir' | 'plugins'> = {},
-): Error {
+export function withUnreadableManifests(error: unknown, unreadable: CliPluginLoadFailure[]): Error {
     const e = error instanceof Error ? error : new Error(String(error));
-    if (options.plugins) {
-        return e;
-    }
-    const cwd = options.cwd ?? process.cwd();
-    const projectDir = path.resolve(cwd, options.projectDir ?? findVendureProjectRoot(cwd) ?? cwd);
-    const unreadable = resolveCommandManifests({ cwd: projectDir }).failures.filter(
-        failureAffectsCommandManifest,
-    );
     if (unreadable.length === 0) {
         return e;
     }
@@ -114,14 +142,15 @@ export function withUnreadableManifests(
  * config can be found or loaded.
  */
 export async function loadProjectConfig(options: LoadProjectConfigOptions = {}): Promise<ProjectConfig> {
-    const resolved = await resolveProjectConfig(options);
+    const { plugins, unreadable } = enabledManifests(options);
+    const resolved = await resolveProjectConfig({ ...options, plugins });
     if (resolved) {
         return resolved;
     }
     try {
         return await loadSourceConfig(options);
     } catch (e) {
-        throw withUnreadableManifests(e, options);
+        throw withUnreadableManifests(e, unreadable);
     }
 }
 
@@ -133,7 +162,7 @@ export async function resolveProjectConfig(
     options: LoadProjectConfigOptions = {},
 ): Promise<ResolvedProjectConfig | undefined> {
     const cwd = options.cwd ?? process.cwd();
-    const projectDir = path.resolve(cwd, options.projectDir ?? findVendureProjectRoot(cwd) ?? cwd);
+    const projectDir = projectDirOf(options);
     // Absolute, so a resolver need not know the working directory to find the file.
     const configFile = options.configFile === undefined ? undefined : path.resolve(cwd, options.configFile);
     for (const plugin of configResolverPackages({ projectDir, plugins: options.plugins })) {

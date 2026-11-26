@@ -155,7 +155,10 @@ export async function loadVendureConfigFromPath(configFilePath: string): Promise
     return configs.length === 1 ? configs[0] : undefined;
 }
 
-/** Whether a value looks like a `VendureConfig`: an object with `dbConnectionOptions`. */
+/**
+ * Whether a value is taken to be a `VendureConfig`: an object with a `dbConnectionOptions`
+ * property. Nothing else is checked.
+ */
 export function isVendureConfig(value: unknown): value is VendureConfig {
     return typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
 }

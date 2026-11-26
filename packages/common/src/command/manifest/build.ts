@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { ConfigResolverDefinition } from '../config-resolver';
+import { ConfigResolverDefinition, configResolverDeclaration } from '../config-resolver';
 import { commandExtensionViolation, internalFieldsOf } from '../extensions';
 import { applyCommandGroups } from '../groups';
 import {
@@ -179,6 +179,10 @@ export async function buildCommandManifest(
             hasPlan: def.plan !== undefined,
             ...(def.secretOutputs?.length ? { secretOutputs: [...def.secretOutputs] } : {}),
         });
+    }
+    if (options.configResolver) {
+        // Fails the build on a declaration with no resolve(), as the CLI would at run time.
+        configResolverDeclaration({ configResolver: options.configResolver });
     }
     const extensions = await Promise.all((options.extensions ?? []).map(buildExtension));
     const manifest: CommandManifest = {

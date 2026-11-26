@@ -49,7 +49,8 @@ export interface ConfigResolverModule {
  * declared in its source, such as one built at run time. The package's declarations module exports
  * it as `configResolver`, and `writeCommandManifest` records `hasConfigResolver: true` in its
  * manifest. The CLI imports the module only when a command needs the project's config, such as
- * `vendure migrate generate`, and never at startup or in `vendure mcp`.
+ * `vendure migrate generate`, and never at startup. The `vendure mcp` server does not import it,
+ * but an MCP tool call to such a command runs the command in a child process, which does.
  *
  * @since 4.0.0
  */

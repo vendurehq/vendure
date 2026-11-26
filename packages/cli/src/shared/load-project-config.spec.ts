@@ -8,9 +8,10 @@ import {
     configResolverPackages,
     loadProjectConfig,
     resolveProjectConfig,
+    SourceProjectConfig,
 } from './load-project-config.js';
 import { loadVendureConfigFile, requireProjectModule } from './load-vendure-config-file.js';
-import { ResolvedCommandManifest, resolveCommandManifests } from './resolve-cli-plugins.js';
+import { resolveCommandManifests, ResolvedCommandManifest } from './resolve-cli-plugins.js';
 
 vi.mock('./resolve-cli-plugins.js', async importOriginal => ({
     ...(await importOriginal<typeof import('./resolve-cli-plugins.js')>()),
@@ -91,7 +92,12 @@ describe('loadProjectConfig()', () => {
             plugin('@acme/later', "return { dbConnectionOptions: { type: 'mysql' }, from: 'later' };"),
         ];
 
-        const result = await loadProjectConfig({ cwd: dir, projectDir: dir, configFile: 'my-config.ts', plugins });
+        const result = await loadProjectConfig({
+            cwd: dir,
+            projectDir: dir,
+            configFile: 'my-config.ts',
+            plugins,
+        });
 
         expect(result).toEqual({
             config: { dbConnectionOptions: { type: 'postgres' }, from: 'cloud' },
@@ -124,8 +130,9 @@ describe('loadProjectConfig()', () => {
         const result = await loadProjectConfig({ projectDir: dir, plugins: [], openProject: opener });
 
         expect(opener).toHaveBeenCalledOnce();
+        expect('ref' in result).toBe(true);
         expect(loadVendureConfigFile).toHaveBeenCalledWith(
-            'ref' in result ? result.ref : undefined,
+            (result as SourceProjectConfig).ref,
             '/project/tsconfig.vendure.json',
         );
     });
@@ -169,7 +176,7 @@ describe('loadProjectConfig()', () => {
         expect(result).toMatchObject({ configPath: '/project/src/vendure-config.ts' });
         expect('resolvedBy' in result).toBe(false);
         expect(loadVendureConfigFile).toHaveBeenCalledWith(
-            'ref' in result ? result.ref : undefined,
+            (result as SourceProjectConfig).ref,
             '/project/tsconfig.json',
         );
     });
@@ -232,14 +239,14 @@ describe('loadProjectConfig()', () => {
             ],
             scopeErrors: [],
         } as unknown as ReturnType<typeof resolveCommandManifests>;
-        // Once for the resolvers, and once for the error.
-        vi.mocked(resolveCommandManifests).mockReturnValueOnce(withFailure).mockReturnValueOnce(withFailure);
+        vi.mocked(resolveCommandManifests).mockReturnValueOnce(withFailure);
         vi.mocked(loadVendureConfigFile).mockRejectedValueOnce(new Error('No VendureConfig found.'));
 
         await expect(loadProjectConfig({ projectDir: dir })).rejects.toThrow(
             'No VendureConfig found. The manifest of these enabled packages could not be read, so any ' +
                 'config resolver they have was not asked: @acme/cloud (vendure-commands.json is missing)',
         );
+        expect(resolveCommandManifests).toHaveBeenCalledOnce();
     });
 
     it('lists only the packages whose manifests have a config resolver, without importing them', () => {

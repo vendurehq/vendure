@@ -23,6 +23,7 @@ import path from 'node:path';
 import { configResolverFailed } from '../../shared/config-resolver.errors.js';
 import {
     ConfigResolverFailedError,
+    enabledManifests,
     loadSourceConfig,
     resolveProjectConfig,
     withUnreadableManifests,
@@ -290,11 +291,13 @@ export async function loadSeedConfig(
 ): Promise<VendureConfig | ErrorResult> {
     try {
         const projectRoot = findVendureProjectRoot(ctx.cwd) ?? ctx.cwd;
+        const { plugins, unreadable } = enabledManifests({ cwd: ctx.cwd, projectDir: projectRoot });
         const resolved = await resolveProjectConfig({
             cwd: ctx.cwd,
             projectDir: projectRoot,
             configFile,
             signal: ctx.signal,
+            plugins,
         });
         if (resolved) {
             return resolved.config;
@@ -310,7 +313,7 @@ export async function loadSeedConfig(
         try {
             return (await loadSourceConfig({ configFile })).config;
         } catch (e) {
-            throw withUnreadableManifests(e, { cwd: ctx.cwd, projectDir: projectRoot });
+            throw withUnreadableManifests(e, unreadable);
         }
     } catch (e) {
         // Thrown, so the host reports the command as cancelled.

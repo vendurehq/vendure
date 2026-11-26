@@ -1,5 +1,6 @@
 import { CommandContext, CommandPlan, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
 
+import { describeConfigSource } from '../../../shared/load-project-config.js';
 import { describeDatabase, lastAppliedMigration, openMigrationProject } from '../migration-project.js';
 
 import { databaseUnreadable } from './revert-migration.errors.js';
@@ -28,8 +29,7 @@ export async function plan(
     return {
         preview: {
             action: 'Revert the last applied database migration',
-            config:
-                'resolvedBy' in project ? `the config resolver of ${project.resolvedBy}` : project.configPath,
+            config: describeConfigSource(project),
             database: describeDatabase(config),
             lastAppliedMigration: migration,
         },

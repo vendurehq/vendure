@@ -10,7 +10,7 @@ import { resolveCommandManifests } from '../../../shared/resolve-cli-plugins.js'
 import { isCompatibleWithCore, runConfigCheck } from './config-check.js';
 
 vi.mock('../../../shared/shared-prompts.js', () => ({
-    analyzeProject: vi.fn(async () => ({ project: {}, vendureTsConfig: undefined })),
+    openAnalyzedProject: vi.fn(() => () => Promise.resolve({ project: {}, tsConfigPath: undefined })),
 }));
 
 vi.mock('../../../shared/vendure-config-ref.js', () => ({
@@ -29,7 +29,8 @@ vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => (
 }));
 
 // No enabled package has a config resolver, unless a test says otherwise.
-vi.mock('../../../shared/resolve-cli-plugins.js', () => ({
+vi.mock('../../../shared/resolve-cli-plugins.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../../shared/resolve-cli-plugins.js')>()),
     resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
 }));
 
@@ -81,7 +82,7 @@ describe('runConfigCheck() with a config resolver', () => {
         fs.writeFileSync(
             definitionsPath,
             `export const commands = [];
-export const configResolver = { resolve: async () => ({ resolve: async () => { ${body} } }) };`,
+export const configResolver = { resolve: async () => ({ resolve: async ctx => { ${body} } }) };`,
         );
         vi.mocked(resolveCommandManifests).mockReturnValueOnce({
             manifests: [
@@ -110,7 +111,7 @@ export const configResolver = { resolve: async () => ({ resolve: async () => { $
 
         const { check } = await runConfigCheck();
 
-        expect(check.details).toContain('Config resolved by @acme/cloud');
+        expect(check.details).toContain('Config loaded from the config resolver of @acme/cloud');
         expect(check.status).toBe('pass');
     });
 
@@ -123,6 +124,16 @@ export const configResolver = { resolve: async () => ({ resolve: async () => { $
         expect(check.details).toContain(
             'Error (config.resolver-failed): The config resolver of @acme/cloud failed: no Cloud config handle',
         );
+    });
+
+    it('rethrows when doctor was cancelled, so the host reports it as cancelled, not as a failed check', async () => {
+        enableResolver('ctx.signal.throwIfAborted();');
+        const controller = new AbortController();
+        controller.abort();
+
+        await expect(runConfigCheck(undefined, controller.signal)).rejects.toMatchObject({
+            name: 'AbortError',
+        });
     });
 });
 

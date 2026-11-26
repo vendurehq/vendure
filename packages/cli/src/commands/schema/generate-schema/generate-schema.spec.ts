@@ -5,7 +5,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createProjectTree, packageFiles, removeProjectTrees } from '../../../shared/__tests__/project-tree.js';
+import {
+    createProjectTree,
+    packageFiles,
+    removeProjectTrees,
+} from '../../../shared/__tests__/project-tree.js';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
 
 import { generateSchema } from './generate-schema.js';
@@ -18,7 +22,7 @@ vi.mock('@clack/prompts', () => ({
 }));
 
 vi.mock('../../../shared/shared-prompts.js', () => ({
-    analyzeProject: vi.fn(async () => ({ project: {}, vendureTsConfig: undefined })),
+    openAnalyzedProject: vi.fn(() => () => Promise.resolve({ project: {}, tsConfigPath: undefined })),
 }));
 
 vi.mock('../../../shared/vendure-config-ref.js', () => ({
@@ -37,7 +41,8 @@ vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => (
 }));
 
 // No enabled package has a config resolver.
-vi.mock('../../../shared/resolve-cli-plugins.js', () => ({
+vi.mock('../../../shared/resolve-cli-plugins.js', async importOriginal => ({
+    ...(await importOriginal<typeof import('../../../shared/resolve-cli-plugins.js')>()),
     resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
 }));
 
