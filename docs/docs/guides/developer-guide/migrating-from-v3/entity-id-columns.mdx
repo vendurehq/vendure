@@ -77,7 +77,7 @@ If a plugin column is part of a composite primary key, the generated migration a
 
 Set `dbConnectionOptions.synchronize` to `false` for the upgrade, and run the helper from a migration as described above. You can switch `synchronize` back on afterwards.
 
-If you leave `synchronize` on, Vendure v4 refuses to start while the helper has work left: while rows refer to deleted rows, or, with UUID ids on PostgreSQL or MariaDB 10.7+, while the columns are not yet `uuid`. Synchronizing would otherwise fail on the foreign keys, or drop and re-create the columns and delete their data. Write a migration by hand which only calls the helper, and run it with `npx vendure migrate --run`. On the next start, `synchronize` adds the foreign keys. See [If you already started v4 with `synchronize: true`](/developer-guide/migrating-from-v3/database-migration#if-you-already-started-v4-with-synchronize-true).
+If you leave `synchronize` on, Vendure v4 refuses to start while the helper has work left: while rows refer to deleted rows, or, with UUID ids on PostgreSQL or MariaDB 10.7+, while the columns are not yet `uuid`. Synchronizing would otherwise fail on the foreign keys, or drop and re-create the columns and delete their data. Write a migration by hand which only calls the helper, and run it with `npx vendure migrate run`. On the next start, `synchronize` adds the foreign keys. See [If you already started v4 with `synchronize: true`](/developer-guide/migrating-from-v3/database-migration#if-you-already-started-v4-with-synchronize-true).
 
 ### During a rolling deployment
 

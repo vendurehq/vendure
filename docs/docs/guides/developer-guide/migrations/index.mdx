@@ -43,7 +43,7 @@ Without an initial migration, a fresh deployment against an empty database would
 For this case, use the `--from-empty` flag:
 
 :::cli
-Run `npx vendure migrate --generate initial --from-empty`
+Run `npx vendure migrate generate initial --from-empty`
 :::
 
 Instead of diffing against your configured database, `--from-empty` diffs your configuration against a temporary, empty "shadow" database of the same type, producing a complete migration that recreates the whole schema from scratch. This is the same approach used by tools such as Prisma and Atlas.

@@ -356,12 +356,12 @@ flags `-g <name>` and `-r` run the same commands as `generate` and `run`.
 
 #### Migrate Command Options
 
-| Flag | Long Form             | Description                            | Example                                           |
-| ---- | --------------------- | -------------------------------------- | ------------------------------------------------- |
-| `-g` | `--generate <name>`   | Generate a new migration               | `vendure migrate -g add-user-table`               |
-| `-r` | `--run`               | Run all pending migrations             | `vendure migrate -r`                              |
-| `-o` | `--output-dir <path>` | Custom output directory for migrations | `vendure migrate -g my-migration -o ./migrations` |
-|      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty` |
+These are the options of `migrate generate`:
+
+| Option                | Description                            | Example                                                           |
+| --------------------- | -------------------------------------- | ----------------------------------------------------------------- |
+| `--output-dir <path>` | Custom output directory for migrations | `vendure migrate generate my-migration --output-dir ./migrations` |
+| `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate generate initial --from-empty` |
 
 ### Reverting a Migration
 
