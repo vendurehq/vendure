@@ -225,19 +225,14 @@ function checkPartRules(part: Pick<ManifestCommand, 'input' | 'errors' | 'cli'>,
 }
 
 /**
- * The rules an extension follows on its own, before it is applied: those of {@link checkPartRules},
- * and CLI metadata for its own input fields only.
+ * The rules an extension follows on its own, before it is applied: those of {@link checkPartRules}.
+ * Its CLI metadata is checked when it is applied, as a clash with the command it extends.
  */
 function checkExtension(packageName: string, extension: ManifestExtension): void {
     if (extension.path.length === 0) {
         throw new Error(`${packageName} declares an extension with an empty path`);
     }
-    const label = `${packageName} declares an extension of "${extension.path.join(' ')}"`;
-    checkPartRules(extension, label);
-    const foreign = foreignCliKey(extension);
-    if (foreign) {
-        throw new Error(`${label} with CLI metadata for "${foreign}", which is not one of its fields`);
-    }
+    checkPartRules(extension, `${packageName} declares an extension of "${extension.path.join(' ')}"`);
 }
 
 /**
@@ -261,8 +256,13 @@ function mergedDefs(
     return defs;
 }
 
-/** A field an extension's CLI metadata names that is not one of its own input fields, if any. */
-function foreignCliKey(extension: ManifestExtension): string | undefined {
+/**
+ * A field an extension's CLI metadata names that is not one of its own input fields, if any. The
+ * build refuses such an extension, and the host refuses it with `plugin.extension-clash`.
+ *
+ * @since 4.0.0
+ */
+export function foreignCliKey(extension: ManifestExtension): string | undefined {
     const own = (extension.input.properties as Record<string, unknown> | undefined) ?? {};
     return [...Object.keys(extension.cli.flags ?? {}), ...Object.keys(extension.cli.fields ?? {})].find(
         field => !(field in own),

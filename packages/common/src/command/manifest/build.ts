@@ -13,6 +13,7 @@ import {
 
 import {
     CommandManifest,
+    foreignCliKey,
     MANIFEST_FILE_NAME,
     ManifestCommand,
     ManifestExtension,
@@ -89,7 +90,7 @@ async function buildExtension(extension: CommandExtensionDefinition): Promise<Ma
     }
     const schemas = await extension.schemas();
     const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
-    return {
+    const built: ManifestExtension = {
         path: extension.path,
         input: manifestInput(input, extension.consents ?? {}, extension.cli?.fields),
         ...(schemas.output
@@ -102,6 +103,13 @@ async function buildExtension(extension: CommandExtensionDefinition): Promise<Ma
             fields: manifestFields(extension.cli?.fields),
         },
     };
+    const foreign = foreignCliKey(built);
+    if (foreign) {
+        throw new Error(
+            `The extension of "${extension.path.join(' ')}" has CLI metadata for "${foreign}", which is not one of its fields`,
+        );
+    }
+    return built;
 }
 
 /**

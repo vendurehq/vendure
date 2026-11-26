@@ -215,4 +215,84 @@ describe('mergeProjectManifests with extensions', () => {
             message: expect.stringContaining('--target would be declared differently'),
         });
     });
+
+    it("refuses an extension whose CLI metadata names one of the command's fields", () => {
+        const { commands, refused } = mergeProjectManifests(core, [
+            plugin(
+                '@acme/cloud',
+                [],
+                [
+                    extension(
+                        ['doctor'],
+                        { project: { type: 'string' } },
+                        { cli: { flags: { strict: { short: '-s' } } } },
+                    ),
+                ],
+            ),
+        ]);
+
+        expect(refused[0]?.error).toMatchObject({
+            code: 'plugin.extension-clash',
+            message: expect.stringContaining(
+                'its CLI metadata names "strict", which is not one of its fields',
+            ),
+        });
+        expect(commands[0].cli.flags?.strict).toBeUndefined();
+    });
+
+    it('keeps the $defs of an extension, and refuses one that defines a name differently', () => {
+        const withDefs = manifest('@vendure/cli', [manifestCommand(['doctor'])]);
+        withDefs.commands[0].input = {
+            type: 'object',
+            properties: { level: { $ref: '#/$defs/level' } },
+            $defs: { level: { enum: ['a', 'b'] } },
+        };
+        const region = { type: 'string', enum: ['eu', 'us'] };
+
+        const merged = mergeProjectManifests(withDefs, [
+            plugin(
+                '@acme/cloud',
+                [],
+                [
+                    extension(
+                        ['doctor'],
+                        { region: { $ref: '#/$defs/region' } },
+                        {
+                            input: {
+                                type: 'object',
+                                properties: { region: { $ref: '#/$defs/region' } },
+                                $defs: { region },
+                            },
+                        },
+                    ),
+                ],
+            ),
+        ]);
+        expect(merged.refused).toEqual([]);
+        expect(merged.commands[0].input.$defs).toEqual({ level: { enum: ['a', 'b'] }, region });
+
+        const clashing = mergeProjectManifests(withDefs, [
+            plugin(
+                '@acme/cloud',
+                [],
+                [
+                    extension(
+                        ['doctor'],
+                        {},
+                        {
+                            input: {
+                                type: 'object',
+                                properties: { other: { $ref: '#/$defs/level' } },
+                                $defs: { level: { enum: ['c'] } },
+                            },
+                        },
+                    ),
+                ],
+            ),
+        ]);
+        expect(clashing.refused[0]?.error).toMatchObject({
+            code: 'plugin.extension-clash',
+            message: expect.stringContaining('it defines "$defs/level" differently from "doctor"'),
+        });
+    });
 });
