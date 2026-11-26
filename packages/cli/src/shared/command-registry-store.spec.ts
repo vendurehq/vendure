@@ -517,6 +517,7 @@ describe('resolveCliPlugins()', () => {
             entrySource: string;
             entryFile?: string;
             manifestCommands?: string[][];
+            files?: Record<string, string>;
         }>;
     }) {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-cli-plugins-'));
@@ -531,6 +532,9 @@ describe('resolveCliPlugins()', () => {
             fs.writeJsonSync(path.join(dir, 'package.json'), plugin.packageJson, { spaces: 2 });
             const entryFile = plugin.entryFile ?? 'cli-plugin.js';
             fs.writeFileSync(path.join(dir, entryFile), plugin.entrySource);
+            for (const [file, source] of Object.entries(plugin.files ?? {})) {
+                fs.writeFileSync(path.join(dir, file), source);
+            }
             if (plugin.manifestCommands) {
                 fs.writeJsonSync(
                     path.join(dir, 'vendure-commands.json'),
@@ -900,6 +904,48 @@ describe('resolveCliPlugins()', () => {
 
         expect(result.loaded).toEqual([]);
         expect(result.failures[0].reason).toMatch(/\[plugin\.commands-removed\]/);
+    });
+
+    it('loads the manifest commands of a package whose CLI plugin still declares commands', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/half-ported': '1.0.0' },
+                vendure: { cli: { plugins: ['@example/half-ported'] } },
+            },
+            plugins: [
+                {
+                    name: '@example/half-ported',
+                    packageJson: {
+                        name: '@example/half-ported',
+                        vendure: {
+                            cliPlugin: './cli-plugin.js',
+                            commandManifest: './vendure-commands.json',
+                            commandDefinitions: './commands.js',
+                        },
+                    },
+                    files: { 'commands.js': 'export const commands = [];' },
+                    entrySource: `module.exports = { id: '@example/half-ported', commands: [{ name: 'old', description: 'Old', action: async () => 0 }] };`,
+                    manifestCommands: [['half', 'deploy']],
+                },
+            ],
+        });
+
+        const result = resolveCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson: fs.readJsonSync(path.join(fixture.root, 'package.json')) as PackageJsonLike,
+            resolvePackage: fixture.resolvePackage,
+        });
+
+        expect(result.manifests.map(manifest => manifest.packageName)).toEqual(['@example/half-ported']);
+        expect(result.loaded).toEqual([]);
+        expect(result.failures).toEqual([
+            expect.objectContaining({
+                packageName: '@example/half-ported',
+                failedPart: 'cliPlugin',
+                reason: expect.stringContaining('[plugin.commands-removed]'),
+            }),
+        ]);
     });
 
     it('reports an enabled plugin that still declares commands as failed when discovery validates', () => {

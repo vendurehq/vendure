@@ -1888,7 +1888,7 @@ Commands declared with `defineCommand` do not receive them.
 
 ```ts
 decorate: ({ next }) => async (...args) => {
-    const context = readCommandContext<CloudOptions>(args);
+    const context = readCommandContext<{ token?: string }>(args);
     context.inheritedOptions.token; // value of the shared --token
     context.commandPath; // e.g. ['start']
     return next(...args);
@@ -1942,7 +1942,7 @@ registered at all, and the reason is written to stderr. This applies to:
 - an extension of a command that is not registered, or a `decorate` on a command
   group;
 - an option added by an extension that the command already declares, whoever
-  contributed it;
+  contributed it, or that uses a flag the CLI owns;
 - a shared option that another plugin already registered, reads back under the
   same name as one, or is a flag the CLI owns;
 - an extension of the `plugins` command, which the CLI reserves because it is how a

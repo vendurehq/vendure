@@ -50,8 +50,9 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
     /**
      * Values of the shared options in scope. A shared option is declared at
      * exactly one level, so values do not compete. Where a command declares
-     * the same flag as a shared option, both read the same value. A value supplied on the command line always beats a default.
-     * Options that were neither supplied nor given a default value are omitted.
+     * the same flag as a shared option, both read the same value. A value
+     * supplied on the command line always beats a default. Options that were
+     * neither supplied nor given a default value are omitted.
      */
     inheritedOptions: TInheritedOptions;
     /**
@@ -137,6 +138,11 @@ export type CliCommandAction = (...args: any[]) => Promise<void | number>;
  * A command that exists only to group subcommands. A group has no action of its own: running it
  * without a subcommand prints its help. For a command that has subcommands
  * *and* runs an action, see {@link CliCommandDefinition.subcommands}.
+ *
+ * No built-in command is a group in v4.0.0, and plugins declare no commands.
+ * The tree model is kept, and exported, because the built-in commands are
+ * declared with it: a built-in that gains subcommands, and a decorator that
+ * reads the command it wraps, use the same types and the same checks.
  *
  * @since 3.8.0
  */
