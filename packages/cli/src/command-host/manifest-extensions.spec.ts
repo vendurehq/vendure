@@ -102,7 +102,8 @@ describe('mergeProjectManifests with extensions', () => {
         });
     });
 
-    it('lets a package extend a command of a package enabled after it, and records the order', () => {
+    // Each extension wraps those enabled before it, as `extendCommands` wrappers do.
+    it('lets a package extend a command of a package enabled after it, the last enabled outermost', () => {
         const { commands, refused } = mergeProjectManifests(core, [
             plugin('@acme/first', [], [extension(['tools', 'sync'], { region: { type: 'string' } })]),
             plugin('@acme/tools', [manifestCommand(['tools', 'sync'])]),
@@ -111,8 +112,8 @@ describe('mergeProjectManifests with extensions', () => {
 
         expect(refused).toEqual([]);
         expect(commands.find(command => command.path.join(' ') === 'tools sync')?.extendedBy).toEqual([
-            { package: '@acme/first', fields: ['region'] },
             { package: '@acme/second', fields: ['dryRun'] },
+            { package: '@acme/first', fields: ['region'] },
         ]);
     });
 

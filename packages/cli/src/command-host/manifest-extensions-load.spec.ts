@@ -250,4 +250,71 @@ export const extensions = [
         const result = await testCommand(definition, { requestId: 'abc' }, { cwd: dir });
         expect(result.envelope.error?.code).toBe('devserver.project-not-found');
     });
+
+    // Each extension wraps those enabled before it, as `extendCommands` wrappers do.
+    it('runs the extension of the last enabled package outermost', async () => {
+        const wrapper = (name: string, field: string) => `${SCHEMA}
+export const commands = [];
+export const extensions = [
+    {
+        path: ['tools', 'sync'],
+        schemas: async () => ({ input: objectSchema({ ${field}: { type: 'string' } }) }),
+        run: async () => ({
+            run: async (_input, _ctx, next) => {
+                globalThis.__extensionOrder.push('${name} before');
+                const output = await next();
+                globalThis.__extensionOrder.push('${name} after');
+                return output;
+            },
+        }),
+    },
+];
+`;
+        const order: string[] = [];
+        (globalThis as { __extensionOrder?: string[] }).__extensionOrder = order;
+        fs.writeFileSync(path.join(dir, 'tools.mjs'), TOOLS);
+        fs.writeFileSync(path.join(dir, 'first.mjs'), wrapper('first', 'alpha'));
+        fs.writeFileSync(path.join(dir, 'second.mjs'), wrapper('second', 'beta'));
+        const load = async (name: string) => import(pathToFileURL(path.join(dir, `${name}.mjs`)).href);
+        const [toolsModule, firstModule, secondModule] = await Promise.all(
+            ['tools', 'first', 'second'].map(load),
+        );
+        const tools = await buildCommandManifest('@acme/tools', '1.0.0', toolsModule.commands);
+        const enabled = await Promise.all(
+            [
+                ['@acme/first', 'first', firstModule],
+                ['@acme/second', 'second', secondModule],
+            ].map(async ([packageName, file, module]) => ({
+                packageName,
+                manifest: await buildCommandManifest(packageName, '1.0.0', [], {
+                    extensions: module.extensions,
+                }),
+                definitionsPath: path.join(dir, `${file}.mjs`),
+                scope: 'project' as const,
+            })),
+        );
+        const merged = mergeProjectManifests(
+            { manifestVersion: 1, package: '@vendure/cli', version: '4.0.0', commands: [] },
+            [
+                {
+                    packageName: '@acme/tools',
+                    manifest: tools,
+                    definitionsPath: path.join(dir, 'tools.mjs'),
+                    scope: 'project',
+                },
+                ...enabled,
+            ],
+        );
+        expect(merged.refused).toEqual([]);
+
+        const loaded = await merged.loadCommand(commandAt(merged.commands, 'tools sync'));
+        if (!loaded.definition) {
+            throw new Error('The command did not load');
+        }
+        const result = await testCommand(loaded.definition, { target: 'x' }, { cwd: dir });
+
+        expect(result.envelope.error).toBeUndefined();
+        expect(order).toEqual(['second before', 'first before', 'first after', 'second after']);
+        delete (globalThis as { __extensionOrder?: string[] }).__extensionOrder;
+    });
 });

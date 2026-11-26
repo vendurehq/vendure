@@ -749,8 +749,8 @@ export type CommandExtensionRunFn<Input = any, Output = any> = (
  *
  * It adds input fields and output fields to the command, and its own `consents` and `errors`. Each
  * package's part of the input is validated with that package's own schema. Its `run` wraps the
- * command's: see {@link CommandExtensionRunFn}. Two extensions of one command run in the order
- * their packages are enabled, the first outermost.
+ * command's: see {@link CommandExtensionRunFn}. Each extension wraps the ones whose packages were
+ * enabled before it, so the last enabled is outermost.
  *
  * @since 4.0.0
  */
