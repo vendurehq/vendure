@@ -308,7 +308,7 @@ import {
 @VendurePlugin({
     imports: [PluginCommonModule],
     providers: [{ provide: EMAIL_PLUGIN_OPTIONS, useFactory: () => EmailPlugin.options }, EmailProcessor],
-    compatibility: '^3.0.0',
+    compatibility: '^4.0.0',
 })
 export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdown, NestModule {
     private static options: InitializedEmailPluginOptions;

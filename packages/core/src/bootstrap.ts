@@ -10,7 +10,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
-import { satisfies } from 'semver';
+import { coerce, satisfies } from 'semver';
 import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
@@ -430,6 +430,20 @@ export async function preBootstrapConfig(
     return config;
 }
 
+/**
+ * Whether a Vendure version satisfies a plugin's compatibility range. A prerelease, such as a
+ * `4.0.0-major-…` nightly or a `4.0.0-preview.3`, also counts as the release it leads to, so a
+ * plugin that declares `^4.0.0` can be tried on it.
+ */
+export function isCompatible(version: string, range: string): boolean {
+    const options = { loose: true, includePrerelease: true };
+    if (satisfies(version, range, options)) {
+        return true;
+    }
+    const release = coerce(version)?.version;
+    return release !== undefined && release !== version && satisfies(release, range, options);
+}
+
 function checkPluginCompatibility(
     config: RuntimeVendureConfig,
     ignoredPlugins: Array<DynamicModule | Type<any>> = [],
@@ -442,7 +456,7 @@ function checkPluginCompatibility(
                 `The plugin "${pluginName}" does not specify a compatibility range, so it is not guaranteed to be compatible with this version of Vendure.`,
             );
         } else {
-            if (!satisfies(VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true })) {
+            if (!isCompatible(VENDURE_VERSION, compatibility)) {
                 const compatibilityErrorMessage =
                     `Plugin "${pluginName}" is not compatible with this version of Vendure. ` +
                     `It specifies a semver range of "${compatibility}" but the current version is "${VENDURE_VERSION}".`;

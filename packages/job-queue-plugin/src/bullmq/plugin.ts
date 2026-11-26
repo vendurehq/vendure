@@ -199,7 +199,7 @@ import { BullMQPluginOptions } from './types';
         RedisHealthIndicator,
         JobListIndexService,
     ],
-    compatibility: '^3.0.0',
+    compatibility: '^4.0.0',
 })
 export class BullMQJobQueuePlugin {
     static options: BullMQPluginOptions;

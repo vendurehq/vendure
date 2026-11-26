@@ -161,7 +161,7 @@ import { McpPluginOptions } from './types';
         );
         return config;
     },
-    compatibility: '^3.8.0',
+    compatibility: '^4.0.0',
 })
 export class McpPlugin implements NestModule, OnApplicationBootstrap {
     /**

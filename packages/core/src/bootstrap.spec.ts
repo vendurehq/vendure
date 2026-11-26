@@ -3,7 +3,7 @@ import { getMetadataArgsStorage } from 'typeorm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RequestContext } from './api/common/request-context';
-import { runPluginConfigurations } from './bootstrap';
+import { isCompatible, runPluginConfigurations } from './bootstrap';
 import { PriceCalculationResult } from './common/types/common-types';
 import { CustomFieldConfig } from './config/custom-field/custom-field-types';
 import { Logger } from './config/logger/vendure-logger';
@@ -727,5 +727,33 @@ describe('registerCustomEntityFields()', () => {
         } finally {
             cleanup();
         }
+    });
+});
+
+describe('isCompatible()', () => {
+    it('accepts a release that satisfies the range', () => {
+        expect(isCompatible('4.0.0', '^4.0.0')).toBe(true);
+        expect(isCompatible('4.2.1', '^4.0.0')).toBe(true);
+    });
+
+    it('refuses a release outside the range', () => {
+        expect(isCompatible('4.0.0', '^3.0.0')).toBe(false);
+        expect(isCompatible('3.5.0', '^4.0.0')).toBe(false);
+    });
+
+    it('accepts a prerelease of a release the range covers', () => {
+        expect(isCompatible('4.0.0-major-202611260711', '^4.0.0')).toBe(true);
+        expect(isCompatible('4.0.0-preview.3', '^4.0.0')).toBe(true);
+        expect(isCompatible('4.1.0-minor-202612010000', '^4.0.0')).toBe(true);
+    });
+
+    it('refuses a prerelease of a release outside the range', () => {
+        expect(isCompatible('4.0.0-major-202611260711', '^3.0.0')).toBe(false);
+        expect(isCompatible('5.0.0-major-202611260711', '^4.0.0')).toBe(false);
+    });
+
+    it('keeps the ranges that already matched prereleases', () => {
+        expect(isCompatible('4.0.0-major-202611260711', '>0.0.0')).toBe(true);
+        expect(isCompatible('4.0.0-major-202611260711', '>=3.3.0')).toBe(true);
     });
 });
