@@ -350,7 +350,9 @@ export const extensions = [
         });
 
         expect(loaded.mismatch).toBeUndefined();
-        expect(loaded.definition).toBeDefined();
+        expect(Object.keys(loaded.definition?.cli?.flags ?? {})).toEqual(
+            expect.arrayContaining(['alpha', 'beta']),
+        );
     });
 
     it('names the later enabled package when the declarations now clash', async () => {
