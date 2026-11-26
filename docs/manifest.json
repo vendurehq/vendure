@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-26T13:50:08+01:00"
+          "lastModified": "2026-11-26T15:03:29+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-26T10:51:23+01:00"
+              "lastModified": "2026-11-26T15:03:29+01:00"
             },
             {
               "title": "Storefront Migration",
