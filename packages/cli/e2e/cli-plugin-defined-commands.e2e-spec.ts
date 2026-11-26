@@ -22,6 +22,7 @@ const FIXTURES_DIR = join(import.meta.dirname, 'fixtures', 'cli-plugins');
 const EXAMPLE = '@vendure-e2e/defined-commands-cli-plugin';
 const CLASHING = '@vendure-e2e/clashing-defined-commands-cli-plugin';
 const PARENT = '@vendure-e2e/parent-commands-cli-plugin';
+const EXTENSION = '@vendure-e2e/extension-cli-plugin';
 
 function envelopeOf(stdout: string) {
     const lines = stdout.split('\n').filter(line => line.trim());
@@ -54,13 +55,59 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
         'defined-commands-cli-plugin',
         'clashing-defined-commands-cli-plugin',
         'parent-commands-cli-plugin',
+        'extension-cli-plugin',
     ])('ships a %s manifest built from its declarations, without @vendure/cli', async fixture => {
         const dir = join(FIXTURES_DIR, fixture);
-        const { commands, groups } = await import(join(dir, 'commands.js'));
+        const { commands, groups, extensions } = await import(join(dir, 'commands.js'));
         const shipped = readManifestFile(join(dir, 'vendure-commands.json'));
-        expect(await buildCommandManifest(shipped.package, shipped.version, commands, { groups })).toEqual(
-            shipped,
-        );
+        expect(
+            await buildCommandManifest(shipped.package, shipped.version, commands, { groups, extensions }),
+        ).toEqual(shipped);
+    });
+
+    // A package may extend a command another package declares, here the CLI's own `explain` and `dev`.
+    describe('a plugin that extends commands of the CLI', () => {
+        it('adds its flag to help, its field to vendure commands --json and to the MCP tool', async () => {
+            const p = projectWith(['extension-cli-plugin']);
+
+            const help = await p.runCliCommand(['explain', '--help']);
+            expect(help.stdout).toContain('--shout');
+            expect((await p.runCliCommand(['dev', '--help'])).stdout).toContain('--cloud-project');
+
+            const envelope = await listCommands(p);
+            expect(envelope.output.refused).toBeUndefined();
+            const explain = envelope.output.commands.find((c: any) => c.path.join(' ') === 'explain');
+            expect(Object.keys(explain.input.properties)).toEqual(
+                expect.arrayContaining(['requestId', 'shout']),
+            );
+            expect(explain.extendedBy).toEqual([{ package: EXTENSION, fields: ['shout'] }]);
+            const dev = envelope.output.commands.find((c: any) => c.path.join(' ') === 'dev');
+            expect(dev.extendedBy).toEqual([{ package: EXTENSION, fields: ['cloudProject'] }]);
+
+            const mcp = startMcpServer(p.projectDir);
+            try {
+                await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                const search = await mcp.callTool('search_tools', { query: 'explain' });
+                const tool = search.result.structuredContent.tools.find((t: any) => t.name === 'explain');
+                expect(Object.keys(tool.inputSchema.properties)).toContain('shout');
+            } finally {
+                await mcp.close();
+            }
+        });
+
+        it('runs the extension around the command: it changes the input and adds to the output', async () => {
+            const result = await projectWith(['extension-cli-plugin']).runCliCommand([
+                'explain',
+                'abc-123',
+                '--shout',
+                '--json',
+            ]);
+
+            expect(envelopeOf(result.stdout)).toMatchObject({
+                status: 'ok',
+                output: { requestId: 'ABC-123', extendedBy: EXTENSION },
+            });
+        });
     });
 
     // A plugin may declare a command and commands under it, such as `acme deploy` and
