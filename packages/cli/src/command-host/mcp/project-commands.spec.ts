@@ -4,9 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { commandManifest } from '../../shared/__tests__/command-manifest.js';
 import { RefusedManifest } from '../manifest.js';
 
-import { ListedCommands, ProjectCommandWatcher } from './project-commands.js';
+import { ListedCommands, listProjectCommands, ProjectCommandWatcher } from './project-commands.js';
 
 function command(
     commandPath: string[],
@@ -186,5 +187,69 @@ describe('ProjectCommandWatcher', () => {
         await watcher.relist();
         expect(onListingFailed).toHaveBeenCalledWith('half-written package.json');
         expect(changes).toEqual([]);
+    });
+});
+
+describe('ProjectCommandWatcher with the real listing', () => {
+    /** A project that enables one package, whose manifest declares `example greet`. */
+    function projectWithPlugin() {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-mcp-listing-'));
+        dirs.push(root);
+        const packageJson = JSON.stringify({
+            name: 'shop',
+            dependencies: { '@vendure/core': '*', '@example/tools': '*' },
+            vendure: { cli: { plugins: ['@example/tools'] } },
+        });
+        fs.writeFileSync(path.join(root, 'package.json'), packageJson);
+        const plugin = path.join(root, 'node_modules', '@example', 'tools');
+        fs.mkdirSync(plugin, { recursive: true });
+        fs.writeFileSync(
+            path.join(plugin, 'package.json'),
+            JSON.stringify({
+                name: '@example/tools',
+                vendure: { commandManifest: './vendure-commands.json', commandDefinitions: './commands.js' },
+            }),
+        );
+        fs.writeFileSync(
+            path.join(plugin, 'vendure-commands.json'),
+            JSON.stringify(commandManifest('@example/tools', [['example', 'greet']])),
+        );
+        fs.writeFileSync(path.join(plugin, 'commands.js'), 'module.exports = { commands: [] };');
+        return { root, packageJson };
+    }
+
+    const greet = (commands: MergedManifestCommand[]) =>
+        commands.filter(c => c.path.join(' ') === 'example greet').length;
+
+    it('watches the package.json of a project that has none yet', async () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-mcp-listing-'));
+        dirs.push(root);
+        expect((await listProjectCommands(root)).files).toContain(path.join(root, 'package.json'));
+    });
+
+    it('keeps the commands while the project package.json is half written, and lists them after', async () => {
+        const { root, packageJson } = projectWithPlugin();
+        const onListingFailed = vi.fn();
+        const watcher = new ProjectCommandWatcher({ cwd: root, onListingFailed, watchIntervalMs: 10 });
+        const changes: MergedManifestCommand[][] = [];
+        watcher.onChanged(commands => changes.push(commands));
+        expect(greet(await watcher.list())).toBe(1);
+        watcher.watch();
+        try {
+            touch(path.join(root, 'package.json'), '{ "name": "shop",');
+            await until(() => onListingFailed.mock.calls.length > 0);
+            expect(onListingFailed.mock.calls[0][0]).toContain('is not valid JSON');
+            expect(changes).toEqual([]);
+
+            // The write finishes, now without the package enabled, and then with it again.
+            touch(path.join(root, 'package.json'), packageJson.replace('["@example/tools"]', '[]'));
+            await until(() => changes.length === 1);
+            expect(greet(changes[0])).toBe(0);
+            touch(path.join(root, 'package.json'), packageJson);
+            await until(() => changes.length === 2);
+            expect(greet(changes[1])).toBe(1);
+        } finally {
+            watcher.close();
+        }
     });
 });

@@ -134,10 +134,25 @@ export class ProjectCommandWatcher {
 
 /** Reads the manifests of the CLI and of the packages that `cwd`'s project and the user enable. */
 export async function listProjectCommands(cwd: string): Promise<ListedCommands> {
+    const packageJsonPath = path.join(cwd, 'package.json');
+    // The resolver reads a package.json that does not parse as no project at all, which would drop
+    // the project's commands and stop watching it. One that an editor or an install is writing
+    // fails the listing instead, so the commands of the last listing are kept.
+    if (fs.existsSync(packageJsonPath)) {
+        try {
+            JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        } catch (e) {
+            throw new Error(
+                `${packageJsonPath} is not valid JSON: ${e instanceof Error ? e.message : String(e)}`,
+            );
+        }
+    }
     // Resolved once, so the files watched are those the commands were read from.
     const resolved = resolveCommandManifests({ cwd });
     const { commands, refused } = await loadProjectCommands({ resolved });
-    return { commands, refused, files: resolved.watchedFiles };
+    // The project's package.json is watched even when there is none yet.
+    const files = [...new Set([packageJsonPath, ...resolved.watchedFiles])];
+    return { commands, refused, files };
 }
 
 /** What a client sees of the commands: a change to anything else does not change the tools. */
