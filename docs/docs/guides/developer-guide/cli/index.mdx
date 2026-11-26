@@ -1535,6 +1535,13 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
   config one returns. When none returns one, it finds the config in the source.
 - **Errors:** a resolver that throws, or returns something that is not a `VendureConfig`, ends the command with
   `config.resolver-failed`, naming the package. The CLI does not fall back to the source then.
+- **TypeScript and `.env`:** the CLI asks the resolvers before it registers ts-node or loads the project's `.env`.
+  A resolver that reads the project's `.ts` source compiles it itself. To let the CLI load the source config, it
+  returns `undefined`.
+- **The environment:** the resolver runs in the CLI's process, with the environment of the user's shell. `vendure
+  dev` does not run it, and the CLI does not pass it any database settings. A resolver whose config needs settings
+  that the package sets for its own commands, such as a local database, sets them itself, the same way for every
+  command.
 - **`vendure add plugin`** edits the config file, so it still needs a `VendureConfig` in the source. When it finds
   none, its `add.vendure-config-not-found` error names the packages that have a config resolver.
 
