@@ -3,18 +3,12 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ConfigResolverFailedError, loadProjectConfig } from '../../shared/load-project-config.js';
-import { prepareToRequireProjectFiles } from '../../shared/load-vendure-config-file.js';
 
 import { defaultMigrationDir, openMigrationProject } from './migration-project.js';
 
 vi.mock('../../shared/load-project-config.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../shared/load-project-config.js')>()),
     loadProjectConfig: vi.fn(),
-}));
-
-vi.mock('../../shared/load-vendure-config-file.js', async importOriginal => ({
-    ...(await importOriginal<typeof import('../../shared/load-vendure-config-file.js')>()),
-    prepareToRequireProjectFiles: vi.fn(() => Promise.resolve()),
 }));
 
 const config = { dbConnectionOptions: { type: 'postgres' } } as unknown as VendureConfig;
@@ -43,8 +37,6 @@ describe('openMigrationProject()', () => {
             configFile: 'my-config.ts',
             signal,
         });
-        // TypeORM may require TypeScript migrations, which the resolver did not prepare for.
-        expect(prepareToRequireProjectFiles).toHaveBeenCalledWith('/project');
     });
 
     it('reports a failed config resolver as config.resolver-failed', async () => {

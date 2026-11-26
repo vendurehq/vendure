@@ -3,7 +3,6 @@ import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
 import { configErrorResult, loadProjectConfig, ProjectConfig } from '../../shared/load-project-config.js';
-import { prepareToRequireProjectFiles } from '../../shared/load-vendure-config-file.js';
 import { requireFromProjectCore } from '../../shared/project-core.js';
 
 import { configUnreadable } from './migrate.errors.js';
@@ -17,13 +16,7 @@ export async function openMigrationProject(
     ctx: Pick<CommandContext, 'cwd' | 'signal'>,
 ): Promise<ProjectConfig | ErrorResult> {
     try {
-        const project = await loadProjectConfig({ cwd: ctx.cwd, configFile, signal: ctx.signal });
-        if ('resolvedBy' in project) {
-            // The source path has done this to load the config. TypeORM requires the migration
-            // files, which may be TypeScript and read `.env`, whatever the resolver did.
-            await prepareToRequireProjectFiles(project.projectDir);
-        }
-        return project;
+        return await loadProjectConfig({ cwd: ctx.cwd, configFile, signal: ctx.signal });
     } catch (e) {
         return configErrorResult(e, ctx.signal, configUnreadable);
     }

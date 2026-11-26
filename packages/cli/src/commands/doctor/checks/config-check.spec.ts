@@ -26,6 +26,7 @@ vi.mock('../../../shared/vendure-config-ref.js', () => ({
 vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../../shared/load-vendure-config-file.js')>()),
     loadVendureConfigFile: vi.fn(),
+    prepareToRequireProjectFiles: vi.fn(() => Promise.resolve()),
 }));
 
 // No enabled package has a config resolver, unless a test says otherwise.

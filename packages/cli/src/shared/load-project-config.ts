@@ -10,7 +10,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { configResolverFailed } from './config-resolver.errors.js';
-import { isVendureConfig, loadVendureConfigFile, requireProjectModule } from './load-vendure-config-file.js';
+import {
+    isVendureConfig,
+    loadVendureConfigFile,
+    prepareToRequireProjectFiles,
+    requireProjectModule,
+} from './load-vendure-config-file.js';
 import { openProject } from './open-project.js';
 import { findVendureProjectRoot } from './project-validation.js';
 import {
@@ -76,11 +81,7 @@ export type ProjectConfig = ResolvedProjectConfig | SourceProjectConfig;
  * The enabled packages whose manifests say they have a config resolver, in allowlist order. It
  * reads manifests only, and runs no code of the packages.
  */
-export function configResolverPackages(
-    options: Pick<LoadProjectConfigOptions, 'projectDir' | 'plugins'> = {},
-): ResolvedCommandManifest[] {
-    const plugins =
-        options.plugins ?? resolveCommandManifests({ cwd: options.projectDir ?? process.cwd() }).manifests;
+export function configResolverPackages(plugins: ResolvedCommandManifest[]): ResolvedCommandManifest[] {
     const withResolver = plugins.filter(plugin => plugin.manifest.hasConfigResolver === true);
     // The project's resolvers first, so a package the project enabled is asked before one the
     // user enabled for the whole machine. The order within each allowlist is kept.
@@ -152,7 +153,11 @@ export function enabledManifests(
  * manifest could not be read. Any of them may have a config resolver that would have provided the
  * config, and nothing else reports a package that has no commands.
  */
-export function withUnreadableManifests(error: unknown, unreadable: CliPluginLoadFailure[]): Error {
+export function withUnreadableManifests(
+    error: unknown,
+    unreadable: CliPluginLoadFailure[],
+    consequence = 'so any config resolver they have was not asked',
+): Error {
     const e = error instanceof Error ? error : new Error(String(error));
     if (unreadable.length === 0) {
         return e;
@@ -160,7 +165,7 @@ export function withUnreadableManifests(error: unknown, unreadable: CliPluginLoa
     const list = unreadable.map(f => `${f.packageName} (${f.reason})`).join('; ');
     return new Error(
         `${e.message.replace(/\.$/, '')}. The manifest of these enabled packages could not be read, ` +
-            `so any config resolver they have was not asked: ${list}`,
+            `${consequence}: ${list}`,
     );
 }
 
@@ -196,7 +201,7 @@ export async function resolveProjectConfig(
     const projectDir = projectDirOf(options);
     // Absolute, so a resolver need not know the working directory to find the file.
     const configFile = options.configFile === undefined ? undefined : path.resolve(cwd, options.configFile);
-    for (const plugin of configResolverPackages({ projectDir, plugins: options.plugins })) {
+    for (const plugin of configResolverPackages(enabledManifests(options).plugins)) {
         const config = await resolveWith(plugin, {
             projectDir,
             configFile,
@@ -205,6 +210,10 @@ export async function resolveProjectConfig(
             loadModule: file => requireProjectModule(path.resolve(projectDir, file)),
         });
         if (config) {
+            // `loadSourceConfig` loads `.env` and registers ts-node to require the config file. A
+            // resolved config skipped that, and the files it names, such as migrations that TypeORM
+            // requires, may be TypeScript or read `.env`.
+            await prepareToRequireProjectFiles(projectDir);
             return { config, resolvedBy: plugin.packageName, projectDir };
         }
     }

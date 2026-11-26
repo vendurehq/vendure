@@ -63,7 +63,7 @@ describe('vendure add plugin without a VendureConfig in the source', () => {
             details: {
                 message:
                     'Could not find the VendureConfig declaration in your project. The manifest of these enabled ' +
-                    'packages could not be read, so any config resolver they have was not asked: ' +
+                    'packages could not be read, so whether they provide the config is not known: ' +
                     '@acme/cloud (vendure-commands.json is missing)',
             },
         });

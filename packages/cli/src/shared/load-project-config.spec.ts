@@ -10,7 +10,11 @@ import {
     resolveProjectConfig,
     SourceProjectConfig,
 } from './load-project-config.js';
-import { loadVendureConfigFile, requireProjectModule } from './load-vendure-config-file.js';
+import {
+    loadVendureConfigFile,
+    prepareToRequireProjectFiles,
+    requireProjectModule,
+} from './load-vendure-config-file.js';
 import { resolveCommandManifests, ResolvedCommandManifest } from './resolve-cli-plugins.js';
 
 vi.mock('./resolve-cli-plugins.js', async importOriginal => ({
@@ -27,6 +31,7 @@ vi.mock('./vendure-config-ref.js', () => ({
 }));
 vi.mock('./load-vendure-config-file.js', async importOriginal => ({
     ...(await importOriginal<typeof import('./load-vendure-config-file.js')>()),
+    prepareToRequireProjectFiles: vi.fn(() => Promise.resolve()),
     loadVendureConfigFile: vi.fn(() =>
         Promise.resolve({ dbConnectionOptions: { type: 'sqlite' }, from: 'source' }),
     ),
@@ -128,7 +133,9 @@ describe('loadProjectConfig()', () => {
         const result = await resolveProjectConfig({ projectDir: dir, plugins });
 
         expect(result?.resolvedBy).toBe('@acme/project');
-        expect(configResolverPackages({ plugins }).map(p => p.packageName)).toEqual([
+        // The files the resolved config names may be TypeScript.
+        expect(prepareToRequireProjectFiles).toHaveBeenCalledWith(dir);
+        expect(configResolverPackages(plugins).map(p => p.packageName)).toEqual([
             '@acme/project',
             '@acme/global',
         ]);
@@ -276,6 +283,6 @@ describe('loadProjectConfig()', () => {
         const plugins = [plugin('@acme/none'), plugin('@acme/cloud', 'return undefined;')];
         fs.writeFileSync(plugins[1].definitionsPath, "throw new Error('imported');");
 
-        expect(configResolverPackages({ plugins }).map(p => p.packageName)).toEqual(['@acme/cloud']);
+        expect(configResolverPackages(plugins).map(p => p.packageName)).toEqual(['@acme/cloud']);
     });
 });
