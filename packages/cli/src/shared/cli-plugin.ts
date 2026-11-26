@@ -8,9 +8,11 @@ import {
     hasCliSubcommands,
 } from './cli-command-definition.js';
 import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options.js';
+import { CliPluginCommandsRemovedError } from './cli-plugin.errors.js';
 
 /**
- * A CLI plugin that can add new commands or replace existing ones.
+ * A CLI plugin that adds shared options, extends built-in commands, or runs a
+ * hook after `vendure console link`.
  *
  * Packages declare their plugin entry in `package.json`:
  *
@@ -22,6 +24,11 @@ import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-
  * }
  * ```
  *
+ * A plugin package adds commands with `defineCommand` declarations and the
+ * command manifest it builds from them, listed as `vendure.commandManifest`
+ * and `vendure.commandDefinitions`. The `commands` key of 3.x is no longer
+ * read, and a plugin that still declares commands there is refused.
+ *
  * @since 3.8.0
  */
 export interface CliPlugin {
@@ -30,26 +37,26 @@ export interface CliPlugin {
      */
     id: string;
     /**
-     * Commands to register. Each entry is a command with an action, a group of
-     * subcommands, or a command that has both. A top-level name that a built-in
-     * or an earlier plugin already provides is rejected unless the command sets
-     * `replaces: true`.
-     */
-    commands: CliCommandNode[];
-    /**
-     * Options registered on the `vendure` command itself, and therefore shared
-     * by every command. They can be given anywhere on the command line
-     * (`vendure --token X project list` and `vendure project list --token X`
-     * are equivalent) and reach actions via `CliCommandContext.inheritedOptions`.
+     * Options registered on the `vendure` command itself. They are accepted
+     * anywhere on the command line, so `vendure --token X start` and
+     * `vendure start --token X` are equivalent.
+     *
+     * Only a decorator reads the value. A decorator in `extendCommands` of a
+     * built-in command (one in `builtinCommandDefs`, apart from the reserved
+     * `plugins`) finds it under `inheritedOptions`, through
+     * `readCommandContext(args)`. Commands declared with `defineCommand` never
+     * receive it. A package's own commands share options through
+     * `defineCommandGroup` instead.
      *
      * @since 3.8.0
      */
     rootOptions?: CliCommandOption[];
     /**
-     * Additions to commands that are already registered, whether built-in or
-     * contributed by another plugin. Unlike replacing a command, several
-     * plugins can extend the same one: their options are merged and their
-     * decorators are composed in `vendure.cli.plugins` order.
+     * Additions to the built-in commands that are not declared with
+     * `defineCommand`, such as `vendure start`. Several plugins can extend the
+     * same one: their options are merged and their decorators are composed in
+     * `vendure.cli.plugins` order. A `defineCommand` command is extended with
+     * `defineCommandExtension` instead.
      *
      * @since 3.8.0
      */
@@ -60,8 +67,7 @@ export interface CliPlugin {
      *
      * This is not a way to take the command over. `vendure console link` stays
      * the one implementation of linking, so every project links the same way
-     * whether or not a plugin is installed. Replacing the `console` command
-     * instead would fork the protocol.
+     * whether or not a plugin is installed.
      *
      * @since 3.8.0
      */
@@ -82,9 +88,7 @@ export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtens
 /**
  * The plugin capabilities this build of the CLI understands.
  *
- * Entries name capabilities, not only keys of {@link CliPlugin}. `subcommands`
- * is the ability to nest commands, which a plugin declares inside `commands`
- * rather than through a key of its own.
+ * Entries name capabilities, not only keys of {@link CliPlugin}.
  *
  * A plugin that resolves an older `@vendure/cli` than it was written against is
  * not told so. {@link assertCliPlugin} ignores keys it does not know, so a
@@ -108,22 +112,19 @@ export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtens
  *
  * `commandManifest` is the ability to load the `defineCommand` commands a
  * package declares through `vendure.commandManifest` and
- * `vendure.commandDefinitions` in its `package.json`. A package that also
- * declares a `cliPlugin` can check for it there, so that on an older CLI it
- * reports that its commands are missing instead of leaving them out silently.
+ * `vendure.commandDefinitions` in its `package.json`.
  *
- * Entries are only ever added, never removed or renamed, so a check written
- * against one release keeps working.
+ * Entries were only added in 3.x. Version 4.0.0 removed `commands`,
+ * `subcommands` and `requiresProject`, which described the commands a plugin
+ * declared under `commands`. A plugin that checks for `commands` learns from
+ * its absence that it has to declare its commands with `defineCommand`.
  *
  * @since 3.8.0
  */
 export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
-    'commands',
     'rootOptions',
-    'subcommands',
     'extendCommands',
     'afterConsoleLink',
-    'requiresProject',
     'commandManifest',
 ]);
 
@@ -135,21 +136,18 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (typeof plugin.id !== 'string' || plugin.id.trim().length === 0) {
         throw new Error('CLI plugin id must be a non-empty string');
     }
-    if (!Array.isArray(plugin.commands)) {
-        throw new TypeError(`CLI plugin "${plugin.id}" must provide a commands array`);
-    }
+    assertNoLegacyCommands(plugin.id, (value as { commands?: unknown }).commands);
     const rootOptions = plugin.rootOptions ?? [];
     if (!Array.isArray(rootOptions)) {
         throw new TypeError(`CLI plugin "${plugin.id}" rootOptions must be an array`);
     }
-    assertUniqueOptions(plugin.id, rootOptions, 'shared root options');
-    assertNodes(plugin.id, plugin.commands, [], rootOptions);
+    assertUniqueOptions(`CLI plugin "${plugin.id}"`, rootOptions, 'shared root options');
 
     const extensions = plugin.extendCommands ?? [];
     if (!Array.isArray(extensions)) {
         throw new TypeError(`CLI plugin "${plugin.id}" extendCommands must be an array`);
     }
-    assertExtensions(plugin.id, extensions, rootOptions);
+    assertExtensions(`CLI plugin "${plugin.id}"`, extensions, rootOptions);
 
     if (
         plugin.afterConsoleLink !== undefined &&
@@ -166,8 +164,30 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
 }
 
 /**
- * Normalises the `command` of an extension to a path, e.g. `'dev'` and
- * `['config', 'server', 'set']`.
+ * Refuses the `commands` key of a 3.x plugin. An empty array is accepted: 3.x
+ * required the key, so a plugin that only extends commands or runs a hook
+ * declares `commands: []`, and it loses nothing.
+ */
+function assertNoLegacyCommands(pluginId: string, commands: unknown): void {
+    if (commands === undefined || (Array.isArray(commands) && commands.length === 0)) {
+        return;
+    }
+    throw new CliPluginCommandsRemovedError(pluginId);
+}
+
+/**
+ * Validates the built-in commands against the rules a command tree has to meet
+ * before it reaches Commander: unique names and flags, a description each, an
+ * action on every command with no subcommands, and options that agree with the
+ * options shared from above. `owner` names the tree in errors.
+ */
+export function assertCommandTree(owner: string, nodes: CliCommandNode[]): void {
+    assertNodes(`The command tree "${owner}"`, nodes, [], []);
+}
+
+/**
+ * Normalises the `command` of an extension to a path, e.g. `'start'` to
+ * `['start']`.
  */
 export function normalizeCommandPath(command: string | string[]): string[] {
     return (Array.isArray(command) ? command : command.split(' '))
@@ -176,38 +196,36 @@ export function normalizeCommandPath(command: string | string[]): string[] {
 }
 
 function assertExtensions(
-    pluginId: string,
+    subject: string,
     extensions: CliCommandExtension[],
     rootOptions: CliCommandOption[],
 ): void {
     const seenPaths = new Set<string>();
     for (const extension of extensions) {
         if (!extension || typeof extension !== 'object') {
-            throw new Error(`CLI plugin "${pluginId}" has a command extension that is not an object`);
+            throw new Error(`${subject} has a command extension that is not an object`);
         }
         const path = normalizeCommandPath(extension.command);
         if (path.length === 0) {
-            throw new Error(`CLI plugin "${pluginId}" has a command extension without a command path`);
+            throw new Error(`${subject} has a command extension without a command path`);
         }
         const label = path.join(' ');
         if (seenPaths.has(label)) {
-            throw new Error(
-                `CLI plugin "${pluginId}" extends "${label}" more than once. Combine them into one extension.`,
-            );
+            throw new Error(`${subject} extends "${label}" more than once. Combine them into one extension.`);
         }
         seenPaths.add(label);
 
         if (extension.decorate !== undefined && typeof extension.decorate !== 'function') {
-            throw new Error(`CLI plugin "${pluginId}" extension of "${label}" has a non-function decorate`);
+            throw new Error(`${subject} extension of "${label}" has a non-function decorate`);
         }
         if (extension.decorate === undefined && !extension.description && !extension.options?.length) {
             throw new Error(
-                `CLI plugin "${pluginId}" extension of "${label}" adds nothing. Give it a decorate, ` +
+                `${subject} extension of "${label}" adds nothing. Give it a decorate, ` +
                     `description or options.`,
             );
         }
 
-        assertUniqueOptions(pluginId, extension.options ?? [], `options added to "${label}"`);
+        assertUniqueOptions(subject, extension.options ?? [], `options added to "${label}"`);
     }
 }
 
@@ -222,83 +240,81 @@ export function defineCliPlugin(plugin: CliPlugin): CliPlugin {
 }
 
 function assertNodes(
-    pluginId: string,
+    subject: string,
     nodes: CliCommandNode[],
     path: string[],
     inheritedOptions: CliCommandOption[],
 ): void {
     const seenNames = new Set<string>();
     for (const node of nodes) {
-        assertNode(pluginId, node, path, inheritedOptions, seenNames);
+        assertNode(subject, node, path, inheritedOptions, seenNames);
     }
 }
 
 function assertNode(
-    pluginId: string,
+    subject: string,
     node: CliCommandNode,
     path: string[],
     inheritedOptions: CliCommandOption[],
     seenNames: Set<string>,
 ): void {
     if (!node || typeof node.name !== 'string' || node.name.trim().length === 0) {
-        throw new Error(`CLI plugin "${pluginId}" has a command with an invalid name`);
+        throw new Error(`${subject} has a command with an invalid name`);
     }
     const commandPath = [...path, node.name];
     const label = commandPath.join(' ');
     if (seenNames.has(node.name)) {
-        throw new Error(`CLI plugin "${pluginId}" declares the command "${label}" more than once`);
+        throw new Error(`${subject} declares the command "${label}" more than once`);
     }
     seenNames.add(node.name);
 
     if (typeof node.description !== 'string' || node.description.trim().length === 0) {
-        throw new Error(`CLI plugin "${pluginId}" command "${label}" must provide a description`);
+        throw new Error(`${subject} command "${label}" must provide a description`);
     }
 
     const ownOptions = node.options ?? [];
-    assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
+    assertUniqueOptions(subject, ownOptions, `options of command "${label}"`);
 
     if (!hasCliSubcommands(node)) {
-        assertMatchesInheritedShape(pluginId, label, ownOptions, inheritedOptions);
+        assertMatchesInheritedShape(subject, label, ownOptions, inheritedOptions);
         if (typeof node.action !== 'function') {
-            throw new TypeError(
-                `CLI plugin "${pluginId}" command "${label}" must provide an action function`,
-            );
+            throw new TypeError(`${subject} command "${label}" must provide an action function`);
         }
         return;
     }
 
-    assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
+    assertDoesNotShadow(subject, label, ownOptions, inheritedOptions);
     const action = (node as Partial<CliCommandDefinition>).action;
     if (action !== undefined && typeof action !== 'function') {
         throw new TypeError(
-            `CLI plugin "${pluginId}" command "${label}" declares an action that is not a function. ` +
+            `${subject} command "${label}" declares an action that is not a function. ` +
                 `Give it one, or remove it so that "${label}" only groups the commands below it.`,
         );
     }
     if (node.subcommands.length === 0) {
         throw new Error(
-            `CLI plugin "${pluginId}" command "${label}" declares "subcommands" but provides none. ` +
+            `${subject} command "${label}" declares "subcommands" but provides none. ` +
                 `Give it at least one subcommand, or drop the array.`,
         );
     }
     if ((node as Partial<CliCommandDefinition>).arguments?.length) {
         throw new Error(
-            `CLI plugin "${pluginId}" command "${label}" declares both positional arguments and ` +
+            `${subject} command "${label}" declares both positional arguments and ` +
                 `subcommands. The first word after "${label}" would be ambiguous, since it could name ` +
                 `a subcommand or fill an argument. Take an option instead, or move the arguments into ` +
                 `a subcommand.`,
         );
     }
-    assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
+    assertNodes(subject, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
 }
 
-function assertUniqueOptions(pluginId: string, options: CliCommandOption[], context: string): void {
-    assertSubOptionDepth(pluginId, options, context);
+function assertUniqueOptions(subject: string, options: CliCommandOption[], context: string): void {
+    assertSubOptionDepth(subject, options, context);
 
     const seenFlags = new Set<string>();
     for (const option of withSubOptions(options)) {
         if (!option || typeof option.long !== 'string' || option.long.trim().length === 0) {
-            throw new Error(`CLI plugin "${pluginId}" has an option without a long flag in ${context}`);
+            throw new Error(`${subject} has an option without a long flag in ${context}`);
         }
         const { long, short } = parseOptionFlags(option);
         for (const flag of [long, short]) {
@@ -306,7 +322,7 @@ function assertUniqueOptions(pluginId: string, options: CliCommandOption[], cont
                 continue;
             }
             if (seenFlags.has(flag)) {
-                throw new Error(`CLI plugin "${pluginId}" declares "${flag}" twice in ${context}`);
+                throw new Error(`${subject} declares "${flag}" twice in ${context}`);
             }
             seenFlags.add(flag);
         }
@@ -317,12 +333,12 @@ function assertUniqueOptions(pluginId: string, options: CliCommandOption[], cont
  * Sub-options nest one level, matching what the host registers. Anything
  * deeper would be validated here and then never parsed.
  */
-function assertSubOptionDepth(pluginId: string, options: CliCommandOption[], context: string): void {
+function assertSubOptionDepth(subject: string, options: CliCommandOption[], context: string): void {
     for (const option of options) {
         for (const subOption of option.subOptions ?? []) {
             if (subOption.subOptions?.length) {
                 throw new Error(
-                    `CLI plugin "${pluginId}" nests sub-options more than one level deep under ` +
+                    `${subject} nests sub-options more than one level deep under ` +
                         `"${describeOption(option)}" in ${context}. The CLI registers one level, so a ` +
                         `deeper option would be validated but never parsed.`,
                 );
@@ -338,7 +354,7 @@ function assertSubOptionDepth(pluginId: string, options: CliCommandOption[], con
  * command a value its own declaration says it will never see.
  */
 function assertMatchesInheritedShape(
-    pluginId: string,
+    subject: string,
     label: string,
     ownOptions: CliCommandOption[],
     inheritedOptions: CliCommandOption[],
@@ -356,7 +372,7 @@ function assertMatchesInheritedShape(
         });
         if (clash && parseOptionFlags(clash).takesValue !== parsed.takesValue) {
             throw new Error(
-                `CLI plugin "${pluginId}" command "${label}" declares "${describeOption(option)}", which ` +
+                `${subject} command "${label}" declares "${describeOption(option)}", which ` +
                     `is not compatible with the shared option "${describeOption(clash)}": one takes a ` +
                     `value and the other does not.`,
             );
@@ -371,7 +387,7 @@ function assertMatchesInheritedShape(
  * flag: the host copies the value onto it, so both readings agree.
  */
 function assertDoesNotShadow(
-    pluginId: string,
+    subject: string,
     label: string,
     ownOptions: CliCommandOption[],
     inheritedOptions: CliCommandOption[],
@@ -394,7 +410,7 @@ function assertDoesNotShadow(
             const shadowed = inheritedFlags.get(flag);
             if (shadowed) {
                 throw new Error(
-                    `CLI plugin "${pluginId}" command "${label}" declares "${flag}", which is already a shared ` +
+                    `${subject} command "${label}" declares "${flag}", which is already a shared ` +
                         `option ("${describeOption(shadowed)}"). Declare it at one level only and read the ` +
                         `value from the command context.`,
                 );

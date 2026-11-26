@@ -12,8 +12,7 @@ import { presentForPeople } from './present.js';
  * that is `incomplete` names `vendure <path>` with the input given so far, so the missing flags
  * apply to that command line.
  *
- * It always runs the CLI's own declaration. A CLI plugin that replaces the command replaces
- * `vendure <path>` only; the older flags and menus keep running the built-in command.
+ * It runs the CLI's own declaration, without the extensions of CLI plugins.
  */
 export async function runCoreCommand(
     path: string[],

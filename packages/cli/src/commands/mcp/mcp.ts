@@ -83,9 +83,8 @@ const LIST_COMMANDS_TIMEOUT_MS = 15_000;
 /**
  * The commands of the project, as `vendure commands --json` lists them in the directory the tool
  * calls run in. A child process lists them because `--dir` can name another project than the one
- * this process started in, and that project's `cliPlugin` commands decide which of its plugins'
- * commands are refused. Refused plugins are written to stderr, which MCP clients keep in their
- * server log.
+ * this process started in, and that project's plugins decide which commands there are. Refused
+ * plugins are written to stderr, which MCP clients keep in their server log.
  *
  * The server answers `initialize` only once the listing is done, so a plugin that is slow to load
  * would hold up the client. After {@link LIST_COMMANDS_TIMEOUT_MS} the server offers the CLI's own

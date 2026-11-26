@@ -23,11 +23,6 @@ export interface PackageJsonLike {
     vendure?: {
         cliPlugin?: string;
         /**
-         * Optional declarative list of command names contributed by the plugin.
-         * Used for actionable unknown-command hints without loading plugin code.
-         */
-        cliCommands?: string[];
-        /**
          * The `vendure-commands.json` of the package's `defineCommand` commands, built with
          * `writeCommandManifest` from `@vendure/common/lib/command/manifest`. The CLI reads it to
          * build the command line, and `vendure mcp` reads it to list tools, without loading any
@@ -174,10 +169,6 @@ export interface DiscoveredCliPlugin {
     reason?: string;
     entryRel?: string;
     entryPath?: string;
-    /**
-     * Command names from package.json `vendure.cliCommands` when declared.
-     */
-    declaredCommands?: string[];
     /** The manifest of the package's `defineCommand` commands, when it declares one. */
     manifestPath?: string;
     /**
@@ -190,37 +181,20 @@ export interface DiscoveredCliPlugin {
      * Known only for an enabled package that was validated.
      */
     manifestReason?: string;
-    /**
-     * Top-level command names read from the plugin module itself. Only known
-     * when the plugin was actually loaded, which `validate` does for enabled
-     * plugins. Read it through {@link cliPluginCommandNames}, which falls back
-     * to {@link declaredCommands} for a package that was not loaded.
-     */
-    loadedCommands?: string[];
 }
 
 /**
- * The commands a package contributes, as accurately as is known.
- *
- * An enabled plugin is loaded, so its real command names are used. A package
- * that is only installed is not executed, so what it declares in
- * `vendure.cliCommands` is the best available answer, and an empty list means
- * the package declared nothing rather than that it contributes nothing.
+ * The top-level commands a package contributes, read from its command manifest, so known without
+ * loading the package's code. Empty for a package that declares no manifest, or one that cannot be
+ * read.
  */
 export function cliPluginCommandNames(plugin: DiscoveredCliPlugin): string[] {
-    return [
-        ...new Set([
-            ...(plugin.loadedCommands ?? plugin.declaredCommands ?? []),
-            ...(plugin.manifestCommands ?? []),
-        ]),
-    ];
+    return plugin.manifestCommands ?? [];
 }
 
-/** Whether a package says it provides the top-level command `commandName`, without loading it. */
+/** Whether a package's manifest provides the top-level command `commandName`. */
 function declaresCommand(plugin: DiscoveredCliPlugin, commandName: string): boolean {
-    return Boolean(
-        plugin.declaredCommands?.includes(commandName) || plugin.manifestCommands?.includes(commandName),
-    );
+    return Boolean(plugin.manifestCommands?.includes(commandName));
 }
 
 export interface ResolveCliPluginsOptions {
@@ -362,7 +336,7 @@ function discoverInScope(
         const load = validate && entry.status !== 'failed' && mayLoad(packageName);
         discovered.set(
             packageName,
-            load ? withLoadedCommands(entry, packageName, scope.resolvePackage(packageName)) : entry,
+            load ? withValidatedPlugin(entry, packageName, scope.resolvePackage(packageName)) : entry,
         );
     }
 
@@ -380,7 +354,6 @@ function describePackage(
     isEnabled: boolean,
 ): DiscoveredCliPlugin | undefined {
     const resolved = scope.resolvePackage(packageName);
-    const vendure = resolved?.packageJson.vendure;
     const entryRel = resolved ? declaredEntry(resolved.packageJson) : undefined;
     const manifestRel = resolved ? declaredManifest(resolved.packageJson) : undefined;
     if (!resolved || (!entryRel && !manifestRel)) {
@@ -393,7 +366,6 @@ function describePackage(
         status: isEnabled ? 'enabled' : 'not-enabled',
         reason: isEnabled ? undefined : notEnabledReason(scope),
         ...(entryRel ? { entryRel, entryPath: path.resolve(resolved.dir, entryRel) } : {}),
-        declaredCommands: normalizeDeclaredCommands(vendure?.cliCommands),
         ...(manifestPath ? { manifestPath, manifestCommands: readManifestCommandNames(manifestPath) } : {}),
     };
 }
@@ -434,12 +406,10 @@ function describeEnabledPackage(
 }
 
 /**
- * Adds the command names read from the plugin module itself, which are the real
- * ones and so outrank whatever `vendure.cliCommands` declares. The module is
- * loaded to read them, so a module that cannot be loaded is reported as failed
- * here rather than at the next startup.
+ * Loads the plugin module and reads the package's manifest, as startup does, so a package that
+ * cannot be loaded is reported as failed here rather than at the next startup.
  */
-function withLoadedCommands(
+function withValidatedPlugin(
     entry: DiscoveredCliPlugin,
     packageName: string,
     resolved: { dir: string; packageJson: PackageJsonLike } | null,
@@ -452,12 +422,8 @@ function withLoadedCommands(
         return manifestReason ? { ...entry, status: 'failed', reason: manifestReason } : entry;
     }
     try {
-        const plugin = loadCliPluginModule(entry.entryPath, packageName);
-        return {
-            ...entry,
-            loadedCommands: plugin.commands.map(command => command.name),
-            ...(manifestReason ? { manifestReason } : {}),
-        };
+        loadCliPluginModule(entry.entryPath, packageName);
+        return { ...entry, ...(manifestReason ? { manifestReason } : {}) };
     } catch (e: any) {
         return { ...entry, status: 'failed', reason: e?.message ?? String(e) };
     }
@@ -837,8 +803,8 @@ export function listInactiveCliPlugins(options: ResolveCliPluginsOptions = {}): 
 }
 
 /**
- * Finds an inactive plugin package that declares it provides `commandName`
- * via `vendure.cliCommands`. Does not load plugin code.
+ * Finds an inactive plugin package whose command manifest provides
+ * `commandName`. Does not load plugin code.
  *
  * Every inactive copy is searched, since enabling either would provide the
  * command. A project copy that declares it is preferred.
@@ -853,8 +819,8 @@ export function findInactivePluginProvidingCommand(
 }
 
 /**
- * Finds an enabled plugin package that declares `commandName` via
- * `vendure.cliCommands`, for when that command was still not registered.
+ * Finds an enabled plugin package whose command manifest provides
+ * `commandName`, for when that command was still not registered.
  * Only the copy startup loads is considered: the project's, when both scopes
  * enable the package. Does not load plugin code.
  */
@@ -1164,9 +1130,8 @@ function getProjectPluginScope(options: ResolveCliPluginsOptions): PluginScope |
 /**
  * Every scope to consider, in registration order.
  *
- * Global first, project last, so a project overrides the machine: commands
- * register in order, and among plugins that set `replaces: true` the last one
- * listed wins. The same package enabled in both scopes is loaded once, from the
+ * Global first, project last, so a project's plugins register after the
+ * machine's, and their extensions wrap the machine's. The same package enabled in both scopes is loaded once, from the
  * project, since the project's copy is the one pinned to go with its code.
  */
 function getPluginScopes(options: ResolveCliPluginsOptions): PluginScope[] {
@@ -1291,16 +1256,6 @@ function collectDirectDependencyOrigins(cwd: string, projectRoot: string): Map<s
     }
 
     return origins;
-}
-
-function normalizeDeclaredCommands(value: unknown): string[] | undefined {
-    if (!Array.isArray(value)) {
-        return undefined;
-    }
-    const commands = value.filter(
-        (item): item is string => typeof item === 'string' && item.trim().length > 0,
-    );
-    return commands.length > 0 ? commands : undefined;
 }
 
 function hasDirectDependency(pkg: PackageJsonLike, name: string): boolean {

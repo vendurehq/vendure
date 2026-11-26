@@ -7,4 +7,4 @@ if (process.env.VENDURE_CLI_MCP === '1') {
     }
 }
 
-module.exports = { id: '@vendure-e2e/slow-cli-plugin', commands: [] };
+module.exports = { id: '@vendure-e2e/slow-cli-plugin' };

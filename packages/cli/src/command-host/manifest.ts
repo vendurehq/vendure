@@ -140,11 +140,9 @@ export interface LoadedCommand {
 let commanderPaths: TakenCommandPath[] = [];
 
 /**
- * Records the paths that Commander commands take in this process: the built-in commands and those
- * of CLI plugins. `cli.ts` calls it once, before it registers the manifest commands. Later loads in
- * the same process, such as `vendure commands` and `vendure mcp`, then refuse the same plugins that
- * the command line did. Commander's commands are only known after the `cliPlugin` modules have
- * run, which is why they are recorded rather than worked out again.
+ * Records the paths that Commander commands take in this process, which are the built-in commands.
+ * `cli.ts` calls it once, before it registers the manifest commands. Later loads in the same
+ * process, such as `vendure commands`, then refuse the same plugins that the command line did.
  */
 export function setCommanderPaths(paths: TakenCommandPath[]): void {
     commanderPaths = paths;
@@ -156,7 +154,7 @@ export interface LoadProjectCommandsOptions {
     /** The plugin manifests, when the caller has resolved them already. */
     plugins?: ResolvedCommandManifest[];
     /**
-     * Paths the Commander commands already take, such as `dev` and the commands of CLI plugins.
+     * Paths the Commander commands already take, such as `add` and `migrate`.
      * Defaults to those recorded with {@link setCommanderPaths}, which is an empty list in a process
      * that did not start through `cli.ts`, such as a test.
      */
@@ -172,10 +170,8 @@ export interface LoadProjectCommandsOptions {
  *
  * A plugin may add commands under a group that already exists, such as `cloud`, but never a
  * command whose path another package or a built-in command has, a command that would turn a
- * group into a command, or one under another package's command. The Commander commands of a
- * `cliPlugin` count, the package's own included. All the `defineCommand` commands of such a
- * plugin are refused, with a coded error, and the rest of the commands stay. Its `cliPlugin`
- * commands follow their own collision rules.
+ * group into a command, or one under another package's command. All the `defineCommand` commands
+ * of such a plugin are refused, with a coded error, and the rest of the commands stay.
  */
 export async function loadProjectCommands(
     options: LoadProjectCommandsOptions = {},

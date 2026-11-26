@@ -1,30 +1,18 @@
 /**
  * Public API for extending the Vendure CLI with plugins.
  *
+ * A plugin package adds commands with `defineCommand` from `@vendure/common/lib/command`, and
+ * lists the command manifest it builds from them in its `package.json`. A CLI plugin adds shared
+ * options, extends the built-in commands that are not declared with `defineCommand`, and runs a
+ * hook after `vendure console link`.
+ *
  * @example
  * ```ts
  * import { defineCliPlugin } from '@vendure/cli';
- * import type { CliCommandContext } from '@vendure/cli';
  *
  * export default defineCliPlugin({
  *   id: '@example/vendure-cli-plugin',
  *   rootOptions: [{ long: '--token <token>', description: 'API token' }],
- *   commands: [
- *     {
- *       name: 'project',
- *       description: 'Manage projects',
- *       subcommands: [
- *         {
- *           name: 'list',
- *           description: 'List projects',
- *           action: async (options, command, context: CliCommandContext<{ token?: string }>) => {
- *             // context.inheritedOptions.token holds the shared --token value
- *             return 0;
- *           },
- *         },
- *       ],
- *     },
- *   ],
  *   extendCommands: [
  *     {
  *       // Adds to the built-in start command, so other plugins can wrap it too

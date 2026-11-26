@@ -384,7 +384,11 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
         const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
         const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'))
             .name as string;
-        cpSync(fixtureDir, join(globalNodeModules, ...packageName.split('/')), { recursive: true });
+        const pluginDir = join(globalNodeModules, ...packageName.split('/'));
+        cpSync(fixtureDir, pluginDir, { recursive: true });
+        // A plugin that declares command definitions brings its own dependencies, which a real
+        // install would put in the plugin's own node_modules.
+        linkPluginDependencies(pluginDir);
     }
     // Plugin fixtures require('@vendure/cli'), which resolves to the sibling
     // copy, exactly as it would for a real global install.
@@ -459,6 +463,22 @@ function linkDeclaredDependencies(cliDir: string): void {
         const target = join(cliDir, 'node_modules', ...packageName.split('/'));
         mkdirSync(join(target, '..'), { recursive: true });
         symlinkSync(source, target, linkType);
+    }
+}
+
+/** Links the packages a plugin declares as peer dependencies into the plugin's own node_modules. */
+function linkPluginDependencies(pluginDir: string): void {
+    const { peerDependencies = {} } = JSON.parse(readFileSync(join(pluginDir, 'package.json'), 'utf-8')) as {
+        peerDependencies?: Record<string, string>;
+    };
+    for (const packageName of Object.keys(peerDependencies)) {
+        const target = join(pluginDir, 'node_modules', ...packageName.split('/'));
+        mkdirSync(dirname(target), { recursive: true });
+        symlinkSync(
+            findInstalledPackage(packageName),
+            target,
+            process.platform === 'win32' ? 'junction' : 'dir',
+        );
     }
 }
 

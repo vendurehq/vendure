@@ -10,7 +10,7 @@ import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
 import { describeAccount, renewCredential, requireCredential } from '../auth/credential.js';
-import { pluginCommandsHeading, pluginFromCommandsHeading } from '../shared/command-registry.js';
+import { pluginCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
@@ -126,7 +126,7 @@ function stop(result: HostResult): never {
 /**
  * The groups this adapter made only to hold manifest commands, such as `cloud deploy` before the
  * command `cloud deploy` itself is registered. A manifest command at that path takes the group
- * over, with its commands, instead of counting as a command a CLI plugin replaced.
+ * over, with its commands.
  */
 const manifestGroups = new WeakSet<Command>();
 
@@ -236,19 +236,10 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
     const name = manifestCommand.path[manifestCommand.path.length - 1];
     const existing = findChild(parent, name);
     const group = existing && manifestGroups.has(existing) ? existing : undefined;
-    let replacedBy: string | undefined;
     if (existing && !group) {
-        // A CLI plugin already replaced this command. The plugin's command wins for people and
-        // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
-        // coded error instead of the plugin's output.
-        replacedBy = pluginFromCommandsHeading(existing.helpGroup()) ?? 'a CLI plugin';
-        if (!isMcpCall()) {
-            process.stderr.write(`Replaced command "${manifestCommand.path.join(' ')}" via ${replacedBy}\n`);
-            return;
-        }
-        // Commander exposes its subcommands as a read-only array, and has no way to remove one.
-        const siblings = parent.commands as Command[];
-        siblings.splice(siblings.indexOf(existing), 1);
+        // The merge refuses a command whose path a built-in command already has, so only a
+        // caller that skipped it gets here.
+        throw new Error(`The command "${manifestCommand.path.join(' ')}" is already registered`);
     }
     const command = (group ?? parent.command(name)).description(manifestCommand.description);
     if (group) {
@@ -325,7 +316,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
         );
-        const code = await runLeaf(manifestCommand, command, positionalValues, opts, options, replacedBy);
+        const code = await runLeaf(manifestCommand, command, positionalValues, opts, options);
         process.exit(code);
     });
 }
@@ -418,7 +409,6 @@ async function runLeaf(
     positionalValues: Record<string, unknown>,
     opts: Record<string, any>,
     options: AdapterOptions,
-    replacedBy: string | undefined,
 ): Promise<number> {
     const json = opts.json === true || opts.format === 'json';
     const out: JsonOutput | undefined = json ? redirectStdoutToStderr() : undefined;
@@ -436,14 +426,6 @@ async function runLeaf(
         return hostResult.exitCode;
     };
 
-    if (replacedBy) {
-        return finish(
-            errorResult(hostErrors.commandReplaced, {
-                command: manifestCommand.path.join(' '),
-                plugin: replacedBy,
-            }),
-        );
-    }
     let input: Record<string, unknown> = {};
     try {
         if (typeof opts.input === 'string') {

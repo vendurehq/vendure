@@ -14,7 +14,6 @@ import {
     CliTestProject,
     createTestProject,
     installCliPluginFixture,
-    readMarker,
     startMcpServer,
 } from './cli-test-utils.js';
 
@@ -52,6 +51,7 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
     }
 
     it.each([
+        'cloud-cli-plugin',
         'defined-commands-cli-plugin',
         'clashing-defined-commands-cli-plugin',
         'parent-commands-cli-plugin',
@@ -386,15 +386,6 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             const result = await projectWith(['defined-commands-cli-plugin']).runCliCommand(['--help']);
             expect(result.stdout).toContain(`Commands from ${EXAMPLE}:`);
         });
-
-        it('keeps the commands of a 3.8 cliPlugin working beside it', async () => {
-            const p = projectWith(['cloud-cli-plugin'], ['defined-commands-cli-plugin']);
-
-            const legacy = await p.runCliCommand(['project', 'list']);
-            expect(readMarker(legacy.stdout, 'CLOUD_RESULT').command).toEqual(['project', 'list']);
-            const defined = await p.runCliCommand(['example', 'greet', 'Ada', '--json']);
-            expect(envelopeOf(defined.stdout).output).toEqual({ message: 'Hello, Ada!' });
-        });
     });
 
     describe('a CLI plugin that is slow to load', () => {
@@ -443,13 +434,16 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
     });
 
     describe('a package that also declares a cliPlugin', () => {
-        /** Gives the installed defineCommand fixture a cliPlugin with one command, `name`. */
-        function addCliPlugin(p: CliTestProject, name: string): string {
+        /**
+         * Gives the installed defineCommand fixture a cliPlugin that wraps `start`, and says
+         * LEGACY_RAN when `start` runs.
+         */
+        function addCliPlugin(p: CliTestProject): string {
             const dir = join('node_modules', ...EXAMPLE.split('/'));
             p.writeFile(
                 join(dir, 'cli-plugin.cjs'),
-                `module.exports = { id: '${EXAMPLE}', commands: [{ name: '${name}', description: 'Legacy', ` +
-                    `action: async () => { console.log('LEGACY_RAN'); return 0; } }] };\n`,
+                `module.exports = { id: '${EXAMPLE}', extendCommands: [{ command: 'start', ` +
+                    `decorate: ({ next }) => async (...args) => { console.log('LEGACY_RAN'); return next(...args); } }] };\n`,
             );
             const packageJson = JSON.parse(p.readFile(join(dir, 'package.json')));
             packageJson.vendure.cliPlugin = './cli-plugin.cjs';
@@ -459,9 +453,10 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
 
         it('loads both kinds of command', async () => {
             const p = projectWith(['defined-commands-cli-plugin']);
-            addCliPlugin(p, 'legacy');
+            addCliPlugin(p);
 
-            expect((await p.runCliCommand(['legacy'])).stdout).toContain('LEGACY_RAN');
+            const legacy = await p.runCliCommand(['start', 'bogus'], { expectError: true });
+            expect(legacy.stdout).toContain('LEGACY_RAN');
             const greet = await p.runCliCommand(['example', 'greet', 'Ada', '--json']);
             expect(envelopeOf(greet.stdout).output).toEqual({ message: 'Hello, Ada!' });
         });
@@ -476,7 +471,7 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             ],
         ])('leaves out only the defineCommand commands when the manifest %s', async (_, content, code) => {
             const p = projectWith(['defined-commands-cli-plugin']);
-            const dir = addCliPlugin(p, 'legacy');
+            const dir = addCliPlugin(p);
             const manifestFile = join(p.projectDir, dir, 'vendure-commands.json');
             if (content === undefined) {
                 rmSync(manifestFile);
@@ -493,13 +488,12 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             const plugins = JSON.parse((await p.runCliCommand(['plugins', '--json'])).stdout).plugins;
             expect(plugins.find((entry: any) => entry.packageName === EXAMPLE)).toMatchObject({
                 status: 'enabled',
-                loadedCommands: ['legacy'],
                 manifestReason: expect.any(String),
             });
             // The CLI's own commands are still there.
             expect(envelope.output.commands.some((c: any) => c.path.join(' ') === 'doctor')).toBe(true);
 
-            const legacy = await p.runCliCommand(['legacy']);
+            const legacy = await p.runCliCommand(['start', 'bogus'], { expectError: true });
             expect(legacy.stdout).toContain('LEGACY_RAN');
             expect(legacy.stderr).toContain(
                 `Failed to load the defineCommand commands of CLI plugin "${EXAMPLE}"`,
@@ -508,30 +502,13 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
 
         it('keeps its defineCommand commands when its cliPlugin entry is missing', async () => {
             const p = projectWith(['defined-commands-cli-plugin']);
-            const dir = addCliPlugin(p, 'legacy');
+            const dir = addCliPlugin(p);
             rmSync(join(p.projectDir, dir, 'cli-plugin.cjs'));
 
             const greet = await p.runCliCommand(['example', 'greet', 'Ada', '--json']);
             expect(envelopeOf(greet.stdout).output).toEqual({ message: 'Hello, Ada!' });
             expect(greet.stderr).toContain(`Failed to load CLI plugin "${EXAMPLE}"`);
             expect((await listCommands(p)).output.refused).toBeUndefined();
-        });
-
-        it("refuses a defineCommand command that its own cliPlugin's command takes", async () => {
-            const p = projectWith(['defined-commands-cli-plugin']);
-            addCliPlugin(p, 'example');
-
-            const envelope = await listCommands(p);
-            expect(envelope.output.refused).toEqual([
-                {
-                    package: EXAMPLE,
-                    error: expect.objectContaining({
-                        code: 'plugin.command-clash',
-                        message: expect.stringContaining(`the command "example" of ${EXAMPLE}`),
-                    }),
-                },
-            ]);
-            expect((await p.runCliCommand(['example'])).stdout).toContain('LEGACY_RAN');
         });
     });
 
