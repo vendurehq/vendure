@@ -8,7 +8,6 @@ const { defineCliPlugin } = require('@vendure/cli');
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/console-hook-cli-plugin',
-    commands: [],
     afterConsoleLink: async context => {
         fs.writeFileSync(
             path.join(context.projectRoot, 'console-hook-ran.json'),

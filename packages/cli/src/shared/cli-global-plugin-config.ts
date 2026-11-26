@@ -118,9 +118,9 @@ export function readEnvPluginNames(env: NodeJS.ProcessEnv = process.env): string
  * The global allowlist: the config file's list, then any names the environment
  * variable adds that it does not already contain.
  *
- * Order matters, because it is registration order, and among plugins that set
- * `replaces: true` the last listed wins. The file is listed first so that
- * naming a package in the environment is what decides.
+ * Order matters, because it is registration order: the last listed extension
+ * of a command wraps the others. The file is listed first so that naming a
+ * package in the environment is what decides.
  */
 export function getGlobalPluginAllowlist(env?: NodeJS.ProcessEnv): string[] {
     return mergeEnvPluginNames(readGlobalCliConfig(env).config.plugins ?? [], env);

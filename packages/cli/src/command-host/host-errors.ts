@@ -43,12 +43,6 @@ export const hostErrors = {
         message: ({ option, line }) =>
             `${option} comes before the end of the command path. Options go after it: ${line}`,
     }),
-    commandReplaced: defineError<{ command: string; plugin: string }>({
-        code: 'command.replaced',
-        exit: 1,
-        message: ({ command, plugin }) =>
-            `"${command}" is replaced in this project by the CLI plugin ${plugin}, which does not support --json.`,
-    }),
     childFailed: defineError<{ message: string }>({
         code: 'mcp.child-failed',
         exit: 1,

@@ -62,7 +62,7 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
      */
     commandPath: string[];
     /**
-     * Reads plugin contributions registered for a named extension point. CLI plugin commands read
+     * Reads plugin contributions registered for a named extension point. Built-in commands read
      * them here. Commands declared with `defineCommand` read the same registry through
      * `shared/plugin-extensions.ts`, because they get a `CommandContext` rather than this context.
      */
@@ -79,15 +79,6 @@ export interface CliCommandDefinition {
     description: string;
     arguments?: CliCommandArgument[];
     options?: CliCommandOption[];
-    /**
-     * Set to `true` to deliberately replace a top-level command of the same
-     * name — a built-in, or one registered by an earlier plugin. Without it a
-     * name collision is reported as an error and the plugin is skipped, so a
-     * command can never be replaced by accident.
-     *
-     * @since 3.8.0
-     */
-    replaces?: boolean;
     /**
      * Set to `true` for a command that reads or writes a Vendure project, so
      * the host refuses to run it outside one instead of letting it fail part
@@ -171,11 +162,6 @@ export interface CliCommandGroupDefinition {
      * applies to every command in it.
      */
     requiresProject?: boolean;
-    /**
-     * See {@link CliCommandDefinition.replaces}. Replacing a group replaces its
-     * whole subtree.
-     */
-    replaces?: boolean;
 }
 
 /**
@@ -298,7 +284,7 @@ export function readCommandOptions<TOptions extends Record<string, any> = Record
 }
 
 /**
- * Adds to a command that is already registered instead of replacing it, so
+ * Adds to a built-in command that is not declared with `defineCommand`, so
  * that several plugins can contribute to the same command.
  *
  * Extensions are applied in `vendure.cli.plugins` order, so the last listed
@@ -344,10 +330,9 @@ export interface CliCommandExtension {
 export interface ProjectCliPluginConfig {
     /**
      * Allowlist of packages to load as CLI plugins, in registration order.
-     * A name that is already taken is rejected unless the command sets
-     * `replaces: true`; among plugins that do, the last listed wins. Command
-     * extensions are applied in the same order, and all of them are kept.
-     * Each must be a direct dependency and declare `vendure.cliPlugin`.
+     * Command extensions are applied in this order, and all of them are kept.
+     * Each must be a direct dependency and declare `vendure.cliPlugin` or
+     * `vendure.commandManifest`.
      * When missing or empty, no plugins are loaded — disabling a plugin is
      * simply not listing it.
      */

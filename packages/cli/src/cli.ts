@@ -17,7 +17,7 @@ import {
 } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
-import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
+import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
 import { setPluginExtensionAccessor, setPluginProjectRoot } from './shared/plugin-extensions.js';
 import { PROJECT_DIR_FLAG, selectsPluginProject } from './shared/project-dir-flag.js';
 import {
@@ -85,7 +85,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // A broken plugin must not take down the CLI: built-ins (including the
     // `plugins` command needed to disable it) stay available.
     // `vendure dev` and `vendure console` select a project directory, whose plugins are the ones
-    // loaded, such as a plugin that replaces `dev`. Read it before loading plugins, and parse the
+    // loaded, such as a plugin that extends `dev`. Read it before loading plugins, and parse the
     // full command only after they have been registered.
     const pluginOptions: ResolveCliPluginsOptions = {};
     const selection = new Command().allowUnknownOption().exitOverride();
@@ -210,25 +210,21 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 }
 
 /**
- * The paths of the commands registered with Commander so far: the built-in commands and those of
- * CLI plugins. A command with subcommands is a group, which a plugin's manifest may add to. So is
- * a command that the CLI's own manifest adds to, such as `add`, which the merge decides.
+ * The paths of the commands registered with Commander so far, which are the built-in commands. A
+ * command with subcommands is a group, which a plugin's manifest may add to. So is a command that
+ * the CLI's own manifest adds to, such as `add`, which the merge decides.
  */
 function commanderPaths(program: Command): TakenCommandPath[] {
     const paths: TakenCommandPath[] = [];
-    // Only a plugin's top-level commands carry its help heading.
-    const visit = (command: Command, parent: string[], parentPlugin?: string) => {
+    const visit = (command: Command, parent: string[]) => {
         for (const child of command.commands) {
             const path = [...parent, child.name()];
-            const plugin = parentPlugin ?? pluginFromCommandsHeading(child.helpGroup());
             paths.push({
                 path,
-                owner: plugin
-                    ? `the command "${path.join(' ')}" of ${plugin}`
-                    : `the built-in command "${path.join(' ')}"`,
+                owner: `the built-in command "${path.join(' ')}"`,
                 leaf: child.commands.length === 0,
             });
-            visit(child, path, plugin);
+            visit(child, path);
         }
     };
     visit(program, []);

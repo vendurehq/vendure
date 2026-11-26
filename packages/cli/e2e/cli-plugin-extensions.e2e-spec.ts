@@ -145,45 +145,9 @@ describe('Extension collisions and recovery', () => {
             // The working plugin is untouched, and nothing from the broken one landed.
             expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
 
-            const unknown = await project.runCliCommand(['broken-extra'], { expectError: true });
-            expect(unknown.exitCode).toBe(1);
-            expect(unknown.stderr).toContain('Unknown command "broken-extra"');
-
             const removed = await project.runCliCommand(['plugins', 'remove', broken]);
             expect(removed.exitCode).toBe(0);
             expect(readEnabledCliPlugins(project)).not.toContain(broken);
-        } finally {
-            project.cleanup();
-        }
-    });
-
-    it('refuses to replace a command another plugin has extended', async () => {
-        const project = createTestProject('cli-plugin-replace-extended');
-        try {
-            const platform = installCliPluginFixture(project, 'platform-cli-plugin');
-            installCliPluginFixture(project, 'start-replacement-cli-plugin');
-
-            const result = await project.runCliCommand(['start', 'bogus'], { expectError: true });
-
-            expect(result.stderr).toContain(`has been extended by ${platform}`);
-            expect(result.stdout).not.toContain('REPLACEMENT_START');
-            expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
-        } finally {
-            project.cleanup();
-        }
-    });
-
-    it('extends a replacement when the replacing plugin is listed first', async () => {
-        const project = createTestProject('cli-plugin-replace-then-extend');
-        try {
-            installCliPluginFixture(project, 'start-replacement-cli-plugin');
-            installCliPluginFixture(project, 'platform-cli-plugin');
-
-            const result = await project.runCliCommand(['start']);
-
-            expect(result.exitCode).toBe(0);
-            expect(result.stdout).toContain('REPLACEMENT_START');
-            expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
         } finally {
             project.cleanup();
         }
@@ -192,12 +156,13 @@ describe('Extension collisions and recovery', () => {
 
 describe('Workspace project plugin loading', () => {
     let project: CliTestProject;
-    const replacement = '@vendure-e2e/dev-replacement-cli-plugin';
+    const extension = '@vendure-e2e/extension-cli-plugin';
 
     beforeAll(() => {
         project = createTestProject('cli-workspace-plugins');
-        // A plugin that replaces `dev` shows which project's plugins were loaded for it.
-        installCliPluginFixture(project, 'dev-replacement-cli-plugin');
+        // A plugin that extends `dev` shows which project's plugins were loaded for it: its flag
+        // is in the help of `dev` only when the plugin loaded.
+        installCliPluginFixture(project, 'extension-cli-plugin');
         const server = path.join(project.projectDir, 'server');
         mkdirSync(server);
         for (const name of ['package.json', 'node_modules']) {
@@ -211,22 +176,22 @@ describe('Workspace project plugin loading', () => {
     it.each([['dev'], ['dev', '--dir', 'server'], ['dev', '--dir=server']])(
         'loads the member plugin before parsing %j',
         async (...args) => {
-            const result = await project.runCliCommand(args);
-            expect(result.stdout).toContain('REPLACEMENT_DEV');
+            const result = await project.runCliCommand([...args, '--help']);
+            expect(result.stdout).toContain('--cloud-project');
         },
     );
 
     it('uses the member allowlist for plugin management', async () => {
         const listed = await project.runCliCommand(['plugins', '--json']);
         expect(JSON.parse(listed.stdout).plugins).toContainEqual(
-            expect.objectContaining({ packageName: replacement, scope: 'project', status: 'enabled' }),
+            expect.objectContaining({ packageName: extension, scope: 'project', status: 'enabled' }),
         );
         try {
-            await project.runCliCommand(['plugins', 'remove', replacement]);
+            await project.runCliCommand(['plugins', 'remove', extension]);
             expect(JSON.parse(project.readFile('server/package.json')).vendure.cli.plugins).toEqual([]);
             expect(JSON.parse(project.readFile('package.json')).vendure).toBeUndefined();
         } finally {
-            await project.runCliCommand(['plugins', 'add', replacement]);
+            await project.runCliCommand(['plugins', 'add', extension]);
         }
     });
 
@@ -234,7 +199,7 @@ describe('Workspace project plugin loading', () => {
         const result = await project.runCliCommand(['dev', '--dir', 'missing'], { expectError: true });
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain('Invalid --dir directory');
-        expect(result.stdout).not.toContain('REPLACEMENT_DEV');
+        expect(result.stdout).not.toContain('--cloud-project');
     });
 
     it('reports ambiguous members and lets --dir select one', async () => {
@@ -247,7 +212,7 @@ describe('Workspace project plugin loading', () => {
                 `Multiple Vendure projects found in "${project.projectDir}": other, server.`,
             );
             expect(result.stderr).toContain('Use --dir <dir>');
-            expect(result.stdout).not.toContain('REPLACEMENT_DEV');
+            expect(result.stdout).not.toContain('--cloud-project');
             const help = await project.runCliCommand(['--help']);
             expect(help.stdout).toContain('Usage: vendure');
             expect(help.stderr).toContain('Multiple Vendure projects found');
@@ -255,7 +220,7 @@ describe('Workspace project plugin loading', () => {
             expect(() => JSON.parse(doctor.stdout)).not.toThrow();
             const rootPackage = project.readFile('package.json');
             const serverPackage = project.readFile('server/package.json');
-            const removed = await project.runCliCommand(['plugins', 'remove', replacement], {
+            const removed = await project.runCliCommand(['plugins', 'remove', extension], {
                 expectError: true,
             });
             expect(removed.exitCode).toBe(1);
@@ -263,8 +228,8 @@ describe('Workspace project plugin loading', () => {
             expect(project.readFile('package.json')).toBe(rootPackage);
             expect(project.readFile('server/package.json')).toBe(serverPackage);
 
-            const selected = await project.runCliCommand(['dev', '--dir', 'server']);
-            expect(selected.stdout).toContain('REPLACEMENT_DEV');
+            const selected = await project.runCliCommand(['dev', '--dir', 'server', '--help']);
+            expect(selected.stdout).toContain('--cloud-project');
         } finally {
             project.writeFile('package.json', JSON.stringify({ workspaces: ['server'] }));
         }

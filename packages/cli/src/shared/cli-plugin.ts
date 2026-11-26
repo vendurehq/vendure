@@ -10,7 +10,8 @@ import {
 import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options.js';
 
 /**
- * A CLI plugin that can add new commands or replace existing ones.
+ * A CLI plugin that adds shared options, extends built-in commands, or runs a
+ * hook after `vendure console link`.
  *
  * Packages declare their plugin entry in `package.json`:
  *
@@ -22,6 +23,11 @@ import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-
  * }
  * ```
  *
+ * A plugin package adds commands with `defineCommand` declarations and the
+ * command manifest it builds from them, listed as `vendure.commandManifest`
+ * and `vendure.commandDefinitions`. The `commands` key of 3.x is no longer
+ * read, and a plugin that still declares commands there is refused.
+ *
  * @since 3.8.0
  */
 export interface CliPlugin {
@@ -29,13 +35,6 @@ export interface CliPlugin {
      * Stable plugin id, typically the npm package name (e.g. `@vendure/cloud`).
      */
     id: string;
-    /**
-     * Commands to register. Each entry is a command with an action, a group of
-     * subcommands, or a command that has both. A top-level name that a built-in
-     * or an earlier plugin already provides is rejected unless the command sets
-     * `replaces: true`.
-     */
-    commands: CliCommandNode[];
     /**
      * Options registered on the `vendure` command itself, and therefore shared
      * by every command. They can be given anywhere on the command line
@@ -46,10 +45,11 @@ export interface CliPlugin {
      */
     rootOptions?: CliCommandOption[];
     /**
-     * Additions to commands that are already registered, whether built-in or
-     * contributed by another plugin. Unlike replacing a command, several
-     * plugins can extend the same one: their options are merged and their
-     * decorators are composed in `vendure.cli.plugins` order.
+     * Additions to the built-in commands that are not declared with
+     * `defineCommand`, such as `vendure start`. Several plugins can extend the
+     * same one: their options are merged and their decorators are composed in
+     * `vendure.cli.plugins` order. A `defineCommand` command is extended with
+     * `defineCommandExtension` instead.
      *
      * @since 3.8.0
      */
@@ -60,8 +60,7 @@ export interface CliPlugin {
      *
      * This is not a way to take the command over. `vendure console link` stays
      * the one implementation of linking, so every project links the same way
-     * whether or not a plugin is installed. Replacing the `console` command
-     * instead would fork the protocol.
+     * whether or not a plugin is installed.
      *
      * @since 3.8.0
      */
@@ -82,9 +81,7 @@ export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtens
 /**
  * The plugin capabilities this build of the CLI understands.
  *
- * Entries name capabilities, not only keys of {@link CliPlugin}. `subcommands`
- * is the ability to nest commands, which a plugin declares inside `commands`
- * rather than through a key of its own.
+ * Entries name capabilities, not only keys of {@link CliPlugin}.
  *
  * A plugin that resolves an older `@vendure/cli` than it was written against is
  * not told so. {@link assertCliPlugin} ignores keys it does not know, so a
@@ -108,24 +105,28 @@ export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtens
  *
  * `commandManifest` is the ability to load the `defineCommand` commands a
  * package declares through `vendure.commandManifest` and
- * `vendure.commandDefinitions` in its `package.json`. A package that also
- * declares a `cliPlugin` can check for it there, so that on an older CLI it
- * reports that its commands are missing instead of leaving them out silently.
+ * `vendure.commandDefinitions` in its `package.json`.
  *
- * Entries are only ever added, never removed or renamed, so a check written
- * against one release keeps working.
+ * Entries were only added in 3.x. Version 4.0.0 removed `commands`,
+ * `subcommands` and `requiresProject`, which described the commands a plugin
+ * declared under `commands`. A plugin that checks for `commands` learns from
+ * its absence that it has to declare its commands with `defineCommand`.
  *
  * @since 3.8.0
  */
 export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
-    'commands',
     'rootOptions',
-    'subcommands',
     'extendCommands',
     'afterConsoleLink',
-    'requiresProject',
     'commandManifest',
 ]);
+
+/**
+ * The coded error for a plugin that still declares commands under `commands`,
+ * which the CLI no longer reads. Without it the plugin would load with none of
+ * its commands, and nothing would say why.
+ */
+export const CLI_PLUGIN_COMMANDS_REMOVED = 'plugin.commands-removed';
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (!value || typeof value !== 'object') {
@@ -135,15 +136,12 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (typeof plugin.id !== 'string' || plugin.id.trim().length === 0) {
         throw new Error('CLI plugin id must be a non-empty string');
     }
-    if (!Array.isArray(plugin.commands)) {
-        throw new TypeError(`CLI plugin "${plugin.id}" must provide a commands array`);
-    }
+    assertNoLegacyCommands(plugin.id, (value as { commands?: unknown }).commands);
     const rootOptions = plugin.rootOptions ?? [];
     if (!Array.isArray(rootOptions)) {
         throw new TypeError(`CLI plugin "${plugin.id}" rootOptions must be an array`);
     }
     assertUniqueOptions(plugin.id, rootOptions, 'shared root options');
-    assertNodes(plugin.id, plugin.commands, [], rootOptions);
 
     const extensions = plugin.extendCommands ?? [];
     if (!Array.isArray(extensions)) {
@@ -163,6 +161,33 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
             `CLI plugin "${plugin.id}" afterConsoleLink must be a function or a session-requesting hook`,
         );
     }
+}
+
+/**
+ * Refuses the `commands` key of a 3.x plugin. An empty array is accepted: 3.x
+ * required the key, so a plugin that only extends commands or runs a hook
+ * declares `commands: []`, and it loses nothing.
+ */
+function assertNoLegacyCommands(pluginId: string, commands: unknown): void {
+    if (commands === undefined || (Array.isArray(commands) && commands.length === 0)) {
+        return;
+    }
+    throw new Error(
+        `[${CLI_PLUGIN_COMMANDS_REMOVED}] CLI plugin "${pluginId}" declares commands under "commands", ` +
+            'which this version of the CLI no longer loads. Declare each command with defineCommand, ' +
+            'build the command manifest, and list it in package.json as vendure.commandManifest and ' +
+            'vendure.commandDefinitions. Then remove "commands" from the CLI plugin.',
+    );
+}
+
+/**
+ * Validates the built-in commands against the rules a command tree has to meet
+ * before it reaches Commander: unique names and flags, a description each, an
+ * action on every command with no subcommands, and options that agree with the
+ * options shared from above. `owner` names whoever declared the tree in errors.
+ */
+export function assertCommandTree(owner: string, nodes: CliCommandNode[]): void {
+    assertNodes(owner, nodes, [], []);
 }
 
 /**

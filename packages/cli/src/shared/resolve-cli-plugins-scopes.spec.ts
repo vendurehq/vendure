@@ -30,28 +30,18 @@ describe('CLI plugin scopes', () => {
 
     /**
      * A package installed under `root/node_modules`, shaped like a CLI plugin.
-     * `commandName` becomes the one command it contributes, so a test can tell
-     * which copy of a package was loaded.
+     * `marker` becomes the plugin id, so a test can tell which copy of a
+     * package was loaded.
      */
-    function installPlugin(root: string, packageName: string, commandName: string): void {
+    function installPlugin(root: string, packageName: string, marker: string): void {
         const dir = path.join(root, 'node_modules', ...packageName.split('/'));
         fs.ensureDirSync(dir);
         fs.writeJsonSync(path.join(dir, 'package.json'), {
             name: packageName,
             version: '1.0.0',
-            vendure: { cliPlugin: './cli-plugin.js', cliCommands: [commandName] },
+            vendure: { cliPlugin: './cli-plugin.js' },
         });
-        fs.writeFileSync(
-            path.join(dir, 'cli-plugin.js'),
-            `module.exports = {
-                id: '${packageName}',
-                commands: [{
-                    name: '${commandName}',
-                    description: 'From ${packageName}',
-                    action: async () => 0,
-                }],
-            };\n`,
-        );
+        fs.writeFileSync(path.join(dir, 'cli-plugin.js'), `module.exports = { id: '${marker}' };\n`);
     }
 
     /**
@@ -301,9 +291,9 @@ describe('CLI plugin scopes', () => {
 
         expect(loaded).toHaveLength(1);
         expect(loaded[0].scope).toBe('project');
-        // The command name says which copy on disk was executed, which the
+        // The plugin id says which copy on disk was executed, which the
         // package name alone cannot.
-        expect(loaded[0].plugin.commands.map(command => command.name)).toEqual(['project-cloud']);
+        expect(loaded[0].plugin.id).toBe('project-cloud');
     });
 
     it('considers only the scopes it is asked for', () => {
@@ -467,9 +457,9 @@ describe('the global scope with a project-local CLI', () => {
         fs.ensureDirSync(toolsDir);
         fs.writeJsonSync(path.join(toolsDir, 'package.json'), {
             name: '@example/tools',
-            vendure: { cliPlugin: './p.js', cliCommands: ['tools'] },
+            vendure: { cliPlugin: './p.js' },
         });
-        fs.writeFileSync(path.join(toolsDir, 'p.js'), 'module.exports={id:"t",commands:[]};\n');
+        fs.writeFileSync(path.join(toolsDir, 'p.js'), 'module.exports={id:"t"};\n');
         const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-local-cfg-'));
         tempDirs.push(configDir);
         fs.writeJsonSync(path.join(configDir, 'cli.json'), { plugins: [] });

@@ -31,7 +31,7 @@ export const RESERVED_FLAGS = ['--help', '-h', '--version', '-V'];
 
 /**
  * Commands the CLI host owns. `plugins` is how a user disables a plugin that
- * misbehaves and `help` is how they find it, so no plugin may replace or
+ * misbehaves and `help` is how they find it, so no plugin may declare or
  * extend either. Commander adds `help` implicitly, so the registry would not
  * otherwise see a collision.
  */
@@ -47,12 +47,11 @@ function reservedCommandConflict(name: string): string {
 }
 
 /**
- * A top-level command and the plugin that registered it, as the CLI host
- * receives them. `source` is undefined for a built-in.
+ * A top-level built-in command, as the CLI host receives it, with the
+ * extensions of the CLI plugins applied.
  */
 export interface CommandTreeEntry {
     node: CliCommandNode;
-    source?: string;
 }
 
 /**
@@ -66,8 +65,6 @@ export interface RootOptionEntry {
 
 interface RegisteredCommand {
     node: CliCommandNode;
-    /** Plugin id, or undefined for a built-in. */
-    source?: string;
     /** Plugins that have extended this command, in the order they were applied. */
     extendedBy: string[];
     /**
@@ -98,7 +95,7 @@ interface RegistryState {
 }
 
 /**
- * Thrown when a plugin's commands, extensions or shared options would collide
+ * Thrown when a plugin's extensions or shared options would collide
  * with what is already registered. The CLI host reports it and skips that
  * plugin, so one plugin cannot make the rest of the CLI unusable.
  */
@@ -112,9 +109,11 @@ export class CliPluginRegistrationError extends Error {
 }
 
 /**
- * In-memory registry of CLI commands and the options shared by all of them.
- * Built-in commands are registered first and plugins are applied on top, in
- * activation order.
+ * In-memory registry of the built-in commands and the options shared by all of
+ * them. Built-in commands are registered first and plugins are applied on top,
+ * in activation order. A plugin adds shared options and extends the built-in
+ * commands. Its own commands are `defineCommand` commands, which the command
+ * manifest adds.
  */
 export class CommandRegistry {
     private state: RegistryState = {
@@ -153,12 +152,11 @@ export class CommandRegistry {
     }
 
     /**
-     * Applies the commands, extensions and shared options of a loaded CLI
-     * plugin.
+     * Applies the extensions, shared options and hooks of a loaded CLI plugin.
      *
      * Everything is applied to a draft first. If any part of the plugin
      * collides with what is already registered, {@link CliPluginRegistrationError}
-     * is thrown and the draft is discarded, so a plugin's commands and options
+     * is thrown and the draft is discarded, so a plugin's extensions and options
      * are either all registered or none are.
      */
     applyPlugin(plugin: CliPlugin): void {
@@ -190,9 +188,6 @@ export class CommandRegistry {
                 this.draftRootOption(draft, subOption, plugin.id, conflicts, true);
             }
         }
-        for (const node of plugin.commands) {
-            draftCommand(draft, node, plugin.id, conflicts, notices);
-        }
         for (const extension of plugin.extendCommands ?? []) {
             draftExtension(draft, extension, plugin.id, conflicts, notices, this.hostCommands, this.runArgs);
         }
@@ -221,30 +216,16 @@ export class CommandRegistry {
     }
 
     /**
-     * The top-level commands, each with the plugin that registered it.
-     *
-     * Kept together rather than handed out as a command list and a separate
-     * name-keyed map of sources, so the two cannot disagree about which
-     * commands exist.
-     *
-     * A source is only ever recorded against a top-level command. A subcommand
-     * appears only in the help of the command it is nested under, and that
-     * command's heading already names the package.
-     *
-     * `extendCommands` does not set a source either, so a built-in that a
-     * plugin has extended stays listed as a built-in. The command is still the
-     * CLI's, and a plugin that only extends `dev` has not provided `dev`.
+     * The top-level built-in commands, with the plugins' extensions applied.
+     * A built-in that a plugin has extended is still the CLI's command.
      */
     getCommandTree(): CommandTreeEntry[] {
-        return Array.from(this.state.commands.values(), entry => ({
-            node: entry.node,
-            source: entry.source,
-        }));
+        return Array.from(this.state.commands.values(), entry => ({ node: entry.node }));
     }
 
     /**
      * Options registered on the `vendure` command itself, each with the plugin
-     * that registered it. See {@link getCommandTree} for why they are paired.
+     * that registered it, so the help can name the package.
      */
     getRootOptions(): RootOptionEntry[] {
         // Sub-options are excluded: their parent still carries them, and the
@@ -258,9 +239,8 @@ export class CommandRegistry {
      * Plugins that have extended anything in the tree under the top-level
      * command `name`, in the order they were applied.
      *
-     * Tree-scoped rather than per command path, matching the state
-     * `draftCommand` reads when it refuses to replace an extended command.
-     * Exposed for tests and diagnostics; the CLI itself does not call it.
+     * Tree-scoped rather than per command path. Exposed for tests and
+     * diagnostics; the CLI itself does not call it.
      */
     getExtendedBy(name: string): string[] {
         return [...(this.state.commands.get(name)?.extendedBy ?? [])];
@@ -300,8 +280,6 @@ export class CommandRegistry {
                 continue;
             }
             if (declared.sharedBy) {
-                // The mirror of the check in draftCommand. Without it the rule
-                // would depend on which of the two plugins is listed first.
                 conflicts.push(
                     `Shared option "${describeOption(option)}" is already shared by ` +
                         `${describeCommand(declared.sharedBy, declared.path)}. ` +
@@ -319,89 +297,6 @@ export class CommandRegistry {
             draft.rootOptions.set(parsed.attributeName, { option, source, isSubOption });
         }
     }
-}
-
-function draftCommand(
-    draft: RegistryState,
-    node: CliCommandNode,
-    source: string,
-    conflicts: string[],
-    notices: string[],
-): void {
-    const before = conflicts.length;
-    if (RESERVED_COMMANDS.includes(node.name)) {
-        conflicts.push(reservedCommandConflict(node.name));
-        return;
-    }
-
-    const existing = draft.commands.get(node.name);
-    if (existing && node.replaces !== true) {
-        conflicts.push(
-            `Command "${node.name}" is already provided by ${existing.source ?? 'the CLI'}. ` +
-                `Set "replaces: true" on it to override that deliberately, or use "extendCommands" ` +
-                `to add to it without discarding it.`,
-        );
-        return;
-    }
-
-    const discarded = existing?.extendedBy.filter(id => id !== source) ?? [];
-    if (discarded.length > 0) {
-        conflicts.push(
-            `Command "${node.name}" has been extended by ${discarded.join(', ')}. Replacing it would ` +
-                `discard that. Use "extendCommands" instead, or list this plugin before them in ` +
-                `vendure.cli.plugins.`,
-        );
-        return;
-    }
-
-    conflicts.push(...commandOptionConflicts(draft, node));
-
-    if (conflicts.length > before) {
-        return;
-    }
-    if (existing) {
-        notices.push(`Replaced command "${node.name}" via ${source}\n`);
-    }
-    draft.commands.set(node.name, { node, source, extendedBy: [], describedBy: {} });
-}
-
-/**
- * Checks every option a new command tree declares, at any depth, against the
- * flags the CLI owns and the options already shared at the root.
- */
-function commandOptionConflicts(draft: RegistryState, node: CliCommandNode): string[] {
-    const conflicts: string[] = [];
-    for (const declared of listCommandOptions([node])) {
-        const parsed = parseOptionFlags(declared.option);
-        const where = `"vendure ${declared.path.join(' ')}"`;
-        for (const flag of [parsed.long, parsed.short]) {
-            if (flag && RESERVED_FLAGS.includes(flag)) {
-                conflicts.push(
-                    `Option "${describeOption(declared.option)}" on ${where} uses "${flag}", which is ` +
-                        `reserved by the CLI.`,
-                );
-            }
-        }
-        const shared = findRootOption(draft, parsed);
-        if (!shared) {
-            continue;
-        }
-        if (declared.sharedBy) {
-            conflicts.push(
-                `Option "${describeOption(declared.option)}" on ` +
-                    `${describeCommand(declared.sharedBy, declared.path)} is already ` +
-                    `a shared option registered by ${shared.source ?? 'the CLI'}. ` +
-                    `${SUBTREE_SHARING_EXPLANATION}`,
-            );
-        } else if (!takesSameValue(shared.option, declared.option)) {
-            conflicts.push(
-                `Option "${describeOption(declared.option)}" on ${where} is not compatible with the ` +
-                    `shared option "${describeOption(shared.option)}" registered by ` +
-                    `${shared.source ?? 'the CLI'}: one takes a value and the other does not.`,
-            );
-        }
-    }
-    return conflicts;
 }
 
 function draftExtension(
@@ -434,15 +329,14 @@ function draftExtension(
         }
         notices.push(
             `Skipped the extension of "vendure ${label}" from ${source}: the command is declared with ` +
-                'defineCommand, which extendCommands cannot extend. The plugin can still replace it with ' +
-                '`replaces: true`.\n',
+                'defineCommand, so the plugin has to extend it with defineCommandExtension.\n',
         );
         return;
     }
     if (!entry || !target) {
         conflicts.push(
-            `No command is registered at "vendure ${label}", so there is nothing to extend. ` +
-                `Check the path, and that the plugin providing it is listed first in vendure.cli.plugins.`,
+            `No built-in command is registered at "vendure ${label}", so there is nothing to extend. ` +
+                `Check the path. A command declared with defineCommand is extended with defineCommandExtension.`,
         );
         return;
     }

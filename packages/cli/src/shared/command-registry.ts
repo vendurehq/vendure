@@ -52,11 +52,6 @@ export function pluginCommandsHeading(packageName: string): string {
     return `Commands from ${packageName}:`;
 }
 
-/** The package a {@link pluginCommandsHeading} names, or `undefined` for any other heading. */
-export function pluginFromCommandsHeading(heading: string | undefined): string | undefined {
-    return heading ? /^Commands from (.+):$/.exec(heading)?.[1] : undefined;
-}
-
 /** As {@link pluginCommandsHeading}, for the shared options of a package. */
 function pluginOptionsHeading(packageName: string): string {
     return `Options from ${packageName}:`;
@@ -107,18 +102,11 @@ export function registerCommands(
     } = options;
     const getProjectRoot = resolveProjectRootOnce(findProjectRoot);
     const sharedOptions = declareOptions(program, rootOptions);
-    for (const { node, source } of tree) {
-        const command = registerNode(program, node, [], sharedOptions, getPluginExtensions, {
+    for (const { node } of tree) {
+        registerNode(program, node, [], sharedOptions, getPluginExtensions, {
             getProjectRoot,
             requiresProject: false,
         });
-        if (source) {
-            // Commander groups by the heading text itself, so every command
-            // from one package lands in one section without further
-            // bookkeeping. Commands left ungrouped keep Commander's own
-            // "Commands:" heading, which is where the built-ins stay.
-            command.helpGroup(pluginCommandsHeading(source));
-        }
     }
     addProjectLegend(program, {
         // The program has no description of its own in the command list.

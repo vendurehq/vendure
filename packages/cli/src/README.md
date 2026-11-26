@@ -10,8 +10,9 @@ The Vendure CLI supports two modes of operation:
 - **Non-Interactive Mode**: Allows direct command execution with arguments and options, perfect for scripting, CI/CD, and AI agents
 
 The CLI uses a structured approach where each built-in command owns a
-`CliCommandDefinition` next to its implementation, and external packages can
-contribute or replace commands via the CLI plugin API (`defineCliPlugin`).
+`CliCommandDefinition` next to its implementation. External packages add
+commands with `defineCommand` and a command manifest, and extend the built-in
+commands through the CLI plugin API (`defineCliPlugin`).
 
 ## Command Definition Interface
 
@@ -21,7 +22,6 @@ interface CliCommandDefinition {
     description: string; // Command description shown in help
     arguments?: CliCommandArgument[]; // Optional positional arguments
     options?: CliCommandOption[]; // Optional array of command options
-    replaces?: boolean; // Deliberately replace a command of the same name
     action: (...args: any[]) => Promise<void | number>; // Command implementation
     subcommands?: CliCommandNode[]; // Commands nested under this one
 }
@@ -44,7 +44,6 @@ interface CliCommandGroupDefinition {
     description: string;
     options?: CliCommandOption[]; // Shared by every command in the group
     subcommands: CliCommandNode[]; // A command or a further group
-    replaces?: boolean;
 }
 
 type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
@@ -433,8 +432,11 @@ For how the CLI signs in, the credential rule, `VENDURE_CLOUD_TOKEN` and the log
 [Console authentication](../CONSOLE_AUTH.md). Import the login API from `@vendure/cli`.
 Project-link setup uses `afterConsoleLink`.
 
-External packages add commands, add to existing ones, or replace them by
-exporting a CLI plugin with `defineCliPlugin`.
+External packages add commands by declaring them with `defineCommand` and
+shipping a command manifest. A CLI plugin, exported with `defineCliPlugin`,
+adds shared options, extends the built-in commands and runs a hook after
+`vendure console link`. It declares no commands: `assertCliPlugin()` refuses a
+non-empty `commands` array with `plugin.commands-removed`.
 
 **The plugin API reference lives in the developer guide**, under
 [Extending the CLI](https://docs.vendure.io/guides/developer-guide/cli/#extending-the-cli): the
@@ -449,13 +451,16 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
    returning failures rather than throwing.
 3. Each loaded plugin goes through `registry.applyPlugin()`, which is the only
    path that enforces the collision rules. It applies the plugin's root options,
-   commands and extensions to a **draft** copy of the registry state and commits
+   extensions and hooks to a **draft** copy of the registry state and commits
    the draft only if nothing conflicts, so a plugin's contributions are either
    all registered or none are.
 4. A plugin that conflicts is reported on stderr and skipped. Built-ins stay
    registered, which is what keeps `vendure plugins remove` reachable.
 5. `registerCommands()` walks the resulting tree onto Commander, and groups
-   each top-level command under the package that registered it.
+   each plugin's shared options under the package that registered them.
+6. The command manifests are merged and their commands added to Commander by
+   `registerManifestCommands()`. A plugin's top-level manifest commands are
+   grouped under the package that declared them.
 
 ### Things worth knowing before changing this code
 
@@ -470,11 +475,10 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   agree. Registration rejects the two declarations if they disagree about
   whether a value follows the flag. Covered in `command-registry.spec.ts`.
 - **Help is grouped by the package a command or option came from.**
-  `getCommandTree()` and `getRootOptions()` return each node paired with the
-  plugin that registered it, and `registerCommands()` turns that into
-  Commander's `helpGroup()`. They are returned paired rather than as a
-  separate name-keyed map so the two cannot disagree. Nothing about how a
-  command is invoked changes.
+  `getRootOptions()` returns each option paired with the plugin that
+  registered it, and `registerCommands()` turns that into Commander's
+  `helpGroup()`. The commander adapter does the same for manifest commands.
+  Nothing about how a command is invoked changes.
 - **Only the root help is grouped.** A subcommand's help shows shared options
   in the `Global Options:` section, which Commander builds as one flat list
   whatever group the options are in, so it mixes the CLI's own with a plugin's.
@@ -484,11 +488,10 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   command's heading already names the package.
 - **A sub-option is grouped with its parent**, since the help lists it indented
   under the parent. Splitting them would leave the indented line under nothing.
-- **Nothing validates the built-in command definitions at runtime.** A plugin
-  goes through `assertCliPlugin()` when it loads, so a duplicate option flag is
-  rejected by name; the built-ins reach Commander unchecked, which throws from
-  v13 onwards and fails the whole CLI at startup. `builtins.spec.ts` holds them
-  to the same rule.
+- **Nothing validates the built-in command definitions at runtime.** They reach
+  Commander unchecked, which throws on a duplicate option flag from v13 onwards
+  and fails the whole CLI at startup. `builtins.spec.ts` checks them with
+  `assertCommandTree()`.
 - **Extensions cannot add positional arguments.** Commander passes one argument
   slot per declared positional, so an appended argument would shift the options,
   `Command` and context that an existing action expects.
@@ -504,7 +507,7 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
 - `packages/cli/src/shared/cli-command-options.ts` - Option flag parsing shared by registration and collision checks
 - `packages/cli/src/shared/cli-plugin.ts` - `defineCliPlugin` / `CliPlugin`
 - `packages/cli/src/shared/cli-plugin-project-config.ts` - Read/write `vendure.cli` allowlist
-- `packages/cli/src/shared/command-registry-store.ts` - Command registry (add, replace, extend)
+- `packages/cli/src/shared/command-registry-store.ts` - Command registry (built-ins, plugin extensions and shared options)
 - `packages/cli/src/shared/resolve-cli-plugins.ts` - Plugin discovery & loading
 - `packages/cli/src/shared/command-registry.ts` - Commander registration utility
 - `packages/cli/src/commands/builtins.ts` - Ordered list of built-in command definitions

@@ -204,9 +204,8 @@ describe('console link hooks', () => {
         const registry = registryWith();
         const rejected = defineCliPlugin({
             id: FIRST_PLUGIN,
-            // `migrate` is already a built-in and this does not set
-            // `replaces`, so the whole plugin is refused.
-            commands: [{ name: 'migrate', description: 'Shadowed migrate', action: async () => 0 }],
+            // `--help` is reserved by the CLI, so the whole plugin is refused.
+            rootOptions: [{ long: '--help', description: 'Custom help' }],
             afterConsoleLink: async () => undefined,
         });
 
@@ -218,12 +217,9 @@ describe('console link hooks', () => {
         // A plugin resolving an older CLI gets `undefined` here, which is how
         // it tells that its hook would be accepted and then never run.
         expect(CLI_PLUGIN_EXTENSION_POINTS).toEqual([
-            'commands',
             'rootOptions',
-            'subcommands',
             'extendCommands',
             'afterConsoleLink',
-            'requiresProject',
             'commandManifest',
         ]);
         expect(Object.isFrozen(CLI_PLUGIN_EXTENSION_POINTS)).toBe(true);
@@ -399,7 +395,6 @@ describe('console link hooks', () => {
         expect(() =>
             defineCliPlugin({
                 id: FIRST_PLUGIN,
-                commands: [],
                 afterConsoleLink: { requiresSession: true } as unknown as ConsoleLinkHookRegistration,
             }),
         ).toThrow('afterConsoleLink must be a function or a session-requesting hook');
@@ -407,7 +402,7 @@ describe('console link hooks', () => {
 });
 
 function plugin(id: string, afterConsoleLink: ConsoleLinkHookRegistration) {
-    return defineCliPlugin({ id, commands: [], afterConsoleLink });
+    return defineCliPlugin({ id, afterConsoleLink });
 }
 
 function manifestForConsole(appOrigin: string, apiOrigin: string) {

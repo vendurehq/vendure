@@ -407,8 +407,6 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
                     status: plugin.status,
                     reason: plugin.reason,
                     entryPath: plugin.entryPath,
-                    declaredCommands: plugin.declaredCommands,
-                    loadedCommands: plugin.loadedCommands,
                     manifestPath: plugin.manifestPath,
                     manifestCommands: plugin.manifestCommands,
                     manifestReason: plugin.manifestReason,

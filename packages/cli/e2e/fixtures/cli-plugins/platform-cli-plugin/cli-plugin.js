@@ -7,7 +7,6 @@ const { defineCliPlugin, readCommandContext, readCommandOptions } = require('@ve
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/platform-cli-plugin',
-    commands: [],
     extendCommands: [
         {
             command: 'start',
