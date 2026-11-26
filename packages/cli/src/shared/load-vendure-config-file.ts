@@ -37,8 +37,18 @@ function findNearestTsConfig(startPath: string): string | null {
 }
 
 /**
+ * The key of a resolved tsconfig that holds the directory its `paths` are relative to when no
+ * `baseUrl` is set: that of the most derived tsconfig that declares `paths`, as TypeScript does.
+ */
+const PATHS_BASE_DIR = '__pathsBaseDir';
+
+/**
  * Recursively resolves a tsconfig file, following the `extends` chain and merging configurations.
  * This ensures that path mappings and other compiler options from base configs are properly included.
+ *
+ * A `baseUrl` is made absolute against the tsconfig that declares it, and the directory of the
+ * tsconfig that declares `paths` is kept under {@link PATHS_BASE_DIR}, so the mappings of a base
+ * tsconfig in another directory, such as a monorepo's root, resolve from there.
  */
 async function resolveTsConfigWithExtends(tsConfigPath: string): Promise<any> {
     let tsConfigFileContent: string;
@@ -59,6 +69,14 @@ async function resolveTsConfigWithExtends(tsConfigPath: string): Promise<any> {
         throw new Error(
             `Failed to parse TypeScript config file at ${tsConfigPath}: ${getErrorMessage(error)}`,
         );
+    }
+
+    const ownOptions = tsConfigJson.compilerOptions;
+    if (typeof ownOptions?.baseUrl === 'string') {
+        ownOptions.baseUrl = path.resolve(path.dirname(tsConfigPath), ownOptions.baseUrl);
+    }
+    if (ownOptions?.paths) {
+        tsConfigJson[PATHS_BASE_DIR] = path.dirname(tsConfigPath);
     }
 
     // If this config extends another, recursively resolve the base config(s)
@@ -215,7 +233,8 @@ async function prepareToRequireConfig(configFilePath: string, providedTsConfigPa
     if (compilerOptions.paths) {
         const tsConfigPaths = await import('tsconfig-paths');
         tsConfigPaths.register({
-            baseUrl: './',
+            // As TypeScript resolves them: against `baseUrl`, or else the tsconfig that declares them.
+            baseUrl: compilerOptions.baseUrl ?? tsConfigJson[PATHS_BASE_DIR] ?? path.dirname(tsConfigPath),
             paths: compilerOptions.paths,
         });
     }

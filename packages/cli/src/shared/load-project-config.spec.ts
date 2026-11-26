@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { configResolverPackage } from './__tests__/config-resolver-package.js';
 import {
     ConfigResolverFailedError,
+    configResolverOwners,
     configResolverPackages,
     loadProjectConfig,
     resolveProjectConfig,
@@ -273,5 +274,112 @@ describe('loadProjectConfig()', () => {
         fs.writeFileSync(plugins[1].definitionsPath, "throw new Error('imported');");
 
         expect(configResolverPackages(plugins).map(p => p.packageName)).toEqual(['@acme/cloud']);
+    });
+
+    describe("the project's own config resolver", () => {
+        /** Declares `vendure.configResolver` in the project's package.json, and writes the module. */
+        function declareProjectResolver(
+            resolve?: (ctx: unknown) => Promise<unknown>,
+            value: unknown = './resolver.ts',
+        ) {
+            fs.writeFileSync(
+                path.join(dir, 'package.json'),
+                JSON.stringify({ name: 'example-app', vendure: { configResolver: value } }),
+            );
+            fs.writeFileSync(path.join(dir, 'resolver.ts'), '');
+            if (resolve) {
+                vi.mocked(requireProjectModule).mockResolvedValueOnce({ resolve });
+            }
+        }
+
+        it('is asked before the resolvers of the enabled packages', async () => {
+            declareProjectResolver(() =>
+                Promise.resolve({ dbConnectionOptions: { type: 'postgres' }, from: 'project' }),
+            );
+            const plugins = [
+                plugin('@acme/cloud', "return { dbConnectionOptions: { type: 'mysql' }, from: 'cloud' };"),
+            ];
+
+            const result = await loadProjectConfig({ cwd: dir, projectDir: dir, plugins });
+
+            expect(result).toMatchObject({
+                resolvedBy: 'the project example-app',
+                config: { from: 'project' },
+            });
+            expect(requireProjectModule).toHaveBeenCalledWith(path.join(dir, 'resolver.ts'));
+            expect(calls).toHaveLength(0);
+        });
+
+        it('gives it the same context as a package resolver', async () => {
+            const resolve = vi.fn(() => Promise.resolve(undefined));
+            declareProjectResolver(resolve);
+
+            await resolveProjectConfig({ cwd: dir, projectDir: dir, configFile: 'a.ts', plugins: [] });
+
+            expect(resolve).toHaveBeenCalledWith(
+                expect.objectContaining({ projectDir: dir, configFile: path.join(dir, 'a.ts') }),
+            );
+        });
+
+        it('falls through to the package resolvers, then the source, when it returns undefined', async () => {
+            declareProjectResolver(() => Promise.resolve(undefined));
+            const plugins = [plugin('@acme/other', 'return undefined;')];
+
+            const result = await loadProjectConfig({ cwd: dir, projectDir: dir, plugins });
+
+            expect(calls).toHaveLength(1);
+            expect((result as SourceProjectConfig).config).toMatchObject({ from: 'source' });
+        });
+
+        it('throws config.resolver-failed, naming the project, when it throws', async () => {
+            declareProjectResolver(() => Promise.reject(new Error('no secrets')));
+
+            const error = await loadProjectConfig({ cwd: dir, projectDir: dir, plugins: [] }).catch(e => e);
+
+            expect(error).toBeInstanceOf(ConfigResolverFailedError);
+            expect(error.details).toEqual({ plugin: 'the project example-app', message: 'no secrets' });
+        });
+
+        it('throws config.resolver-failed when its module exports no resolve()', async () => {
+            declareProjectResolver();
+            vi.mocked(requireProjectModule).mockResolvedValueOnce({ other: 1 });
+
+            const error = await loadProjectConfig({ cwd: dir, projectDir: dir, plugins: [] }).catch(e => e);
+
+            expect(error.details).toEqual({
+                plugin: 'the project example-app',
+                message: 'its module exports no resolve() function',
+            });
+        });
+
+        it('throws config.resolver-failed when the module it names does not exist', async () => {
+            declareProjectResolver(undefined, './missing.ts');
+
+            const error = await loadProjectConfig({ cwd: dir, projectDir: dir, plugins: [] }).catch(e => e);
+
+            expect(error).toBeInstanceOf(ConfigResolverFailedError);
+            expect(error.details.message).toContain('missing.ts');
+            expect(requireProjectModule).not.toHaveBeenCalled();
+        });
+
+        it('throws config.resolver-failed when vendure.configResolver is not a path', async () => {
+            declareProjectResolver(undefined, 42);
+
+            const error = await loadProjectConfig({ cwd: dir, projectDir: dir, plugins: [] }).catch(e => e);
+
+            expect(error).toBeInstanceOf(ConfigResolverFailedError);
+            expect(error.details.plugin).toBe('the project example-app');
+        });
+
+        it('is listed first among the owners of config resolvers, without running it', () => {
+            declareProjectResolver();
+            const plugins = [plugin('@acme/cloud', 'return undefined;')];
+
+            expect(configResolverOwners(plugins, { cwd: dir, projectDir: dir })).toEqual([
+                'the project example-app',
+                '@acme/cloud',
+            ]);
+            expect(requireProjectModule).not.toHaveBeenCalled();
+        });
     });
 });
