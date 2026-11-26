@@ -275,8 +275,9 @@ export interface PaginatedListDataTableProps<
     selectionStorageKey?: string;
     /**
      * @description
-     * Remembers the row count of the last load for the next first load. See the
-     * `rowCountKey` prop of {@link DataTable}.
+     * Remembers the list's total item count for the next first load, so it draws as
+     * many skeleton rows as the page will have. Filtered and searched loads do not
+     * use it. See the `rowCountKey` prop of {@link DataTable}.
      *
      * @since 4.0.0
      */
@@ -666,8 +667,14 @@ export function PaginatedListDataTable<
         listData = listData?.[path];
     }
 
-    const transformedData =
-        typeof transformData === 'function' ? transformData(listData?.items ?? []) : (listData?.items ?? []);
+    // Not loaded until the first response (or an error) arrives: `undefined` rows and
+    // a `null` total draw the skeleton, where `[]` and 0 would mean an empty list.
+    const loaded = listData != null || isError;
+    const items = listData?.items ?? [];
+    const transformedData = typeof transformData === 'function' ? transformData(items) : items;
+    // The remembered total is the unfiltered list's: a filtered or searched load
+    // neither reads nor overwrites it.
+    const filtered = Boolean(debouncedSearchTerm) || (columnFilters?.length ?? 0) > 0;
     return (
         <PaginatedListContext.Provider value={{ refetchPaginatedList }}>
             {isError && errorState ? (
@@ -675,13 +682,13 @@ export function PaginatedListDataTable<
             ) : (
                 <DataTable
                     columns={columns}
-                    data={transformedData}
+                    data={loaded ? transformedData : undefined}
                     isLoading={isFetching}
                     page={page}
                     itemsPerPage={itemsPerPage}
                     sorting={sorting}
                     columnFilters={columnFilters}
-                    totalItems={listData?.totalItems ?? 0}
+                    totalItems={loaded ? (listData?.totalItems ?? 0) : null}
                     onPageChange={onPageChange}
                     onSortChange={onSortChange}
                     onFilterChange={onFilterChange}
@@ -696,7 +703,7 @@ export function PaginatedListDataTable<
                     selectedItems={selectedItems}
                     onSelectionChange={onSelectionChange}
                     selectionStorageKey={selectionStorageKey}
-                    rowCountKey={rowCountKey}
+                    rowCountKey={filtered ? undefined : rowCountKey}
                     skeletonCells={skeletonCells}
                     rowLinks={rowLinks}
                     setTableOptions={setTableOptions}

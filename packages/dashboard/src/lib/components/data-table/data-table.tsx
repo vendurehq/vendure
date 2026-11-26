@@ -55,7 +55,9 @@ import { createPaginationState, syncPaginationState } from './data-table-paginat
 
 // Skeleton rows are capped so a large pageSize doesn't bloat the DOM during
 // the initial fetch.
-const MAX_SKELETON_ROWS = 10;
+// The items before the first load. One array, so the row model does not rebuild
+// on every render.
+const NO_ITEMS: never[] = [];
 
 const DRAG_HANDLE_COLUMN_ID = '__drag_handle__';
 
@@ -147,8 +149,16 @@ export interface FacetedFilter {
 interface DataTableProps<TData> {
     children?: React.ReactNode;
     columns: ColumnDef<TData, any>[];
-    data: TData[];
-    totalItems: number;
+    /**
+     * The items of the current page. `undefined` until the first load finishes: the
+     * table shows skeleton rows. `[]` is a loaded empty list.
+     */
+    data: TData[] | undefined;
+    /**
+     * The number of items on all pages. `null` while it is not known (the first page
+     * has not loaded yet). Do not pass 0 for "not known": 0 means the list is empty.
+     */
+    totalItems: number | null;
     isLoading?: boolean;
     page?: number;
     itemsPerPage?: number;
@@ -377,6 +387,7 @@ export function DataTable<TData>({
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
         defaultColumnVisibility ?? {},
     );
+    const items: TData[] = data ?? NO_ITEMS;
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
@@ -414,7 +425,7 @@ export function DataTable<TData>({
     ) => {
         const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
 
-        data.forEach(item => {
+        items.forEach(item => {
             const id = getRowItemId(item);
             if (nextSelection[id]) {
                 selectedItemsCache.current.set(id, item);
@@ -435,7 +446,7 @@ export function DataTable<TData>({
     };
 
     const { sensors, localData, handleDragEnd, itemIds } = useDragAndDrop({
-        data,
+        data: items,
         onReorder,
         disabled: disableDragAndDrop,
         onError: error => {
@@ -788,18 +799,17 @@ export function DataTable<TData>({
                 <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
                     <UiDataTable<TData>
                         className="@container/table"
-                        rows={localData}
+                        rows={data === undefined ? undefined : localData}
                         columns={bridgeColumns}
                         getRowId={row => (row as { id: string }).id}
                         onTableReady={handleTableReady}
                         isLoading={isLoading}
-                        skeletonRowCount={Math.min(pagination.pageSize, MAX_SKELETON_ROWS)}
                         rowCountKey={rowCountKey}
                         skeletonCells={skeletonCells}
                         rowLinks={rowLinks}
                         frame={frame}
                         pagination={
-                            onPageChange && totalItems != null
+                            onPageChange
                                 ? {
                                       page: pagination.pageIndex + 1,
                                       pageSize: pagination.pageSize,
