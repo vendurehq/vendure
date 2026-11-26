@@ -424,8 +424,11 @@ function draftExtension(
 
     const entry = draft.commands.get(path[0]);
     const target = entry && findNodeAtPath(entry.node, path.slice(1));
-    // Only this extension is skipped: the plugin's other commands and extensions still apply.
-    if (!target && hostCommands.has(label)) {
+    // Only this extension is skipped: the plugin's other commands and extensions still apply. A
+    // group whose commands the CLI declares, such as `console`, counts as declared too.
+    const hostDeclared =
+        hostCommands.has(label) || [...hostCommands].some(command => command.startsWith(`${label} `));
+    if (!target && hostDeclared) {
         if (!path.every((segment, index) => runArgs[index] === segment)) {
             return;
         }

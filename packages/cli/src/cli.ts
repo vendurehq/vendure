@@ -15,11 +15,10 @@ import {
     TakenCommandPath,
 } from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
-import { consoleCommandDef } from './commands/console/command.js';
-import { DEV_DIR_FLAG } from './commands/dev/dev.command.js';
-import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { pluginFromCommandsHeading, registerCommands, styleHelpTitle } from './shared/command-registry.js';
+import { setPluginExtensionAccessor, setPluginProjectRoot } from './shared/plugin-extensions.js';
+import { PROJECT_DIR_FLAG, selectsPluginProject } from './shared/project-dir-flag.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -89,24 +88,18 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // full command only after they have been registered.
     const pluginOptions: ResolveCliPluginsOptions = {};
     const selection = new Command().allowUnknownOption().exitOverride();
-    switch (process.argv[2]) {
-        case 'dev':
-            // Only the flag selects the plugins' project. A `dir` inside `--input` is read once the
-            // plugins are loaded, so it selects the project to run, not the plugins.
-            selection.option(`${DEV_DIR_FLAG} <dir>`);
-            selection.parseOptions(process.argv.slice(3));
-            pluginOptions.project = selection.opts<{ dir?: string }>().dir;
-            pluginOptions.projectFlag = DEV_DIR_FLAG;
-            break;
-        case 'console':
-            for (const option of consoleCommandDef.options ?? []) {
-                selection.option(buildOptionFlags(option), option.description);
-            }
-            selection.parseOptions(process.argv.slice(3));
-            pluginOptions.project = selection.opts<{ project?: string }>().project;
-            break;
+    if (selectsPluginProject(process.argv.slice(2))) {
+        // Only the flag selects the plugins' project. A `dir` inside `--input` is read once the
+        // plugins are loaded, so a caller that passes the input that way passes the flag too, as
+        // the Developer MCP does.
+        selection.option(`${PROJECT_DIR_FLAG} <dir>`);
+        selection.parseOptions(process.argv.slice(3));
+        pluginOptions.project = selection.opts<{ dir?: string }>().dir;
+        pluginOptions.projectFlag = PROJECT_DIR_FLAG;
     }
-    const { loaded, manifests, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
+    const { loaded, manifests, failures, scopeErrors, projectRoot } = resolveCliPlugins(pluginOptions);
+    // The project the plugins came from, so a command that works on another one can say so.
+    setPluginProjectRoot(projectRoot);
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
@@ -142,6 +135,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         rootOptions: registry.getRootOptions(),
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
+    // For the commands declared with `defineCommand`, such as `vendure console link`, which runs
+    // the plugins' `afterConsoleLink` hooks.
+    setPluginExtensionAccessor(extensionPoint => registry.getPluginExtensions(extensionPoint));
 
     // Commands declared with `defineCommand` are built from the manifests alone: the CLI's own and
     // those of the enabled plugins. Their declarations load only when one of them runs.

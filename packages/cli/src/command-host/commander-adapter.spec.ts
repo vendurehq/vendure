@@ -12,6 +12,7 @@ import { runCommandInHarness } from './__tests__/command-harness.js';
 import {
     CancellationSource,
     collectFlagInput,
+    commandLineWithOptionsLast,
     createCancellation,
     createHostEnvironment,
     findMismatch,
@@ -513,5 +514,31 @@ describe('options of a command that has commands under it', () => {
         expect((await parse(['acme', 'deploy', '--dry-run', 'plan', 'run'], [deploy, runIt])).notTaken).toBe(
             '--dry-run',
         );
+    });
+});
+
+describe('commandLineWithOptionsLast', () => {
+    function program() {
+        const root = new Command('vendure');
+        const cloud = root.command('cloud');
+        cloud.command('project').command('list');
+        cloud.command('deploy');
+        root.command('doctor');
+        return root;
+    }
+
+    it('moves the options after the full command path', () => {
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--json', 'project', 'list'])).toBe(
+            'vendure cloud project list --json',
+        );
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--env', 'prod', 'deploy'])).toBe(
+            'vendure cloud deploy --env prod',
+        );
+    });
+
+    it('gives nothing when the arguments do not name a command', () => {
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--json', 'project'])).toBeUndefined();
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--json', 'nope'])).toBeUndefined();
+        expect(commandLineWithOptionsLast(program(), ['--json'])).toBeUndefined();
     });
 });

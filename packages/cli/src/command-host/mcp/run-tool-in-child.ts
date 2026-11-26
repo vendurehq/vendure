@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 
 import { authEnvironment } from '../../auth/startup-environment.js';
+import { projectDirArgs } from '../../shared/project-dir-flag.js';
 import { hostErrors } from '../host-errors.js';
 import { errorResult } from '../host.js';
 
@@ -52,7 +53,17 @@ export function runToolInChild(
 ): Promise<CommandEnvelope> {
     return new Promise<CommandEnvelope>(resolve => {
         const posix = process.platform !== 'win32';
-        const child = spawn(process.execPath, [options.cliBin, ...commandPath, '--json', '--input', '-'], {
+        // A `dir` that selects whose plugins load must be on the command line, which the CLI reads
+        // before plugins load. The input on stdin is read after.
+        const args = [
+            options.cliBin,
+            ...commandPath,
+            ...projectDirArgs(commandPath, input),
+            '--json',
+            '--input',
+            '-',
+        ];
+        const child = spawn(process.execPath, args, {
             cwd: options.cwd,
             detached: posix,
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],

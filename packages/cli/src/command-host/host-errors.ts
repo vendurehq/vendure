@@ -35,6 +35,14 @@ export const hostErrors = {
         message: ({ command, reason }) =>
             `The manifest entry for "${command}" does not match the command that is installed: ${reason}. Rebuild the package that declares it.`,
     }),
+    // Only a command line can put an option in the wrong place, so this message names the corrected
+    // command line. `vendure mcp` builds its command lines itself and never gets this error.
+    optionBeforeCommand: defineError<{ option: string; line: string }>({
+        code: 'cli.option-before-command',
+        exit: 1,
+        message: ({ option, line }) =>
+            `${option} comes before the end of the command path. Options go after it: ${line}`,
+    }),
     commandReplaced: defineError<{ command: string; plugin: string }>({
         code: 'command.replaced',
         exit: 1,

@@ -114,6 +114,20 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
             }
         });
 
+        // `acme deploy` takes over the group made for it, with the error handling of a command, so an
+        // option no command has is Commander's unknown option, not a line with the options moved.
+        it('reports an option that no command has as unknown, not as one before the subcommand', async () => {
+            const p = projectWith(['parent-commands-cli-plugin']);
+
+            const result = await p.runCliCommand(['acme', 'deploy', '--nope', 'plan', '--json'], {
+                expectError: true,
+            });
+            expect(envelopeOf(result.stdout).error).toMatchObject({
+                code: 'cli.usage',
+                message: expect.stringContaining("unknown option '--nope'"),
+            });
+        });
+
         it('reports a name that is not a command under it', async () => {
             const p = projectWith(['parent-commands-cli-plugin']);
 

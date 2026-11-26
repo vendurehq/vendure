@@ -333,6 +333,36 @@ describe('Command extensions: collisions', () => {
         expect(registry.get('hello')).toBeDefined();
     });
 
+    // `vendure console` is a group of commands declared with defineCommand.
+    it('skips the extension of a group whose commands the CLI declares with defineCommand', () => {
+        const registry = new CommandRegistry();
+        registry.setHostDeclaredCommands(
+            [
+                ['console', 'link'],
+                ['console', 'status'],
+            ],
+            ['console', 'link'],
+        );
+        const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+            registry.applyPlugin(
+                defineCliPlugin({
+                    id: '@example/console-extender',
+                    commands: [{ name: 'hello', description: 'Hello', action: async () => 0 }],
+                    extendCommands: [{ command: 'console', options: [{ long: '--x', description: 'X' }] }],
+                }),
+            );
+            expect(stderr).toHaveBeenCalledWith(
+                expect.stringContaining(
+                    'Skipped the extension of "vendure console" from @example/console-extender',
+                ),
+            );
+        } finally {
+            stderr.mockRestore();
+        }
+        expect(registry.get('hello')).toBeDefined();
+    });
+
     it('warns about a skipped extension only when its command runs', () => {
         const registry = new CommandRegistry();
         registry.setHostDeclaredCommands([['dev']], ['doctor', '--json']);

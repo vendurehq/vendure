@@ -27,6 +27,9 @@ A plugin package declares its own commands with `defineCommand` in the same way,
 | [`vendure auth status`](/reference/cli/auth#auth-status) | readonly | Show who is signed in, after checking that the login can still be renewed. Never shows a token |
 | [`vendure auth wait`](/reference/cli/auth#auth-wait) | mutating | Wait until the login that `auth login --json` started is approved. Returns the pending login again when the timeout passes first |
 | [`vendure commands`](/reference/cli/commands#commands) | readonly | List the commands of this project with their input and output schemas |
+| [`vendure console link`](/reference/cli/console#console-link) | mutating | Link this Vendure project to a Vendure Console Project, and run the setup of the CLI plugins. Run again to repair a link |
+| [`vendure console status`](/reference/cli/console#console-status) | readonly | Show the Console Project this Vendure project is linked to. `vendure auth status` shows the login |
+| [`vendure console unlink`](/reference/cli/console#console-unlink) | mutating | Remove the Project Link Manifest of this project. The Console Project and the CLI login stay as they are |
 | [`vendure dev`](/reference/cli/dev#dev) | service | Run Vendure in development mode |
 | [`vendure devserver logs`](/reference/cli/devserver#devserver-logs) | readonly | Read the logs of the vendure dev run, filtered by time, request ID or severity |
 | [`vendure devserver start`](/reference/cli/devserver#devserver-start) | mutating | Start vendure dev in the background for this project |
@@ -62,6 +65,5 @@ These commands are not declared with `defineCommand` yet, so they have no genera
 - `vendure migrate`: Generate, run or revert a database migration. Its subcommands are on the [`vendure migrate`](/reference/cli/migrate) page.
 - `vendure codemod`: Run codemods to update your Vendure project code.
 - `vendure schema`: Generate a schema file from your GraphQL APIs.
-- `vendure console`: Link this Vendure project to Vendure Console.
 - `vendure plugins`: List, enable, or disable CLI plugins.
 - `vendure mcp`: Run the Developer MCP server over stdio. Its subcommands are on the [`vendure mcp`](/reference/cli/mcp) page.

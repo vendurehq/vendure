@@ -1,3 +1,4 @@
+import { CliMadeError } from '../shared/cli-made-error.js';
 import {
     NotLoggedInError,
     ReauthenticationRequiredError,
@@ -376,7 +377,7 @@ export async function completeDeviceLogin(
             authentication = await scopeToOrganization(client, authentication.refreshToken, target, options);
         }
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
-            throw new Error(`The authentication service did not scope the login to ${target.name}.`);
+            throw new CliMadeError(`The authentication service did not scope the login to ${target.name}.`);
         }
         return scoped;
     };
@@ -479,7 +480,7 @@ export function scopeStoredLogin(
             const current = tokenOrganization
                 ? `is now scoped to ${tokenOrganization.name ?? tokenOrganization.workosOrganizationId}`
                 : 'has no organization';
-            throw new Error(
+            throw new CliMadeError(
                 `The authentication service did not scope the login to ${organization.name}. ` +
                     `The stored login ${current}. ` +
                     'Run vendure auth login --organization <Account identifier> to choose the account.',
@@ -503,7 +504,7 @@ async function scopeToOrganization(
         return await exchangeRefreshToken(client, refreshToken, target.workosOrganizationId, options);
     } catch (error) {
         if (error instanceof ReauthenticationRequiredError) {
-            throw new Error(
+            throw new CliMadeError(
                 `${target.name} requires a new sign-in (${error.code}). Run ` +
                     `\`vendure auth login\` without --organization and choose ${target.name} in the browser.`,
             );

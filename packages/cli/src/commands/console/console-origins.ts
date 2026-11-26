@@ -1,3 +1,5 @@
+import { ConsoleCliError } from './console-cli-error.js';
+
 /**
  * The official Vendure Console origins, and the check that recognises them.
  *
@@ -68,7 +70,7 @@ export function assertOfficialConsoleOriginPair(endpoints: { consoleUrl: string;
             isOfficialOrigin(endpoints.apiUrl, pair.apiUrl),
     );
     if (includesOfficialOrigin) {
-        throw new Error('Official Console app and API origins must be used as a matching pair.');
+        throw new ConsoleCliError('Official Console app and API origins must be used as a matching pair.');
     }
 }
 
@@ -99,7 +101,7 @@ export function trustedConsoleOrigins(
         officialConsoleEnvironment(endpoints) === undefined &&
         ![appOrigin, apiOrigin].every(value => isLoopbackHostname(new URL(value).hostname))
     ) {
-        throw new Error('Vendure Console app and API origins must be a trusted pair.');
+        throw new ConsoleCliError('Vendure Console app and API origins must be a trusted pair.');
     }
     return { appOrigin, apiOrigin };
 }
@@ -134,20 +136,20 @@ function trustedOrigin(value: string, label: string, trustedHosts: string[]): st
     try {
         url = new URL(value);
     } catch {
-        throw new Error(`${label} must be an absolute HTTP or HTTPS URL.`);
+        throw new ConsoleCliError(`${label} must be an absolute HTTP or HTTPS URL.`);
     }
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-        throw new Error(`${label} must be an absolute HTTP or HTTPS URL without credentials.`);
+        throw new ConsoleCliError(`${label} must be an absolute HTTP or HTTPS URL without credentials.`);
     }
     if (url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
-        throw new Error(`${label} must contain only an origin without a path, query, or fragment.`);
+        throw new ConsoleCliError(`${label} must contain only an origin without a path, query, or fragment.`);
     }
     const loopback = isLoopbackHostname(url.hostname);
     if (url.protocol === 'http:' && !loopback) {
-        throw new Error(`${label} must use HTTPS unless it is a loopback URL.`);
+        throw new ConsoleCliError(`${label} must use HTTPS unless it is a loopback URL.`);
     }
     if (!loopback && !trustedHosts.includes(url.hostname)) {
-        throw new Error(`${label} is not trusted.`);
+        throw new ConsoleCliError(`${label} is not trusted.`);
     }
     return url.origin;
 }
