@@ -1,11 +1,13 @@
 import { Money } from '@/vdb/components/data-display/money.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+
+import { getTaxRate } from '../utils/tax-rate.js';
 
 const taxRatesDocument = graphql(`
     query TaxRates($options: TaxRateListOptions) {
@@ -24,6 +26,8 @@ const taxRatesDocument = graphql(`
     }
 `);
 
+export const TAX_RATES_QUERY_KEY = ['taxRates'];
+
 interface VariantPriceDetailProps {
     priceIncludesTax: boolean;
     price: number | undefined;
@@ -37,57 +41,58 @@ export function VariantPriceDetail({
     currencyCode,
     taxCategoryId,
 }: VariantPriceDetailProps) {
+    const { t } = useLingui();
     const { activeChannel } = useChannel();
-    const [taxRate, setTaxRate] = useState(0);
-    const [grossPrice, setGrossPrice] = useState(0);
 
-    // Fetch tax rates
-    const { data: taxRatesData } = useQuery({
-        queryKey: ['taxRates'],
+    const { data: taxRatesData, isError } = useQuery({
+        queryKey: TAX_RATES_QUERY_KEY,
         queryFn: () => api.query(taxRatesDocument, { options: { take: 999, skip: 0 } }),
     });
 
-    useEffect(() => {
-        if (!taxRatesData?.taxRates.items || !activeChannel) {
-            return;
-        }
-
-        const defaultTaxZone = activeChannel.defaultTaxZone?.id;
-        if (!defaultTaxZone) {
-            setTaxRate(0);
-            return;
-        }
-
-        const applicableRate = taxRatesData.taxRates.items.find(
-            taxRate => taxRate.zone.id === defaultTaxZone && taxRate.category.id === taxCategoryId,
-        );
-
-        if (!applicableRate) {
-            setTaxRate(0);
-            return;
-        }
-
-        setTaxRate(applicableRate.value);
-    }, [taxRatesData, activeChannel, taxCategoryId]);
-
-    useEffect(() => {
-        if (priceIncludesTax) {
-            setGrossPrice(price ?? 0);
-        } else {
-            setGrossPrice(Math.round((price ?? 0) * ((100 + taxRate) / 100)));
-        }
-    }, [price, taxRate, priceIncludesTax]);
+    // The rate is unknown until the tax rates and the Channel have loaded. Until then the rate
+    // and the gross price show as skeletons, not as 0% and the net price. If the tax rates
+    // cannot load, the rate falls back to 0%, as the stock labels fall back to their plain text.
+    const taxRate = getTaxRate(
+        taxRatesData?.taxRates.items ?? (isError ? [] : undefined),
+        activeChannel,
+        taxCategoryId,
+    );
+    const grossPrice =
+        taxRate === undefined
+            ? undefined
+            : priceIncludesTax
+              ? (price ?? 0)
+              : Math.round((price ?? 0) * ((100 + taxRate) / 100));
 
     return (
         <Field>
             <FieldLabel>
                 <Trans>Gross price</Trans>{' '}
                 <span className="text-muted-foreground">
-                    <Trans>(incl. {taxRate}% tax)</Trans>
+                    {taxRate === undefined ? (
+                        <Skeleton
+                            data-slot="tax-rate-skeleton"
+                            className="inline-block h-[0.8lh] w-20 align-middle"
+                            aria-hidden="true"
+                        />
+                    ) : (
+                        <Trans>(incl. {taxRate}% tax)</Trans>
+                    )}
                 </span>
             </FieldLabel>
             <div className="text-sm pt-1.5">
-                <Money value={grossPrice} currency={currencyCode} />
+                {grossPrice === undefined ? (
+                    <>
+                        <Skeleton
+                            data-slot="gross-price-skeleton"
+                            className="inline-block h-[1lh] w-20 align-top"
+                            aria-hidden="true"
+                        />
+                        <span className="sr-only">{t`Loading…`}</span>
+                    </>
+                ) : (
+                    <Money value={grossPrice} currency={currencyCode} />
+                )}
             </div>
         </Field>
     );
