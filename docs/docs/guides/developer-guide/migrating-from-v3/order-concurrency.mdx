@@ -51,7 +51,15 @@ You can also change the default for every transaction with `entityOptions.transa
 
 ### 3. Work outside the database in a transaction
 
-A retried transaction runs again from the start. Database writes are rolled back first, but anything else is done twice. Vendure does not retry a transaction once it has called a `PaymentMethodHandler`, or a `FulfillmentHandler`'s `createFulfillment()` or `onFulfillmentTransition()`. If your code calls another external service inside a transaction and must not do so twice, call `preventTransactionRetry()` before that call:
+A retried transaction runs again from the start. Database writes are rolled back first, but anything else is done twice. Vendure does not retry a transaction once it has called one of these:
+
+- a method of a `PaymentMethodHandler`, including `onStateTransitionStart()`
+- a `FulfillmentHandler`'s `createFulfillment()`
+- a `FulfillmentHandler`'s `onFulfillmentTransition()`, which the default `FulfillmentProcess` calls
+
+Everything else can run twice. That includes your own `OrderProcess`, `PaymentProcess` and `FulfillmentProcess` hooks, a `FulfillmentProcess` which replaces the default one, a `ShippingCalculator`, an `OrderInterceptor` and an `AuthenticationStrategy`. Logins are retried too: an `AuthenticationStrategy` whose `authenticate()` exchanges a single-use code, such as an OAuth authorization code, would fail on the second exchange and reject valid credentials.
+
+If your code calls an external service inside a transaction and must not do so twice, call `preventTransactionRetry()` before that call:
 
 ```ts
 import { Order, RequestContext, TransactionalConnection } from '@vendure/core';
@@ -78,7 +86,7 @@ await this.connection.lockRow(ctx, Order, orderId, { requireReadCommitted: true 
 const order = await this.connection.getRepository(ctx, Order).findOne({ where: { id: orderId } });
 ```
 
-`lockRow()` does nothing outside a transaction and on SQLite. `requireReadCommitted` also skips the lock where the read after it would not see the previous writer's changes, which is the case on Aurora MySQL, so that concurrent writes do not overwrite each other every time. When a request locks several rows, take them in the lock order documented on `TransactionalConnection.lockRow()` (Session, User, Order, then the Promotion of a coupon code and StockLevels), or two requests can deadlock.
+`lockRow()` does nothing outside a transaction and on SQLite. With `requireReadCommitted`, `lockRow()` also does nothing on Aurora MySQL, and in a transaction which runs at `REPEATABLE READ`, for example on MySQL and MariaDB when `transactionIsolationLevel` is `REPEATABLE READ`. There, the read after the lock would still see the old data, so a writer which waited for the lock would overwrite the previous writer's changes every time. When a request locks several rows, take them in the lock order documented on `TransactionalConnection.lockRow()` (Session, User, Order, then the Promotion of a coupon code and StockLevels), or two requests can deadlock.
 
 **Done when:** each plugin which saves an Order either goes through `OrderService` or locks the Order first.
 

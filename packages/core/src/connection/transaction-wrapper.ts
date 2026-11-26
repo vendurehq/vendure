@@ -5,7 +5,11 @@ import { TransactionAlreadyStartedError } from 'typeorm/error/TransactionAlready
 
 import { RequestContext } from '../api/common/request-context';
 import { TransactionIsolationLevel, TransactionMode } from '../api/decorators/transaction.decorator';
-import { TRANSACTION_MANAGER_KEY, TRANSACTION_NO_RETRY_KEY } from '../common/constants';
+import {
+    TRANSACTION_ISOLATION_LEVEL_KEY,
+    TRANSACTION_MANAGER_KEY,
+    TRANSACTION_NO_RETRY_KEY,
+} from '../common/constants';
 import { ConfigService } from '../config/config.service';
 import { Logger } from '../config/logger/vendure-logger';
 
@@ -152,33 +156,26 @@ export class TransactionWrapper {
     }
 
     /**
-     * Ends the transaction of a failed attempt and starts a new one for the next attempt, returning
-     * the QueryRunner to use from then on.
+     * Ends the transaction of a failed attempt and starts the next attempt's on a new QueryRunner,
+     * which it returns.
      *
-     * That is a new QueryRunner when the old one can no longer be trusted. When the database ended
-     * the transaction inside a nested transaction, as MySQL and MariaDB do on a deadlock, TypeORM
-     * still counts the savepoint: rolling back fails again, and starting a transaction on that
-     * runner would only create another savepoint. The old runner is then reset and released, as in
-     * `rollbackAfterError()`.
+     * The old runner is released even when it could start another transaction. The failed attempt
+     * can still have work in flight, such as the other branch of a `Promise.all`, which writes
+     * through the attempt's context. On a released runner that write fails; on a reused one it
+     * would land in the retry's transaction and be committed with it.
+     *
+     * Rolling back fails when the database ended the transaction inside a nested transaction, as
+     * MySQL and MariaDB do on a deadlock, because TypeORM still counts the savepoint. The old
+     * runner is then reset as in `rollbackAfterError()`.
      */
     private async restartTransaction(
         queryRunner: QueryRunner,
         connection: DataSource,
         isolationLevel: TransactionIsolationLevel | undefined,
     ): Promise<QueryRunner> {
-        try {
-            if (queryRunner.isTransactionActive) {
-                await queryRunner.rollbackTransaction();
-            }
-            if (!queryRunner.isTransactionActive) {
-                await this.startTransaction(queryRunner, isolationLevel);
-                return queryRunner;
-            }
-        } catch {
-            // Handled below
+        if (queryRunner.isTransactionActive) {
+            await this.rollbackAfterError(queryRunner, true);
         }
-        await queryRunner.query('ROLLBACK').catch(() => undefined);
-        this.transactionSubscriber.announceRollback(queryRunner);
         if (!queryRunner.isReleased) {
             await queryRunner.release();
         }
@@ -265,7 +262,10 @@ export class TransactionWrapper {
 
     /**
      * Attempts to start a DB transaction, with retry logic in the case that a transaction
-     * is already started for the connection (which is mainly a problem with SQLite/Sql.js)
+     * is already started for the connection (which is mainly a problem with SQLite/Sql.js).
+     *
+     * When this starts the outermost transaction of the runner, rather than a savepoint, it
+     * records the isolation level on the runner for `TransactionalConnection.lockRow()`.
      */
     private async startTransaction(
         queryRunner: QueryRunner,
@@ -289,9 +289,13 @@ export class TransactionWrapper {
             }
         }
 
+        const startsOutermostTransaction = !queryRunner.isTransactionActive;
         while (attempts < maxRetries) {
             const result = await attemptStartTransaction();
             if (result) {
+                if (startsOutermostTransaction) {
+                    queryRunner.data[TRANSACTION_ISOLATION_LEVEL_KEY] = isolationLevel;
+                }
                 return;
             }
             attempts++;

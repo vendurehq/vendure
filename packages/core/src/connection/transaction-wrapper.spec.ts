@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { RequestContext } from '../api/common/request-context';
-import { TRANSACTION_NO_RETRY_KEY } from '../common/constants';
+import {
+    TRANSACTION_ISOLATION_LEVEL_KEY,
+    TRANSACTION_MANAGER_KEY,
+    TRANSACTION_NO_RETRY_KEY,
+} from '../common/constants';
 import { ConfigService } from '../config/config.service';
 
 import { TransactionSubscriber } from './transaction-subscriber';
@@ -13,41 +17,62 @@ import { TransactionWrapper } from './transaction-wrapper';
  */
 function mockQueryRunner() {
     const calls: string[] = [];
-    return {
+    const self: any = {
         calls,
         isReleased: false,
         isTransactionActive: false,
         manager: {},
-        data: {} as Record<symbol, unknown>,
+        data: {} as Record<string, unknown>,
         query: vi.fn(async (sql: string) => {
             calls.push(sql);
         }),
-        startTransaction: vi.fn(async function (this: any) {
+        startTransaction: vi.fn(async () => {
             calls.push('start');
-            runner.isTransactionActive = true;
+            self.isTransactionActive = true;
         }),
         commitTransaction: vi.fn(async () => {
             calls.push('commit');
-            runner.isTransactionActive = false;
+            self.isTransactionActive = false;
         }),
         rollbackTransaction: vi.fn(async () => {
             calls.push('rollback');
-            runner.isTransactionActive = false;
+            self.isTransactionActive = false;
         }),
         release: vi.fn(async () => {
             calls.push('release');
-            runner.isReleased = true;
+            self.isReleased = true;
         }),
-    } as any;
+    };
+    // Lets a nested executeInTransaction() inherit the runner, as TypeORM's manager would.
+    self.manager.queryRunner = self;
+    return self;
 }
 
+/** The runner the connection handed out last. */
 let runner: any;
+/** Every runner the connection handed out, in order. */
+let runners: any[];
 
-function mockConnection(type = 'postgres', isolationLevel?: string) {
+/**
+ * A connection which hands out a new runner on each call, as a pooled driver does. With `shared`,
+ * it hands out the same runner every time, as the SQLite drivers do.
+ */
+function mockConnection(type = 'postgres', isolationLevel?: string, { shared = false } = {}) {
+    // Created up front, so that a test can stub the first runner before the transaction starts.
     runner = mockQueryRunner();
-    // Lets a nested executeInTransaction() inherit the runner, as TypeORM's manager would.
-    runner.manager.queryRunner = runner;
-    return { createQueryRunner: () => runner, options: { type, isolationLevel } } as any;
+    runners = [runner];
+    let handedOut = false;
+    return {
+        createQueryRunner: () => {
+            if (handedOut && !shared) {
+                runner = mockQueryRunner();
+                runners.push(runner);
+            }
+            handedOut = true;
+            return runner;
+        },
+        options: { type, isolationLevel },
+    } as any;
 }
 
 let transactionSubscriber: { announceRollback: ReturnType<typeof vi.fn> };
@@ -103,7 +128,34 @@ describe('TransactionWrapper', () => {
         expect(result).toBe('done');
         expect(attempts).toBe(2);
         // The retry must not run on the transaction the database has already aborted.
-        expect(runner.calls).toEqual(['start', 'rollback', 'start', 'commit', 'release']);
+        expect(runners.map(r => r.calls)).toEqual([
+            ['start', 'rollback', 'release'],
+            ['start', 'commit', 'release'],
+        ]);
+    });
+
+    it('retries on a new QueryRunner, so that work left over from the failed attempt cannot write to the retry', async () => {
+        const connection = mockConnection();
+        const managers: any[] = [];
+        await wrapper().executeInTransaction(
+            ctx,
+            async attemptCtx => {
+                managers.push((attemptCtx as any)[TRANSACTION_MANAGER_KEY]);
+                if (managers.length === 1) {
+                    throw deadlock();
+                }
+                return 'done';
+            },
+            'auto',
+            undefined,
+            connection,
+        );
+
+        // A write still pending from the first attempt, e.g. one branch of a Promise.all, goes
+        // through the first attempt's manager. Its runner is released, so the write fails instead
+        // of landing in the retry's transaction and being committed with it.
+        expect(managers[0].queryRunner).not.toBe(managers[1].queryRunner);
+        expect(managers[0].queryRunner.isReleased).toBe(true);
     });
 
     it('throws the original error once the retry budget is spent', async () => {
@@ -124,6 +176,7 @@ describe('TransactionWrapper', () => {
 
         // The initial attempt plus five retries.
         expect(attempts).toBe(6);
+        expect(runners.every(r => r.isReleased)).toBe(true);
     });
 
     it('does not retry an error which is not retriable', async () => {
@@ -225,7 +278,7 @@ describe('TransactionWrapper', () => {
     it('does not carry a mark over from an earlier transaction on the same runner', async () => {
         // SQLite drivers share one runner between transactions, so a mark set by one must not stop
         // the retry of the next.
-        const connection = mockConnection();
+        const connection = mockConnection('sqljs', undefined, { shared: true });
         const w = wrapper();
         await w.executeInTransaction(
             ctx,
@@ -315,6 +368,52 @@ describe('TransactionWrapper', () => {
 
         it('uses an explicitly requested level over the configured one', async () => {
             expect(await startedWith('mysql', 'SERIALIZABLE', 'REPEATABLE READ')).toBe('SERIALIZABLE');
+        });
+
+        it('records the level each transaction runs at on its QueryRunner, retries included', async () => {
+            const connection = mockConnection('mysql');
+            const recorded: unknown[] = [];
+            await wrapper().executeInTransaction(
+                ctx,
+                async () => {
+                    recorded.push(runner.data[TRANSACTION_ISOLATION_LEVEL_KEY]);
+                    if (recorded.length === 1) {
+                        throw deadlock();
+                    }
+                    return 'done';
+                },
+                'auto',
+                'REPEATABLE READ',
+                connection,
+            );
+
+            // TransactionalConnection.lockRow() reads it for requireReadCommitted.
+            expect(recorded).toEqual(['REPEATABLE READ', 'REPEATABLE READ']);
+        });
+
+        it('keeps the level of the outer transaction when a nested one asks for another', async () => {
+            const connection = mockConnection('mysql');
+            const w = wrapper();
+            let nestedLevel: unknown;
+            await w.executeInTransaction(
+                ctx,
+                async outerCtx =>
+                    w.executeInTransaction(
+                        outerCtx,
+                        async () => {
+                            nestedLevel = runner.data[TRANSACTION_ISOLATION_LEVEL_KEY];
+                        },
+                        'auto',
+                        'SERIALIZABLE',
+                        connection,
+                    ),
+                'auto',
+                undefined,
+                connection,
+            );
+
+            // The nested transaction is a savepoint, which runs at the level of the transaction.
+            expect(nestedLevel).toBe('READ COMMITTED');
         });
     });
 });

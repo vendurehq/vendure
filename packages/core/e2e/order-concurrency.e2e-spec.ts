@@ -648,15 +648,20 @@ describeOnRealDb('Order concurrency', () => {
     // the request: the retry would charge the provider a second time.
     it('does not call the payment provider again when a deadlock follows the payment', async () => {
         const client = await newShopClient();
-        await checkoutToArrangingPayment(client, DEADLOCK_AFTER_PAYMENT_EMAIL);
+        const orderId = await checkoutToArrangingPayment(client, DEADLOCK_AFTER_PAYMENT_EMAIL);
         paymentProviderCalls = 0;
 
-        await client
-            .query(addPaymentDocument, { input: { method: countingPaymentMethod.code, metadata: {} } })
-            .catch(() => undefined);
+        // The deadlock reaches the customer instead of being retried.
+        await expect(
+            client.query(addPaymentDocument, { input: { method: countingPaymentMethod.code, metadata: {} } }),
+        ).rejects.toThrow('simulated deadlock after payment');
 
         expect(deadlockAfterPaymentThrown).toBe(true);
         expect(paymentProviderCalls).toBe(1);
+        // The failed transaction was rolled back as a whole.
+        const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: orderId });
+        expect(order?.state).toBe('ArrangingPayment');
+        expect(order?.payments).toEqual([]);
     });
 
     // #4152 — on Postgres, the Order lock must not block a row which merely references the Order,
@@ -714,38 +719,47 @@ describeOnRealDb('Order concurrency', () => {
         const order = await placedOrder('deadlock-after-fulfillment@test.com');
         carrierCalls = 0;
 
-        await adminClient
-            .query(createFulfillmentDocument, {
+        // The deadlock reaches the administrator instead of being retried.
+        await expect(
+            adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines: order.lines.map(line => ({ orderLineId: line.id, quantity: line.quantity })),
                     handler: { code: countingFulfillmentHandler.code, arguments: [] },
                 },
-            })
-            .catch(() => undefined);
+            }),
+        ).rejects.toThrow('simulated deadlock after fulfillment');
 
         expect(deadlockAfterFulfillmentThrown).toBe(true);
         expect(carrierCalls).toBe(1);
+        // The failed transaction was rolled back as a whole.
+        const { order: after } = await adminClient.query(getPlacedOrderDocument, { id: order.id });
+        expect(after?.state).toBe('PaymentSettled');
+        expect(after?.fulfillments).toEqual([]);
     });
 
     // #4152 — a provider which voids in onStateTransitionStart must not be asked to void again
     // because the transaction which called it was retried after a deadlock.
     it('does not call the payment provider again when a deadlock follows a payment transition', async () => {
         const client = await newShopClient();
-        await checkoutToArrangingPayment(client, 'deadlock-after-capture@test.com');
+        const orderId = await checkoutToArrangingPayment(client, 'deadlock-after-void@test.com');
         const { addPaymentToOrder: authorized } = await client.query(addPaymentDocument, {
             input: { method: voidingPaymentMethod.code, metadata: {} },
         });
         expect((authorized as any).state).toBe('PaymentAuthorized');
         voidCalls = 0;
 
-        await adminClient
-            .query(transitionPaymentToStateDocument, {
+        // The deadlock reaches the administrator instead of being retried.
+        await expect(
+            adminClient.query(transitionPaymentToStateDocument, {
                 id: (authorized as any).payments[0].id,
                 state: 'Error',
-            })
-            .catch(() => undefined);
+            }),
+        ).rejects.toThrow('simulated deadlock after void');
 
         expect(deadlockAfterVoidThrown).toBe(true);
         expect(voidCalls).toBe(1);
+        // The failed transaction was rolled back as a whole, so the Payment is still authorized.
+        const { order } = await adminClient.query(getOrderPaymentsAndHistoryDocument, { id: orderId });
+        expect(order?.payments?.map(p => p.state)).toEqual(['Authorized']);
     });
 });

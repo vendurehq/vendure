@@ -10,6 +10,7 @@ import {
     FindOptionsRelations,
     ObjectLiteral,
     ObjectType,
+    QueryRunner,
     ReplicationMode,
     Repository,
     SelectQueryBuilder,
@@ -17,7 +18,11 @@ import {
 
 import { RequestContext } from '../api/common/request-context';
 import { TransactionIsolationLevel } from '../api/decorators/transaction.decorator';
-import { TRANSACTION_MANAGER_KEY, TRANSACTION_NO_RETRY_KEY } from '../common/constants';
+import {
+    TRANSACTION_ISOLATION_LEVEL_KEY,
+    TRANSACTION_MANAGER_KEY,
+    TRANSACTION_NO_RETRY_KEY,
+} from '../common/constants';
 import { EntityNotFoundError } from '../common/error/errors';
 import { ChannelAware, SoftDeletable } from '../common/types/common-types';
 import { EntityAccessControlStrategy } from '../config/auth/entity-access-control-strategy';
@@ -65,8 +70,9 @@ export interface LockRowOptions {
      * not serializing at all.
      *
      * The lock is skipped on Aurora MySQL, whose TypeORM driver never applies an isolation level so
-     * that it always runs at `REPEATABLE READ`, and on MySQL and MariaDB when
-     * `entityOptions.transactionIsolationLevel` is `REPEATABLE READ`.
+     * that it always runs at `REPEATABLE READ`, and in a transaction which runs at
+     * `REPEATABLE READ`, whether through `entityOptions.transactionIsolationLevel` or the
+     * `@Transaction()` decorator.
      *
      * @default false
      */
@@ -316,10 +322,11 @@ export class TransactionalConnection {
      */
     async startTransaction(ctx: RequestContext, isolationLevel?: TransactionIsolationLevel) {
         const transactionManager = this.getTransactionManager(ctx);
-        if (transactionManager?.queryRunner?.isTransactionActive === false) {
-            await transactionManager.queryRunner.startTransaction(
-                this.transactionWrapper.resolveIsolationLevel(isolationLevel, this.rawConnection),
-            );
+        const queryRunner = transactionManager?.queryRunner;
+        if (queryRunner?.isTransactionActive === false) {
+            const level = this.transactionWrapper.resolveIsolationLevel(isolationLevel, this.rawConnection);
+            await queryRunner.startTransaction(level);
+            queryRunner.data[TRANSACTION_ISOLATION_LEVEL_KEY] = level;
         }
     }
 
@@ -394,13 +401,14 @@ export class TransactionalConnection {
         if (!ROW_LOCKING_DB_TYPES.includes(this.rawConnection.options.type)) {
             return;
         }
-        if (options?.requireReadCommitted && !this.readsSeeCommitsAfterLock()) {
-            return;
-        }
         const transactionManager = this.getTransactionManager(ctx);
+        const queryRunner = transactionManager?.queryRunner;
         // A manager without an active transaction is a `@Transaction('manual')` context whose
         // transaction has not been started yet, or has already ended. TypeORM refuses a lock there.
-        if (!transactionManager?.queryRunner?.isTransactionActive) {
+        if (!transactionManager || !queryRunner?.isTransactionActive) {
+            return;
+        }
+        if (options?.requireReadCommitted && !this.readsSeeCommitsAfterLock(queryRunner)) {
             return;
         }
         // The manager's own repository rather than `getRepository(ctx)`: an
@@ -426,15 +434,22 @@ export class TransactionalConnection {
      * Whether a read made after a row lock sees what the previous holder of the lock committed. See
      * {@link LockRowOptions}.
      */
-    private readsSeeCommitsAfterLock(): boolean {
+    private readsSeeCommitsAfterLock(queryRunner: QueryRunner): boolean {
         const dbType = getDatabaseType(this.rawConnection);
         if (dbType === 'aurora-mysql') {
             return false;
         }
-        if (dbType === 'mysql' || dbType === 'mariadb') {
-            return this.getDefaultIsolationLevel() !== 'REPEATABLE READ';
+        // The level the transaction was started at, which TransactionWrapper and startTransaction()
+        // record. It can differ from the default, e.g. with `@Transaction('auto', 'REPEATABLE READ')`.
+        const level: TransactionIsolationLevel | undefined =
+            TRANSACTION_ISOLATION_LEVEL_KEY in queryRunner.data
+                ? queryRunner.data[TRANSACTION_ISOLATION_LEVEL_KEY]
+                : this.getDefaultIsolationLevel();
+        if (level) {
+            return level !== 'REPEATABLE READ';
         }
-        return true;
+        // The database default: REPEATABLE READ on InnoDB, READ COMMITTED elsewhere.
+        return dbType !== 'mysql' && dbType !== 'mariadb';
     }
 
     /**
@@ -446,7 +461,9 @@ export class TransactionalConnection {
      * writes, which the rollback discards, but not for work outside the database. Call this
      * before such work, for example a call to a payment provider, and a failure after it is
      * thrown instead of being retried. Vendure does this before calling the methods of a
-     * {@link PaymentMethodHandler}.
+     * {@link PaymentMethodHandler}, and a {@link FulfillmentHandler}'s `createFulfillment()` and
+     * `onFulfillmentTransition()`. Other code, such as an {@link AuthenticationStrategy}'s
+     * `authenticate()`, runs again on a retry unless it calls this.
      *
      * A no-op outside a transaction.
      *

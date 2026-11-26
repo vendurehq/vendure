@@ -11,7 +11,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { RequestContext } from '../api/common/request-context';
-import { TRANSACTION_MANAGER_KEY } from '../common/constants';
+import { TRANSACTION_ISOLATION_LEVEL_KEY, TRANSACTION_MANAGER_KEY } from '../common/constants';
 
 import { TransactionalConnection } from './transactional-connection';
 import { FindOptionsRelationsInput } from './types';
@@ -103,6 +103,7 @@ describe('TransactionalConnection', () => {
             type: string,
             options?: { requireReadCommitted?: boolean },
             defaultIsolationLevel?: string,
+            transactionIsolationLevel?: string,
         ): Promise<string | undefined> {
             let lockMode: string | undefined;
             const queryBuilder: any = {
@@ -115,7 +116,13 @@ describe('TransactionalConnection', () => {
                 getOne: async () => undefined,
             };
             const manager = {
-                queryRunner: { isTransactionActive: true },
+                queryRunner: {
+                    isTransactionActive: true,
+                    // What TransactionWrapper records when it starts the transaction.
+                    data: transactionIsolationLevel
+                        ? { [TRANSACTION_ISOLATION_LEVEL_KEY]: transactionIsolationLevel }
+                        : {},
+                },
                 getRepository: () => ({ createQueryBuilder: () => queryBuilder }),
             };
             const isMysqlFamily = type === 'mysql' || type === 'mariadb';
@@ -157,6 +164,20 @@ describe('TransactionalConnection', () => {
             ).toBeUndefined();
             expect(await lockModeOn('mysql', { requireReadCommitted: true })).toBe('pessimistic_write');
             expect(await lockModeOn('postgres', { requireReadCommitted: true })).toBe('for_no_key_update');
+        });
+
+        it('with requireReadCommitted, goes by the isolation level of the transaction, not the default', async () => {
+            // The default is READ COMMITTED, but this transaction asked for REPEATABLE READ.
+            expect(
+                await lockModeOn('mysql', { requireReadCommitted: true }, 'READ COMMITTED', 'REPEATABLE READ'),
+            ).toBeUndefined();
+            expect(
+                await lockModeOn('postgres', { requireReadCommitted: true }, undefined, 'REPEATABLE READ'),
+            ).toBeUndefined();
+            // The default is REPEATABLE READ, but this transaction asked for READ COMMITTED.
+            expect(
+                await lockModeOn('mariadb', { requireReadCommitted: true }, 'REPEATABLE READ', 'READ COMMITTED'),
+            ).toBe('pessimistic_write');
         });
     });
 });

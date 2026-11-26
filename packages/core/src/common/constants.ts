@@ -15,6 +15,11 @@ export const TRANSACTION_MANAGER_KEY = Symbol('TRANSACTION_MANAGER');
  */
 export const TRANSACTION_NO_RETRY_KEY = 'vendureTransactionNoRetry';
 /**
+ * Set on a QueryRunner's `data` to the isolation level its transaction was started at, `undefined`
+ * meaning the database default. See `LockRowOptions.requireReadCommitted`.
+ */
+export const TRANSACTION_ISOLATION_LEVEL_KEY = 'vendureTransactionIsolationLevel';
+/**
  * Injection token for the {@link ConfigurableOperationTranslator}. A token is used rather than the
  * `I18nService` class itself so that the low-level ConfigurableOperationDef base class does not
  * need to import from the i18n module.
