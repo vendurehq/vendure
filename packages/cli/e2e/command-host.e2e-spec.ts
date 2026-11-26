@@ -189,6 +189,33 @@ describe('Command host E2E', () => {
         });
     });
 
+    describe('an option before the end of the command path', () => {
+        it('stops with a coded error that names the corrected command line', async () => {
+            fixtureDir = copyMigrateFixture();
+
+            const json = await runCli(fixtureDir, ['auth', '--json', 'status']);
+            expect(json.exitCode).toBe(1);
+            expect(JSON.parse(json.stdout).error).toMatchObject({
+                code: 'cli.option-before-command',
+                message: expect.stringContaining('vendure auth status --json'),
+            });
+
+            const text = await runCli(fixtureDir, ['auth', '--verbose', 'status']);
+            expect(text.exitCode).toBe(1);
+            expect(text.stderr).toContain('[cli.option-before-command]');
+            expect(text.stderr).toContain('vendure auth status --verbose');
+            expect(text.stderr).not.toContain("unknown option '--verbose'");
+        });
+
+        it('returns the usage envelope under --json when the arguments name no command', async () => {
+            fixtureDir = copyMigrateFixture();
+
+            const result = await runCli(fixtureDir, ['auth', '--json', 'nope']);
+            expect(result.exitCode).toBe(1);
+            expect(JSON.parse(result.stdout).error).toMatchObject({ code: 'cli.usage' });
+        });
+    });
+
     // Each CLI run here loads the project's config, which takes several seconds on a busy runner.
     describe('consents', { timeout: 180_000 }, () => {
         // A consent is given for one preview. Its digest names the migration and the database,
