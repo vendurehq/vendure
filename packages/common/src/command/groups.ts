@@ -148,11 +148,37 @@ export function extensionDeclarations(declarationsModule: unknown): CommandExten
 export function applyCommandExtensions(
     command: CommandDefinition,
     extensions: CommandExtensionDefinition[],
+    /** The package of each extension, in the same order, for the errors that name it. */
+    packages: string[] = [],
 ): CommandDefinition {
     if (extensions.length === 0) {
         return command;
     }
     const key = command.path.join(' ');
+    const labelOf = (index: number) =>
+        packages[index]
+            ? `the extension of "${key}" from ${packages[index]}`
+            : `extension ${index + 1} of "${key}"`;
+    const commandCliKeys = new Set([
+        ...Object.keys(command.cli?.flags ?? {}),
+        ...Object.keys(command.cli?.fields ?? {}),
+    ]);
+    extensions.forEach((extension, index) => {
+        for (const [field, meta] of Object.entries(extension.cli?.fields ?? {})) {
+            // Only an extension sets an internal field, through next(), so its own never gets a value.
+            if (meta.internal) {
+                throw new Error(`${labelOf(index)} marks its own field "${field}" internal`);
+            }
+        }
+        for (const field of [
+            ...Object.keys(extension.cli?.flags ?? {}),
+            ...Object.keys(extension.cli?.fields ?? {}),
+        ]) {
+            if (commandCliKeys.has(field)) {
+                throw new Error(`${labelOf(index)} has CLI metadata for "${field}", which is the command's`);
+            }
+        }
+    });
     const consents: Record<string, string> = { ...command.consents };
     const errors: CommandErrorDefinition[] = [...(command.errors ?? [])];
     for (const extension of extensions) {
@@ -173,7 +199,7 @@ export function applyCommandExtensions(
         }
     }
     let loading: Promise<ExtensionParts> | undefined;
-    const parts = () => (loading ??= loadExtensionParts(command, extensions));
+    const parts = () => (loading ??= loadExtensionParts(command, extensions, labelOf));
     const omitExtensionFields = (input: Record<string, unknown>, loaded: ExtensionParts) =>
         Object.fromEntries(Object.entries(input).filter(([field]) => !loaded.allInputFields.has(field)));
     const commandPlan = command.plan;
@@ -191,7 +217,7 @@ export function applyCommandExtensions(
                 ...loaded.command,
                 input: combineInputs(command.path, [
                     ...loaded.extensions.map((schemas, index) => ({
-                        label: `extension ${index + 1} of the command "${key}"`,
+                        label: labelOf(index),
                         schema: schemas.input,
                     })),
                     { label: `the command "${key}"`, schema: loaded.command.input },
@@ -232,14 +258,15 @@ export function applyCommandExtensions(
                                 Object.entries(input).filter(([field]) => ownFields.has(field)),
                             ),
                         };
-                        const next: CommandExtensionNextFn = async (nextInput, options) => {
+                        const next: CommandExtensionNextFn = async (changes, options) => {
+                            // The changes apply to the command's input this extension was called with.
                             const given =
-                                nextInput === undefined
+                                changes === undefined
                                     ? commandInput
                                     : await validated(
                                           loaded.command.input,
-                                          omitExtensionFields(nextInput, loaded),
-                                          `next() of an extension of "${key}"`,
+                                          { ...commandInput, ...omitExtensionFields(changes, loaded) },
+                                          `The input that ${labelOf(index)} gave next()`,
                                       );
                             const scope = scopedContext(context, options?.signal);
                             try {
@@ -249,7 +276,7 @@ export function applyCommandExtensions(
                             }
                         };
                         const result = await extensionRuns[index].run(extensionInput, context, next);
-                        await checkOutput(result, index, loaded, key);
+                        await checkOutput(result, index, loaded, labelOf(index));
                         return result;
                     };
                     return call(0, omitExtensionFields(input, loaded), ctx);
@@ -272,6 +299,7 @@ interface ExtensionParts {
 async function loadExtensionParts(
     command: CommandDefinition,
     extensions: CommandExtensionDefinition[],
+    labelOf: (index: number) => string,
 ): Promise<ExtensionParts> {
     const [commandSchemas, ...extensionSchemas] = await Promise.all([
         command.schemas(),
@@ -297,6 +325,20 @@ async function loadExtensionParts(
                     : [],
             ),
     );
+    // An extension's CLI metadata is for its own fields only, so it never changes how the command's
+    // own fields are read, and the manifest and the run agree on every field.
+    extensions.forEach((extension, index) => {
+        const keys = [
+            ...Object.keys(extension.cli?.flags ?? {}),
+            ...Object.keys(extension.cli?.fields ?? {}),
+        ];
+        const foreign = keys.find(field => !inputFields[index].has(field));
+        if (foreign) {
+            throw new Error(
+                `${labelOf(index)} has CLI metadata for "${foreign}", which is not one of its fields`,
+            );
+        }
+    });
     return {
         command: commandSchemas,
         extensions: extensionSchemas,
@@ -306,7 +348,7 @@ async function loadExtensionParts(
     };
 }
 
-/** The value a schema gives for `value`, or an error that names the issues. */
+/** The value a schema gives for `value`, or an error that names the issues and their fields. */
 async function validated(
     schema: StandardSchema,
     value: Record<string, unknown>,
@@ -314,25 +356,33 @@ async function validated(
 ): Promise<Record<string, unknown>> {
     const result = await schema['~standard'].validate(value);
     if (result.issues) {
-        throw new Error(`${label} is not valid: ${result.issues.map(issue => issue.message).join('; ')}`);
+        const issues = result.issues.map(issue => {
+            const field = issue.path
+                ?.map(segment => (typeof segment === 'object' ? String(segment.key) : String(segment)))
+                .join('.');
+            return field ? `${field}: ${issue.message}` : issue.message;
+        });
+        throw new Error(`${label} is not valid: ${issues.join('; ')}`);
     }
     return result.value as Record<string, unknown>;
 }
 
 /**
- * Checks the output an extension returned: its own fields with its output schema, the rest with
- * the command's. Fields of other extensions are left to them.
+ * Checks the ok output an extension returned: its own fields with its output schema, the rest with
+ * the command's. Fields of other extensions are left to them. A `failed()`, `incomplete()` or
+ * `fail()` result passes as it is, so an extension that passes one on never makes a run fail in a
+ * new way. The host reports an invalid output as an internal error, naming the extension.
  */
 async function checkOutput(
     result: CommandRunResult<unknown>,
     index: number,
     loaded: ExtensionParts,
-    key: string,
+    label: string,
 ): Promise<void> {
-    if (isIncompleteResult(result) || isErrorResult(result)) {
+    if (isIncompleteResult(result) || isErrorResult(result) || isFailedResult(result)) {
         return;
     }
-    const output = isFailedResult(result) ? result.output : result;
+    const output = result;
     if (output === null || typeof output !== 'object') {
         return;
     }
@@ -346,7 +396,7 @@ async function checkOutput(
         await validated(
             extensionOutput,
             Object.fromEntries(entries.filter(([field]) => own.has(field))),
-            `The output of extension ${index + 1} of "${key}"`,
+            `The output fields of ${label}`,
         );
     }
     if (loaded.command.output) {
@@ -355,7 +405,7 @@ async function checkOutput(
             Object.fromEntries(
                 entries.filter(([field]) => !own.has(field) && !otherExtensionFields.has(field)),
             ),
-            `The output of "${key}" that extension ${index + 1} returned`,
+            `The command's output that ${label} returned`,
         );
     }
 }

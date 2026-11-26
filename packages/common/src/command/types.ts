@@ -686,9 +686,10 @@ export interface CommandDefinition {
  * value: its output, or an `incomplete()`, `failed()` or `fail()` result. It never throws for
  * those, and never ends the process.
  *
- * `commandInput` is the command's own input, without the extension's fields. Without it, the
- * command gets the input the extension was called with. The host validates it with the command's
- * schema, so it may set the command's `internal` fields.
+ * `changes` are applied to the command's input the extension was called with, without the
+ * extension's own fields: the command runs with `{ ...commandInput, ...changes }`, validated with
+ * the command's schema, so a change may set one of the command's `internal` fields. Without
+ * `changes`, the command runs with its input unchanged.
  *
  * `options.signal` stops this call only: the inner run's `ctx.signal` fires when it fires, or when
  * the run's own signal does. The promise resolves once the inner run has returned. The inner run's
@@ -699,7 +700,7 @@ export interface CommandDefinition {
  * @since 4.0.0
  */
 export type CommandExtensionNextFn = (
-    commandInput?: Record<string, unknown>,
+    changes?: Record<string, unknown>,
     options?: { signal?: AbortSignal },
 ) => Promise<CommandRunResult<any>>;
 

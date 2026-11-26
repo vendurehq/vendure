@@ -159,13 +159,13 @@ describe('buildCommandManifest', () => {
                     path: ['dev'],
                     consents: { deployPreview: 'Deploy a preview' },
                     errors: [defineError({ code: 'cloud.not-linked', exit: 2, message: () => 'not linked' })],
-                    cli: { flags: { project: { short: '-p' } }, fields: { trace: { internal: true } } },
+                    cli: { flags: { project: { short: '-p' } } },
                     schemas: () =>
                         Promise.resolve({
                             input: schema(
                                 {
                                     type: 'object',
-                                    properties: { project: { type: 'string' }, trace: { type: 'string' } },
+                                    properties: { project: { type: 'string' } },
                                     required: ['project'],
                                 },
                                 {},
@@ -201,6 +201,40 @@ describe('buildCommandManifest', () => {
                 cli: { flags: { project: { short: '-p' } }, fields: {} },
             },
         ]);
+    });
+
+    it("refuses an extension that marks its own field internal, or has CLI metadata for another's", async () => {
+        const project = () =>
+            Promise.resolve({
+                input: schema({ type: 'object', properties: { project: { type: 'string' } } }, {}),
+            });
+        const run = () =>
+            Promise.resolve({ run: (_input: unknown, _ctx: unknown, next: () => any) => next() });
+
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], {
+                extensions: [
+                    defineCommandExtension({
+                        path: ['dev'],
+                        cli: { fields: { project: { internal: true } } },
+                        schemas: project,
+                        run,
+                    }),
+                ],
+            }),
+        ).rejects.toThrow('marks its own field "project" internal');
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], {
+                extensions: [
+                    defineCommandExtension({
+                        path: ['dev'],
+                        cli: { flags: { inspect: { short: '-i' } } },
+                        schemas: project,
+                        run,
+                    }),
+                ],
+            }),
+        ).rejects.toThrow('CLI metadata for "inspect", which is not one of its fields');
     });
 
     it('refuses an extension that uses a field name the host reserves', async () => {

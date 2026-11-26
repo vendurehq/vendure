@@ -260,26 +260,109 @@ describe('applyCommandExtensions', () => {
         expect(result).toEqual({ deployed: 'stopped', outerAborted: false });
     });
 
-    it('passes on the events of the inner run as they happen', async () => {
+    it('passes on the events of the inner run as they happen, before next() resolves', async () => {
         const events: CommandEvent[] = [];
-        const order: string[] = [];
+        let release: () => void = () => undefined;
+        const released = new Promise<void>(resolve => (release = resolve));
+        let reported: () => void = () => undefined;
+        const progressed = new Promise<void>(resolve => (reported = resolve));
+        const streaming = defineCommand({
+            ...deploy,
+            run: async () => ({
+                run: async (_input: unknown, ctx: CommandContext) => {
+                    ctx.progress('deploying');
+                    reported();
+                    await released;
+                    return { deployed: 'staging' };
+                },
+            }),
+        });
+        let nextResolved = false;
+        const extended = applyCommandExtensions(streaming, [
+            cloudExtension(async () => ({
+                run: async (_input, _ctx, next) => {
+                    const result = await next();
+                    nextResolved = true;
+                    return result;
+                },
+            })),
+        ]);
+        const { run } = await extended.run();
+
+        const running = run({ project: 'storefront', environment: 'staging' }, context(events));
+        await progressed;
+
+        // The event reached the caller while the inner run, and so next(), was still waiting.
+        expect(events.map(event => event.type)).toEqual(['progress']);
+        expect(nextResolved).toBe(false);
+        release();
+        await running;
+        expect(nextResolved).toBe(true);
+    });
+
+    it('applies the changes given to next() to the input it was called with', async () => {
+        seen.length = 0;
         await runExtended(
-            [
-                cloudExtension(async () => ({
-                    run: async (_input, _ctx, next) => {
-                        const running = next();
-                        const result = await running;
-                        order.push(`resolved after ${events.length} event(s)`);
-                        return result;
-                    },
-                })),
-            ],
-            { project: 'storefront' },
-            context(events),
+            [cloudExtension(async () => ({ run: async (_input, _ctx, next) => next({ trace: 'cloud' }) }))],
+            { project: 'storefront', environment: 'production' },
         );
 
-        expect(events.map(event => event.type)).toEqual(['progress']);
-        expect(order).toEqual(['resolved after 1 event(s)']);
+        // The caller's environment survives next({ trace }).
+        expect(seen).toEqual([{ environment: 'production', trace: 'cloud' }]);
+    });
+
+    it('passes a failed() result on as it is, without checking it against the extension schema', async () => {
+        const failing = defineCommand({
+            ...deploy,
+            run: async () => ({ run: async () => failed({ deployed: 'half' }) }),
+        });
+        // The extension's output field is required, and the failed output does not have it.
+        const strict = defineCommandExtension({
+            ...cloudExtension(async () => ({ run: async (_input, _ctx, next) => next() })),
+            schemas: async () => ({
+                input: objectSchema({ project: { type: 'string' } }),
+                output: objectSchema({ previewUrl: { type: 'string' } }, { required: ['previewUrl'] }),
+            }),
+        });
+        const { run } = await applyCommandExtensions(failing, [strict]).run();
+
+        expect(await run({ project: 'storefront', environment: 'staging' }, context())).toEqual(
+            failed({ deployed: 'half' }),
+        );
+    });
+
+    it('names the package and the field of an ok output that is not valid', async () => {
+        const strict = defineCommandExtension({
+            ...cloudExtension(async () => ({ run: async (_input, _ctx, next) => next() })),
+            schemas: async () => ({
+                input: objectSchema({ project: { type: 'string' } }),
+                output: objectSchema({ previewUrl: { type: 'string' } }, { required: ['previewUrl'] }),
+            }),
+        });
+        const { run } = await applyCommandExtensions(deploy, [strict], ['@acme/cloud']).run();
+
+        await expect(run({ project: 'storefront', environment: 'staging' }, context())).rejects.toThrow(
+            'The output fields of the extension of "acme deploy" from @acme/cloud is not valid: previewUrl: previewUrl is required',
+        );
+    });
+
+    it('refuses an extension whose CLI metadata is not for its own fields, or marks one internal', async () => {
+        const base = cloudExtension(async () => ({ run: async () => ({}) }));
+        expect(() =>
+            applyCommandExtensions(deploy, [
+                defineCommandExtension({ ...base, cli: { fields: { project: { internal: true } } } }),
+            ]),
+        ).toThrow('marks its own field "project" internal');
+        expect(() =>
+            applyCommandExtensions(deploy, [
+                defineCommandExtension({ ...base, cli: { fields: { trace: { prompt: true } } } }),
+            ]),
+        ).toThrow('has CLI metadata for "trace", which is the command\'s');
+        await expect(
+            applyCommandExtensions(deploy, [
+                defineCommandExtension({ ...base, cli: { flags: { region: { short: '-r' } } } }),
+            ]).schemas(),
+        ).rejects.toThrow('has CLI metadata for "region", which is not one of its fields');
     });
 
     it('runs two extensions with the first outermost, each with its own fields', async () => {

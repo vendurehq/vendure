@@ -16,6 +16,7 @@ import {
     MANIFEST_FILE_NAME,
     ManifestCommand,
     ManifestExtension,
+    ManifestFieldMetadata,
     mergeManifests,
 } from './manifest';
 
@@ -67,9 +68,7 @@ function manifestInput(
 }
 
 /** The CLI metadata of the fields, as the manifest lists it, without the internal ones. */
-function manifestFields(
-    fields: CommandCliMetadata['fields'],
-): Record<string, { prompt?: boolean; secret?: boolean; hasChoices?: boolean }> {
+function manifestFields(fields: CommandCliMetadata['fields']): Record<string, ManifestFieldMetadata> {
     return Object.fromEntries(
         Object.entries(fields ?? {})
             .filter(([, meta]) => !meta.internal)
@@ -81,6 +80,13 @@ function manifestFields(
 }
 
 async function buildExtension(extension: CommandExtensionDefinition): Promise<ManifestExtension> {
+    // Only an extension sets an internal field, through next(), so its own never gets a value.
+    const internal = Object.entries(extension.cli?.fields ?? {}).find(([, meta]) => meta.internal);
+    if (internal) {
+        throw new Error(
+            `The extension of "${extension.path.join(' ')}" marks its own field "${internal[0]}" internal`,
+        );
+    }
     const schemas = await extension.schemas();
     const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
     return {
