@@ -752,6 +752,19 @@ describe('isCompatible()', () => {
         expect(isCompatible('5.0.0-major-202611260711', '^4.0.0')).toBe(false);
     });
 
+    it('checks a range that names a prerelease as it is', () => {
+        expect(isCompatible('4.0.0-preview.3', '>=4.0.0-preview.5')).toBe(false);
+        expect(isCompatible('4.0.0-preview.3', '^4.0.0-preview.5')).toBe(false);
+        expect(isCompatible('4.0.0-preview.6', '>=4.0.0-preview.5')).toBe(true);
+    });
+
+    it('refuses a prerelease of the next major for a bundled plugin range', () => {
+        expect(isCompatible('3.8.2', '>=3.8.0 <5.0.0-0')).toBe(true);
+        expect(isCompatible('3.8.3-ci.0', '>=3.8.0 <5.0.0-0')).toBe(true);
+        expect(isCompatible('4.0.0-major-202611260711', '>=3.8.0 <5.0.0-0')).toBe(true);
+        expect(isCompatible('5.0.0-major-202701010000', '>=3.8.0 <5.0.0-0')).toBe(false);
+    });
+
     it('keeps the ranges that already matched prereleases', () => {
         expect(isCompatible('4.0.0-major-202611260711', '>0.0.0')).toBe(true);
         expect(isCompatible('4.0.0-major-202611260711', '>=3.3.0')).toBe(true);

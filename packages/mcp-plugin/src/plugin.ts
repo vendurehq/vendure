@@ -161,8 +161,8 @@ import { McpPluginOptions } from './types';
         );
         return config;
     },
-    // major still carries master's 3.8.x version. Tighten to '^4.0.0' when it becomes 4.x.
-    compatibility: '>=3.8.0 <5.0.0',
+    // TODO(v4.0.0): '^4.0.0' once the workspace version is 4.x.
+    compatibility: '>=3.8.0 <5.0.0-0',
 })
 export class McpPlugin implements NestModule, OnApplicationBootstrap {
     /**
