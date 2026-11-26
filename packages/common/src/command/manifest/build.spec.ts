@@ -142,7 +142,7 @@ describe('buildCommandManifest', () => {
         await expect(buildCommandManifest('@a/one', '1.0.0', [reserved])).rejects.toThrow(/reserved/);
     });
 
-    it('leaves out a field marked internal, which only an extension sets', async () => {
+    it('leaves out a field marked internal, which only an extension sets, and lists its name', async () => {
         const { command } = wipeCommand();
         const manifest = await buildCommandManifest('@a/one', '1.0.0', [
             { ...command, cli: { fields: { force: { internal: true } } } },
@@ -150,6 +150,7 @@ describe('buildCommandManifest', () => {
 
         expect(Object.keys(manifest.commands[0].input.properties as object)).toEqual(['name', 'wipeData']);
         expect(manifest.commands[0].cli.fields).toEqual({});
+        expect(manifest.commands[0].cli.internalFields).toEqual(['force']);
     });
 
     it('writes the extensions of commands, with their consents, errors and CLI metadata', async () => {
@@ -234,7 +235,7 @@ describe('buildCommandManifest', () => {
                     }),
                 ],
             }),
-        ).rejects.toThrow('CLI metadata for "inspect", which is not one of its fields');
+        ).rejects.toThrow('its CLI metadata names "inspect", which is not one of its fields');
     });
 
     it('refuses an extension that uses a field name the host reserves', async () => {

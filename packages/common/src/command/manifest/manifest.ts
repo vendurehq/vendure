@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 import { isValidErrorCode } from '../define';
+import { commandExtensionViolation, CommandPartNames } from '../extensions';
 import { CommandBehavior, CommandCliMetadata, JsonSchema } from '../types';
 
 /** The name of the manifest file a package ships. */
@@ -47,6 +48,13 @@ export interface ManifestCommand {
         flags?: CommandCliMetadata['flags'];
         positional?: string[];
         fields?: Record<string, ManifestFieldMetadata>;
+        /**
+         * The names of the fields only an extension sets. The fields themselves are left out of
+         * the manifest, but an extension may not add one of the same name.
+         *
+         * @since 4.0.0
+         */
+        internalFields?: string[];
     };
     errors: Array<{ code: string; exit: number }>;
     examples: string[];
@@ -257,23 +265,36 @@ function mergedDefs(
 }
 
 /**
- * A field an extension's CLI metadata names that is not one of its own input fields, if any. The
- * build refuses such an extension, and the host refuses it with `plugin.extension-clash`.
+ * The names of a manifest command or extension that the rules of
+ * {@link commandExtensionViolation} read.
  *
  * @since 4.0.0
  */
-export function foreignCliKey(extension: ManifestExtension): string | undefined {
-    const own = (extension.input.properties as Record<string, unknown> | undefined) ?? {};
-    return [...Object.keys(extension.cli.flags ?? {}), ...Object.keys(extension.cli.fields ?? {})].find(
-        field => !(field in own),
-    );
+export function manifestPartNames(part: ManifestCommand | ManifestExtension): CommandPartNames {
+    const fields = Object.entries(part.cli.fields ?? {});
+    return {
+        inputFields: Object.keys((part.input.properties as object | undefined) ?? {}).filter(
+            field => !(field in part.consents),
+        ),
+        outputFields: Object.keys((part.output?.properties as object | undefined) ?? {}),
+        internalFields: [
+            ...('internalFields' in part.cli ? (part.cli.internalFields ?? []) : []),
+            ...fields.filter(([, meta]) => meta.internal).map(([field]) => field),
+        ],
+        cliKeys: [...Object.keys(part.cli.flags ?? {}), ...fields.map(([field]) => field)],
+        shortFlags: Object.values(part.cli.flags ?? {})
+            .map(flag => flag.short)
+            .filter((short): short is string => short !== undefined),
+        consents: Object.keys(part.consents),
+        errorCodes: part.errors.map(error => error.code),
+    };
 }
 
 /**
  * The command with an extension applied: the extension's input and output fields added to its
  * JSON Schema, its consents, errors and CLI metadata merged in, and the package recorded in
- * `extendedBy`, after the extensions applied before it. It throws, naming the part, for a field,
- * short flag, consent or error code that the command or an earlier extension already has.
+ * `extendedBy`, after the extensions applied before it. It throws for an extension that breaks a
+ * rule of {@link commandExtensionViolation}, or defines a `$defs` entry differently.
  *
  * @since 4.0.0
  */
@@ -286,46 +307,18 @@ export function extendManifestCommand(
     if (extension.path.join(' ') !== key) {
         throw new Error(`An extension of "${extension.path.join(' ')}" was applied to "${key}"`);
     }
+    const violation = commandExtensionViolation(
+        key,
+        manifestPartNames(command),
+        manifestPartNames(extension),
+    );
+    if (violation) {
+        throw new Error(violation);
+    }
     const inputProperties = (command.input.properties as Record<string, unknown> | undefined) ?? {};
     const addedInput = (extension.input.properties as Record<string, unknown> | undefined) ?? {};
-    for (const field of Object.keys(addedInput)) {
-        if (field in inputProperties) {
-            throw new Error(`the input field "${field}" of "${key}" exists already`);
-        }
-    }
     const outputProperties = (command.output?.properties as Record<string, unknown> | undefined) ?? {};
     const addedOutput = (extension.output?.properties as Record<string, unknown> | undefined) ?? {};
-    for (const field of Object.keys(addedOutput)) {
-        if (field in outputProperties) {
-            throw new Error(`the output field "${field}" of "${key}" exists already`);
-        }
-    }
-    for (const consent of Object.keys(extension.consents)) {
-        if (consent in command.consents) {
-            throw new Error(`the consent "${consent}" of "${key}" exists already`);
-        }
-    }
-    for (const error of extension.errors) {
-        if (command.errors.some(other => other.code === error.code)) {
-            throw new Error(`the error "${error.code}" of "${key}" exists already`);
-        }
-    }
-    const takenShorts = new Set(
-        Object.values(command.cli.flags ?? {})
-            .map(flag => flag.short)
-            .filter((short): short is string => short !== undefined),
-    );
-    for (const flag of Object.values(extension.cli.flags ?? {})) {
-        if (flag.short && takenShorts.has(flag.short)) {
-            throw new Error(`the short flag ${flag.short} of "${key}" is taken already`);
-        }
-    }
-    // An extension's CLI metadata is for its own fields only. Those are new to the command, so it
-    // can never change how the command's own fields are read, here or at run time.
-    const foreign = foreignCliKey(extension);
-    if (foreign) {
-        throw new Error(`its CLI metadata names "${foreign}", which is not one of its fields`);
-    }
     const inputDefs = mergedDefs(command.input, extension.input, key);
     const outputDefs =
         command.output || extension.output ? mergedDefs(command.output, extension.output, key) : {};

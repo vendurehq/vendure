@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { defineCommand, defineCommandExtension, defineError, fail, failed, incomplete } from './define';
-import { applyCommandExtensions, extensionDeclarations } from './groups';
+import { applyCommandExtensions, extensionDeclarations } from './extensions';
 import { CommandContext, CommandEvent, StandardSchema } from './types';
 
 /**
@@ -339,7 +339,7 @@ describe('applyCommandExtensions', () => {
                 output: objectSchema({ previewUrl: { type: 'string' } }, { required: ['previewUrl'] }),
             }),
         });
-        const { run } = await applyCommandExtensions(deploy, [strict], ['@acme/cloud']).run();
+        const { run } = await applyCommandExtensions(deploy, [strict], { packages: ['@acme/cloud'] }).run();
 
         await expect(run({ project: 'storefront', environment: 'staging' }, context())).rejects.toThrow(
             'The output fields of the extension of "acme deploy" from @acme/cloud is not valid: previewUrl: previewUrl is required',
@@ -352,17 +352,31 @@ describe('applyCommandExtensions', () => {
             applyCommandExtensions(deploy, [
                 defineCommandExtension({ ...base, cli: { fields: { project: { internal: true } } } }),
             ]),
-        ).toThrow('marks its own field "project" internal');
-        expect(() =>
+        ).toThrow('cannot be applied: it marks its own field "project" internal');
+        await expect(
             applyCommandExtensions(deploy, [
                 defineCommandExtension({ ...base, cli: { fields: { trace: { prompt: true } } } }),
-            ]),
-        ).toThrow('has CLI metadata for "trace", which is the command\'s');
+            ]).schemas(),
+        ).rejects.toThrow('its CLI metadata names "trace", which is not one of its fields');
         await expect(
             applyCommandExtensions(deploy, [
                 defineCommandExtension({ ...base, cli: { flags: { region: { short: '-r' } } } }),
             ]).schemas(),
-        ).rejects.toThrow('has CLI metadata for "region", which is not one of its fields');
+        ).rejects.toThrow('its CLI metadata names "region", which is not one of its fields');
+    });
+
+    it('refuses an extension that adds a field the command has, an internal one included', async () => {
+        const traced = defineCommandExtension({
+            path: ['acme', 'deploy'],
+            schemas: async () => ({ input: objectSchema({ trace: { type: 'string' } }) }),
+            run: async () => ({ run: async (_input, _ctx, next) => next() }),
+        });
+
+        await expect(
+            applyCommandExtensions(deploy, [traced], { packages: ['@acme/cloud'] }).schemas(),
+        ).rejects.toThrow(
+            'The extension of "acme deploy" from @acme/cloud cannot be applied: the input field "trace" of "acme deploy" is an internal field of the command',
+        );
     });
 
     it('runs two extensions with the first outermost, each with its own fields', async () => {
@@ -425,7 +439,7 @@ describe('applyCommandExtensions', () => {
                     consents: { overwrite: 'x' },
                 }),
             ]),
-        ).toThrow('Two parts of "acme deploy" declare the consent "overwrite"');
+        ).toThrow('the consent "overwrite" of "acme deploy" exists already');
         expect(() =>
             applyCommandExtensions(deploy, [
                 defineCommandExtension({
@@ -433,7 +447,7 @@ describe('applyCommandExtensions', () => {
                     errors: [defineError({ code: 'acme.down', exit: 1, message: () => 'x' })],
                 }),
             ]),
-        ).toThrow('Two parts of "acme deploy" declare the error "acme.down"');
+        ).toThrow('the error "acme.down" of "acme deploy" exists already');
         expect(() =>
             applyCommandExtensions(deploy, [
                 defineCommandExtension({
@@ -441,7 +455,7 @@ describe('applyCommandExtensions', () => {
                     path: ['dev'],
                 }),
             ]),
-        ).toThrow('An extension of "dev" was applied to "acme deploy"');
+        ).toThrow('cannot be applied: it extends "dev" instead');
     });
 });
 

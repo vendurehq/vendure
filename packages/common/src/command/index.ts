@@ -1,3 +1,4 @@
 export * from './define';
-export * from './groups';
+export * from './extensions';
+export { applyCommandGroups, commandDeclarations } from './groups';
 export * from './types';

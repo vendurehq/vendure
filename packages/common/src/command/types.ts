@@ -686,10 +686,12 @@ export interface CommandDefinition {
  * value: its output, or an `incomplete()`, `failed()` or `fail()` result. It never throws for
  * those, and never ends the process.
  *
- * `changes` are applied to the command's input the extension was called with, without the
- * extension's own fields: the command runs with `{ ...commandInput, ...changes }`, validated with
- * the command's schema, so a change may set one of the command's `internal` fields. Without
- * `changes`, the command runs with its input unchanged.
+ * `changes` are applied to the command's input the extension was called with, as the caller gave
+ * it and without the extension's own fields: the command runs with `{ ...commandInput, ...changes }`,
+ * validated with the command's schema, so its transforms and defaults apply once, to the given
+ * values. A change may set one of the command's `internal` fields. Without `changes`, the command
+ * runs with its input unchanged. `changes` that the command's schema finds invalid make `next`
+ * throw, and the run ends with `cli.internal`.
  *
  * `options.signal` stops this call only: the inner run's `ctx.signal` fires when it fires, or when
  * the run's own signal does. The promise resolves once the inner run has returned. The inner run's

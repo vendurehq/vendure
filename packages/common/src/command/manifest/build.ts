@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { commandExtensionViolation } from '../extensions';
 import { applyCommandGroups } from '../groups';
 import {
     CommandCliMetadata,
@@ -13,11 +14,11 @@ import {
 
 import {
     CommandManifest,
-    foreignCliKey,
     MANIFEST_FILE_NAME,
     ManifestCommand,
     ManifestExtension,
     ManifestFieldMetadata,
+    manifestPartNames,
     mergeManifests,
 } from './manifest';
 
@@ -68,6 +69,13 @@ function manifestInput(
     return { ...rest, properties, ...(required.length ? { required } : {}) };
 }
 
+/** The fields marked `internal`, which only an extension sets. */
+function internalFieldsOf(fields: CommandCliMetadata['fields']): string[] {
+    return Object.entries(fields ?? {})
+        .filter(([, meta]) => meta.internal)
+        .map(([field]) => field);
+}
+
 /** The CLI metadata of the fields, as the manifest lists it, without the internal ones. */
 function manifestFields(fields: CommandCliMetadata['fields']): Record<string, ManifestFieldMetadata> {
     return Object.fromEntries(
@@ -81,13 +89,6 @@ function manifestFields(fields: CommandCliMetadata['fields']): Record<string, Ma
 }
 
 async function buildExtension(extension: CommandExtensionDefinition): Promise<ManifestExtension> {
-    // Only an extension sets an internal field, through next(), so its own never gets a value.
-    const internal = Object.entries(extension.cli?.fields ?? {}).find(([, meta]) => meta.internal);
-    if (internal) {
-        throw new Error(
-            `The extension of "${extension.path.join(' ')}" marks its own field "${internal[0]}" internal`,
-        );
-    }
     const schemas = await extension.schemas();
     const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
     const built: ManifestExtension = {
@@ -103,11 +104,15 @@ async function buildExtension(extension: CommandExtensionDefinition): Promise<Ma
             fields: manifestFields(extension.cli?.fields),
         },
     };
-    const foreign = foreignCliKey(built);
-    if (foreign) {
-        throw new Error(
-            `The extension of "${extension.path.join(' ')}" has CLI metadata for "${foreign}", which is not one of its fields`,
-        );
+    // The rules an extension follows on its own. The host checks it against the command it extends.
+    const key = extension.path.join(' ');
+    const violation = commandExtensionViolation(
+        key,
+        {},
+        { ...manifestPartNames(built), internalFields: internalFieldsOf(extension.cli?.fields) },
+    );
+    if (violation) {
+        throw new Error(`The extension of "${key}" breaks a rule: ${violation}`);
     }
     return built;
 }
@@ -145,6 +150,9 @@ export async function buildCommandManifest(
                 flags: def.cli?.flags,
                 positional: def.cli?.positional,
                 fields: manifestFields(def.cli?.fields),
+                ...(internalFieldsOf(def.cli?.fields).length
+                    ? { internalFields: internalFieldsOf(def.cli?.fields) }
+                    : {}),
             },
             errors: (def.errors ?? []).map(error => ({ code: error.code, exit: error.exit })),
             examples: def.examples ?? [],

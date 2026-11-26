@@ -1,0 +1,517 @@
+import { isErrorResult, isFailedResult, isIncompleteResult } from './define';
+import { combineInputs, mergeCli, propertiesOf } from './groups';
+import {
+    CommandContext,
+    CommandDefinition,
+    CommandErrorDefinition,
+    CommandExtensionDefinition,
+    CommandExtensionNextFn,
+    CommandRunResult,
+    JSON_SCHEMA_TARGET,
+    StandardSchema,
+    StandardSchemaResult,
+} from './types';
+
+/**
+ * @description
+ * The names the rules between a command and an extension of it read: its fields, CLI metadata,
+ * consents and errors. A part leaves out what is not known yet, such as its fields before its
+ * schemas load, and the rules that need it are skipped.
+ *
+ * @since 4.0.0
+ */
+export interface CommandPartNames {
+    /** The input fields, without the consents. */
+    inputFields?: Iterable<string>;
+    outputFields?: Iterable<string>;
+    /**
+     * For a command, the fields only an extension sets. For an extension, the fields it marks
+     * `internal`, which it may not: only an extension sets one, so its own would never get a value.
+     */
+    internalFields?: Iterable<string>;
+    /** The fields its `cli.flags` and `cli.fields` name. */
+    cliKeys?: Iterable<string>;
+    shortFlags?: Iterable<string>;
+    consents?: Iterable<string>;
+    errorCodes?: Iterable<string>;
+}
+
+/**
+ * @description
+ * The first rule that an extension of the command `key` breaks, as a phrase such as
+ * `the consent "x" of "acme deploy" exists already`, or `undefined`. `command` holds the command
+ * with the extensions before this one applied. The build checks an extension against an empty
+ * command, the host checks it against the command in the manifest, and again when it runs it.
+ *
+ * @since 4.0.0
+ */
+export function commandExtensionViolation(
+    key: string,
+    command: CommandPartNames,
+    extension: CommandPartNames,
+): string | undefined {
+    const [ownInternal] = extension.internalFields ?? [];
+    if (ownInternal !== undefined) {
+        return `it marks its own field "${ownInternal}" internal`;
+    }
+    if (extension.inputFields !== undefined) {
+        const own = new Set(extension.inputFields);
+        const foreign = [...(extension.cliKeys ?? [])].find(field => !own.has(field));
+        if (foreign !== undefined) {
+            return `its CLI metadata names "${foreign}", which is not one of its fields`;
+        }
+    }
+    const internal = new Set(command.internalFields ?? []);
+    const commandInput = new Set(command.inputFields ?? []);
+    for (const field of extension.inputFields ?? []) {
+        if (internal.has(field)) {
+            return `the input field "${field}" of "${key}" is an internal field of the command`;
+        }
+        if (commandInput.has(field)) {
+            return `the input field "${field}" of "${key}" exists already`;
+        }
+    }
+    const taken = (mine: Iterable<string> | undefined, theirs: Iterable<string> | undefined) => {
+        const names = new Set(theirs ?? []);
+        return [...(mine ?? [])].find(name => names.has(name));
+    };
+    const output = taken(extension.outputFields, command.outputFields);
+    if (output !== undefined) {
+        return `the output field "${output}" of "${key}" exists already`;
+    }
+    const consent = taken(extension.consents, command.consents);
+    if (consent !== undefined) {
+        return `the consent "${consent}" of "${key}" exists already`;
+    }
+    const error = taken(extension.errorCodes, command.errorCodes);
+    if (error !== undefined) {
+        return `the error "${error}" of "${key}" exists already`;
+    }
+    const short = taken(extension.shortFlags, command.shortFlags);
+    if (short !== undefined) {
+        return `the short flag ${short} of "${key}" is taken already`;
+    }
+    return undefined;
+}
+
+/**
+ * @description
+ * The extensions a package's declarations module exports as `extensions`, or none. A CommonJS
+ * module's exports can arrive as the default export of `import()`, so `default` is read too.
+ *
+ * @since 4.0.0
+ */
+export function extensionDeclarations(declarationsModule: unknown): CommandExtensionDefinition[] {
+    const mod = (declarationsModule ?? {}) as { extensions?: unknown; default?: unknown };
+    const fallback = (mod.default ?? {}) as { extensions?: unknown };
+    const extensions = mod.extensions ?? fallback.extensions ?? [];
+    if (!Array.isArray(extensions)) {
+        throw new Error('The module exports "extensions" that is not a list');
+    }
+    return extensions as CommandExtensionDefinition[];
+}
+
+/**
+ * @description
+ * The loaded schemas of a command and its extensions, with the field names each declares, as
+ * {@link commandExtensionParts} works them out.
+ *
+ * @since 4.0.0
+ */
+export interface CommandExtensionParts {
+    command: Awaited<ReturnType<CommandDefinition['schemas']>>;
+    extensions: Array<Awaited<ReturnType<CommandExtensionDefinition['schemas']>>>;
+    /** The command's input fields, its internal ones included. */
+    commandInputFields: Set<string>;
+    commandOutputFields: Set<string>;
+    /** The input fields of each extension, in order. */
+    inputFields: Array<Set<string>>;
+    /** The output fields of each extension, in order. */
+    outputFields: Array<Set<string>>;
+}
+
+/**
+ * @description
+ * The parts of a command and its extensions, from their loaded schemas. A host that loads the
+ * schemas itself, to report an extension that fails to load, passes the parts to
+ * {@link applyCommandExtensions}, so the schemas load once.
+ *
+ * @since 4.0.0
+ */
+export function commandExtensionParts(
+    command: CommandExtensionParts['command'],
+    extensions: CommandExtensionParts['extensions'],
+): CommandExtensionParts {
+    const inputFieldsOf = (schema: StandardSchema) =>
+        new Set(
+            Object.keys(propertiesOf(schema['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET }))),
+        );
+    const outputFieldsOf = (schema: StandardSchema | undefined) =>
+        new Set(
+            schema
+                ? Object.keys(
+                      propertiesOf(schema['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET })),
+                  )
+                : [],
+        );
+    return {
+        command,
+        extensions,
+        commandInputFields: inputFieldsOf(command.input),
+        commandOutputFields: outputFieldsOf(command.output),
+        inputFields: extensions.map(schemas => inputFieldsOf(schemas.input)),
+        outputFields: extensions.map(schemas => outputFieldsOf(schemas.output)),
+    };
+}
+
+/** The names of a command or an extension that are known before its schemas load. */
+function declaredNames(part: Pick<CommandDefinition, 'consents' | 'errors' | 'cli'>): CommandPartNames {
+    const fields = Object.entries(part.cli?.fields ?? {});
+    return {
+        internalFields: fields.filter(([, meta]) => meta.internal).map(([field]) => field),
+        cliKeys: [...Object.keys(part.cli?.flags ?? {}), ...fields.map(([field]) => field)],
+        shortFlags: Object.values(part.cli?.flags ?? {})
+            .map(flag => flag.short)
+            .filter((short): short is string => short !== undefined),
+        consents: Object.keys(part.consents ?? {}),
+        errorCodes: (part.errors ?? []).map(error => error.code),
+    };
+}
+
+/**
+ * @description
+ * The first rule that each extension of a command breaks, in order, checked against the command
+ * with the extensions before it applied. Without `parts`, only the rules that need no schemas are
+ * checked.
+ *
+ * @since 4.0.0
+ */
+export function commandExtensionViolations(
+    command: CommandDefinition,
+    extensions: CommandExtensionDefinition[],
+    parts?: CommandExtensionParts,
+): Array<string | undefined> {
+    const key = command.path.join(' ');
+    const commandNames = declaredNames(command);
+    const applied: Required<CommandPartNames> = {
+        inputFields: parts ? [...parts.commandInputFields] : [],
+        outputFields: parts ? [...parts.commandOutputFields] : [],
+        internalFields: [...(commandNames.internalFields ?? [])],
+        cliKeys: [...(commandNames.cliKeys ?? [])],
+        shortFlags: [...(commandNames.shortFlags ?? [])],
+        consents: [...(commandNames.consents ?? [])],
+        errorCodes: [...(commandNames.errorCodes ?? [])],
+    };
+    return extensions.map((extension, index) => {
+        if (extension.path.join(' ') !== key) {
+            return `it extends "${extension.path.join(' ')}" instead`;
+        }
+        const names: CommandPartNames = {
+            ...declaredNames(extension),
+            ...(parts
+                ? { inputFields: parts.inputFields[index], outputFields: parts.outputFields[index] }
+                : {}),
+        };
+        const violation = commandExtensionViolation(key, applied, names);
+        for (const name of Object.keys(applied) as Array<keyof CommandPartNames>) {
+            if (name !== 'internalFields') {
+                (applied[name] as string[]).push(...(names[name] ?? []));
+            }
+        }
+        return violation;
+    });
+}
+
+/**
+ * @description
+ * Options of {@link applyCommandExtensions}.
+ *
+ * @since 4.0.0
+ */
+export interface ApplyCommandExtensionsOptions {
+    /** The package of each extension, in the same order, for the errors that name it. */
+    packages?: string[];
+    /** The parts, when the host loaded the schemas already. See {@link commandExtensionParts}. */
+    parts?: CommandExtensionParts;
+}
+
+/**
+ * @description
+ * A command with extensions applied, outermost first. The host uses it when it runs an extended
+ * command, so every part sees what the manifest lists:
+ *
+ * - The input schema validates each part with its own schema: each extension's fields with the
+ *   extension's, the rest with the command's.
+ * - The consents, errors and CLI metadata include the extensions'.
+ * - `run()` calls the outermost extension's `run(input, ctx, next)`. `next` runs the next one,
+ *   or the command, with the command's fields only. `plan()` is the command's, with its own fields.
+ *
+ * It throws, naming the extension, for one that breaks a rule of {@link commandExtensionViolation}:
+ * at once for the rules that need no schemas, and when the schemas load for the rest.
+ *
+ * @since 4.0.0
+ */
+export function applyCommandExtensions(
+    command: CommandDefinition,
+    extensions: CommandExtensionDefinition[],
+    options: ApplyCommandExtensionsOptions = {},
+): CommandDefinition {
+    if (extensions.length === 0) {
+        return command;
+    }
+    const key = command.path.join(' ');
+    const labelOf = (index: number) =>
+        options.packages?.[index]
+            ? `the extension of "${key}" from ${options.packages[index]}`
+            : `extension ${index + 1} of "${key}"`;
+    const refuse = (violations: Array<string | undefined>) => {
+        const index = violations.findIndex(violation => violation !== undefined);
+        if (index !== -1) {
+            const label = labelOf(index);
+            throw new Error(
+                `${label[0].toUpperCase()}${label.slice(1)} cannot be applied: ${violations[index]}`,
+            );
+        }
+    };
+    refuse(commandExtensionViolations(command, extensions));
+
+    const consents: Record<string, string> = { ...command.consents };
+    const errors: CommandErrorDefinition[] = [...(command.errors ?? [])];
+    for (const extension of extensions) {
+        Object.assign(consents, extension.consents);
+        errors.push(...(extension.errors ?? []));
+    }
+    let loading: Promise<CommandExtensionParts> | undefined;
+    const parts = () =>
+        (loading ??= (async () => {
+            const loaded =
+                options.parts ??
+                commandExtensionParts(
+                    ...(await Promise.all([
+                        command.schemas(),
+                        Promise.all(extensions.map(e => e.schemas())),
+                    ])),
+                );
+            refuse(commandExtensionViolations(command, extensions, loaded));
+            return loaded;
+        })());
+    const allExtensionFields = (loaded: CommandExtensionParts) =>
+        new Set(loaded.inputFields.flatMap(fields => [...fields]));
+    const omitExtensionFields = (input: Record<string, unknown>, loaded: CommandExtensionParts) => {
+        const theirs = allExtensionFields(loaded);
+        return Object.fromEntries(Object.entries(input).filter(([field]) => !theirs.has(field)));
+    };
+    // The command's input as the caller gave it, by the input value the combined schema returned
+    // for it, so `next(changes)` validates raw values and the command's transforms run once.
+    const givenInput = new WeakMap<object, Record<string, unknown>>();
+    const commandPlan = command.plan;
+    return {
+        ...command,
+        consents,
+        errors,
+        cli: mergeCli(
+            extensions.map(extension => extension.cli),
+            command.cli,
+        ),
+        schemas: async () => {
+            const loaded = await parts();
+            const combined = combineInputs(command.path, [
+                ...loaded.extensions.map((schemas, index) => ({
+                    label: labelOf(index),
+                    schema: schemas.input,
+                })),
+                { label: `the command "${key}"`, schema: loaded.command.input },
+            ]);
+            return {
+                ...loaded.command,
+                input: recordingGivenInput(combined, (given, result) => {
+                    if (result.value !== null && typeof result.value === 'object') {
+                        givenInput.set(result.value, omitExtensionFields(given, loaded));
+                    }
+                }),
+            };
+        },
+        ...(commandPlan
+            ? {
+                  plan: async () => {
+                      const [{ plan }, loaded] = await Promise.all([commandPlan(), parts()]);
+                      return {
+                          plan: (input: Record<string, unknown>, ctx: CommandContext) =>
+                              plan(omitExtensionFields(input, loaded), ctx),
+                      };
+                  },
+              }
+            : {}),
+        run: async () => {
+            const loaded = await parts();
+            const [{ run: commandRun }, ...extensionRuns] = await Promise.all([
+                command.run(),
+                ...extensions.map(extension => extension.run()),
+            ]);
+            return {
+                run: async (input: Record<string, unknown>, ctx: CommandContext) => {
+                    /**
+                     * Runs extension `index`, or the command after the last. `commandInput` is the
+                     * command's validated input, and `given` the values it was validated from.
+                     */
+                    const call = async (
+                        index: number,
+                        commandInput: Record<string, unknown>,
+                        given: Record<string, unknown>,
+                        context: CommandContext,
+                    ): Promise<CommandRunResult<unknown>> => {
+                        if (index === extensionRuns.length) {
+                            return commandRun(commandInput, context);
+                        }
+                        const ownFields = loaded.inputFields[index];
+                        const extensionInput = {
+                            ...commandInput,
+                            ...Object.fromEntries(
+                                Object.entries(input).filter(([field]) => ownFields.has(field)),
+                            ),
+                        };
+                        const next: CommandExtensionNextFn = async (changes, nextOptions) => {
+                            let nextGiven = given;
+                            let nextInput = commandInput;
+                            if (changes !== undefined) {
+                                nextGiven = { ...given, ...omitExtensionFields(changes, loaded) };
+                                nextInput = await validated(
+                                    loaded.command.input,
+                                    nextGiven,
+                                    `The input that ${labelOf(index)} gave next()`,
+                                );
+                            }
+                            const scope = scopedContext(context, nextOptions?.signal);
+                            try {
+                                return await call(index + 1, nextInput, nextGiven, scope.ctx);
+                            } finally {
+                                scope.dispose();
+                            }
+                        };
+                        const result = await extensionRuns[index].run(extensionInput, context, next);
+                        await checkOutput(result, index, loaded, labelOf(index));
+                        return result;
+                    };
+                    const validatedInput = omitExtensionFields(input, loaded);
+                    // A caller that validated the input with another schema, or passes it as it
+                    // is, has no given input on record, so its validated input stands in for it.
+                    return call(0, validatedInput, givenInput.get(input) ?? validatedInput, ctx);
+                },
+            };
+        },
+    };
+}
+
+/** The schema, calling `record` with each value it validates and the result it gives for it. */
+function recordingGivenInput(
+    schema: StandardSchema,
+    record: (given: Record<string, unknown>, result: { value: unknown }) => void,
+): StandardSchema {
+    const validate = schema['~standard'].validate;
+    const recorded = (value: unknown, result: StandardSchemaResult): StandardSchemaResult => {
+        if (!result.issues) {
+            record((value ?? {}) as Record<string, unknown>, result);
+        }
+        return result;
+    };
+    return {
+        '~standard': {
+            ...schema['~standard'],
+            validate: (value: unknown) => {
+                const result = validate(value);
+                return result instanceof Promise
+                    ? result.then(settled => recorded(value, settled))
+                    : recorded(value, result);
+            },
+        },
+    };
+}
+
+/** The value a schema gives for `value`, or an error that names the issues and their fields. */
+async function validated(
+    schema: StandardSchema,
+    value: Record<string, unknown>,
+    label: string,
+): Promise<Record<string, unknown>> {
+    const result = await schema['~standard'].validate(value);
+    if (result.issues) {
+        const issues = result.issues.map(issue => {
+            const field = issue.path
+                ?.map(segment => (typeof segment === 'object' ? String(segment.key) : String(segment)))
+                .join('.');
+            return field ? `${field}: ${issue.message}` : issue.message;
+        });
+        throw new Error(`${label} is not valid: ${issues.join('; ')}`);
+    }
+    return result.value as Record<string, unknown>;
+}
+
+/**
+ * Checks the ok output an extension returned: its own fields with its output schema, the rest with
+ * the command's. Fields of other extensions are left to them. A `failed()`, `incomplete()` or
+ * `fail()` result passes as it is, so an extension that passes one on never makes a run fail in a
+ * new way. The host reports an invalid output as an internal error, naming the extension.
+ */
+async function checkOutput(
+    result: CommandRunResult<unknown>,
+    index: number,
+    loaded: CommandExtensionParts,
+    label: string,
+): Promise<void> {
+    if (isIncompleteResult(result) || isErrorResult(result) || isFailedResult(result)) {
+        return;
+    }
+    const output = result;
+    if (output === null || typeof output !== 'object') {
+        return;
+    }
+    const entries = Object.entries(output as Record<string, unknown>);
+    const otherExtensionFields = new Set(
+        loaded.outputFields.flatMap((fields, other) => (other === index ? [] : [...fields])),
+    );
+    const own = loaded.outputFields[index];
+    const extensionOutput = loaded.extensions[index].output;
+    if (extensionOutput) {
+        await validated(
+            extensionOutput,
+            Object.fromEntries(entries.filter(([field]) => own.has(field))),
+            `The output fields of ${label}`,
+        );
+    }
+    if (loaded.command.output) {
+        await validated(
+            loaded.command.output,
+            Object.fromEntries(
+                entries.filter(([field]) => !own.has(field) && !otherExtensionFields.has(field)),
+            ),
+            `The command's output that ${label} returned`,
+        );
+    }
+}
+
+/**
+ * The context for a call of `next`: the same as the outer one, except that its `ctx.signal` also
+ * fires when `signal` does. `dispose` stops listening for either.
+ */
+function scopedContext(
+    ctx: CommandContext,
+    signal: AbortSignal | undefined,
+): { ctx: CommandContext; dispose: () => void } {
+    if (!signal) {
+        return { ctx, dispose: () => undefined };
+    }
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    if (ctx.signal.aborted || signal.aborted) {
+        controller.abort();
+    }
+    ctx.signal.addEventListener('abort', abort, { once: true });
+    signal.addEventListener('abort', abort, { once: true });
+    return {
+        ctx: { ...ctx, signal: controller.signal },
+        dispose: () => {
+            ctx.signal.removeEventListener('abort', abort);
+            signal.removeEventListener('abort', abort);
+        },
+    };
+}
