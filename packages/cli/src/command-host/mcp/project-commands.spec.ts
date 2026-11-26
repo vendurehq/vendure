@@ -167,6 +167,78 @@ describe('ProjectCommandWatcher', () => {
         }
     });
 
+    it('keeps the commands and says why when a place plugins are enabled from cannot be read', async () => {
+        const file = tempFile();
+        const onListingFailed = vi.fn();
+        let call = 0;
+        const list = vi.fn(async (): Promise<ListedCommands> => {
+            call++;
+            // The second listing reads a cli.json that is being written, so the global plugins are missing.
+            return call === 2
+                ? {
+                      commands: [command(['doctor'])],
+                      refused: [],
+                      files: [file],
+                      scopeErrors: ['Could not read cli.json'],
+                  }
+                : {
+                      commands: [command(['doctor']), command(['cloud', 'deploy'])],
+                      refused: [],
+                      files: [file],
+                  };
+        });
+        const watcher = new ProjectCommandWatcher({
+            cwd: '/project',
+            list,
+            onListingFailed,
+            watchIntervalMs: 10,
+        });
+        const changes: MergedManifestCommand[][] = [];
+        watcher.onChanged(commands => changes.push(commands));
+        await watcher.list();
+        watcher.watch();
+        try {
+            await until(() => list.mock.calls.length === 2);
+            await until(() => onListingFailed.mock.calls.length === 1);
+            expect(onListingFailed).toHaveBeenCalledWith('Could not read cli.json');
+            touch(file, '{ "name": "written" }');
+            await until(() => list.mock.calls.length === 3);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            // The global plugins' commands were never dropped, so nothing changed for the client.
+            expect(changes).toEqual([]);
+        } finally {
+            watcher.close();
+        }
+    });
+
+    it('notices a change made while the first listing read the files', async () => {
+        const file = tempFile();
+        let call = 0;
+        const list = vi.fn(async (): Promise<ListedCommands> => {
+            call++;
+            if (call === 1) {
+                touch(file, '{ "name": "written during the first listing" }');
+                return { commands: [command(['doctor'])], refused: [], files: [file] };
+            }
+            return {
+                commands: [command(['doctor']), command(['example', 'greet'])],
+                refused: [],
+                files: [file],
+            };
+        });
+        const watcher = new ProjectCommandWatcher({ cwd: '/project', list, watchIntervalMs: 10 });
+        const changes: MergedManifestCommand[][] = [];
+        watcher.onChanged(commands => changes.push(commands));
+        await watcher.list();
+        watcher.watch();
+        try {
+            await until(() => changes.length === 1);
+            expect(changes[0].map(c => c.path.join(' '))).toEqual(['doctor', 'example greet']);
+        } finally {
+            watcher.close();
+        }
+    });
+
     it('keeps the commands it has when listing again fails', async () => {
         const onListingFailed = vi.fn();
         let fail = false;

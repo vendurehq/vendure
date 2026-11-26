@@ -741,20 +741,24 @@ describe('McpServer with the project command watcher', () => {
         };
     }
 
-    async function startWatched(listed: () => ListedCommands) {
-        const list = vi.fn(async () => listed());
-        const watcher = new ProjectCommandWatcher({ cwd: '/project', list, watchIntervalMs: 10 });
-        const commands = await watcher.list();
-        const client = start(async () => ok(), 'direct', commands, undefined, watcher);
-        await tick();
-        return { client, list, watcher };
-    }
-
     const waitFor = async (check: () => boolean) => {
         for (let i = 0; i < 100 && !check(); i++) {
             await new Promise(resolve => setTimeout(resolve, 10));
         }
     };
+
+    async function startWatched(listed: () => ListedCommands) {
+        const list = vi.fn(async () => listed());
+        const watcher = new ProjectCommandWatcher({ cwd: '/project', list, watchIntervalMs: 10 });
+        const commands = await watcher.list();
+        const client = start(async () => ok(), 'direct', commands, undefined, watcher);
+        // The first poll lists once more, in case a file changed during the first listing.
+        await waitFor(() => list.mock.calls.length >= 2);
+        await tick();
+        list.mockClear();
+        return { client, list, watcher };
+    }
+
     const listChanged = (client: Client) =>
         client.all().filter(message => message.method === 'notifications/tools/list_changed');
 
@@ -765,10 +769,10 @@ describe('McpServer with the project command watcher', () => {
         try {
             commands = [...COMMANDS, command(['example', 'greet'])];
             watched.touch('{ "name": "enabled" }');
-            await waitFor(() => list.mock.calls.length >= 2);
+            await waitFor(() => list.mock.calls.length >= 1);
             // Several more polls, which find nothing new.
             await new Promise(resolve => setTimeout(resolve, 100));
-            expect(list).toHaveBeenCalledTimes(2);
+            expect(list).toHaveBeenCalledTimes(1);
             expect(listChanged(client)).toHaveLength(1);
         } finally {
             await client.close();
@@ -785,9 +789,9 @@ describe('McpServer with the project command watcher', () => {
         }));
         try {
             watched.touch('{ "name": "reformatted" }');
-            await waitFor(() => list.mock.calls.length >= 2);
+            await waitFor(() => list.mock.calls.length >= 1);
             await new Promise(resolve => setTimeout(resolve, 100));
-            expect(list).toHaveBeenCalledTimes(2);
+            expect(list).toHaveBeenCalledTimes(1);
             expect(listChanged(client)).toEqual([]);
         } finally {
             await client.close();
@@ -805,7 +809,7 @@ describe('McpServer with the project command watcher', () => {
         await client.close();
         watched.touch('{ "name": "after close" }');
         await new Promise(resolve => setTimeout(resolve, 100));
-        expect(list).toHaveBeenCalledTimes(1);
+        expect(list).not.toHaveBeenCalled();
         watched.remove();
     });
 });

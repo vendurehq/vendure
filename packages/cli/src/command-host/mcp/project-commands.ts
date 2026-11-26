@@ -15,6 +15,11 @@ export interface ListedCommands {
     refused: RefusedManifest[];
     /** The files that decide the commands. A change to one of them means the list may change. */
     files: string[];
+    /**
+     * Problems with a place plugins are enabled from, such as a `cli.json` that does not parse.
+     * The commands of that place are missing from this listing.
+     */
+    scopeErrors?: string[];
 }
 
 export interface ProjectCommandWatcherOptions {
@@ -43,6 +48,7 @@ export class ProjectCommandWatcher {
     private readonly listeners = new Set<(commands: MergedManifestCommand[]) => void>();
     private watchTimer: NodeJS.Timeout | undefined;
     private relisting: Promise<void> | undefined;
+    private reportedScopeErrors = '[]';
 
     constructor(private readonly options: ProjectCommandWatcherOptions) {}
 
@@ -53,6 +59,9 @@ export class ProjectCommandWatcher {
     async list(): Promise<MergedManifestCommand[]> {
         try {
             this.current = await this.listNow();
+            // At startup there is no earlier listing to keep, so the listing is used, and the
+            // problem is reported.
+            this.reportScopeErrors(this.current);
             this.options.onRefused?.(this.current.refused);
         } catch (e) {
             this.options.onListingFailed?.(e instanceof Error ? e.message : String(e));
@@ -77,7 +86,9 @@ export class ProjectCommandWatcher {
         if (this.watchTimer) {
             return;
         }
-        let signature = statSignature(this.current?.files ?? []);
+        // The files may have changed since the first listing read them, so the first tick always
+        // lists again. That finds the same tools unless something changed.
+        let signature: string | undefined;
         this.watchTimer = setInterval(() => {
             // A listing still running is not started again. The next tick compares the files anew.
             if (this.relisting) {
@@ -116,6 +127,20 @@ export class ProjectCommandWatcher {
             this.options.onListingFailed?.(e instanceof Error ? e.message : String(e));
             return;
         }
+        // A place plugins are enabled from that cannot be read, such as a cli.json being written,
+        // would drop its commands. The commands of the last listing are kept instead. The watched
+        // files are taken from the new listing, so the fix is seen.
+        if (next.scopeErrors?.length) {
+            this.reportScopeErrors(next);
+            if (this.current) {
+                this.current = {
+                    ...this.current,
+                    files: [...new Set([...this.current.files, ...next.files])],
+                };
+            }
+            return;
+        }
+        this.reportedScopeErrors = '[]';
         const changed = toolsKey(next.commands) !== toolsKey(this.current?.commands ?? []);
         this.current = next;
         if (!changed) {
@@ -124,6 +149,18 @@ export class ProjectCommandWatcher {
         this.options.onRefused?.(next.refused);
         for (const listener of this.listeners) {
             listener(next.commands);
+        }
+    }
+
+    /** Reports the scope errors of a listing, once while they stay the same. */
+    private reportScopeErrors(listed: ListedCommands): void {
+        const key = JSON.stringify(listed.scopeErrors ?? []);
+        if (key === this.reportedScopeErrors) {
+            return;
+        }
+        this.reportedScopeErrors = key;
+        for (const error of listed.scopeErrors ?? []) {
+            this.options.onListingFailed?.(error);
         }
     }
 
@@ -152,7 +189,8 @@ export async function listProjectCommands(cwd: string): Promise<ListedCommands> 
     const { commands, refused } = await loadProjectCommands({ resolved });
     // The project's package.json is watched even when there is none yet.
     const files = [...new Set([packageJsonPath, ...resolved.watchedFiles])];
-    return { commands, refused, files };
+    const scopeErrors = resolved.scopeErrors.map(({ reason }) => reason);
+    return { commands, refused, files, ...(scopeErrors.length ? { scopeErrors } : {}) };
 }
 
 /** What a client sees of the commands: a change to anything else does not change the tools. */
