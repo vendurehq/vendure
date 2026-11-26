@@ -389,8 +389,9 @@ export function mergeProjectManifests(
                 return result;
             }
             const extensions = kept.map(entry => entry.extension);
+            const commandSchemas = await definition.schemas();
             const parts = commandExtensionParts(
-                await definition.schemas(),
+                commandSchemas,
                 kept.map(entry => entry.schemas),
             );
             // The merge checked the manifest. An old manifest, such as one `watch` left in place,
@@ -400,7 +401,10 @@ export function mergeProjectManifests(
             const violations = commandExtensionViolations(
                 definition,
                 enabled.map(entry => entry.extension),
-                { ...parts, extensions: [...parts.extensions].reverse() },
+                commandExtensionParts(
+                    commandSchemas,
+                    enabled.map(entry => entry.schemas),
+                ),
             );
             const index = violations.findIndex(violation => violation !== undefined);
             if (index !== -1) {
