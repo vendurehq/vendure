@@ -47,14 +47,6 @@ function reservedCommandConflict(name: string): string {
 }
 
 /**
- * A top-level built-in command, as the CLI host receives it, with the
- * extensions of the CLI plugins applied.
- */
-export interface CommandTreeEntry {
-    node: CliCommandNode;
-}
-
-/**
  * A shared option and the plugin that registered it. `source` is undefined for
  * one the CLI itself declares.
  */
@@ -223,8 +215,8 @@ export class CommandRegistry {
      * The top-level built-in commands, with the plugins' extensions applied.
      * A built-in that a plugin has extended is still the CLI's command.
      */
-    getCommandTree(): CommandTreeEntry[] {
-        return Array.from(this.state.commands.values(), entry => ({ node: entry.node }));
+    getCommandTree(): CliCommandNode[] {
+        return Array.from(this.state.commands.values(), entry => entry.node);
     }
 
     /**

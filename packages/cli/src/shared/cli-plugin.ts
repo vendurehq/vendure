@@ -8,6 +8,7 @@ import {
     hasCliSubcommands,
 } from './cli-command-definition.js';
 import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options.js';
+import { CliPluginCommandsRemovedError } from './cli-plugin.errors.js';
 
 /**
  * A CLI plugin that adds shared options, extends built-in commands, or runs a
@@ -127,13 +128,6 @@ export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
     'commandManifest',
 ]);
 
-/**
- * The coded error for a plugin that still declares commands under `commands`,
- * which the CLI no longer reads. Without it the plugin would load with none of
- * its commands, and nothing would say why.
- */
-export const CLI_PLUGIN_COMMANDS_REMOVED = 'plugin.commands-removed';
-
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (!value || typeof value !== 'object') {
         throw new Error('CLI plugin must be an object');
@@ -178,12 +172,7 @@ function assertNoLegacyCommands(pluginId: string, commands: unknown): void {
     if (commands === undefined || (Array.isArray(commands) && commands.length === 0)) {
         return;
     }
-    throw new Error(
-        `[${CLI_PLUGIN_COMMANDS_REMOVED}] CLI plugin "${pluginId}" declares commands under "commands", ` +
-            'which this version of the CLI no longer loads. Declare each command with defineCommand, ' +
-            'build the command manifest, and list it in package.json as vendure.commandManifest and ' +
-            'vendure.commandDefinitions. Then remove "commands" from the CLI plugin.',
-    );
+    throw new CliPluginCommandsRemovedError(pluginId);
 }
 
 /**
@@ -197,8 +186,8 @@ export function assertCommandTree(owner: string, nodes: CliCommandNode[]): void 
 }
 
 /**
- * Normalises the `command` of an extension to a path, e.g. `'start'` and
- * `['migrate', 'run']`.
+ * Normalises the `command` of an extension to a path, e.g. `'start'` to
+ * `['start']`.
  */
 export function normalizeCommandPath(command: string | string[]): string[] {
     return (Array.isArray(command) ? command : command.split(' '))

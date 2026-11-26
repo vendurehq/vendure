@@ -1915,9 +1915,8 @@ argument is mandatory.
 - A shared option is owned by the command that declares it. When it is repeated
   on one command line, the last value given wins.
 - A shared option is declared once. A plugin cannot declare one another plugin
-  already declares, or one that a built-in command group already shares. Both
-  are errors rather than one quietly overriding the other, so no two levels can
-  disagree about a value.
+  already declares. That is an error rather than one quietly overriding the
+  other, so two plugins cannot disagree about a value.
 - A value supplied on the command line always beats a `defaultValue`, whichever
   level declared it.
 - Two flags that read back under the same name count as the same option, so

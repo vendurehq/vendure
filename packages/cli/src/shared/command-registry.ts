@@ -13,7 +13,7 @@ import {
 import { CliCommandExit } from './cli-command-exit.js';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options.js';
 import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
-import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
+import { RootOptionEntry } from './command-registry-store.js';
 import { findVendureProjectRoot, vendureProjectRequiredMessage } from './project-validation.js';
 
 /**
@@ -92,7 +92,7 @@ export type HeadingColors = Pick<typeof pc, 'bold' | 'cyan'>;
 
 export function registerCommands(
     program: Command,
-    tree: CommandTreeEntry[],
+    tree: CliCommandNode[],
     options: RegisterCommandsOptions = {},
 ): void {
     const {
@@ -102,7 +102,7 @@ export function registerCommands(
     } = options;
     const getProjectRoot = resolveProjectRootOnce(findProjectRoot);
     const sharedOptions = declareOptions(program, rootOptions);
-    for (const { node } of tree) {
+    for (const node of tree) {
         registerNode(program, node, [], sharedOptions, getPluginExtensions, {
             getProjectRoot,
             requiresProject: false,
@@ -111,7 +111,7 @@ export function registerCommands(
     addProjectLegend(program, {
         // The program has no description of its own in the command list.
         ownDescriptionMarked: false,
-        subcommands: tree.map(entry => entry.node),
+        subcommands: tree,
         subcommandsInherit: false,
         getProjectRoot,
     });

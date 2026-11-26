@@ -235,7 +235,10 @@ describe('Workspace project plugin loading', () => {
     });
 
     it('rejects an invalid explicit project before loading plugins', async () => {
-        const result = await project.runCliCommand(['dev', '--dir', 'missing'], { expectError: true });
+        // With --help, a loaded plugin's extension would list --cloud-project.
+        const result = await project.runCliCommand(['dev', '--dir', 'missing', '--help'], {
+            expectError: true,
+        });
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain('Invalid --dir directory');
         expect(result.stdout).not.toContain('--cloud-project');
@@ -251,7 +254,11 @@ describe('Workspace project plugin loading', () => {
                 `Multiple Vendure projects found in "${project.projectDir}": other, server.`,
             );
             expect(result.stderr).toContain('Use --dir <dir>');
-            expect(result.stdout).not.toContain('--cloud-project');
+            // A loaded member's extension would list --cloud-project in the help.
+            const devHelp = await project.runCliCommand(['dev', '--help']);
+            expect(devHelp.stderr).toContain('Multiple Vendure projects found');
+            expect(devHelp.stdout).toContain('Usage: vendure dev');
+            expect(devHelp.stdout).not.toContain('--cloud-project');
             const help = await project.runCliCommand(['--help']);
             expect(help.stdout).toContain('Usage: vendure');
             expect(help.stderr).toContain('Multiple Vendure projects found');

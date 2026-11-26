@@ -292,8 +292,8 @@ export function readCommandOptions<TOptions extends Record<string, any> = Record
  */
 export interface CliCommandExtension {
     /**
-     * The command to extend: `'start'`, or a path of names for a
-     * nested one.
+     * The built-in command to extend, such as `'start'`, or its path as
+     * an array of names.
      */
     command: string | string[];
     /**

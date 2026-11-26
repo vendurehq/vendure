@@ -50,6 +50,9 @@ describe('defineCliPlugin()', () => {
         };
 
         expect(() => defineCliPlugin(plugin as any)).toThrow(/\[plugin\.commands-removed\]/);
+        expect(() => defineCliPlugin(plugin as any)).toThrow(
+            expect.objectContaining({ code: 'plugin.commands-removed' }),
+        );
         expect(() => defineCliPlugin(plugin as any)).toThrow(/vendure\.commandManifest/);
         expect(() => defineCliPlugin(plugin as any)).toThrow(/@example\/legacy/);
     });
