@@ -33,7 +33,12 @@ vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => (
 // No enabled package has a config resolver, unless a test says otherwise.
 vi.mock('../../../shared/resolve-cli-plugins.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../../shared/resolve-cli-plugins.js')>()),
-    resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
+    resolveCommandManifests: vi.fn(() => ({
+        manifests: [],
+        failures: [],
+        scopeErrors: [],
+        watchedFiles: [],
+    })),
 }));
 
 // Use the workspace package as the "project" copy, so that the plugins below and the
@@ -84,6 +89,7 @@ describe('runConfigCheck() with a config resolver', () => {
             manifests: [configResolverPackage(dir, '@acme/cloud', body)],
             failures: [],
             scopeErrors: [],
+            watchedFiles: [],
         });
     }
 

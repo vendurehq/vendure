@@ -6,7 +6,8 @@
  * discovery, the manifest merge and the host the same way a real installation does.
  */
 import { buildCommandManifest, readManifestFile } from '@vendure/common/lib/command/manifest';
-import { rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -389,17 +390,54 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
     });
 
     describe('a CLI plugin that is slow to load', () => {
-        it("lets vendure mcp start with the CLI's own tools, and say why", { timeout: 60_000 }, async () => {
-            const p = projectWith(['defined-commands-cli-plugin'], ['slow-cli-plugin']);
+        it(
+            'does not slow the listing of vendure mcp, which starts no child for it',
+            { timeout: 60_000 },
+            async () => {
+                const p = projectWith(['defined-commands-cli-plugin'], ['slow-cli-plugin']);
+                const mcp = startMcpServer(p.projectDir);
+                try {
+                    const started = Date.now();
+                    await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                    // The listing reads the manifests in the server's own process, so the 20 seconds the
+                    // plugin takes in a child process are never spent.
+                    expect(Date.now() - started).toBeLessThan(10_000);
+                    const search = await mcp.callTool('search_tools', { query: 'greet' });
+                    expect(search.result.structuredContent.tools.map((t: any) => t.name)).toContain(
+                        'example_greet',
+                    );
+                    expect(mcp.stderr()).not.toContain('[mcp.commands-listing');
+                } finally {
+                    await mcp.close();
+                }
+            },
+        );
+    });
+
+    describe('a plugin that is enabled before it is installed', () => {
+        it('is offered by a running vendure mcp once it is installed', { timeout: 60_000 }, async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+            // Take the installed package away, as if the project's dependencies were not installed yet.
+            const installed = join(p.projectDir, 'node_modules', ...EXAMPLE.split('/'));
+            const aside = join(mkdtempSync(join(tmpdir(), 'vendure-e2e-aside-')), 'package');
+            renameSync(installed, aside);
             const mcp = startMcpServer(p.projectDir);
+            const greetTools = async () =>
+                (await mcp.callTool('search_tools', { query: 'greet' })).result.structuredContent.tools
+                    .map((t: any) => t.name)
+                    .filter((name: string) => name === 'example_greet');
             try {
-                const started = Date.now();
                 await mcp.request('initialize', { protocolVersion: '2025-06-18' });
-                // The listing gives up after 15 seconds; the plugin takes 20.
-                expect(Date.now() - started).toBeLessThan(19_000);
-                const search = await mcp.callTool('search_tools', { query: 'doctor' });
-                expect(search.result.structuredContent.tools.map((t: any) => t.name)).toContain('doctor');
-                expect(mcp.stderr()).toContain('[mcp.commands-listing-timed-out]');
+                expect(await greetTools()).toEqual([]);
+
+                // Only node_modules changes, as with an install.
+                renameSync(aside, installed);
+                let found: string[] = [];
+                for (let i = 0; i < 50 && found.length === 0; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    found = await greetTools();
+                }
+                expect(found).toEqual(['example_greet']);
             } finally {
                 await mcp.close();
             }
@@ -407,6 +445,30 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
     });
 
     describe('a plugin that is installed but not enabled', () => {
+        it('is offered by a running vendure mcp once it is enabled', { timeout: 60_000 }, async () => {
+            const p = projectWith(['defined-commands-cli-plugin', { enable: false }]);
+            const mcp = startMcpServer(p.projectDir);
+            const greetTools = async () =>
+                (await mcp.callTool('search_tools', { query: 'greet' })).result.structuredContent.tools
+                    .map((t: any) => t.name)
+                    .filter((name: string) => name === 'example_greet');
+            try {
+                await mcp.request('initialize', { protocolVersion: '2025-06-18' });
+                expect(await greetTools()).toEqual([]);
+
+                await p.runCliCommand(['plugins', 'add', EXAMPLE]);
+                // The server polls the project's package.json once a second.
+                let found: string[] = [];
+                for (let i = 0; i < 50 && found.length === 0; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    found = await greetTools();
+                }
+                expect(found).toEqual(['example_greet']);
+            } finally {
+                await mcp.close();
+            }
+        });
+
         it('stays out of vendure commands --json, and its commands do not run', async () => {
             const p = projectWith(['defined-commands-cli-plugin', { enable: false }]);
 

@@ -605,6 +605,8 @@ describe('resolveCliPlugins()', () => {
             manifests: [],
             failures: [],
             scopeErrors: [],
+            // Only the allowlist: no package is enabled.
+            watchedFiles: [path.join(path.resolve(fixture.root), 'package.json')],
             projectRoot: path.resolve(fixture.root),
         });
 
