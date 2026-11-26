@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
-import type { CommandManifest } from '@vendure/common/lib/command/manifest';
+import type { CommandManifest, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { recordStartupEnvironment } from './auth/startup-environment.js';
 import { registerManifestCommands } from './command-host/commander-adapter.js';
 import {
@@ -156,6 +156,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
             );
         }
         const loadDefinitions = (source: string) => projectCommands.loadDefinitions(source);
+        const loadCommand = (command: MergedManifestCommand) => projectCommands.loadCommand(command);
         // The CLI's own commands first, then each plugin's on its own, so that a plugin whose
         // commands Commander refuses cannot take the rest of the command line with it. The merge has
         // already checked them, so this is a last resort.
@@ -163,7 +164,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         for (const source of sources) {
             const commands = projectCommands.commands.filter(command => command.source === source);
             try {
-                registerManifestCommands(program, commands, { loadDefinitions });
+                registerManifestCommands(program, commands, { loadDefinitions, loadCommand });
             } catch (e) {
                 if (source === CORE_SOURCE) {
                     throw e;

@@ -15,7 +15,7 @@ import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
-import { CORE_SOURCE } from './manifest.js';
+import { CORE_SOURCE, LoadedCommand } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
@@ -41,6 +41,11 @@ export interface AdapterOptions {
      * from the manifests alone.
      */
     loadDefinitions(source: string): Promise<CommandDefinition[]>;
+    /**
+     * Loads one command with the extensions of other packages applied. Without it, the command
+     * runs as `loadDefinitions` declares it.
+     */
+    loadCommand?(command: MergedManifestCommand): Promise<LoadedCommand>;
 }
 
 /**
@@ -449,9 +454,17 @@ async function runLeaf(
     Object.assign(input, collectFlagInput(command, properties, positionalValues));
 
     const key = manifestCommand.path.join(' ');
-    let definitions: CommandDefinition[];
+    let loaded: LoadedCommand;
     try {
-        definitions = await options.loadDefinitions(manifestCommand.source);
+        loaded = options.loadCommand
+            ? await options.loadCommand(manifestCommand)
+            : {
+                  definition: (await options.loadDefinitions(manifestCommand.source)).find(
+                      candidate => candidate.path.join(' ') === key,
+                  ),
+                  manifestCommand,
+                  dropped: [],
+              };
     } catch (e) {
         return finish(
             errorResult(hostErrors.pluginDefinitionsFailed, {
@@ -461,8 +474,14 @@ async function runLeaf(
             }),
         );
     }
-    const def = definitions.find(candidate => candidate.path.join(' ') === key);
-    const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
+    const usedDropped = droppedExtensionInput(loaded, input);
+    if (usedDropped) {
+        return finish(usedDropped);
+    }
+    const def = loaded.definition;
+    const mismatch =
+        loaded.mismatch ??
+        (def ? await findMismatch(def, loaded.manifestCommand) : 'the command is not installed');
     if (!def || mismatch) {
         return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
@@ -474,6 +493,28 @@ async function runLeaf(
         controller,
     );
     return finish(result, def);
+}
+
+/**
+ * A `cli.usage` error for input to an extension that failed to load, so a flag of that extension
+ * is refused rather than dropped without a word, or `undefined` when the input uses none.
+ */
+export function droppedExtensionInput(
+    loaded: Pick<LoadedCommand, 'dropped' | 'manifestCommand'>,
+    input: Record<string, unknown>,
+): HostResult | undefined {
+    const key = loaded.manifestCommand.path.join(' ');
+    for (const dropped of loaded.dropped) {
+        const field = dropped.fields.find(name => input[name] !== undefined);
+        if (field !== undefined) {
+            return errorResult(hostErrors.usage, {
+                message:
+                    `--${kebab(field)} comes from ${dropped.package}, whose extension of "${key}" ` +
+                    `failed to load: ${dropped.reason}`,
+            });
+        }
+    }
+    return undefined;
 }
 
 /**

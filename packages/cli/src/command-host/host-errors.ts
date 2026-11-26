@@ -82,6 +82,12 @@ export const hostErrors = {
             `${plugin} cannot extend the command "${command}": ${reason}. ` +
             `None of the extensions of ${plugin} are loaded. Its own commands are.`,
     }),
+    pluginExtensionFailed: defineError<{ plugin: string; command: string; reason: string }>({
+        code: 'plugin.extension-failed',
+        exit: 1,
+        message: ({ plugin, command, reason }) =>
+            `The extension of "${command}" from ${plugin} failed to load, so "${command}" runs without it: ${reason}`,
+    }),
     pluginParentPositional: defineError<{ plugin: string; command: string; child: string; field: string }>({
         code: 'plugin.parent-positional',
         exit: 1,

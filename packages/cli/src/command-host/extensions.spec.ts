@@ -114,6 +114,54 @@ describe('an extended command through the host', () => {
 
         expect(received).toEqual([{ environment: 'staging' }, { environment: 'staging', trace: 'cloud' }]);
     });
+
+    it("runs the command's transforms once, on the caller's values, with and without changes", async () => {
+        const ran: Array<Record<string, unknown>> = [];
+        const tag = defineCommand({
+            path: ['acme', 'tag'],
+            description: 'Tag',
+            behavior: 'readonly',
+            schemas: async () => ({
+                input: z.object({
+                    name: z.string().transform(name => `${name}!`),
+                    note: z.string().optional(),
+                }),
+            }),
+            run: async () => ({
+                run: async (input: Record<string, unknown>) => {
+                    ran.push(input);
+                    return {};
+                },
+            }),
+        });
+        const noted = defineCommandExtension({
+            path: ['acme', 'tag'],
+            schemas: async () => ({ input: z.object({ addNote: z.boolean().default(false) }) }),
+            run: async () => ({
+                run: async (input, _ctx, next) =>
+                    input.addNote ? next({ note: 'from the extension' }) : next(),
+            }),
+        });
+        const extended = applyCommandExtensions(tag, [noted]);
+
+        await testCommand(extended, { name: 'release' });
+        await testCommand(extended, { name: 'release', addNote: true });
+
+        expect(ran).toEqual([{ name: 'release!' }, { name: 'release!', note: 'from the extension' }]);
+    });
+
+    it('ends the run with cli.internal when the changes an extension gives next() are not valid', async () => {
+        const extended = applyCommandExtensions(deploy, [
+            cloud((_input, _ctx, next) => next({ environment: 42 })),
+        ]);
+
+        const result = await testCommand(extended, { project: 'storefront' });
+
+        expect(result.envelope.error).toMatchObject({
+            code: 'cli.internal',
+            message: expect.stringContaining('gave next() is not valid'),
+        });
+    });
 });
 
 describe('executeWithCancellation', () => {
