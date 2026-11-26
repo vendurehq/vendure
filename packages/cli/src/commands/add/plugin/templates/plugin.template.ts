@@ -13,7 +13,7 @@ import { PluginInitOptions } from './types.template';
         // modifying the `config` object.
         return config;
     },
-    compatibility: '^3.0.0',
+    compatibility: '^4.0.0',
 })
 export class TemplatePlugin {
     static options: PluginInitOptions;

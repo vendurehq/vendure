@@ -110,10 +110,7 @@ interface PluginCheckResult {
  * Checks each plugin's compatibility range against the current Vendure version.
  * Reports results per-plugin instead of throwing on the first incompatible one.
  */
-function checkPlugins(
-    config: RuntimeVendureConfig,
-    core: typeof import('@vendure/core'),
-): PluginCheckResult {
+function checkPlugins(config: RuntimeVendureConfig, core: typeof import('@vendure/core')): PluginCheckResult {
     const details: string[] = [];
     let hasIncompatible = false;
     let hasNoCompat = false;
@@ -135,9 +132,7 @@ function checkPlugins(
             hasNoCompat = true;
             noCompatCount++;
             details.push(`Plugin "${pluginName}": no compatibility range specified`);
-        } else if (
-            !satisfies(core.VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true })
-        ) {
+        } else if (!isCompatibleWithCore(core, compatibility)) {
             hasIncompatible = true;
             details.push(
                 `Plugin "${pluginName}": incompatible (requires ${compatibility}, running ${core.VENDURE_VERSION})`,
@@ -146,6 +141,17 @@ function checkPlugins(
     }
 
     return { details, hasIncompatible, hasNoCompat, noCompatCount };
+}
+
+/**
+ * Runs the project's own compatibility check, so the doctor agrees with what the server does at
+ * startup. A core older than `isCompatible` checks the range with plain `satisfies`.
+ */
+export function isCompatibleWithCore(core: typeof import('@vendure/core'), compatibility: string): boolean {
+    const { isCompatible } = core as { isCompatible?: (version: string, range: string) => boolean };
+    return typeof isCompatible === 'function'
+        ? isCompatible(core.VENDURE_VERSION, compatibility)
+        : satisfies(core.VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true });
 }
 
 /**

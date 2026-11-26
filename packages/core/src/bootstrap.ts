@@ -10,7 +10,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
-import { satisfies } from 'semver';
+import { coerce, Range, satisfies, validRange } from 'semver';
 import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
@@ -430,6 +430,36 @@ export async function preBootstrapConfig(
     return config;
 }
 
+/**
+ * @description
+ * Returns whether a Vendure version satisfies a plugin's `compatibility` range. This is the
+ * check that runs at bootstrap.
+ *
+ * A prerelease version also passes when its release version (`semver.coerce`) satisfies the
+ * range. A range such as `^4.0.0` does not match `4.0.0-preview.3` or a `4.0.0-major-…` nightly
+ * by itself, because those come before `4.0.0`. A range that names a prerelease, such as
+ * `>=4.0.0-preview.5`, is checked as it is, so `4.0.0-preview.3` does not satisfy it. A range with
+ * an explicit upper bound, such as `>=3.0.0 <4.0.0`, admits `4.0.0` prereleases: use a caret or
+ * `<4.0.0-0` to refuse them.
+ *
+ * @docsCategory plugin
+ * @since 4.0.0
+ */
+export function isCompatible(version: string, range: string): boolean {
+    const options = { loose: true, includePrerelease: true };
+    if (satisfies(version, range, options)) {
+        return true;
+    }
+    const parsed = validRange(range, options) ? new Range(range, options) : undefined;
+    // A range that names a prerelease, such as `>=4.0.0-preview.5`, is about prereleases already.
+    // A `-0` bound, which is how `^4.0.0` ends (`<5.0.0-0`), only excludes prereleases.
+    const namesPrerelease = parsed?.set.some(comparators =>
+        comparators.some(({ semver }) => semver.prerelease.length > 0 && semver.prerelease.join('.') !== '0'),
+    );
+    const release = coerce(version)?.version;
+    return !namesPrerelease && release !== undefined && satisfies(release, range, options);
+}
+
 function checkPluginCompatibility(
     config: RuntimeVendureConfig,
     ignoredPlugins: Array<DynamicModule | Type<any>> = [],
@@ -442,7 +472,7 @@ function checkPluginCompatibility(
                 `The plugin "${pluginName}" does not specify a compatibility range, so it is not guaranteed to be compatible with this version of Vendure.`,
             );
         } else {
-            if (!satisfies(VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true })) {
+            if (!isCompatible(VENDURE_VERSION, compatibility)) {
                 const compatibilityErrorMessage =
                     `Plugin "${pluginName}" is not compatible with this version of Vendure. ` +
                     `It specifies a semver range of "${compatibility}" but the current version is "${VENDURE_VERSION}".`;

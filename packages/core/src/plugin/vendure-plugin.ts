@@ -69,7 +69,7 @@ export interface VendurePluginMetadata extends ModuleMetadata {
      *
      * @example
      * ```ts
-     * compatibility: '^3.0.0'
+     * compatibility: '^4.0.0'
      * ```
      *
      * @since 2.0.0
