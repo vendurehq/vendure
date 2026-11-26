@@ -6,6 +6,7 @@ import {
     CommandErrorDefinition,
     CommandExtensionDefinition,
     extensionDeclarations,
+    JSON_SCHEMA_TARGET,
     JsonSchema,
 } from '@vendure/common/lib/command';
 import {
@@ -14,6 +15,7 @@ import {
     extendManifestCommand,
     MANIFEST_FILE_NAME,
     ManifestCommand,
+    ManifestExtension,
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
@@ -235,6 +237,9 @@ export function mergeProjectManifests(
     // Extensions apply once every command is known, so a package may extend a command of a package
     // enabled after it. Each package's extensions apply together, or not at all.
     const commands = mergeManifests(accepted);
+    // Each applied extension's manifest part, by package and command, so that one left out at run
+    // time can be taken out of its command again.
+    const extensionParts = new Map<string, ManifestExtension>();
     for (const manifest of accepted) {
         if (!manifest.extensions?.length) {
             continue;
@@ -246,6 +251,9 @@ export function mergeProjectManifests(
         }
         for (const command of extended.commands) {
             commands[commands.findIndex(other => sameCommand(other, command))] = command;
+        }
+        for (const extension of manifest.extensions) {
+            extensionParts.set(`${manifest.package}\n${extension.path.join(' ')}`, extension);
         }
     }
 
@@ -262,8 +270,10 @@ export function mergeProjectManifests(
         }
         return { file, loaded };
     };
-    const extensionsOf = async (command: MergedManifestCommand): Promise<CommandExtensionDefinition[]> => {
-        const found: CommandExtensionDefinition[] = [];
+    const extensionsOf = async (
+        command: MergedManifestCommand,
+    ): Promise<Array<{ packageName: string; extension: CommandExtensionDefinition }>> => {
+        const found: Array<{ packageName: string; extension: CommandExtensionDefinition }> = [];
         for (const { package: packageName } of command.extendedBy ?? []) {
             const { file, loaded } = importModule(packageName);
             const declared = await declarationsOf(file, loaded, extensionDeclarations);
@@ -273,9 +283,48 @@ export function mergeProjectManifests(
                     `${file}: the manifest lists an extension of "${command.path.join(' ')}", which the module does not export`,
                 );
             }
-            found.push(match);
+            found.push({ packageName, extension: match });
         }
         return found;
+    };
+
+    /**
+     * The extensions a command runs with. An extension whose field is also a field of the command
+     * that the manifest does not list, an `internal` one, is left out with a warning, and its part
+     * is taken out of the command's manifest entry, so the command itself keeps working.
+     */
+    const applicableExtensions = async (definition: CommandDefinition, command: MergedManifestCommand) => {
+        const own = new Set(
+            Object.keys(
+                ((await definition.schemas()).input['~standard'].jsonSchema.input({
+                    target: JSON_SCHEMA_TARGET,
+                }).properties as object | undefined) ?? {},
+            ),
+        );
+        const kept: Array<{ packageName: string; extension: CommandExtensionDefinition }> = [];
+        for (const entry of await extensionsOf(command)) {
+            const fields = Object.keys(
+                ((await entry.extension.schemas()).input['~standard'].jsonSchema.input({
+                    target: JSON_SCHEMA_TARGET,
+                }).properties as object | undefined) ?? {},
+            );
+            const clash = fields.find(field => own.has(field));
+            if (clash === undefined) {
+                kept.push(entry);
+                continue;
+            }
+            const error = errorBody(hostErrors.pluginExtensionClash, {
+                plugin: entry.packageName,
+                command: command.path.join(' '),
+                reason: `the field "${clash}" is a field of the command already`,
+            });
+            process.stderr.write(`[${error.code}] ${error.message}\n`);
+            const part = extensionParts.get(`${entry.packageName}\n${command.path.join(' ')}`);
+            if (part) {
+                removeExtension(command, part, entry.packageName);
+            }
+        }
+        return kept;
     };
 
     return {
@@ -298,9 +347,15 @@ export function mergeProjectManifests(
                             candidate.source === source &&
                             candidate.path.join(' ') === definition.path.join(' '),
                     );
-                    return command?.extendedBy?.length
-                        ? applyCommandExtensions(definition, await extensionsOf(command))
-                        : definition;
+                    if (!command?.extendedBy?.length) {
+                        return definition;
+                    }
+                    const extensions = await applicableExtensions(definition, command);
+                    return applyCommandExtensions(
+                        definition,
+                        extensions.map(entry => entry.extension),
+                        extensions.map(entry => entry.packageName),
+                    );
                 }),
             );
         },
@@ -309,6 +364,37 @@ export function mergeProjectManifests(
 
 function sameCommand(a: MergedManifestCommand, b: MergedManifestCommand): boolean {
     return a.path.join(' ') === b.path.join(' ');
+}
+
+/**
+ * Takes an extension's part out of the command's manifest entry, in place, because the command line
+ * holds the same object: its input fields, consents, errors, CLI metadata and `extendedBy` entry.
+ */
+function removeExtension(command: MergedManifestCommand, part: ManifestExtension, packageName: string): void {
+    const fields = Object.keys((part.input.properties as object | undefined) ?? {});
+    const properties = { ...((command.input.properties as Record<string, unknown> | undefined) ?? {}) };
+    for (const field of fields) {
+        delete properties[field];
+    }
+    const required = ((command.input.required as string[] | undefined) ?? []).filter(
+        field => !fields.includes(field),
+    );
+    const { required: _required, ...input } = command.input;
+    command.input = { ...input, properties, ...(required.length ? { required } : {}) };
+    command.consents = Object.fromEntries(
+        Object.entries(command.consents).filter(([name]) => !(name in part.consents)),
+    );
+    command.errors = command.errors.filter(error => !part.errors.some(other => other.code === error.code));
+    command.cli = {
+        ...command.cli,
+        flags: Object.fromEntries(
+            Object.entries(command.cli.flags ?? {}).filter(([field]) => !fields.includes(field)),
+        ),
+        fields: Object.fromEntries(
+            Object.entries(command.cli.fields ?? {}).filter(([field]) => !fields.includes(field)),
+        ),
+    };
+    command.extendedBy = command.extendedBy?.filter(entry => entry.package !== packageName);
 }
 
 /**
