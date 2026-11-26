@@ -95,6 +95,7 @@ function DashboardPage() {
     const {
         settings,
         settingsReady,
+        settingsInitializedAt,
         saveWidgetInstanceLayouts,
         setHiddenWidgets: persistHiddenWidgets,
         updateWidgetInstanceConfig,
@@ -137,7 +138,7 @@ function DashboardPage() {
         setHiddenWidgets(state.hidden);
         setLoadedWidgetIds(state.loadedWidgetIds);
         setIsInitialized(true);
-    }, [settingsReady, hasPermissions]);
+    }, [settingsReady, settingsInitializedAt, hasPermissions]);
 
     // Outside edit mode there's no Save step, so config is persisted right away (e.g. the
     // Metrics widget's Count/Total tab must survive a reload). While editing, it stays in
