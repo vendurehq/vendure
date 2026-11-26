@@ -131,14 +131,23 @@ export async function loadVendureConfigFile(
 }
 
 /**
+ * Requires a TypeScript or JavaScript module the way a config file is required: it loads `.env`,
+ * and registers ts-node with the tsconfig nearest the file and its path mappings, first. Returns
+ * the module's exports.
+ */
+export async function requireProjectModule(filePath: string): Promise<Record<string, unknown>> {
+    await prepareToRequireConfig(filePath);
+    return createRequire(import.meta.url)(filePath) as Record<string, unknown>;
+}
+
+/**
  * Loads the Vendure config from a known file, without parsing the project with ts-morph, which
  * takes seconds. The config is the export named `config`, or else the only export that has
  * `dbConnectionOptions`. Returns `undefined` when that does not identify one export, so the caller
  * can fall back to {@link loadVendureConfigFile}.
  */
 export async function loadVendureConfigFromPath(configFilePath: string): Promise<VendureConfig | undefined> {
-    await prepareToRequireConfig(configFilePath);
-    const configModule = createRequire(import.meta.url)(configFilePath) as Record<string, unknown>;
+    const configModule = await requireProjectModule(configFilePath);
     if (isVendureConfig(configModule.config)) {
         return configModule.config;
     }

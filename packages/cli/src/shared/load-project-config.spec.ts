@@ -9,7 +9,7 @@ import {
     loadProjectConfig,
     resolveProjectConfig,
 } from './load-project-config.js';
-import { loadVendureConfigFile, loadVendureConfigFromPath } from './load-vendure-config-file.js';
+import { loadVendureConfigFile, requireProjectModule } from './load-vendure-config-file.js';
 import { ResolvedCommandManifest, resolveCommandManifests } from './resolve-cli-plugins.js';
 
 vi.mock('./resolve-cli-plugins.js', async importOriginal => ({
@@ -29,8 +29,8 @@ vi.mock('./load-vendure-config-file.js', async importOriginal => ({
     loadVendureConfigFile: vi.fn(() =>
         Promise.resolve({ dbConnectionOptions: { type: 'sqlite' }, from: 'source' }),
     ),
-    loadVendureConfigFromPath: vi.fn(() =>
-        Promise.resolve({ dbConnectionOptions: { type: 'sqlite' }, from: 'loadConfigFile' }),
+    requireProjectModule: vi.fn(() =>
+        Promise.resolve({ default: { handle: 'cloud' }, config: { not: 'used' } }),
     ),
 }));
 
@@ -102,7 +102,7 @@ describe('loadProjectConfig()', () => {
         expect(calls[1]).toMatchObject({ projectDir: dir, configFile: path.join(dir, 'my-config.ts') });
         expect(calls[1].signal).toBeInstanceOf(AbortSignal);
         expect(loadVendureConfigFile).not.toHaveBeenCalled();
-        expect(loadVendureConfigFromPath).not.toHaveBeenCalled();
+        expect(requireProjectModule).not.toHaveBeenCalled();
     });
 
     it('gives the resolver --config as an absolute path, resolved from the working directory', async () => {
@@ -130,39 +130,22 @@ describe('loadProjectConfig()', () => {
         );
     });
 
-    it('loads a config file for the resolver, relative to the project, only when it asks', async () => {
+    it('imports a module for the resolver, relative to the project, only when it asks', async () => {
         const result = await resolveProjectConfig({
             projectDir: dir,
             plugins: [
                 plugin('@acme/other', 'return undefined;'),
-                plugin('@acme/cloud', "return { ...(await ctx.loadConfigFile('src/vendure-config.ts')), port: 1 };"),
+                plugin(
+                    '@acme/cloud',
+                    "const mod = await ctx.loadModule('src/vendure-config.ts');\n" +
+                        "return { dbConnectionOptions: { type: 'postgres' }, handle: mod.default.handle };",
+                ),
             ],
         });
 
-        expect(loadVendureConfigFromPath).toHaveBeenCalledOnce();
-        expect(loadVendureConfigFromPath).toHaveBeenCalledWith(path.join(dir, 'src', 'vendure-config.ts'));
-        expect(result?.config).toEqual({
-            dbConnectionOptions: { type: 'sqlite' },
-            from: 'loadConfigFile',
-            port: 1,
-        });
-    });
-
-    it('reports a config file with no VendureConfig export as a failure of the resolver', async () => {
-        vi.mocked(loadVendureConfigFromPath).mockResolvedValueOnce(undefined);
-        const configFile = path.join(dir, 'cloud.config.ts');
-
-        await expect(
-            resolveProjectConfig({
-                projectDir: dir,
-                plugins: [plugin('@acme/cloud', `return ctx.loadConfigFile(${JSON.stringify(configFile)});`)],
-            }),
-        ).rejects.toMatchObject({
-            details: {
-                plugin: '@acme/cloud',
-                message: `${configFile} exports no "config", and not exactly one other VendureConfig`,
-            },
-        });
+        expect(requireProjectModule).toHaveBeenCalledOnce();
+        expect(requireProjectModule).toHaveBeenCalledWith(path.join(dir, 'src', 'vendure-config.ts'));
+        expect(result?.config).toEqual({ dbConnectionOptions: { type: 'postgres' }, handle: 'cloud' });
     });
 
     it('passes the signal it was given to the resolver', async () => {

@@ -19,16 +19,13 @@ export interface ConfigResolverContext {
      */
     signal: AbortSignal;
     /**
-     * Loads a TypeScript or JavaScript config file the way the CLI loads the project's own: it
-     * loads `.env` from the working directory, and registers ts-node with the tsconfig nearest the
-     * file and its path mappings. The CLI does neither before a resolver calls it. A relative path is resolved against `projectDir`. It
-     * returns the export named `config`, or else the only export that is a `VendureConfig`, and
-     * throws when the file has neither.
-     *
-     * The return type is `object` because `@vendure/common` does not depend on `@vendure/core`. It
-     * is a `VendureConfig`.
+     * Imports a TypeScript or JavaScript module of the project, such as its config file, and
+     * returns its exports. It loads `.env` from the working directory, and registers ts-node with
+     * the tsconfig nearest the file and its path mappings, the way the CLI does to load the
+     * project's own config. The CLI does neither before a resolver calls it. A relative path is
+     * resolved against `projectDir`. The resolver picks the export it needs.
      */
-    loadConfigFile(configFile: string): Promise<object>;
+    loadModule(modulePath: string): Promise<Record<string, unknown>>;
 }
 
 /**

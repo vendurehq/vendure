@@ -4,7 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { configResolverFailed } from './config-resolver.errors.js';
-import { isVendureConfig, loadVendureConfigFile, loadVendureConfigFromPath } from './load-vendure-config-file.js';
+import { isVendureConfig, loadVendureConfigFile, requireProjectModule } from './load-vendure-config-file.js';
 import { openProject } from './open-project.js';
 import { findVendureProjectRoot } from './project-validation.js';
 import {
@@ -141,7 +141,8 @@ export async function resolveProjectConfig(
             projectDir,
             configFile,
             signal: options.signal ?? new AbortController().signal,
-            loadConfigFile: file => loadConfigFileForResolver(path.resolve(projectDir, file)),
+            // Lazy: ts-node and `.env` are set up only when a resolver calls it.
+            loadModule: file => requireProjectModule(path.resolve(projectDir, file)),
         });
         if (config) {
             return { config, resolvedBy: plugin.packageName, projectDir };
@@ -161,20 +162,6 @@ export async function loadSourceConfig(
     const ref = new VendureConfigRef(project, options.configFile);
     const config = await loadVendureConfigFile(ref, tsConfigPath);
     return { config, configPath: ref.sourceFile.getFilePath(), ref };
-}
-
-/**
- * The `loadConfigFile` of a resolver's context. ts-node is registered only when it is called, not
- * before the resolvers run.
- */
-async function loadConfigFileForResolver(configFile: string): Promise<VendureConfig> {
-    const config = await loadVendureConfigFromPath(configFile);
-    if (!config) {
-        throw new Error(
-            `${configFile} exports no "config", and not exactly one other VendureConfig`,
-        );
-    }
-    return config;
 }
 
 async function resolveWith(

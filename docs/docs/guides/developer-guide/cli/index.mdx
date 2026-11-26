@@ -1515,8 +1515,8 @@ export async function resolve(ctx: ConfigResolverContext): Promise<VendureConfig
     if (!isOurKindOfProject(ctx.projectDir) || (ctx.configFile && !isOurConfigFile(ctx.configFile))) {
         return undefined;
     }
-    const base = await ctx.loadConfigFile(ctx.configFile ?? 'src/vendure-config.ts');
-    return buildConfig(base as VendureConfig, { signal: ctx.signal });
+    const configModule = await ctx.loadModule(ctx.configFile ?? 'src/vendure-config.ts');
+    return buildConfig(configModule.default, { signal: ctx.signal });
 }
 ```
 
@@ -1527,7 +1527,7 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
 - **The manifest** records `hasConfigResolver: true`. The CLI imports the resolver only when a command needs the
   config, and never at startup or in `vendure mcp`.
 - **`resolve(ctx)`** gets the project's root directory as `ctx.projectDir`, the absolute path of the file the user
-  named with `--config` as `ctx.configFile`, `ctx.loadConfigFile`, and `ctx.signal`, which fires when the command is
+  named with `--config` as `ctx.configFile`, `ctx.loadModule`, and `ctx.signal`, which fires when the command is
   cancelled. It returns the config, or `undefined` for a project it doesn't handle. `vendure schema` cannot be
   cancelled, so its signal never fires.
 - **`--config`:** the resolvers run before the CLI loads the file the user named. A resolver returns `undefined`
@@ -1538,13 +1538,13 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
   `config.resolver-failed`, naming the package. The CLI does not fall back to the source then. A resolver that stops
   because the command was cancelled ends it as `cli.cancelled`. When the CLI cannot read an enabled package's
   manifest, and finds no config in the source, its error names that package.
-- **`ctx.loadConfigFile(path)`** loads a TypeScript or JavaScript config file the way the CLI loads the project's
-  own: it loads `.env` from the working directory, and registers ts-node with the tsconfig nearest the file and its
-  path mappings. The CLI does neither before a resolver calls it. A relative path is resolved against `ctx.projectDir`. It returns the export
-  named `config`, or else the only export that is a `VendureConfig`, and throws when the file has neither. A resolver
-  that builds on the project's `vendure-config.ts` uses it rather than compiling the file itself.
+- **`ctx.loadModule(path)`** imports a TypeScript or JavaScript module of the project, such as its config file, the
+  way the CLI loads the project's own config: it loads `.env` from the working directory, and registers ts-node with
+  the tsconfig nearest the file and its path mappings. The CLI does neither before a resolver calls it. A relative
+  path is resolved against `ctx.projectDir`. It returns the module's exports, and the resolver picks the one it needs
+  and builds the config from it.
 - **The environment:** the resolver runs in the CLI's process, with the environment of the user's shell, and `.env`
-  once it calls `ctx.loadConfigFile`. `vendure dev` does not run it, and the CLI does not pass it any database settings. A resolver whose config needs settings
+  once it calls `ctx.loadModule`. `vendure dev` does not run it, and the CLI does not pass it any database settings. A resolver whose config needs settings
   that the package sets for its own commands, such as a local database, sets them itself, the same way for every
   command.
 - **`vendure add plugin`** edits the config file, so it still needs a `VendureConfig` in the source. When it finds
