@@ -32,7 +32,10 @@ import {
     VisibilityState,
 } from '@tanstack/react-table';
 import { RowSelectionState, TableOptions } from '@tanstack/table-core';
-import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
+import {
+    DataTable as UiDataTable,
+    useRememberedListTotal,
+} from '@vendure-io/ui/components/molecules/data-table/data-table';
 import type {
     DataTableFilterColumn,
     DataTableRowCellProps,
@@ -215,12 +218,12 @@ interface DataTableProps<TData> {
     selectionStorageKey?: string;
     /**
      * @description
-     * Remembers how many rows the table showed, in local storage under this key.
-     * The next first load draws that many skeleton rows, so the table keeps its
-     * height when the rows arrive, also after a reload. The count is read once,
-     * when the table mounts, so the key must be known then: name the list, and
-     * leave out anything that loads later, such as the active channel. Without it
-     * the first load draws up to 10 skeleton rows.
+     * Remembers the list's total item count, in local storage under this key. The
+     * next first load draws as many skeleton rows as the page will have, so the
+     * table keeps its height when the rows arrive, also after a reload. The total
+     * is read once, when the table mounts, so the key must be known then: name the
+     * list, and leave out anything that loads later, such as the active channel.
+     * Without it the first load draws one full page of skeleton rows.
      *
      * @since 4.0.0
      */
@@ -388,6 +391,8 @@ export function DataTable<TData>({
         defaultColumnVisibility ?? {},
     );
     const items: TData[] = data ?? NO_ITEMS;
+    // The list's total from the last visit sets the skeleton rows of the first load.
+    const expectedTotal = useRememberedListTotal(rowCountKey, isLoading ? null : totalItems);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
@@ -804,7 +809,7 @@ export function DataTable<TData>({
                         getRowId={row => (row as { id: string }).id}
                         onTableReady={handleTableReady}
                         isLoading={isLoading}
-                        rowCountKey={rowCountKey}
+                        expectedTotal={expectedTotal}
                         skeletonCells={skeletonCells}
                         rowLinks={rowLinks}
                         frame={frame}
