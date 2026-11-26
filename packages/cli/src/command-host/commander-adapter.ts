@@ -54,6 +54,77 @@ function findChild(parent: Command, name: string): Command | undefined {
 }
 
 /**
+ * The command line with every option moved after the full command path, when the arguments name a
+ * command of the program, such as `vendure cloud project list --json` for
+ * `vendure cloud --json project list`. Undefined when they don't.
+ */
+export function commandLineWithOptionsLast(program: Command, args: readonly string[]): string | undefined {
+    const path: string[] = [];
+    const rest: string[] = [];
+    let command = program;
+    for (const arg of args) {
+        const child =
+            arg.startsWith('-') || command.commands.length === 0 ? undefined : findChild(command, arg);
+        if (child) {
+            path.push(arg);
+            command = child;
+        } else {
+            rest.push(arg);
+        }
+    }
+    if (path.length === 0 || command.commands.length > 0) {
+        return undefined;
+    }
+    return ['vendure', ...path, ...rest].join(' ');
+}
+
+/**
+ * A group of manifest commands, such as `cloud`, takes no options of its own, so Commander refuses
+ * an option given before the subcommand. When the arguments after it name a command, the run
+ * stops with a coded error that names the same command line with the options at the end. Under
+ * `--json`, any other error of the group is the `cli.usage` envelope, as for a command. Otherwise
+ * Commander's own text is written as before.
+ */
+function reportOptionsBeforeSubcommand(group: Command): void {
+    let root = group;
+    while (root.parent) {
+        root = root.parent;
+    }
+    // Commander writes its error text before it calls `exitOverride`. The text is held until the
+    // error is known, so that the coded error or the envelope can take its place.
+    let heldText = '';
+    group.configureOutput({ writeErr: text => (heldText += text) });
+    group.exitOverride(error => {
+        const passThrough =
+            error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
+        const line =
+            error.code === 'commander.unknownOption'
+                ? commandLineWithOptionsLast(root, process.argv.slice(2))
+                : undefined;
+        const json = jsonRequested(process.argv);
+        if (line) {
+            const option = /'([^']+)'/.exec(error.message)?.[1] ?? 'An option';
+            const result = errorResult(hostErrors.optionBeforeCommand, { option, line });
+            if (json) {
+                fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+            } else {
+                process.stderr.write(
+                    `[${hostErrors.optionBeforeCommand.code}] ${result.envelope.error?.message ?? ''}\n`,
+                );
+            }
+            process.exit(result.exitCode);
+        }
+        if (json && !passThrough) {
+            const result = errorResult(hostErrors.usage, { message: error.message.replace(/^error: /, '') });
+            fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+            process.exit(result.exitCode);
+        }
+        process.stderr.write(heldText);
+        process.exit(error.exitCode);
+    });
+}
+
+/**
  * Adds the commands of a manifest to a Commander program. Every field is an optional flag, so
  * that Commander never rejects a run before the host has read `--input` and decided what is
  * missing. A command goes under the group that already exists for its path, such as `add`.
@@ -69,6 +140,7 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                reportOptionsBeforeSubcommand(group);
                 if (parent === program && manifestCommand.source !== CORE_SOURCE) {
                     group.helpGroup(pluginCommandsHeading(manifestCommand.source));
                 }

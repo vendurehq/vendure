@@ -61,7 +61,11 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
      * `['config', 'server', 'set']` for `vendure config server set`.
      */
     commandPath: string[];
-    /** Reads plugin contributions registered for a named extension point. */
+    /**
+     * Reads plugin contributions registered for a named extension point. CLI plugin commands read
+     * them here. Commands declared with `defineCommand` read the same registry through
+     * `shared/plugin-extensions.ts`, because they get a `CommandContext` rather than this context.
+     */
     getPluginExtensions: CliPluginExtensionAccessor;
 }
 

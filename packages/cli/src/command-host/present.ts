@@ -4,11 +4,28 @@ import { describeFix, formatFix } from './format-fix.js';
 import { HostResult } from './host.js';
 import { kebab } from './naming.js';
 
+/**
+ * The lines that describe one need for a person. A secret input is shown by name with the safe way
+ * to pass it, the `--input` document on stdin, so that its value is not put on a command line. A
+ * need's fix is shown as the command line that answers it.
+ */
 function describeNeed(need: CommandNeed): string[] {
+    const lines = needLines(need);
+    if (need.fix) {
+        lines.push(`      ${describeFix(need.fix)}`);
+    }
+    return lines;
+}
+
+function needLines(need: CommandNeed): string[] {
     switch (need.kind) {
         case 'input': {
             const choices = need.choices?.length ? ` One of: ${need.choices.join(', ')}.` : '';
-            return [`  --${kebab(need.field)}: ${need.description}.${choices}`];
+            return need.secret
+                ? [
+                      `  ${need.field} (secret): ${need.description}.${choices} Pass it in the --input document on stdin.`,
+                  ]
+                : [`  --${kebab(need.field)}: ${need.description}.${choices}`];
         }
         case 'consent': {
             const lines = [`  --${kebab(need.consent)} ${need.digest}: ${need.description}`];
