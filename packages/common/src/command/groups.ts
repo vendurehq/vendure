@@ -74,7 +74,10 @@ export function applyCommandGroups(
                     ]),
                 };
             },
-            cli: mergeCli(own, command.cli),
+            cli: mergeCli(
+                own.map(group => group.cli),
+                command.cli,
+            ),
         };
     });
 }
@@ -104,9 +107,16 @@ export function commandDeclarations(declarationsModule: unknown): CommandDefinit
     return applyCommandGroups(commands as CommandDefinition[], groups as CommandGroupDefinition[]);
 }
 
-function mergeCli(groups: CommandGroupDefinition[], cli: CommandCliMetadata | undefined): CommandCliMetadata {
+/**
+ * The CLI metadata of a command with that of the parts it is made of, such as its groups or
+ * extensions. The command's own wins.
+ */
+export function mergeCli(
+    parts: Array<Pick<CommandCliMetadata, 'flags' | 'fields'> | undefined>,
+    cli: CommandCliMetadata | undefined,
+): CommandCliMetadata {
     const merged: CommandCliMetadata = { ...cli };
-    for (const part of [...groups.map(group => group.cli), cli]) {
+    for (const part of [...parts, cli]) {
         if (part?.flags) {
             merged.flags = { ...merged.flags, ...part.flags };
         }
@@ -117,7 +127,8 @@ function mergeCli(groups: CommandGroupDefinition[], cli: CommandCliMetadata | un
     return merged;
 }
 
-function propertiesOf(schema: JsonSchema): Record<string, unknown> {
+/** The properties of an object JSON Schema. */
+export function propertiesOf(schema: JsonSchema): Record<string, unknown> {
     return (schema.properties as Record<string, unknown> | undefined) ?? {};
 }
 
@@ -126,7 +137,7 @@ function propertiesOf(schema: JsonSchema): Record<string, unknown> {
  * the command's part also gets every field no group declares, so it still rejects or strips an
  * unknown one as it would alone.
  */
-function combineInputs(
+export function combineInputs(
     commandPath: string[],
     parts: Array<{ label: string; schema: StandardSchema }>,
 ): StandardSchema {

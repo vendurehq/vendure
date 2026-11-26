@@ -1,6 +1,7 @@
 import type {
     CommandDefinition,
     CommandErrorDefinition,
+    CommandExtensionDefinition,
     CommandFix,
     CommandGroupDefinition,
     CommandNeed,
@@ -26,6 +27,17 @@ export const ERROR_CODE_PATTERN = /^[a-z]+(\.[a-z0-9]+(-[a-z0-9]+)*)+$/;
  */
 export function isValidErrorCode(code: string): boolean {
     return ERROR_CODE_PATTERN.test(code);
+}
+
+/**
+ * @description
+ * Declares an extension of a command: the fields, consents and errors it adds, and a `run` that
+ * wraps the command's. It returns its argument. See {@link CommandExtensionDefinition}.
+ *
+ * @since 4.0.0
+ */
+export function defineCommandExtension<T extends CommandExtensionDefinition>(extension: T): T {
+    return extension;
 }
 
 /**

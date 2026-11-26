@@ -11,10 +11,16 @@ export const output = z.object({
             z.object({
                 package: z.string(),
                 error: z.looseObject({ code: z.string(), message: z.string() }),
+                kind: z
+                    .enum(['commands', 'extensions'])
+                    .optional()
+                    .describe(
+                        "What was left out: the package's commands, the default, or only its extensions of other commands",
+                    ),
             }),
         )
         .optional()
         .describe(
-            'Enabled plugins whose defineCommand commands were left out, each with the coded error that says why',
+            'Enabled plugins whose defineCommand commands or command extensions were left out, each with the coded error that says why',
         ),
 });

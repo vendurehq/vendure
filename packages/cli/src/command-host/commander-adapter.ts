@@ -1,6 +1,7 @@
 import {
     CommandDefinition,
     CommandEvent,
+    internalFieldsOf,
     isIncompleteResult,
     JSON_SCHEMA_TARGET,
 } from '@vendure/common/lib/command';
@@ -15,7 +16,7 @@ import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
-import { CORE_SOURCE } from './manifest.js';
+import { CORE_SOURCE, LoadedCommand } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
@@ -26,6 +27,14 @@ import { JsonOutput, redirectStdoutToStderr } from './stdio.js';
 /** How long a command has to stop after it is cancelled, before the host gives up on it. */
 const CANCEL_GRACE_MS = 10_000;
 
+/**
+ * How long a `service` command, such as `vendure dev`, has to stop after it is cancelled. It is
+ * longer than {@link CANCEL_GRACE_MS}, because an extension stops its own processes, such as a
+ * database, in a `finally` once the command has stopped. A process that never stops still can't
+ * hold a script forever.
+ */
+const SERVICE_CANCEL_GRACE_MS = 30_000;
+
 export interface AdapterOptions {
     /**
      * Loads the command declarations of the package that declared a command, its manifest's
@@ -33,6 +42,11 @@ export interface AdapterOptions {
      * from the manifests alone.
      */
     loadDefinitions(source: string): Promise<CommandDefinition[]>;
+    /**
+     * Loads one command with the extensions of other packages applied. Without it, the command
+     * runs as `loadDefinitions` declares it.
+     */
+    loadCommand?(command: MergedManifestCommand): Promise<LoadedCommand>;
 }
 
 /**
@@ -441,9 +455,17 @@ async function runLeaf(
     Object.assign(input, collectFlagInput(command, properties, positionalValues));
 
     const key = manifestCommand.path.join(' ');
-    let definitions: CommandDefinition[];
+    let loaded: LoadedCommand;
     try {
-        definitions = await options.loadDefinitions(manifestCommand.source);
+        loaded = options.loadCommand
+            ? await options.loadCommand(manifestCommand)
+            : {
+                  definition: (await options.loadDefinitions(manifestCommand.source)).find(
+                      candidate => candidate.path.join(' ') === key,
+                  ),
+                  manifestCommand,
+                  dropped: [],
+              };
     } catch (e) {
         return finish(
             errorResult(hostErrors.pluginDefinitionsFailed, {
@@ -453,19 +475,48 @@ async function runLeaf(
             }),
         );
     }
-    const def = definitions.find(candidate => candidate.path.join(' ') === key);
-    const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
+    const usedDropped = droppedExtensionInput(loaded, input);
+    if (usedDropped) {
+        return finish(usedDropped);
+    }
+    const def = loaded.definition;
+    const mismatch =
+        loaded.mismatch ??
+        (def ? await findMismatch(def, loaded.manifestCommand) : 'the command is not installed');
     if (!def || mismatch) {
         return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
 
-    const result = await executeWithCancellation(
-        def,
-        input,
-        createHostEnvironment(controller, out),
-        controller,
-    );
+    const env = createHostEnvironment(controller, out);
+    // An extension that failed to load is a warning of the run, in its envelope's notices too.
+    env.notices = loaded.dropped.map(dropped => ({
+        level: 'warning' as const,
+        message: `[${dropped.error.code}] ${dropped.error.message}`,
+    }));
+    const result = await executeWithCancellation(def, input, env, controller);
     return finish(result, def);
+}
+
+/**
+ * A `cli.usage` error for input to an extension that failed to load, so a flag of that extension
+ * is refused rather than dropped without a word, or `undefined` when the input uses none.
+ */
+export function droppedExtensionInput(
+    loaded: Pick<LoadedCommand, 'dropped' | 'manifestCommand'>,
+    input: Record<string, unknown>,
+): HostResult | undefined {
+    const key = loaded.manifestCommand.path.join(' ');
+    for (const dropped of loaded.dropped) {
+        const field = dropped.fields.find(name => input[name] !== undefined);
+        if (field !== undefined) {
+            return errorResult(hostErrors.usage, {
+                message:
+                    `--${kebab(field)} comes from ${dropped.package}, whose extension of "${key}" ` +
+                    `failed to load: ${dropped.reason}`,
+            });
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -514,18 +565,26 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
     };
 }
 
-/** Runs a command, and gives up on it when it does not stop in time after it is cancelled. */
+/**
+ * Runs a command, and gives up on it when it does not stop in time after it is cancelled.
+ *
+ * A `service` command, such as `vendure dev`, gets {@link SERVICE_CANCEL_GRACE_MS} instead of
+ * {@link CANCEL_GRACE_MS}: an extension that wraps it stops its own processes once `next()`
+ * resolves, in its `finally`, and the host waits for that. A second Ctrl+C still ends the process
+ * at once (see {@link createCancellation}).
+ */
 export function executeWithCancellation(
     def: CommandDefinition,
     input: Record<string, unknown>,
     env: HostEnvironment,
     controller: AbortController,
 ): Promise<HostResult> {
+    const grace = def.behavior === 'service' ? SERVICE_CANCEL_GRACE_MS : CANCEL_GRACE_MS;
     return Promise.race([
         executeCommand(def, input, env),
         new Promise<HostResult>(resolve => {
             controller.signal.addEventListener('abort', () => {
-                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
+                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), grace).unref();
             });
         }),
     ]);
@@ -596,10 +655,11 @@ export async function findMismatch(
     }
     // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
     // in place, so a field that was added, renamed or removed is caught here.
+    // An internal field is in the schema, but never in the manifest.
     const declared = Object.keys(
         ((await def.schemas()).input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET })
             .properties as object | undefined) ?? {},
-    );
+    ).filter(field => !internalFieldsOf(def.cli).includes(field));
     const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
         field => !(field in manifestCommand.consents),
     );

@@ -334,6 +334,13 @@ export interface SpawnOptions {
      * @since 4.0.0
      */
     timeoutMs?: number;
+    /**
+     * Stops the process with SIGTERM when it fires. The host's own signal, `ctx.signal`, stops it
+     * too, so this is for stopping it sooner, as `next(…, { signal })` of an extension does.
+     *
+     * @since 4.0.0
+     */
+    signal?: AbortSignal;
 }
 
 /**
@@ -474,8 +481,9 @@ export interface CommandContext {
      * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
      * which only its owner can replace, or a login the authentication service refused to renew.
      * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
-     * failure, such as no network, and when `ctx.signal` fires. A transient failure that `run()` lets
-     * through ends the run with `auth.credential-failed`, as when finding the credential failed.
+     * failure, such as no network, and when `ctx.signal` or `options.signal` fires. A transient
+     * failure that `run()` lets through ends the run with `auth.credential-failed`, as when finding
+     * the credential failed.
      *
      * A renewal also brings `ctx.account` up to date, since it can change the organization the login
      * is scoped to.
@@ -484,7 +492,10 @@ export interface CommandContext {
      *
      * @since 4.0.0
      */
-    refreshCredential?(failedToken?: string): Promise<CommandCredential | undefined>;
+    refreshCredential?(
+        failedToken?: string,
+        options?: { signal?: AbortSignal },
+    ): Promise<CommandCredential | undefined>;
     /**
      * The Vendure Console the credential belongs to, and the organization of a stored login.
      * Present only for a command with `requires.auth`. A command that calls the Console API sends
@@ -589,6 +600,15 @@ export interface CommandCliMetadata {
             secret?: boolean;
             /** The valid values, computed from the project. */
             choices?: (ctx: CommandContext, input: Record<string, unknown>) => Promise<string[]>;
+            /**
+             * A field only an extension sets, through `next(commandInput)`. It is not a flag, the
+             * manifest leaves it out, so `vendure commands --json` and the MCP tool's schema don't
+             * list it, and the host removes it from what a caller passes, as `--input` or over MCP.
+             * The command's schema still validates it.
+             *
+             * @since 4.0.0
+             */
+            internal?: boolean;
         }
     >;
 }
@@ -677,4 +697,76 @@ export interface CommandDefinition {
     run: () => Promise<{ run: CommandRunFn }>;
     plan?: () => Promise<{ plan: CommandPlanFn }>;
     render?: () => Promise<{ render: CommandRenderFn }>;
+}
+
+/**
+ * @description
+ * Runs the command an extension wraps, or the next extension, and resolves to its result as a
+ * value: its output, or an `incomplete()`, `failed()` or `fail()` result. It never throws for
+ * those, and never ends the process.
+ *
+ * `changes` are applied to the command's input the extension was called with, as the caller gave
+ * it and without the extension's own fields: the command runs with `{ ...commandInput, ...changes }`,
+ * validated with the command's schema, so its transforms and defaults apply once, to the given
+ * values. A change may set one of the command's `internal` fields. Without `changes`, the command
+ * runs with its input unchanged. `changes` that the command's schema finds invalid make `next`
+ * throw, and the run ends with `cli.internal`.
+ *
+ * `options.signal` stops this call only: the inner run's `ctx.signal` fires when it fires, or when
+ * the run's own signal does. The promise resolves once the inner run has returned. The inner run's
+ * events and `ctx.output` reach the caller as they happen.
+ *
+ * It may be called more than once, for example to try again, or not at all.
+ *
+ * @since 4.0.0
+ */
+export type CommandExtensionNextFn = (
+    changes?: Record<string, unknown>,
+    options?: { signal?: AbortSignal },
+) => Promise<CommandRunResult<any>>;
+
+/**
+ * @description
+ * The `run` of an extension. `input` is the command's validated input with the extension's own
+ * fields. It returns the command's output with the extension's own output fields added, or any
+ * other result: `incomplete()`, `failed()`, or `fail()` with one of the extension's or the
+ * command's declared errors. When it returns an output without calling `next`, the output must
+ * still be valid for the command's output schema.
+ *
+ * @since 4.0.0
+ */
+export type CommandExtensionRunFn<Input = any, Output = any> = (
+    input: Input,
+    ctx: CommandContext,
+    next: CommandExtensionNextFn,
+) => Promise<CommandRunResult<Output>>;
+
+/**
+ * @description
+ * An extension of a command that another package or the CLI declares, as plain data. The
+ * declarations module exports a list of them as `extensions`, next to `commands` and `groups`, and
+ * passes them to `writeCommandManifest` with `{ extensions }`.
+ *
+ * It adds input fields and output fields to the command, and its own `consents` and `errors`. Each
+ * package's part of the input is validated with that package's own schema. Its `run` wraps the
+ * command's: see {@link CommandExtensionRunFn}. Two extensions of one command run in the order
+ * their packages are enabled, the first outermost.
+ *
+ * @since 4.0.0
+ */
+export interface CommandExtensionDefinition {
+    /** The path of the command it extends, for example `['dev']`. */
+    path: string[];
+    /**
+     * The schemas module of the extension. It exports `input`, the fields it adds, and optionally
+     * `output`, the output fields it adds.
+     */
+    schemas: () => Promise<{ input: StandardSchema; output?: StandardSchema }>;
+    /** Named consents the extension may ask for, each with a description. */
+    consents?: Record<string, string>;
+    /** Coded errors the extension may return with `fail()`. */
+    errors?: CommandErrorDefinition[];
+    /** CLI metadata for the fields it adds, the same as a command's. */
+    cli?: Pick<CommandCliMetadata, 'flags' | 'fields'>;
+    run: () => Promise<{ run: CommandExtensionRunFn }>;
 }

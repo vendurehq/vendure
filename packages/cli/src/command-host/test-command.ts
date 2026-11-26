@@ -4,6 +4,7 @@ import type {
     CommandDefinition,
     CommandEvent,
     SpawnOptions,
+    SpawnResult,
 } from '@vendure/common/lib/command';
 
 import { format } from 'node:util';
@@ -212,13 +213,28 @@ export async function runInTestHost(
         emit: event => events.push(event),
         spawn: async (command, args, spawnOptions) => {
             spawned.push({ command, args, ...(spawnOptions ? { options: spawnOptions } : {}) });
-            return (
-                (await options.spawn?.(command, args, spawnOptions)) ?? {
-                    exitCode: 0,
-                    stdout: '',
-                    stderr: '',
-                }
+            const answer = Promise.resolve(options.spawn?.(command, args, spawnOptions)).then(
+                answered => answered ?? { exitCode: 0, stdout: '', stderr: '' },
             );
+            // As the CLI does: the process stops when the run's signal fires, or the one it was given.
+            const stop = spawnOptions?.signal
+                ? AbortSignal.any([env.signal, spawnOptions.signal])
+                : env.signal;
+            if (stop.aborted) {
+                return { exitCode: null, stdout: '', stderr: '' };
+            }
+            return Promise.race([
+                answer,
+                new Promise<SpawnResult>(resolve =>
+                    stop.addEventListener(
+                        'abort',
+                        () => resolve({ exitCode: null, stdout: '', stderr: '' }),
+                        {
+                            once: true,
+                        },
+                    ),
+                ),
+            ]);
         },
         findProjectRoot: () => ('projectRoot' in options ? options.projectRoot : '/project'),
         ...overrides,

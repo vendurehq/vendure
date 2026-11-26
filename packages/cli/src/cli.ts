@@ -4,11 +4,12 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
-import type { CommandManifest } from '@vendure/common/lib/command/manifest';
+import type { CommandManifest, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { recordStartupEnvironment } from './auth/startup-environment.js';
 import { registerManifestCommands } from './command-host/commander-adapter.js';
 import {
     CORE_SOURCE,
+    describeRefusal,
     loadCoreManifest,
     loadProjectCommands,
     setCommanderPaths,
@@ -144,18 +145,23 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     try {
         setCommanderPaths(commanderPaths(program));
         const projectCommands = await loadProjectCommands({ plugins: manifests, core: coreManifest });
-        for (const { package: packageName, error } of projectCommands.refused) {
+        for (const refusal of projectCommands.refused) {
+            const { package: packageName, error } = refusal;
+            const { headline, skipped } = describeRefusal(refusal);
+            if (!skipped) {
+                // Only its extensions were left out: its own commands still work.
+                process.stderr.write(
+                    pc.red(`${headline} "${packageName}": [${error.code}] ${error.message}\n`),
+                );
+                continue;
+            }
             unavailablePackages.set(packageName, 'register');
             const scope =
                 manifests.find(manifest => manifest.packageName === packageName)?.scope ?? 'project';
-            writePluginSkipped(
-                packageName,
-                'Refused the defineCommand commands of CLI plugin',
-                `[${error.code}] ${error.message}`,
-                scope,
-            );
+            writePluginSkipped(packageName, headline, `[${error.code}] ${error.message}`, scope);
         }
         const loadDefinitions = (source: string) => projectCommands.loadDefinitions(source);
+        const loadCommand = (command: MergedManifestCommand) => projectCommands.loadCommand(command);
         // The CLI's own commands first, then each plugin's on its own, so that a plugin whose
         // commands Commander refuses cannot take the rest of the command line with it. The merge has
         // already checked them, so this is a last resort.
@@ -163,7 +169,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         for (const source of sources) {
             const commands = projectCommands.commands.filter(command => command.source === source);
             try {
-                registerManifestCommands(program, commands, { loadDefinitions });
+                registerManifestCommands(program, commands, { loadDefinitions, loadCommand });
             } catch (e) {
                 if (source === CORE_SOURCE) {
                     throw e;
