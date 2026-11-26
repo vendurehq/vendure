@@ -9,10 +9,9 @@
         "moduleResolution": "node",
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "baseUrl": ".",
         "paths": {
-            "@example/shared-config": ["libs/shared-config/src/index.ts"],
-            "@example/tenant-settings": ["libs/tenant-settings/src/index.ts"]
+            "@example/shared-config": ["./libs/shared-config/src/index.ts"],
+            "@example/tenant-settings": ["./libs/tenant-settings/src/index.ts"]
         }
     }
 }

@@ -199,6 +199,9 @@ export function isVendureConfig(value: unknown): value is VendureConfig {
  * Loads `.env`, and registers ts-node with the compiler options of the tsconfig nearest to the
  * config file, so the config can be required.
  */
+/** The tsconfig files whose path mappings, if any, are registered in this process. */
+const preparedTsConfigs = new Set<string>();
+
 async function prepareToRequireConfig(configFilePath: string, providedTsConfigPath?: string) {
     await import('dotenv/config');
     // Find the nearest tsconfig to the actual VendureConfig file.
@@ -218,6 +221,14 @@ async function prepareToRequireConfig(configFilePath: string, providedTsConfigPa
         const tsConfigFile = selectTsConfigFile();
         tsConfigPath = path.join(process.cwd(), tsConfigFile);
     }
+
+    // Each registration of tsconfig-paths wraps the module resolver once more, so a tsconfig is
+    // read and its mappings registered only the first time it is seen.
+    const tsConfigKey = path.resolve(tsConfigPath);
+    if (preparedTsConfigs.has(tsConfigKey) && isRunningInTsNode()) {
+        return;
+    }
+    preparedTsConfigs.add(tsConfigKey);
 
     const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
     const compilerOptions = tsConfigJson.compilerOptions;
