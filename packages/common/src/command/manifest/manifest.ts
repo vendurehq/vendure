@@ -79,7 +79,7 @@ export interface ManifestExtension {
     consents: Record<string, string>;
     errors: Array<{ code: string; exit: number }>;
     cli: {
-        flags?: CommandCliMetadata['flags'];
+        flags?: NonNullable<CommandCliMetadata['flags']>;
         fields?: Record<string, ManifestFieldMetadata>;
     };
 }
@@ -209,7 +209,7 @@ export interface CommandPartRulesInput {
     fields: string[];
     consents: string[];
     errorCodes: string[];
-    flags?: CommandCliMetadata['flags'];
+    flags?: NonNullable<CommandCliMetadata['flags']>;
 }
 
 /**
@@ -284,7 +284,7 @@ function mergedDefs(
     b: JsonSchema | undefined,
     key: string,
 ): Record<string, unknown> {
-    const defs: Record<string, unknown> = { ...((a?.$defs as Record<string, unknown> | undefined) ?? {}) };
+    const defs: Record<string, unknown> = { ...(a?.$defs as Record<string, unknown> | undefined) };
     for (const [name, definition] of Object.entries(
         (b?.$defs as Record<string, unknown> | undefined) ?? {},
     )) {
@@ -326,9 +326,9 @@ export function manifestPartNames(
 
 /**
  * The command with an extension applied: the extension's input and output fields added to its
- * JSON Schema, its consents, errors and CLI metadata merged in, and the package recorded in
- * `extendedBy`, after the extensions applied before it. It throws for an extension that breaks a
- * rule of {@link commandExtensionViolation}, or defines a `$defs` entry differently.
+ * JSON Schema, its consents, errors and CLI metadata merged in, and the package recorded first in
+ * `extendedBy`, because it wraps the extensions applied before it. It throws for an extension that
+ * breaks a rule of {@link commandExtensionViolation}, or defines a `$defs` entry differently.
  *
  * @since 4.0.0
  */
@@ -390,11 +390,11 @@ export function extendManifestCommand(
             fields: { ...command.cli.fields, ...extension.cli.fields },
         },
         extendedBy: [
-            ...(command.extendedBy ?? []),
             {
                 package: packageName,
                 fields: Object.keys(addedInput).filter(field => !(field in extension.consents)),
             },
+            ...(command.extendedBy ?? []),
         ],
     };
 }

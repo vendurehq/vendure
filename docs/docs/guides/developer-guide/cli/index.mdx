@@ -1452,8 +1452,9 @@ export async function run(input, ctx, next) {
   `failed()`, or `fail()` with one of its own or the command's errors, and those pass through as they are.
 - **Consents** an extension declares are asked for with `ctx.consent`, as the command's own are. `plan()` stays the
   command's own.
-- **Order:** when two packages extend one command, they run in the order the packages are enabled, the first
-  outermost.
+- **Order:** when two packages extend one command, each extension wraps the ones whose packages were enabled
+  before it, so the last enabled is outermost and its `run` starts first, as with
+  [`extendCommands`](#composition-order).
 
 An extension may start a long-lived process of its own, outside `ctx.spawn`, as an extension of `vendure dev` does.
 It stops the process in a `finally` once `next()` resolves, and reports it through `ctx.output` or events. The CLI
