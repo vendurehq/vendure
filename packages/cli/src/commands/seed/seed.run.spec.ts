@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     ConfigResolverFailedError,
+    loadProjectConfigWith,
     loadSourceConfig,
-    resolveProjectConfig,
 } from '../../shared/load-project-config.js';
 import { loadVendureConfigFromPath } from '../../shared/load-vendure-config-file.js';
 
@@ -15,8 +15,7 @@ import { loadSeedConfig } from './seed.run.js';
 
 vi.mock('../../shared/load-project-config.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../shared/load-project-config.js')>()),
-    enabledManifests: vi.fn(() => ({ plugins: [], unreadable: [] })),
-    resolveProjectConfig: vi.fn(),
+    loadProjectConfigWith: vi.fn(),
     loadSourceConfig: vi.fn(),
 }));
 vi.mock('../../shared/load-vendure-config-file.js', () => ({
@@ -40,6 +39,8 @@ describe('loadSeedConfig()', () => {
         fs.writeFileSync(path.join(dir, 'src', 'vendure-config.ts'), 'export const config = {};');
         ctx = { cwd: dir, signal: new AbortController().signal };
         vi.mocked(loadVendureConfigFromPath).mockResolvedValue(fromFile);
+        // No resolver returns a config, so the loader seed gives is called.
+        vi.mocked(loadProjectConfigWith).mockImplementation((_options, loadFromSource) => loadFromSource());
     });
 
     afterEach(() => {
@@ -48,33 +49,38 @@ describe('loadSeedConfig()', () => {
     });
 
     it('asks the config resolvers before it loads src/vendure-config.ts', async () => {
-        vi.mocked(resolveProjectConfig).mockResolvedValueOnce({
+        vi.mocked(loadProjectConfigWith).mockResolvedValueOnce({
             config: resolved,
             resolvedBy: '@acme/cloud',
             projectDir: dir,
         });
 
         expect(await loadSeedConfig(ctx, 'my-config.ts')).toBe(resolved);
-        expect(resolveProjectConfig).toHaveBeenCalledWith({
-            cwd: dir,
-            projectDir: dir,
-            configFile: 'my-config.ts',
-            signal: ctx.signal,
-            plugins: [],
-        });
+        expect(loadProjectConfigWith).toHaveBeenCalledWith(
+            { cwd: dir, projectDir: dir, configFile: 'my-config.ts', signal: ctx.signal },
+            expect.any(Function),
+        );
         expect(loadVendureConfigFromPath).not.toHaveBeenCalled();
     });
 
     it('loads src/vendure-config.ts directly when no resolver returns a config', async () => {
-        vi.mocked(resolveProjectConfig).mockResolvedValueOnce(undefined);
-
         expect(await loadSeedConfig(ctx)).toBe(fromFile);
         expect(loadVendureConfigFromPath).toHaveBeenCalledWith(path.join(dir, 'src', 'vendure-config.ts'));
         expect(loadSourceConfig).not.toHaveBeenCalled();
     });
 
+    it('loads the config from the source when there is no config file', async () => {
+        fs.rmSync(path.join(dir, 'src', 'vendure-config.ts'));
+        vi.mocked(loadSourceConfig).mockResolvedValueOnce({ config: fromFile } as Awaited<
+            ReturnType<typeof loadSourceConfig>
+        >);
+
+        expect(await loadSeedConfig(ctx)).toBe(fromFile);
+        expect(loadVendureConfigFromPath).not.toHaveBeenCalled();
+    });
+
     it('reports a failed resolver as config.resolver-failed, not seed.config-unreadable', async () => {
-        vi.mocked(resolveProjectConfig).mockRejectedValueOnce(
+        vi.mocked(loadProjectConfigWith).mockRejectedValueOnce(
             new ConfigResolverFailedError({ plugin: '@acme/cloud', message: 'no handle' }),
         );
 
@@ -89,7 +95,7 @@ describe('loadSeedConfig()', () => {
         const controller = new AbortController();
         controller.abort();
         const aborted = new Error('This operation was aborted');
-        vi.mocked(resolveProjectConfig).mockRejectedValueOnce(aborted);
+        vi.mocked(loadProjectConfigWith).mockRejectedValueOnce(aborted);
 
         await expect(loadSeedConfig({ cwd: dir, signal: controller.signal })).rejects.toBe(aborted);
     });

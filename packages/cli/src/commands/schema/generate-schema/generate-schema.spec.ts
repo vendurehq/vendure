@@ -1,6 +1,6 @@
 import { log } from '@clack/prompts';
 import { VendurePlugin } from '@vendure/core';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,7 @@ import {
     removeProjectTrees,
 } from '../../../shared/__tests__/project-tree.js';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import { resolveCommandManifests } from '../../../shared/resolve-cli-plugins.js';
 
 import { generateSchema } from './generate-schema.js';
 
@@ -38,9 +39,10 @@ vi.mock('../../../shared/vendure-config-ref.js', () => ({
 vi.mock('../../../shared/load-vendure-config-file.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../../shared/load-vendure-config-file.js')>()),
     loadVendureConfigFile: vi.fn(),
+    prepareToRequireProjectFiles: vi.fn(() => Promise.resolve()),
 }));
 
-// No enabled package has a config resolver.
+// No enabled package has a config resolver, unless a test says otherwise.
 vi.mock('../../../shared/resolve-cli-plugins.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../../shared/resolve-cli-plugins.js')>()),
     resolveCommandManifests: vi.fn(() => ({ manifests: [], failures: [], scopeErrors: [] })),
@@ -177,5 +179,70 @@ describe('generateSchema()', () => {
         expect(schema).toContain('composedChild: ComposedChildType');
         expect(schema).toMatch(/type ComposedChildType \{[^}]*parentField: String/);
         expect(schema).toContain('composedChildField: String');
+    });
+});
+
+describe('generateSchema() with a config resolver', () => {
+    let dir: string;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        dir = mkdtempSync(path.join(tmpdir(), 'vendure-cli-schema-resolver-'));
+    });
+
+    afterEach(() => {
+        rmSync(dir, { recursive: true, force: true });
+    });
+
+    /** Enables `@acme/cloud`, whose config resolver's `resolve(ctx)` runs `body`. */
+    function enableResolver(body: string) {
+        const definitionsPath = path.join(dir, 'cloud.mjs');
+        writeFileSync(
+            definitionsPath,
+            `export const commands = [];
+export const configResolver = { resolve: async () => ({ resolve: async ctx => { ${body} } }) };`,
+        );
+        vi.mocked(resolveCommandManifests).mockReturnValueOnce({
+            manifests: [
+                {
+                    packageName: '@acme/cloud',
+                    definitionsPath,
+                    scope: 'project',
+                    manifest: {
+                        manifestVersion: 1,
+                        package: '@acme/cloud',
+                        version: '1.0.0',
+                        commands: [],
+                        hasConfigResolver: true,
+                    },
+                },
+            ],
+            failures: [],
+            scopeErrors: [],
+        });
+    }
+
+    it('generates the schema from the config the resolver returns', async () => {
+        enableResolver(
+            "return { apiOptions: {}, authOptions: {}, dbConnectionOptions: { type: 'better-sqlite3' }, plugins: [] };",
+        );
+
+        await generateSchema({ api: 'admin', outputDir: dir });
+
+        expect(log.error).not.toHaveBeenCalled();
+        expect(log.info).toHaveBeenCalledWith(
+            'Using the VendureConfig from the config resolver of @acme/cloud',
+        );
+        expect(loadVendureConfigFile).not.toHaveBeenCalled();
+    });
+
+    it('reports a failed resolver with the config.resolver-failed code', async () => {
+        enableResolver("throw new Error('no Cloud config handle');");
+
+        await expect(generateSchema({ api: 'admin', outputDir: dir })).rejects.toMatchObject({ exitCode: 1 });
+
+        expect(log.error).toHaveBeenCalledWith(
+            'Error (config.resolver-failed): The config resolver of @acme/cloud failed: no Cloud config handle',
+        );
     });
 });

@@ -22,10 +22,8 @@ import path from 'node:path';
 
 import {
     configErrorResult,
-    enabledManifests,
+    loadProjectConfigWith,
     loadSourceConfig,
-    resolveProjectConfig,
-    withUnreadableManifests,
 } from '../../shared/load-project-config.js';
 import { loadVendureConfigFromPath } from '../../shared/load-vendure-config-file.js';
 import { requireProjectCore, withCoreRunningInCli } from '../../shared/project-core.js';
@@ -290,30 +288,18 @@ export async function loadSeedConfig(
 ): Promise<VendureConfig | ErrorResult> {
     try {
         const projectRoot = findVendureProjectRoot(ctx.cwd) ?? ctx.cwd;
-        const { plugins, unreadable } = enabledManifests({ cwd: ctx.cwd, projectDir: projectRoot });
-        const resolved = await resolveProjectConfig({
-            cwd: ctx.cwd,
-            projectDir: projectRoot,
-            configFile,
-            signal: ctx.signal,
-            plugins,
-        });
-        if (resolved) {
-            return resolved.config;
-        }
-        const candidates = configFile
-            ? [path.resolve(ctx.cwd, configFile)]
-            : DEFAULT_CONFIG_FILES.map(file => path.join(projectRoot, file));
-        const configPath = candidates.find(candidate => existsSync(candidate));
-        const config = configPath ? await loadVendureConfigFromPath(configPath) : undefined;
-        if (config) {
-            return config;
-        }
-        try {
-            return (await loadSourceConfig({ configFile })).config;
-        } catch (e) {
-            throw withUnreadableManifests(e, unreadable);
-        }
+        const loaded = await loadProjectConfigWith(
+            { cwd: ctx.cwd, projectDir: projectRoot, configFile, signal: ctx.signal },
+            async () => {
+                const candidates = configFile
+                    ? [path.resolve(ctx.cwd, configFile)]
+                    : DEFAULT_CONFIG_FILES.map(file => path.join(projectRoot, file));
+                const configPath = candidates.find(candidate => existsSync(candidate));
+                const config = configPath ? await loadVendureConfigFromPath(configPath) : undefined;
+                return { config: config ?? (await loadSourceConfig({ configFile })).config };
+            },
+        );
+        return loaded.config;
     } catch (e) {
         return configErrorResult(e, ctx.signal, seedConfigUnreadable);
     }

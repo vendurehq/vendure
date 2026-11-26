@@ -222,6 +222,21 @@ describe('loadProjectConfig()', () => {
         expect(loadVendureConfigFile).not.toHaveBeenCalled();
     });
 
+    it('names the package when the project cannot be prepared for the config the resolver returned', async () => {
+        vi.mocked(prepareToRequireProjectFiles).mockRejectedValueOnce(
+            new Error('tsconfig.json is not valid JSON'),
+        );
+        const plugins = [plugin('@acme/cloud', "return { dbConnectionOptions: { type: 'postgres' } };")];
+
+        const error = await loadProjectConfig({ projectDir: dir, plugins }).catch(e => e);
+
+        expect(error.message).toBe(
+            'The config resolver of @acme/cloud returned a config, but the project could not be prepared to ' +
+                'load the TypeScript files it names: tsconfig.json is not valid JSON',
+        );
+        expect(loadVendureConfigFile).not.toHaveBeenCalled();
+    });
+
     it('throws config.resolver-failed when a resolver returns something that is not a config', async () => {
         const plugins = [plugin('@acme/cloud', "return { name: 'not a config' };")];
 

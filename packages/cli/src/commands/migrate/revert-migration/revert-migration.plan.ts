@@ -29,7 +29,8 @@ export async function plan(
     return {
         preview: {
             action: 'Revert the last applied database migration',
-            config: describeConfigSource(project),
+            // The absolute path of a config file, so two packages' configs never share a digest.
+            config: 'resolvedBy' in project ? describeConfigSource(project) : project.configPath,
             database: describeDatabase(config),
             lastAppliedMigration: migration,
         },

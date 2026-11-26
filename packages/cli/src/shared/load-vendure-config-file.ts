@@ -135,7 +135,13 @@ export async function loadVendureConfigFile(
  * project's TypeScript files, such as its migrations, can be required.
  */
 export async function prepareToRequireProjectFiles(projectDir: string): Promise<void> {
-    await prepareToRequireConfig(path.join(projectDir, 'package.json'));
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    if (!findNearestTsConfig(packageJsonPath)) {
+        // A project with no tsconfig has no TypeScript files to register ts-node for.
+        await import('dotenv/config');
+        return;
+    }
+    await prepareToRequireConfig(packageJsonPath);
 }
 
 /**

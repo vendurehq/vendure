@@ -178,13 +178,25 @@ export function withUnreadableManifests(
  * config can be found or loaded.
  */
 export async function loadProjectConfig(options: LoadProjectConfigOptions = {}): Promise<ProjectConfig> {
+    return loadProjectConfigWith(options, () => loadSourceConfig(options));
+}
+
+/**
+ * {@link loadProjectConfig}, with `loadFromSource` in place of finding the config in the source,
+ * for a command that loads it some other way first. When `loadFromSource` throws, the error names
+ * the enabled packages whose manifest could not be read.
+ */
+export async function loadProjectConfigWith<T>(
+    options: LoadProjectConfigOptions,
+    loadFromSource: () => Promise<T>,
+): Promise<ResolvedProjectConfig | T> {
     const { plugins, unreadable } = enabledManifests(options);
     const resolved = await resolveProjectConfig({ ...options, plugins });
     if (resolved) {
         return resolved;
     }
     try {
-        return await loadSourceConfig(options);
+        return await loadFromSource();
     } catch (e) {
         throw withUnreadableManifests(e, unreadable);
     }
@@ -213,7 +225,14 @@ export async function resolveProjectConfig(
             // `loadSourceConfig` loads `.env` and registers ts-node to require the config file. A
             // resolved config skipped that, and the files it names, such as migrations that TypeORM
             // requires, may be TypeScript or read `.env`.
-            await prepareToRequireProjectFiles(projectDir);
+            try {
+                await prepareToRequireProjectFiles(projectDir);
+            } catch (e) {
+                throw new Error(
+                    `The config resolver of ${plugin.packageName} returned a config, but the project could ` +
+                        `not be prepared to load the TypeScript files it names: ${e instanceof Error ? e.message : String(e)}`,
+                );
+            }
             return { config, resolvedBy: plugin.packageName, projectDir };
         }
     }
