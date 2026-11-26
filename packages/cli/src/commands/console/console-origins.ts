@@ -107,6 +107,27 @@ export function trustedConsoleOrigins(
 }
 
 /**
+ * The Console app that belongs to a Console API origin: the official pair, or for a loopback API
+ * the loopback `VENDURE_CONSOLE_APP_URL` when it is set and pairs with it. `undefined` otherwise:
+ * the CLI does not know where a loopback Console app runs.
+ */
+export function consoleUrlForApi(apiOrigin: string, env: NodeJS.ProcessEnv): string | undefined {
+    const official = OFFICIAL_CONSOLE_ORIGINS.find(pair => pair.apiUrl === apiOrigin);
+    if (official) {
+        return official.consoleUrl;
+    }
+    const appOrigin = env.VENDURE_CONSOLE_APP_URL?.trim();
+    if (appOrigin) {
+        try {
+            return trustedConsoleOrigins({ appOrigin, apiOrigin }).appOrigin;
+        } catch {
+            // Not a trusted pair with this API.
+        }
+    }
+    return undefined;
+}
+
+/**
  * Which Console a Console API origin belongs to: an official environment, or
  * `'loopback'` for local development. `undefined` for anything else, including a
  * URL with a path, query, fragment or credentials.

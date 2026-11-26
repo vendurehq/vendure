@@ -1,4 +1,4 @@
-import { isFailedResult, isErrorResult, isIncompleteResult } from './define';
+import { isErrorResult, isFailedResult, isIncompleteResult } from './define';
 import {
     CommandCliMetadata,
     CommandContext,
@@ -228,7 +228,9 @@ export function applyCommandExtensions(
                         const ownFields = loaded.inputFields[index];
                         const extensionInput = {
                             ...commandInput,
-                            ...Object.fromEntries(Object.entries(input).filter(([field]) => ownFields.has(field))),
+                            ...Object.fromEntries(
+                                Object.entries(input).filter(([field]) => ownFields.has(field)),
+                            ),
                         };
                         const next: CommandExtensionNextFn = async (nextInput, options) => {
                             const given =
@@ -278,7 +280,9 @@ async function loadExtensionParts(
     const inputFields = extensionSchemas.map(
         schemas =>
             new Set(
-                Object.keys(propertiesOf(schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET }))),
+                Object.keys(
+                    propertiesOf(schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET })),
+                ),
             ),
     );
     const outputFields = extensionSchemas.map(
@@ -286,7 +290,9 @@ async function loadExtensionParts(
             new Set(
                 schemas.output
                     ? Object.keys(
-                          propertiesOf(schemas.output['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET })),
+                          propertiesOf(
+                              schemas.output['~standard'].jsonSchema.output({ target: JSON_SCHEMA_TARGET }),
+                          ),
                       )
                     : [],
             ),
@@ -346,7 +352,9 @@ async function checkOutput(
     if (loaded.command.output) {
         await validated(
             loaded.command.output,
-            Object.fromEntries(entries.filter(([field]) => !own.has(field) && !otherExtensionFields.has(field))),
+            Object.fromEntries(
+                entries.filter(([field]) => !own.has(field) && !otherExtensionFields.has(field)),
+            ),
             `The output of "${key}" that extension ${index + 1} returned`,
         );
     }

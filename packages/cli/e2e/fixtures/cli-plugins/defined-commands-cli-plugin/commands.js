@@ -29,6 +29,14 @@ export const commands = [
         run: () => import('./greet.run.js'),
     }),
     defineCommand({
+        path: ['example', 'deploy'],
+        description: 'Deploy the example project, with a consent for production that run() asks for',
+        behavior: 'mutating',
+        consents: { deployToProduction: 'Deploy to the production environment' },
+        schemas: () => import('./deploy.schema.js'),
+        run: () => import('./deploy.run.js'),
+    }),
+    defineCommand({
         path: ['example', 'reset'],
         description: 'Delete the example data file of the project',
         behavior: 'destructive',

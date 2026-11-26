@@ -429,6 +429,7 @@ setInterval(() => {}, 1000);
             output: vi.fn(),
             event: vi.fn(),
             spawn: createSpawn(projectDir, controller.signal, text => (forwardedStdout += text)),
+            consent: async () => true as const,
         };
     }
 

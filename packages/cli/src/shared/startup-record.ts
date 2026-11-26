@@ -8,6 +8,8 @@
 export interface StartupRecord {
     VENDURE_CLOUD_TOKEN?: string;
     VENDURE_CONSOLE_API_URL?: string;
+    /** The Console app that pairs with `VENDURE_CONSOLE_API_URL`, such as a loopback one. */
+    VENDURE_CONSOLE_APP_URL?: string;
     /**
      * The CLI's config directory, as resolved at startup. It depends on more than
      * `VENDURE_CLI_CONFIG_DIR`, since without it `XDG_CONFIG_HOME`, `APPDATA` or the home directory

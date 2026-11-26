@@ -113,7 +113,8 @@ export function flagValueSyntax(
     schema: JsonSchema,
     kebabName: string,
 ): { value: string; negatable: boolean } {
-    const placeholder = command.cli.flags?.[field]?.placeholder ?? (field in command.consents ? 'digest' : kebabName);
+    const placeholder =
+        command.cli.flags?.[field]?.placeholder ?? (field in command.consents ? 'digest' : kebabName);
     const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
     if (takesOptionalValue(schema)) {
         return { value: ` [${placeholder}]`, negatable: false };
@@ -217,14 +218,18 @@ function checkExtension(packageName: string, extension: ManifestExtension): void
     }
     const badCode = extension.errors.find(error => !isValidErrorCode(error.code));
     if (badCode) {
-        throw new Error(`${label} with the error code "${badCode.code}", which is not <namespace>.<kebab-name>`);
+        throw new Error(
+            `${label} with the error code "${badCode.code}", which is not <namespace>.<kebab-name>`,
+        );
     }
     const shorts = new Map<string, string>();
     for (const [field, flag] of Object.entries(extension.cli.flags ?? {})) {
         if (flag.short) {
             const other = shorts.get(flag.short);
             if (other) {
-                throw new Error(`${label} that uses the short flag ${flag.short} for both "${other}" and "${field}"`);
+                throw new Error(
+                    `${label} that uses the short flag ${flag.short} for both "${other}" and "${field}"`,
+                );
             }
             shorts.set(flag.short, field);
         }

@@ -21,9 +21,13 @@ function objectSchema(
                 const input = (value ?? {}) as Record<string, unknown>;
                 const missing = required.filter(field => input[field] === undefined);
                 if (missing.length) {
-                    return { issues: missing.map(field => ({ message: `${field} is required`, path: [field] })) };
+                    return {
+                        issues: missing.map(field => ({ message: `${field} is required`, path: [field] })),
+                    };
                 }
-                const known = Object.fromEntries(Object.entries(input).filter(([field]) => field in properties));
+                const known = Object.fromEntries(
+                    Object.entries(input).filter(([field]) => field in properties),
+                );
                 return { value: { ...defaults, ...known } };
             },
             jsonSchema: { input: () => json, output: () => json },
@@ -41,6 +45,7 @@ function context(events: CommandEvent[] = [], signal = new AbortController().sig
         output: text => events.push({ vendure: 'event', type: 'output', stream: 'stdout', text }),
         event: (type, data) => events.push({ ...data, vendure: 'event', type }),
         spawn: () => Promise.reject(new Error('no processes')),
+        consent: async () => true as const,
     };
 }
 
@@ -168,9 +173,12 @@ describe('applyCommandExtensions', () => {
         ).rejects.toThrow('deployed is required');
         expect(
             (
-                await runExtended([cloudExtension(async () => ({ run: async () => ({ deployed: 'nowhere' }) }))], {
-                    project: 'storefront',
-                })
+                await runExtended(
+                    [cloudExtension(async () => ({ run: async () => ({ deployed: 'nowhere' }) }))],
+                    {
+                        project: 'storefront',
+                    },
+                )
             ).result,
         ).toEqual({ deployed: 'nowhere' });
     });
@@ -243,7 +251,10 @@ describe('applyCommandExtensions', () => {
         ]);
         const { run } = await extended.run();
 
-        const result = await run({ project: 'storefront', environment: 'staging' }, context([], outer.signal));
+        const result = await run(
+            { project: 'storefront', environment: 'staging' },
+            context([], outer.signal),
+        );
 
         expect(innerStopped).toBe(true);
         expect(result).toEqual({ deployed: 'stopped', outerAborted: false });
@@ -326,7 +337,10 @@ describe('applyCommandExtensions', () => {
     it('refuses a consent or an error code two parts declare, and an extension of another path', () => {
         expect(() =>
             applyCommandExtensions(deploy, [
-                defineCommandExtension({ ...cloudExtension(async () => ({ run: async () => ({}) })), consents: { overwrite: 'x' } }),
+                defineCommandExtension({
+                    ...cloudExtension(async () => ({ run: async () => ({}) })),
+                    consents: { overwrite: 'x' },
+                }),
             ]),
         ).toThrow('Two parts of "acme deploy" declare the consent "overwrite"');
         expect(() =>
@@ -339,7 +353,10 @@ describe('applyCommandExtensions', () => {
         ).toThrow('Two parts of "acme deploy" declare the error "acme.down"');
         expect(() =>
             applyCommandExtensions(deploy, [
-                defineCommandExtension({ ...cloudExtension(async () => ({ run: async () => ({}) })), path: ['dev'] }),
+                defineCommandExtension({
+                    ...cloudExtension(async () => ({ run: async () => ({}) })),
+                    path: ['dev'],
+                }),
             ]),
         ).toThrow('An extension of "dev" was applied to "acme deploy"');
     });

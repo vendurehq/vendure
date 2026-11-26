@@ -1219,6 +1219,24 @@ Through the Developer MCP each call is an `info` log notification. What the call
 the output `run` returns. Declare the event in the command's `events` schema, with `type: 'output'`, `stream` and
 `text`, so the manifest lists it.
 
+A consent that `run()` only finds it needs while it runs, such as a target that turns out to be production once
+it is resolved, comes from `ctx.consent(name, preview)`. `name` must be one of the command's `consents`. It
+resolves to `true` when the caller already gave that consent for this preview, or when a person at the terminal
+agrees. Otherwise it resolves to the consent need: return it with `incomplete([need])`, and the caller runs the
+command again with the digest, as `--<consent> <digest>` or the input field. So the run must be safe to repeat up
+to that point. A consent a person agreed to holds when the CLI runs the command again to ask for more input. When a
+person declines, the run ends as cancelled (`cli.cancelled`), and the envelope keeps the output `run()` reported
+before it stopped. A consent covers one preview per run, because a caller gives one digest per consent: declare a
+consent for each target rather than asking for one with two previews. `ctx.consent` is for `run()` only: a consent
+that `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
+
+```ts
+const answer = await ctx.consent('deployToProduction', { environment: target });
+if (answer !== true) {
+    return incomplete([answer]);
+}
+```
+
 `ctx.spawn` starts a process, and passes its output on to the caller. Pass `quiet: true` to keep the
 output in the result only, for a process whose answer the command reads, such as `git status
 --porcelain`. Pass `timeoutMs` to stop a process that runs too long: the result then has
@@ -1288,6 +1306,28 @@ A command with `requires: { auth: 'cloud' }` receives the credential the CLI fou
 `ctx.credential`, `{ source: 'stored-login' | 'environment', token }`. The token is a secret: never
 print, log or return it.
 
+Such a command also receives `ctx.account`: `apiUrl`, the Console API that accepts the token, `consoleUrl`, the
+Vendure Console app for links a person opens, and for a stored login the `organization` it is scoped to. They come
+from the environment the CLI started with. `consoleUrl` is absent for a local Console API with no Console app
+beside it. To call the Console API, send the token to `ctx.account.apiUrl`. When the API answers 401, call
+`ctx.refreshCredential(token)` with the token that request sent, and retry once with the credential it returns,
+which also replaces `ctx.credential`. When several requests were refused, pass each one's token: a token another
+request already renewed gets the newer one back, without renewing again. It returns `undefined` when the credential
+cannot be renewed, such as a `VENDURE_CLOUD_TOKEN` or a login the authentication service refused: return
+`incomplete([credentialNeed()])`, with `credentialNeed` from `@vendure/cli`, so the caller signs in again.
+
+```ts
+const token = ctx.credential!.token;
+let response = await call(ctx.account!.apiUrl, token);
+if (response.status === 401) {
+    const renewed = await ctx.refreshCredential?.(token);
+    if (!renewed) {
+        return incomplete([credentialNeed()]);
+    }
+    response = await call(ctx.account!.apiUrl, renewed.token);
+}
+```
+
 Test a command with `testCommand` from `@vendure/cli`, in your tests only. It runs the command through
 the CLI's command host, as `vendure <command> --json` would, and fails when the command writes to the
 console itself:
@@ -1305,7 +1345,8 @@ const result = await testCommand(sync, { dryRun: true });
 
 `commandDeclarations` applies the package's groups, as the CLI does. Pass `spawn` to answer the
 processes the command starts, `credential` for a command with `requires.auth`, and `prompter` to answer
-as a person would.
+as a person would. For a command with `requires.auth`, pass `account` for `ctx.account`, and
+`refreshCredential` to answer a renewal: it receives the token that was refused.
 
 A package can declare both these keys and a `cliPlugin`. It is enabled the same way, with
 `vendure plugins add`, and only an enabled package's commands are loaded ([Explicit
@@ -1322,12 +1363,27 @@ activation](#explicit-activation)). Then:
   `manifest.mismatch` error when it doesn't. Rebuild the manifest after you change a command.
 
 A package may add commands to a group that exists already, such as `vendure acme` or `vendure auth`.
-It may not declare a command that another package or a built-in command already has, turn a group
-into a command, or add a command under another command. The commands of a `cliPlugin` count, the
-package's own included. The CLI then leaves out all the commands the package declares with
-`defineCommand`, with a `plugin.command-clash` error that it writes to stderr and lists under
-`refused` in `vendure commands --json`. Every other command keeps working, including the package's
-own `cliPlugin` commands, which follow the rules in [Collisions](#collisions). A manifest that is
+It may also declare a command and commands under it, such as `vendure acme deploy` and
+`vendure acme deploy plan`. The command above must not take positional fields, or flags that take an
+optional value or a list, such as `--wait [value]` or `--tags <tag...>`, because a value of either could
+be taken for the name of a command under it. A flag the two share must be declared the same
+way on both, because the command above reads it first. The options of the command above may go before or
+after the name of the command under it: `vendure acme deploy --environment prod plan` and `vendure acme
+deploy plan --environment prod` run the same. The options of the command under it go after its name. An
+option of the command above that the command that runs doesn't take, such as a `--force` of
+`acme deploy` given to `acme deploy plan`, stops the run with `cli.usage`. Because the command above reads
+its flags anywhere on the line, a value that starts with `-` takes the `=` form, as `--note=--force`.
+
+A package may not declare a command that another package or a built-in command already has, turn
+another package's group into a command, or add a command under another package's command. The
+commands of a `cliPlugin` count, the package's own included. The CLI then leaves out all the commands
+the package declares with `defineCommand`, with a `plugin.command-clash` error that it writes to stderr
+and lists under `refused` in `vendure commands --json`. A command with positional fields, or with flags that
+take an optional value or a list, and commands under it leaves them out the same way, with
+`plugin.parent-positional`. So does a flag that a command
+and a command under it declare differently, with `plugin.parent-flag-conflict`. Every other command keeps
+working, including the package's own `cliPlugin` commands, which follow the rules in
+[Collisions](#collisions). A manifest that is
 missing, or a module that is, leaves out the same commands: the CLI writes the reason to stderr, and
 `vendure commands --json` lists the package under `refused` as `plugin.unavailable`. A manifest that
 can't be parsed, or whose commands don't have the shape `writeCommandManifest` writes, is listed as

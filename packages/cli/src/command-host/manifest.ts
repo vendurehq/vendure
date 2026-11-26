@@ -6,15 +6,18 @@ import {
     CommandErrorDefinition,
     CommandExtensionDefinition,
     extensionDeclarations,
+    JsonSchema,
 } from '@vendure/common/lib/command';
 import {
     buildCommandManifest,
     CommandManifest,
     extendManifestCommand,
     MANIFEST_FILE_NAME,
+    ManifestCommand,
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
+    takesOptionalValue,
 } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,6 +33,7 @@ import {
 
 import { hostErrors } from './host-errors.js';
 import { errorBody } from './host.js';
+import { kebab } from './naming.js';
 
 /** The package name the CLI's own commands have as their `source`. */
 export const CORE_SOURCE = '@vendure/cli';
@@ -204,9 +208,9 @@ export function mergeProjectManifests(
         // A manifest is input from another package, so nothing about it may stop the CLI's own
         // commands from loading: any problem refuses this package's commands alone.
         try {
-            const clash = findClash(plugin.manifest, taken);
+            const clash = findClash(plugin.manifest, plugin.packageName, taken);
             if (clash) {
-                refuse(hostErrors.pluginCommandClash, { plugin: plugin.packageName, ...clash });
+                refused.push({ package: plugin.packageName, error: clash });
                 continue;
             }
             mergeManifests([...accepted, plugin.manifest]);
@@ -291,7 +295,8 @@ export function mergeProjectManifests(
                 definitions.map(async definition => {
                     const command = commands.find(
                         candidate =>
-                            candidate.source === source && candidate.path.join(' ') === definition.path.join(' '),
+                            candidate.source === source &&
+                            candidate.path.join(' ') === definition.path.join(' '),
                     );
                     return command?.extendedBy?.length
                         ? applyCommandExtensions(definition, await extensionsOf(command))
@@ -332,8 +337,9 @@ function applyExtensions(
                 }),
             };
         }
+        let extendedCommand: MergedManifestCommand;
         try {
-            changed.set(key, extendManifestCommand(target, extension, plugin));
+            extendedCommand = extendManifestCommand(target, extension, plugin);
         } catch (e) {
             return {
                 error: errorBody(hostErrors.pluginExtensionClash, {
@@ -342,6 +348,16 @@ function applyExtensions(
                     reason: e instanceof Error ? e.message : String(e),
                 }),
             };
+        }
+        changed.set(key, extendedCommand);
+        // The rules of a command with commands under it hold for what an extension adds too.
+        const reason = parentRuleBroken(
+            extendedCommand,
+            command => changed.get(command.path.join(' ')) ?? command,
+            commands,
+        );
+        if (reason) {
+            return { error: errorBody(hostErrors.pluginExtensionClash, { plugin, command: key, reason }) };
         }
     }
     const extended = [...changed.values()];
@@ -358,6 +374,48 @@ function applyExtensions(
         };
     }
     return { commands: extended };
+}
+
+/**
+ * Why an extended command breaks a rule of commands with commands under them, or undefined.
+ * The command above may take no flag whose value could be the next command's name, and a flag that
+ * a command and a command under it share must be declared the same way on both.
+ */
+function parentRuleBroken(
+    extended: MergedManifestCommand,
+    current: (command: MergedManifestCommand) => MergedManifestCommand,
+    commands: MergedManifestCommand[],
+): string | undefined {
+    const key = extended.path.join(' ');
+    const below = commands
+        .filter(
+            command => command.path.length > extended.path.length && startsWith(command.path, extended.path),
+        )
+        .map(current);
+    const above = commands
+        .filter(
+            command => command.path.length < extended.path.length && startsWith(extended.path, command.path),
+        )
+        .map(current);
+    if (below.length > 0) {
+        const field = valueBeforeName(extended);
+        if (field) {
+            return `"${key}" has commands under it, so it takes no positional field and no flag with an optional value or a list, and the extension gives it ${field}`;
+        }
+    }
+    for (const child of below) {
+        const flag = sharedFlagConflict(extended, child);
+        if (flag) {
+            return `${flag} would be declared differently on "${key}" and on "${child.path.join(' ')}" under it`;
+        }
+    }
+    for (const parent of above) {
+        const flag = sharedFlagConflict(parent, extended);
+        if (flag) {
+            return `${flag} would be declared differently on "${parent.path.join(' ')}" and on "${key}" under it`;
+        }
+    }
+    return undefined;
 }
 
 /** Registers commands on a command line of their own, which throws where Commander refuses them. */
@@ -391,24 +449,122 @@ function startsWith(commandPath: string[], prefix: string[]): boolean {
 }
 
 /**
- * The first command of a manifest that clashes with a path already taken: the same path, a path
- * that holds a taken command, or a path under a taken command. Paths under a taken group are fine.
+ * The first command of a manifest that clashes with a path already taken, as the error to refuse the
+ * package with. A clash is the same path, a path that holds a taken command, or a path under a
+ * taken command. Paths under a taken group are fine.
+ *
+ * A package may also declare a command and commands under it, such as `acme deploy` and
+ * `acme deploy plan`, with two conditions:
+ * - The command above takes no positional fields, and no flag that takes an optional value or a
+ *   list, such as `--wait [value]` or `--tags <tag...>`. A value of either could otherwise be the
+ *   name of a command under it: `acme deploy --wait plan` would run `acme deploy`.
+ * - A flag they share is declared the same way on both. Commander reads it with the declaration of
+ *   the command above.
+ *
+ * Another package may not add to either.
  */
 function findClash(
     manifest: CommandManifest,
+    plugin: string,
     taken: TakenCommandPath[],
-): { command: string; other: string } | undefined {
-    // The package's own commands count too, so it cannot declare both `acme` and `acme sync`.
-    const seen = [...taken];
+): CommandErrorBody | undefined {
     for (const command of manifest.commands) {
-        const other = seen.find(
+        const name = command.path.join(' ');
+        const other = taken.find(
             entry =>
                 (entry.leaf && startsWith(command.path, entry.path)) || startsWith(entry.path, command.path),
         );
         if (other) {
-            return { command: command.path.join(' '), other: other.owner };
+            return errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: other.owner });
         }
-        seen.push(...pathsOf({ ...manifest, commands: [command] }));
+        for (const own of manifest.commands) {
+            if (own === command) {
+                continue;
+            }
+            if (own.path.join(' ') === name) {
+                const duplicate = `another command "${name}" of ${plugin}`;
+                return errorBody(hostErrors.pluginCommandClash, { plugin, command: name, other: duplicate });
+            }
+            if (!startsWith(own.path, command.path)) {
+                continue;
+            }
+            const child = own.path.join(' ');
+            const field = valueBeforeName(command);
+            if (field) {
+                return errorBody(hostErrors.pluginParentPositional, { plugin, command: name, child, field });
+            }
+            const flag = sharedFlagConflict(command, own);
+            if (flag) {
+                return errorBody(hostErrors.pluginParentFlagConflict, { plugin, command: name, child, flag });
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * What of the command could take the name of a command under it as its value: a positional field,
+ * or a flag that takes an optional value or a list. Undefined when there is none.
+ */
+function valueBeforeName(command: ManifestCommand): string | undefined {
+    const positional = command.cli.positional?.[0];
+    if (positional) {
+        return `the positional field "${positional}"`;
+    }
+    const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
+    for (const [field, schema] of Object.entries(properties)) {
+        const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+        if (takesOptionalValue(schema)) {
+            return `the flag --${kebab(field)}, which takes an optional value`;
+        }
+        if (type === 'array') {
+            return `the flag --${kebab(field)}, which takes a list`;
+        }
+    }
+    return undefined;
+}
+
+/** How a command declares each of its flags, by flag: the long flags and the short ones. */
+function flagDeclarations(command: ManifestCommand): Map<string, string> {
+    const flags = new Map<string, string>();
+    const properties = (command.input.properties ?? {}) as Record<string, JsonSchema>;
+    for (const [field, schema] of Object.entries(properties)) {
+        const long = `--${kebab(field)}`;
+        const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+        const declaration = JSON.stringify({
+            field,
+            // The kind of value the flag takes. A placeholder is only a label, so it does not count.
+            value: takesOptionalValue(schema)
+                ? 'optional'
+                : type === 'boolean'
+                  ? 'switch'
+                  : type === 'array'
+                    ? 'list'
+                    : 'value',
+            type: schema.type,
+            items: (schema.items as JsonSchema | undefined)?.type,
+            enum: schema.enum,
+        });
+        flags.set(long, declaration);
+        const short = command.cli.flags?.[field]?.short;
+        if (short) {
+            flags.set(short, declaration);
+        }
+    }
+    return flags;
+}
+
+/**
+ * A flag that a command and a command under it both have, declared differently, such as
+ * `--target <a|b>` and `--target <c|d>`, or `-e` for two fields. Undefined when there is none.
+ */
+function sharedFlagConflict(parent: ManifestCommand, child: ManifestCommand): string | undefined {
+    const parentFlags = flagDeclarations(parent);
+    for (const [flag, declaration] of flagDeclarations(child)) {
+        const other = parentFlags.get(flag);
+        if (other !== undefined && other !== declaration) {
+            return flag;
+        }
     }
     return undefined;
 }
@@ -417,7 +573,11 @@ function findClash(
  * Reads a plugin's declarations module: its `commands`, with the shared input of its `groups`
  * applied, so the group fields the manifest lists reach `run()`, or its `extensions`.
  */
-async function declarationsOf<T>(file: string, loaded: Promise<unknown>, read: (mod: unknown) => T): Promise<T> {
+async function declarationsOf<T>(
+    file: string,
+    loaded: Promise<unknown>,
+    read: (mod: unknown) => T,
+): Promise<T> {
     const mod: unknown = await loaded;
     try {
         return read(mod);
