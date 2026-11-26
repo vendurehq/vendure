@@ -64,7 +64,12 @@ describe('index.html', () => {
 
     // OSS-1508 — a signed-in reload shows the app shell from the first paint
     describe('boot shell', () => {
-        function bootShellFor(href: string, base: string | null, dir: 'ltr' | 'rtl' = 'ltr', filters?: unknown) {
+        function bootShellFor(
+            href: string,
+            base: string | null,
+            dir: 'ltr' | 'rtl' = 'ltr',
+            filters?: unknown,
+        ) {
             root.removeAttribute('data-boot-shell');
             root.removeAttribute('data-boot-filters');
             root.removeAttribute('dir');

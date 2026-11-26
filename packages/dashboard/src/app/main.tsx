@@ -1,8 +1,8 @@
 import { RoutePending } from '@/vdb/components/layout/route-pending.js';
 import { Toaster } from '@/vdb/components/ui/sonner.js';
 import { Spinner } from '@/vdb/components/ui/spinner.js';
-import { registerDefaults } from '@/vdb/framework/defaults.js';
 import { getDashboardWidgetFilters } from '@/vdb/framework/dashboard-widget/widget-extensions.js';
+import { registerDefaults } from '@/vdb/framework/defaults.js';
 import {
     clearCustomFieldsMap,
     setCustomFieldsMap,
@@ -100,7 +100,12 @@ function InnerApp() {
     }, [isRTL]);
 
     useEffect(() => {
-        rememberBootShell(auth.status, router.basepath, isRTL ? 'rtl' : 'ltr', getDashboardWidgetFilters().length);
+        rememberBootShell(
+            auth.status,
+            router.basepath,
+            isRTL ? 'rtl' : 'ltr',
+            getDashboardWidgetFilters().length,
+        );
     }, [auth.status, router, isRTL]);
 
     const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
