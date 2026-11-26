@@ -1542,8 +1542,9 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
   manifest, and finds no config in the source, its error names that package.
 - **`ctx.loadModule(path)`** imports a TypeScript or JavaScript module of the project, such as its config file, the
   way the CLI loads the project's own config: it loads `.env` from the working directory, and registers ts-node with
-  the tsconfig nearest the file and its path mappings. The CLI does neither before a resolver calls it. A relative
-  path is resolved against `ctx.projectDir`. It returns the module's exports, and the resolver picks the one it needs
+  the tsconfig nearest the file and its path mappings. The CLI does neither before a resolver calls it. ts-node is
+  registered once per process, so a later call, for a file whose nearest tsconfig is another one, uses the first
+  call's tsconfig. A relative path is resolved against `ctx.projectDir`. It returns the module's exports, and the resolver picks the one it needs
   and builds the config from it.
 - **The environment:** the resolver runs in the CLI's process, with the environment of the user's shell. While it
   runs, `.env` is loaded only if it calls `ctx.loadModule`.

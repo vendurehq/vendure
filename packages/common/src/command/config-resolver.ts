@@ -22,7 +22,8 @@ export interface ConfigResolverContext {
      * Imports a TypeScript or JavaScript module of the project, such as its config file, and
      * returns its exports. It loads `.env` from the working directory, and registers ts-node with
      * the tsconfig nearest the file and its path mappings, the way the CLI does to load the
-     * project's own config. The CLI does neither before a resolver calls it. A relative path is
+     * project's own config. The CLI does neither before a resolver calls it. ts-node is registered
+     * once per process, so a later call uses the first call's tsconfig. A relative path is
      * resolved against `projectDir`. The resolver picks the export it needs.
      */
     loadModule(modulePath: string): Promise<Record<string, unknown>>;

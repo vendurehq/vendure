@@ -30,7 +30,7 @@ export async function plan(
         preview: {
             action: 'Revert the last applied database migration',
             // The package whose resolver gave the config, or the absolute path of the config file. The
-            // consent digest covers the preview, so it names exactly which config the revert uses.
+            // consent digest covers the preview, so it binds the config's source and its database.
             config: 'resolvedBy' in project ? describeConfigSource(project) : project.configPath,
             database: describeDatabase(config),
             lastAppliedMigration: migration,

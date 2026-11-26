@@ -224,7 +224,8 @@ export async function resolveProjectConfig(
         if (config) {
             // `loadSourceConfig` loads `.env` and registers ts-node to require the config file. A
             // resolved config skipped that, and the files it names, such as migrations that TypeORM
-            // requires, may be TypeScript or read `.env`.
+            // requires, may be TypeScript or read `.env`. When the resolver called `loadModule`,
+            // ts-node is registered already, and this registers nothing.
             try {
                 await prepareToRequireProjectFiles(projectDir);
             } catch (e) {
