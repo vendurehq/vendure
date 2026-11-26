@@ -59,6 +59,26 @@ afterEach(() => {
 });
 
 describe('ProjectCommandWatcher', () => {
+    it('polls with a timer that does not keep the process alive, and clears it on close', async () => {
+        const unref = vi.fn();
+        const setIntervalSpy = vi.spyOn(globalThis, 'setInterval').mockReturnValue({ unref } as any);
+        const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval').mockImplementation(() => undefined);
+        try {
+            const watcher = new ProjectCommandWatcher({
+                cwd: '/project',
+                list: async () => ({ commands: [], refused: [], files: [] }),
+            });
+            await watcher.list();
+            watcher.watch();
+            expect(unref).toHaveBeenCalledTimes(1);
+            watcher.close();
+            expect(clearIntervalSpy).toHaveBeenCalledWith(setIntervalSpy.mock.results[0].value);
+        } finally {
+            setIntervalSpy.mockRestore();
+            clearIntervalSpy.mockRestore();
+        }
+    });
+
     it('lists the commands and reports the refused packages', async () => {
         const refused: RefusedManifest[] = [
             { package: 'example', error: { code: 'plugin.unavailable', message: 'gone' } } as RefusedManifest,

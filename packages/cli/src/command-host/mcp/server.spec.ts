@@ -1,11 +1,15 @@
 import { CommandEnvelope } from '@vendure/common/lib/command';
 import { ManifestCommand, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { PassThrough } from 'node:stream';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DevServerState } from '../../commands/dev/state-file.js';
 
 import { AdminProxy, SendToStore } from './admin-proxy.js';
+import { ListedCommands, ProjectCommandWatcher } from './project-commands.js';
 import { CommandChanges, McpServer, McpToolMode, RunTool } from './server.js';
 
 function command(path: string[], overrides: Partial<ManifestCommand> = {}): MergedManifestCommand {
@@ -716,5 +720,92 @@ describe('McpServer when the commands of the project change', () => {
         expect(calls).toEqual([['example', 'greet']]);
         expect(client.all()).toEqual([]);
         await client.close();
+    });
+});
+
+describe('McpServer with the project command watcher', () => {
+    /** A package.json the watcher polls, and a way to change it so the poll sees it. */
+    function watchedFile() {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-mcp-server-'));
+        const file = path.join(dir, 'package.json');
+        fs.writeFileSync(file, '{}');
+        let step = 0;
+        return {
+            file,
+            touch(content: string) {
+                fs.writeFileSync(file, content);
+                const later = new Date(Date.now() + 5_000 * ++step);
+                fs.utimesSync(file, later, later);
+            },
+            remove: () => fs.rmSync(dir, { recursive: true, force: true }),
+        };
+    }
+
+    async function startWatched(listed: () => ListedCommands) {
+        const list = vi.fn(async () => listed());
+        const watcher = new ProjectCommandWatcher({ cwd: '/project', list, watchIntervalMs: 10 });
+        const commands = await watcher.list();
+        const client = start(async () => ok(), 'direct', commands, undefined, watcher);
+        await tick();
+        return { client, list, watcher };
+    }
+
+    const waitFor = async (check: () => boolean) => {
+        for (let i = 0; i < 100 && !check(); i++) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+    };
+    const listChanged = (client: Client) =>
+        client.all().filter(message => message.method === 'notifications/tools/list_changed');
+
+    it('sends exactly one tools/list_changed for one manifest change in direct mode', async () => {
+        const watched = watchedFile();
+        let commands = COMMANDS;
+        const { client, list } = await startWatched(() => ({ commands, refused: [], files: [watched.file] }));
+        try {
+            commands = [...COMMANDS, command(['example', 'greet'])];
+            watched.touch('{ "name": "enabled" }');
+            await waitFor(() => list.mock.calls.length >= 2);
+            // Several more polls, which find nothing new.
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(list).toHaveBeenCalledTimes(2);
+            expect(listChanged(client)).toHaveLength(1);
+        } finally {
+            await client.close();
+            watched.remove();
+        }
+    });
+
+    it('sends no tools/list_changed when a relisting finds the same tools', async () => {
+        const watched = watchedFile();
+        const { client, list } = await startWatched(() => ({
+            commands: COMMANDS,
+            refused: [],
+            files: [watched.file],
+        }));
+        try {
+            watched.touch('{ "name": "reformatted" }');
+            await waitFor(() => list.mock.calls.length >= 2);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(list).toHaveBeenCalledTimes(2);
+            expect(listChanged(client)).toEqual([]);
+        } finally {
+            await client.close();
+            watched.remove();
+        }
+    });
+
+    it('stops polling when the client closes the connection', async () => {
+        const watched = watchedFile();
+        const { client, list } = await startWatched(() => ({
+            commands: COMMANDS,
+            refused: [],
+            files: [watched.file],
+        }));
+        await client.close();
+        watched.touch('{ "name": "after close" }');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(list).toHaveBeenCalledTimes(1);
+        watched.remove();
     });
 });
