@@ -48,7 +48,7 @@ describe('loadSeedConfig()', () => {
         fs.rmSync(dir, { recursive: true, force: true });
     });
 
-    it('asks the config resolvers before it loads src/vendure-config.ts', async () => {
+    it('returns the config a resolver gives, passing the project and --config to the resolvers', async () => {
         vi.mocked(loadProjectConfigWith).mockResolvedValueOnce({
             config: resolved,
             resolvedBy: '@acme/cloud',

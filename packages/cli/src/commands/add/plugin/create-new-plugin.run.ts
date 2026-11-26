@@ -8,7 +8,7 @@ import {
     withUnreadableManifests,
 } from '../../../shared/load-project-config.js';
 import { openProject } from '../../../shared/open-project.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { VendureConfigNotDeclaredError, VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 import { addImportsToFile } from '../../../utilities/ast-utils.js';
 import { fileExists } from '../add.errors.js';
 import { saveChanges } from '../add.project.js';
@@ -28,11 +28,15 @@ export async function run(input: { name: string; dir?: string; config?: string }
     try {
         vendureConfig = new VendureConfigRef(project, input.config);
     } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        if (!(e instanceof VendureConfigNotDeclaredError)) {
+            // Several config files, or a --config path that is not there: the config is in the source.
+            return fail(vendureConfigNotFound, { message });
+        }
         // A config from a config resolver is not declared in the source, so there is nowhere to add
         // the plugin to. The resolver is not run: saying which package owns the config is enough.
         const { plugins, unreadable } = enabledManifests();
         const resolvers = configResolverPackages(plugins).map(resolver => resolver.packageName);
-        const message = e instanceof Error ? e.message : String(e);
         const hint = resolvers.length
             ? `${message} This project's config may come from the config resolver of ${resolvers.join(' or ')}. ` +
               'This command can add a plugin only to a VendureConfig declared in the source.'

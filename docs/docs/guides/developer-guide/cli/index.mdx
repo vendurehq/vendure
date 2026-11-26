@@ -1547,9 +1547,9 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
   and builds the config from it.
 - **The environment:** the resolver runs in the CLI's process, with the environment of the user's shell. While it
   runs, `.env` is loaded only if it calls `ctx.loadModule`.
-- **Database settings:** `vendure dev` does not run the resolver, and the CLI passes it no database settings. If the
-  package's `dev` command sets the database connection, the resolver must set the same connection, so doctor, migrate
-  and seed use that database.
+- **Database settings:** the CLI passes the resolver no database settings. If the package's `dev` command sets the
+  database connection, the resolver must set the same connection, so doctor, migrate and seed use that database. That
+  includes a `vendure seed --first-run` that `dev` starts, which asks the resolver too.
 - **TypeScript files the config points at:** once a resolver returns a config, the CLI loads `.env` and registers
   ts-node for the project, so the files the config names, such as `.ts` migrations, load whether or not the resolver
   called `ctx.loadModule`.

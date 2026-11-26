@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { configResolverPackage } from './__tests__/config-resolver-package.js';
 import {
     ConfigResolverFailedError,
     configResolverPackages,
@@ -40,21 +41,6 @@ vi.mock('./load-vendure-config-file.js', async importOriginal => ({
     ),
 }));
 
-/** A declarations module whose config resolver runs `body` as its `resolve(ctx)`. */
-function declarations(body: string): string {
-    return `
-export const commands = [];
-export const configResolver = {
-    resolve: async () => ({
-        resolve: async ctx => {
-            globalThis.__resolverCalls.push(ctx);
-            ${body}
-        },
-    }),
-};
-`;
-}
-
 describe('loadProjectConfig()', () => {
     let dir: string;
     let calls: Array<Record<string, unknown>>;
@@ -77,20 +63,8 @@ describe('loadProjectConfig()', () => {
         source?: string,
         scope: 'project' | 'global' = 'project',
     ): ResolvedCommandManifest {
-        const definitionsPath = path.join(dir, `${name.replace(/\W/g, '-')}.mjs`);
-        fs.writeFileSync(definitionsPath, source ? declarations(source) : 'export const commands = [];');
-        return {
-            packageName: name,
-            definitionsPath,
-            scope,
-            manifest: {
-                manifestVersion: 1,
-                package: name,
-                version: '1.0.0',
-                commands: [],
-                ...(source ? { hasConfigResolver: true as const } : {}),
-            },
-        };
+        const body = source === undefined ? undefined : `globalThis.__resolverCalls.push(ctx);\n${source}`;
+        return configResolverPackage(dir, name, body, scope);
     }
 
     it('returns the config of the first resolver, in allowlist order, that returns one', async () => {

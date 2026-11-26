@@ -1,10 +1,11 @@
 import { log } from '@clack/prompts';
 import { VendurePlugin } from '@vendure/core';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { configResolverPackage } from '../../../shared/__tests__/config-resolver-package.js';
 import {
     createProjectTree,
     packageFiles,
@@ -196,27 +197,8 @@ describe('generateSchema() with a config resolver', () => {
 
     /** Enables `@acme/cloud`, whose config resolver's `resolve(ctx)` runs `body`. */
     function enableResolver(body: string) {
-        const definitionsPath = path.join(dir, 'cloud.mjs');
-        writeFileSync(
-            definitionsPath,
-            `export const commands = [];
-export const configResolver = { resolve: async () => ({ resolve: async ctx => { ${body} } }) };`,
-        );
         vi.mocked(resolveCommandManifests).mockReturnValueOnce({
-            manifests: [
-                {
-                    packageName: '@acme/cloud',
-                    definitionsPath,
-                    scope: 'project',
-                    manifest: {
-                        manifestVersion: 1,
-                        package: '@acme/cloud',
-                        version: '1.0.0',
-                        commands: [],
-                        hasConfigResolver: true,
-                    },
-                },
-            ],
+            manifests: [configResolverPackage(dir, '@acme/cloud', body)],
             failures: [],
             scopeErrors: [],
         });

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { configResolverPackage } from '../../../shared/__tests__/config-resolver-package.js';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
 import { resolveCommandManifests } from '../../../shared/resolve-cli-plugins.js';
 
@@ -79,27 +80,8 @@ describe('runConfigCheck() with a config resolver', () => {
     /** Enables `@acme/cloud`, whose config resolver's `resolve(ctx)` runs `body`. */
     function enableResolver(body: string) {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-doctor-resolver-'));
-        const definitionsPath = path.join(dir, 'cloud.mjs');
-        fs.writeFileSync(
-            definitionsPath,
-            `export const commands = [];
-export const configResolver = { resolve: async () => ({ resolve: async ctx => { ${body} } }) };`,
-        );
         vi.mocked(resolveCommandManifests).mockReturnValueOnce({
-            manifests: [
-                {
-                    packageName: '@acme/cloud',
-                    definitionsPath,
-                    scope: 'project',
-                    manifest: {
-                        manifestVersion: 1,
-                        package: '@acme/cloud',
-                        version: '1.0.0',
-                        commands: [],
-                        hasConfigResolver: true,
-                    },
-                },
-            ],
+            manifests: [configResolverPackage(dir, '@acme/cloud', body)],
             failures: [],
             scopeErrors: [],
         });

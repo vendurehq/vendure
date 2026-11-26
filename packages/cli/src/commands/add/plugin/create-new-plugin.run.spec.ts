@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { configResolverPackages, enabledManifests } from '../../../shared/load-project-config.js';
+import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 
 import { run } from './create-new-plugin.run.js';
 
@@ -9,11 +10,15 @@ vi.mock('../../../shared/open-project.js', () => ({
         Promise.resolve({ project: { getSourceFiles: () => [] }, vendureTsConfig: undefined }),
     ),
 }));
-vi.mock('../../../shared/vendure-config-ref.js', () => ({
-    VendureConfigRef: vi.fn(function () {
-        throw new Error('Could not find the VendureConfig declaration in your project.');
-    }),
-}));
+vi.mock('../../../shared/vendure-config-ref.js', async importOriginal => {
+    const actual = await importOriginal<typeof import('../../../shared/vendure-config-ref.js')>();
+    return {
+        ...actual,
+        VendureConfigRef: vi.fn(function () {
+            throw new actual.VendureConfigNotDeclaredError();
+        }),
+    };
+});
 vi.mock('../../../shared/load-project-config.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../../shared/load-project-config.js')>()),
     enabledManifests: vi.fn(() => ({ plugins: [], unreadable: [] })),
@@ -67,6 +72,20 @@ describe('vendure add plugin without a VendureConfig in the source', () => {
                     '@acme/cloud (vendure-commands.json is missing)',
             },
         });
+    });
+
+    it('adds no resolver hint when the source has a config, such as several config files', async () => {
+        vi.mocked(VendureConfigRef).mockImplementationOnce(function () {
+            throw new Error('Multiple Vendure config files found.');
+        });
+
+        const result = await run({ name: 'reviews', dir: '/nonexistent/reviews-plugin' });
+
+        expect(result).toMatchObject({
+            code: 'add.vendure-config-not-found',
+            details: { message: 'Multiple Vendure config files found.' },
+        });
+        expect(enabledManifests).not.toHaveBeenCalled();
     });
 
     it('reports the error as it is when no package has a config resolver', async () => {

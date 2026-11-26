@@ -279,8 +279,8 @@ async function readCreateRecord(
 /**
  * Loads the project's Vendure config. The config resolvers of the enabled packages come first.
  * Then a config at `--config`, `src/vendure-config.ts` or `vendure-config.ts` is required directly,
- * which is seconds faster than finding it by parsing the project, and matters because
- * `--first-run` runs on every `vendure dev` start.
+ * which is seconds faster than finding it by parsing the project, and matters because a package's
+ * `dev` command may run `--first-run` on every start.
  */
 export async function loadSeedConfig(
     ctx: Pick<CommandContext, 'cwd' | 'signal'>,
