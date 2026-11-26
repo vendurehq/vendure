@@ -1,9 +1,12 @@
 import { log } from '@clack/prompts';
 import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
+import type { VendureConfig } from '@vendure/core';
 import fs from 'fs-extra';
 import path from 'node:path';
 
 import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
+import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
+import { ConfigResolverFailedError, resolveProjectConfig } from '../../../shared/load-project-config.js';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
 import { requireFromProjectCore, requireProjectCore } from '../../../shared/project-core.js';
 import { analyzeProject } from '../../../shared/shared-prompts.js';
@@ -28,10 +31,7 @@ export async function generateSchema(options: SchemaOptions) {
         requireFromProjectCore<typeof import('graphql')>('graphql');
     core.resetConfig();
     try {
-        const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
-        const vendureConfig = new VendureConfigRef(project, options.config);
-        log.info('Using VendureConfig from ' + vendureConfig.getPathRelativeToProjectRoot());
-        const config = await loadVendureConfigFile(vendureConfig, vendureTsConfig);
+        const config = await loadSchemaConfig(options.config);
         await core.setConfig(config);
 
         const apiType = options.api === 'shop' ? 'shop' : 'admin';
@@ -65,7 +65,26 @@ export async function generateSchema(options: SchemaOptions) {
         log.info(`Generated schema: ${outFile}`);
     } catch (e: unknown) {
         rethrowCliCommandExit(e);
-        log.error(e instanceof Error ? e.message : String(e));
+        const message = e instanceof Error ? e.message : String(e);
+        log.error(
+            e instanceof ConfigResolverFailedError ? `${configResolverFailed.code}: ${message}` : message,
+        );
         exitCliCommand(1);
     }
+}
+
+/**
+ * The project's config, from the config resolver of an enabled package, or else from the
+ * `VendureConfig` in its source.
+ */
+async function loadSchemaConfig(configFile: string | undefined): Promise<VendureConfig> {
+    const resolved = await resolveProjectConfig({ configFile });
+    if (resolved) {
+        log.info('Using the VendureConfig resolved by ' + resolved.resolvedBy);
+        return resolved.config;
+    }
+    const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
+    const vendureConfig = new VendureConfigRef(project, configFile);
+    log.info('Using VendureConfig from ' + vendureConfig.getPathRelativeToProjectRoot());
+    return loadVendureConfigFile(vendureConfig, vendureTsConfig);
 }

@@ -2,6 +2,7 @@ import { fail } from '@vendure/common/lib/command';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { configResolverPackages } from '../../../shared/load-project-config.js';
 import { openProject } from '../../../shared/open-project.js';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 import { addImportsToFile } from '../../../utilities/ast-utils.js';
@@ -23,7 +24,17 @@ export async function run(input: { name: string; dir?: string; config?: string }
     try {
         vendureConfig = new VendureConfigRef(project, input.config);
     } catch (e) {
-        return fail(vendureConfigNotFound, { message: e instanceof Error ? e.message : String(e) });
+        // A config from a config resolver is not declared in the source, so there is nowhere to add
+        // the plugin to. The resolver is not run: saying which package owns the config is enough.
+        const resolvers = configResolverPackages().map(resolver => resolver.packageName);
+        const message = e instanceof Error ? e.message : String(e);
+        const hint = resolvers.length
+            ? `. This project's config may come from the config resolver of ${resolvers.join(' or ')}, ` +
+              'which is not a file this command can add the plugin to'
+            : '';
+        return fail(vendureConfigNotFound, {
+            message: message + hint,
+        });
     }
     const { plugin, created } = scaffoldPlugin(project, { name: input.name, pluginDir });
     vendureConfig.addToPluginsArray(`${plugin.name}.init({})`);

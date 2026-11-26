@@ -1,5 +1,6 @@
 import { defineCommand } from '@vendure/common/lib/command';
 
+import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
 import { configUnreadable } from '../migrate.errors.js';
 
 import { generateFailed } from './generate-migration.errors.js';
@@ -12,7 +13,7 @@ export const generateMigrationDefinition = defineCommand({
     requires: { project: true },
     schemas: () => import('./generate-migration.schema.js'),
     cli: { positional: ['name'] },
-    errors: [configUnreadable, generateFailed],
+    errors: [configUnreadable, configResolverFailed, generateFailed],
     examples: [
         'vendure migrate generate add-reviews',
         'vendure migrate generate baseline --from-empty --output-dir ./src/migrations',

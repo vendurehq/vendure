@@ -2,36 +2,30 @@ import { ErrorResult, fail } from '@vendure/common/lib/command';
 import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
-import { loadVendureConfigFile } from '../../shared/load-vendure-config-file.js';
-import { openProject } from '../../shared/open-project.js';
+import { configResolverFailed } from '../../shared/config-resolver.errors.js';
+import {
+    ConfigResolverFailedError,
+    loadProjectConfig,
+    ProjectConfig,
+} from '../../shared/load-project-config.js';
 import { requireFromProjectCore } from '../../shared/project-core.js';
-import { VendureConfigRef } from '../../shared/vendure-config-ref.js';
 
 import { configUnreadable } from './migrate.errors.js';
-
-export interface LoadedProjectConfig {
-    config: VendureConfig;
-    /** The absolute path of the config file. */
-    configPath: string;
-    ref: VendureConfigRef;
-}
-
-/** Loads the project's Vendure config. It prints nothing. */
-export async function loadProjectConfig(configFile?: string): Promise<LoadedProjectConfig> {
-    const { project, tsConfigPath } = await openProject();
-    const ref = new VendureConfigRef(project, configFile);
-    const config = await loadVendureConfigFile(ref, tsConfigPath);
-    return { config, configPath: ref.sourceFile.getFilePath(), ref };
-}
 
 /**
  * Loads the project's Vendure config for a migrate command, or returns the coded error the
  * command reports when the config cannot be found or loaded.
  */
-export async function openMigrationProject(configFile?: string): Promise<LoadedProjectConfig | ErrorResult> {
+export async function openMigrationProject(
+    configFile?: string,
+    signal?: AbortSignal,
+): Promise<ProjectConfig | ErrorResult> {
     try {
-        return await loadProjectConfig(configFile);
+        return await loadProjectConfig({ configFile, signal });
     } catch (e) {
+        if (e instanceof ConfigResolverFailedError) {
+            return fail(configResolverFailed, e.details);
+        }
         return fail(configUnreadable, { message: e instanceof Error ? e.message : String(e) });
     }
 }
@@ -39,12 +33,16 @@ export async function openMigrationProject(configFile?: string): Promise<LoadedP
 /**
  * Where a new migration goes when no directory is given: the directory of the config's first
  * `migrations` pattern, else the directory of an existing migration class, else `migrations`
- * next to the config file's directory.
+ * next to the config file's directory. A config from a config resolver has no file, so the last
+ * two are `migrations` in the project's root directory.
  */
-export function defaultMigrationDir({ config, ref }: LoadedProjectConfig): string {
+export function defaultMigrationDir({ config, ref }: ProjectConfig, projectDir = process.cwd()): string {
     const migrations = config.dbConnectionOptions.migrations;
     if (Array.isArray(migrations) && typeof migrations[0] === 'string') {
         return path.normalize(path.dirname(migrations[0]));
+    }
+    if (!ref) {
+        return path.join(projectDir, 'migrations');
     }
     const migrationFile = ref.sourceFile
         .getProject()

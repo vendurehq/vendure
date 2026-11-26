@@ -1,6 +1,8 @@
-import type { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig, VendureConfig } from '@vendure/core';
 import { satisfies } from 'semver';
 
+import { configResolverFailed } from '../../../shared/config-resolver.errors.js';
+import { ConfigResolverFailedError, resolveProjectConfig } from '../../../shared/load-project-config.js';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
 import { requireProjectCore } from '../../../shared/project-core.js';
 import { analyzeProject } from '../../../shared/shared-prompts.js';
@@ -37,19 +39,10 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
         core.resetConfig();
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
 
-        // 1. Analyze the project (finds tsconfig, creates ts-morph Project)
-        const { project, vendureTsConfig } = await analyzeProject({
-            cancelledMessage: '',
-            config: configFlag,
-        });
-
-        // 2. Find the VendureConfig source file
-        const vendureConfigRef = new VendureConfigRef(project, configFlag);
-        const configPath = vendureConfigRef.getPathRelativeToProjectRoot();
-        details.push(`Config loaded from ${configPath}`);
-
-        // 3. Load the config at runtime (ts-node, path mappings, dotenv)
-        const config = await loadVendureConfigFile(vendureConfigRef, vendureTsConfig);
+        // 1. Ask the config resolvers of the enabled packages, then
+        // 2. find the VendureConfig in the source (ts-morph), and
+        // 3. load it at runtime (ts-node, path mappings, dotenv)
+        const config = await loadDoctorConfig(configFlag, details);
 
         // 4. Run preBootstrapConfig() -- validates custom fields, registers entities,
         //    runs plugin configuration() hooks, sets strategies
@@ -83,7 +76,11 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
         };
     } catch (e: any) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        details.push(`Error: ${errorMessage}`);
+        details.push(
+            e instanceof ConfigResolverFailedError
+                ? `Error (${configResolverFailed.code}): ${errorMessage}`
+                : `Error: ${errorMessage}`,
+        );
         return {
             check: {
                 name: 'Config',
@@ -97,6 +94,22 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }
+}
+
+/**
+ * The project's config, from the config resolver of an enabled package, or else from the
+ * `VendureConfig` in its source. Says in `details` where it came from.
+ */
+async function loadDoctorConfig(configFlag: string | undefined, details: string[]): Promise<VendureConfig> {
+    const resolved = await resolveProjectConfig({ configFile: configFlag });
+    if (resolved) {
+        details.push(`Config resolved by ${resolved.resolvedBy}`);
+        return resolved.config;
+    }
+    const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage: '', config: configFlag });
+    const vendureConfigRef = new VendureConfigRef(project, configFlag);
+    details.push(`Config loaded from ${vendureConfigRef.getPathRelativeToProjectRoot()}`);
+    return loadVendureConfigFile(vendureConfigRef, vendureTsConfig);
 }
 
 interface PluginCheckResult {

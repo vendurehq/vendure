@@ -95,6 +95,13 @@ export interface CommandManifest {
      * @since 4.0.0
      */
     extensions?: ManifestExtension[];
+    /**
+     * Whether the package's declarations module exports a `configResolver`, which the CLI asks for
+     * the project's config before it looks for a `VendureConfig` in the source.
+     *
+     * @since 4.0.0
+     */
+    hasConfigResolver?: true;
 }
 
 export interface MergedManifestCommand extends ManifestCommand {

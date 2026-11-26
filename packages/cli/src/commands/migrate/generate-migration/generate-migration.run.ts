@@ -10,11 +10,11 @@ export async function run(
     input: { name: string; outputDir?: string; fromEmpty?: boolean; config?: string },
     ctx: CommandContext,
 ) {
-    const project = await openMigrationProject(input.config);
+    const project = await openMigrationProject(input.config, ctx.signal);
     if (isErrorResult(project)) {
         return project;
     }
-    const outputDir = input.outputDir ?? defaultMigrationDir(project);
+    const outputDir = input.outputDir ?? defaultMigrationDir(project, ctx.cwd);
     ctx.progress(
         input.fromEmpty
             ? 'Generating a baseline migration from an empty shadow database'

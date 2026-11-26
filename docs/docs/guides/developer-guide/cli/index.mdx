@@ -1490,6 +1490,51 @@ the caller passed one of its flags, which ends the run with `cli.usage`. A manif
 which an extension's field is now an internal field of the command, ends the run with `manifest.mismatch`: rebuild
 the manifests.
 
+### Providing the project's config
+
+Some commands need the project's `VendureConfig`: `vendure doctor`, `vendure migrate generate`, `run` and `revert`,
+`vendure seed` and `vendure schema`. The CLI finds it in the project's source by default. A package whose projects
+build their config another way, such as at run time, can give the CLI the config with a config resolver. Export it
+from the declarations module as `configResolver`, and pass it to the build step:
+
+```ts title="src/commands.ts"
+import { defineConfigResolver } from '@vendure/common/lib/command';
+
+export const commands = [/* the package's own commands, if any */];
+
+export const configResolver = defineConfigResolver({
+    resolve: () => import('./config-resolver.js'),
+});
+```
+
+```ts title="src/config-resolver.ts"
+import type { ConfigResolverContext } from '@vendure/common/lib/command';
+import type { VendureConfig } from '@vendure/core';
+
+export async function resolve(ctx: ConfigResolverContext): Promise<VendureConfig | undefined> {
+    if (!isOurKindOfProject(ctx.projectDir)) {
+        return undefined;
+    }
+    return buildConfig(ctx.projectDir, { signal: ctx.signal });
+}
+```
+
+```ts title="scripts/build-manifest.ts"
+await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { configResolver });
+```
+
+- **The manifest** records `hasConfigResolver: true`. The CLI imports the resolver only when a command needs the
+  config, and never at startup or in `vendure mcp`.
+- **`resolve(ctx)`** gets the project's root directory as `ctx.projectDir`, the file the user named with `--config`
+  as `ctx.configFile`, and `ctx.signal`, which fires when the command is cancelled. It returns the config, or
+  `undefined` for a project it doesn't handle.
+- **Order:** the CLI asks the resolvers of the enabled packages in the order they are enabled, and uses the first
+  config one returns. When none returns one, it finds the config in the source.
+- **Errors:** a resolver that throws, or returns something that is not a `VendureConfig`, ends the command with
+  `config.resolver-failed`, naming the package. The CLI does not fall back to the source then.
+- **`vendure add plugin`** edits the config file, so it still needs a `VendureConfig` in the source. When it finds
+  none, its `add.vendure-config-not-found` error names the packages that have a config resolver.
+
 ### How plugin commands appear in the help
 
 `vendure --help` lists the commands and shared options a plugin registers under

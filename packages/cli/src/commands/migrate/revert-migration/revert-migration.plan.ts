@@ -11,13 +11,13 @@ import { databaseUnreadable } from './revert-migration.errors.js';
  */
 export async function plan(
     input: { config?: string },
-    _ctx: CommandContext,
+    ctx: CommandContext,
 ): Promise<CommandPlan | ErrorResult> {
-    const project = await openMigrationProject(input.config);
+    const project = await openMigrationProject(input.config, ctx.signal);
     if (isErrorResult(project)) {
         return project;
     }
-    const { config, configPath } = project;
+    const { config, configPath, resolvedBy } = project;
     let migration: string | null;
     try {
         migration = await lastAppliedMigration(config);
@@ -28,7 +28,7 @@ export async function plan(
     return {
         preview: {
             action: 'Revert the last applied database migration',
-            config: configPath,
+            config: configPath ?? `the config resolver of ${resolvedBy}`,
             database: describeDatabase(config),
             lastAppliedMigration: migration,
         },
