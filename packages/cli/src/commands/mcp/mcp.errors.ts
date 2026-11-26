@@ -62,19 +62,11 @@ export const notProjectCli = defineError<{
         "back to. Start the server from the project, where npx runs the project's own CLI.",
 });
 
-// The two listing errors below are notices: the server writes them and keeps running, so their
-// `exit` is never used.
-export const commandsListingTimedOut = defineError<{ project: string; seconds: number }>({
-    code: 'mcp.commands-listing-timed-out',
-    exit: 1,
-    message: ({ project, seconds }) =>
-        `Listing the commands of "${project}" took longer than ${seconds} s, so only the CLI's own ` +
-        'commands are offered. A CLI plugin may be slow to load. Restart the server to try again.',
-});
-
+// A notice: the server writes it and keeps running, so its `exit` is never used.
 export const commandsListingFailed = defineError<{ project: string; reason: string }>({
     code: 'mcp.commands-listing-failed',
     exit: 1,
     message: ({ project, reason }) =>
-        `Could not list the commands of "${project}", so only the CLI's own commands are offered: ${reason}`,
+        `Could not list the commands of "${project}": ${reason}. The CLI's own commands are offered, or ` +
+        'those of the last listing that worked.',
 });

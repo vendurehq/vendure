@@ -33,6 +33,18 @@ export interface McpServerOptions {
     cwd?: string;
     /** The Store MCP's admin tools of the running dev server, offered as `admin_*`. */
     adminTools?: AdminProxy;
+    /**
+     * Tells the server when the project's commands change, for example when a package is enabled.
+     * In direct mode the server then sends `notifications/tools/list_changed`.
+     */
+    commandChanges?: CommandChanges;
+}
+
+/** A source of changes to the commands that {@link McpServerOptions.commands} started with. */
+export interface CommandChanges {
+    onChanged(listener: (commands: MergedManifestCommand[]) => void): () => void;
+    watch(): void;
+    close(): void;
 }
 
 interface JsonRpcMessage {
@@ -83,8 +95,8 @@ export function isExposed(command: MergedManifestCommand): boolean {
  * Read-only calls run in parallel.
  */
 export class McpServer {
-    private readonly commands: MergedManifestCommand[];
-    private readonly byName = new Map<string, MergedManifestCommand>();
+    private commands: MergedManifestCommand[] = [];
+    private byName = new Map<string, MergedManifestCommand>();
     private readonly inFlight = new Map<string | number, AbortController>();
     private readonly writes = new SerialQueue();
     private readonly runTool: RunTool;
@@ -92,10 +104,7 @@ export class McpServer {
     private minLogLevel = 0;
 
     constructor(private readonly options: McpServerOptions) {
-        this.commands = options.commands.filter(isExposed);
-        for (const command of this.commands) {
-            this.byName.set(toolName(command), command);
-        }
+        this.setCommands(options.commands);
         this.runTool =
             options.runTool ??
             ((path, input, hooks) =>
@@ -106,6 +115,20 @@ export class McpServer {
                 }));
     }
 
+    /**
+     * Replaces the commands offered as tools. A call already running keeps the command it started
+     * with.
+     */
+    private setCommands(commands: MergedManifestCommand[]): void {
+        this.commands = commands.filter(isExposed);
+        this.byName = new Map(this.commands.map(command => [toolName(command), command]));
+    }
+
+    /** Whether the client is told when the tool list changes. */
+    private get listChanged(): boolean {
+        return !!this.options.adminTools || (this.options.mode === 'direct' && !!this.options.commandChanges);
+    }
+
     /** Reads messages until the input ends, then waits for the calls still running. */
     async serve(): Promise<void> {
         const adminTools = this.options.adminTools;
@@ -113,6 +136,15 @@ export class McpServer {
             this.send({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' }),
         );
         adminTools?.watch();
+        const commandChanges = this.options.commandChanges;
+        commandChanges?.onChanged(commands => {
+            this.setCommands(commands);
+            // In discovery mode the tools stay the same: search_tools finds the new commands.
+            if (this.options.mode === 'direct') {
+                this.send({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' });
+            }
+        });
+        commandChanges?.watch();
         const pending = new Set<Promise<void>>();
         const lines = readline.createInterface({ input: this.options.input });
         lines.on('line', line => {
@@ -141,6 +173,7 @@ export class McpServer {
         }
         await Promise.all(pending);
         adminTools?.close();
+        commandChanges?.close();
     }
 
     private send(message: object): void {
@@ -168,8 +201,9 @@ export class McpServer {
                     protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(requested ?? '')
                         ? requested
                         : SUPPORTED_PROTOCOL_VERSIONS[0],
-                    // The admin tools come and go with the dev server.
-                    capabilities: { tools: { listChanged: !!this.options.adminTools }, logging: {} },
+                    // The admin tools come and go with the dev server, and the commands change when a
+                    // package is enabled, disabled or upgraded.
+                    capabilities: { tools: { listChanged: this.listChanged }, logging: {} },
                     serverInfo: { name: 'vendure-developer-mcp', version: this.options.version },
                     instructions:
                         'The Developer MCP runs the commands of the Vendure CLI for the current project. ' +

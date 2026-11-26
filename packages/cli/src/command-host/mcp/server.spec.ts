@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { DevServerState } from '../../commands/dev/state-file.js';
 
 import { AdminProxy, SendToStore } from './admin-proxy.js';
-import { McpServer, McpToolMode, RunTool } from './server.js';
+import { CommandChanges, McpServer, McpToolMode, RunTool } from './server.js';
 
 function command(path: string[], overrides: Partial<ManifestCommand> = {}): MergedManifestCommand {
     return {
@@ -54,6 +54,7 @@ function start(
     mode: McpToolMode = 'discovery',
     commands = COMMANDS,
     adminTools?: AdminProxy,
+    commandChanges?: CommandChanges,
 ): Client {
     const input = new PassThrough();
     const output = new PassThrough();
@@ -70,7 +71,16 @@ function start(
             }
         }
     });
-    const server = new McpServer({ commands, mode, input, output, version: '1.2.3', runTool, adminTools });
+    const server = new McpServer({
+        commands,
+        mode,
+        input,
+        output,
+        version: '1.2.3',
+        runTool,
+        adminTools,
+        commandChanges,
+    });
     const done = server.serve();
     return {
         send: message => input.write(`${JSON.stringify({ jsonrpc: '2.0', ...message })}\n`),
@@ -621,6 +631,90 @@ describe('McpServer with the admin tools of the dev server', () => {
         const names = result.tools.map((t: any) => t.name);
         expect(names.filter((n: string) => n === 'admin_list_zones')).toHaveLength(1);
         expect(names).toContain('admin_delete_zone');
+        await client.close();
+    });
+});
+
+/** Command changes that a test makes happen. */
+function commandChanges() {
+    const listeners = new Set<(commands: MergedManifestCommand[]) => void>();
+    const changes: CommandChanges & { change(commands: MergedManifestCommand[]): void; watching: boolean } = {
+        watching: false,
+        onChanged: listener => {
+            listeners.add(listener);
+            return () => listeners.delete(listener);
+        },
+        watch: () => {
+            changes.watching = true;
+        },
+        close: () => {
+            changes.watching = false;
+        },
+        change: commands => listeners.forEach(listener => listener(commands)),
+    };
+    return changes;
+}
+
+describe('McpServer when the commands of the project change', () => {
+    it('announces that its tool list changes in direct mode only', async () => {
+        for (const [mode, listChanged] of [
+            ['direct', true],
+            ['discovery', false],
+        ] as const) {
+            const client = start(async () => ok(), mode, COMMANDS, undefined, commandChanges());
+            client.send({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } });
+            expect((await client.next()).result.capabilities.tools.listChanged).toBe(listChanged);
+            await client.close();
+        }
+    });
+
+    it('sends tools/list_changed in direct mode and lists the new commands', async () => {
+        const changes = commandChanges();
+        const client = start(async () => ok(), 'direct', COMMANDS, undefined, changes);
+        await tick();
+        expect(changes.watching).toBe(true);
+        changes.change([...COMMANDS, command(['example', 'greet'])]);
+        expect(await client.next()).toEqual({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' });
+        client.send({ id: 1, method: 'tools/list' });
+        const names = (await client.next()).result.tools.map((tool: any) => tool.name);
+        expect(names).toContain('example_greet');
+        await client.close();
+        expect(changes.watching).toBe(false);
+    });
+
+    it('finds and runs the new commands in discovery mode, without a notification', async () => {
+        const changes = commandChanges();
+        const calls: string[][] = [];
+        const client = start(
+            async toolPath => {
+                calls.push(toolPath);
+                return ok();
+            },
+            'discovery',
+            COMMANDS,
+            undefined,
+            changes,
+        );
+        await tick();
+        changes.change([...COMMANDS, command(['example', 'greet'], { keywords: ['hello'] })]);
+        client.send({
+            id: 1,
+            method: 'tools/call',
+            params: { name: 'search_tools', arguments: { query: 'hello' } },
+        });
+        const search = await client.next();
+        expect(search.id).toBe(1);
+        expect(search.result.structuredContent.tools.map((tool: any) => tool.name)).toEqual([
+            'example_greet',
+        ]);
+        client.send({
+            id: 2,
+            method: 'tools/call',
+            params: { name: 'execute_readonly', arguments: { tool: 'example_greet' } },
+        });
+        expect((await client.next()).id).toBe(2);
+        expect(calls).toEqual([['example', 'greet']]);
+        expect(client.all()).toEqual([]);
         await client.close();
     });
 });

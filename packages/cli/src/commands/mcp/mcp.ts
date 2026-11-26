@@ -1,22 +1,14 @@
 import type { CommandErrorDefinition } from '@vendure/common/lib/command';
-import type { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import { loadMergedManifest, RefusedManifest } from '../../command-host/manifest.js';
 import { AdminProxy } from '../../command-host/mcp/admin-proxy.js';
+import { ProjectCommandWatcher } from '../../command-host/mcp/project-commands.js';
 import { checkProjectCli, findMcpProject } from '../../command-host/mcp/project.js';
-import { runToolInChild } from '../../command-host/mcp/run-tool-in-child.js';
 import { McpServer, McpToolMode } from '../../command-host/mcp/server.js';
 
-import {
-    cliNotInstalled,
-    commandsListingFailed,
-    commandsListingTimedOut,
-    notProjectCli,
-    projectAmbiguous,
-} from './mcp.errors.js';
+import { cliNotInstalled, commandsListingFailed, notProjectCli, projectAmbiguous } from './mcp.errors.js';
 
 /**
  * Starts the Developer MCP server on stdio and returns when the client closes the connection.
@@ -62,8 +54,23 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     // is missing themselves.
     const cwd = project.kind === 'found' ? project.dir : start;
 
+    // The commands come from the manifests of the project in the directory the tool calls run in,
+    // which `--dir` can name. No plugin code runs, so the listing does not hold up `initialize`.
+    const projectCommands = new ProjectCommandWatcher({
+        cwd,
+        onListingFailed: reason => writeNotice(commandsListingFailed, { project: cwd, reason }),
+        // Written to stderr, which MCP clients keep in their server log.
+        onRefused: refused => {
+            for (const { package: packageName, error } of refused) {
+                process.stderr.write(
+                    `The commands of ${packageName} are not offered: [${error.code}] ${error.message}\n`,
+                );
+            }
+        },
+    });
     const server = new McpServer({
-        commands: await listProjectCommands(cwd),
+        commands: await projectCommands.list(),
+        commandChanges: projectCommands,
         mode,
         input: process.stdin,
         output: process.stdout,
@@ -75,62 +82,6 @@ export async function runMcpCommand(options: { dir?: string; mode?: string }): P
     });
     await server.serve();
     return 0;
-}
-
-/** How long `vendure commands --json` may take before the server offers the CLI's own commands only. */
-const LIST_COMMANDS_TIMEOUT_MS = 15_000;
-
-/**
- * The commands of the project, as `vendure commands --json` lists them in the directory the tool
- * calls run in. A child process lists them because `--dir` can name another project than the one
- * this process started in, and that project's plugins decide which commands there are. Refused
- * plugins are written to stderr, which MCP clients keep in their server log.
- *
- * The server answers `initialize` only once the listing is done, so a plugin that is slow to load
- * would hold up the client. After {@link LIST_COMMANDS_TIMEOUT_MS} the server offers the CLI's own
- * commands instead, with a coded notice on stderr, and stops the child.
- */
-async function listProjectCommands(cwd: string): Promise<MergedManifestCommand[]> {
-    const controller = new AbortController();
-    let timer: NodeJS.Timeout | undefined;
-    const timedOut = new Promise<'timed-out'>(resolve => {
-        timer = setTimeout(() => resolve('timed-out'), LIST_COMMANDS_TIMEOUT_MS);
-    });
-    const listing = runToolInChild(
-        ['commands'],
-        {},
-        {
-            cliBin: process.argv[1],
-            cwd,
-            signal: controller.signal,
-            onEvent: () => undefined,
-            onLog: () => undefined,
-        },
-    );
-    const envelope = await Promise.race([listing, timedOut]);
-    clearTimeout(timer);
-    if (envelope === 'timed-out') {
-        // The child is stopped in the background. The server does not wait for it.
-        controller.abort();
-        writeNotice(commandsListingTimedOut, { project: cwd, seconds: LIST_COMMANDS_TIMEOUT_MS / 1000 });
-        return loadMergedManifest({ plugins: [] });
-    }
-    const output = envelope.output as
-        | { commands?: MergedManifestCommand[]; refused?: RefusedManifest[] }
-        | undefined;
-    if (envelope.status !== 'ok' || !Array.isArray(output?.commands)) {
-        writeNotice(commandsListingFailed, {
-            project: cwd,
-            reason: envelope.error?.message ?? envelope.status,
-        });
-        return loadMergedManifest({ plugins: [] });
-    }
-    for (const { package: packageName, error } of output.refused ?? []) {
-        process.stderr.write(
-            `The commands of ${packageName} are not offered: [${error.code}] ${error.message}\n`,
-        );
-    }
-    return output.commands;
 }
 
 /** Writes a coded notice to stderr, which MCP clients keep in their server log. */
