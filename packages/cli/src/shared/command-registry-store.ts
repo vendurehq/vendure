@@ -68,7 +68,11 @@ interface RegisteredCommand {
     node: CliCommandNode;
     /** Plugin id, or undefined for a built-in. */
     source?: string;
-    /** Plugins that have extended this command, in the order they were applied. */
+    /**
+     * Plugins that have extended this command, in the order they were applied, innermost first.
+     * `MergedManifestCommand.extendedBy` lists the extensions of a manifest command the other way
+     * round, outermost first.
+     */
     extendedBy: string[];
     /**
      * Plugin whose extension last set the description, keyed by the command
