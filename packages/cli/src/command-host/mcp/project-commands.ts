@@ -35,9 +35,9 @@ export interface ProjectCommandWatcherOptions {
  * or plugin code runs, and the listing takes milliseconds.
  *
  * While it is watched, the files that decide the commands are polled: the project's package.json,
- * the user-level plugin config and the definitions of each enabled package. When one changes,
- * the commands are listed again, so a package that is enabled, disabled or upgraded is seen
- * without a restart.
+ * the user-level plugin config, and the package.json and command manifest of each enabled
+ * package. When one changes, the commands are listed again, so a package that is enabled,
+ * disabled, installed or upgraded is seen without a restart.
  */
 export class ProjectCommandWatcher {
     private current: ListedCommands | undefined;
@@ -131,20 +131,89 @@ export class ProjectCommandWatcher {
 
 /** Reads the manifests of the CLI and of the packages that `cwd`'s project and the user enable. */
 export async function listProjectCommands(cwd: string): Promise<ListedCommands> {
-    const { manifests } = resolveCommandManifests({ cwd });
-    const { commands, refused } = await loadProjectCommands({ pluginOptions: { cwd } });
+    // Resolved once, so the files watched are those the commands were read from.
+    const resolved = resolveCommandManifests({ cwd });
+    const { commands, refused } = await loadProjectCommands({ resolved });
+    const packages = [
+        ...resolved.manifests.map(({ packageName, definitionsPath }) => ({
+            packageName,
+            from: definitionsPath,
+        })),
+        ...resolved.failures.map(({ packageName }) => ({ packageName, from: undefined })),
+    ];
     return {
         commands,
         refused,
-        files: defaultWatchedFiles(
-            cwd,
-            manifests.map(manifest => manifest.definitionsPath),
-        ),
+        files: [
+            ...defaultWatchedFiles(cwd, []),
+            ...packages.flatMap(({ packageName, from }) => packageFiles(cwd, packageName, from)),
+        ],
     };
 }
 
-function defaultWatchedFiles(cwd: string, definitionsPaths: string[]): string[] {
-    return [path.join(cwd, 'package.json'), getGlobalCliConfigPath(), ...definitionsPaths];
+function defaultWatchedFiles(cwd: string, extra: string[]): string[] {
+    return [path.join(cwd, 'package.json'), getGlobalCliConfigPath(), ...extra];
+}
+
+/**
+ * The files of an enabled package that decide its commands: its package.json and the command
+ * manifest it names. A package that resolved is found above its definitions. One that did not,
+ * for example because it is not installed yet, is looked for in each `node_modules` above the
+ * project, so an install is noticed.
+ */
+function packageFiles(cwd: string, packageName: string, definitionsPath: string | undefined): string[] {
+    const packageJsonPaths = definitionsPath
+        ? [findPackageJson(path.dirname(definitionsPath), packageName)].filter(
+              (file): file is string => file !== undefined,
+          )
+        : ancestors(cwd).map(dir => path.join(dir, 'node_modules', packageName, 'package.json'));
+    return packageJsonPaths.flatMap(packageJsonPath => {
+        const manifest = declaredManifestPath(packageJsonPath);
+        return manifest ? [packageJsonPath, manifest] : [packageJsonPath];
+    });
+}
+
+/** The package.json of the package named `packageName`, at or above `dir`. */
+function findPackageJson(dir: string, packageName: string): string | undefined {
+    for (const candidate of ancestors(dir)) {
+        const file = path.join(candidate, 'package.json');
+        try {
+            if ((JSON.parse(fs.readFileSync(file, 'utf-8')) as { name?: unknown }).name === packageName) {
+                return file;
+            }
+        } catch {
+            // No package.json here, or not one that can be read.
+        }
+    }
+    return undefined;
+}
+
+/** The command manifest a package.json names, if it can be read and names one. */
+function declaredManifestPath(packageJsonPath: string): string | undefined {
+    try {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as {
+            vendure?: { commandManifest?: unknown };
+        };
+        const manifest = packageJson.vendure?.commandManifest;
+        return typeof manifest === 'string'
+            ? path.resolve(path.dirname(packageJsonPath), manifest)
+            : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+/** `dir` and each directory above it. */
+function ancestors(dir: string): string[] {
+    const dirs = [path.resolve(dir)];
+    for (
+        let parent = path.dirname(dirs[0]);
+        parent !== dirs[dirs.length - 1];
+        parent = path.dirname(parent)
+    ) {
+        dirs.push(parent);
+    }
+    return dirs;
 }
 
 /** What a client sees of the commands: a change to anything else does not change the tools. */

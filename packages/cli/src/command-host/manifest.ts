@@ -27,6 +27,7 @@ import { pathToFileURL } from 'node:url';
 
 import { RESERVED_COMMANDS } from '../shared/command-registry-store.js';
 import {
+    CliPluginLoadResult,
     failureAffectsCommandManifest,
     ResolveCliPluginsOptions,
     resolveCommandManifests,
@@ -154,6 +155,11 @@ export interface LoadProjectCommandsOptions {
     /** The plugin manifests, when the caller has resolved them already. */
     plugins?: ResolvedCommandManifest[];
     /**
+     * The enabled packages, when the caller has resolved them already and wants the packages that
+     * failed to resolve reported as {@link loadProjectCommands} reports them.
+     */
+    resolved?: Pick<CliPluginLoadResult, 'manifests' | 'failures'>;
+    /**
      * Paths the Commander commands already take, such as `add` and `migrate`.
      * Defaults to those recorded with {@link setCommanderPaths}, which is an empty list in a process
      * that did not start through `cli.ts`, such as a test.
@@ -185,7 +191,7 @@ export async function loadProjectCommands(
             await registrationCheck(),
         );
     }
-    const { manifests, failures } = resolveCommandManifests(options.pluginOptions);
+    const { manifests, failures } = options.resolved ?? resolveCommandManifests(options.pluginOptions);
     const merged = mergeProjectManifests(
         core,
         manifests,

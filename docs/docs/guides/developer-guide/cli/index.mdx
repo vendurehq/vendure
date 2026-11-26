@@ -1026,11 +1026,12 @@ Every tool call runs the command as `vendure <command> --json` in a new process,
 JSON document. Changing commands run one at a time, and read-only commands run in parallel. When the
 client cancels a call, the command and the processes it started are stopped.
 
-The server reads the tools from the command manifests of the CLI and of the project's enabled packages. It
-runs no plugin code to list them, so a slow plugin does not hold up the client. While it runs, it checks the
-project's `package.json`, the `cli.json` of your global plugins and the enabled packages once a second. When
-you enable, disable or upgrade a package, the new commands are offered without a restart. With
-`--mode direct`, the server also sends `notifications/tools/list_changed`, so the client lists the tools again.
+The server reads the tools from the command manifests of the CLI and of the project's enabled packages, in
+its own process. It starts no process and imports no command code to list them. While it runs, it checks the
+project's `package.json`, the `cli.json` of your global plugins, and the `package.json` and manifest of each
+enabled package once a second. When you enable, disable, install or upgrade a package, the new commands are
+offered without a restart. With `--mode direct`, the server also sends `notifications/tools/list_changed`, so
+the client lists the tools again.
 
 #### The admin tools of the dev server
 
