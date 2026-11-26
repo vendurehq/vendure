@@ -10,6 +10,8 @@ import { addServiceDefinition } from '../commands/add/service/add-service.comman
 import { apiDefinition } from '../commands/api/api.command.js';
 import { authDefinitions } from '../commands/auth/auth.command.js';
 import { commandsDefinition } from '../commands/commands/commands.command.js';
+import { consoleDefinitions } from '../commands/console/console.command.js';
+import { devDefinition } from '../commands/dev/dev.command.js';
 import { devServerDefinitions } from '../commands/devserver/devserver.command.js';
 import { doctorDefinition } from '../commands/doctor/doctor.command.js';
 import { explainDefinition } from '../commands/explain/explain.command.js';
@@ -36,6 +38,8 @@ export const coreCommandDefinitions: CommandDefinition[] = [
     apiDefinition,
     ...authDefinitions,
     commandsDefinition,
+    ...consoleDefinitions,
+    devDefinition,
     ...devServerDefinitions,
     doctorDefinition,
     explainDefinition,

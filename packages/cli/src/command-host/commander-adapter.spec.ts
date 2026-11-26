@@ -1,4 +1,4 @@
-import { defineCommand } from '@vendure/common/lib/command';
+import { CommandDefinition, defineCommand } from '@vendure/common/lib/command';
 import { buildCommandManifest, mergeManifests } from '@vendure/common/lib/command/manifest';
 import { Command } from 'commander';
 import { EventEmitter } from 'node:events';
@@ -12,10 +12,12 @@ import { runCommandInHarness } from './__tests__/command-harness.js';
 import {
     CancellationSource,
     collectFlagInput,
+    commandLineWithOptionsLast,
     createCancellation,
     createHostEnvironment,
     findMismatch,
     jsonRequested,
+    optionNotTaken,
     registerManifestCommands,
 } from './commander-adapter.js';
 import { executeCommand } from './host.js';
@@ -67,6 +69,40 @@ describe('registerManifestCommands', () => {
         const brand = root.commands.find(c => c.name() === 'brand') as Command;
         expect(brand.commands[0].name()).toBe('new');
         expect(brand.commands[0].commands[0].name()).toBe('cmd');
+    });
+
+    it('registers a command and the commands under it, in either order', async () => {
+        const parent = defineCommand({ ...demo, path: ['acme', 'deploy'], consents: {}, plan: undefined });
+        const child = defineCommand({
+            ...demo,
+            path: ['acme', 'deploy', 'plan'],
+            consents: {},
+            plan: undefined,
+        });
+        for (const order of [
+            [child, parent],
+            [parent, child],
+        ]) {
+            const built = await buildCommandManifest('@test/pkg', '1.0.0', order);
+            const root = new Command('vendure');
+            const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+            let written: unknown[][];
+            try {
+                registerManifestCommands(root, mergeManifests([built]), { loadDefinitions: async () => [] });
+            } finally {
+                // Read before mockRestore(), which clears the recorded calls.
+                written = [...stderr.mock.calls];
+                stderr.mockRestore();
+            }
+            // The parent took the group over instead of counting as a replaced command.
+            expect(written).toEqual([]);
+            const acme = root.commands.find(c => c.name() === 'acme') as Command;
+            const deploy = acme.commands.find(c => c.name() === 'deploy') as Command;
+            expect(acme.commands.filter(c => c.name() === 'deploy')).toHaveLength(1);
+            expect(deploy.description()).toBe(demo.description);
+            expect(deploy.options.map(o => o.long)).toContain('--name');
+            expect(deploy.commands.map(c => c.name())).toEqual(['plan']);
+        }
     });
 
     it('registers every field as an optional flag, never as a required one', async () => {
@@ -302,8 +338,10 @@ describe('the credential check of createHostEnvironment', () => {
         mcp: false,
         notice: () => undefined,
         progress: () => undefined,
+        output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
+        consent: async () => true as const,
     };
     let configDir: string;
 
@@ -325,16 +363,18 @@ describe('the credential check of createHostEnvironment', () => {
         try {
             const env = createHostEnvironment(new AbortController());
 
-            const needs = await env.requireCredential?.('cloud', ctx);
+            const found = await env.requireCredential?.('cloud', ctx);
 
-            expect(needs).toEqual([
-                expect.objectContaining({
-                    kind: 'input',
-                    field: 'token',
-                    secret: true,
-                    fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
-                }),
-            ]);
+            expect(found).toEqual({
+                needs: [
+                    expect.objectContaining({
+                        kind: 'input',
+                        field: 'token',
+                        secret: true,
+                        fix: expect.objectContaining({ path: ['auth', 'login'], input: { json: true } }),
+                    }),
+                ],
+            });
             expect(fetch).not.toHaveBeenCalled();
         } finally {
             vi.unstubAllGlobals();
@@ -376,6 +416,130 @@ describe('the credential check of createHostEnvironment', () => {
         vi.stubEnv('VENDURE_CLOUD_TOKEN', 'vcdk_agent_key');
         const env = createHostEnvironment(new AbortController());
 
-        await expect(env.requireCredential?.('cloud', ctx)).resolves.toBeUndefined();
+        await expect(env.requireCredential?.('cloud', ctx)).resolves.toEqual({
+            credential: { source: 'environment', token: 'vcdk_agent_key' },
+        });
+    });
+});
+
+describe('options of a command that has commands under it', () => {
+    const shared = {
+        environment: z.string().optional().describe('The environment'),
+        dryRun: z.boolean().optional().describe('Only show what would change'),
+    };
+    const deploy = defineCommand({
+        path: ['acme', 'deploy'],
+        description: 'Deploy',
+        behavior: 'mutating',
+        schemas: async () => ({ input: z.object({ ...shared, force: z.boolean().optional() }) }),
+        cli: { flags: { environment: { short: '-e' }, force: { short: '-f' } } },
+        run: async () => ({ run: async () => ({}) }),
+    });
+    const plan = defineCommand({
+        path: ['acme', 'deploy', 'plan'],
+        description: 'Plan',
+        behavior: 'readonly',
+        schemas: async () => ({ input: z.object(shared) }),
+        cli: { flags: { environment: { short: '-e' } } },
+        run: async () => ({ run: async () => ({}) }),
+    });
+    // Three levels, with no command at `acme deploy plan`: `run` takes `environment` only.
+    const runIt = defineCommand({
+        path: ['acme', 'deploy', 'plan', 'run'],
+        description: 'Run the plan',
+        behavior: 'mutating',
+        schemas: async () => ({ input: z.object({ environment: shared.environment }) }),
+        cli: { flags: { environment: { short: '-e' } } },
+        run: async () => ({ run: async () => ({}) }),
+    });
+
+    /**
+     * Parses a command line, with the action of the command that runs replaced, and returns the
+     * input that command would receive and the option it does not take, if any.
+     */
+    async function parse(args: string[], commands: CommandDefinition[] = [deploy, plan]) {
+        const built = await buildCommandManifest('@test/pkg', '1.0.0', commands);
+        const root = new Command('vendure');
+        registerManifestCommands(root, mergeManifests([built]), { loadDefinitions: async () => [] });
+        let ran: Command | undefined;
+        const replace = (command: Command) => {
+            command.action(() => {
+                ran = command;
+            });
+            command.commands.forEach(replace);
+        };
+        root.commands.forEach(replace);
+        await root.parseAsync(['node', 'vendure', ...args]);
+        if (!ran) {
+            throw new Error('no command ran');
+        }
+        const fields = Object.keys(ran.opts());
+        return {
+            ran: ran.name(),
+            input: collectFlagInput(ran, ['environment', 'dryRun', 'force', ...fields]),
+            notTaken: optionNotTaken(ran),
+        };
+    }
+
+    it('gives the command that runs an option of the command above, before or after its name', async () => {
+        for (const args of [
+            ['acme', 'deploy', 'plan', '--environment=prod'],
+            ['acme', 'deploy', '--environment', 'prod', 'plan'],
+            ['acme', 'deploy', '-eprod', 'plan'],
+            ['acme', 'deploy', 'plan', '-e', 'prod'],
+        ]) {
+            const result = await parse(args);
+            expect(result).toMatchObject({ ran: 'plan', input: { environment: 'prod' } });
+            expect(result.notTaken).toBeUndefined();
+        }
+        expect((await parse(['acme', 'deploy', '--no-dry-run', 'plan'])).input).toMatchObject({
+            dryRun: false,
+        });
+    });
+
+    it('names an option of the command above that the command that runs does not take', async () => {
+        // Named by its long flag, whichever form was given.
+        expect((await parse(['acme', 'deploy', '--force', 'plan'])).notTaken).toBe('--force');
+        expect((await parse(['acme', 'deploy', 'plan', '-f'])).notTaken).toBe('--force');
+        expect((await parse(['acme', 'deploy', 'plan', '--no-force'])).notTaken).toBe('--no-force');
+        // The command above itself takes it.
+        expect((await parse(['acme', 'deploy', '--force'])).notTaken).toBeUndefined();
+    });
+
+    it('reads an option two levels up, through a group between them', async () => {
+        const result = await parse(
+            ['acme', 'deploy', '--environment', 'prod', 'plan', 'run'],
+            [deploy, runIt],
+        );
+        expect(result).toMatchObject({ ran: 'run', input: { environment: 'prod' } });
+        expect((await parse(['acme', 'deploy', '--dry-run', 'plan', 'run'], [deploy, runIt])).notTaken).toBe(
+            '--dry-run',
+        );
+    });
+});
+
+describe('commandLineWithOptionsLast', () => {
+    function program() {
+        const root = new Command('vendure');
+        const cloud = root.command('cloud');
+        cloud.command('project').command('list');
+        cloud.command('deploy');
+        root.command('doctor');
+        return root;
+    }
+
+    it('moves the options after the full command path', () => {
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--json', 'project', 'list'])).toBe(
+            'vendure cloud project list --json',
+        );
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--env', 'prod', 'deploy'])).toBe(
+            'vendure cloud deploy --env prod',
+        );
+    });
+
+    it('gives nothing when the arguments do not name a command', () => {
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--json', 'project'])).toBeUndefined();
+        expect(commandLineWithOptionsLast(program(), ['cloud', '--json', 'nope'])).toBeUndefined();
+        expect(commandLineWithOptionsLast(program(), ['--json'])).toBeUndefined();
     });
 });

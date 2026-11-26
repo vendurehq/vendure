@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-24T22:02:51+01:00"
+          "lastModified": "2026-11-26T15:59:01+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -313,7 +313,7 @@
               "title": "Breaking API Changes",
               "slug": "breaking-api-changes",
               "file": "docs/guides/developer-guide/migrating-from-v3/breaking-api-changes.mdx",
-              "lastModified": "2026-11-25T07:07:42+01:00"
+              "lastModified": "2026-11-26T15:03:29+01:00"
             },
             {
               "title": "Storefront Migration",
@@ -328,7 +328,7 @@
               "lastModified": "2026-11-16T17:03:49+01:00"
             }
           ],
-          "lastModified": "2026-11-25T07:07:42+01:00"
+          "lastModified": "2026-11-26T06:15:50+01:00"
         },
         {
           "title": "Worker & Job Queue",
@@ -370,7 +370,7 @@
           "title": "Custom Strategies in Plugins",
           "slug": "custom-strategies-in-plugins",
           "file": "docs/guides/developer-guide/custom-strategies-in-plugins/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-11-26T10:58:49+01:00"
         },
         {
           "title": "Channel Aware",
@@ -883,7 +883,7 @@
           "title": "Assistant inside Vendure",
           "slug": "assistant-inside-vendure",
           "file": "docs/guides/mcp-server/assistant-inside-vendure/index.mdx",
-          "lastModified": "2026-11-22T20:20:28+01:00"
+          "lastModified": "2026-11-26T10:58:49+01:00"
         },
         {
           "title": "Assistant outside Vendure",
@@ -3087,6 +3087,12 @@
               "file": "docs/reference/typescript-api/plugin/index.mdx",
               "children": [
                 {
+                  "title": "IsCompatible",
+                  "slug": "is-compatible",
+                  "file": "docs/reference/typescript-api/plugin/is-compatible.mdx",
+                  "lastModified": "2026-11-26T10:00:34Z"
+                },
+                {
                   "title": "Plugin Utilities",
                   "slug": "plugin-utilities",
                   "file": "docs/reference/typescript-api/plugin/plugin-utilities.mdx",
@@ -3108,7 +3114,7 @@
                   "title": "VendurePluginMetadata",
                   "slug": "vendure-plugin-metadata",
                   "file": "docs/reference/typescript-api/plugin/vendure-plugin-metadata.mdx",
-                  "lastModified": "2026-10-19T08:14:21+02:00"
+                  "lastModified": "2026-11-26T10:00:34Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4670,7 +4676,19 @@
               "title": "vendure commands",
               "slug": "commands",
               "file": "docs/reference/cli/commands.mdx",
-              "lastModified": "2026-11-24T16:46:30+01:00"
+              "lastModified": "2026-11-26T09:52:59Z"
+            },
+            {
+              "title": "vendure console",
+              "slug": "console",
+              "file": "docs/reference/cli/console.mdx",
+              "lastModified": "2026-11-26T05:18:11Z"
+            },
+            {
+              "title": "vendure dev",
+              "slug": "dev",
+              "file": "docs/reference/cli/dev.mdx",
+              "lastModified": "2026-11-25T19:55:51+01:00"
             },
             {
               "title": "vendure devserver",
@@ -4706,13 +4724,13 @@
               "title": "vendure migrate",
               "slug": "migrate",
               "file": "docs/reference/cli/migrate.mdx",
-              "lastModified": "2026-11-24T16:46:30+01:00"
+              "lastModified": "2026-11-26T13:50:08+01:00"
             },
             {
               "title": "vendure seed",
               "slug": "seed",
               "file": "docs/reference/cli/seed.mdx",
-              "lastModified": "2026-11-24T20:22:57Z"
+              "lastModified": "2026-11-26T13:50:08+01:00"
             },
             {
               "title": "vendure store",
@@ -4721,7 +4739,7 @@
               "lastModified": "2026-11-24T17:24:04Z"
             }
           ],
-          "lastModified": "2026-11-24T20:26:08Z"
+          "lastModified": "2026-11-26T06:15:50+01:00"
         },
         {
           "title": "GraphQL API",

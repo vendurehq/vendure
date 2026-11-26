@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import { runCli } from '../shared/__tests__/run-cli.js';
-import { assertCliPlugin } from '../shared/cli-plugin.js';
+import { assertCommandTree } from '../shared/cli-plugin.js';
 
 import { builtinCommandDefs } from './builtins.js';
 import { migrateCommandDef } from './migrate/command.js';
 
 describe('builtinCommandDefs', () => {
     /**
-     * Holds the built-ins to the rules every plugin is already held to.
+     * Holds the built-ins to the rules every command tree is held to.
      *
-     * `assertCliPlugin` validates a plugin when it loads, so a plugin that
-     * declares one flag twice is rejected by name. Nothing validates the
-     * built-ins, so the same mistake reaches Commander instead. Commander
-     * accepts a repeated flag up to v11 and throws from v13. The throw happens
+     * `assertCommandTree` rejects a tree that declares one flag twice by
+     * name. Nothing else validates the built-ins, so the same mistake reaches
+     * Commander instead. Commander accepts a repeated flag up to v11 and
+     * throws from v13. The throw happens
      * while a built-in is registered, so every `vendure` command fails at
      * startup, not just the one that declared the flag.
      *
@@ -21,8 +21,8 @@ describe('builtinCommandDefs', () => {
      * parent options: every sub-option is flattened onto the same command, so
      * the flag arrives twice.
      */
-    it('satisfies the rules a CLI plugin is validated against', () => {
-        expect(() => assertCliPlugin({ id: 'builtins', commands: builtinCommandDefs })).not.toThrow();
+    it('passes assertCommandTree', () => {
+        expect(() => assertCommandTree('builtins', builtinCommandDefs)).not.toThrow();
     });
 });
 
@@ -51,7 +51,7 @@ describe('builtinCommandDefs project gate', () => {
             .map(command => command.name)
             .sort();
 
-        expect(ungated).toEqual(['codemod', 'console', 'dev', 'mcp', 'plugins']);
+        expect(ungated).toEqual(['codemod', 'mcp', 'plugins']);
     });
 
     /**

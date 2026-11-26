@@ -254,6 +254,61 @@ The Vendure CLI signs in with a device login, so the browser login API that `@ve
 | Imports from `@vendure/cli/dist/commands/console/cli-auth` | The package root, `@vendure/cli` |
 | `ConsoleSession.refreshToken` | Nothing. The session an `afterConsoleLink` hook gets never carried one. |
 
+## vendure dev
+
+`vendure dev` is declared with `defineCommand`, like the CLI's other agent-ready commands.
+
+| Before | In v4 |
+|---|---|
+| `vendure dev --project <dir>` | `vendure dev --dir <dir>`. `--project` names the Vendure Cloud project. |
+| Ctrl+C ended the run with exit code 130 | A run stopped with Ctrl+C or SIGTERM ends with exit code 0. A run that a process ends with an error exits 1. |
+| `vendure dev` stopped at once on Ctrl+C or SIGTERM | `vendure dev` waits up to 30 s for its processes after Ctrl+C or SIGTERM, then gives up with `cli.cancelled`. A second Ctrl+C ends it at once. |
+| `devCommand()`, imported from `@vendure/cli/dist/commands/dev/dev.js` | Run `vendure dev`. Files under `dist` are not a public API of `@vendure/cli`. |
+| A CLI plugin could add options to `dev` and wrap its action with `extendCommands` | That extension is skipped, with a warning, and the rest of the plugin still loads. Declare an `extensions` entry with `defineCommandExtension` instead, which adds typed fields and wraps `run` with `next()` (see [Extending a command](/guides/developer-guide/cli/#extending-a-command)). |
+
+Update scripts, `package.json` scripts and CI jobs that pass `--project` to `vendure dev`.
+
+## vendure console
+
+`vendure console link`, `status` and `unlink` are declared with `defineCommand`, like the CLI's other agent-ready
+commands. They are also tools of the Developer MCP.
+
+| Before | In v4 |
+|---|---|
+| `vendure console link --project <dir>` | `vendure console link --dir <dir>`. The same applies to `status` and `unlink`. |
+| `vendure console link --console-project <id\|slug>` | `vendure console link --project <id\|slug>`. A `--project` value that is a Vendure project directory is refused with the coded error `console.project-is-directory`. |
+| `--force` replaced a link with another Console Project, or removed a link, without asking | Each needs a named consent: `replaceLink` for `link`, and `removeLink` for `unlink`. A person at a terminal is asked. Without one, the command returns `incomplete` with a `consent` need, and you run it again with `--replace-link <digest>` or `--remove-link <digest>`. |
+| `vendure console link --force` without `--console-project` chose a new Project in the terminal | Run `vendure console unlink`, then `vendure console link`. |
+| `--yes` answered the CLI's confirmations, including replacing and removing a link | `--yes` is gone from `vendure console`. It never gives a consent. Without a person at a terminal, a repair runs plugin setup without asking, as before. |
+| `--json` wrote a `ConsoleCommandResult` (`schemaVersion`, `operation`, `outcome`, `data`, `needs`, `nextSteps`) | `--json` writes the envelope that every command writes. `link` returns `outcome`, `manifestPath`, `project`, `account`, `plugins` and `nextSteps` as its output, its needs as an `incomplete` result, a plugin setup that failed after the link as a `failed` result with that output, and a link that failed as the coded error `console.link-failed`. `ConsoleCommandResult` is deprecated. |
+| `--non-interactive` | Removed. A run never prompts without a person at a terminal: under `--json`, through the Developer MCP, with `CI` or `VENDURE_CLI_NON_INTERACTIVE` set, or without a TTY. |
+| A CLI plugin could add options to `console` and wrap its action with `extendCommands` | That extension is skipped, with a warning. Declare an `extensions` entry with `defineCommandExtension` instead (see [Extending a command](/guides/developer-guide/cli/#extending-a-command)). `afterConsoleLink` hooks run as before. |
+| An `afterConsoleLink` hook read the parsed options in `context.options`: `project` (the directory), `consoleProject`, `organization`, `force`, `yes`, `json`, `nonInteractive` and plugin flags | `context.options` holds the command's input: `dir` (the directory, which was `project`), `consoleProject` (unchanged) and `organization`. Hooks no longer get `project`. `json`, `nonInteractive`, `yes`, `force` and plugin flags are gone. Read `context.force` for the `replaceLink` consent, and `context.outputMode` and `context.isNonInteractive` for the rest. |
+| An `afterConsoleLink` hook's `needs` went into the `--json` result as they were | Without a person, a need with a `fix`, or an `input` need for `dir`, `project` or `organization`, makes the result `incomplete`. Any other need is reported as a next step, and the result is `failed`. |
+
+Update scripts and CI jobs that pass `--project <dir>`, `--console-project`, `--force`, `--yes` or `--non-interactive`
+to `vendure console`.
+
+Without a person at a terminal, as in CI, scripts and agents, an error that an `afterConsoleLink` hook throws is
+reported in general terms: `The <plugin> plugin failed after linking: Setup did not finish.` This is deliberate, because
+CI logs can be public and a hook's error can hold anything the plugin put in it. To see the hook's own message, run
+`vendure console link` at a terminal, or read the hook's own logs. Errors the CLI writes itself are always reported as
+they are.
+
+## CLI plugin commands
+
+A CLI plugin no longer declares commands. A package adds its commands by declaring each one with `defineCommand` from `@vendure/common/lib/command` and shipping the command manifest built from them. This gives every command `--json`, `--input`, coded errors and a tool in the Developer MCP. See [Commands declared with `defineCommand`](/guides/developer-guide/cli/#commands-declared-with-definecommand).
+
+| Before | In v4 |
+|---|---|
+| `CliPlugin.commands` declared Commander-style commands, groups and subcommands | Removed. A CLI plugin that declares a non-empty `commands` array fails to load with the coded error `plugin.commands-removed`, and the rest of the CLI keeps working. Declare the commands with `defineCommand` and `defineCommandGroup`, build the manifest with `writeCommandManifest` from `@vendure/common/lib/command/manifest`, and list it in `package.json` as `vendure.commandManifest` and `vendure.commandDefinitions`. A plugin that was built with `commands: []` keeps loading. `CliPlugin` no longer declares `commands`, so the source of a TypeScript plugin drops `commands: []` when it is rebuilt against v4. |
+| `replaces: true` on a plugin command replaced a built-in command, and `CliCommandDefinition.replaces` declared it | Removed. A plugin cannot replace a built-in. Extend a `defineCommand` command with `defineCommandExtension`, and a built-in Commander command such as `start` with `extendCommands`. |
+| `requiresProject` on a plugin command | The field stays on the command types of the built-in commands. It no longer applies to plugins, since they declare no commands. |
+| `vendure.cliCommands` in `package.json` listed a plugin's command names for hints | Removed. The CLI reads the command names from the command manifest, without loading the package's code. |
+| `vendure plugins --json` listed `declaredCommands` and `loadedCommands` | Removed. `manifestCommands` lists the top-level commands of the package's manifest. |
+| `CLI_PLUGIN_EXTENSION_POINTS` included `commands`, `subcommands` and `requiresProject` | Removed from the list. A plugin that checks for `commands` learns from its absence that it has to declare its commands with `defineCommand`. |
+| The `command.replaced` error of a Developer MCP tool call to a command that a plugin replaced | Removed, because no plugin can replace a command. |
+
 ## Removed deprecated APIs
 
 These APIs were deprecated during v3 or earlier and are removed in v4. Each has a replacement that also works in v3, so you can move to it before you upgrade.

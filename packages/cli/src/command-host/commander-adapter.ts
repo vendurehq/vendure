@@ -1,14 +1,22 @@
-import { CommandDefinition, CommandEvent, isIncompleteResult } from '@vendure/common/lib/command';
-import { MergedManifestCommand } from '@vendure/common/lib/command/manifest';
+import {
+    CommandDefinition,
+    CommandEvent,
+    internalFieldsOf,
+    isIncompleteResult,
+    JSON_SCHEMA_TARGET,
+} from '@vendure/common/lib/command';
+import { flagValueSyntax, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
-import { requireCredential } from '../auth/credential.js';
+import { describeAccount, renewCredential, requireCredential } from '../auth/credential.js';
+import { pluginCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
 
 import { hostErrors } from './host-errors.js';
 import { errorResult, executeCommand, HostEnvironment, HostResult } from './host.js';
+import { CORE_SOURCE, LoadedCommand } from './manifest.js';
 import { compareCodeUnits, kebab } from './naming.js';
 import { presentForPeople } from './present.js';
 import { createClackPrompter } from './prompter.js';
@@ -19,12 +27,26 @@ import { JsonOutput, redirectStdoutToStderr } from './stdio.js';
 /** How long a command has to stop after it is cancelled, before the host gives up on it. */
 const CANCEL_GRACE_MS = 10_000;
 
+/**
+ * How long a `service` command, such as `vendure dev`, has to stop after it is cancelled. It is
+ * longer than {@link CANCEL_GRACE_MS}, because an extension stops its own processes, such as a
+ * database, in a `finally` once the command has stopped. A process that never stops still can't
+ * hold a script forever.
+ */
+const SERVICE_CANCEL_GRACE_MS = 30_000;
+
 export interface AdapterOptions {
     /**
-     * Loads the command declarations. Called only when a command runs, never to build the
-     * command line, which is built from the manifest alone.
+     * Loads the command declarations of the package that declared a command, its manifest's
+     * `source`. Called only when a command runs, never to build the command line, which is built
+     * from the manifests alone.
      */
-    loadDefinitions(): Promise<CommandDefinition[]>;
+    loadDefinitions(source: string): Promise<CommandDefinition[]>;
+    /**
+     * Loads one command with the extensions of other packages applied. Without it, the command
+     * runs as `loadDefinitions` declares it.
+     */
+    loadCommand?(command: MergedManifestCommand): Promise<LoadedCommand>;
 }
 
 /**
@@ -46,6 +68,140 @@ function findChild(parent: Command, name: string): Command | undefined {
 }
 
 /**
+ * The commands this adapter registered from a manifest. {@link optionNotTaken} checks only these
+ * ancestors: a command with commands under it, such as `cloud deploy`, reads its options wherever
+ * they are on the line, and an option of it that the command that runs doesn't take would otherwise
+ * be ignored.
+ */
+const manifestCommands = new WeakSet<Command>();
+
+/**
+ * The first option given to a manifest command above `command` that `command` doesn't take, such as
+ * `--force` of `cloud deploy` in `cloud deploy --force plan`. Undefined when there is none.
+ */
+export function optionNotTaken(command: Command): string | undefined {
+    for (let ancestor = command.parent; ancestor; ancestor = ancestor.parent) {
+        if (!manifestCommands.has(ancestor)) {
+            continue;
+        }
+        for (const option of ancestor.options) {
+            const name = option.attributeName();
+            if (
+                ancestor.getOptionValueSource(name) !== 'cli' ||
+                command.options.some(candidate => candidate.attributeName() === name)
+            ) {
+                continue;
+            }
+            // `--x` and `--no-x` set the same value: name the one that set it.
+            const value: unknown = ancestor.getOptionValue(name);
+            const given =
+                ancestor.options.find(
+                    candidate => candidate.attributeName() === name && candidate.negate === (value === false),
+                ) ?? option;
+            return given.long ?? given.short ?? given.flags;
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Marks a manifest command as one with commands under it. Its action then sees a name that is none
+ * of them, and reports it as cli.usage instead of Commander's "too many arguments".
+ */
+function acceptsCommandsUnder(command: Command): void {
+    command.allowExcessArguments();
+}
+
+/** Ends the run with a host error: the envelope under `--json`, a coded line otherwise. */
+function stop(result: HostResult): never {
+    if (jsonRequested(process.argv)) {
+        fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+    } else {
+        const error = result.envelope.error;
+        process.stderr.write(`[${error?.code ?? 'cli.usage'}] ${error?.message ?? ''}\n`);
+    }
+    process.exit(result.exitCode);
+}
+
+/**
+ * The groups this adapter made only to hold manifest commands, such as `cloud deploy` before the
+ * command `cloud deploy` itself is registered. A manifest command at that path takes the group
+ * over, with its commands.
+ */
+const manifestGroups = new WeakSet<Command>();
+
+/**
+ * The command line with every option moved after the full command path, when the arguments name a
+ * command of the program, such as `vendure cloud project list --json` for
+ * `vendure cloud --json project list`. Undefined when they don't.
+ */
+export function commandLineWithOptionsLast(program: Command, args: readonly string[]): string | undefined {
+    const path: string[] = [];
+    const rest: string[] = [];
+    let command = program;
+    for (const arg of args) {
+        const child =
+            arg.startsWith('-') || command.commands.length === 0 ? undefined : findChild(command, arg);
+        if (child) {
+            path.push(arg);
+            command = child;
+        } else {
+            rest.push(arg);
+        }
+    }
+    if (path.length === 0 || command.commands.length > 0) {
+        return undefined;
+    }
+    return ['vendure', ...path, ...rest].join(' ');
+}
+
+/**
+ * A group of manifest commands, such as `cloud`, takes no options of its own, so Commander refuses
+ * an option given before the subcommand. When the arguments after it name a command, the run
+ * stops with a coded error that names the same command line with the options at the end. Under
+ * `--json`, any other error of the group is the `cli.usage` envelope, as for a command. Otherwise
+ * Commander's own text is written as before.
+ */
+function reportOptionsBeforeSubcommand(group: Command): void {
+    let root = group;
+    while (root.parent) {
+        root = root.parent;
+    }
+    // Commander writes its error text before it calls `exitOverride`. The text is held until the
+    // error is known, so that the coded error or the envelope can take its place.
+    let heldText = '';
+    group.configureOutput({ writeErr: text => (heldText += text) });
+    group.exitOverride(error => {
+        const passThrough =
+            error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
+        const line =
+            error.code === 'commander.unknownOption'
+                ? commandLineWithOptionsLast(root, process.argv.slice(2))
+                : undefined;
+        const json = jsonRequested(process.argv);
+        if (line) {
+            const option = /'([^']+)'/.exec(error.message)?.[1] ?? 'An option';
+            const result = errorResult(hostErrors.optionBeforeCommand, { option, line });
+            if (json) {
+                fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+            } else {
+                process.stderr.write(
+                    `[${hostErrors.optionBeforeCommand.code}] ${result.envelope.error?.message ?? ''}\n`,
+                );
+            }
+            process.exit(result.exitCode);
+        }
+        if (json && !passThrough) {
+            const result = errorResult(hostErrors.usage, { message: error.message.replace(/^error: /, '') });
+            fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
+            process.exit(result.exitCode);
+        }
+        process.stderr.write(heldText);
+        process.exit(error.exitCode);
+    });
+}
+
+/**
  * Adds the commands of a manifest to a Commander program. Every field is an optional flag, so
  * that Commander never rejects a run before the host has read `--input` and decided what is
  * missing. A command goes under the group that already exists for its path, such as `add`.
@@ -61,6 +217,14 @@ export function registerManifestCommands(
             let group = findChild(parent, segment);
             if (!group) {
                 group = parent.command(segment).description(`${segment} commands`);
+                manifestGroups.add(group);
+                reportOptionsBeforeSubcommand(group);
+                if (parent === program && manifestCommand.source !== CORE_SOURCE) {
+                    group.helpGroup(pluginCommandsHeading(manifestCommand.source));
+                }
+            }
+            if (manifestCommands.has(group)) {
+                acceptsCommandsUnder(group);
             }
             parent = group;
         }
@@ -71,21 +235,22 @@ export function registerManifestCommands(
 function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, options: AdapterOptions) {
     const name = manifestCommand.path[manifestCommand.path.length - 1];
     const existing = findChild(parent, name);
-    let replacedBy: string | undefined;
-    if (existing) {
-        // A CLI plugin already replaced this command. The plugin's command wins for people and
-        // in a shell. A tool call from `vendure mcp` expects the declared command, so it gets a
-        // coded error instead of the plugin's output.
-        replacedBy = /^Commands from (.+):$/.exec(existing.helpGroup())?.[1] ?? 'a CLI plugin';
-        if (!isMcpCall()) {
-            process.stderr.write(`Replaced command "${manifestCommand.path.join(' ')}" via ${replacedBy}\n`);
-            return;
-        }
-        // Commander exposes its subcommands as a read-only array, and has no way to remove one.
-        const siblings = parent.commands as Command[];
-        siblings.splice(siblings.indexOf(existing), 1);
+    const group = existing && manifestGroups.has(existing) ? existing : undefined;
+    if (existing && !group) {
+        // The merge refuses a command whose path a built-in command already has, so only a
+        // caller that skipped it gets here.
+        throw new Error(`The command "${manifestCommand.path.join(' ')}" is already registered`);
     }
-    const command = parent.command(name).description(manifestCommand.description);
+    const command = (group ?? parent.command(name)).description(manifestCommand.description);
+    if (group) {
+        manifestGroups.delete(group);
+        // It has commands under it already.
+        acceptsCommandsUnder(command);
+    }
+    manifestCommands.add(command);
+    if (parent.parent === null && manifestCommand.source !== CORE_SOURCE) {
+        command.helpGroup(pluginCommandsHeading(manifestCommand.source));
+    }
     const positional = manifestCommand.cli.positional ?? [];
     const properties = (manifestCommand.input.properties ?? {}) as Record<string, Record<string, any>>;
 
@@ -97,9 +262,8 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const flag = `--${kebab(field)}`;
         const short = manifestCommand.cli.flags?.[field]?.short;
         const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-        const placeholder = field in manifestCommand.consents ? 'digest' : kebab(field);
-        const value = type === 'array' ? ` <${placeholder}...>` : ` <${placeholder}>`;
-        const flags = `${short ? `${short}, ` : ''}${flag}${type === 'boolean' ? '' : value}`;
+        const { value, negatable } = flagValueSyntax(manifestCommand, field, schema, kebab(field));
+        const flags = `${short ? `${short}, ` : ''}${flag}${value}`;
         const option = new Option(flags, (schema.description as string | undefined) ?? '');
         if (type === 'number' || type === 'integer') {
             option.argParser(raw => Number(raw));
@@ -108,7 +272,7 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
             option.choices(schema.enum as string[]);
         }
         command.addOption(option);
-        if (type === 'boolean') {
+        if (negatable) {
             // `--no-<flag>` sets the field to false. Defined after `--<flag>`, it leaves the value
             // undefined when neither is given, so the command's own default applies, for example
             // a `wait` field that is true for people and false under `vendure mcp`.
@@ -130,23 +294,46 @@ function registerLeaf(parent: Command, manifestCommand: MergedManifestCommand, o
         const passThrough =
             error.exitCode === 0 || error.code === 'commander.help' || error.code === 'commander.version';
         if (jsonRequested(process.argv) && !passThrough) {
-            const result = errorResult(hostErrors.usage, {
-                message: error.message.replace(/^error: /, ''),
-            });
-            fs.writeSync(1, `${JSON.stringify(result.envelope)}\n`);
-            process.exit(result.exitCode);
+            stop(errorResult(hostErrors.usage, { message: error.message.replace(/^error: /, '') }));
         }
         process.exit(error.exitCode);
     });
 
     command.action(async (...args: any[]) => {
-        const opts = command.opts();
+        const path = manifestCommand.path.join(' ');
+        if (command.commands.length > 0 && command.args.length > positional.length) {
+            stop(
+                errorResult(hostErrors.usage, {
+                    message: `"${command.args[positional.length]}" is not a command of "${path}"`,
+                }),
+            );
+        }
+        const notTaken = optionNotTaken(command);
+        if (notTaken) {
+            stop(errorResult(hostErrors.usage, { message: `${notTaken} is not an option of "${path}"` }));
+        }
+        const opts = hostFlags(command);
         const positionalValues = Object.fromEntries(
             positional.map((field, index) => [field, args[index] as unknown]),
         );
-        const code = await runLeaf(manifestCommand, command, positionalValues, opts, options, replacedBy);
+        const code = await runLeaf(manifestCommand, command, positionalValues, opts, options);
         process.exit(code);
     });
+}
+
+/**
+ * The host's own flags of a run. A CLI plugin can declare a shared `--json` on the program, which
+ * then takes the flag before this command sees it, so a flag not given to the command is read from
+ * the commands above it, unless it only has its default there.
+ */
+function hostFlags(command: Command): { json?: boolean; format?: string; input?: string } {
+    const opts = command.opts();
+    const read = (name: 'json' | 'format' | 'input') => opts[name] ?? ancestorOptionValue(command, name);
+    return {
+        json: read('json') as boolean | undefined,
+        format: read('format') as string | undefined,
+        input: read('input') as string | undefined,
+    };
 }
 
 /** Whether this process runs a tool call for `vendure mcp`, which marks its child processes. */
@@ -222,7 +409,6 @@ async function runLeaf(
     positionalValues: Record<string, unknown>,
     opts: Record<string, any>,
     options: AdapterOptions,
-    replacedBy: string | undefined,
 ): Promise<number> {
     const json = opts.json === true || opts.format === 'json';
     const out: JsonOutput | undefined = json ? redirectStdoutToStderr() : undefined;
@@ -240,14 +426,6 @@ async function runLeaf(
         return hostResult.exitCode;
     };
 
-    if (replacedBy) {
-        return finish(
-            errorResult(hostErrors.commandReplaced, {
-                command: manifestCommand.path.join(' '),
-                plugin: replacedBy,
-            }),
-        );
-    }
     let input: Record<string, unknown> = {};
     try {
         if (typeof opts.input === 'string') {
@@ -258,21 +436,69 @@ async function runLeaf(
     }
     Object.assign(input, collectFlagInput(command, properties, positionalValues));
 
-    const definitions = await options.loadDefinitions();
     const key = manifestCommand.path.join(' ');
-    const def = definitions.find(candidate => candidate.path.join(' ') === key);
-    const mismatch = def ? await findMismatch(def, manifestCommand) : 'the command is not installed';
+    let loaded: LoadedCommand;
+    try {
+        loaded = options.loadCommand
+            ? await options.loadCommand(manifestCommand)
+            : {
+                  definition: (await options.loadDefinitions(manifestCommand.source)).find(
+                      candidate => candidate.path.join(' ') === key,
+                  ),
+                  manifestCommand,
+                  dropped: [],
+              };
+    } catch (e) {
+        return finish(
+            errorResult(hostErrors.pluginDefinitionsFailed, {
+                plugin: manifestCommand.source,
+                command: key,
+                reason: e instanceof Error ? e.message : String(e),
+            }),
+        );
+    }
+    const usedDropped = droppedExtensionInput(loaded, input);
+    if (usedDropped) {
+        return finish(usedDropped);
+    }
+    const def = loaded.definition;
+    const mismatch =
+        loaded.mismatch ??
+        (def ? await findMismatch(def, loaded.manifestCommand) : 'the command is not installed');
     if (!def || mismatch) {
         return finish(errorResult(hostErrors.manifestMismatch, { command: key, reason: mismatch }));
     }
 
-    const result = await executeWithCancellation(
-        def,
-        input,
-        createHostEnvironment(controller, out),
-        controller,
-    );
+    const env = createHostEnvironment(controller, out);
+    // An extension that failed to load is a warning of the run, in its envelope's notices too.
+    env.notices = loaded.dropped.map(dropped => ({
+        level: 'warning' as const,
+        message: `[${dropped.error.code}] ${dropped.error.message}`,
+    }));
+    const result = await executeWithCancellation(def, input, env, controller);
     return finish(result, def);
+}
+
+/**
+ * A `cli.usage` error for input to an extension that failed to load, so a flag of that extension
+ * is refused rather than dropped without a word, or `undefined` when the input uses none.
+ */
+export function droppedExtensionInput(
+    loaded: Pick<LoadedCommand, 'dropped' | 'manifestCommand'>,
+    input: Record<string, unknown>,
+): HostResult | undefined {
+    const key = loaded.manifestCommand.path.join(' ');
+    for (const dropped of loaded.dropped) {
+        const field = dropped.fields.find(name => input[name] !== undefined);
+        if (field !== undefined) {
+            return errorResult(hostErrors.usage, {
+                message:
+                    `--${kebab(field)} comes from ${dropped.package}, whose extension of "${key}" ` +
+                    `failed to load: ${dropped.reason}`,
+            });
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -288,6 +514,10 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             process.stderr.write(`${event.level === 'warning' ? 'Warning: ' : ''}${String(event.message)}\n`);
         } else if (event.type === 'progress') {
             process.stderr.write(`${String(event.message)}\n`);
+        } else if (event.type === 'output') {
+            // Text from `ctx.output`, such as the output of the processes `vendure dev` runs,
+            // written unchanged to the stream it names.
+            (event.stream === 'stderr' ? process.stderr : process.stdout).write(String(event.text));
         }
     };
     return {
@@ -310,23 +540,33 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
                     await signInWithDevice(ctx);
                 },
             });
-            return isIncompleteResult(result) ? result.needs : undefined;
+            return isIncompleteResult(result) ? { needs: result.needs } : { credential: result };
         },
+        refreshCredential: (_kind, credential, ctx) => renewCredential(credential, { signal: ctx.signal }),
+        describeAccount: (_kind, credential) => describeAccount(credential),
     };
 }
 
-/** Runs a command, and gives up on it when it does not stop in time after it is cancelled. */
+/**
+ * Runs a command, and gives up on it when it does not stop in time after it is cancelled.
+ *
+ * A `service` command, such as `vendure dev`, gets {@link SERVICE_CANCEL_GRACE_MS} instead of
+ * {@link CANCEL_GRACE_MS}: an extension that wraps it stops its own processes once `next()`
+ * resolves, in its `finally`, and the host waits for that. A second Ctrl+C still ends the process
+ * at once (see {@link createCancellation}).
+ */
 export function executeWithCancellation(
     def: CommandDefinition,
     input: Record<string, unknown>,
     env: HostEnvironment,
     controller: AbortController,
 ): Promise<HostResult> {
+    const grace = def.behavior === 'service' ? SERVICE_CANCEL_GRACE_MS : CANCEL_GRACE_MS;
     return Promise.race([
         executeCommand(def, input, env),
         new Promise<HostResult>(resolve => {
             controller.signal.addEventListener('abort', () => {
-                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), CANCEL_GRACE_MS).unref();
+                setTimeout(() => resolve(errorResult(hostErrors.cancelled, {})), grace).unref();
             });
         }),
     ]);
@@ -397,11 +637,11 @@ export async function findMismatch(
     }
     // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
     // in place, so a field that was added, renamed or removed is caught here.
+    // An internal field is in the schema, but never in the manifest.
     const declared = Object.keys(
-        ((await def.schemas()).input['~standard'].jsonSchema.input({ target: 'draft-2020-12' }).properties as
-            | object
-            | undefined) ?? {},
-    );
+        ((await def.schemas()).input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET })
+            .properties as object | undefined) ?? {},
+    ).filter(field => !internalFieldsOf(def.cli).includes(field));
     const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
         field => !(field in manifestCommand.consents),
     );

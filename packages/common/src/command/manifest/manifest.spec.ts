@@ -46,7 +46,7 @@ describe('mergeManifests', () => {
         expect(() => mergeManifests([manifest('@a/one', entry([word, 'list']))])).toThrow(/reserved/);
     });
 
-    it.each(['json', 'input', 'yes', 'project'])('refuses a field named "%s"', name => {
+    it.each(['json', 'input', 'format', 'yes'])('refuses a field named "%s"', name => {
         expect(() =>
             mergeManifests([
                 manifest('@a/one', entry(['x'], { input: { properties: { [name]: { type: 'string' } } } })),

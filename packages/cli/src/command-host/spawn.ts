@@ -1,6 +1,7 @@
 import type { SpawnOptions, SpawnResult } from '@vendure/common/lib/command';
 import crossSpawn from 'cross-spawn';
 
+import { authEnvironment } from '../auth/startup-environment.js';
 import { withoutLocalTrustSecret } from '../shared/local-trust-env.js';
 
 /**
@@ -32,10 +33,14 @@ class LineWriter {
     }
 }
 
+/** How long a process that `timeoutMs` stopped has to exit after SIGTERM, before it is killed. */
+export const TIMEOUT_KILL_GRACE_MS = 2000;
+
 /**
  * Builds `ctx.spawn`. The process's stdout goes to `forwardStdout`, which the host points at
  * stderr under `--json`. Its stderr always goes to `process.stderr`. With `wholeLines`, both are
- * passed on in whole lines. The process is stopped when the signal fires.
+ * passed on in whole lines. The process is stopped when the signal fires, or the `signal` of its
+ * options.
  */
 export function createSpawn(
     cwd: string,
@@ -45,13 +50,16 @@ export function createSpawn(
 ): (command: string, args: string[], options?: SpawnOptions) => Promise<SpawnResult> {
     return (command, args, options = {}) =>
         new Promise<SpawnResult>((resolve, reject) => {
+            // The host's signal, and a sooner one the command passes, such as that of `next()`.
+            const stop = options.signal ? AbortSignal.any([signal, options.signal]) : signal;
             const child = crossSpawn(command, args, {
                 cwd: options.cwd ?? cwd,
                 // The local-trust secret is only for the server of a `vendure dev` run, which that
                 // run passes itself. Nothing started through `ctx.spawn` inherits it from the shell.
-                env: { ...withoutLocalTrustSecret(process.env), ...options.env },
+                env: { ...withoutLocalTrustSecret(authEnvironment()), ...options.env },
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
+            const quiet = options.quiet === true;
             const writeStderr = (text: string) => process.stderr.write(text);
             const out = wholeLines ? new LineWriter(forwardStdout) : undefined;
             const err = wholeLines ? new LineWriter(writeStderr) : undefined;
@@ -60,6 +68,9 @@ export function createSpawn(
             child.stdout?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
                 stdout += text;
+                if (quiet) {
+                    return;
+                }
                 if (out) {
                     out.push(text);
                 } else {
@@ -69,26 +80,69 @@ export function createSpawn(
             child.stderr?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
                 stderr += text;
+                if (quiet) {
+                    return;
+                }
                 if (err) {
                     err.push(text);
                 } else {
                     writeStderr(text);
                 }
             });
-            const onAbort = () => child.kill('SIGTERM');
-            if (signal.aborted) {
-                onAbort();
-            }
-            signal.addEventListener('abort', onAbort, { once: true });
-            child.on('error', error => {
-                signal.removeEventListener('abort', onAbort);
-                reject(error);
-            });
-            child.on('close', exitCode => {
-                signal.removeEventListener('abort', onAbort);
+            let timedOut = false;
+            let settled = false;
+            let killTimer: NodeJS.Timeout | undefined;
+            const finish = (exitCode: number | null) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearTimeout(timer);
+                clearTimeout(killTimer);
+                stop.removeEventListener('abort', onAbort);
+                if (timedOut) {
+                    // A grandchild can hold the pipes open after the kill. Nothing reads them now.
+                    child.stdout?.destroy();
+                    child.stderr?.destroy();
+                }
                 out?.flush();
                 err?.flush();
-                resolve({ exitCode, stdout, stderr });
+                resolve({
+                    exitCode: timedOut ? null : exitCode,
+                    stdout,
+                    stderr,
+                    ...(timedOut ? { timedOut } : {}),
+                });
+            };
+            // A process that ignores SIGTERM, or a grandchild that keeps the pipes open, must not
+            // keep the caller waiting: after a grace period it is killed, and the result returned
+            // with the output so far.
+            const timer =
+                options.timeoutMs === undefined
+                    ? undefined
+                    : setTimeout(() => {
+                          timedOut = true;
+                          child.kill('SIGTERM');
+                          killTimer = setTimeout(() => {
+                              child.kill('SIGKILL');
+                              finish(null);
+                          }, TIMEOUT_KILL_GRACE_MS);
+                      }, options.timeoutMs);
+            const onAbort = () => child.kill('SIGTERM');
+            if (stop.aborted) {
+                onAbort();
+            }
+            stop.addEventListener('abort', onAbort, { once: true });
+            child.on('error', error => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearTimeout(timer);
+                clearTimeout(killTimer);
+                stop.removeEventListener('abort', onAbort);
+                reject(error);
             });
+            child.on('close', exitCode => finish(exitCode));
         });
 }

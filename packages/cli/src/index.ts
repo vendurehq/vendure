@@ -1,34 +1,22 @@
 /**
  * Public API for extending the Vendure CLI with plugins.
  *
+ * A plugin package adds commands with `defineCommand` from `@vendure/common/lib/command`, and
+ * lists the command manifest it builds from them in its `package.json`. A CLI plugin adds shared
+ * options, extends the built-in commands that are not declared with `defineCommand`, and runs a
+ * hook after `vendure console link`.
+ *
  * @example
  * ```ts
  * import { defineCliPlugin } from '@vendure/cli';
- * import type { CliCommandContext } from '@vendure/cli';
  *
  * export default defineCliPlugin({
  *   id: '@example/vendure-cli-plugin',
  *   rootOptions: [{ long: '--token <token>', description: 'API token' }],
- *   commands: [
- *     {
- *       name: 'project',
- *       description: 'Manage projects',
- *       subcommands: [
- *         {
- *           name: 'list',
- *           description: 'List projects',
- *           action: async (options, command, context: CliCommandContext<{ token?: string }>) => {
- *             // context.inheritedOptions.token holds the shared --token value
- *             return 0;
- *           },
- *         },
- *       ],
- *     },
- *   ],
  *   extendCommands: [
  *     {
- *       // Adds to the built-in dev command, so other plugins can wrap it too
- *       command: 'dev',
+ *       // Adds to the built-in start command, so other plugins can wrap it too
+ *       command: 'start',
  *       options: [{ long: '--rotate-credential', description: 'Replace the credential' }],
  *       decorate: ({ next }) => async (...args) => {
  *         // optional setup...
@@ -101,6 +89,9 @@ export type {
     StoredOrganization,
     WorkosClient,
 } from './auth/index.js';
+export type { AskInputOptions, HostResult, Prompter, SpawnFn, WriteSecretFn } from './command-host/host.js';
+export { testCommand } from './command-host/test-command.js';
+export type { TestCommandOptions, TestCommandResult } from './command-host/test-command.js';
 export { builtinCommands } from './commands/builtins.js';
 export type {
     ConsoleLinkContext,
@@ -120,6 +111,7 @@ export type {
     ConsoleMissingInput,
     ConsoleResultData,
 } from './commands/console/console-result.js';
+export { consolePersonSteps } from './commands/console/console.errors.js';
 export type { ProjectLinkManifest } from './commands/console/project-link-manifest.js';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition.js';
 export type {

@@ -7,4 +7,18 @@
  * Dashboard, imports `@vendure/common/lib/command` instead.
  */
 export * from './build';
-export * from './manifest';
+export {
+    CommandManifest,
+    MANIFEST_FILE_NAME,
+    ManifestCommand,
+    ManifestExtension,
+    ManifestFieldMetadata,
+    MergedManifestCommand,
+    RESERVED_FIELD_NAMES,
+    RESERVED_PATH_ROOTS,
+    extendManifestCommand,
+    flagValueSyntax,
+    mergeManifests,
+    readManifestFile,
+    takesOptionalValue,
+} from './manifest';

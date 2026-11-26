@@ -61,3 +61,12 @@ export const notProjectCli = defineError<{
         `@vendure/cli ${runningVersion} from "${running}", for example a global install that npx fell ` +
         "back to. Start the server from the project, where npx runs the project's own CLI.",
 });
+
+// A notice: the server writes it and keeps running, so its `exit` is never used.
+export const commandsListingFailed = defineError<{ project: string; reason: string }>({
+    code: 'mcp.commands-listing-failed',
+    exit: 1,
+    message: ({ project, reason }) =>
+        `Could not list the commands of "${project}": ${reason}. The CLI's own commands are offered, or ` +
+        'those of the last listing that worked.',
+});

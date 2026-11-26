@@ -1,7 +1,9 @@
 import type {
     CommandDefinition,
     CommandErrorDefinition,
+    CommandExtensionDefinition,
     CommandFix,
+    CommandGroupDefinition,
     CommandNeed,
     ErrorResult,
     FailedResult,
@@ -29,11 +31,33 @@ export function isValidErrorCode(code: string): boolean {
 
 /**
  * @description
+ * Declares an extension of a command: the fields, consents and errors it adds, and a `run` that
+ * wraps the command's. It returns its argument. See {@link CommandExtensionDefinition}.
+ *
+ * @since 4.0.0
+ */
+export function defineCommandExtension<T extends CommandExtensionDefinition>(extension: T): T {
+    return extension;
+}
+
+/**
+ * @description
  * Declares a command. It returns its argument, so a command is plain data that does not depend on
  * which copy of this package is loaded.
  */
 export function defineCommand<T extends CommandDefinition>(definition: T): T {
     return definition;
+}
+
+/**
+ * @description
+ * Declares a group of commands that share input fields. It returns its argument. See
+ * {@link CommandGroupDefinition}.
+ *
+ * @since 4.0.0
+ */
+export function defineCommandGroup<T extends CommandGroupDefinition>(group: T): T {
+    return group;
 }
 
 /**

@@ -13,11 +13,21 @@ import {
     createCliConfigDir,
     manifest,
     projectList,
+    runConsoleForTest,
     singleAccountBody,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, consoleCommand } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { getProjectLinkManifestPath } from './project-link-manifest.js';
+
+/** Runs a `vendure console` action through the engine, for its exit code. */
+async function runExitCode(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies>,
+): Promise<number> {
+    return (await runConsoleForTest(action, options, dependencies)).exitCode;
+}
 
 let server: Server | undefined;
 let projectRoot: string | undefined;
@@ -84,7 +94,7 @@ describe('Console project-link integration', () => {
             reporter,
         };
 
-        expect(await consoleCommand('link', {}, dependencies)).toBe(0);
+        expect(await runExitCode('link', {}, dependencies)).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(projectRoot))).toEqual({
             ...manifest,
             schemaVersion: 1,

@@ -12,9 +12,11 @@ The package manager is {{ packageManager }}.{{#if serverPath}} Run the `vendure`
 - `{{ exec }} vendure guide`: the agent guide for the Vendure CLI. Read it before you use the CLI.
 - `{{ exec }} vendure commands --json`: the commands that accept `--json`.
 
+Known issue in the 4.0 previews, up to `@vendure/cli` 4.0.0-preview.3: in this project, `vendure doctor`'s `config` check and `vendure seed` with a preset fail with "Could not find the VendureConfig declaration in your project", and doctor then skips its `schema` and `database` checks. A later preview fixes it, so check the installed `@vendure/cli` version first. Until then, run `{{ exec }} vendure doctor --check project dependencies`, read config and database errors from `lastError` in `{{ exec }} vendure devserver status --json`, and set up the store with the `admin_*` tools of the `vendure` MCP server, as the `vendure-store-setup` skill describes.
+
 ## Rules
 
-- Change the database schema only through migrations. After you change an entity or a custom field, run `{{ exec }} vendure migrate generate <name>`, and commit the file it writes in `{{ serverPath }}src/migrations/`.
+- Change the database schema only through migrations. After you change an entity or a custom field, run `{{ exec }} vendure migrate -g <name>`, and commit the file it writes in `{{ serverPath }}src/migrations/`.
 - Keep plugins in `{{ serverPath }}src/plugins/`, and add them to the `store` extension in `{{ serverPath }}src/vendure-config.ts`.
 - `{{ serverPath }}.vendure/create.json` records what the project was created with. Do not edit it.
 - Do not set the options the Cloud runtime owns, such as `dbConnectionOptions`, the API port or the superadmin credentials. `defineCloudConfig` refuses them.

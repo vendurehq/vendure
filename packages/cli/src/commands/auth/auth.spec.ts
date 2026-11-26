@@ -89,14 +89,17 @@ function makeContext(options: { ask?: Partial<CommandAsk>; mcp?: boolean } = {})
                   ask: {
                       confirm: () => Promise.resolve(undefined),
                       select: () => Promise.resolve(undefined),
+                      text: () => Promise.resolve(undefined),
                       ...options.ask,
                   },
               }
             : {}),
         notice: (level, message) => notices.push({ level, message }),
         progress: () => undefined,
+        output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
+        consent: async () => true as const,
     };
     return { ctx, notices, messages: () => notices.map(notice => notice.message) };
 }

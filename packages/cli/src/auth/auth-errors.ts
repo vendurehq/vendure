@@ -1,3 +1,5 @@
+import { CliMadeError } from '../shared/cli-made-error.js';
+
 export const AUTH_LOGIN_COMMAND = 'vendure auth login';
 
 /**
@@ -17,7 +19,7 @@ export interface RenewalFailureDetails {
  *
  * @since 3.8.0
  */
-export class NotLoggedInError extends Error {
+export class NotLoggedInError extends CliMadeError {
     readonly nextStep = AUTH_LOGIN_COMMAND;
 
     constructor(message = `Not logged in. Run \`${AUTH_LOGIN_COMMAND}\` to sign in.`) {
@@ -33,7 +35,7 @@ export class NotLoggedInError extends Error {
  *
  * @since 3.8.0
  */
-export class SessionRejectedError extends Error {
+export class SessionRejectedError extends CliMadeError {
     readonly nextStep = AUTH_LOGIN_COMMAND;
     /** @since 3.8.2 */
     readonly code?: string;
@@ -59,7 +61,7 @@ export class SessionRejectedError extends Error {
  *
  * @since 3.8.0
  */
-export class SessionRefreshUnavailableError extends Error {
+export class SessionRefreshUnavailableError extends CliMadeError {
     /** @since 3.8.2 */
     readonly code?: string;
     /** @since 3.8.2 */
@@ -82,7 +84,7 @@ export class SessionRefreshUnavailableError extends Error {
  *
  * @since 3.8.0
  */
-export class SessionUnstorableError extends Error {
+export class SessionUnstorableError extends CliMadeError {
     constructor(directory: string) {
         super(`Cannot write the CLI session to ${directory}. Check that the directory is writable.`);
         this.name = 'SessionUnstorableError';
@@ -96,7 +98,7 @@ export class SessionUnstorableError extends Error {
  *
  * @since 3.8.0
  */
-export class ReauthenticationRequiredError extends Error {
+export class ReauthenticationRequiredError extends CliMadeError {
     readonly nextStep = AUTH_LOGIN_COMMAND;
 
     constructor(
@@ -147,7 +149,7 @@ export function isRenewalRefused(error: unknown): boolean {
  *
  * @since 3.8.0
  */
-export class SessionLockUnavailableError extends Error {
+export class SessionLockUnavailableError extends CliMadeError {
     constructor(lockFile: string) {
         super(
             `Could not lock the CLI login at ${lockFile}. Another vendure command may still be using it, ` +
@@ -163,7 +165,7 @@ export class SessionLockUnavailableError extends Error {
  *
  * @since 4.0.0
  */
-export class DeviceLoginDeniedError extends Error {
+export class DeviceLoginDeniedError extends CliMadeError {
     constructor() {
         super('The login was denied in the browser.');
         this.name = 'DeviceLoginDeniedError';
@@ -175,7 +177,7 @@ export class DeviceLoginDeniedError extends Error {
  *
  * @since 4.0.0
  */
-export class DeviceLoginExpiredError extends Error {
+export class DeviceLoginExpiredError extends CliMadeError {
     constructor() {
         super('The login code expired before it was approved. Run the login again.');
         this.name = 'DeviceLoginExpiredError';
@@ -188,7 +190,7 @@ export class DeviceLoginExpiredError extends Error {
  *
  * @since 4.0.0
  */
-export class DeviceLoginPendingError extends Error {
+export class DeviceLoginPendingError extends CliMadeError {
     constructor() {
         super('The login code has not been approved yet.');
         this.name = 'DeviceLoginPendingError';
@@ -201,7 +203,7 @@ export class DeviceLoginPendingError extends Error {
  *
  * @since 4.0.0
  */
-export class DeviceLoginReplacedError extends Error {
+export class DeviceLoginReplacedError extends CliMadeError {
     constructor() {
         super('A new login replaced the one being waited for.');
         this.name = 'DeviceLoginReplacedError';

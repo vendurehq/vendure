@@ -43,6 +43,14 @@ class FakeChildProcess extends EventEmitter {
     }
 }
 
+/** Swallows the status lines a supervised process writes. */
+const silentIo = {
+    write: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+    error: () => undefined,
+};
+
 describe('dev command', () => {
     describe('getDevProcessDefinitions()', () => {
         it('uses default entrypoints', () => {
@@ -155,7 +163,7 @@ describe('dev command', () => {
             }
         });
 
-        it('uses --project before root discovery and ambiguous workspace members', () => {
+        it('uses --dir before root discovery and ambiguous workspace members', () => {
             const dir = createTempDir();
             try {
                 for (const name of ['server', 'other']) {
@@ -165,7 +173,7 @@ describe('dev command', () => {
                 writePackageJson(dir, { workspaces: ['server', 'other'] });
                 expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
                 expect(() => resolveVendureProjectDirectory(dir)).toThrow(
-                    `Multiple Vendure projects found in "${dir}": other, server. Use --project <dir> to select one.`,
+                    `Multiple Vendure projects found in "${dir}": other, server. Use --dir <dir> to select one.`,
                 );
                 writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
                 expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
@@ -177,7 +185,7 @@ describe('dev command', () => {
             }
         });
 
-        it('rejects invalid --project paths without falling back', () => {
+        it('rejects invalid --dir paths without falling back', () => {
             const dir = createTempDir();
             try {
                 writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
@@ -185,7 +193,7 @@ describe('dev command', () => {
                 writePackageJson(path.join(dir, 'empty'), {});
                 for (const name of ['missing', 'empty', 'package.json']) {
                     expect(() => resolveVendureProjectDirectory(dir, name)).toThrow(
-                        `Invalid --project directory "${path.join(dir, name)}"`,
+                        `Invalid --dir directory "${path.join(dir, name)}"`,
                     );
                 }
             } finally {
@@ -193,12 +201,12 @@ describe('dev command', () => {
             }
         });
 
-        it('names the searched directory and --project when no project exists', () => {
+        it('names the searched directory and --dir when no project exists', () => {
             const dir = createTempDir();
             try {
                 writePackageJson(dir, { workspaces: ['missing'] });
                 expect(() => resolveVendureProjectDirectory(dir)).toThrow(
-                    `No Vendure project found in "${dir}". Use --project <dir> to select a project directory.`,
+                    `No Vendure project found in "${dir}". Use --dir <dir> to select a project directory.`,
                 );
             } finally {
                 rmSync(dir, { recursive: true, force: true });
@@ -492,6 +500,7 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
                     reloadIgnoredPaths: options.reloadIgnoredPaths?.(projectDir) ?? [],
                     spawnChild,
                     monitor: options.monitor ?? createMonitor(),
+                    io: silentIo,
                 },
             );
             startedProcesses.push(supervised);
@@ -730,6 +739,49 @@ export default { plugins: [vendureDashboardPlugin({ gqlOutputPath: './src/gql' }
             firstChild.emitClose(0, null);
             secondChild.emitClose(null, 'SIGTERM');
             await expect(promise).resolves.toBe(143);
+        });
+
+        it('stops the processes with SIGINT when the signal aborts, and leaves process signals alone', async () => {
+            const stop = vi.fn();
+            const child = new ManagedDevProcess(stop);
+            const controller = new AbortController();
+            const sigintListenerCount = process.listenerCount('SIGINT');
+            const sigtermListenerCount = process.listenerCount('SIGTERM');
+            const onShutdownSignal = vi.fn();
+            const promise = waitForDevProcesses([child], { signal: controller.signal, onShutdownSignal });
+
+            // The caller owns SIGINT and SIGTERM, so the run adds no handler of its own.
+            expect(process.listenerCount('SIGINT')).toBe(sigintListenerCount);
+            expect(process.listenerCount('SIGTERM')).toBe(sigtermListenerCount);
+
+            controller.abort();
+            expect(stop).toHaveBeenCalledWith('SIGINT');
+            expect(onShutdownSignal).toHaveBeenCalledWith('SIGINT');
+            child.emitClose(null, 'SIGINT');
+            await expect(promise).resolves.toBe(130);
+        });
+
+        it('stops at once when the signal has already aborted', async () => {
+            const stop = vi.fn();
+            const child = new ManagedDevProcess(stop);
+            const controller = new AbortController();
+            controller.abort();
+            const promise = waitForDevProcesses([child], { signal: controller.signal });
+
+            expect(stop).toHaveBeenCalledWith('SIGINT');
+            child.emitClose(0, null);
+            await expect(promise).resolves.toBe(130);
+        });
+
+        it('stops listening to the signal once the processes have ended', async () => {
+            const child = new ManagedDevProcess(vi.fn());
+            const controller = new AbortController();
+            const removeEventListener = vi.spyOn(controller.signal, 'removeEventListener');
+            const promise = waitForDevProcesses([child], { signal: controller.signal });
+
+            child.emitClose(0, null);
+            await expect(promise).resolves.toBe(0);
+            expect(removeEventListener).toHaveBeenCalledWith('abort', expect.any(Function));
         });
     });
 });

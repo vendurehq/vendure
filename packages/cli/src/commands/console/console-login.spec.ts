@@ -27,9 +27,10 @@ import {
     jsonResponse,
     manifest,
     projectList,
+    runConsoleForTest,
     storeLogin,
 } from './console.fixtures.js';
-import { ConsoleCommandDependencies, ConsoleCommandOptions, consoleCommand } from './console.js';
+import { ConsoleCommandDependencies, ConsoleCommandOptions } from './console.js';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest.js';
 
 /**
@@ -329,6 +330,17 @@ describe('console link command line login', () => {
         const run = await runLink({ storedOrganization: null, console: { memberships: [] } });
 
         expect(run.exitCode).toBe(1);
+        expect(run.result).toMatchObject({
+            outcome: 'incomplete',
+            needs: [
+                {
+                    kind: 'person',
+                    code: 'console.no-account',
+                    action: 'create-account',
+                    url: 'https://console.vendure.io/onboarding',
+                },
+            ],
+        });
         expect(run.messages.join('\n')).toContain(
             'Your Vendure Console login has no Customer Account yet. Create one at ' +
                 'https://console.vendure.io/onboarding, then run vendure console link again.',
@@ -441,7 +453,6 @@ describe('console link command line login', () => {
             const run = await runLink({
                 linked: true,
                 interactive,
-                options: { yes: true },
                 storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
                 signal: abort.signal,
                 fetch: () => {
@@ -617,7 +628,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
             hooks: [recordingHook(sessions, true)],
@@ -639,7 +649,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             console: {
                 refresh: () => {
@@ -662,7 +671,6 @@ describe('console link command line login', () => {
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedOrganization: {
                 workosOrganizationId: OTHER_ORGANIZATION_ID,
                 customerAccountId: OTHER_ACCOUNT_ID,
@@ -685,7 +693,6 @@ describe('console link command line login', () => {
             linked: true,
             interactive: true,
             login: false,
-            options: { yes: true },
             fetch: () => Promise.resolve(new Response('{}', { status: 503 })),
             hooks: [recordingHook(sessions, true, unavailable)],
         });
@@ -700,13 +707,12 @@ describe('console link command line login', () => {
     });
 
     // CLO-1165 — a cloned manifest that links a Project of somebody else's Customer Account
-    it('names the Customer Account a repair cannot reach and points to --force, without signing in again', async () => {
+    it('names the Customer Account a repair cannot reach and points to --project, without signing in again', async () => {
         const sessions: Array<ConsoleSession | undefined> = [];
         const unavailable: Array<string | undefined> = [];
         const run = await runLink({
             linked: true,
             interactive: true,
-            options: { yes: true },
             storedOrganization: {
                 workosOrganizationId: OTHER_ORGANIZATION_ID,
                 customerAccountId: OTHER_ACCOUNT_ID,
@@ -725,7 +731,7 @@ describe('console link command line login', () => {
             'This project is linked to Storefront in the Customer Account "Acme", which your Vendure Console login cannot access.',
         );
         expect(output).toContain(`Your Customer Accounts:\n  Other (${OTHER_ACCOUNT_ID})\n`);
-        expect(output).toContain('run vendure console link --force');
+        expect(output).toContain('run vendure console link --project <id|slug>');
         expect(output).toContain('ask an administrator of "Acme"');
         // CLO-1166 — the user may have another Console login that is a member of the account.
         expect(output).toContain(
@@ -762,7 +768,6 @@ describe('console link command line login', () => {
             linked: true,
             interactive: true,
             login: false,
-            options: { yes: true },
             console: { memberships: [twoAccounts[1]], deviceOrganizationId: OTHER_ORGANIZATION_ID },
             hooks: [recordingHook([], true, unavailable)],
         });
@@ -773,7 +778,7 @@ describe('console link command line login', () => {
         const output = run.messages.join('\n');
         expect(output).toContain('Customer Account "Acme", which your Vendure Console login cannot access');
         expect(output).toContain(`  Other (${OTHER_ACCOUNT_ID})\nTo link this project`);
-        expect(output).toContain('vendure console link --force');
+        expect(output).toContain('vendure console link --project <id|slug>');
         expect(output).not.toContain('Could not sign in');
     });
 
@@ -799,7 +804,7 @@ describe('console link command line login', () => {
 });
 
 // CLO-1166
-describe('console link --non-interactive --console-project', () => {
+describe('console link --project without a person', () => {
     const twoProjects = [
         { id: PROJECT_ID, name: 'Storefront' },
         { id: OTHER_PROJECT_ID, name: 'Parts Counter', slug: 'parts-counter' },
@@ -808,7 +813,7 @@ describe('console link --non-interactive --console-project', () => {
     it('links the named project with the stored login, without a prompt or browser', async () => {
         const select = vi.fn();
         const run = await runLink({
-            options: { nonInteractive: true, consoleProject: 'parts-counter' },
+            options: { project: 'parts-counter' },
             console: { projects: projectList(twoProjects) },
             select,
         });
@@ -821,22 +826,26 @@ describe('console link --non-interactive --console-project', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(run.root)).project.id).toBe(OTHER_PROJECT_ID);
     });
 
-    it('asks for the linked project id, not --force, when no login can read the slug', async () => {
-        const run = await runLink({ linked: true, login: false, options: { consoleProject: 'storefront' } });
+    it('refuses, naming the replaceLink consent and the linked project id, when no login can read the slug', async () => {
+        const run = await runLink({ linked: true, login: false, options: { project: 'storefront' } });
 
         expect(run.exitCode).toBe(1);
         expect(run.urls()).toEqual([]);
         const output = run.messages.join('\n');
         expect(output).toContain(
-            `Pass the linked Project's id, ${PROJECT_ID}, to --console-project to keep the link.`,
+            `To keep the link, pass the linked Project's id, ${PROJECT_ID}, as project.`,
         );
+        expect(output).toContain(
+            'Replacing the link needs the replaceLink consent, which the command asks for.',
+        );
+        expect(run.result).toMatchObject({ outcome: 'failed', needs: [] });
         expect(output).not.toContain('--force');
     });
 
     it('returns incomplete and names vendure auth login when no login is stored', async () => {
         const run = await runLink({
             login: false,
-            options: { nonInteractive: true, consoleProject: 'storefront' },
+            options: { project: 'storefront' },
         });
 
         expect(run.exitCode).toBe(1);
@@ -847,22 +856,13 @@ describe('console link --non-interactive --console-project', () => {
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
     });
 
-    it('returns the token need in the JSON result, without a device flow, when no login is stored', async () => {
-        const stdout: string[] = [];
-        const write = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
-            stdout.push(String(chunk));
-            return true;
-        });
-        try {
-            const run = await runLink({ login: false, options: { json: true } });
+    it('returns the token need in the result, without a device flow, when no login is stored', async () => {
+        const run = await runLink({ login: false });
 
-            expect(run.exitCode).toBe(1);
-            expect(run.urls()).toEqual([]);
-            expect(run.openedUrls).toEqual([]);
-        } finally {
-            write.mockRestore();
-        }
-        const result = JSON.parse(stdout.join(''));
+        expect(run.exitCode).toBe(1);
+        expect(run.urls()).toEqual([]);
+        expect(run.openedUrls).toEqual([]);
+        const result = run.result;
         expect(result).toMatchObject({
             outcome: 'incomplete',
             needs: [
@@ -874,14 +874,14 @@ describe('console link --non-interactive --console-project', () => {
                 },
             ],
         });
-        expect(result.missingInputs).toBeUndefined();
+        expect((result as unknown as Record<string, unknown>).missingInputs).toBeUndefined();
     });
 
     it('links with VENDURE_CLOUD_TOKEN when no login is stored', async () => {
         const run = await runLink({
             login: false,
             env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-            options: { consoleProject: 'storefront' },
+            options: { project: 'storefront' },
         });
 
         expect(run.exitCode).toBe(0);
@@ -894,7 +894,7 @@ describe('console link --non-interactive --console-project', () => {
     it('prefers the stored login to VENDURE_CLOUD_TOKEN', async () => {
         const run = await runLink({
             env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-            options: { consoleProject: 'storefront' },
+            options: { project: 'storefront' },
         });
 
         expect(run.exitCode).toBe(0);
@@ -909,7 +909,7 @@ describe('console link --non-interactive --console-project', () => {
         const run = await runLink({
             login: false,
             env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-            options: { consoleProject: 'storefront' },
+            options: { project: 'storefront' },
             hooks: [recordingHook(sessions, true, unavailable)],
         });
 
@@ -951,7 +951,7 @@ describe('console link --non-interactive --console-project', () => {
         expect(sessions[0]?.accessToken).not.toBe('vcdk_agent_key');
     });
 
-    it('detaches the old attribution with the old account login when --force links another account', async () => {
+    it('detaches the old attribution with the old account login when a replacement links another account', async () => {
         const installationId = '55555555-5555-4555-8555-555555555555';
         const api = fakeConsole({ memberships: twoAccounts });
         const deletes: Array<string | undefined> = [];
@@ -967,7 +967,7 @@ describe('console link --non-interactive --console-project', () => {
             interactive: true,
             linked: true,
             attribution: installationId,
-            options: { force: true },
+            options: { force: true, organization: OTHER_ACCOUNT_ID, project: 'storefront' },
             fetch,
             select: () => Promise.resolve(OTHER_ACCOUNT_ID),
         });
@@ -983,7 +983,7 @@ describe('console link --non-interactive --console-project', () => {
             interactive: true,
             login: false,
             env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-            options: { consoleProject: 'storefront' },
+            options: { project: 'storefront' },
             console: { memberships: twoAccounts },
             select,
         });
@@ -998,7 +998,7 @@ describe('console link --non-interactive --console-project', () => {
         const run = await runLink({
             login: false,
             env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-            options: { consoleProject: 'storefront', organization: 'Other' },
+            options: { project: 'storefront', organization: 'Other' },
         });
 
         expect(run.exitCode).toBe(1);
@@ -1012,25 +1012,15 @@ describe('console link --non-interactive --console-project', () => {
             new URL(url).pathname === '/v1/me'
                 ? Promise.resolve(jsonResponse({ message: 'Unauthorized' }, 401))
                 : api.fetch(url, init)) as typeof globalThis.fetch;
-        const stdout: string[] = [];
-        const write = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
-            stdout.push(String(chunk));
-            return true;
+        const run = await runLink({
+            login: false,
+            env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
+            options: { project: 'storefront' },
+            fetch,
         });
-        let run: Awaited<ReturnType<typeof runLink>>;
-        try {
-            run = await runLink({
-                login: false,
-                env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-                options: { json: true, consoleProject: 'storefront' },
-                fetch,
-            });
-        } finally {
-            write.mockRestore();
-        }
 
         expect(run.exitCode).toBe(1);
-        const result = JSON.parse(stdout.join(''));
+        const result = run.result;
         expect(result).toMatchObject({
             outcome: 'incomplete',
             needs: [{ kind: 'input', field: 'token', secret: true }],
@@ -1042,7 +1032,7 @@ describe('console link --non-interactive --console-project', () => {
         const run = await runLink({
             login: false,
             env: { VENDURE_CLOUD_TOKEN: 'vcdk_agent_key' },
-            options: { consoleProject: 'storefront' },
+            options: { project: 'storefront' },
             console: { link: () => jsonResponse({ message: 'Unauthorized' }, 401) },
         });
 
@@ -1055,7 +1045,7 @@ describe('console link --non-interactive --console-project', () => {
         const run = await runLink({
             storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
             console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
-            options: { nonInteractive: true, consoleProject: 'storefront' },
+            options: { project: 'storefront' },
         });
 
         expect(run.exitCode).toBe(1);
@@ -1071,7 +1061,7 @@ describe('console link --non-interactive --console-project', () => {
 
     it('names the --organization login it needs when the stored login belongs to another account', async () => {
         const run = await runLink({
-            options: { nonInteractive: true, consoleProject: 'storefront', organization: 'Other' },
+            options: { project: 'storefront', organization: 'Other' },
         });
 
         expect(run.exitCode).toBe(1);
@@ -1151,9 +1141,10 @@ async function runLink(options: RunOptions = {}) {
         reporter,
         signal: options.signal,
     };
-    const exitCode = await consoleCommand('link', options.options ?? {}, dependencies);
+    const { exitCode, result } = await runConsoleForTest('link', options.options ?? {}, dependencies);
     return {
         exitCode,
+        result,
         root,
         env,
         messages,

@@ -7,7 +7,7 @@ import { databaseUnreadable, revertFailed } from './revert-migration.errors.js';
 
 /** Reverts the last applied migration. The host has already checked the consent. */
 export async function run(input: { config?: string }, ctx: CommandContext) {
-    const project = await openMigrationProject(input.config);
+    const project = await openMigrationProject(input.config, ctx);
     if (isErrorResult(project)) {
         return project;
     }

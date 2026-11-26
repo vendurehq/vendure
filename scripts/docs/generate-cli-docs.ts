@@ -10,6 +10,7 @@
  */
 import { deleteGeneratedDocs } from '@vendure-io/docs-generator';
 import {
+    flagValueSyntax,
     MergedManifestCommand,
     mergeManifests,
     readManifestFile,
@@ -117,6 +118,11 @@ function renderIndex(groups: Map<string, MergedManifestCommand[]>, builtins: Bui
         'Run `vendure commands --json` in a project for the commands it really has, including those that ' +
             'plugins add' +
             (groups.has('guide') ? ', and `vendure guide` for how an agent works with the CLI.' : '.'),
+        '',
+        'A plugin package declares its own commands with `defineCommand` in the same way, and ships its own ' +
+            'manifest. See [Commands declared with `defineCommand`](' +
+            cliGuideUrl +
+            '#commands-declared-with-definecommand).',
         '',
         '## Every command',
         '',
@@ -319,19 +325,13 @@ function renderExamples(command: MergedManifestCommand): string[] {
 
 function renderFlag(command: MergedManifestCommand, field: string, schema: JsonSchema, positional: string[]) {
     const short = command.cli.flags?.[field]?.short;
-    const type = primaryType(schema);
-    const placeholder = rules.kebab(field);
-    let value = ` <${placeholder}>`;
-    if (type === 'boolean') {
-        value = '';
-    } else if (type === 'array') {
-        value = ` <${placeholder}...>`;
-    }
+    // The same syntax the CLI registers the flag with.
+    const { value, negatable } = flagValueSyntax(command, field, schema, rules.kebab(field));
     const flags = [`\`--${rules.kebab(field)}${escapeCode(value)}\``];
     if (short) {
         flags.unshift(`\`${short}\``);
     }
-    if (type === 'boolean') {
+    if (negatable) {
         flags.push(`\`--no-${rules.kebab(field)}\``);
     }
     if (positional.includes(field)) {

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { stripAnsi } from '../src/shared/strip-ansi.js';
 
@@ -191,6 +191,7 @@ export function installCliPluginFixture(
 
     cpSync(fixtureDir, targetDir, { recursive: true });
     linkCliPackage(project);
+    linkPeerDependencies(project, fixtureDir);
 
     updatePackageJson(project, packageJson => {
         packageJson.dependencies = { ...packageJson.dependencies, [packageName]: '1.0.0' };
@@ -229,6 +230,37 @@ function linkCliPackage(project: CliTestProject): void {
     updatePackageJson(project, packageJson => {
         packageJson.devDependencies = { ...packageJson.devDependencies, '@vendure/cli': '*' };
     });
+}
+
+/**
+ * Links the packages a fixture names in `peerDependencies`, such as `@vendure/common` and `zod`
+ * for a fixture that declares `defineCommand` commands, from the repository into the project's
+ * `node_modules`, so the fixture resolves them as an installed plugin would.
+ */
+function linkPeerDependencies(project: CliTestProject, fixtureDir: string): void {
+    const fixture = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'));
+    for (const name of Object.keys(fixture.peerDependencies ?? {})) {
+        const linkPath = join(project.projectDir, 'node_modules', ...name.split('/'));
+        if (existsSync(linkPath)) {
+            continue;
+        }
+        const target = findInstalledPackage(name);
+        mkdirSync(dirname(linkPath), { recursive: true });
+        symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+    }
+}
+
+/** The directory of a package the CLI resolves, found through `node_modules`, since `exports` can hide its package.json. */
+function findInstalledPackage(name: string): string {
+    for (let dir = CLI_PACKAGE_DIR; ; dir = dirname(dir)) {
+        const candidate = join(dir, 'node_modules', ...name.split('/'));
+        if (existsSync(join(candidate, 'package.json'))) {
+            return candidate;
+        }
+        if (dirname(dir) === dir) {
+            throw new Error(`${name} is not installed`);
+        }
+    }
 }
 
 function updatePackageJson(project: CliTestProject, mutate: (packageJson: any) => void): void {
@@ -352,7 +384,11 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
         const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
         const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'))
             .name as string;
-        cpSync(fixtureDir, join(globalNodeModules, ...packageName.split('/')), { recursive: true });
+        const pluginDir = join(globalNodeModules, ...packageName.split('/'));
+        cpSync(fixtureDir, pluginDir, { recursive: true });
+        // A plugin that declares command definitions brings its own dependencies, which a real
+        // install would put in the plugin's own node_modules.
+        linkPluginDependencies(pluginDir);
     }
     // Plugin fixtures require('@vendure/cli'), which resolves to the sibling
     // copy, exactly as it would for a real global install.
@@ -430,6 +466,22 @@ function linkDeclaredDependencies(cliDir: string): void {
     }
 }
 
+/** Links the packages a plugin declares as peer dependencies into the plugin's own node_modules. */
+function linkPluginDependencies(pluginDir: string): void {
+    const { peerDependencies = {} } = JSON.parse(readFileSync(join(pluginDir, 'package.json'), 'utf-8')) as {
+        peerDependencies?: Record<string, string>;
+    };
+    for (const packageName of Object.keys(peerDependencies)) {
+        const target = join(pluginDir, 'node_modules', ...packageName.split('/'));
+        mkdirSync(dirname(target), { recursive: true });
+        symlinkSync(
+            findInstalledPackage(packageName),
+            target,
+            process.platform === 'win32' ? 'junction' : 'dir',
+        );
+    }
+}
+
 /**
  * Installs this CLI package into a test project, as `npm install @vendure/cli` would. `vendure mcp`
  * serves a project only from the project's own `@vendure/cli`.
@@ -438,4 +490,55 @@ export function installThisCli(projectDir: string): void {
     const target = join(projectDir, 'node_modules', '@vendure', 'cli');
     mkdirSync(join(target, '..'), { recursive: true });
     symlinkSync(join(import.meta.dirname, '..'), target, 'dir');
+}
+
+/**
+ * Runs `vendure mcp` in `cwd` and talks to it over stdio, one JSON-RPC message per line. A request
+ * still pending when the server exits is rejected with what it wrote to stderr, so a server that
+ * fails to start fails the test at once.
+ */
+export function startMcpServer(cwd: string) {
+    const child = spawn(process.execPath, [join(CLI_PACKAGE_DIR, 'dist', 'cli.js'), 'mcp'], {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const pending = new Map<number, { resolve: (message: any) => void; reject: (error: Error) => void }>();
+    let buffer = '';
+    let stderr = '';
+    child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
+    child.stdout.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines.filter(Boolean)) {
+            const message = JSON.parse(line);
+            pending.get(message.id)?.resolve(message);
+            pending.delete(message.id);
+        }
+    });
+    const exited = new Promise<void>(resolve =>
+        child.on('close', code => {
+            for (const { reject } of pending.values()) {
+                reject(new Error(`vendure mcp exited with code ${String(code)}: ${stderr}`));
+            }
+            pending.clear();
+            resolve();
+        }),
+    );
+    let nextId = 1;
+    const request = (method: string, params?: object): Promise<any> => {
+        const id = nextId++;
+        const reply = new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+        child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+        return reply;
+    };
+    return {
+        request,
+        callTool: (name: string, args: object) => request('tools/call', { name, arguments: args }),
+        stderr: () => stderr,
+        close: async () => {
+            child.stdin.end();
+            await exited;
+        },
+    };
 }

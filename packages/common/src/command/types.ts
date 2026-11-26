@@ -152,6 +152,14 @@ export interface PersonNeed {
     summary: string;
     url: string;
     fix?: CommandFix;
+    /**
+     * The name to match a step on, such as `console.no-account`. It says why the step is needed,
+     * where `action` names what the person does, such as `create-account`. For a step the Console
+     * API names, it is the same as `action`.
+     *
+     * @since 4.0.0
+     */
+    code?: string;
 }
 
 /**
@@ -166,6 +174,14 @@ export type CommandNeed = InputNeed | ConsentNeed | PersonNeed;
  * is the output schema in the manifest.
  */
 export const COMMAND_ENVELOPE_SCHEMA_VERSION = 1;
+
+/**
+ * @description
+ * The JSON Schema draft that manifests and the CLI host produce and read schemas for.
+ *
+ * @since 4.0.0
+ */
+export const JSON_SCHEMA_TARGET = 'draft-2020-12';
 
 /**
  * @description
@@ -270,16 +286,61 @@ export interface CommandEvent {
     [key: string]: unknown;
 }
 
+/**
+ * @description
+ * The event {@link CommandContext.output} reports: text the caller sees as it comes, such as the
+ * output of a process a command runs or the lines of a log it follows. A person sees `text` as it
+ * is, on `stream`. Under `--json` it is a tagged line on stderr like any other event, whatever
+ * `stream` says, so stdout holds only the envelope.
+ *
+ * @since 4.0.0
+ */
+export interface CommandOutputEvent extends CommandEvent {
+    type: 'output';
+    /** Where a person sees the text. */
+    stream: 'stdout' | 'stderr';
+    /** The text as it came, newlines included. It can hold ANSI colour codes. */
+    text: string;
+}
+
 /** The result of a process started through `ctx.spawn`. */
 export interface SpawnResult {
     exitCode: number | null;
     stdout: string;
     stderr: string;
+    /**
+     * True when `timeoutMs` ran out and the host stopped the process. `exitCode` is then `null`.
+     *
+     * @since 4.0.0
+     */
+    timedOut?: boolean;
 }
 
 export interface SpawnOptions {
     cwd?: string;
     env?: Record<string, string | undefined>;
+    /**
+     * Captures the process's output in the result without passing it on to the caller. For a
+     * process whose answer the command reads, such as `git status --porcelain`.
+     *
+     * @since 4.0.0
+     */
+    quiet?: boolean;
+    /**
+     * Stops the process with SIGTERM when it runs longer than this, in milliseconds, and sets
+     * `timedOut` in the result. A process still running a short grace period later is killed, and the result
+     * holds the output so far. For a probe that may never answer, such as a container runtime.
+     *
+     * @since 4.0.0
+     */
+    timeoutMs?: number;
+    /**
+     * Stops the process with SIGTERM when it fires. The host's own signal, `ctx.signal`, stops it
+     * too, so this is for stopping it sooner, as `next(…, { signal })` of an extension does.
+     *
+     * @since 4.0.0
+     */
+    signal?: AbortSignal;
 }
 
 /**
@@ -300,8 +361,38 @@ export interface CommandChoice {
 export interface CommandAsk {
     /** Resolves to `undefined` when the person cancels. */
     confirm(message: string): Promise<boolean | undefined>;
-    /** Resolves to the chosen `value`, or `undefined` when the person cancels. */
-    select(message: string, choices: CommandChoice[]): Promise<string | undefined>;
+    /**
+     * Resolves to the chosen `value`, or `undefined` when the person cancels. With `other`, a last
+     * choice of that label lets the person type a value instead, which it resolves to, for example
+     * the name of an environment to create. A typed value can be `''` when the person types nothing.
+     *
+     * @since 4.0.0 for `options`
+     */
+    select(
+        message: string,
+        choices: CommandChoice[],
+        options?: CommandSelectOptions,
+    ): Promise<string | undefined>;
+    /**
+     * Asks for a line of text. Resolves to the answer, `''` when the person types nothing, or
+     * `undefined` when they cancel.
+     *
+     * @since 4.0.0
+     */
+    text(message: string, options?: CommandTextOptions): Promise<string | undefined>;
+}
+
+/** @since 4.0.0 */
+export interface CommandSelectOptions {
+    /** The label of a last choice that lets the person type a value, such as `Create a new environment`. */
+    other?: string;
+}
+
+/** @since 4.0.0 */
+export interface CommandTextOptions {
+    placeholder?: string;
+    /** The answer the person starts from. */
+    initialValue?: string;
 }
 
 /**
@@ -327,10 +418,134 @@ export interface CommandContext {
     notice(level: CommandNoticeLevel, message: string): void;
     /** Reports progress. */
     progress(message: string, current?: number, total?: number): void;
+    /**
+     * Passes text on to the caller as it comes, such as the lines of a log the command follows. A
+     * person sees it on `stream`. The host adds no newline, so end each line with one. Under
+     * `--json` each call is a {@link CommandOutputEvent} on stderr, and through the Developer MCP
+     * an `info` log notification. It is not part of the envelope: what the caller needs once the
+     * run ends goes in the output `run` returns. Declare the event in the `events` schema, so the
+     * manifest lists it.
+     *
+     * @since 4.0.0
+     */
+    output(text: string, stream?: CommandOutputEvent['stream']): void;
     /** Reports an event of any other type. */
     event(type: string, data?: Record<string, unknown>): void;
     /** Starts a process. Under `--json` its stdout goes to stderr. */
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
+    /**
+     * Asks for a named consent that `run()` found it needs while it runs, such as a target that only
+     * turns out to be production once it is resolved. `name` must be declared in the command's
+     * `consents`, and `preview` names what the consent answers, as the preview of `plan()` does.
+     *
+     * Resolves to `true` when the caller already gave the consent for this preview: the input holds
+     * the digest of `name` and `preview`, which the host computes the same way as for `plan()`. A
+     * person at a terminal is asked instead, and `true` means they agreed.
+     *
+     * Otherwise it resolves to the {@link ConsentNeed}. Return it with `incomplete([need])`: the
+     * caller gives the consent with its digest, as `--<consent> <digest>` or the input field
+     * `name`, and runs the command again. So the run must be safe to repeat up to this point. A
+     * consent a person agreed to holds for a run the host repeats to ask for more input.
+     *
+     * When a person declines, the run ends as cancelled (`cli.cancelled`) whatever `run()` returns.
+     * The output it reports, the output of a `failed()` or a partial `incomplete()` or an ok output,
+     * is kept in the envelope, so a caller sees what happened before it stopped.
+     *
+     * A consent covers one preview per run, because a caller gives one digest per consent. Asking
+     * for the same `name` with a second, different preview in one run, or with another preview than
+     * `plan()` required it for, throws. Declare a consent for each target instead.
+     *
+     * It is for `run()` only, and throws when called before it, such as from `plan()`: a consent
+     * `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
+     *
+     * @since 4.0.0
+     */
+    consent(name: string, preview: unknown): Promise<true | ConsentNeed>;
+    /**
+     * The credential the host found for a command with `requires.auth`, before `run()` started.
+     * Present only for such a command.
+     *
+     * @since 4.0.0
+     */
+    credential?: CommandCredential;
+    /**
+     * Renews the credential once, for a command whose request was refused with 401, and resolves
+     * to the new one, which also replaces `ctx.credential`. Concurrent renewals of the same login
+     * share one.
+     *
+     * `failedToken` is the token the refused request sent, and defaults to the token of
+     * `ctx.credential` when it is called. A command with several requests in flight passes the
+     * token each one used: when another request already renewed it, the newer token comes back and
+     * no refresh token is spent again.
+     *
+     * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
+     * which only its owner can replace, or a login the authentication service refused to renew.
+     * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
+     * failure, such as no network, and when `ctx.signal` or `options.signal` fires. A transient
+     * failure that `run()` lets through ends the run with `auth.credential-failed`, as when finding
+     * the credential failed.
+     *
+     * A renewal also brings `ctx.account` up to date, since it can change the organization the login
+     * is scoped to.
+     *
+     * Present only for a command with `requires.auth`.
+     *
+     * @since 4.0.0
+     */
+    refreshCredential?(
+        failedToken?: string,
+        options?: { signal?: AbortSignal },
+    ): Promise<CommandCredential | undefined>;
+    /**
+     * The Vendure Console the credential belongs to, and the organization of a stored login.
+     * Present only for a command with `requires.auth`. A command that calls the Console API sends
+     * `ctx.credential.token` to `ctx.account.apiUrl`, and after a 401 calls `ctx.refreshCredential()`
+     * and retries once.
+     *
+     * @since 4.0.0
+     */
+    account?: CommandAccount;
+}
+
+/**
+ * @description
+ * The Vendure Console account a command with `requires.auth` acts in. It holds no secret.
+ *
+ * @since 4.0.0
+ */
+export interface CommandAccount {
+    /**
+     * The Vendure Console app, for links a person opens. Absent when the CLI does not know it: a
+     * loopback Console API with no trusted loopback `VENDURE_CONSOLE_APP_URL` beside it.
+     */
+    consoleUrl?: string;
+    /** The Vendure Console API that accepts `ctx.credential.token`. */
+    apiUrl: string;
+    /**
+     * The organization the stored login is scoped to. Absent for a `VENDURE_CLOUD_TOKEN`, whose
+     * organization only the Console API knows, and for a login that is not scoped to one.
+     */
+    organization?: {
+        /** The authentication service's organization id, which scopes the token. */
+        id: string;
+        /** The Customer Account identifier, as Vendure Console shows it. `null` when Console could not be asked at login. */
+        customerAccountId: string | null;
+        /** `null` when Console could not be asked at login. */
+        name: string | null;
+    };
+}
+
+/**
+ * @description
+ * A Vendure Cloud credential, as the host found it for a command with `requires.auth: 'cloud'`:
+ * the stored login of `vendure auth login`, or `VENDURE_CLOUD_TOKEN`. `token` is a bearer token:
+ * never print, log or return it.
+ *
+ * @since 4.0.0
+ */
+export interface CommandCredential {
+    source: 'stored-login' | 'environment';
+    token: string;
 }
 
 /** What `plan` returns. */
@@ -361,11 +576,16 @@ export type CommandPlanFn<Input = any> = (
     ctx: CommandContext,
 ) => Promise<CommandPlan | ErrorResult>;
 
-export type CommandRenderFn<Output = any> = (output: Output) => string | void;
+/** `render` receives the output and the validated input of the run, such as a `details` flag. */
+export type CommandRenderFn<Output = any, Input = any> = (output: Output, input: Input) => string | void;
 
 /** Command metadata used by the CLI only. MCP clients never see it. */
 export interface CommandCliMetadata {
-    flags?: Record<string, { short?: string; description?: string }>;
+    /**
+     * Per field: a short flag, a description for help, and the name of the value in help, such as
+     * `host:port` for `--inspect [host:port]`.
+     */
+    flags?: Record<string, { short?: string; description?: string; placeholder?: string }>;
     /** Input fields taken as positional arguments, in order. */
     positional?: string[];
     fields?: Record<
@@ -380,6 +600,15 @@ export interface CommandCliMetadata {
             secret?: boolean;
             /** The valid values, computed from the project. */
             choices?: (ctx: CommandContext, input: Record<string, unknown>) => Promise<string[]>;
+            /**
+             * A field only an extension sets, through `next(commandInput)`. It is not a flag, the
+             * manifest leaves it out, so `vendure commands --json` and the MCP tool's schema don't
+             * list it, and the host removes it from what a caller passes, as `--input` or over MCP.
+             * The command's schema still validates it.
+             *
+             * @since 4.0.0
+             */
+            internal?: boolean;
         }
     >;
 }
@@ -393,6 +622,29 @@ export interface CommandCliMetadata {
  */
 export interface SecretFileReference {
     secretFile: string;
+}
+
+/**
+ * @description
+ * A group of commands that share input fields, such as `cloud`, whose commands all take
+ * `--project` and `--environment`. Declared as plain data, like a command.
+ *
+ * The shared fields apply to every command of the same package whose path is longer than the
+ * group's and starts with it, so a command at the group's own path gets none of them. They are
+ * flags of each of those commands, part of each one's input in the manifest and of
+ * its MCP tool. `run()` receives one input object with the command's fields and the shared ones.
+ * Each part is validated with its own schema. A field that a group and one of its commands both
+ * declare fails the manifest build.
+ *
+ * @since 4.0.0
+ */
+export interface CommandGroupDefinition {
+    /** The path the group's commands start with, for example `['cloud']`. */
+    path: string[];
+    /** The schemas module of the group. It exports `input`, the shared fields. */
+    schemas: () => Promise<{ input: StandardSchema }>;
+    /** CLI metadata for the shared fields, the same as a command's. */
+    cli?: Pick<CommandCliMetadata, 'flags' | 'fields'>;
 }
 
 /**
@@ -412,12 +664,13 @@ export interface CommandDefinition {
          * The command needs a Vendure Cloud credential. Before anything else runs, the host looks
          * for one: the stored login, then `VENDURE_CLOUD_TOKEN`, then a device login when a person
          * is at the terminal. Without one, the run is `incomplete` with an `input` need for the
-         * secret `token` field, whose fix is `vendure auth login --json`.
+         * secret `token` field, whose fix is `vendure auth login --json`. `VENDURE_CLOUD_TOKEN` is
+         * read from the environment the CLI started with, never from a project's `.env` file.
          *
-         * `run()` then reads the credential with `requireCredential` from `@vendure/cli`, with
-         * `mayPrompt: false`, and returns an `incomplete` result from it unchanged. That can happen
-         * when the command needs a login for one organization, because the host only checks that
-         * some credential exists.
+         * `run()` receives the credential the host found as `ctx.credential`. A command that needs
+         * a login for one organization can call `requireCredential` from `@vendure/cli` with
+         * `mayPrompt: false` and that organization, and return an `incomplete` result from it
+         * unchanged, because the host only checks that some credential exists.
          *
          * @since 4.0.0
          */
@@ -444,4 +697,76 @@ export interface CommandDefinition {
     run: () => Promise<{ run: CommandRunFn }>;
     plan?: () => Promise<{ plan: CommandPlanFn }>;
     render?: () => Promise<{ render: CommandRenderFn }>;
+}
+
+/**
+ * @description
+ * Runs the command an extension wraps, or the next extension, and resolves to its result as a
+ * value: its output, or an `incomplete()`, `failed()` or `fail()` result. It never throws for
+ * those, and never ends the process.
+ *
+ * `changes` are applied to the command's input the extension was called with, as the caller gave
+ * it and without the extension's own fields: the command runs with `{ ...commandInput, ...changes }`,
+ * validated with the command's schema, so its transforms and defaults apply once, to the given
+ * values. A change may set one of the command's `internal` fields. Without `changes`, the command
+ * runs with its input unchanged. `changes` that the command's schema finds invalid make `next`
+ * throw, and the run ends with `cli.internal`.
+ *
+ * `options.signal` stops this call only: the inner run's `ctx.signal` fires when it fires, or when
+ * the run's own signal does. The promise resolves once the inner run has returned. The inner run's
+ * events and `ctx.output` reach the caller as they happen.
+ *
+ * It may be called more than once, for example to try again, or not at all.
+ *
+ * @since 4.0.0
+ */
+export type CommandExtensionNextFn = (
+    changes?: Record<string, unknown>,
+    options?: { signal?: AbortSignal },
+) => Promise<CommandRunResult<any>>;
+
+/**
+ * @description
+ * The `run` of an extension. `input` is the command's validated input with the extension's own
+ * fields. It returns the command's output with the extension's own output fields added, or any
+ * other result: `incomplete()`, `failed()`, or `fail()` with one of the extension's or the
+ * command's declared errors. When it returns an output without calling `next`, the output must
+ * still be valid for the command's output schema.
+ *
+ * @since 4.0.0
+ */
+export type CommandExtensionRunFn<Input = any, Output = any> = (
+    input: Input,
+    ctx: CommandContext,
+    next: CommandExtensionNextFn,
+) => Promise<CommandRunResult<Output>>;
+
+/**
+ * @description
+ * An extension of a command that another package or the CLI declares, as plain data. The
+ * declarations module exports a list of them as `extensions`, next to `commands` and `groups`, and
+ * passes them to `writeCommandManifest` with `{ extensions }`.
+ *
+ * It adds input fields and output fields to the command, and its own `consents` and `errors`. Each
+ * package's part of the input is validated with that package's own schema. Its `run` wraps the
+ * command's: see {@link CommandExtensionRunFn}. Each extension wraps the ones whose packages were
+ * enabled before it, so the last enabled is outermost.
+ *
+ * @since 4.0.0
+ */
+export interface CommandExtensionDefinition {
+    /** The path of the command it extends, for example `['dev']`. */
+    path: string[];
+    /**
+     * The schemas module of the extension. It exports `input`, the fields it adds, and optionally
+     * `output`, the output fields it adds.
+     */
+    schemas: () => Promise<{ input: StandardSchema; output?: StandardSchema }>;
+    /** Named consents the extension may ask for, each with a description. */
+    consents?: Record<string, string>;
+    /** Coded errors the extension may return with `fail()`. */
+    errors?: CommandErrorDefinition[];
+    /** CLI metadata for the fields it adds, the same as a command's. */
+    cli?: Pick<CommandCliMetadata, 'flags' | 'fields'>;
+    run: () => Promise<{ run: CommandExtensionRunFn }>;
 }

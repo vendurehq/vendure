@@ -1,9 +1,19 @@
-import { CommandFix, IncompleteResult, InputNeed, incomplete } from '@vendure/common/lib/command';
+import {
+    CommandAccount,
+    CommandCredential,
+    CommandFix,
+    IncompleteResult,
+    InputNeed,
+    incomplete,
+} from '@vendure/common/lib/command';
 
+import { consoleUrlForApi } from '../commands/console/console-origins.js';
 import { NotLoggedInError, isRenewalRefused } from './auth-errors.js';
-import { AuthOptions } from './auth-options.js';
-import { getAccessToken, readAuthStatus } from './auth-session.js';
+
+import { AuthOptions, resolveConsoleApiUrl } from './auth-options.js';
+import { getAccessToken, readAuthStatus, refreshAccessToken } from './auth-session.js';
 import { StoredOrganization } from './auth-store.js';
+import { authEnvironment } from './startup-environment.js';
 
 /** The environment variable that holds a Vendure Cloud credential, such as a delegated agent key. */
 export const CLOUD_TOKEN_ENV = 'VENDURE_CLOUD_TOKEN';
@@ -26,18 +36,16 @@ export const LOGIN_FIX: CommandFix = {
  *
  * @since 4.0.0
  */
-export type CredentialSource = 'stored-login' | 'environment';
+export type CredentialSource = CommandCredential['source'];
 
 /**
- * The credential a command sends to Vendure Cloud or Vendure Console. `token` is a bearer token:
- * never print, log or return it.
+ * The credential a command sends to Vendure Cloud or Vendure Console. The host hands it to a
+ * `requires.auth` command as `ctx.credential`. `token` is a bearer token: never print, log or
+ * return it.
  *
  * @since 4.0.0
  */
-export interface CloudCredential {
-    source: CredentialSource;
-    token: string;
-}
+export type CloudCredential = CommandCredential;
 
 /** @since 4.0.0 */
 export interface RequireCredentialOptions extends AuthOptions {
@@ -109,7 +117,7 @@ export async function requireCredential(
 
 /** The value of `VENDURE_CLOUD_TOKEN`, or `undefined` when it is unset or blank. */
 export function readCloudTokenEnv(options: AuthOptions = {}): string | undefined {
-    const value = (options.env ?? process.env)[CLOUD_TOKEN_ENV]?.trim();
+    const value = authEnvironment(options.env)[CLOUD_TOKEN_ENV]?.trim();
     return value ? value : undefined;
 }
 
@@ -182,4 +190,56 @@ export function matchesOrganization(
         organization?.customerAccountId?.toLowerCase() === value ||
         organization?.name?.trim().toLowerCase() === value
     );
+}
+
+/**
+ * Renews a credential that {@link requireCredential} found, after a request with it was refused
+ * with 401. Only a stored login can be renewed, and concurrent renewals of it share one. Resolves to
+ * `undefined` for `VENDURE_CLOUD_TOKEN`, and when there is no login any more or the authentication
+ * service refused to renew it: only a new sign-in helps then.
+ *
+ * @throws SessionRefreshUnavailableError when the login could not be renewed for a transient reason. It is kept.
+ * @since 4.0.0
+ */
+export async function renewCredential(
+    credential: CommandCredential,
+    options: AuthOptions = {},
+): Promise<CloudCredential | undefined> {
+    if (credential.source !== 'stored-login') {
+        return undefined;
+    }
+    try {
+        return { source: 'stored-login', token: await refreshAccessToken(credential.token, options) };
+    } catch (error) {
+        if (error instanceof NotLoggedInError || isRenewalRefused(error)) {
+            return undefined;
+        }
+        throw error;
+    }
+}
+
+/**
+ * The Vendure Console a credential belongs to, and the organization of a stored login. The Console
+ * comes from the environment the CLI started with, never from a project's `.env` file.
+ *
+ * @since 4.0.0
+ */
+export function describeAccount(credential: CommandCredential, options: AuthOptions = {}): CommandAccount {
+    const apiUrl = resolveConsoleApiUrl(options);
+    const consoleUrl = consoleUrlForApi(apiUrl, authEnvironment(options.env));
+    const organization =
+        credential.source === 'stored-login' ? readAuthStatus(options).organization : undefined;
+    return {
+        ...(consoleUrl ? { consoleUrl } : {}),
+        apiUrl,
+        ...(organization
+            ? {
+                  organization: {
+                      id: organization.workosOrganizationId,
+                      customerAccountId: organization.customerAccountId,
+                      name: organization.name,
+                  },
+              }
+            : {}),
+    };
 }

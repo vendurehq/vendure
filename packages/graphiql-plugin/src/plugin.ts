@@ -66,7 +66,8 @@ import { GraphiqlPluginOptions } from './types';
         },
     ],
     exports: [GraphiQLService],
-    compatibility: '^3.0.0',
+    // TODO(v4.0.0): '^4.0.0' once the workspace version is 4.x.
+    compatibility: '>=3.8.0 <5.0.0-0',
 })
 export class GraphiqlPlugin implements NestModule {
     static options: Required<GraphiqlPluginOptions>;

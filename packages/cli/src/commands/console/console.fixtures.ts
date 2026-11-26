@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { StoredAuth, writeStoredAuth } from '../../auth/auth-store.js';
 
+import { ConsoleCommandDependencies, ConsoleCommandOptions, ConsoleRun, runConsole } from './console.js';
 import { ProjectLinkManifest } from './project-link-manifest.js';
 
 export const NOW = Date.parse('2026-08-19T10:00:00.000Z');
@@ -227,4 +228,37 @@ export function fakeConsole(options: FakeConsoleOptions = {}) {
         throw new Error(`Unexpected request to ${method} ${url.href}`);
     };
     return { fetch: fetch as typeof globalThis.fetch, requests };
+}
+
+/**
+ * The engine's dependencies for a test: no person, no network, no output, unless `overrides`
+ * gives them.
+ */
+export function withConsoleDefaults(
+    overrides: Partial<ConsoleCommandDependencies> = {},
+): ConsoleCommandDependencies {
+    const quiet = () => undefined;
+    return {
+        cwd: process.cwd(),
+        env: {},
+        fetch: () => Promise.reject(new Error('No Console in this test')),
+        hooks: [],
+        isNonInteractive: () => true,
+        now: () => Date.now(),
+        openUrl: () => Promise.resolve(),
+        prompt: () => Promise.resolve(undefined),
+        select: () => Promise.resolve(undefined),
+        reporter: { error: quiet, info: quiet, success: quiet, warn: quiet, url: quiet },
+        outputMode: 'human',
+        ...overrides,
+    };
+}
+
+/** Runs a `vendure console` action through the engine, with {@link withConsoleDefaults}. */
+export function runConsoleForTest(
+    action: 'link' | 'unlink',
+    options: ConsoleCommandOptions,
+    dependencies: Partial<ConsoleCommandDependencies> = {},
+): Promise<ConsoleRun> {
+    return runConsole(action, options, withConsoleDefaults(dependencies));
 }

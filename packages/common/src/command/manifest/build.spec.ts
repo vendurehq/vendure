@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { defineCommand } from '../define';
+import { defineCommand, defineCommandExtension, defineError } from '../define';
 import { JsonSchema, StandardSchema } from '../types';
 
 import { buildCommandManifest, writeCommandManifest } from './build';
@@ -140,6 +140,139 @@ describe('buildCommandManifest', () => {
     it('refuses a declaration the host would refuse', async () => {
         const reserved = defineCommand({ ...wipeCommand().command, path: ['admin', 'wipe'] });
         await expect(buildCommandManifest('@a/one', '1.0.0', [reserved])).rejects.toThrow(/reserved/);
+    });
+
+    it('leaves out a field marked internal, which only an extension sets, and lists its name', async () => {
+        const { command } = wipeCommand();
+        const manifest = await buildCommandManifest('@a/one', '1.0.0', [
+            { ...command, cli: { fields: { force: { internal: true } } } },
+        ]);
+
+        expect(Object.keys(manifest.commands[0].input.properties as object)).toEqual(['name', 'wipeData']);
+        expect(manifest.commands[0].cli.fields).toEqual({});
+        expect(manifest.commands[0].cli.internalFields).toEqual(['force']);
+    });
+
+    it('writes the extensions of commands, with their consents, errors and CLI metadata', async () => {
+        const manifest = await buildCommandManifest('@a/cloud', '1.0.0', [], {
+            extensions: [
+                defineCommandExtension({
+                    path: ['dev'],
+                    consents: { deployPreview: 'Deploy a preview' },
+                    errors: [defineError({ code: 'cloud.not-linked', exit: 2, message: () => 'not linked' })],
+                    cli: { flags: { project: { short: '-p' } } },
+                    schemas: () =>
+                        Promise.resolve({
+                            input: schema(
+                                {
+                                    type: 'object',
+                                    properties: { project: { type: 'string' } },
+                                    required: ['project'],
+                                },
+                                {},
+                            ),
+                            output: schema(
+                                {},
+                                { type: 'object', properties: { previewUrl: { type: 'string' } } },
+                            ),
+                        }),
+                    run: () => Promise.resolve({ run: (_input, _ctx, next) => next() }),
+                }),
+            ],
+        });
+
+        expect(manifest.commands).toEqual([]);
+        expect(manifest.extensions).toEqual([
+            {
+                path: ['dev'],
+                input: {
+                    type: 'object',
+                    properties: {
+                        project: { type: 'string' },
+                        deployPreview: {
+                            type: 'string',
+                            description: 'The digest of the preview for this consent: Deploy a preview',
+                        },
+                    },
+                    required: ['project'],
+                },
+                output: { type: 'object', properties: { previewUrl: { type: 'string' } } },
+                consents: { deployPreview: 'Deploy a preview' },
+                errors: [{ code: 'cloud.not-linked', exit: 2 }],
+                cli: { flags: { project: { short: '-p' } }, fields: {} },
+            },
+        ]);
+    });
+
+    it("refuses an extension that marks its own field internal, or has CLI metadata for another's", async () => {
+        const project = () =>
+            Promise.resolve({
+                input: schema({ type: 'object', properties: { project: { type: 'string' } } }, {}),
+            });
+        const run = () =>
+            Promise.resolve({ run: (_input: unknown, _ctx: unknown, next: () => any) => next() });
+
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], {
+                extensions: [
+                    defineCommandExtension({
+                        path: ['dev'],
+                        cli: { fields: { project: { internal: true } } },
+                        schemas: project,
+                        run,
+                    }),
+                ],
+            }),
+        ).rejects.toThrow('marks its own field "project" internal');
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], {
+                extensions: [
+                    defineCommandExtension({
+                        path: ['dev'],
+                        cli: { flags: { inspect: { short: '-i' } } },
+                        schemas: project,
+                        run,
+                    }),
+                ],
+            }),
+        ).rejects.toThrow('its CLI metadata names "inspect", which is not one of its fields');
+    });
+
+    it('refuses an extension that uses a field name the host reserves', async () => {
+        const reserved = defineCommandExtension({
+            path: ['dev'],
+            schemas: () =>
+                Promise.resolve({
+                    input: schema({ type: 'object', properties: { json: { type: 'boolean' } } }, {}),
+                }),
+            run: () => Promise.resolve({ run: (_input, _ctx, next) => next() }),
+        });
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], { extensions: [reserved] }),
+        ).rejects.toThrow(/"json", which the host reserves/);
+    });
+
+    it('refuses a command or an extension with a consent named like one of its own fields', async () => {
+        const { command } = wipeCommand();
+        await expect(
+            buildCommandManifest('@a/one', '1.0.0', [{ ...command, consents: { force: 'Force it' } }]),
+        ).rejects.toThrow(
+            '@a/one declares the command "demo wipe" with the consent "force", which is also one of its input fields',
+        );
+        const extension = defineCommandExtension({
+            path: ['dev'],
+            consents: { region: 'Deploy to this region' },
+            schemas: () =>
+                Promise.resolve({
+                    input: schema({ type: 'object', properties: { region: { type: 'string' } } }, {}),
+                }),
+            run: () => Promise.resolve({ run: (_input, _ctx, next) => next() }),
+        });
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], { extensions: [extension] }),
+        ).rejects.toThrow(
+            'The extension of "dev" with the consent "region", which is also one of its input fields',
+        );
     });
 });
 
