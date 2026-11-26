@@ -35,7 +35,7 @@ export async function run(input: { name: string; dir?: string; config?: string }
             return fail(vendureConfigNotFound, { message });
         }
         // A config from a config resolver is not declared in the source, so there is nowhere to add
-        // the plugin to. The resolver is not run: saying which package owns the config is enough.
+        // the plugin to. The resolver is not run: saying which package or project owns it is enough.
         const { plugins, unreadable } = enabledManifests();
         const resolvers = configResolverOwners(plugins);
         const hint = resolvers.length

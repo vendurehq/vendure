@@ -1580,19 +1580,25 @@ import { getVendureConfig } from '@example/shared-config';
 import type { VendureConfig } from '@vendure/core';
 
 export async function resolve(ctx: ConfigResolverContext): Promise<VendureConfig | undefined> {
+    // A config file named with --config wins: returning undefined lets the CLI load it.
+    if (ctx.configFile) {
+        return undefined;
+    }
     return getVendureConfig();
 }
 ```
 
-- **Loading:** the CLI loads the module as `ctx.loadModule` loads one: it loads `.env` from the working directory,
-  and registers ts-node with the tsconfig nearest the module and its path mappings. So the module can be TypeScript,
-  and import workspace packages through the `paths` of a base tsconfig that the app's tsconfig `extends`. The
-  mappings resolve against the `baseUrl`, or else the directory of the tsconfig that declares them, as TypeScript
-  resolves them.
+- **Loading:** the CLI loads the module as `ctx.loadModule` loads one. It loads `.env` from the working
+  directory, and registers ts-node with the tsconfig nearest the module and its path mappings. So the module can
+  be TypeScript, and import workspace packages through the `paths` of a base tsconfig that the app's tsconfig
+  `extends`. The mappings resolve against the `baseUrl`, or else the directory of the tsconfig that declares them,
+  as TypeScript resolves them.
 - **Order:** it runs before the resolvers of packages. When it returns `undefined`, the CLI asks those, and then
-  looks in the source.
-- **Errors:** a resolver that throws, a module that is missing or exports no `resolve()`, and a `configResolver`
-  that is not a path all end the command with `config.resolver-failed`, naming the project by its package name.
+  looks in the source. It is asked even when the user names a file with `--config`, so return `undefined` for a
+  `ctx.configFile` it does not handle, as the example does.
+- **Errors:** each of these ends the command with `config.resolver-failed`, naming the project by its package
+  name: a resolver that throws, a module that is missing or exports no named `resolve()`, and a
+  `configResolver` that is not a path.
 
 ### How plugin commands appear in the help
 

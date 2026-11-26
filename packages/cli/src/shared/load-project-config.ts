@@ -23,6 +23,7 @@ import { findVendureProjectRoot } from './project-validation.js';
 import {
     CliPluginLoadFailure,
     failureAffectsCommandManifest,
+    PackageJsonLike,
     resolveCommandManifests,
     ResolvedCommandManifest,
 } from './resolve-cli-plugins.js';
@@ -195,8 +196,9 @@ export function withUnreadableManifests(
 }
 
 /**
- * Loads the project's Vendure config. It asks the config resolvers of the enabled packages, in
- * allowlist order, and returns the first config one returns. When none does, it finds the
+ * Loads the project's Vendure config. It asks the config resolver the project declares in its
+ * package.json first, then those of the enabled packages in allowlist order, and returns the
+ * first config one returns. When none does, it finds the
  * `VendureConfig` in the project's source with ts-morph and loads that. It prints nothing.
  *
  * It throws {@link ConfigResolverFailedError} when a resolver fails, and a plain error when no
@@ -234,7 +236,7 @@ export async function loadProjectConfigWith<T>(
  */
 export function projectConfigResolver(projectDir: string): { owner: string; file: string } | undefined {
     const packageJsonPath = path.join(projectDir, 'package.json');
-    let packageJson: { name?: unknown; vendure?: { configResolver?: unknown } };
+    let packageJson: PackageJsonLike;
     try {
         packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
     } catch {
@@ -332,9 +334,7 @@ async function loadProjectResolverModule(file: string): Promise<ConfigResolverMo
     if (!fs.existsSync(file)) {
         throw new Error(`${file}, which vendure.configResolver names, does not exist`);
     }
-    const mod = await requireProjectModule(file);
-    const fallback = (mod.default ?? {}) as Partial<ConfigResolverModule>;
-    return { resolve: (mod.resolve ?? fallback.resolve) as ConfigResolverModule['resolve'] };
+    return (await requireProjectModule(file)) as unknown as ConfigResolverModule;
 }
 
 async function resolveWith(

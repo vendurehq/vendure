@@ -6,6 +6,7 @@
  */
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { register } from 'ts-node';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { runCommandInHarness } from '../src/command-host/__tests__/command-harness.js';
@@ -26,6 +27,9 @@ describe('A config resolver declared by the project', { timeout: 60_000 }, () =>
     let originalCwd: string;
 
     beforeAll(() => {
+        // Another project, loaded earlier in this process, registered ts-node with its own
+        // tsconfig. The path mappings of this project must still be registered.
+        register({ transpileOnly: true });
         originalCwd = process.cwd();
         // The commands find the project from the working directory, as they do when run there.
         process.chdir(SERVER_DIR);

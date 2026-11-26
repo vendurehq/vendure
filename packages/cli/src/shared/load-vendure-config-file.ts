@@ -201,9 +201,6 @@ export function isVendureConfig(value: unknown): value is VendureConfig {
  */
 async function prepareToRequireConfig(configFilePath: string, providedTsConfigPath?: string) {
     await import('dotenv/config');
-    if (isRunningInTsNode()) {
-        return;
-    }
     // Find the nearest tsconfig to the actual VendureConfig file.
     // This is important in monorepos where each package has its own tsconfig
     // that may extend a base config with path mappings.
@@ -225,10 +222,14 @@ async function prepareToRequireConfig(configFilePath: string, providedTsConfigPa
     const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
     const compilerOptions = tsConfigJson.compilerOptions;
 
-    register({
-        compilerOptions: { ...compilerOptions, moduleResolution: 'NodeNext', module: 'NodeNext' },
-        transpileOnly: true,
-    });
+    // ts-node may already be registered, by the CLI itself or for an earlier project. The path
+    // mappings are still registered: they belong to this config file's tsconfig.
+    if (!isRunningInTsNode()) {
+        register({
+            compilerOptions: { ...compilerOptions, moduleResolution: 'NodeNext', module: 'NodeNext' },
+            transpileOnly: true,
+        });
+    }
 
     if (compilerOptions.paths) {
         const tsConfigPaths = await import('tsconfig-paths');
