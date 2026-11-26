@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { testCommand } from '../index.js';
 
 import { createHostEnvironment } from './commander-adapter.js';
+import { runInTestHost } from './test-command.js';
 
 /** Calls the Console as a Cloud command would: renews once after a refused request. */
 const call = defineCommand({
@@ -45,20 +46,8 @@ describe('ctx.refreshCredential and ctx.account', () => {
         });
     });
 
-    it('renew from the token a request used, so a second refused request does not renew again', async () => {
-        // The stored login as refreshAccessToken() treats it: a refused token that is no longer the
-        // stored one gets the stored one back, without spending a refresh token.
-        let stored = 'A';
-        let spent = 0;
+    it('pass on the token each refused request used', async () => {
         const refreshed: string[] = [];
-        const refreshCredential = async (failedToken: string) => {
-            refreshed.push(failedToken);
-            if (failedToken === stored) {
-                spent++;
-                stored = `${stored}'`;
-            }
-            return { source: 'stored-login' as const, token: stored };
-        };
         const twoRequests = defineCommand({
             path: ['acme', 'two-requests'],
             description: 'Two requests',
@@ -67,23 +56,67 @@ describe('ctx.refreshCredential and ctx.account', () => {
             schemas: async () => ({ input: z.object({}) }),
             run: async () => ({
                 run: async (_input: object, ctx: CommandContext) => {
-                    // Both requests were sent with A, and both were refused.
-                    const first = await ctx.refreshCredential?.('A');
-                    const second = await ctx.refreshCredential?.('A');
-                    return { first: first?.token, second: second?.token, current: ctx.credential?.token };
+                    // Both requests were sent with A, and both were refused. The second renewal
+                    // still names A, so the login can tell it was renewed already.
+                    await ctx.refreshCredential?.('A');
+                    await ctx.refreshCredential?.('A');
+                    return {};
                 },
             }),
         });
 
-        const result = await testCommand(
+        await testCommand(
             twoRequests,
             {},
-            { credential: { source: 'stored-login', token: 'A' }, refreshCredential },
+            {
+                credential: { source: 'stored-login', token: 'A' },
+                refreshCredential: async failedToken => {
+                    refreshed.push(failedToken);
+                    return { source: 'stored-login', token: 'B' };
+                },
+            },
         );
 
-        expect(result.envelope.output).toEqual({ first: "A'", second: "A'", current: "A'" });
         expect(refreshed).toEqual(['A', 'A']);
-        expect(spent).toBe(1);
+    });
+
+    it('report a renewal that failed for a reason that may pass as auth.credential-failed', async () => {
+        const result = await testCommand(
+            call,
+            {},
+            {
+                credential: { source: 'stored-login', token: 'first' },
+                refreshCredential: () =>
+                    Promise.reject(new Error('Could not reach the authentication service')),
+            },
+        );
+
+        expect(result.envelope).toMatchObject({
+            status: 'error',
+            error: {
+                code: 'auth.credential-failed',
+                message: expect.stringContaining('Could not reach the authentication service'),
+            },
+        });
+    });
+
+    it('bring ctx.account up to date after a renewal', async () => {
+        const organization = (token: string) => ({ id: token, customerAccountId: null, name: null });
+        const result = await runInTestHost(
+            call,
+            {},
+            {},
+            {
+                requireCredential: async () => ({ credential: { source: 'stored-login', token: 'first' } }),
+                refreshCredential: async () => ({ source: 'stored-login', token: 'second' }),
+                describeAccount: (_kind, credential) => ({
+                    apiUrl: 'https://api.vendure.io',
+                    organization: organization(credential.token),
+                }),
+            },
+        );
+
+        expect(result.envelope.output).toMatchObject({ account: { organization: { id: 'second' } } });
     });
 
     it('renew from the current credential when no token is given', async () => {

@@ -1,4 +1,4 @@
-import { ConsentNeed, defineCommand, incomplete, isIncompleteResult } from '@vendure/common/lib/command';
+import { ConsentNeed, defineCommand, incomplete } from '@vendure/common/lib/command';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -176,6 +176,87 @@ describe('ctx.consent', () => {
                 message: 'ctx.consent is for run(); plan() returns requiredConsents',
             },
         });
+
+        const choosing = defineCommand({
+            path: ['acme', 'choosing'],
+            description: 'Choosing',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({ target: z.string() }) }),
+            cli: {
+                fields: {
+                    target: {
+                        choices: async ctx => {
+                            await ctx.consent('deployToProduction', preview);
+                            return ['staging'];
+                        },
+                    },
+                },
+            },
+            run: async () => ({ run: async () => ({}) }),
+        });
+
+        const chosen = await testCommand(choosing, {});
+
+        expect(chosen.envelope).toMatchObject({
+            status: 'error',
+            error: {
+                code: 'cli.internal',
+                message: 'ctx.consent is for run(); plan() returns requiredConsents',
+            },
+        });
+    });
+
+    it('asks a person once for two calls at the same time with the same preview', async () => {
+        const askConsent = vi.fn(async () => true);
+        const twice = defineCommand({
+            path: ['acme', 'twice'],
+            description: 'Twice',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    const answers = await Promise.all([
+                        ctx.consent('deployToProduction', preview),
+                        ctx.consent('deployToProduction', preview),
+                    ]);
+                    return { answers };
+                },
+            }),
+        });
+
+        const result = await testCommand(twice, {}, { prompter: { ...prompter(true), askConsent } });
+
+        expect(result.envelope.output).toEqual({ answers: [true, true] });
+        expect(askConsent).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a secret out of what a declined run reported, when no person sees the output', async () => {
+        const minting = defineCommand({
+            path: ['acme', 'minting'],
+            description: 'Minting',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            secretOutputs: ['token'],
+            schemas: async () => ({
+                input: z.object({}),
+                output: z.object({ token: z.string().optional() }),
+            }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    const answer = await ctx.consent('deployToProduction', preview);
+                    return answer === true ? {} : incomplete([answer], { token: 's3cret' });
+                },
+            }),
+        });
+        const writeSecret = vi.fn(() => '/secrets/acme-minting-token');
+
+        const result = await testCommand(minting, {}, { mcp: true, prompter: prompter(false), writeSecret });
+
+        expect(result.envelope.status).toBe('error');
+        expect(JSON.stringify(result.envelope)).not.toContain('s3cret');
+        expect(writeSecret).toHaveBeenCalledWith(['acme', 'minting'], 'token', 's3cret');
     });
 
     it('refuses a consent the command does not declare', async () => {
@@ -187,7 +268,7 @@ describe('ctx.consent', () => {
             run: async () => ({
                 run: async (_input: object, ctx) => {
                     const answer: true | ConsentNeed = await ctx.consent('wipe', {});
-                    return isIncompleteResult(answer) ? answer : {};
+                    return answer === true ? {} : incomplete([answer]);
                 },
             }),
         });

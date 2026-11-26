@@ -261,6 +261,20 @@ interface ConsentState {
     values: Record<string, unknown>;
     running: boolean;
     declined: boolean;
+    /** The consent a person is being asked for, so that two `ctx.consent` calls never prompt at once. */
+    asking: Promise<unknown>;
+}
+
+/**
+ * A credential renewal in `ctx.refreshCredential` that failed for a reason that may pass, such as no
+ * network. The host reports it as `auth.credential-failed`, as when finding the credential failed,
+ * not as an internal error.
+ */
+class CredentialRenewalError extends Error {
+    constructor(readonly cause: unknown) {
+        super(cause instanceof Error ? cause.message : String(cause));
+        this.name = 'CredentialRenewalError';
+    }
 }
 
 /**
@@ -343,15 +357,29 @@ function createContext(
             if (consents.values[name] === need.digest) {
                 return true;
             }
-            if (prompter) {
-                if (await prompter.askConsent(need)) {
-                    // Kept, so a run the host repeats for more input is not asked again.
-                    consents.values[name] = need.digest;
+            if (!prompter) {
+                return need;
+            }
+            // One question at a time: a call waits for the person to answer the one before. The
+            // same consent for the same preview is then given already, and not asked again.
+            const asked = consents.asking.then(async () => {
+                if (consents.values[name] === need.digest) {
                     return true;
                 }
-                consents.declined = true;
-            }
-            return need;
+                if (consents.declined) {
+                    return false;
+                }
+                const agreed = await prompter.askConsent(need);
+                if (agreed) {
+                    // Kept, so a run the host repeats for more input is not asked again.
+                    consents.values[name] = need.digest;
+                } else {
+                    consents.declined = true;
+                }
+                return agreed;
+            });
+            consents.asking = asked.catch(() => undefined);
+            return (await asked) ? true : need;
         },
     };
 }
@@ -496,6 +524,7 @@ export async function executeCommand(
             values: Object.fromEntries(consentNames.map(name => [name, input[name]])),
             running: false,
             declined: false,
+            asking: Promise.resolve(),
         };
         for (const name of consentNames) {
             delete input[name];
@@ -541,9 +570,21 @@ export async function executeCommand(
                 // The token the server refused. When another request renewed it meanwhile, the
                 // renewal returns that newer token without spending the refresh token again.
                 const refused = { ...current, token: failedToken ?? current.token };
-                const renewed = await env.refreshCredential(kind, refused, ctx);
+                let renewed: CommandCredential | undefined;
+                try {
+                    renewed = await env.refreshCredential(kind, refused, ctx);
+                } catch (e) {
+                    throw env.signal.aborted ? e : new CredentialRenewalError(e);
+                }
                 if (renewed) {
                     ctx.credential = renewed;
+                    // A renewal can change which organization the login is scoped to.
+                    const renewedAccount = env.describeAccount?.(kind, renewed);
+                    if (renewedAccount) {
+                        ctx.account = renewedAccount;
+                    } else {
+                        delete ctx.account;
+                    }
                 }
                 return renewed;
             };
@@ -740,6 +781,9 @@ export async function executeCommand(
     } catch (e) {
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);
+        }
+        if (e instanceof CredentialRenewalError) {
+            return errorResult(hostErrors.credentialFailed, { message: e.message }, notices);
         }
         return errorResult(
             hostErrors.internal,

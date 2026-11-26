@@ -462,7 +462,11 @@ export interface CommandContext {
      * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
      * which only its owner can replace, or a login the authentication service refused to renew.
      * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
-     * failure, such as no network, and when `ctx.signal` fires.
+     * failure, such as no network, and when `ctx.signal` fires. A transient failure that `run()` lets
+     * through ends the run with `auth.credential-failed`, as when finding the credential failed.
+     *
+     * A renewal also brings `ctx.account` up to date, since it can change the organization the login
+     * is scoped to.
      *
      * Present only for a command with `requires.auth`.
      *
