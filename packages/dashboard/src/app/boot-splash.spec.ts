@@ -81,19 +81,19 @@ describe('rememberBootShell', () => {
         vi.restoreAllMocks();
     });
 
-    it('keeps the base path, without its trailing slash, and the direction while signed in', () => {
-        rememberBootShell('authenticated', '/dashboard/', 'ltr');
-        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr' });
-        rememberBootShell('authenticated', '/', 'rtl');
-        expect(hint()).toEqual({ base: '', dir: 'rtl' });
+    it('keeps the base path, without its trailing slash, the direction and the filter count while signed in', () => {
+        rememberBootShell('authenticated', '/dashboard/', 'ltr', 0);
+        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr', filters: 0 });
+        rememberBootShell('authenticated', '/', 'rtl', 2);
+        expect(hint()).toEqual({ base: '', dir: 'rtl', filters: 2 });
     });
 
     it('removes it on sign-out and keeps it while the session is checked', () => {
-        rememberBootShell('authenticated', '/dashboard', 'ltr');
-        rememberBootShell('initial', '/dashboard', 'ltr');
-        rememberBootShell('verifying', '/dashboard', 'ltr');
-        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr' });
-        rememberBootShell('unauthenticated', '/dashboard', 'ltr');
+        rememberBootShell('authenticated', '/dashboard', 'ltr', 1);
+        rememberBootShell('initial', '/dashboard', 'ltr', 1);
+        rememberBootShell('verifying', '/dashboard', 'ltr', 1);
+        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr', filters: 1 });
+        rememberBootShell('unauthenticated', '/dashboard', 'ltr', 1);
         expect(hint()).toBeNull();
     });
 
@@ -102,16 +102,18 @@ describe('rememberBootShell', () => {
             throw new DOMException('full', 'QuotaExceededError');
         });
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-        expect(() => rememberBootShell('authenticated', '/dashboard', 'ltr')).not.toThrow();
+        expect(() => rememberBootShell('authenticated', '/dashboard', 'ltr', 0)).not.toThrow();
     });
 });
 
 describe('removeBootSplash', () => {
-    it('removes the boot screen and its shell attribute', () => {
+    it('removes the boot screen and its shell attributes', () => {
         document.body.innerHTML = '<div id="boot-splash"></div>';
-        document.documentElement.setAttribute('data-boot-shell', 'list');
+        document.documentElement.setAttribute('data-boot-shell', 'home');
+        document.documentElement.setAttribute('data-boot-filters', '1');
         removeBootSplash();
         expect(document.getElementById('boot-splash')).toBeNull();
         expect(document.documentElement.hasAttribute('data-boot-shell')).toBe(false);
+        expect(document.documentElement.hasAttribute('data-boot-filters')).toBe(false);
     });
 });

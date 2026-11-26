@@ -28,7 +28,8 @@
             signed in. The page skeleton follows the address: the home page, a list, or a form (a
             page below a list, or one of FORM_PAGES). A load without the key keeps the spinner, and
             so do the pages outside the shell: the route files next to _authenticated.tsx in
-            src/app/routes. Extension routes outside the shell are not known here.
+            src/app/routes. Extension routes outside the shell are not known here. The home page
+            also gets one select per Insights filter that extensions register, up to three.
         */
         (function () {
             var SIGN_IN_PAGES = ['login', 'forgot-password', 'reset-password'];
@@ -50,6 +51,10 @@
                     'data-boot-shell',
                     depth === 0 ? 'home' : depth === 1 && FORM_PAGES.indexOf(path) === -1 ? 'list' : 'detail',
                 );
+                var filters = Math.min(Math.floor(Number(hint.filters)) || 0, 3);
+                if (depth === 0 && filters > 0) {
+                    html.setAttribute('data-boot-filters', String(filters));
+                }
             } catch (e) {}
         })();
     </script>
@@ -283,6 +288,40 @@
             height: 34px;
             border-radius: 8px;
         }
+        .boot-page-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /*
+            The Insights filters: the DateRangePicker, then a select per extension filter. They sit in
+            the action bar, and below 768px (useIsMobile) in their own wrapping row above the widgets.
+        */
+        .boot-filters {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .boot-date,
+        .boot-select {
+            height: 34px;
+            border-radius: 8px;
+        }
+        .boot-date {
+            width: 280px;
+        }
+        .boot-select {
+            display: none;
+            width: 176px;
+        }
+        [data-boot-shell='home'] .boot-page-actions > .boot-filters {
+            display: flex;
+        }
+        [data-boot-filters='1'] .boot-select:nth-child(-n + 2),
+        [data-boot-filters='2'] .boot-select:nth-child(-n + 3),
+        [data-boot-filters='3'] .boot-select {
+            display: block;
+        }
         .boot-card {
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -447,6 +486,15 @@
             .boot-home-row {
                 flex-direction: column;
             }
+            .boot-home-row > .boot-card {
+                flex: none;
+            }
+            [data-boot-shell='home'] .boot-page-actions > .boot-filters {
+                display: none;
+            }
+            [data-boot-shell='home'] .boot-home > .boot-filters {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -489,7 +537,7 @@
             </div>
             <div class="boot-main">
                 <div class="boot-page">
-                    <div class="boot-page-header"><span class="boot-bone boot-heading"></span><span class="boot-bone boot-action"></span></div>
+                    <div class="boot-page-header"><span class="boot-bone boot-heading"></span><div class="boot-page-actions"><div class="boot-filters"><span class="boot-bone boot-date"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span></div><span class="boot-bone boot-action"></span></div></div>
                     <div class="boot-list boot-card">
                         <div class="boot-toolbar"><span class="boot-bone boot-tabs"></span><span class="boot-bone boot-input boot-hide-narrow"></span><span class="boot-bone boot-button"></span></div>
                         <div class="boot-row boot-row-head"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
@@ -519,6 +567,7 @@
                         </div>
                     </div>
                     <div class="boot-home">
+                        <div class="boot-filters"><span class="boot-bone boot-date"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span></div>
                         <div class="boot-card boot-home-chart"></div>
                         <div class="boot-home-row"><div class="boot-card"></div><div class="boot-card"></div></div>
                     </div>

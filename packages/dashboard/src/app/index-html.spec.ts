@@ -64,13 +64,14 @@ describe('index.html', () => {
 
     // OSS-1508 — a signed-in reload shows the app shell from the first paint
     describe('boot shell', () => {
-        function bootShellFor(href: string, base: string | null, dir: 'ltr' | 'rtl' = 'ltr') {
+        function bootShellFor(href: string, base: string | null, dir: 'ltr' | 'rtl' = 'ltr', filters?: unknown) {
             root.removeAttribute('data-boot-shell');
+            root.removeAttribute('data-boot-filters');
             root.removeAttribute('dir');
             if (base === null) {
                 localStorage.removeItem(LS_KEY_BOOT_SHELL);
             } else {
-                localStorage.setItem(LS_KEY_BOOT_SHELL, JSON.stringify({ base, dir }));
+                localStorage.setItem(LS_KEY_BOOT_SHELL, JSON.stringify({ base, dir, filters }));
             }
             vi.stubGlobal('matchMedia', () => ({ matches: false }));
             window.history.replaceState(null, '', href);
@@ -81,6 +82,7 @@ describe('index.html', () => {
         afterEach(() => {
             localStorage.removeItem(LS_KEY_BOOT_SHELL);
             root.removeAttribute('data-boot-shell');
+            root.removeAttribute('data-boot-filters');
             root.removeAttribute('dir');
             window.history.replaceState(null, '', '/');
         });
@@ -129,6 +131,24 @@ describe('index.html', () => {
             expect(root.getAttribute('dir')).toBe('rtl');
             bootShellFor('/dashboard/products', '/dashboard', 'ltr');
             expect(root.getAttribute('dir')).toBe('ltr');
+        });
+
+        // The Insights filters of extensions sit above the widgets on a narrow screen
+        it('draws a select per Insights filter on the home page, up to three', () => {
+            const filtersFor = (href: string, filters: unknown) => {
+                bootShellFor(href, '/dashboard', 'ltr', filters);
+                return root.getAttribute('data-boot-filters');
+            };
+            expect(filtersFor('/dashboard', 1)).toBe('1');
+            expect(filtersFor('/dashboard', 2)).toBe('2');
+            expect(filtersFor('/dashboard', 7)).toBe('3');
+            expect(filtersFor('/dashboard', 0)).toBeNull();
+            expect(filtersFor('/dashboard', undefined)).toBeNull();
+            expect(filtersFor('/dashboard', 'x')).toBeNull();
+            expect(filtersFor('/dashboard/products', 2)).toBeNull();
+            const home = initial.querySelector('#boot-splash .boot-home > .boot-filters');
+            expect(home?.querySelectorAll('.boot-date')).toHaveLength(1);
+            expect(home?.querySelectorAll('.boot-select')).toHaveLength(3);
         });
 
         it('knows every page outside the shell', () => {
