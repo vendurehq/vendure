@@ -1,12 +1,16 @@
 import {
+    applyCommandExtensions,
     commandDeclarations,
     CommandDefinition,
     CommandErrorBody,
     CommandErrorDefinition,
+    CommandExtensionDefinition,
+    extensionDeclarations,
 } from '@vendure/common/lib/command';
 import {
     buildCommandManifest,
     CommandManifest,
+    extendManifestCommand,
     MANIFEST_FILE_NAME,
     MergedManifestCommand,
     mergeManifests,
@@ -224,21 +228,136 @@ export function mergeProjectManifests(
         definitionsPaths.set(plugin.packageName, plugin.definitionsPath);
     }
 
+    // Extensions apply once every command is known, so a package may extend a command of a package
+    // enabled after it. Each package's extensions apply together, or not at all.
+    const commands = mergeManifests(accepted);
+    for (const manifest of accepted) {
+        if (!manifest.extensions?.length) {
+            continue;
+        }
+        const extended = applyExtensions(manifest, commands, checkRegistration);
+        if ('error' in extended) {
+            refused.push({ package: manifest.package, error: extended.error });
+            continue;
+        }
+        for (const command of extended.commands) {
+            commands[commands.findIndex(other => sameCommand(other, command))] = command;
+        }
+    }
+
+    const modules = new Map<string, Promise<unknown>>();
+    const importModule = (source: string) => {
+        const file = definitionsPaths.get(source);
+        if (!file) {
+            throw new Error(`No package "${source}" declares commands in this project`);
+        }
+        let loaded = modules.get(file);
+        if (!loaded) {
+            loaded = import(pathToFileURL(file).href);
+            modules.set(file, loaded);
+        }
+        return { file, loaded };
+    };
+    const extensionsOf = async (command: MergedManifestCommand): Promise<CommandExtensionDefinition[]> => {
+        const found: CommandExtensionDefinition[] = [];
+        for (const { package: packageName } of command.extendedBy ?? []) {
+            const { file, loaded } = importModule(packageName);
+            const declared = await declarationsOf(file, loaded, extensionDeclarations);
+            const match = declared.find(candidate => candidate.path.join(' ') === command.path.join(' '));
+            if (!match) {
+                throw new Error(
+                    `${file}: the manifest lists an extension of "${command.path.join(' ')}", which the module does not export`,
+                );
+            }
+            found.push(match);
+        }
+        return found;
+    };
+
     return {
-        commands: mergeManifests(accepted),
+        commands,
         refused,
         loadDefinitions: async source => {
             // The CLI's own commands declare no groups, so they need no `commandDeclarations`.
-            if (source === CORE_SOURCE) {
-                return (await import('./core-commands.js')).coreCommandDefinitions;
-            }
-            const file = definitionsPaths.get(source);
-            if (!file) {
-                throw new Error(`No package "${source}" declares commands in this project`);
-            }
-            return importDefinitions(file);
+            const definitions =
+                source === CORE_SOURCE
+                    ? (await import('./core-commands.js')).coreCommandDefinitions
+                    : await (async () => {
+                          const { file, loaded } = importModule(source);
+                          return declarationsOf(file, loaded, commandDeclarations);
+                      })();
+            // A command that other packages extend runs with their extensions applied.
+            return Promise.all(
+                definitions.map(async definition => {
+                    const command = commands.find(
+                        candidate =>
+                            candidate.source === source && candidate.path.join(' ') === definition.path.join(' '),
+                    );
+                    return command?.extendedBy?.length
+                        ? applyCommandExtensions(definition, await extensionsOf(command))
+                        : definition;
+                }),
+            );
         },
     };
+}
+
+function sameCommand(a: MergedManifestCommand, b: MergedManifestCommand): boolean {
+    return a.path.join(' ') === b.path.join(' ');
+}
+
+/**
+ * The commands a package's extensions change, with the extensions applied, or the coded error that
+ * refuses them: a command that is not there, or a field, flag, consent or error code that is.
+ */
+function applyExtensions(
+    manifest: CommandManifest,
+    commands: MergedManifestCommand[],
+    checkRegistration: ((commands: MergedManifestCommand[]) => void) | undefined,
+): { commands: MergedManifestCommand[] } | { error: CommandErrorBody } {
+    const plugin = manifest.package;
+    const changed = new Map<string, MergedManifestCommand>();
+    for (const extension of manifest.extensions ?? []) {
+        const key = extension.path.join(' ');
+        const target = changed.get(key) ?? commands.find(command => command.path.join(' ') === key);
+        if (!target) {
+            return { error: errorBody(hostErrors.pluginExtensionTargetMissing, { plugin, command: key }) };
+        }
+        if (target.extendedBy?.some(entry => entry.package === plugin)) {
+            return {
+                error: errorBody(hostErrors.pluginExtensionClash, {
+                    plugin,
+                    command: key,
+                    reason: `${plugin} declares two extensions of it`,
+                }),
+            };
+        }
+        try {
+            changed.set(key, extendManifestCommand(target, extension, plugin));
+        } catch (e) {
+            return {
+                error: errorBody(hostErrors.pluginExtensionClash, {
+                    plugin,
+                    command: key,
+                    reason: e instanceof Error ? e.message : String(e),
+                }),
+            };
+        }
+    }
+    const extended = [...changed.values()];
+    try {
+        // As for a package's commands: a flag Commander refuses, such as two fields with one flag name.
+        checkRegistration?.(extended);
+    } catch (e) {
+        return {
+            error: errorBody(hostErrors.pluginExtensionClash, {
+                plugin,
+                command: extended.map(command => command.path.join(' ')).join('", "'),
+                reason: e instanceof Error ? e.message : String(e),
+            }),
+        };
+    }
+    return { commands: extended };
 }
 
 /** Registers commands on a command line of their own, which throws where Commander refuses them. */
@@ -295,13 +414,13 @@ function findClash(
 }
 
 /**
- * Imports a plugin's declarations module: its `commands`, with the shared input of its `groups`
- * applied, so the group fields the manifest lists reach `run()`.
+ * Reads a plugin's declarations module: its `commands`, with the shared input of its `groups`
+ * applied, so the group fields the manifest lists reach `run()`, or its `extensions`.
  */
-async function importDefinitions(file: string): Promise<CommandDefinition[]> {
-    const mod: unknown = await import(pathToFileURL(file).href);
+async function declarationsOf<T>(file: string, loaded: Promise<unknown>, read: (mod: unknown) => T): Promise<T> {
+    const mod: unknown = await loaded;
     try {
-        return commandDeclarations(mod);
+        return read(mod);
     } catch (e) {
         // The original error, with its stack, stays reachable as `cause`.
         throw Object.assign(new Error(`${file}: ${e instanceof Error ? e.message : String(e)}`), {

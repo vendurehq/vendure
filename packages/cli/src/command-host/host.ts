@@ -447,6 +447,12 @@ export async function executeCommand(
         for (const name of consentNames) {
             delete input[name];
         }
+        // An internal field is set only by an extension, through `next()`, never by a caller.
+        for (const [field, meta] of Object.entries(def.cli?.fields ?? {})) {
+            if (meta.internal) {
+                delete input[field];
+            }
+        }
 
         // Stage 1: inputs. A missing required field is a need. A person is also asked for the
         // optional fields that declare `prompt: true`; without a person they keep their default.

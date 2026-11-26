@@ -68,6 +68,20 @@ export const hostErrors = {
             `${plugin} declares the command "${command}", which clashes with ${other}. ` +
             `None of the commands ${plugin} declares with defineCommand are loaded. Disable one of the two packages, or rename the command.`,
     }),
+    pluginExtensionTargetMissing: defineError<{ plugin: string; command: string }>({
+        code: 'plugin.extension-target-missing',
+        exit: 1,
+        message: ({ plugin, command }) =>
+            `${plugin} extends the command "${command}", which this project does not have. ` +
+            `None of the extensions of ${plugin} are loaded. Its own commands are.`,
+    }),
+    pluginExtensionClash: defineError<{ plugin: string; command: string; reason: string }>({
+        code: 'plugin.extension-clash',
+        exit: 1,
+        message: ({ plugin, command, reason }) =>
+            `${plugin} cannot extend the command "${command}": ${reason}. ` +
+            `None of the extensions of ${plugin} are loaded. Its own commands are.`,
+    }),
     pluginManifestInvalid: defineError<{ plugin: string; reason: string }>({
         code: 'plugin.manifest-invalid',
         exit: 1,

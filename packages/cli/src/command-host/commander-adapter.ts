@@ -430,13 +430,22 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
     };
 }
 
-/** Runs a command, and gives up on it when it does not stop in time after it is cancelled. */
+/**
+ * Runs a command, and gives up on it when it does not stop in time after it is cancelled.
+ *
+ * A `service` command, such as `vendure dev`, is never given up on: an extension that wraps it
+ * stops its own processes once `next()` resolves, in its `finally`, and the host waits for that.
+ * A second Ctrl+C still ends the process at once (see {@link createCancellation}).
+ */
 export function executeWithCancellation(
     def: CommandDefinition,
     input: Record<string, unknown>,
     env: HostEnvironment,
     controller: AbortController,
 ): Promise<HostResult> {
+    if (def.behavior === 'service') {
+        return executeCommand(def, input, env);
+    }
     return Promise.race([
         executeCommand(def, input, env),
         new Promise<HostResult>(resolve => {
@@ -512,10 +521,11 @@ export async function findMismatch(
     }
     // The host loads the schemas to run the command anyway, and `watch` leaves an old manifest
     // in place, so a field that was added, renamed or removed is caught here.
+    // An internal field is in the schema, but never in the manifest.
     const declared = Object.keys(
         ((await def.schemas()).input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET })
             .properties as object | undefined) ?? {},
-    );
+    ).filter(field => !def.cli?.fields?.[field]?.internal);
     const listed = Object.keys((manifestCommand.input.properties as object | undefined) ?? {}).filter(
         field => !(field in manifestCommand.consents),
     );
