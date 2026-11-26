@@ -40,9 +40,11 @@ function tempFile(): string {
 }
 
 /** Writes the file with new content and a later change time, so the poll sees it. */
+let touches = 0;
+
 function touch(file: string, content: string) {
     fs.writeFileSync(file, content);
-    const later = new Date(Date.now() + 5_000);
+    const later = new Date(Date.now() + 5_000 * ++touches);
     fs.utimesSync(file, later, later);
 }
 
@@ -129,6 +131,36 @@ describe('ProjectCommandWatcher', () => {
             expect(changes.map(commands => commands.map(c => c.path.join(' ')))).toEqual([
                 ['doctor', 'example greet'],
             ]);
+        } finally {
+            watcher.close();
+        }
+    });
+
+    it('lists again when a watched file changes while a relisting reads it', async () => {
+        const file = tempFile();
+        const listed: ListedCommands = { commands: [command(['doctor'])], refused: [], files: [file] };
+        let calls = 0;
+        const list = vi.fn(async () => {
+            calls++;
+            if (calls === 2) {
+                // Another write lands after this listing read the files, as during an install.
+                touch(file, '{ "name": "second write" }');
+                return { ...listed, commands: [command(['doctor'])] };
+            }
+            return calls === 3
+                ? { ...listed, commands: [command(['doctor']), command(['example', 'greet'])] }
+                : listed;
+        });
+        const watcher = new ProjectCommandWatcher({ cwd: '/project', list, watchIntervalMs: 10 });
+        const changes: MergedManifestCommand[][] = [];
+        watcher.onChanged(commands => changes.push(commands));
+        await watcher.list();
+        watcher.watch();
+        try {
+            touch(file, '{ "name": "first write" }');
+            await until(() => changes.length === 1);
+            expect(list).toHaveBeenCalledTimes(3);
+            expect(changes[0].map(c => c.path.join(' '))).toEqual(['doctor', 'example greet']);
         } finally {
             watcher.close();
         }

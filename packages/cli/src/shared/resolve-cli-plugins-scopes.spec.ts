@@ -11,6 +11,7 @@ import {
     getCliPluginScope,
     PackageJsonLike,
     resolveCliPlugins,
+    resolveCommandManifests,
 } from './resolve-cli-plugins.js';
 
 describe('CLI plugin scopes', () => {
@@ -329,6 +330,105 @@ describe('CLI plugin scopes', () => {
             status: 'enabled',
         });
     });
+    describe('watchedFiles', () => {
+        /** A project with the given dependencies enabled, and its own package.json. */
+        function projectEnabling(dependencies: Record<string, string>) {
+            const root = makeTempDir('vendure-watch-project-');
+            fs.writeJsonSync(path.join(root, 'package.json'), {
+                name: 'shop',
+                dependencies: { '@vendure/core': '*', ...dependencies },
+                vendure: { cli: { plugins: Object.keys(dependencies) } },
+            });
+            return root;
+        }
+
+        function writePackage(root: string, dirName: string, packageJson: object) {
+            const dir = path.join(root, 'node_modules', ...dirName.split('/'));
+            fs.ensureDirSync(dir);
+            fs.writeJsonSync(path.join(dir, 'package.json'), packageJson);
+            return dir;
+        }
+
+        const projectFiles = (root: string) =>
+            resolveCommandManifests({ cwd: root, scopes: ['project'] }).watchedFiles;
+
+        it('lists the package.json and command manifest of a package that resolves', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+            const dir = writePackage(root, '@example/tools', {
+                name: '@example/tools',
+                vendure: { commandManifest: './vendure-commands.json', commandDefinitions: './commands.js' },
+            });
+
+            expect(projectFiles(root)).toEqual([
+                path.join(root, 'package.json'),
+                path.join(dir, 'package.json'),
+                path.join(dir, 'vendure-commands.json'),
+            ]);
+        });
+
+        it('lists the manifest a package names even when the file is missing', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+            const dir = writePackage(root, '@example/tools', {
+                name: '@example/tools',
+                vendure: {
+                    commandManifest: './dist/vendure-commands.json',
+                    commandDefinitions: './commands.js',
+                },
+            });
+
+            const result = resolveCommandManifests({ cwd: root, scopes: ['project'] });
+            expect(result.failures.map(failure => failure.packageName)).toEqual(['@example/tools']);
+            expect(result.watchedFiles).toContain(path.join(dir, 'dist', 'vendure-commands.json'));
+        });
+
+        it('lists every node_modules package.json above the project for a package that is not installed', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+
+            const files = projectFiles(root);
+            expect(files[0]).toBe(path.join(root, 'package.json'));
+            expect(files[1]).toBe(path.join(root, 'node_modules', '@example', 'tools', 'package.json'));
+            expect(files[2]).toBe(
+                path.join(path.dirname(root), 'node_modules', '@example', 'tools', 'package.json'),
+            );
+            expect(files.at(-1)).toBe(
+                path.join(path.parse(root).root, 'node_modules', '@example', 'tools', 'package.json'),
+            );
+        });
+
+        it('lists an npm alias under the name it is declared with', () => {
+            const root = projectEnabling({ '@example/tools': 'npm:@other/tools@1' });
+            const dir = writePackage(root, '@example/tools', {
+                name: '@other/tools',
+                vendure: { cliPlugin: './cli-plugin.js' },
+            });
+
+            expect(projectFiles(root)).toEqual([
+                path.join(root, 'package.json'),
+                path.join(dir, 'package.json'),
+            ]);
+        });
+
+        it('lists the package.json of a package with only a cliPlugin', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+            installPlugin(root, '@example/tools', 'tools');
+
+            expect(projectFiles(root)).toEqual([
+                path.join(root, 'package.json'),
+                path.join(root, 'node_modules', '@example', 'tools', 'package.json'),
+            ]);
+        });
+
+        it('lists the global cli.json and the plugin roots of a global package that is not installed', () => {
+            const globalRoot = makeTempDir('vendure-watch-global-');
+            const env = makeGlobalEnv({ plugins: ['@example/tools'], roots: [globalRoot] });
+
+            const { watchedFiles } = resolveCommandManifests({ env, scopes: ['global'] });
+            expect(watchedFiles[0]).toBe(path.join(env.VENDURE_CLI_CONFIG_DIR as string, 'cli.json'));
+            expect(watchedFiles[1]).toBe(
+                path.join(globalRoot, 'node_modules', '@example', 'tools', 'package.json'),
+            );
+        });
+    });
 });
 
 describe('findCliInstallLocation()', () => {
@@ -477,4 +577,5 @@ describe('the global scope with a project-local CLI', () => {
 
         expect(discovered).toEqual([]);
     });
+
 });

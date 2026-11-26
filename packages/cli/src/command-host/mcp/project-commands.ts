@@ -2,7 +2,6 @@ import type { MergedManifestCommand } from '@vendure/common/lib/command/manifest
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { getGlobalCliConfigPath } from '../../shared/cli-global-plugin-config.js';
 import { resolveCommandManifests } from '../../shared/resolve-cli-plugins.js';
 import { loadMergedManifest, loadProjectCommands, RefusedManifest } from '../manifest.js';
 
@@ -60,7 +59,8 @@ export class ProjectCommandWatcher {
             this.current = {
                 commands: await loadMergedManifest({ plugins: [] }),
                 refused: [],
-                files: defaultWatchedFiles(this.options.cwd, []),
+                // The project's package.json, whose change is the likely fix.
+                files: [path.join(this.options.cwd, 'package.json')],
             };
         }
         return this.current.commands;
@@ -87,8 +87,11 @@ export class ProjectCommandWatcher {
             if (next === signature) {
                 return;
             }
+            // Taken before the relisting reads the files, so a write during it is seen next tick.
+            // When the relisting watches other files, their signature differs, and one more
+            // relisting finds the same tools.
+            signature = next;
             this.relisting = this.relist().finally(() => {
-                signature = statSignature(this.current?.files ?? []);
                 this.relisting = undefined;
             });
         }, this.options.watchIntervalMs ?? WATCH_INTERVAL_MS);
@@ -134,86 +137,7 @@ export async function listProjectCommands(cwd: string): Promise<ListedCommands> 
     // Resolved once, so the files watched are those the commands were read from.
     const resolved = resolveCommandManifests({ cwd });
     const { commands, refused } = await loadProjectCommands({ resolved });
-    const packages = [
-        ...resolved.manifests.map(({ packageName, definitionsPath }) => ({
-            packageName,
-            from: definitionsPath,
-        })),
-        ...resolved.failures.map(({ packageName }) => ({ packageName, from: undefined })),
-    ];
-    return {
-        commands,
-        refused,
-        files: [
-            ...defaultWatchedFiles(cwd, []),
-            ...packages.flatMap(({ packageName, from }) => packageFiles(cwd, packageName, from)),
-        ],
-    };
-}
-
-function defaultWatchedFiles(cwd: string, extra: string[]): string[] {
-    return [path.join(cwd, 'package.json'), getGlobalCliConfigPath(), ...extra];
-}
-
-/**
- * The files of an enabled package that decide its commands: its package.json and the command
- * manifest it names. A package that resolved is found above its definitions. One that did not,
- * for example because it is not installed yet, is looked for in each `node_modules` above the
- * project, so an install is noticed.
- */
-function packageFiles(cwd: string, packageName: string, definitionsPath: string | undefined): string[] {
-    const packageJsonPaths = definitionsPath
-        ? [findPackageJson(path.dirname(definitionsPath), packageName)].filter(
-              (file): file is string => file !== undefined,
-          )
-        : ancestors(cwd).map(dir => path.join(dir, 'node_modules', packageName, 'package.json'));
-    return packageJsonPaths.flatMap(packageJsonPath => {
-        const manifest = declaredManifestPath(packageJsonPath);
-        return manifest ? [packageJsonPath, manifest] : [packageJsonPath];
-    });
-}
-
-/** The package.json of the package named `packageName`, at or above `dir`. */
-function findPackageJson(dir: string, packageName: string): string | undefined {
-    for (const candidate of ancestors(dir)) {
-        const file = path.join(candidate, 'package.json');
-        try {
-            if ((JSON.parse(fs.readFileSync(file, 'utf-8')) as { name?: unknown }).name === packageName) {
-                return file;
-            }
-        } catch {
-            // No package.json here, or not one that can be read.
-        }
-    }
-    return undefined;
-}
-
-/** The command manifest a package.json names, if it can be read and names one. */
-function declaredManifestPath(packageJsonPath: string): string | undefined {
-    try {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as {
-            vendure?: { commandManifest?: unknown };
-        };
-        const manifest = packageJson.vendure?.commandManifest;
-        return typeof manifest === 'string'
-            ? path.resolve(path.dirname(packageJsonPath), manifest)
-            : undefined;
-    } catch {
-        return undefined;
-    }
-}
-
-/** `dir` and each directory above it. */
-function ancestors(dir: string): string[] {
-    const dirs = [path.resolve(dir)];
-    for (
-        let parent = path.dirname(dirs[0]);
-        parent !== dirs[dirs.length - 1];
-        parent = path.dirname(parent)
-    ) {
-        dirs.push(parent);
-    }
-    return dirs;
+    return { commands, refused, files: resolved.watchedFiles };
 }
 
 /** What a client sees of the commands: a change to anything else does not change the tools. */

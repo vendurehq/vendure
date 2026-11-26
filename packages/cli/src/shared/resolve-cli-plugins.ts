@@ -132,6 +132,15 @@ export interface CliPluginLoadResult {
     manifests: ResolvedCommandManifest[];
     failures: CliPluginLoadFailure[];
     scopeErrors: CliPluginScopeError[];
+    /**
+     * The files that decide which plugins load and what they offer: the file each scope's allowlist
+     * is read from, and for each enabled package its package.json and command manifest. For a
+     * package that does not resolve, the package.json files it would be resolved from. A caller
+     * that watches these notices a plugin that is enabled, disabled, installed or upgraded.
+     *
+     * @since 4.0.0
+     */
+    watchedFiles: string[];
 }
 
 export type CliPluginDiscoveryStatus = 'enabled' | 'not-enabled' | 'failed';
@@ -556,8 +565,8 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
 export function resolveCommandManifests(
     options: ResolveCliPluginsOptions = {},
 ): Omit<CliPluginLoadResult, 'loaded'> {
-    const { manifests, failures, scopeErrors } = resolveEnabledPackages(options, false);
-    return { manifests, failures, scopeErrors };
+    const { manifests, failures, scopeErrors, watchedFiles } = resolveEnabledPackages(options, false);
+    return { manifests, failures, scopeErrors, watchedFiles };
 }
 
 function resolveEnabledPackages(
@@ -566,7 +575,13 @@ function resolveEnabledPackages(
 ): CliPluginLoadResult {
     const scopes = getPluginScopes(options);
     const owner = owningScopes(scopes);
-    const result: CliPluginLoadResult = { loaded: [], manifests: [], failures: [], scopeErrors: [] };
+    const result: CliPluginLoadResult = {
+        loaded: [],
+        manifests: [],
+        failures: [],
+        scopeErrors: [],
+        watchedFiles: [],
+    };
 
     const projectScope = scopes.find(scope => scope.kind === 'project' && !scope.error);
     if (projectScope) {
@@ -576,8 +591,10 @@ function resolveEnabledPackages(
         if (scope.error) {
             result.scopeErrors.push({ scope: scope.kind, origin: scope.origin, reason: scope.error });
         }
+        result.watchedFiles.push(scope.allowlistFile);
         for (const packageName of scope.allowlist) {
             if (owner.get(packageName) === scope) {
+                result.watchedFiles.push(...packageFiles(scope, packageName));
                 loadInto(result, scope, packageName, loadModules);
             }
         }
@@ -608,6 +625,40 @@ function owningScopes(scopes: PluginScope[]): Map<string, PluginScope> {
         }
     }
     return owner;
+}
+
+/**
+ * The files of an enabled package that decide what it offers: its package.json and the command
+ * manifest it names. For a package that does not resolve, the files it would be resolved from.
+ */
+function packageFiles(scope: PluginScope, packageName: string): string[] {
+    const resolved = scope.resolvePackage(packageName);
+    if (!resolved) {
+        return scope.packageJsonCandidates(packageName);
+    }
+    const manifest = declaredManifest(resolved.packageJson);
+    return [
+        path.join(resolved.dir, 'package.json'),
+        ...(manifest ? [path.resolve(resolved.dir, manifest)] : []),
+    ];
+}
+
+/**
+ * The package.json paths that the `node_modules` walk of {@link defaultResolvePackage} looks at,
+ * from `baseDir` up. An npm alias is installed under the name it is declared with, so this covers
+ * it too.
+ */
+function nodeModulesCandidates(baseDir: string, packageName: string): string[] {
+    const candidates: string[] = [];
+    let current = path.resolve(baseDir);
+    while (true) {
+        candidates.push(path.join(current, 'node_modules', ...packageName.split('/'), 'package.json'));
+        const parent = path.dirname(current);
+        if (parent === current) {
+            return candidates;
+        }
+        current = parent;
+    }
 }
 
 /** Loads one package, recording either the plugin or the reason it could not be. */
@@ -900,6 +951,13 @@ export interface PluginScope {
      * report a package that is installed but not enabled.
      */
     listCandidates: () => string[];
+    /** The file the allowlist is read from. */
+    allowlistFile: string;
+    /**
+     * The package.json files the scope would resolve a package from, nearest first. Empty when
+     * the scope resolves packages some other way, such as in a test.
+     */
+    packageJsonCandidates: (packageName: string) => string[];
     /** A problem with the scope itself, reported once rather than per package. */
     error?: string;
 }
@@ -1092,6 +1150,8 @@ function getGlobalPluginScope(
             checkResolvable(packageName) ?? checkDeclaresPlugin(packageName, resolvePackage),
         listCandidates: () =>
             install?.globalNodeModules ? listInstalledPackageNames(install.globalNodeModules) : [],
+        allowlistFile: configPath,
+        packageJsonCandidates: packageName => roots.flatMap(root => nodeModulesCandidates(root, packageName)),
         error: error ? `Could not read ${configPath}: ${error}` : undefined,
     };
 }
@@ -1116,6 +1176,8 @@ function getProjectPluginScope(options: ResolveCliPluginsOptions): PluginScope |
             resolvePackage: () => null,
             check: () => undefined,
             listCandidates: () => [],
+            allowlistFile: path.join(path.resolve(options.cwd ?? process.cwd()), 'package.json'),
+            packageJsonCandidates: () => [],
             error: error.message,
         };
     }
@@ -1131,6 +1193,14 @@ function getProjectPluginScope(options: ResolveCliPluginsOptions): PluginScope |
             checkEnabledPluginStatically(packageName, context) ??
             checkDeclaresPlugin(packageName, context.resolvePackage),
         listCandidates: () => [...context.directDependencyOrigins.keys()],
+        allowlistFile: path.join(context.projectRoot, 'package.json'),
+        packageJsonCandidates: packageName =>
+            options.resolvePackage
+                ? []
+                : nodeModulesCandidates(
+                      context.directDependencyOrigins.get(packageName) ?? context.projectRoot,
+                      packageName,
+                  ),
     };
 }
 
