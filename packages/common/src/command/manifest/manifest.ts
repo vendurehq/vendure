@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 import { isValidErrorCode } from '../define';
-import { commandExtensionViolation, CommandPartNames } from '../extensions';
+import { commandExtensionViolation, CommandPartNames, internalFieldsOf } from '../extensions';
 import { CommandBehavior, CommandCliMetadata, JsonSchema } from '../types';
 
 /** The name of the manifest file a package ships. */
@@ -191,7 +191,7 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
                 );
             }
             seen.set(key, manifest.package);
-            checkPartRules(command, `${manifest.package} declares the command ${label}`);
+            checkPartRules(manifestRulesInput(command), `${manifest.package} declares the command ${label}`);
             merged.push({ ...command, source: manifest.package });
         }
         for (const extension of manifest.extensions ?? []) {
@@ -202,24 +202,45 @@ export function mergeManifests(manifests: CommandManifest[]): MergedManifestComm
 }
 
 /**
- * The rules a command and an extension both follow on their own: field names the host does not
- * reserve, error codes of the right shape, and each short flag used once. `label` names the part,
- * such as `@acme/cli declares the command "acme sync"`.
+ * What {@link checkPartRules} reads of a command or an extension.
+ *
+ * @since 4.0.0
  */
-function checkPartRules(part: Pick<ManifestCommand, 'input' | 'errors' | 'cli'>, label: string): void {
-    for (const name of Object.keys((part.input.properties as object | undefined) ?? {})) {
+export interface CommandPartRulesInput {
+    /** The input fields, without the consents. */
+    fields: string[];
+    consents: string[];
+    errorCodes: string[];
+    flags?: CommandCliMetadata['flags'];
+}
+
+/**
+ * The rules a command and an extension both follow on their own: field and consent names the host
+ * does not reserve, no consent with the name of one of its fields, error codes of the right shape,
+ * and each short flag used once. It throws with `label`, which names the part, such as
+ * `@acme/cli declares the command "acme sync"`.
+ *
+ * The build checks the fields of the schemas. A manifest lists a consent as an input property, so
+ * a field of the same name no longer shows there.
+ *
+ * @since 4.0.0
+ */
+export function checkPartRules(part: CommandPartRulesInput, label: string): void {
+    for (const name of [...part.fields, ...part.consents]) {
         if (RESERVED_FIELD_NAMES.includes(name)) {
             throw new Error(`${label} with the field "${name}", which the host reserves`);
         }
     }
-    const badCode = (part.errors ?? []).find(error => !isValidErrorCode(error.code));
-    if (badCode) {
-        throw new Error(
-            `${label} with the error code "${badCode.code}", which is not <namespace>.<kebab-name>`,
-        );
+    const clash = part.consents.find(consent => part.fields.includes(consent));
+    if (clash !== undefined) {
+        throw new Error(`${label} with the consent "${clash}", which is also one of its input fields`);
+    }
+    const badCode = part.errorCodes.find(code => !isValidErrorCode(code));
+    if (badCode !== undefined) {
+        throw new Error(`${label} with the error code "${badCode}", which is not <namespace>.<kebab-name>`);
     }
     const shorts = new Map<string, string>();
-    for (const [field, flag] of Object.entries(part.cli.flags ?? {})) {
+    for (const [field, flag] of Object.entries(part.flags ?? {})) {
         if (flag.short) {
             const other = shorts.get(flag.short);
             if (other) {
@@ -232,6 +253,18 @@ function checkPartRules(part: Pick<ManifestCommand, 'input' | 'errors' | 'cli'>,
     }
 }
 
+/** What {@link checkPartRules} reads of a manifest command or extension. */
+function manifestRulesInput(part: ManifestCommand | ManifestExtension): CommandPartRulesInput {
+    return {
+        fields: Object.keys((part.input.properties as object | undefined) ?? {}).filter(
+            field => !(field in part.consents),
+        ),
+        consents: Object.keys(part.consents),
+        errorCodes: part.errors.map(error => error.code),
+        flags: part.cli.flags,
+    };
+}
+
 /**
  * The rules an extension follows on its own, before it is applied: those of {@link checkPartRules}.
  * Its CLI metadata is checked when it is applied, as a clash with the command it extends.
@@ -240,7 +273,10 @@ function checkExtension(packageName: string, extension: ManifestExtension): void
     if (extension.path.length === 0) {
         throw new Error(`${packageName} declares an extension with an empty path`);
     }
-    checkPartRules(extension, `${packageName} declares an extension of "${extension.path.join(' ')}"`);
+    checkPartRules(
+        manifestRulesInput(extension),
+        `${packageName} declares an extension of "${extension.path.join(' ')}"`,
+    );
 }
 
 /**
@@ -277,10 +313,11 @@ export function manifestPartNames(part: ManifestCommand | ManifestExtension): Co
             field => !(field in part.consents),
         ),
         outputFields: Object.keys((part.output?.properties as object | undefined) ?? {}),
-        internalFields: [
-            ...('internalFields' in part.cli ? (part.cli.internalFields ?? []) : []),
-            ...fields.filter(([, meta]) => meta.internal).map(([field]) => field),
-        ],
+        // A manifest command lists its internal fields by name. A build never writes an extension
+        // field marked internal, so `markedInternal` is only for a manifest written by hand.
+        ...('internalFields' in part.cli
+            ? { internalFields: part.cli.internalFields ?? [] }
+            : { markedInternal: internalFieldsOf(part.cli) }),
         cliKeys: [...Object.keys(part.cli.flags ?? {}), ...fields.map(([field]) => field)],
         shortFlags: Object.values(part.cli.flags ?? {})
             .map(flag => flag.short)

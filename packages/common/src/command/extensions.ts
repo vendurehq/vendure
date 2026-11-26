@@ -1,6 +1,7 @@
 import { isErrorResult, isFailedResult, isIncompleteResult } from './define';
 import { combineInputs, mergeCli, propertiesOf } from './groups';
 import {
+    CommandCliMetadata,
     CommandContext,
     CommandDefinition,
     CommandErrorDefinition,
@@ -14,9 +15,22 @@ import {
 
 /**
  * @description
- * The names the rules between a command and an extension of it read: its fields, CLI metadata,
- * consents and errors. A part leaves out what is not known yet, such as its fields before its
- * schemas load, and the rules that need it are skipped.
+ * The names of the fields a command's CLI metadata marks `internal`: those only an extension sets,
+ * through `next()`. The manifest leaves them out, and the host removes them from what a caller passes.
+ *
+ * @since 4.0.0
+ */
+export function internalFieldsOf(cli: Pick<CommandCliMetadata, 'fields'> | undefined): string[] {
+    return Object.entries(cli?.fields ?? {})
+        .filter(([, meta]) => meta.internal)
+        .map(([field]) => field);
+}
+
+/**
+ * @description
+ * The names of a command or extension that `commandExtensionViolation` compares. A part leaves
+ * out what is not known yet, such as its fields before its schemas load, and the rules that need
+ * it are skipped.
  *
  * @since 4.0.0
  */
@@ -24,11 +38,13 @@ export interface CommandPartNames {
     /** The input fields, without the consents. */
     inputFields?: Iterable<string>;
     outputFields?: Iterable<string>;
-    /**
-     * For a command, the fields only an extension sets. For an extension, the fields it marks
-     * `internal`, which it may not: only an extension sets one, so its own would never get a value.
-     */
+    /** A command's fields that only an extension sets. */
     internalFields?: Iterable<string>;
+    /**
+     * The fields an extension marks `internal`, which it may not: only an extension sets one, so
+     * its own would never get a value.
+     */
+    markedInternal?: Iterable<string>;
     /** The fields its `cli.flags` and `cli.fields` name. */
     cliKeys?: Iterable<string>;
     shortFlags?: Iterable<string>;
@@ -43,6 +59,9 @@ export interface CommandPartNames {
  * with the extensions before this one applied. The build checks an extension against an empty
  * command, the host checks it against the command in the manifest, and again when it runs it.
  *
+ * A consent is an input of its own, `--<consent> <digest>`, so a consent and an input field may not
+ * share a name, in either direction.
+ *
  * @since 4.0.0
  */
 export function commandExtensionViolation(
@@ -50,7 +69,7 @@ export function commandExtensionViolation(
     command: CommandPartNames,
     extension: CommandPartNames,
 ): string | undefined {
-    const [ownInternal] = extension.internalFields ?? [];
+    const [ownInternal] = extension.markedInternal ?? [];
     if (ownInternal !== undefined) {
         return `it marks its own field "${ownInternal}" internal`;
     }
@@ -63,12 +82,21 @@ export function commandExtensionViolation(
     }
     const internal = new Set(command.internalFields ?? []);
     const commandInput = new Set(command.inputFields ?? []);
+    const commandConsents = new Set(command.consents ?? []);
     for (const field of extension.inputFields ?? []) {
         if (internal.has(field)) {
             return `the input field "${field}" of "${key}" is an internal field of the command`;
         }
         if (commandInput.has(field)) {
             return `the input field "${field}" of "${key}" exists already`;
+        }
+        if (commandConsents.has(field)) {
+            return `the input field "${field}" of "${key}" is a consent of the command`;
+        }
+    }
+    for (const name of extension.consents ?? []) {
+        if (commandInput.has(name) || internal.has(name)) {
+            return `the consent "${name}" of "${key}" is an input field of the command`;
         }
     }
     const taken = (mine: Iterable<string> | undefined, theirs: Iterable<string> | undefined) => {
@@ -165,10 +193,13 @@ export function commandExtensionParts(
 }
 
 /** The names of a command or an extension that are known before its schemas load. */
-function declaredNames(part: Pick<CommandDefinition, 'consents' | 'errors' | 'cli'>): CommandPartNames {
+function declaredNames(
+    part: Pick<CommandDefinition, 'consents' | 'errors' | 'cli'>,
+    kind: 'command' | 'extension',
+): CommandPartNames {
     const fields = Object.entries(part.cli?.fields ?? {});
     return {
-        internalFields: fields.filter(([, meta]) => meta.internal).map(([field]) => field),
+        [kind === 'command' ? 'internalFields' : 'markedInternal']: internalFieldsOf(part.cli),
         cliKeys: [...Object.keys(part.cli?.flags ?? {}), ...fields.map(([field]) => field)],
         shortFlags: Object.values(part.cli?.flags ?? {})
             .map(flag => flag.short)
@@ -192,11 +223,12 @@ export function commandExtensionViolations(
     parts?: CommandExtensionParts,
 ): Array<string | undefined> {
     const key = command.path.join(' ');
-    const commandNames = declaredNames(command);
+    const commandNames = declaredNames(command, 'command');
     const applied: Required<CommandPartNames> = {
         inputFields: parts ? [...parts.commandInputFields] : [],
         outputFields: parts ? [...parts.commandOutputFields] : [],
         internalFields: [...(commandNames.internalFields ?? [])],
+        markedInternal: [],
         cliKeys: [...(commandNames.cliKeys ?? [])],
         shortFlags: [...(commandNames.shortFlags ?? [])],
         consents: [...(commandNames.consents ?? [])],
@@ -207,14 +239,14 @@ export function commandExtensionViolations(
             return `it extends "${extension.path.join(' ')}" instead`;
         }
         const names: CommandPartNames = {
-            ...declaredNames(extension),
+            ...declaredNames(extension, 'extension'),
             ...(parts
                 ? { inputFields: parts.inputFields[index], outputFields: parts.outputFields[index] }
                 : {}),
         };
         const violation = commandExtensionViolation(key, applied, names);
         for (const name of Object.keys(applied) as Array<keyof CommandPartNames>) {
-            if (name !== 'internalFields') {
+            if (name !== 'internalFields' && name !== 'markedInternal') {
                 (applied[name] as string[]).push(...(names[name] ?? []));
             }
         }
@@ -447,10 +479,11 @@ async function validated(
 }
 
 /**
- * Checks the ok output an extension returned: its own fields with its output schema, the rest with
- * the command's. Fields of other extensions are left to them. A `failed()`, `incomplete()` or
- * `fail()` result passes as it is, so an extension that passes one on never makes a run fail in a
- * new way. The host reports an invalid output as an internal error, naming the extension.
+ * Checks the ok output an extension returned: its own output fields, with its output schema. The
+ * command's fields are the command's to answer for, so an extension never surfaces a mismatch
+ * inside the command. A `failed()`, `incomplete()` or `fail()` result passes as it is, so an
+ * extension that passes one on never makes a run fail in a new way. The host reports an invalid
+ * output as an internal error, naming the extension.
  */
 async function checkOutput(
     result: CommandRunResult<unknown>,
@@ -461,37 +494,24 @@ async function checkOutput(
     if (isIncompleteResult(result) || isErrorResult(result) || isFailedResult(result)) {
         return;
     }
-    const output = result;
-    if (output === null || typeof output !== 'object') {
+    const extensionOutput = loaded.extensions[index].output;
+    if (!extensionOutput || result === null || typeof result !== 'object') {
         return;
     }
-    const entries = Object.entries(output as Record<string, unknown>);
-    const otherExtensionFields = new Set(
-        loaded.outputFields.flatMap((fields, other) => (other === index ? [] : [...fields])),
-    );
     const own = loaded.outputFields[index];
-    const extensionOutput = loaded.extensions[index].output;
-    if (extensionOutput) {
-        await validated(
-            extensionOutput,
-            Object.fromEntries(entries.filter(([field]) => own.has(field))),
-            `The output fields of ${label}`,
-        );
-    }
-    if (loaded.command.output) {
-        await validated(
-            loaded.command.output,
-            Object.fromEntries(
-                entries.filter(([field]) => !own.has(field) && !otherExtensionFields.has(field)),
-            ),
-            `The command's output that ${label} returned`,
-        );
-    }
+    await validated(
+        extensionOutput,
+        Object.fromEntries(
+            Object.entries(result as Record<string, unknown>).filter(([field]) => own.has(field)),
+        ),
+        `The output fields of ${label}`,
+    );
 }
 
 /**
  * The context for a call of `next`: the same as the outer one, except that its `ctx.signal` also
- * fires when `signal` does. `dispose` stops listening for either.
+ * fires when `signal` does, and so do the processes `ctx.spawn` starts and a renewal in
+ * `ctx.refreshCredential`. `dispose` stops listening for either.
  */
 function scopedContext(
     ctx: CommandContext,
@@ -507,11 +527,42 @@ function scopedContext(
     }
     ctx.signal.addEventListener('abort', abort, { once: true });
     signal.addEventListener('abort', abort, { once: true });
+    const scoped = controller.signal;
+    const refreshCredential = ctx.refreshCredential?.bind(ctx);
     return {
-        ctx: { ...ctx, signal: controller.signal },
+        ctx: {
+            ...ctx,
+            signal: scoped,
+            spawn: (command, args, options) =>
+                ctx.spawn(command, args, {
+                    ...options,
+                    signal: options?.signal ? eitherSignal(scoped, options.signal) : scoped,
+                }),
+            ...(refreshCredential
+                ? {
+                      refreshCredential: (failedToken, options) =>
+                          refreshCredential(failedToken, {
+                              signal: options?.signal ? eitherSignal(scoped, options.signal) : scoped,
+                          }),
+                  }
+                : {}),
+        },
         dispose: () => {
             ctx.signal.removeEventListener('abort', abort);
             signal.removeEventListener('abort', abort);
         },
     };
+}
+
+/** A signal that fires when either does. */
+function eitherSignal(a: AbortSignal, b: AbortSignal): AbortSignal {
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    if (a.aborted || b.aborted) {
+        controller.abort();
+    } else {
+        a.addEventListener('abort', abort, { once: true });
+        b.addEventListener('abort', abort, { once: true });
+    }
+    return controller.signal;
 }

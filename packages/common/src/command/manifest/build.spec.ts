@@ -251,6 +251,29 @@ describe('buildCommandManifest', () => {
             buildCommandManifest('@a/cloud', '1.0.0', [], { extensions: [reserved] }),
         ).rejects.toThrow(/"json", which the host reserves/);
     });
+
+    it('refuses a command or an extension with a consent named like one of its own fields', async () => {
+        const { command } = wipeCommand();
+        await expect(
+            buildCommandManifest('@a/one', '1.0.0', [{ ...command, consents: { force: 'Force it' } }]),
+        ).rejects.toThrow(
+            '@a/one declares the command "demo wipe" with the consent "force", which is also one of its input fields',
+        );
+        const extension = defineCommandExtension({
+            path: ['dev'],
+            consents: { region: 'Deploy to this region' },
+            schemas: () =>
+                Promise.resolve({
+                    input: schema({ type: 'object', properties: { region: { type: 'string' } } }, {}),
+                }),
+            run: () => Promise.resolve({ run: (_input, _ctx, next) => next() }),
+        });
+        await expect(
+            buildCommandManifest('@a/cloud', '1.0.0', [], { extensions: [extension] }),
+        ).rejects.toThrow(
+            'The extension of "dev" with the consent "region", which is also one of its input fields',
+        );
+    });
 });
 
 describe('writeCommandManifest', () => {

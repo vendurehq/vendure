@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { commandExtensionViolation } from '../extensions';
+import { commandExtensionViolation, internalFieldsOf } from '../extensions';
 import { applyCommandGroups } from '../groups';
 import {
     CommandCliMetadata,
@@ -18,6 +18,7 @@ import {
     ManifestCommand,
     ManifestExtension,
     ManifestFieldMetadata,
+    checkPartRules,
     manifestPartNames,
     mergeManifests,
 } from './manifest';
@@ -48,11 +49,7 @@ function manifestInput(
     consents: Record<string, string>,
     fields: CommandCliMetadata['fields'],
 ): JsonSchema {
-    const internal = new Set(
-        Object.entries(fields ?? {})
-            .filter(([, meta]) => meta.internal)
-            .map(([field]) => field),
-    );
+    const internal = new Set(internalFieldsOf({ fields }));
     const properties = Object.fromEntries(
         Object.entries((input.properties as Record<string, unknown> | undefined) ?? {}).filter(
             ([field]) => !internal.has(field),
@@ -69,18 +66,12 @@ function manifestInput(
     return { ...rest, properties, ...(required.length ? { required } : {}) };
 }
 
-/** The fields marked `internal`, which only an extension sets. */
-function internalFieldsOf(fields: CommandCliMetadata['fields']): string[] {
-    return Object.entries(fields ?? {})
-        .filter(([, meta]) => meta.internal)
-        .map(([field]) => field);
-}
-
 /** The CLI metadata of the fields, as the manifest lists it, without the internal ones. */
 function manifestFields(fields: CommandCliMetadata['fields']): Record<string, ManifestFieldMetadata> {
+    const internal = internalFieldsOf({ fields });
     return Object.fromEntries(
         Object.entries(fields ?? {})
-            .filter(([, meta]) => !meta.internal)
+            .filter(([field]) => !internal.includes(field))
             .map(([field, meta]) => [
                 field,
                 { prompt: meta.prompt, secret: meta.secret, hasChoices: meta.choices !== undefined },
@@ -88,9 +79,30 @@ function manifestFields(fields: CommandCliMetadata['fields']): Record<string, Ma
     );
 }
 
+/**
+ * The rules of {@link checkPartRules} for the fields of a part's schema, before its manifest input
+ * lists the consents as properties and so hides a field with a consent's name.
+ */
+function checkSchemaPart(
+    part: Pick<CommandDefinition, 'consents' | 'errors' | 'cli'>,
+    input: JsonSchema,
+    label: string,
+): void {
+    checkPartRules(
+        {
+            fields: Object.keys((input.properties as object | undefined) ?? {}),
+            consents: Object.keys(part.consents ?? {}),
+            errorCodes: (part.errors ?? []).map(error => error.code),
+            flags: part.cli?.flags,
+        },
+        label,
+    );
+}
+
 async function buildExtension(extension: CommandExtensionDefinition): Promise<ManifestExtension> {
     const schemas = await extension.schemas();
     const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
+    checkSchemaPart(extension, input, `The extension of "${extension.path.join(' ')}"`);
     const built: ManifestExtension = {
         path: extension.path,
         input: manifestInput(input, extension.consents ?? {}, extension.cli?.fields),
@@ -109,7 +121,7 @@ async function buildExtension(extension: CommandExtensionDefinition): Promise<Ma
     const violation = commandExtensionViolation(
         key,
         {},
-        { ...manifestPartNames(built), internalFields: internalFieldsOf(extension.cli?.fields) },
+        { ...manifestPartNames(built), markedInternal: internalFieldsOf(extension.cli) },
     );
     if (violation) {
         throw new Error(`The extension of "${key}" breaks a rule: ${violation}`);
@@ -132,6 +144,7 @@ export async function buildCommandManifest(
     for (const def of applyCommandGroups(definitions, options.groups)) {
         const schemas = await def.schemas();
         const input = schemas.input['~standard'].jsonSchema.input({ target: JSON_SCHEMA_TARGET });
+        checkSchemaPart(def, input, `${packageName} declares the command "${def.path.join(' ')}"`);
         commands.push({
             path: def.path,
             description: def.description,
@@ -150,9 +163,7 @@ export async function buildCommandManifest(
                 flags: def.cli?.flags,
                 positional: def.cli?.positional,
                 fields: manifestFields(def.cli?.fields),
-                ...(internalFieldsOf(def.cli?.fields).length
-                    ? { internalFields: internalFieldsOf(def.cli?.fields) }
-                    : {}),
+                ...(internalFieldsOf(def.cli).length ? { internalFields: internalFieldsOf(def.cli) } : {}),
             },
             errors: (def.errors ?? []).map(error => ({ code: error.code, exit: error.exit })),
             examples: def.examples ?? [],

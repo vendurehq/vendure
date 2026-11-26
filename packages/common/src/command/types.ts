@@ -326,6 +326,13 @@ export interface SpawnOptions {
      * @since 4.0.0
      */
     timeoutMs?: number;
+    /**
+     * Stops the process with SIGTERM when it fires. The host's own signal, `ctx.signal`, stops it
+     * too, so this is for stopping it sooner, as `next(…, { signal })` of an extension does.
+     *
+     * @since 4.0.0
+     */
+    signal?: AbortSignal;
 }
 
 /**
@@ -466,8 +473,9 @@ export interface CommandContext {
      * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
      * which only its owner can replace, or a login the authentication service refused to renew.
      * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
-     * failure, such as no network, and when `ctx.signal` fires. A transient failure that `run()` lets
-     * through ends the run with `auth.credential-failed`, as when finding the credential failed.
+     * failure, such as no network, and when `ctx.signal` or `options.signal` fires. A transient
+     * failure that `run()` lets through ends the run with `auth.credential-failed`, as when finding
+     * the credential failed.
      *
      * A renewal also brings `ctx.account` up to date, since it can change the organization the login
      * is scoped to.
@@ -476,7 +484,10 @@ export interface CommandContext {
      *
      * @since 4.0.0
      */
-    refreshCredential?(failedToken?: string): Promise<CommandCredential | undefined>;
+    refreshCredential?(
+        failedToken?: string,
+        options?: { signal?: AbortSignal },
+    ): Promise<CommandCredential | undefined>;
     /**
      * The Vendure Console the credential belongs to, and the organization of a stored login.
      * Present only for a command with `requires.auth`. A command that calls the Console API sends

@@ -151,7 +151,7 @@ describe('applyCommandExtensions', () => {
         expect(seen).toEqual([{ environment: 'staging', trace: 'cloud' }]);
     });
 
-    it('adds the output of the extension, and checks it against both schemas', async () => {
+    it("adds the output of the extension, and checks only the extension's own fields", async () => {
         const { result } = await runExtended(
             [
                 cloudExtension(async () => ({
@@ -165,22 +165,18 @@ describe('applyCommandExtensions', () => {
         );
         expect(result).toEqual({ deployed: 'staging', previewUrl: 'https://preview' });
 
-        // Without calling next(), the output must still be one the command could return.
-        await expect(
-            runExtended([cloudExtension(async () => ({ run: async () => ({ previewUrl: 'x' }) }))], {
-                project: 'storefront',
-            }),
-        ).rejects.toThrow('deployed is required');
+        // The command's fields are the command's to answer for, so installing an extension never
+        // surfaces a mismatch in them and blames the extension.
         expect(
             (
                 await runExtended(
-                    [cloudExtension(async () => ({ run: async () => ({ deployed: 'nowhere' }) }))],
+                    [cloudExtension(async () => ({ run: async () => ({ previewUrl: 'x' }) }))],
                     {
                         project: 'storefront',
                     },
                 )
             ).result,
-        ).toEqual({ deployed: 'nowhere' });
+        ).toEqual({ previewUrl: 'x' });
     });
 
     it('resolves next() to every kind of result as a value, and may call it more than once', async () => {
@@ -377,6 +373,40 @@ describe('applyCommandExtensions', () => {
         ).rejects.toThrow(
             'The extension of "acme deploy" from @acme/cloud cannot be applied: the input field "trace" of "acme deploy" is an internal field of the command',
         );
+    });
+
+    it('refuses an extension field with the name of a consent of the command, and the other way round', async () => {
+        const withField = (field: string) =>
+            defineCommandExtension({
+                path: ['acme', 'deploy'],
+                schemas: async () => ({ input: objectSchema({ [field]: { type: 'string' } }) }),
+                run: async () => ({ run: async (_input, _ctx, next) => next() }),
+            });
+        await expect(applyCommandExtensions(deploy, [withField('overwrite')]).schemas()).rejects.toThrow(
+            'the input field "overwrite" of "acme deploy" is a consent of the command',
+        );
+        expect(() =>
+            applyCommandExtensions(deploy, [
+                defineCommandExtension({
+                    ...withField('region'),
+                    consents: { environment: 'Deploy to this environment' },
+                }),
+            ]),
+        ).not.toThrow();
+        await expect(
+            applyCommandExtensions(deploy, [
+                defineCommandExtension({
+                    ...withField('region'),
+                    consents: { environment: 'Deploy to this environment' },
+                }),
+            ]).schemas(),
+        ).rejects.toThrow('the consent "environment" of "acme deploy" is an input field of the command');
+        // An internal field is known before the schemas load, so this one is refused at once.
+        expect(() =>
+            applyCommandExtensions(deploy, [
+                defineCommandExtension({ ...withField('region'), consents: { trace: 'Trace it' } }),
+            ]),
+        ).toThrow('the consent "trace" of "acme deploy" is an input field of the command');
     });
 
     it('runs two extensions with the first outermost, each with its own fields', async () => {
