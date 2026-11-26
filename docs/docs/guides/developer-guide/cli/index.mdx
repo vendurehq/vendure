@@ -1434,13 +1434,15 @@ export async function run(input, ctx, next) {
 
 - **`input`** holds the command's validated input with the extension's own fields. Each part is validated with its
   own package's schema, so a missing or invalid field of the extension is a need or an error as for the command's own.
-- **`next(commandInput?, { signal })`** runs the command, or the next extension, with the command's fields only. Pass
-  a changed copy of the command's input to change what it runs with; the CLI validates it with the command's schema.
+- **`next(changes?, { signal })`** runs the command, or the next extension, with the command's fields only. It runs
+  with `{ ...commandInput, ...changes }`, so pass only the fields to change; the CLI validates the result with the
+  command's schema.
   `next` resolves to the result as a value: the output, or an `incomplete()`, `failed()` or `fail()` result. It never
   throws for those. It may be called more than once, as in a retry loop, or not at all, and `options.signal` stops
   only that call. The command's events and `ctx.output` reach the caller as they happen.
 - **The output** an extension returns must be valid for the command's output schema with the extension's fields
-  added. It may also return `incomplete()`, `failed()`, or `fail()` with one of its own or the command's errors.
+  added, or the run ends with `cli.internal`, naming the package and the field. It may also return `incomplete()`,
+  `failed()`, or `fail()` with one of its own or the command's errors, and those pass through as they are.
 - **Consents** an extension declares are asked for with `ctx.consent`, as the command's own are. `plan()` stays the
   command's own.
 - **Order:** when two packages extend one command, they run in the order the packages are enabled, the first
@@ -1448,13 +1450,13 @@ export async function run(input, ctx, next) {
 
 An extension may start a long-lived process of its own, outside `ctx.spawn`, as an extension of `vendure dev` does.
 It stops the process in a `finally` once `next()` resolves, and reports it through `ctx.output` or events. The CLI
-waits for the outermost `run` of a `service` command such as `vendure dev` to return after Ctrl+C, so the `finally`
-runs; a second Ctrl+C ends the process at once.
+waits up to 30 s for the outermost `run` of a `service` command such as `vendure dev` to return after Ctrl+C or
+SIGTERM, so the `finally` runs, then gives up with `cli.cancelled`; a second Ctrl+C ends the process at once.
 
 The extension's fields are flags of the command, part of its input in `vendure commands --json` and in its Developer
 MCP tool, which lists the extending packages under `extendedBy`. A command may also mark a field
 `cli: { fields: { name: { internal: true } } }`: such a field is set only by an extension, through
-`next(commandInput)`. It is not a flag, is left out of the manifest, and is removed from what a caller passes.
+`next({ name: value })`. It is not a flag, is left out of the manifest, and is removed from what a caller passes.
 
 The CLI refuses all the extensions of a package, and keeps its commands, when one of them extends a command the
 project doesn't have, with `plugin.extension-target-missing`. It does the same when an extension adds a field, short
