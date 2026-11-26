@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-11-26T12:13:31+01:00"
+          "lastModified": "2026-11-26T13:50:08+01:00"
         },
         {
           "title": "AI-assisted Development",
@@ -4724,13 +4724,13 @@
               "title": "vendure migrate",
               "slug": "migrate",
               "file": "docs/reference/cli/migrate.mdx",
-              "lastModified": "2026-11-24T16:46:30+01:00"
+              "lastModified": "2026-11-26T13:50:08+01:00"
             },
             {
               "title": "vendure seed",
               "slug": "seed",
               "file": "docs/reference/cli/seed.mdx",
-              "lastModified": "2026-11-24T20:22:57Z"
+              "lastModified": "2026-11-26T13:50:08+01:00"
             },
             {
               "title": "vendure store",
