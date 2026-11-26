@@ -1226,8 +1226,9 @@ agrees. Otherwise it resolves to the consent need: return it with `incomplete([n
 command again with the digest, as `--<consent> <digest>` or the input field. So the run must be safe to repeat up
 to that point. A consent a person agreed to holds when the CLI runs the command again to ask for more input. When a
 person declines, the run ends as cancelled (`cli.cancelled`), and the envelope keeps the output `run()` reported
-before it stopped. `ctx.consent` is for `run()` only: a consent that `plan()` can name before anything runs belongs
-in `plan()`'s `requiredConsents`.
+before it stopped. A consent covers one preview per run, because a caller gives one digest per consent: declare a
+consent for each target rather than asking for one with two previews. `ctx.consent` is for `run()` only: a consent
+that `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
 
 ```ts
 const answer = await ctx.consent('deployToProduction', { environment: target });

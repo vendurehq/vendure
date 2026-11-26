@@ -119,6 +119,18 @@ describe('ctx.refreshCredential and ctx.account', () => {
         expect(result.envelope.output).toMatchObject({ account: { organization: { id: 'second' } } });
     });
 
+    it('never renew a VENDURE_CLOUD_TOKEN in testCommand, as the CLI does not', async () => {
+        const refreshCredential = vi.fn(async () => ({ source: 'stored-login' as const, token: 'renewed' }));
+        const result = await testCommand(
+            call,
+            {},
+            { credential: { source: 'environment', token: 'first' }, refreshCredential },
+        );
+
+        expect(refreshCredential).not.toHaveBeenCalled();
+        expect(result.envelope.output).toMatchObject({ renewed: null, current: 'first' });
+    });
+
     it('renew from the current credential when no token is given', async () => {
         const refreshed: string[] = [];
 

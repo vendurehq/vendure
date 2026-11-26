@@ -436,6 +436,10 @@ export interface CommandContext {
      * The output it reports, the output of a `failed()` or a partial `incomplete()` or an ok output,
      * is kept in the envelope, so a caller sees what happened before it stopped.
      *
+     * A consent covers one preview per run, because a caller gives one digest per consent. Asking
+     * for the same `name` with a second, different preview in one run, or with another preview than
+     * `plan()` required it for, throws. Declare a consent for each target instead.
+     *
      * It is for `run()` only, and throws when called before it, such as from `plan()`: a consent
      * `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
      *

@@ -181,8 +181,11 @@ export function testCommand(
     const { credential, account, refreshCredential } = options;
     return runInTestHost(definition, input, options, {
         requireCredential: async () => (credential ? { credential } : { needs: [credentialNeed()] }),
+        // As the CLI does: a `VENDURE_CLOUD_TOKEN` is never renewed, only a stored login.
         refreshCredential: async (_kind, refused) =>
-            refreshCredential ? refreshCredential(refused.token) : undefined,
+            refreshCredential && refused.source === 'stored-login'
+                ? refreshCredential(refused.token)
+                : undefined,
         describeAccount: () => account,
     });
 }

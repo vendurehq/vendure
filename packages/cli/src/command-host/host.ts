@@ -263,6 +263,11 @@ interface ConsentState {
     declined: boolean;
     /** The consent a person is being asked for, so that two `ctx.consent` calls never prompt at once. */
     asking: Promise<unknown>;
+    /**
+     * The digest each consent was first asked for in this run, by `plan()` or `ctx.consent`. A caller
+     * passes one value per consent, so one consent covers one preview per run.
+     */
+    asked: Record<string, string>;
 }
 
 /**
@@ -354,6 +359,15 @@ function createContext(
             if (!need) {
                 throw new Error(`run() asked for the undeclared consent "${name}"`);
             }
+            // A caller can give one digest per consent, so a second preview under the same name
+            // could never be answered. Each such risk needs a consent of its own.
+            const first = consents.asked[name];
+            if (first !== undefined && first !== need.digest) {
+                throw new Error(
+                    `The consent "${name}" was asked for two different previews in one run. Declare a consent for each.`,
+                );
+            }
+            consents.asked[name] = need.digest;
             if (consents.values[name] === need.digest) {
                 return true;
             }
@@ -525,6 +539,7 @@ export async function executeCommand(
             running: false,
             declined: false,
             asking: Promise.resolve(),
+            asked: {},
         };
         for (const name of consentNames) {
             delete input[name];
@@ -657,6 +672,7 @@ export async function executeCommand(
                         notices,
                     );
                 }
+                consents.asked[consent] = need.digest;
                 if (consents.values[consent] !== need.digest) {
                     needs.push(need);
                 }
@@ -690,8 +706,18 @@ export async function executeCommand(
         }
         const { run } = await def.run();
         consents.running = true;
-        const result = await run(parsed, ctx);
-        consents.running = false;
+        let result: Awaited<ReturnType<typeof run>>;
+        try {
+            result = await run(parsed, ctx);
+        } catch (e) {
+            // A run that stops with an error after a person declined was cancelled by them.
+            if (consents.declined) {
+                return errorResult(hostErrors.cancelled, {}, notices);
+            }
+            throw e;
+        } finally {
+            consents.running = false;
+        }
         // A person declined a consent that `ctx.consent` asked for, so the run ends as cancelled.
         // What `run()` reported before it stopped is kept, behind the same secret-output check.
         if (consents.declined) {

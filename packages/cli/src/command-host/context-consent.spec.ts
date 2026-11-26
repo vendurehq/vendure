@@ -232,6 +232,89 @@ describe('ctx.consent', () => {
         expect(askConsent).toHaveBeenCalledTimes(1);
     });
 
+    it('asks once and cancels when a person declines the first of two calls at the same time', async () => {
+        const askConsent = vi.fn(async () => false);
+        const both = defineCommand({
+            path: ['acme', 'both'],
+            description: 'Both',
+            behavior: 'mutating',
+            consents: {
+                deployToProduction: 'Deploy to the production environment.',
+                dropCache: 'Drop the cache.',
+            },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    const answers = await Promise.all([
+                        ctx.consent('deployToProduction', preview),
+                        ctx.consent('dropCache', { cache: 'all' }),
+                    ]);
+                    return { answered: answers.filter(answer => answer === true).length };
+                },
+            }),
+        });
+
+        const result = await testCommand(both, {}, { prompter: { ...prompter(true), askConsent } });
+
+        expect(askConsent).toHaveBeenCalledTimes(1);
+        expect(result.envelope.error?.code).toBe('cli.cancelled');
+    });
+
+    it('cancels a run that throws after a person declined', async () => {
+        const throwing = defineCommand({
+            path: ['acme', 'throwing'],
+            description: 'Throwing',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    if ((await ctx.consent('deployToProduction', preview)) !== true) {
+                        throw new Error('not deploying');
+                    }
+                    return {};
+                },
+            }),
+        });
+
+        const result = await testCommand(throwing, {}, { prompter: prompter(false) });
+
+        expect(result.envelope.error?.code).toBe('cli.cancelled');
+    });
+
+    it('refuses one consent asked for with two previews in one run', async () => {
+        const twoTargets = defineCommand({
+            path: ['acme', 'two-targets'],
+            description: 'Two targets',
+            behavior: 'mutating',
+            consents: { deployToProduction: 'Deploy to the production environment.' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx) => {
+                    for (const target of ['eu', 'us']) {
+                        const answer = await ctx.consent('deployToProduction', { target });
+                        if (answer !== true) {
+                            return incomplete([answer]);
+                        }
+                    }
+                    return {};
+                },
+            }),
+        });
+
+        const first = await testCommand(twoTargets, {});
+        const need = first.envelope.needs?.[0];
+        expect(need).toMatchObject({ kind: 'consent', preview: { target: 'eu' } });
+
+        const second = await testCommand(twoTargets, {
+            deployToProduction: need?.kind === 'consent' ? need.digest : undefined,
+        });
+        expect(second.envelope.error).toMatchObject({
+            code: 'cli.internal',
+            message: expect.stringContaining('two different previews in one run'),
+        });
+    });
+
     it('keeps a secret out of what a declined run reported, when no person sees the output', async () => {
         const minting = defineCommand({
             path: ['acme', 'minting'],
