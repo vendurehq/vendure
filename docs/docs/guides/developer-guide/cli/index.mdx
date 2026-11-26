@@ -1527,11 +1527,11 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
   cancelled, so its signal never fires.
 - **`--config`:** the resolvers run before the CLI loads the file the user named. A resolver returns `undefined`
   for a `ctx.configFile` it doesn't handle, so the CLI loads that file instead.
-- **Order:** the CLI asks the resolvers of the packages the project enables first, then those enabled for the whole
-  machine, each in the order they are listed. It uses the first config one returns. When none returns one, it finds
-  the config in the source.
+- **Order:** the CLI asks the project's own resolver first (see below), then the resolvers of the packages the
+  project enables, then those enabled for the whole machine, each in the order they are listed. It uses the first
+  config one returns. When none returns one, it finds the config in the source.
 - **Errors:** a resolver that throws, or returns something that is not a `VendureConfig`, ends the command with
-  `config.resolver-failed`, naming the package. The CLI does not fall back to the source then. A resolver that stops
+  `config.resolver-failed`, naming the package, or the project for its own resolver. The CLI does not fall back to the source then. A resolver that stops
   because the command was cancelled ends it as `cli.cancelled`. When the CLI cannot read an enabled package's
   manifest, and finds no config in the source, its error names that package.
 - **`ctx.loadModule(path)`** imports a TypeScript or JavaScript module of the project, such as its config file, the
@@ -1549,7 +1549,51 @@ await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { c
   ts-node for the project, so the files the config names, such as `.ts` migrations, load whether or not the resolver
   called `ctx.loadModule`.
 - **`vendure add plugin`** edits the config file, so it still needs a `VendureConfig` in the source. When it finds
-  none, its `add.vendure-config-not-found` error names the packages that have a config resolver.
+  none, its `add.vendure-config-not-found` error names the project or the packages that have a config resolver.
+
+#### A config resolver in the project
+
+A project can declare a config resolver of its own, with no package. This suits a project whose config is not a
+`VendureConfig` declared in its source, such as a monorepo app whose config an async function in a shared library
+builds at run time, from secrets and settings that only exist then. Name the module in the project's
+`package.json`:
+
+```json title="apps/server/package.json"
+{
+    "vendure": {
+        "configResolver": "./config-resolver.ts"
+    }
+}
+```
+
+The module exports `resolve(ctx)`, on the same contract as a package's resolver:
+
+```ts title="apps/server/config-resolver.ts"
+import type { ConfigResolverContext } from '@vendure/common/lib/command';
+import { getVendureConfig } from '@example/shared-config';
+import type { VendureConfig } from '@vendure/core';
+
+export async function resolve(ctx: ConfigResolverContext): Promise<VendureConfig | undefined> {
+    // A config file named with --config wins: returning undefined lets the CLI load it.
+    if (ctx.configFile) {
+        return undefined;
+    }
+    return getVendureConfig();
+}
+```
+
+- **Loading:** the CLI loads `.env` from the working directory. Then it registers the path mappings of the
+  tsconfig nearest the module. They resolve against the `baseUrl`, or else the directory of the tsconfig that
+  declares them, as TypeScript resolves them. So the module can import workspace packages through the `paths` of
+  a base tsconfig that the app's tsconfig `extends`.
+- **TypeScript:** the module can be TypeScript. The CLI registers ts-node with the same tsconfig, unless ts-node
+  is already registered in the process. Then the module is compiled with the options ts-node already has.
+- **Order:** it runs before the resolvers of packages. When it returns `undefined`, the CLI asks those, and then
+  looks in the source. It is asked even when the user names a file with `--config`, so return `undefined` for a
+  `ctx.configFile` it does not handle, as the example does.
+- **Errors:** each of these ends the command with `config.resolver-failed`, naming the project by its
+  package name: a resolver that throws, a module that is missing or exports no named `resolve()`, and a
+  `configResolver` that is not a path.
 
 ### How plugin commands appear in the help
 

@@ -2,10 +2,12 @@ import {
     CommandErrorDefinition,
     ConfigResolverContext,
     configResolverDeclaration,
+    ConfigResolverModule,
     ErrorResult,
     fail,
 } from '@vendure/common/lib/command';
 import type { VendureConfig } from '@vendure/core';
+import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -21,6 +23,7 @@ import { findVendureProjectRoot } from './project-validation.js';
 import {
     CliPluginLoadFailure,
     failureAffectsCommandManifest,
+    PackageJsonLike,
     resolveCommandManifests,
     ResolvedCommandManifest,
 } from './resolve-cli-plugins.js';
@@ -58,10 +61,13 @@ export interface LoadProjectConfigOptions {
     plugins?: ResolvedCommandManifest[];
 }
 
-/** A config that a package's config resolver returned. */
+/** A config that a config resolver returned: the project's own, or a package's. */
 export interface ResolvedProjectConfig {
     config: VendureConfig;
-    /** The package whose config resolver returned the config. */
+    /**
+     * Whose config resolver returned the config: the package, or `the project <name>` for the one
+     * the project declares in its own `package.json`.
+     */
     resolvedBy: string;
     /** The project's root directory the resolver was given. */
     projectDir: string;
@@ -91,6 +97,24 @@ export function configResolverPackages(plugins: ResolvedCommandManifest[]): Reso
         ...withResolver.filter(plugin => plugin.scope === 'project'),
         ...withResolver.filter(plugin => plugin.scope !== 'project'),
     ];
+}
+
+/**
+ * Who has a config resolver that may provide the project's config: the project itself, when its
+ * `package.json` declares one, then the enabled packages in {@link configResolverPackages} order.
+ * It runs no resolver.
+ */
+export function configResolverOwners(
+    plugins: ResolvedCommandManifest[],
+    options: Pick<LoadProjectConfigOptions, 'cwd' | 'projectDir'> = {},
+): string[] {
+    let own: string | undefined;
+    try {
+        own = projectConfigResolver(projectDirOf(options))?.owner;
+    } catch (e) {
+        own = e instanceof ConfigResolverFailedError ? e.details.plugin : undefined;
+    }
+    return [...(own ? [own] : []), ...configResolverPackages(plugins).map(plugin => plugin.packageName)];
 }
 
 /**
@@ -172,8 +196,9 @@ export function withUnreadableManifests(
 }
 
 /**
- * Loads the project's Vendure config. It asks the config resolvers of the enabled packages, in
- * allowlist order, and returns the first config one returns. When none does, it finds the
+ * Loads the project's Vendure config. It asks the config resolver the project declares in its
+ * package.json first, then those of the enabled packages in allowlist order, and returns the
+ * first config one returns. When none does, it finds the
  * `VendureConfig` in the project's source with ts-morph and loads that. It prints nothing.
  *
  * It throws {@link ConfigResolverFailedError} when a resolver fails, and a plain error when no
@@ -205,8 +230,39 @@ export async function loadProjectConfigWith<T>(
 }
 
 /**
- * Asks the config resolvers of the enabled packages for the project's config, in allowlist order.
- * Returns `undefined` when none returns one. See {@link loadProjectConfig}.
+ * The config resolver a project declares in its own `package.json`, as
+ * `"vendure": { "configResolver": "./path/to/resolver.ts" }`, or `undefined` when it declares none.
+ * `owner` names the project in messages, and `file` is the module's absolute path.
+ */
+export function projectConfigResolver(projectDir: string): { owner: string; file: string } | undefined {
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    let packageJson: PackageJsonLike;
+    try {
+        packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    } catch {
+        return undefined;
+    }
+    const declared = packageJson?.vendure?.configResolver;
+    if (declared === undefined) {
+        return undefined;
+    }
+    const owner =
+        typeof packageJson.name === 'string' && packageJson.name.length > 0
+            ? `the project ${packageJson.name}`
+            : `the project in ${projectDir}`;
+    if (typeof declared !== 'string' || declared.trim().length === 0) {
+        throw new ConfigResolverFailedError({
+            plugin: owner,
+            message: `vendure.configResolver in ${packageJsonPath} must be the path of a module`,
+        });
+    }
+    return { owner, file: path.resolve(projectDir, declared) };
+}
+
+/**
+ * Asks the config resolvers for the project's config: first the one the project declares in its
+ * own `package.json`, then those of the enabled packages, in allowlist order. Returns `undefined`
+ * when none returns one. See {@link loadProjectConfig}.
  */
 export async function resolveProjectConfig(
     options: LoadProjectConfigOptions = {},
@@ -215,28 +271,39 @@ export async function resolveProjectConfig(
     const projectDir = projectDirOf(options);
     // Absolute, so a resolver need not know the working directory to find the file.
     const configFile = options.configFile === undefined ? undefined : path.resolve(cwd, options.configFile);
+    const ctx: ConfigResolverContext = {
+        projectDir,
+        configFile,
+        signal: options.signal ?? new AbortController().signal,
+        // Lazy: ts-node and `.env` are set up only when a resolver calls it.
+        loadModule: file => requireProjectModule(path.resolve(projectDir, file)),
+    };
+    const resolvers: Array<{ owner: string; load: () => Promise<ConfigResolverModule> }> = [];
+    const own = projectConfigResolver(projectDir);
+    if (own) {
+        // Required as loadModule requires a module, so it is TypeScript or JavaScript, and its
+        // imports follow the path mappings of the tsconfig nearest it.
+        resolvers.push({ owner: own.owner, load: () => loadProjectResolverModule(own.file) });
+    }
     for (const plugin of configResolverPackages(enabledManifests(options).plugins)) {
-        const config = await resolveWith(plugin, {
-            projectDir,
-            configFile,
-            signal: options.signal ?? new AbortController().signal,
-            // Lazy: ts-node and `.env` are set up only when a resolver calls it.
-            loadModule: file => requireProjectModule(path.resolve(projectDir, file)),
-        });
+        resolvers.push({ owner: plugin.packageName, load: () => loadPackageResolverModule(plugin) });
+    }
+    for (const { owner, load } of resolvers) {
+        const config = await resolveWith(owner, load, ctx);
         if (config) {
             // `loadSourceConfig` loads `.env` and registers ts-node to require the config file. A
             // resolved config skipped that, and the files it names, such as migrations that TypeORM
-            // requires, may be TypeScript or read `.env`. When the resolver called `loadModule`,
-            // ts-node is registered already, and this registers nothing.
+            // requires, may be TypeScript or read `.env`. When the resolver was required, or called
+            // `loadModule`, ts-node is registered already, and this registers nothing.
             try {
                 await prepareToRequireProjectFiles(projectDir);
             } catch (e) {
                 throw new Error(
-                    `The config resolver of ${plugin.packageName} returned a config, but the project could ` +
+                    `The config resolver of ${owner} returned a config, but the project could ` +
                         `not be prepared to load the TypeScript files it names: ${e instanceof Error ? e.message : String(e)}`,
                 );
             }
-            return { config, resolvedBy: plugin.packageName, projectDir };
+            return { config, resolvedBy: owner, projectDir };
         }
     }
     return undefined;
@@ -255,23 +322,31 @@ export async function loadSourceConfig(
     return { config, configPath: ref.sourceFile.getFilePath(), ref };
 }
 
+async function loadPackageResolverModule(plugin: ResolvedCommandManifest): Promise<ConfigResolverModule> {
+    const declaration = configResolverDeclaration(await import(pathToFileURL(plugin.definitionsPath).href));
+    if (!declaration) {
+        throw new Error(`${plugin.definitionsPath} exports no "configResolver", which its manifest lists`);
+    }
+    return declaration.resolve();
+}
+
+async function loadProjectResolverModule(file: string): Promise<ConfigResolverModule> {
+    if (!fs.existsSync(file)) {
+        throw new Error(`${file}, which vendure.configResolver names, does not exist`);
+    }
+    return (await requireProjectModule(file)) as unknown as ConfigResolverModule;
+}
+
 async function resolveWith(
-    plugin: ResolvedCommandManifest,
+    owner: string,
+    load: () => Promise<ConfigResolverModule>,
     ctx: ConfigResolverContext,
 ): Promise<VendureConfig | undefined> {
     const failed = (message: string, cause?: unknown) =>
-        new ConfigResolverFailedError({ plugin: plugin.packageName, message }, cause);
+        new ConfigResolverFailedError({ plugin: owner, message }, cause);
     let config: unknown;
     try {
-        const declaration = configResolverDeclaration(
-            await import(pathToFileURL(plugin.definitionsPath).href),
-        );
-        if (!declaration) {
-            throw new Error(
-                `${plugin.definitionsPath} exports no "configResolver", which its manifest lists`,
-            );
-        }
-        const resolver = await declaration.resolve();
+        const resolver = await load();
         if (typeof resolver?.resolve !== 'function') {
             throw new TypeError('its module exports no resolve() function');
         }

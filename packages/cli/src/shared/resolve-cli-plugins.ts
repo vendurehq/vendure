@@ -38,6 +38,13 @@ export interface PackageJsonLike {
          * @since 4.0.0
          */
         commandDefinitions?: string;
+        /**
+         * A project's own config resolver: the path of a module that exports `resolve(ctx)`, which
+         * the CLI asks for the project's config before the resolvers of its packages.
+         *
+         * @since 4.0.0
+         */
+        configResolver?: string;
         cli?: ProjectCliPluginConfig;
     };
 }

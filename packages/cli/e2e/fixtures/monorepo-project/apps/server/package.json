@@ -1,0 +1,11 @@
+{
+    "name": "example-server",
+    "version": "1.0.0",
+    "private": true,
+    "dependencies": {
+        "@vendure/core": "4.0.0"
+    },
+    "vendure": {
+        "configResolver": "./config-resolver.ts"
+    }
+}

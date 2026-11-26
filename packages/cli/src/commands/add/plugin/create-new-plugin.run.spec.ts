@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { configResolverPackages, enabledManifests } from '../../../shared/load-project-config.js';
+import { configResolverOwners, enabledManifests } from '../../../shared/load-project-config.js';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 
 import { run } from './create-new-plugin.run.js';
@@ -22,7 +22,7 @@ vi.mock('../../../shared/vendure-config-ref.js', async importOriginal => {
 vi.mock('../../../shared/load-project-config.js', async importOriginal => ({
     ...(await importOriginal<typeof import('../../../shared/load-project-config.js')>()),
     enabledManifests: vi.fn(() => ({ plugins: [], unreadable: [] })),
-    configResolverPackages: vi.fn(() => []),
+    configResolverOwners: vi.fn(() => []),
 }));
 
 describe('vendure add plugin without a VendureConfig in the source', () => {
@@ -31,9 +31,7 @@ describe('vendure add plugin without a VendureConfig in the source', () => {
     });
 
     it('names the packages whose config resolver may provide the config', async () => {
-        vi.mocked(configResolverPackages).mockReturnValueOnce([
-            { packageName: '@acme/cloud' } as ReturnType<typeof configResolverPackages>[number],
-        ]);
+        vi.mocked(configResolverOwners).mockReturnValueOnce(['@acme/cloud']);
 
         const result = await run({ name: 'reviews', dir: '/nonexistent/reviews-plugin' });
 

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-    configResolverPackages,
+    configResolverOwners,
     enabledManifests,
     withUnreadableManifests,
 } from '../../../shared/load-project-config.js';
@@ -35,9 +35,9 @@ export async function run(input: { name: string; dir?: string; config?: string }
             return fail(vendureConfigNotFound, { message });
         }
         // A config from a config resolver is not declared in the source, so there is nowhere to add
-        // the plugin to. The resolver is not run: saying which package owns the config is enough.
+        // the plugin to. The resolver is not run: saying which package or project owns it is enough.
         const { plugins, unreadable } = enabledManifests();
-        const resolvers = configResolverPackages(plugins).map(resolver => resolver.packageName);
+        const resolvers = configResolverOwners(plugins);
         const hint = resolvers.length
             ? `${message} This project's config may come from the config resolver of ${resolvers.join(' or ')}. ` +
               'This command can add a plugin only to a VendureConfig declared in the source.'
