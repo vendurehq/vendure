@@ -188,7 +188,7 @@ describe('vendure console link', () => {
             expect.objectContaining({
                 kind: 'person',
                 code: 'console.no-active-project',
-                action: 'activate-project',
+                action: 'create-project',
                 url: 'https://console.vendure.io/projects?create=true',
             }),
         ]);
@@ -215,9 +215,10 @@ describe('vendure console link', () => {
         ]);
         expect(askInput).not.toHaveBeenCalled();
         // The step's summary says it, so the engine's message is not repeated as a notice.
-        expect(withPerson.envelope.notices.map(notice => notice.message).join('\n')).not.toContain(
-            'has no active Project',
-        );
+        expect(withPerson.envelope.notices).toEqual([]);
+        expect(withPerson.envelope.needs?.[0]).toMatchObject({
+            summary: expect.stringContaining('which needs no plan or trial'),
+        });
     });
 
     it('replaces a link with another Project once the replaceLink consent is given', async () => {

@@ -153,8 +153,9 @@ export interface PersonNeed {
     url: string;
     fix?: CommandFix;
     /**
-     * A stable name for this step, such as `console.no-account`, so that a caller can tell steps
-     * apart without matching their text.
+     * The name to match a step on, such as `console.no-account`. It says why the step is needed,
+     * where `action` names what the person does, such as `create-account`. For a step the Console
+     * API names, it is the same as `action`.
      *
      * @since 4.0.0
      */

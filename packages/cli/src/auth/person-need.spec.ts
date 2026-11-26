@@ -19,6 +19,7 @@ describe('personNeedFromApiError', () => {
             }),
         ).toEqual({
             kind: 'person',
+            code: 'production-request',
             action: 'production-request',
             summary: 'Request production for the project in Vendure Console',
             url: 'https://console.vendure.io/projects/p1',

@@ -23,16 +23,12 @@ function isAnswerable(need: CommandNeed): boolean {
     return need.fix !== undefined || (need.kind === 'input' && LINK_FIELDS.has(need.field));
 }
 
-/** A step for a person in a browser, after which the link finishes when it runs again. */
-function isPersonStep(need: CommandNeed): boolean {
-    return need.kind === 'person';
-}
-
 /**
  * Links the project, or repairs the link on disk, then runs the `afterConsoleLink` hooks of the
- * CLI plugins. A step only a person can take in Vendure Console, such as creating an account, is
- * always a need. Any other need, such as a missing login or Project, or what a hook still needs, is
- * a need only without a person, and only when a caller can answer it. Otherwise it is a notice: the
+ * CLI plugins. A step only a person can take in Vendure Console, such as creating an account or a
+ * Project, is always a need. Any other need, such as a missing login, a choice among several
+ * Projects, a `--project` that matches none, or what a hook still needs, is a need only without a
+ * person, and only when a caller can answer it. Otherwise it is a notice: the
  * host would ask a person for fields this command does not take, and run the link and its hooks
  * again. A hook that failed leaves the link it ran after in place, and the result is failed.
  */
@@ -60,7 +56,7 @@ export async function run(input: LinkInput, ctx: CommandContext) {
         return previewed.result;
     }
     const { requiredConsents, linked, identity } = previewed.preview;
-    const { exitCode, result, manifest, failure, interrupted, changed } = await runConsole(
+    const { exitCode, result, manifest, failure, needMessage, interrupted, changed } = await runConsole(
         'link',
         { ...input, force: requiredConsents.includes('replaceLink'), linked, expected: identity },
         dependencies,
@@ -89,7 +85,7 @@ export async function run(input: LinkInput, ctx: CommandContext) {
         // command that answers it. The rest, such as an input a plugin hook names that this command
         // does not take, are next steps.
         const answerable = result.needs.filter(
-            need => isPersonStep(need) || (!ctx.ask && isAnswerable(need)),
+            need => need.kind === 'person' || (!ctx.ask && isAnswerable(need)),
         );
         const steps = result.needs.filter(need => !answerable.includes(need));
         for (const need of steps) {
@@ -100,9 +96,9 @@ export async function run(input: LinkInput, ctx: CommandContext) {
             nextSteps: [...output.nextSteps, ...steps.map(describeNeed)],
         };
         if (answerable.length > 0) {
-            // The step's own summary says what the engine's message says, so that is not repeated.
-            const urls = answerable.flatMap(need => (need.kind === 'person' ? [need.url] : []));
-            const notices = errors.filter(message => !urls.some(url => message.includes(url)));
+            // A step for a person says what the engine's message says, so that is not repeated.
+            const personStep = answerable.some(need => need.kind === 'person');
+            const notices = personStep ? errors.filter(message => message !== needMessage) : errors;
             return reportErrors(ctx, notices, incomplete(answerable, withSteps));
         }
         if (withSteps) {

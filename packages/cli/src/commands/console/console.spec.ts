@@ -877,7 +877,7 @@ describe('console command', () => {
                 {
                     kind: 'person',
                     code: 'console.no-active-project',
-                    action: 'activate-project',
+                    action: 'create-project',
                     summary: expect.stringContaining('which needs no plan or trial'),
                     url: `${LOCAL_CONSOLE.appOrigin}/projects?create=true`,
                 },
