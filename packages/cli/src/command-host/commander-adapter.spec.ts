@@ -341,6 +341,7 @@ describe('the credential check of createHostEnvironment', () => {
         output: () => undefined,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
+        consent: async () => true as const,
     };
     let configDir: string;
 

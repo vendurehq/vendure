@@ -8,7 +8,7 @@ import { flagValueSyntax, MergedManifestCommand } from '@vendure/common/lib/comm
 import { Command, Option } from 'commander';
 import fs from 'node:fs';
 
-import { requireCredential } from '../auth/credential.js';
+import { describeAccount, renewCredential, requireCredential } from '../auth/credential.js';
 import { pluginCommandsHeading, pluginFromCommandsHeading } from '../shared/command-registry.js';
 import { findVendureProjectRoot } from '../shared/project-validation.js';
 import { isNonInteractiveEnvironment } from '../utilities/utils.js';
@@ -509,6 +509,8 @@ export function createHostEnvironment(controller: AbortController, out?: JsonOut
             });
             return isIncompleteResult(result) ? { needs: result.needs } : { credential: result };
         },
+        refreshCredential: (_kind, credential, ctx) => renewCredential(credential, { signal: ctx.signal }),
+        describeAccount: (_kind, credential) => describeAccount(credential),
     };
 }
 

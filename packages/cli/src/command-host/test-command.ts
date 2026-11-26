@@ -1,4 +1,5 @@
 import type {
+    CommandAccount,
     CommandCredential,
     CommandDefinition,
     CommandEvent,
@@ -109,6 +110,21 @@ export interface TestCommandOptions {
      */
     credential?: CommandCredential;
     /**
+     * What `ctx.account` holds for a `requires.auth` command. Without it, `ctx.account` is not
+     * set.
+     *
+     * @since 4.0.0
+     */
+    account?: CommandAccount;
+    /**
+     * Answers `ctx.refreshCredential()` for a `requires.auth` command, such as a new credential
+     * after a test's server refused the first one. It receives the token that was refused. Without
+     * it, the credential cannot be renewed, as for `VENDURE_CLOUD_TOKEN`.
+     *
+     * @since 4.0.0
+     */
+    refreshCredential?: (failedToken: string) => Promise<CommandCredential | undefined>;
+    /**
      * Writes a secret output to a file, and returns its path. Without it, a run that no person sees
      * refuses a command with secret outputs, as a host that cannot keep them safe does.
      */
@@ -162,9 +178,15 @@ export function testCommand(
     input: Record<string, unknown>,
     options: TestCommandOptions = {},
 ): Promise<TestCommandResult> {
-    const { credential } = options;
+    const { credential, account, refreshCredential } = options;
     return runInTestHost(definition, input, options, {
         requireCredential: async () => (credential ? { credential } : { needs: [credentialNeed()] }),
+        // As the CLI does: a `VENDURE_CLOUD_TOKEN` is never renewed, only a stored login.
+        refreshCredential: async (_kind, refused) =>
+            refreshCredential && refused.source === 'stored-login'
+                ? refreshCredential(refused.token)
+                : undefined,
+        describeAccount: () => account,
     });
 }
 

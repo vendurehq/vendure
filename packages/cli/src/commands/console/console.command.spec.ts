@@ -68,6 +68,7 @@ function contextFor(cwd: string): CommandContext {
         notice: () => undefined,
         progress: () => undefined,
         output: () => undefined,
+        consent: async () => true as const,
         event: () => undefined,
         spawn: () => Promise.reject(new Error('no processes in tests')),
     };
@@ -615,6 +616,7 @@ describe('vendure console link', () => {
             notice,
             progress: () => undefined,
             output: () => undefined,
+            consent: async () => true as const,
             event: () => undefined,
             spawn: () => Promise.reject(new Error('no processes in tests')),
         };

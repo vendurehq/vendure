@@ -419,12 +419,101 @@ export interface CommandContext {
     /** Starts a process. Under `--json` its stdout goes to stderr. */
     spawn(command: string, args: string[], options?: SpawnOptions): Promise<SpawnResult>;
     /**
+     * Asks for a named consent that `run()` found it needs while it runs, such as a target that only
+     * turns out to be production once it is resolved. `name` must be declared in the command's
+     * `consents`, and `preview` names what the consent answers, as the preview of `plan()` does.
+     *
+     * Resolves to `true` when the caller already gave the consent for this preview: the input holds
+     * the digest of `name` and `preview`, which the host computes the same way as for `plan()`. A
+     * person at a terminal is asked instead, and `true` means they agreed.
+     *
+     * Otherwise it resolves to the {@link ConsentNeed}. Return it with `incomplete([need])`: the
+     * caller gives the consent with its digest, as `--<consent> <digest>` or the input field
+     * `name`, and runs the command again. So the run must be safe to repeat up to this point. A
+     * consent a person agreed to holds for a run the host repeats to ask for more input.
+     *
+     * When a person declines, the run ends as cancelled (`cli.cancelled`) whatever `run()` returns.
+     * The output it reports, the output of a `failed()` or a partial `incomplete()` or an ok output,
+     * is kept in the envelope, so a caller sees what happened before it stopped.
+     *
+     * A consent covers one preview per run, because a caller gives one digest per consent. Asking
+     * for the same `name` with a second, different preview in one run, or with another preview than
+     * `plan()` required it for, throws. Declare a consent for each target instead.
+     *
+     * It is for `run()` only, and throws when called before it, such as from `plan()`: a consent
+     * `plan()` can name before anything runs belongs in `plan()`'s `requiredConsents`.
+     *
+     * @since 4.0.0
+     */
+    consent(name: string, preview: unknown): Promise<true | ConsentNeed>;
+    /**
      * The credential the host found for a command with `requires.auth`, before `run()` started.
      * Present only for such a command.
      *
      * @since 4.0.0
      */
     credential?: CommandCredential;
+    /**
+     * Renews the credential once, for a command whose request was refused with 401, and resolves
+     * to the new one, which also replaces `ctx.credential`. Concurrent renewals of the same login
+     * share one.
+     *
+     * `failedToken` is the token the refused request sent, and defaults to the token of
+     * `ctx.credential` when it is called. A command with several requests in flight passes the
+     * token each one used: when another request already renewed it, the newer token comes back and
+     * no refresh token is spent again.
+     *
+     * Resolves to `undefined` when the credential cannot be renewed: a `VENDURE_CLOUD_TOKEN`,
+     * which only its owner can replace, or a login the authentication service refused to renew.
+     * Return `incomplete([credentialNeed()])` from `@vendure/cli` then. It rejects for a transient
+     * failure, such as no network, and when `ctx.signal` fires. A transient failure that `run()` lets
+     * through ends the run with `auth.credential-failed`, as when finding the credential failed.
+     *
+     * A renewal also brings `ctx.account` up to date, since it can change the organization the login
+     * is scoped to.
+     *
+     * Present only for a command with `requires.auth`.
+     *
+     * @since 4.0.0
+     */
+    refreshCredential?(failedToken?: string): Promise<CommandCredential | undefined>;
+    /**
+     * The Vendure Console the credential belongs to, and the organization of a stored login.
+     * Present only for a command with `requires.auth`. A command that calls the Console API sends
+     * `ctx.credential.token` to `ctx.account.apiUrl`, and after a 401 calls `ctx.refreshCredential()`
+     * and retries once.
+     *
+     * @since 4.0.0
+     */
+    account?: CommandAccount;
+}
+
+/**
+ * @description
+ * The Vendure Console account a command with `requires.auth` acts in. It holds no secret.
+ *
+ * @since 4.0.0
+ */
+export interface CommandAccount {
+    /**
+     * The Vendure Console app, for links a person opens. Absent when the CLI does not know it: a
+     * loopback Console API with no trusted loopback `VENDURE_CONSOLE_APP_URL` beside it.
+     */
+    consoleUrl?: string;
+    /** The Vendure Console API that accepts `ctx.credential.token`. */
+    apiUrl: string;
+    /**
+     * The organization the stored login is scoped to. Absent for a `VENDURE_CLOUD_TOKEN`, whose
+     * organization only the Console API knows, and for a login that is not scoped to one.
+     */
+    organization?: {
+        /** The authentication service's organization id, which scopes the token. */
+        id: string;
+        /** The Customer Account identifier, as Vendure Console shows it. `null` when Console could not be asked at login. */
+        customerAccountId: string | null;
+        /** `null` when Console could not be asked at login. */
+        name: string | null;
+    };
 }
 
 /**

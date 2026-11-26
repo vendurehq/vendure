@@ -175,8 +175,12 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
 
             expect(envelope.status).toBe('ok');
             const fromPlugin = envelope.output.commands.filter((c: any) => c.source === EXAMPLE);
-            expect(fromPlugin.map((c: any) => c.path.join(' '))).toEqual(['example greet', 'example reset']);
-            expect(fromPlugin[1]).toMatchObject({ behavior: 'destructive', hasPlan: true });
+            expect(fromPlugin.map((c: any) => c.path.join(' '))).toEqual([
+                'example greet',
+                'example deploy',
+                'example reset',
+            ]);
+            expect(fromPlugin[2]).toMatchObject({ behavior: 'destructive', hasPlan: true });
             // The CLI's own commands are still there.
             expect(envelope.output.commands.find((c: any) => c.path.join(' ') === 'doctor').source).toBe(
                 '@vendure/cli',
@@ -266,6 +270,37 @@ describe('CLI plugin defineCommand commands', { timeout: 60_000 }, () => {
                 expectError: true,
             });
             expect(envelopeOf(third.stdout).error).toMatchObject({ code: 'example.nothing-to-reset' });
+        });
+
+        it('asks for a consent that run() finds, and runs with its digest', async () => {
+            const p = projectWith(['defined-commands-cli-plugin']);
+
+            const first = await p.runCliCommand(
+                ['example', 'deploy', '--environment', 'production', '--json'],
+                {
+                    expectError: true,
+                },
+            );
+            const need = envelopeOf(first.stdout).needs[0];
+            expect(need).toMatchObject({
+                kind: 'consent',
+                consent: 'deployToProduction',
+                preview: { environment: 'production' },
+            });
+
+            const second = await p.runCliCommand([
+                'example',
+                'deploy',
+                '--environment',
+                'production',
+                '--deploy-to-production',
+                need.digest,
+                '--json',
+            ]);
+            expect(envelopeOf(second.stdout)).toMatchObject({
+                status: 'ok',
+                output: { deployed: 'production' },
+            });
         });
 
         it('offers its commands as Developer MCP tools, and runs them in a child process', async () => {

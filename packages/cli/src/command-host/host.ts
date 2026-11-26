@@ -1,6 +1,7 @@
 import {
     COMMAND_ENVELOPE_SCHEMA_VERSION,
     COMMAND_EXIT_CODES,
+    CommandAccount,
     CommandChoice,
     CommandContext,
     CommandCredential,
@@ -110,6 +111,17 @@ export interface HostEnvironment {
         kind: 'cloud',
         ctx: CommandContext,
     ): Promise<{ credential: CommandCredential } | { needs: CommandNeed[] }>;
+    /**
+     * Renews a credential that `requireCredential` found, for `ctx.refreshCredential`. Resolves
+     * to `undefined` when it cannot be renewed. Without it, `ctx.refreshCredential` never renews.
+     */
+    refreshCredential?(
+        kind: 'cloud',
+        credential: CommandCredential,
+        ctx: CommandContext,
+    ): Promise<CommandCredential | undefined>;
+    /** The Console account a credential belongs to, for `ctx.account`. */
+    describeAccount?(kind: 'cloud', credential: CommandCredential): CommandAccount | undefined;
     /**
      * Writes a secret output value to a file that only the user can read, and returns its
      * absolute path. Needed for a command with `secretOutputs` when no person sees the output.
@@ -240,7 +252,70 @@ function answerProblem(
     return issue?.message;
 }
 
-function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandContext {
+/**
+ * What the host knows about the consents of one run: the values the caller gave, with the digests a
+ * person agreed to added, whether `run()` is running, and whether a person declined a consent that
+ * `ctx.consent` asked for.
+ */
+interface ConsentState {
+    values: Record<string, unknown>;
+    running: boolean;
+    declined: boolean;
+    /** The consent a person is being asked for, so that two `ctx.consent` calls never prompt at once. */
+    asking: Promise<unknown>;
+    /**
+     * The digest each consent was first asked for in this run, by `plan()` or `ctx.consent`. A caller
+     * passes one value per consent, so one consent covers one preview per run.
+     */
+    asked: Record<string, string>;
+}
+
+/**
+ * A credential renewal in `ctx.refreshCredential` that failed for a reason that may pass, such as no
+ * network. The host reports it as `auth.credential-failed`, as when finding the credential failed,
+ * not as an internal error.
+ */
+class CredentialRenewalError extends Error {
+    constructor(readonly cause: unknown) {
+        super(cause instanceof Error ? cause.message : String(cause));
+        this.name = 'CredentialRenewalError';
+    }
+}
+
+/**
+ * The need for a named consent to `preview`, or `undefined` when the command does not declare
+ * `name`. Only the command's own `consents` count, not names it inherits, such as `toString`.
+ */
+function consentNeedFor(def: CommandDefinition, name: string, preview: unknown): ConsentNeed | undefined {
+    if (!def.consents || !Object.prototype.hasOwnProperty.call(def.consents, name)) {
+        return undefined;
+    }
+    return {
+        kind: 'consent',
+        consent: name,
+        description: def.consents[name],
+        digest: consentDigest(name, preview),
+        preview,
+    };
+}
+
+/** The output a `run()` result reports, if any. */
+function reportedOutput(result: unknown): unknown {
+    if (isErrorResult(result)) {
+        return undefined;
+    }
+    if (isIncompleteResult(result) || isFailedResult(result)) {
+        return result.output;
+    }
+    return result;
+}
+
+function createContext(
+    def: CommandDefinition,
+    env: HostEnvironment,
+    notices: CommandNotice[],
+    consents: ConsentState,
+): CommandContext {
     const { prompter } = env;
     return {
         cwd: env.cwd,
@@ -276,6 +351,50 @@ function createContext(env: HostEnvironment, notices: CommandNotice[]): CommandC
             env.emit({ ...data, vendure: 'event', type });
         },
         spawn: (command, args, options) => env.spawn(command, args, options),
+        consent: async (name, preview) => {
+            if (!consents.running) {
+                throw new Error('ctx.consent is for run(); plan() returns requiredConsents');
+            }
+            const need = consentNeedFor(def, name, preview);
+            if (!need) {
+                throw new Error(`run() asked for the undeclared consent "${name}"`);
+            }
+            // A caller can give one digest per consent, so a second preview under the same name
+            // could never be answered. Each such risk needs a consent of its own.
+            const first = consents.asked[name];
+            if (first !== undefined && first !== need.digest) {
+                throw new Error(
+                    `The consent "${name}" was asked for two different previews in one run. Declare a consent for each.`,
+                );
+            }
+            consents.asked[name] = need.digest;
+            if (consents.values[name] === need.digest) {
+                return true;
+            }
+            if (!prompter) {
+                return need;
+            }
+            // One question at a time: a call waits for the person to answer the one before. The
+            // same consent for the same preview is then given already, and not asked again.
+            const asked = consents.asking.then(async () => {
+                if (consents.values[name] === need.digest) {
+                    return true;
+                }
+                if (consents.declined) {
+                    return false;
+                }
+                const agreed = await prompter.askConsent(need);
+                if (agreed) {
+                    // Kept, so a run the host repeats for more input is not asked again.
+                    consents.values[name] = need.digest;
+                } else {
+                    consents.declined = true;
+                }
+                return agreed;
+            });
+            consents.asking = asked.catch(() => undefined);
+            return (await asked) ? true : need;
+        },
     };
 }
 
@@ -411,7 +530,21 @@ export async function executeCommand(
         if (def.requires?.project && !env.findProjectRoot()) {
             return errorResult(hostErrors.projectRequired, { command: commandName }, notices);
         }
-        const ctx = createContext(env, notices);
+        // The consents the caller gave are not input fields: they are kept for `plan()` and
+        // `ctx.consent`, and taken out of the input before it is validated.
+        const consentNames = Object.keys(def.consents ?? {});
+        const input: Record<string, unknown> = { ...rawInput };
+        const consents: ConsentState = {
+            values: Object.fromEntries(consentNames.map(name => [name, input[name]])),
+            running: false,
+            declined: false,
+            asking: Promise.resolve(),
+            asked: {},
+        };
+        for (const name of consentNames) {
+            delete input[name];
+        }
+        const ctx = createContext(def, env, notices, consents);
         if (def.requires?.auth) {
             if (!env.requireCredential) {
                 return errorResult(
@@ -439,14 +572,39 @@ export async function executeCommand(
                 return incompleteResult(found.needs, notices);
             }
             ctx.credential = found.credential;
+            const kind = def.requires.auth;
+            const account = env.describeAccount?.(kind, found.credential);
+            if (account) {
+                ctx.account = account;
+            }
+            ctx.refreshCredential = async failedToken => {
+                const current = ctx.credential;
+                if (!current || !env.refreshCredential) {
+                    return undefined;
+                }
+                // The token the server refused. When another request renewed it meanwhile, the
+                // renewal returns that newer token without spending the refresh token again.
+                const refused = { ...current, token: failedToken ?? current.token };
+                let renewed: CommandCredential | undefined;
+                try {
+                    renewed = await env.refreshCredential(kind, refused, ctx);
+                } catch (e) {
+                    throw env.signal.aborted ? e : new CredentialRenewalError(e);
+                }
+                if (renewed) {
+                    ctx.credential = renewed;
+                    // A renewal can change which organization the login is scoped to.
+                    const renewedAccount = env.describeAccount?.(kind, renewed);
+                    if (renewedAccount) {
+                        ctx.account = renewedAccount;
+                    } else {
+                        delete ctx.account;
+                    }
+                }
+                return renewed;
+            };
         }
         const schemas = await def.schemas();
-        const consentNames = Object.keys(def.consents ?? {});
-        const input: Record<string, unknown> = { ...rawInput };
-        const consentValues = Object.fromEntries(consentNames.map(name => [name, input[name]]));
-        for (const name of consentNames) {
-            delete input[name];
-        }
 
         // Stage 1: inputs. A missing required field is a need. A person is also asked for the
         // optional fields that declare `prompt: true`; without a person they keep their default.
@@ -506,22 +664,17 @@ export async function executeCommand(
             }
             const needs: ConsentNeed[] = [];
             for (const consent of planned.requiredConsents) {
-                if (!def.consents || !(consent in def.consents)) {
+                const need = consentNeedFor(def, consent, planned.preview);
+                if (!need) {
                     return errorResult(
                         hostErrors.internal,
                         { message: `plan() asked for the undeclared consent "${consent}"` },
                         notices,
                     );
                 }
-                const digest = consentDigest(consent, planned.preview);
-                if (consentValues[consent] !== digest) {
-                    needs.push({
-                        kind: 'consent',
-                        consent,
-                        description: def.consents[consent],
-                        digest,
-                        preview: planned.preview,
-                    });
+                consents.asked[consent] = need.digest;
+                if (consents.values[consent] !== need.digest) {
+                    needs.push(need);
                 }
             }
             if (needs.length > 0) {
@@ -532,6 +685,7 @@ export async function executeCommand(
                     if (!(await env.prompter.askConsent(need))) {
                         return errorResult(hostErrors.cancelled, {}, notices);
                     }
+                    consents.values[need.consent] = need.digest;
                 }
             }
         }
@@ -551,7 +705,32 @@ export async function executeCommand(
             );
         }
         const { run } = await def.run();
-        const result = await run(parsed, ctx);
+        consents.running = true;
+        let result: Awaited<ReturnType<typeof run>>;
+        try {
+            result = await run(parsed, ctx);
+        } catch (e) {
+            // A run that stops with an error after a person declined was cancelled by them.
+            if (consents.declined) {
+                return errorResult(hostErrors.cancelled, {}, notices);
+            }
+            throw e;
+        } finally {
+            consents.running = false;
+        }
+        // A person declined a consent that `ctx.consent` asked for, so the run ends as cancelled.
+        // What `run()` reported before it stopped is kept, behind the same secret-output check.
+        if (consents.declined) {
+            const cancelled = errorResult(hostErrors.cancelled, {}, notices);
+            const reported = reportedOutput(result);
+            if (reported !== undefined) {
+                const protectedReported = protectSecrets(def, reported, env, notices);
+                if (!('error' in protectedReported)) {
+                    cancelled.envelope.output = protectedReported.output;
+                }
+            }
+            return cancelled;
+        }
         if (isIncompleteResult(result)) {
             const inputNeedsOnly = result.needs.every((need): need is InputNeed => need.kind === 'input');
             // `run()` found that it needs more input, which only it could tell. A person is asked
@@ -584,9 +763,12 @@ export async function executeCommand(
                         );
                     }
                 }
+                const given = Object.fromEntries(
+                    Object.entries(consents.values).filter(([, value]) => value !== undefined),
+                );
                 const retried = await executeCommand(
                     def,
-                    { ...rawInput, ...input, ...answers },
+                    { ...rawInput, ...input, ...answers, ...given },
                     env,
                     attempt + 1,
                 );
@@ -625,6 +807,9 @@ export async function executeCommand(
     } catch (e) {
         if (env.signal.aborted) {
             return errorResult(hostErrors.cancelled, {}, notices);
+        }
+        if (e instanceof CredentialRenewalError) {
+            return errorResult(hostErrors.credentialFailed, { message: e.message }, notices);
         }
         return errorResult(
             hostErrors.internal,
