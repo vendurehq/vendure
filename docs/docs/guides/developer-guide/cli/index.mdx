@@ -1391,6 +1391,78 @@ can't be parsed, or whose commands don't have the shape `writeCommandManifest` w
 are the field names `json`, `input`, `format` and `yes`. A manifest that breaks these rules
 is refused with `plugin.manifest-invalid`.
 
+### Extending a command
+
+A package can extend a command that it, another package or the CLI declares with `defineCommand`, such as
+`vendure dev`. An extension adds input and output fields, its own consents and errors, and a `run` that wraps the
+command's. Export the extensions from the declarations module, next to `commands`, and pass them to the build step:
+
+```ts title="src/commands.ts"
+import { defineCommandExtension } from '@vendure/common/lib/command';
+
+export const commands = [/* the package's own commands, if any */];
+
+export const extensions = [
+    defineCommandExtension({
+        path: ['dev'],
+        schemas: () => import('./dev-cloud.schema.js'), // exports `input`, the fields it adds, and optionally `output`
+        consents: { deployPreview: 'Deploy a preview environment' },
+        errors: [notLinked],
+        cli: { flags: { cloudProject: { short: '-c' } } },
+        run: () => import('./dev-cloud.run.js'),
+    }),
+];
+```
+
+```ts title="scripts/build-manifest.ts"
+await writeCommandManifest('./dist', '@acme/vendure-cli', '1.0.0', commands, { extensions });
+```
+
+```ts title="src/dev-cloud.run.ts"
+export async function run(input, ctx, next) {
+    const preview = await startPreview(input.cloudProject);
+    try {
+        const output = await next();
+        return isFailedResult(output) || isIncompleteResult(output) || isErrorResult(output)
+            ? output
+            : { ...output, previewUrl: preview.url };
+    } finally {
+        await preview.stop();
+    }
+}
+```
+
+- **`input`** holds the command's validated input with the extension's own fields. Each part is validated with its
+  own package's schema, so a missing or invalid field of the extension is a need or an error as for the command's own.
+- **`next(commandInput?, { signal })`** runs the command, or the next extension, with the command's fields only. Pass
+  a changed copy of the command's input to change what it runs with; the CLI validates it with the command's schema.
+  `next` resolves to the result as a value: the output, or an `incomplete()`, `failed()` or `fail()` result. It never
+  throws for those. It may be called more than once, as in a retry loop, or not at all, and `options.signal` stops
+  only that call. The command's events and `ctx.output` reach the caller as they happen.
+- **The output** an extension returns must be valid for the command's output schema with the extension's fields
+  added. It may also return `incomplete()`, `failed()`, or `fail()` with one of its own or the command's errors.
+- **Consents** an extension declares are asked for with `ctx.consent`, as the command's own are. `plan()` stays the
+  command's own.
+- **Order:** when two packages extend one command, they run in the order the packages are enabled, the first
+  outermost.
+
+An extension may start a long-lived process of its own, outside `ctx.spawn`, as an extension of `vendure dev` does.
+It stops the process in a `finally` once `next()` resolves, and reports it through `ctx.output` or events. The CLI
+waits for the outermost `run` of a `service` command such as `vendure dev` to return after Ctrl+C, so the `finally`
+runs; a second Ctrl+C ends the process at once.
+
+The extension's fields are flags of the command, part of its input in `vendure commands --json` and in its Developer
+MCP tool, which lists the extending packages under `extendedBy`. A command may also mark a field
+`cli: { fields: { name: { internal: true } } }`: such a field is set only by an extension, through
+`next(commandInput)`. It is not a flag, is left out of the manifest, and is removed from what a caller passes.
+
+The CLI refuses all the extensions of a package, and keeps its commands, when one of them extends a command the
+project doesn't have, with `plugin.extension-target-missing`. It does the same when an extension adds a field, short
+flag, consent or error code that the command or an earlier extension has, with `plugin.extension-clash`. That code
+also covers an extension that breaks a rule of a command with commands under it: a flag that takes an optional value
+or a list on such a command, or a flag declared differently on a command and a command under it. An older
+`extendCommands` of a `CliPlugin` does not apply to a `defineCommand` command: the CLI skips it with a warning.
+
 ### How plugin commands appear in the help
 
 `vendure --help` lists the commands and shared options a plugin registers under
