@@ -66,3 +66,14 @@ export const consoleErrors = {
         message: ({ message }) => message,
     }),
 };
+
+/**
+ * The codes of the steps only a person can take in Vendure Console, which `vendure console link`
+ * returns as `person` needs. A caller, or a CLI plugin extending the link, matches on these.
+ */
+export const consolePersonSteps = {
+    /** The login has no Customer Account. */
+    noAccount: 'console.no-account',
+    /** The Customer Account has no active Project. */
+    noActiveProject: 'console.no-active-project',
+} as const;

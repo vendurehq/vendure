@@ -123,6 +123,7 @@ export type {
     ConsoleMissingInput,
     ConsoleResultData,
 } from './commands/console/console-result.js';
+export { consolePersonSteps } from './commands/console/console.errors.js';
 export type { ProjectLinkManifest } from './commands/console/project-link-manifest.js';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition.js';
 export type {

@@ -868,8 +868,22 @@ describe('console command', () => {
         );
         const test = testDependencies(root, fetchMock);
 
-        expect(await runExitCode('link', {}, test.dependencies)).toBe(1);
-        expect(test.messages.join('\n')).toContain('Acme has no active project');
+        const run = await runConsoleForTest('link', {}, test.dependencies);
+        expect(run.exitCode).toBe(1);
+        // A step for a person, in a browser, with a code a caller can match on.
+        expect(run.result).toMatchObject({
+            outcome: 'incomplete',
+            needs: [
+                {
+                    kind: 'person',
+                    code: 'console.no-active-project',
+                    action: 'create-project',
+                    summary: expect.stringContaining('which needs no plan or trial'),
+                    url: `${LOCAL_CONSOLE.appOrigin}/projects?create=true`,
+                },
+            ],
+        });
+        expect(test.messages.join('\n')).toContain('Acme has no active Project');
         expect(test.messages.join('\n')).toContain(LOCAL_CONSOLE.appOrigin);
         // PDEV-478: creating a Project is free, and the link still needs a real one.
         expect(test.messages.join('\n')).toContain('without a plan or trial');

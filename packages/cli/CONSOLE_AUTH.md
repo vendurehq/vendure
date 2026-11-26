@@ -190,11 +190,17 @@ that refusal into a `person` need:
 ```json
 {
     "kind": "person",
+    "code": "production-request",
     "action": "production-request",
     "summary": "Request production for the project in Vendure Console",
     "url": "https://console.vendure.io/…"
 }
 ```
+
+Match a step on its `code`. `vendure console link` raises two steps of its own,
+exported as `consolePersonSteps`: `console.no-account`, with the action
+`create-account`, and `console.no-active-project`, with the action
+`create-project`.
 
 On a terminal the CLI prints the link. The caller runs the same command again
 once the person has acted. Nothing is stored in between.

@@ -1,4 +1,4 @@
-import { InputNeed } from '@vendure/common/lib/command';
+import { CommandNeed, InputNeed, PersonNeed } from '@vendure/common/lib/command';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
@@ -50,6 +50,7 @@ import {
 } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { ConsoleCommandResult, ConsoleLinkResultContribution, missingInputToNeed } from './console-result.js';
+import { consolePersonSteps } from './console.errors.js';
 import { ensureProjectLinkGitignore } from './project-link-gitignore.js';
 import {
     ManifestReadResult,
@@ -188,12 +189,20 @@ class CommandInterruptedError extends Error {
 class ConsoleInputError extends ConsoleCliError {
     constructor(
         message: string,
-        readonly need: InputNeed,
+        readonly need: CommandNeed,
         readonly nextSteps: string[],
     ) {
         super(message);
         this.name = 'ConsoleInputError';
     }
+}
+
+/**
+ * A step only a person can take in Vendure Console, in a browser, as the error that stops the link.
+ * The link finishes when it runs again.
+ */
+function personStepError(need: PersonNeed, message: string): ConsoleInputError {
+    return new ConsoleInputError(message, need, []);
 }
 
 /** The `input` need for `--project`, the Console Project to link. */
@@ -242,6 +251,8 @@ export interface ConsoleRun {
     manifest?: ProjectLinkManifest;
     /** What stopped the run, worded for the caller. Never a credential. */
     failure?: string;
+    /** The message of the need that stopped the run, which the need itself says again. */
+    needMessage?: string;
     /** For an unlink: whether it removed a manifest. */
     removed?: boolean;
     /** The manifest was no longer the one the caller consented to a change of. Nothing changed. */
@@ -283,6 +294,7 @@ export async function runConsole(
         result: state.result,
         ...(state.manifest ? { manifest: state.manifest } : {}),
         ...(state.failure ? { failure: state.failure } : {}),
+        ...(state.needMessage ? { needMessage: state.needMessage } : {}),
         ...(state.removed !== undefined ? { removed: state.removed } : {}),
         ...(state.changed ? { changed: true } : {}),
         ...(interrupted ? { interrupted } : {}),
@@ -480,7 +492,7 @@ export function describeConsoleError(
     outputMode: ConsoleCommandDependencies['outputMode'],
     signal?: AbortSignal,
 ):
-    | { kind: 'need'; need: InputNeed; message: string; nextSteps: string[] }
+    | { kind: 'need'; need: CommandNeed; message: string; nextSteps: string[] }
     | { kind: 'interrupted' }
     | { kind: 'failed'; message: string } {
     if (signal?.aborted || error instanceof CommandInterruptedError) {
@@ -516,6 +528,7 @@ function reportConsoleCommandError(
         state.result.outcome = 'incomplete';
         state.result.needs.push(error.need);
         state.result.nextSteps.push(...error.nextSteps);
+        state.needMessage = error.message;
         reporter.error(error.message);
         error.nextSteps.forEach(step => reporter.info(step));
         return 1;
@@ -552,6 +565,8 @@ interface ConsoleCommandState {
     manifest?: ProjectLinkManifest;
     /** What stopped the run, for the coded error the command returns. Never a credential. */
     failure?: string;
+    /** The message of the need that stopped the run, which the need itself says again. */
+    needMessage?: string;
     /** For an unlink: whether it removed a manifest. */
     removed?: boolean;
     changed?: boolean;
@@ -1107,9 +1122,15 @@ async function chooseOrganization(
     dependencies: ConsoleCommandDependencies,
 ): Promise<AuthOrganization> {
     if (organizations.length === 0) {
-        throw new ConsoleCliError(
-            `Your Vendure Console login has no Customer Account yet. Create one at ${endpoints.consoleUrl}/onboarding, ` +
-                'then run vendure console link again.',
+        throw personStepError(
+            {
+                kind: 'person',
+                code: consolePersonSteps.noAccount,
+                action: 'create-account',
+                summary: 'Create a Customer Account in Vendure Console, then run the link again',
+                url: `${endpoints.consoleUrl}/onboarding`,
+            },
+            `Your Vendure Console login has no Customer Account yet. Create one at ${endpoints.consoleUrl}/onboarding, then run vendure console link again.`,
         );
     }
     if (organizations.length === 1) {
@@ -1208,8 +1229,15 @@ async function chooseProject(
     dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleProject> {
     if (projects.length === 0) {
-        throw new ConsoleCliError(
-            `${accountName} has no active project. Create one in Vendure Console at ${endpoints.consoleUrl}. ` +
+        throw personStepError(
+            {
+                kind: 'person',
+                code: consolePersonSteps.noActiveProject,
+                action: 'create-project',
+                summary: `Create a Project of ${accountName} in Vendure Console, which needs no plan or trial, then run the link again`,
+                url: `${endpoints.consoleUrl}/projects?create=true`,
+            },
+            `${accountName} has no active Project. Create one in Vendure Console at ${endpoints.consoleUrl}/projects?create=true. ` +
                 'You can create it without a plan or trial. Then run vendure console link again.',
         );
     }
