@@ -1,4 +1,10 @@
-import { ConfigResolverContext, configResolverDeclaration } from '@vendure/common/lib/command';
+import {
+    CommandErrorDefinition,
+    ConfigResolverContext,
+    configResolverDeclaration,
+    ErrorResult,
+    fail,
+} from '@vendure/common/lib/command';
 import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -75,7 +81,32 @@ export function configResolverPackages(
 ): ResolvedCommandManifest[] {
     const plugins =
         options.plugins ?? resolveCommandManifests({ cwd: options.projectDir ?? process.cwd() }).manifests;
-    return plugins.filter(plugin => plugin.manifest.hasConfigResolver === true);
+    const withResolver = plugins.filter(plugin => plugin.manifest.hasConfigResolver === true);
+    // The project's resolvers first, so a package the project enabled is asked before one the
+    // user enabled for the whole machine. The order within each allowlist is kept.
+    return [
+        ...withResolver.filter(plugin => plugin.scope === 'project'),
+        ...withResolver.filter(plugin => plugin.scope !== 'project'),
+    ];
+}
+
+/**
+ * The result a command returns for an error that stopped its config from loading: the
+ * `config.resolver-failed` of a failed resolver, or else the command's own `unreadable` error. It
+ * rethrows the error of a cancelled command, so the host reports the command as cancelled.
+ */
+export function configErrorResult(
+    e: unknown,
+    signal: AbortSignal,
+    unreadable: CommandErrorDefinition<{ message: string }>,
+): ErrorResult {
+    if (signal.aborted) {
+        throw e;
+    }
+    if (e instanceof ConfigResolverFailedError) {
+        return fail(configResolverFailed, e.details);
+    }
+    return fail(unreadable, { message: e instanceof Error ? e.message : String(e) });
 }
 
 /** Where a project's config came from, for a message: the resolver's package, or the config file. */

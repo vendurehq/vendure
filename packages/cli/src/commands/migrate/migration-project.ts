@@ -1,13 +1,9 @@
-import { CommandContext, ErrorResult, fail } from '@vendure/common/lib/command';
+import { CommandContext, ErrorResult } from '@vendure/common/lib/command';
 import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
-import { configResolverFailed } from '../../shared/config-resolver.errors.js';
-import {
-    ConfigResolverFailedError,
-    loadProjectConfig,
-    ProjectConfig,
-} from '../../shared/load-project-config.js';
+import { configErrorResult, loadProjectConfig, ProjectConfig } from '../../shared/load-project-config.js';
+import { prepareToRequireProjectFiles } from '../../shared/load-vendure-config-file.js';
 import { requireFromProjectCore } from '../../shared/project-core.js';
 
 import { configUnreadable } from './migrate.errors.js';
@@ -21,16 +17,15 @@ export async function openMigrationProject(
     ctx: Pick<CommandContext, 'cwd' | 'signal'>,
 ): Promise<ProjectConfig | ErrorResult> {
     try {
-        return await loadProjectConfig({ cwd: ctx.cwd, configFile, signal: ctx.signal });
+        const project = await loadProjectConfig({ cwd: ctx.cwd, configFile, signal: ctx.signal });
+        if ('resolvedBy' in project) {
+            // The source path has done this to load the config. TypeORM requires the migration
+            // files, which may be TypeScript and read `.env`, whatever the resolver did.
+            await prepareToRequireProjectFiles(project.projectDir);
+        }
+        return project;
     } catch (e) {
-        // Thrown, so the host reports the command as cancelled.
-        if (ctx.signal.aborted) {
-            throw e;
-        }
-        if (e instanceof ConfigResolverFailedError) {
-            return fail(configResolverFailed, e.details);
-        }
-        return fail(configUnreadable, { message: e instanceof Error ? e.message : String(e) });
+        return configErrorResult(e, ctx.signal, configUnreadable);
     }
 }
 

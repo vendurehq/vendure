@@ -42,13 +42,12 @@ export async function runConfigCheck(configFlag?: string, signal?: AbortSignal):
 
         const config = await loadDoctorConfig(configFlag, details, signal);
 
-        // Run preBootstrapConfig() -- validates custom fields, registers entities,
-        //    runs plugin configuration() hooks, sets strategies
+        // Validates custom fields, registers entities, runs the plugins' configuration() hooks and
+        // sets the strategies.
         runtimeConfig = await core.preBootstrapConfig(config);
         details.push('Custom fields validated');
         details.push('Plugin configuration completed');
 
-        // Check plugin compatibility
         const pluginResults = checkPlugins(runtimeConfig, core);
         details.push(...pluginResults.details);
 

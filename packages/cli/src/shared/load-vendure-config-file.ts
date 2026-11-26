@@ -131,6 +131,14 @@ export async function loadVendureConfigFile(
 }
 
 /**
+ * Loads `.env`, and registers ts-node with the project's tsconfig and its path mappings, so the
+ * project's TypeScript files, such as its migrations, can be required.
+ */
+export async function prepareToRequireProjectFiles(projectDir: string): Promise<void> {
+    await prepareToRequireConfig(path.join(projectDir, 'package.json'));
+}
+
+/**
  * Requires a TypeScript or JavaScript module the way a config file is required: it loads `.env`,
  * and registers ts-node with the tsconfig nearest the file and its path mappings, first. Returns
  * the module's exports.

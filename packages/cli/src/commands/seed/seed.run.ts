@@ -20,9 +20,8 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { configResolverFailed } from '../../shared/config-resolver.errors.js';
 import {
-    ConfigResolverFailedError,
+    configErrorResult,
     enabledManifests,
     loadSourceConfig,
     resolveProjectConfig,
@@ -316,14 +315,7 @@ export async function loadSeedConfig(
             throw withUnreadableManifests(e, unreadable);
         }
     } catch (e) {
-        // Thrown, so the host reports the command as cancelled.
-        if (ctx.signal.aborted) {
-            throw e;
-        }
-        if (e instanceof ConfigResolverFailedError) {
-            return fail(configResolverFailed, e.details);
-        }
-        return fail(seedConfigUnreadable, { message: errorMessage(e) });
+        return configErrorResult(e, ctx.signal, seedConfigUnreadable);
     }
 }
 

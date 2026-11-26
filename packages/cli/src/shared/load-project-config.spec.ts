@@ -67,13 +67,17 @@ describe('loadProjectConfig()', () => {
     });
 
     /** An enabled package, with a config resolver whose `resolve(ctx)` runs `source` when it is given. */
-    function plugin(name: string, source?: string): ResolvedCommandManifest {
+    function plugin(
+        name: string,
+        source?: string,
+        scope: 'project' | 'global' = 'project',
+    ): ResolvedCommandManifest {
         const definitionsPath = path.join(dir, `${name.replace(/\W/g, '-')}.mjs`);
         fs.writeFileSync(definitionsPath, source ? declarations(source) : 'export const commands = [];');
         return {
             packageName: name,
             definitionsPath,
-            scope: 'project',
+            scope,
             manifest: {
                 manifestVersion: 1,
                 package: name,
@@ -109,6 +113,25 @@ describe('loadProjectConfig()', () => {
         expect(calls[1].signal).toBeInstanceOf(AbortSignal);
         expect(loadVendureConfigFile).not.toHaveBeenCalled();
         expect(requireProjectModule).not.toHaveBeenCalled();
+    });
+
+    it("asks the project's resolvers before the ones enabled for the whole machine", async () => {
+        const plugins = [
+            plugin(
+                '@acme/global',
+                "return { dbConnectionOptions: { type: 'mysql' }, from: 'global' };",
+                'global',
+            ),
+            plugin('@acme/project', "return { dbConnectionOptions: { type: 'postgres' }, from: 'project' };"),
+        ];
+
+        const result = await resolveProjectConfig({ projectDir: dir, plugins });
+
+        expect(result?.resolvedBy).toBe('@acme/project');
+        expect(configResolverPackages({ plugins }).map(p => p.packageName)).toEqual([
+            '@acme/project',
+            '@acme/global',
+        ]);
     });
 
     it('gives the resolver --config as an absolute path, resolved from the working directory', async () => {
