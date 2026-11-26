@@ -21,7 +21,7 @@ describe('builtinCommandDefs', () => {
      * parent options: every sub-option is flattened onto the same command, so
      * the flag arrives twice.
      */
-    it('satisfies the rules a CLI plugin is validated against', () => {
+    it('passes assertCommandTree', () => {
         expect(() => assertCommandTree('builtins', builtinCommandDefs)).not.toThrow();
     });
 });

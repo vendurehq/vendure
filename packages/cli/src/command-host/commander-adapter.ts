@@ -126,7 +126,7 @@ function stop(result: HostResult): never {
 /**
  * The groups this adapter made only to hold manifest commands, such as `cloud deploy` before the
  * command `cloud deploy` itself is registered. A manifest command at that path takes the group
- * over, with its commands, instead of counting as a command a CLI plugin replaced.
+ * over, with its commands.
  */
 const manifestGroups = new WeakSet<Command>();
 

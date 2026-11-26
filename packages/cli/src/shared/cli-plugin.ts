@@ -42,8 +42,8 @@ export interface CliPlugin {
      * `vendure start --token X` are equivalent.
      *
      * Only a decorator reads the value. A decorator in `extendCommands` of a
-     * built-in command (`add`, `build`, `start`, `migrate`, `codemod`,
-     * `schema` or `mcp`) finds it under `inheritedOptions`, through
+     * built-in command (one in `builtinCommandDefs`, apart from the reserved
+     * `plugins`) finds it under `inheritedOptions`, through
      * `readCommandContext(args)`. Commands declared with `defineCommand` never
      * receive it. A package's own commands share options through
      * `defineCommandGroup` instead.

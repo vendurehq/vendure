@@ -1338,12 +1338,8 @@ function loadCliPluginModule(entryPath: string, packageName: string): CliPlugin 
         assertCliPlugin(exported);
         return exported;
     } catch (e: any) {
-        // The code of a coded error, such as `plugin.commands-removed`, stays on the error.
-        throw Object.assign(
-            new Error(
-                `Failed to load CLI plugin "${packageName}" from ${entryPath}: ${e?.message ?? String(e)}`,
-            ),
-            { cause: e, ...(typeof e?.code === 'string' ? { code: e.code } : {}) },
+        throw new Error(
+            `Failed to load CLI plugin "${packageName}" from ${entryPath}: ${e?.message ?? String(e)}`,
         );
     }
 }

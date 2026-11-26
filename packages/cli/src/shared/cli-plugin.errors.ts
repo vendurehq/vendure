@@ -1,7 +1,7 @@
 import { defineError } from '@vendure/common/lib/command';
 
 /**
- * A CLI plugin still declares commands under `commands`, which the CLI no longer reads. Without
+ * A CLI plugin still declares commands under `commands`, which v4 does not read. Without
  * this error the plugin would load with none of its commands, and nothing would say why.
  *
  * @since 4.0.0
