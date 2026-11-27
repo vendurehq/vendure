@@ -1,7 +1,7 @@
 import { GripVertical } from 'lucide-react';
 import { KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
-import { Chip } from '@/vdb/components/ui/chip.js';
+import { Chip, type ChipRemoveProps } from '@/vdb/components/ui/chip.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import type { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isReadonlyField } from '@/vdb/framework/form-engine/utils.js';
@@ -81,6 +81,7 @@ function SortableItem({ id, item, isDisabled, isEditing, onRemove, onEdit, onSav
         }
     }, [item]);
 
+    const removeProps: ChipRemoveProps = isDisabled ? {} : { onRemove, removeLabel: `Remove ${item}` };
     return (
         <Chip
             ref={setNodeRef}
@@ -102,7 +103,7 @@ function SortableItem({ id, item, isDisabled, isEditing, onRemove, onEdit, onSav
                     </button>
                 )
             }
-            {...(isDisabled ? { onRemove: undefined } : { onRemove, removeLabel: `Remove ${item}` })}
+            {...removeProps}
         >
             {isEditing ? (
                 <input

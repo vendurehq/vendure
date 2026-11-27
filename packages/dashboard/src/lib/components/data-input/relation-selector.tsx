@@ -1,5 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { Chip } from '@/vdb/components/ui/chip.js';
+import { Chip, type ChipRemoveProps } from '@/vdb/components/ui/chip.js';
 import {
     Combobox,
     ComboboxContent,
@@ -363,12 +363,12 @@ export function RelationSelector<T>({
                         const name = String(item[config.labelKey]);
                         const label = config.label ? config.label(item) : name;
                         const removeLabel = t`Remove ${name}`;
+                        const removeProps: ChipRemoveProps = disabled
+                            ? {}
+                            : { onRemove: () => handleRemove(itemId), removeLabel };
                         if (typeof label === 'string') {
                             return (
-                                <Chip
-                                    key={itemId}
-                                    {...(disabled ? { onRemove: undefined } : { onRemove: () => handleRemove(itemId), removeLabel })}
-                                >
+                                <Chip key={itemId} {...removeProps}>
                                     {label}
                                 </Chip>
                             );
