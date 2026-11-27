@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { linkSync, readFileSync, renameSync } from 'node:fs';
 
 import {
     DeviceLoginDeniedError,
@@ -80,7 +80,8 @@ const PENDING_LOCK_STALE_MS = 30 * 60_000;
 /**
  * How a login that was pending ended, written over its record by the wait that
  * finished it, so a wait queued behind that one reports the same outcome. It
- * names the code by its hash only.
+ * names the code by its hash only. A completed login removes this file and
+ * `auth-pending.json` instead, and records `completed` only when it cannot.
  */
 interface FinishedLoginRecord {
     version: 1;
@@ -129,7 +130,8 @@ export interface WaitForPendingLoginOptions extends Omit<
 
 /**
  * Finishes the login that {@link startPendingLogin} saved. Returns the stored
- * login once the code is approved, or the pending login again when `timeoutMs`
+ * login once the code is approved, and removes the pending login's files, or
+ * the pending login again when `timeoutMs`
  * passes first, keeping it for a later wait. A wait whose login is replaced by
  * a new `auth login --json` returns the new pending login.
  *
@@ -181,7 +183,7 @@ export async function waitForPendingLogin(
                 onAuthorized: () => (authorized = true),
                 stillWanted: () => readPendingRecord(options)?.deviceCode === record.deviceCode,
             });
-            finishPendingLogin(options, record, 'completed');
+            removeCompletedLogin(options, record);
             return status;
         } catch (error) {
             if (error instanceof DeviceLoginPendingError) {
@@ -220,13 +222,15 @@ export function readPendingLogin(options: AuthOptions = {}): PendingLogin | unde
 /**
  * The wait ahead of us finished the login we were waiting for. It reports the
  * same outcome, so a denied code is never read as the login already stored.
+ * A completed login leaves no outcome file: the stored login is its outcome.
  */
 function reportFinishedLogin(before: PendingLoginRecord, options: AuthOptions): AuthStatus {
     const finished = readFinishedRecord(options);
-    if (!finished || finished.deviceCodeHash !== hashDeviceCode(before.deviceCode)) {
+    if (finished && finished.deviceCodeHash !== hashDeviceCode(before.deviceCode)) {
         throw new NoPendingLoginError('missing');
     }
-    switch (finished.outcome) {
+    switch (finished?.outcome) {
+        case undefined:
         case 'completed': {
             const status = readAuthStatus(options);
             if (status.loggedIn) {
@@ -263,6 +267,62 @@ function finishPendingLogin(
         ...(message ? { message } : {}),
     };
     writePrivateFile(getFinishedLoginPath(options), JSON.stringify(finished, null, 2));
+}
+
+/**
+ * Removes the files of a login that is now stored, as `auth logout` does, so no
+ * later wait can pick it up. `auth-pending.json` goes only while it still holds
+ * this login. The outcome file goes in any case: a wait queued behind this one
+ * finds no outcome and reports the stored login.
+ */
+function removeCompletedLogin(options: AuthOptions, record: PendingLoginRecord): void {
+    try {
+        removePendingRecordIf(options, record.deviceCode);
+        removeFile(getFinishedLoginPath(options));
+    } catch {
+        // The login is stored, so it must not be reported as failed. Recording
+        // the outcome still keeps a later wait from polling the spent code.
+        try {
+            finishPendingLogin(options, record, 'completed');
+        } catch {
+            // Nothing more to try.
+        }
+    }
+}
+
+/**
+ * Removes `auth-pending.json` while it holds `deviceCode`. A new login is
+ * written without the wait lock, so a read followed by an unlink could remove
+ * one written in between. Instead the file is renamed away, which takes one
+ * version atomically, and a version that is not this login is linked back.
+ * `link` never replaces a file, so an even newer login written meanwhile stays.
+ * The `.tmp` name lets `writePrivateFile` sweep a copy a killed process left.
+ */
+function removePendingRecordIf(options: AuthOptions, deviceCode: string): void {
+    const file = getPendingLoginPath(options);
+    const taken = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.removing.tmp`;
+    try {
+        renameSync(file, taken);
+    } catch {
+        return;
+    }
+    try {
+        let value: unknown;
+        try {
+            value = JSON.parse(readFileSync(taken, 'utf-8'));
+        } catch {
+            value = undefined;
+        }
+        if (parsePendingRecord(value)?.deviceCode !== deviceCode) {
+            try {
+                linkSync(taken, file);
+            } catch {
+                // A newer login took its place.
+            }
+        }
+    } finally {
+        removeFile(taken);
+    }
 }
 
 function hashDeviceCode(deviceCode: string): string {
@@ -308,7 +368,8 @@ function readPendingRecord(options: AuthOptions): PendingLoginRecord | undefined
     if (!record || record.consoleApiUrl !== resolveConsoleApiUrl(options)) {
         return undefined;
     }
-    // A finished login stays in the file until a new one replaces it.
+    // A denied, expired or failed login stays in the file until a new one
+    // replaces it.
     return readFinishedRecord(options)?.deviceCodeHash === hashDeviceCode(record.deviceCode)
         ? undefined
         : record;

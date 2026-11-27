@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getPendingLoginPath } from '../../auth/auth-options.js';
+import { getFinishedLoginPath, getPendingLoginPath } from '../../auth/auth-options.js';
 import { readStoredAuth, writeStoredAuth } from '../../auth/auth-store.js';
 import { readPendingLogin } from '../../auth/pending-login.js';
 import { executeCommand, HostEnvironment } from '../../command-host/host.js';
@@ -696,6 +696,43 @@ describe('vendure auth wait', () => {
         expect(JSON.stringify(result)).not.toMatch(/refresh_|e30\./);
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_2');
         expect(readPendingLogin(dependencies)).toBeUndefined();
+    });
+
+    it('removes both pending files once the login is stored, so a later wait finds nothing', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(fs.existsSync(getFinishedLoginPath(dependencies))).toBe(false);
+        const again = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+        expectError(again, 'auth.no-pending-login');
+        expect(device.polls()).toBe(1);
+    });
+
+    it('keeps a login that replaced the one it finished, and removes the outcome of the finished one', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+        const replacing: typeof globalThis.fetch = async (url, init) => {
+            const response = await device.fetch(url, init);
+            if (String(url) === AUTHENTICATE_URL) {
+                const file = getPendingLoginPath(dependencies);
+                const record = JSON.parse(readFileSync(file, 'utf-8'));
+                writeFileSync(
+                    file,
+                    JSON.stringify({ ...record, deviceCode: 'device_2', userCode: 'WXYZ-1234' }),
+                );
+            }
+            return response;
+        };
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: replacing });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(readPendingLogin(dependencies)).toMatchObject({ code: 'WXYZ-1234' });
+        expect(fs.existsSync(getFinishedLoginPath(dependencies))).toBe(false);
     });
 
     it('keeps the browser choice without a person and says how to pick another', async () => {
