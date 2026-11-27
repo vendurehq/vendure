@@ -93,9 +93,11 @@ test.describe('Setup checklist', () => {
             /\/tax-rates$/,
         );
         await expect(checklist.getByRole('button', { name: /Hide for now|Dismiss/ })).toHaveCount(0);
+        // The card header is the fold row: there is no separate "Action needed" row.
+        await expect(checklist.getByText('Action needed')).toHaveCount(0);
 
         // Folding is the only way to put the list away. The card stays, with a count per tone.
-        const fold = checklist.getByRole('button', { name: /Action needed/ });
+        const fold = checklist.getByRole('button', { name: /Store setup/ });
         await fold.click();
         await expect(fold).toHaveAttribute('aria-expanded', 'false');
         await expect(fold).toContainText('1 error');
@@ -103,7 +105,7 @@ test.describe('Setup checklist', () => {
 
         // The fold is remembered for this Channel.
         await page.reload();
-        await expect(checklist.getByRole('button', { name: /Action needed/ })).toHaveAttribute(
+        await expect(checklist.getByRole('button', { name: /Store setup/ })).toHaveAttribute(
             'aria-expanded',
             'false',
         );
@@ -123,7 +125,7 @@ test.describe('Setup checklist', () => {
             },
         });
         await page.reload();
-        await expect(checklist.getByRole('button', { name: /Action needed/ })).toHaveAttribute(
+        await expect(checklist.getByRole('button', { name: /Store setup/ })).toHaveAttribute(
             'aria-expanded',
             'true',
         );

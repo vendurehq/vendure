@@ -182,47 +182,53 @@ export function SetupChecklist({ state }: Readonly<{ state: SetupChecklistState 
         };
     });
 
+    const title = <Trans>Store setup</Trans>;
+    const description = isError ? (
+        <Trans>This server cannot check the store setup.</Trans>
+    ) : isPending || !report ? (
+        <Trans>Checking the store setup…</Trans>
+    ) : hasErrors ? (
+        <Trans>Fix these before this channel can take orders.</Trans>
+    ) : findings.length > 0 ? (
+        <Trans>This channel can take orders. These items are worth a look.</Trans>
+    ) : (
+        <Trans>This channel is ready to take orders.</Trans>
+    );
+
+    // With findings, the card header is the fold row of the list.
+    if (items.length > 0) {
+        return (
+            <Card data-testid="setup-checklist">
+                <ActionNeeded
+                    title={title}
+                    description={description}
+                    items={items}
+                    memoryKey={channelId ? `dashboard:setup-checklist:${channelId}` : undefined}
+                    countLabel={(count, tone) =>
+                        tone === 'critical'
+                            ? plural(count, { one: '# error', other: '# errors' })
+                            : tone === 'warning'
+                              ? plural(count, { one: '# warning', other: '# warnings' })
+                              : plural(count, { one: '# note', other: '# notes' })
+                    }
+                />
+            </Card>
+        );
+    }
+
     return (
         <Card data-testid="setup-checklist">
             <CardHeader>
-                <CardTitle>
-                    <Trans>Store setup</Trans>
-                </CardTitle>
-                <CardDescription>
-                    {isError ? (
-                        <Trans>This server cannot check the store setup.</Trans>
-                    ) : isPending || !report ? (
-                        <Trans>Checking the store setup…</Trans>
-                    ) : hasErrors ? (
-                        <Trans>Fix these before this channel can take orders.</Trans>
-                    ) : findings.length > 0 ? (
-                        <Trans>This channel can take orders. These items are worth a look.</Trans>
-                    ) : (
-                        <Trans>This channel is ready to take orders.</Trans>
-                    )}
-                </CardDescription>
+                {/* The title of this card is its strongest text, as in the header of the list. */}
+                <CardTitle className="text-foreground">{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
             </CardHeader>
             {report ? (
                 <CardContent>
-                    {items.length > 0 ? (
-                        <ActionNeeded
-                            items={items}
-                            memoryKey={channelId ? `dashboard:setup-checklist:${channelId}` : undefined}
-                            label={i18n._(msg`Action needed`)}
-                            countLabel={(count, tone) =>
-                                tone === 'critical'
-                                    ? plural(count, { one: '# error', other: '# errors' })
-                                    : tone === 'warning'
-                                      ? plural(count, { one: '# warning', other: '# warnings' })
-                                      : plural(count, { one: '# note', other: '# notes' })
-                            }
-                        />
-                    ) : (
-                        <div className="text-success flex items-center gap-2 text-sm">
-                            <CircleCheck className="h-4 w-4" />
-                            <Trans>No setup gaps found.</Trans>
-                        </div>
-                    )}
+                    <div className="text-success flex items-center gap-2 text-sm">
+                        <CircleCheck className="h-4 w-4" />
+                        <Trans>No setup gaps found.</Trans>
+                    </div>
                 </CardContent>
             ) : null}
         </Card>
