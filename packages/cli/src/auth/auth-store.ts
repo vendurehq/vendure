@@ -202,7 +202,7 @@ export function assertStorable(replacing: StoredAuth, options: AuthOptions = {})
  * `EACCES`. The write is retried briefly instead of failing after the refresh
  * token was already spent.
  */
-function renameWithRetry(from: string, to: string): void {
+export function renameWithRetry(from: string, to: string): void {
     for (let attempt = 1; ; attempt++) {
         try {
             renameSync(from, to);

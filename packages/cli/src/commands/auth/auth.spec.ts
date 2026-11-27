@@ -8,12 +8,12 @@ import {
     isFailedResult,
 } from '@vendure/common/lib/command';
 import fs from 'fs-extra';
-import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { linkSync, mkdtempSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getPendingLoginPath } from '../../auth/auth-options.js';
+import { getFinishedLoginPath, getPendingLoginPath } from '../../auth/auth-options.js';
 import { readStoredAuth, writeStoredAuth } from '../../auth/auth-store.js';
 import { readPendingLogin } from '../../auth/pending-login.js';
 import { executeCommand, HostEnvironment } from '../../command-host/host.js';
@@ -24,6 +24,14 @@ import { runLogin } from './login.js';
 import { runLogout } from './logout.js';
 import { render as renderStatus, runStatus } from './status.js';
 import { runWait } from './wait.js';
+
+// Pass-through, so a test can make one rename or link fail.
+vi.mock('node:fs', async importOriginal => {
+    const actual = await importOriginal<typeof import('node:fs')>();
+    return { ...actual, renameSync: vi.fn(actual.renameSync), linkSync: vi.fn(actual.linkSync) };
+});
+
+const { renameSync: rename } = await vi.importActual<typeof import('node:fs')>('node:fs');
 
 let configDir: string;
 let dependencies: AuthCommandDependencies;
@@ -239,6 +247,8 @@ beforeEach(() => {
 
 afterEach(() => {
     fs.removeSync(configDir);
+    vi.mocked(renameSync).mockReset();
+    vi.mocked(linkSync).mockReset();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
 });
@@ -696,6 +706,110 @@ describe('vendure auth wait', () => {
         expect(JSON.stringify(result)).not.toMatch(/refresh_|e30\./);
         expect(readStoredAuth(dependencies)?.refreshToken).toBe('refresh_2');
         expect(readPendingLogin(dependencies)).toBeUndefined();
+    });
+
+    it('removes both pending files once the login is stored, so a later wait finds nothing', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(fs.existsSync(getPendingLoginPath(dependencies))).toBe(false);
+        expect(fs.existsSync(getFinishedLoginPath(dependencies))).toBe(false);
+        const again = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+        expectError(again, 'auth.no-pending-login');
+        expect(device.polls()).toBe(1);
+    });
+
+    it('keeps a login that replaced the one it finished, and removes an earlier outcome', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+        const outcome = getFinishedLoginPath(dependencies);
+        writeFileSync(
+            outcome,
+            JSON.stringify({
+                version: 1,
+                consoleApiUrl: 'https://api.vendure.io',
+                deviceCodeHash: 'a'.repeat(64),
+                outcome: 'denied',
+            }),
+        );
+        const replacing: typeof globalThis.fetch = async (url, init) => {
+            const response = await device.fetch(url, init);
+            if (String(url) === AUTHENTICATE_URL) {
+                const file = getPendingLoginPath(dependencies);
+                const record = JSON.parse(readFileSync(file, 'utf-8'));
+                writeFileSync(
+                    file,
+                    JSON.stringify({ ...record, deviceCode: 'device_2', userCode: 'WXYZ-1234' }),
+                );
+            }
+            return response;
+        };
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: replacing });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(readPendingLogin(dependencies)).toMatchObject({ code: 'WXYZ-1234' });
+        expect(fs.existsSync(getFinishedLoginPath(dependencies))).toBe(false);
+    });
+
+    function failWith(code: string): never {
+        throw Object.assign(new Error(code), { code });
+    }
+
+    /** Writes a new login over the pending file just before the wait renames it away. */
+    function replaceBeforeRemoval() {
+        vi.mocked(renameSync).mockImplementation((from, to) => {
+            if (String(to).endsWith('.removing.tmp')) {
+                const record = JSON.parse(readFileSync(from, 'utf-8'));
+                writeFileSync(
+                    from,
+                    JSON.stringify({ ...record, deviceCode: 'device_2', userCode: 'WXYZ-1234' }),
+                );
+            }
+            rename(from, to);
+        });
+    }
+
+    it('puts back a login that replaced the finished one between the check and the removal', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+        replaceBeforeRemoval();
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(readPendingLogin(dependencies)).toMatchObject({ code: 'WXYZ-1234' });
+        expect(fs.readdirSync(configDir).filter(name => name.endsWith('.tmp'))).toEqual([]);
+    });
+
+    it('puts back a replacing login by rename where the filesystem has no hard links', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+        replaceBeforeRemoval();
+        vi.mocked(linkSync).mockImplementation(() => failWith('ENOTSUP'));
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        expect(readPendingLogin(dependencies)).toMatchObject({ code: 'WXYZ-1234' });
+    });
+
+    it('records the outcome when the pending file cannot be removed, so a later wait polls nothing', async () => {
+        const device = deviceLoginAnswers();
+        await startPending(device);
+        vi.mocked(renameSync).mockImplementation((from, to) =>
+            String(to).endsWith('.removing.tmp') ? failWith('EBUSY') : rename(from, to),
+        );
+
+        const result = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+
+        expect(result).toMatchObject({ loggedIn: true });
+        const again = await runWait({}, makeContext().ctx, { ...dependencies, fetch: device.fetch });
+        expectError(again, 'auth.no-pending-login');
+        expect(device.polls()).toBe(1);
     });
 
     it('keeps the browser choice without a person and says how to pick another', async () => {

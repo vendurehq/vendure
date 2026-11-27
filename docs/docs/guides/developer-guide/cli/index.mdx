@@ -568,9 +568,9 @@ again, so you can run it again. Without `--timeout` it waits for the rest of the
 tool. Only one `vendure auth wait` polls at a time: another one waits for it and then reports the same login.
 
 The pending login is stored in `auth-pending.json` next to `auth.json`, readable only by your user. A new
-`vendure auth login --json` replaces it, and `vendure auth logout` removes it. A stored login stays until the new one
-is approved. When no login is pending, or its code has expired or was denied, `vendure auth wait` returns an error whose
-fix is `vendure auth login --json`.
+`vendure auth login --json` replaces it. `vendure auth wait` removes it once the login is stored, and
+`vendure auth logout` removes it too. A stored login stays until the new one is approved. When no login is pending,
+or its code has expired or was denied, `vendure auth wait` returns an error whose fix is `vendure auth login --json`.
 
 Nobody is asked which organization to use either. The CLI keeps the organization chosen in the browser, names it, and
 shows the `vendure auth login --organization` command to pick another. If Vendure Console cannot name the organization,
