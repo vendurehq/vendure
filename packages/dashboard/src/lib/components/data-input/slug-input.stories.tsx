@@ -59,7 +59,7 @@ export const AutoGenerating: Story = {
                         <label className="text-sm font-medium mb-2 block">Name</label>
                         <input
                             {...form.register('name')}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors"
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-control transition-colors"
                             placeholder="Enter product name"
                         />
                     </div>
@@ -100,7 +100,7 @@ export const WithExistingValue: Story = {
                         <label className="text-sm font-medium mb-2 block">Name</label>
                         <input
                             {...form.register('name')}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors"
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-control transition-colors"
                             placeholder="Enter product name"
                         />
                     </div>
@@ -142,7 +142,7 @@ export const ManualEditing: Story = {
                         <label className="text-sm font-medium mb-2 block">Name</label>
                         <input
                             {...form.register('name')}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors"
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-control transition-colors"
                             placeholder="Enter product name"
                         />
                     </div>

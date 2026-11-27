@@ -37,7 +37,7 @@ function DraggableFocalPoint({ point }: { point: Point }) {
     // border-white is intentional: the focal-point marker sits over arbitrary user
     // image content and needs a fixed high-contrast ring, not a theme-relative slot.
     // eslint-disable-next-line @vendure-io/design/no-raw-colors
-    const markerClassName = 'absolute w-8 h-8 rounded-full border-4 border-white bg-brand/20 shadow-lg cursor-move';
+    const markerClassName = 'absolute w-8 h-8 rounded-full border-4 border-white bg-brand/20 shadow-overlay cursor-move';
 
     return (
         <div

@@ -96,7 +96,7 @@ export function LockedCapabilityPage({
                     )}
                 </div>
                 <div className="absolute inset-0 flex items-start justify-center p-6">
-                    <Card className="w-full max-w-md shadow-lg">
+                    <Card className="w-full max-w-md shadow-overlay">
                         <CardContent>
                             <PlatformPromoPanel promotion={promotion} />
                         </CardContent>

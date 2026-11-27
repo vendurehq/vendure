@@ -75,7 +75,7 @@ export function TableGridPicker({ editor, disabled }: Readonly<TableGridPickerPr
                                 <button
                                     key={index}
                                     type="button"
-                                    className={`h-4 w-4 rounded-xs border transition-colors ${
+                                    className={`h-4 w-4 rounded-sm border transition-colors ${
                                         isHighlighted ? 'border-primary bg-primary/20' : 'border-border bg-muted/40'
                                     }`}
                                     onMouseEnter={() => setHovered({ rows: row, cols: col })}

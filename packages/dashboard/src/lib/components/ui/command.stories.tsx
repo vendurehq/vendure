@@ -23,7 +23,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
     render: () => (
-        <Command className="rounded-lg border shadow-md w-[400px]">
+        <Command className="rounded-lg border shadow-overlay w-[400px]">
             <CommandInput placeholder="Type a command or search..." />
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
