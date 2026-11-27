@@ -1,0 +1,46 @@
+---
+title: "vendure explain"
+generated: true
+---
+
+
+<a name="explain"></a>
+
+## vendure explain
+
+Collect the error of one request to the local dev server, with its stack and the log lines of that request.
+
+```bash
+vendure explain [request-id]
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `explain`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[request-id]`, `--request-id <request-id>` | string | Required. The request ID, from the x-request-id response header or extensions.requestId of a GraphQL error. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `requestId` | string |  |
+| `hasLog` | boolean | False when the project has no dev log, because no vendure dev run wrote one. |
+| `found` | boolean | False when no line of the dev log has this request ID. |
+| `error` | object or null | The first coded error line of the request, or failing that its first coded warning, or its first coded line. |
+| `logs` | array of object | The lines of the request, oldest first, at most the newest 1000. |
+| `omitted` | number | How many older lines of the request were left out. |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+
+### Examples
+
+```bash
+vendure explain 2b0c6c2e-5f6a-4a0e-9d1b-7f0d3c1e8a42
+vendure explain <requestId> --json
+```

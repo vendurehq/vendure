@@ -457,6 +457,7 @@ function DraftOrderPage() {
                             setShippingMethodForDraftOrder({
                                 orderId: entity.id,
                                 shippingMethodId: e.shippingMethodId,
+                                shippingOptionCode: e.shippingOptionCode,
                             })
                         }
                         onAddItem={e =>

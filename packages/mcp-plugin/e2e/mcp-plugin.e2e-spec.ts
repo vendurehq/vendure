@@ -59,14 +59,14 @@ describe('McpPlugin bootstrap', () => {
             expect(result.items.map(item => item.name).sort()).toEqual(['Test Product', 'Test Shirt']);
         });
 
-        // 400, not the 401 an OAuth-configured server sends. That 401 carries a WWW-Authenticate
-        // header naming the protected-resource metadata URL, and building the URL needs the OAuth
-        // options this server does not have, so the attempt to build it fails first.
-        it('refuses the admin endpoint with 400 rather than 401', async () => {
+        // Without OAuth the only bearer credential the admin endpoint accepts is the local-trust
+        // secret, so a request without one is unauthenticated. The challenge names no
+        // protected-resource metadata, since there is no authorization server to point at.
+        it('refuses the admin endpoint with 401 and a bare Bearer challenge', async () => {
             const response = await postMcp(baseUrl, 'admin', rpc('tools/list'));
 
-            expect(response.status).toBe(400);
-            expect(response.headers.get('www-authenticate')).toBeNull();
+            expect(response.status).toBe(401);
+            expect(response.headers.get('www-authenticate')).toBe('Bearer');
         });
 
         // Client registration needs no credentials, so nothing else would stop it saving a row for

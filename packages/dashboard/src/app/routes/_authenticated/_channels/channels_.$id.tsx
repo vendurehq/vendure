@@ -31,6 +31,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useRef } from 'react';
 import { toast } from 'sonner';
 import { channelDetailDocument, createChannelDocument, updateChannelDocument } from './channels.graphql.js';
+import { TaxCountrySelect } from './components/tax-country-select.js';
 
 const pageId = 'channel-detail';
 
@@ -105,6 +106,7 @@ function ChannelDetailPage() {
                 code: entity.code,
                 token: entity.token,
                 pricesIncludeTax: entity.pricesIncludeTax,
+                taxCountryCode: entity.taxCountryCode,
                 trackInventory: entity.trackInventory,
                 outOfStockThreshold: entity.outOfStockThreshold,
                 availableCurrencyCodes: entity.availableCurrencyCodes,
@@ -125,6 +127,8 @@ function ChannelDetailPage() {
         transformCreateInput: input => {
             return {
                 ...input,
+                // An unset tax country is sent as null rather than an empty string
+                taxCountryCode: input.taxCountryCode || null,
                 availableLanguageCodes: withDefaultLanguage(
                     input.availableLanguageCodes,
                     input.defaultLanguageCode,
@@ -381,6 +385,21 @@ function ChannelDetailPage() {
                             }
                             render={({ field }) => (
                                 <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                            )}
+                        />
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="taxCountryCode"
+                            label={<Trans>Tax country</Trans>}
+                            description={
+                                <Trans>
+                                    The country whose tax rate the entered prices include, normally your own.
+                                    When it is set, prices that include tax are split into net and tax at this
+                                    country's rate. It should be in the default tax zone.
+                                </Trans>
+                            }
+                            render={({ field }) => (
+                                <TaxCountrySelect value={field.value} onChange={field.onChange} />
                             )}
                         />
                         <FormFieldWrapper

@@ -1,0 +1,301 @@
+---
+title: "vendure add"
+generated: true
+---
+
+
+<a name="add-api-extension"></a>
+
+## vendure add api-extension
+
+Add an Admin API extension to a plugin, with a resolver that calls a service.
+
+```bash
+vendure add api-extension [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_api-extension`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--plugin <plugin>` | string | Required. The name of the plugin class. The valid values depend on the project, and an `input` need lists them. |
+| `--service <service>` | string | Required. The service the resolver calls. A CRUD service of an entity gets the full CRUD API. The valid values depend on the project, and an `input` need lists them. |
+| `--query-name <query-name>` | string | The name of a query to add. Not used for a CRUD service. |
+| `--mutation-name <mutation-name>` | string | The name of a mutation to add. Not used for a CRUD service. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `plugin` | string |  |
+| `service` | string |  |
+| `resolver` | string |  |
+| `crud` | boolean | True when the service is a CRUD service of an entity. |
+| `modifiedFiles` | array of string |  |
+
+### Errors
+
+- `add.plugin-not-found` (exit code 1)
+- `add.plugin-ambiguous` (exit code 1)
+- `add.service-not-found` (exit code 1)
+- `add.api-extension-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure add api-extension --plugin ReviewsPlugin --service ReviewService --query-name reviews
+vendure add api-extension --plugin ReviewsPlugin --service ProductReviewService
+```
+
+<a name="add-codegen"></a>
+
+## vendure add codegen
+
+Set up GraphQL code generation for a plugin.
+
+```bash
+vendure add codegen [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_codegen`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--plugin <plugin>` | string | Required. The name of the plugin class to generate types for. The valid values depend on the project, and an `input` need lists them. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `plugin` | string |  |
+| `installed` | array of string | The package manager commands that ran. |
+| `modifiedFiles` | array of string |  |
+| `nextSteps` | array of string |  |
+
+### Errors
+
+- `add.plugin-not-found` (exit code 1)
+- `add.plugin-ambiguous` (exit code 1)
+- `add.package-json-not-found` (exit code 1)
+
+### Examples
+
+```bash
+vendure add codegen --plugin MyPlugin
+```
+
+<a name="add-dashboard"></a>
+
+## vendure add dashboard
+
+Add Dashboard extensions to a plugin.
+
+```bash
+vendure add dashboard [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_dashboard`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--plugin <plugin>` | string | Required. The name of the plugin class to add Dashboard extensions to. The valid values depend on the project, and an `input` need lists them. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `plugin` | string |  |
+| `entrypoint` | string | The Dashboard entry point of the plugin. |
+| `modifiedFiles` | array of string |  |
+
+### Errors
+
+- `add.plugin-not-found` (exit code 1)
+- `add.plugin-ambiguous` (exit code 1)
+- `add.dashboard-conflict` (exit code 1)
+
+### Examples
+
+```bash
+vendure add dashboard --plugin ReviewsPlugin
+```
+
+<a name="add-entity"></a>
+
+## vendure add entity
+
+Add a new entity to a plugin.
+
+```bash
+vendure add entity [name] [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_entity`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[name]`, `--name <name>` | string | Required. The name of the entity class, in PascalCase, for example ProductReview. |
+| `--plugin <plugin>` | string | Required. The name of the plugin class to add the entity to. The valid values depend on the project, and an `input` need lists them. |
+| `--custom-fields`, `--no-custom-fields` | boolean | Let the entity have custom fields. Asked for in an interactive terminal. |
+| `--translatable`, `--no-translatable` | boolean | Give the entity localized properties. Asked for in an interactive terminal. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `entity` | string |  |
+| `plugin` | string |  |
+| `modifiedFiles` | array of string |  |
+
+### Errors
+
+- `add.plugin-not-found` (exit code 1)
+- `add.plugin-ambiguous` (exit code 1)
+- `add.file-exists` (exit code 1)
+
+### Examples
+
+```bash
+vendure add entity ProductReview --plugin ReviewsPlugin
+vendure add entity ProductReview --plugin ReviewsPlugin --custom-fields --translatable
+```
+
+<a name="add-job-queue"></a>
+
+## vendure add job-queue
+
+Add a job queue to a service of a plugin.
+
+```bash
+vendure add job-queue [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_job-queue`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--plugin <plugin>` | string | Required. The name of the plugin class. The valid values depend on the project, and an `input` need lists them. |
+| `--service <service>` | string | Required. The service of the plugin to add the job queue to. The valid values depend on the project, and an `input` need lists them. |
+| `--name <name>` | string | Required. The name of the job queue, for example review-indexing. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `plugin` | string |  |
+| `service` | string |  |
+| `jobQueue` | string |  |
+| `triggerMethod` | string | The service method that adds a job to the queue. |
+| `modifiedFiles` | array of string |  |
+
+### Errors
+
+- `add.plugin-not-found` (exit code 1)
+- `add.plugin-ambiguous` (exit code 1)
+- `add.service-not-found` (exit code 1)
+
+### Examples
+
+```bash
+vendure add job-queue --plugin ReviewsPlugin --service ReviewService --name review-indexing
+```
+
+<a name="add-plugin"></a>
+
+## vendure add plugin
+
+Create a new Vendure plugin and add it to the Vendure config.
+
+```bash
+vendure add plugin [name] [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_plugin`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[name]`, `--name <name>` | string | Required. The name of the plugin, for example reviews. The class is named ReviewsPlugin. |
+| `--dir <dir>` | string | The directory of the plugin. Leave it empty for a directory next to the existing plugins, or src/plugins. Asked for in an interactive terminal. |
+| `--config <config>` | string | The path to a custom Vendure config file. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `plugin` | string | The name of the plugin class. |
+| `dir` | string |  |
+| `modifiedFiles` | array of string |  |
+
+### Errors
+
+- `add.file-exists` (exit code 1)
+- `add.vendure-config-not-found` (exit code 1)
+
+### Examples
+
+```bash
+vendure add plugin reviews
+vendure add plugin reviews --dir ./src/plugins/reviews
+```
+
+<a name="add-service"></a>
+
+## vendure add service
+
+Add a new service to a plugin.
+
+```bash
+vendure add service [name] [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `add_service`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[name]`, `--name <name>` | string | Required. The name of the service class, in PascalCase, for example ReviewService. |
+| `--plugin <plugin>` | string | Required. The name of the plugin class to add the service to. The valid values depend on the project, and an `input` need lists them. |
+| `--entity <entity>` | string | An entity of the plugin. The service then has CRUD methods for it. Asked for in an interactive terminal. The valid values depend on the project, and an `input` need lists them. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `service` | string |  |
+| `plugin` | string |  |
+| `entity` | string or null | The entity the service manages, or null for a basic service. |
+| `modifiedFiles` | array of string |  |
+
+### Errors
+
+- `add.plugin-not-found` (exit code 1)
+- `add.plugin-ambiguous` (exit code 1)
+- `add.entity-not-found` (exit code 1)
+- `add.file-exists` (exit code 1)
+
+### Examples
+
+```bash
+vendure add service ReviewService --plugin ReviewsPlugin
+vendure add service ProductReviewService --plugin ReviewsPlugin --entity ProductReview
+```

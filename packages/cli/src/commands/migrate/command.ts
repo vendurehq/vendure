@@ -9,18 +9,14 @@ export const migrateCommandDef: CliCommandDefinition = {
         {
             short: '-g',
             long: '--generate <name>',
-            description: 'Generate a new migration with the specified name',
+            description:
+                'Generate a new migration with the specified name. Same as `vendure migrate generate`',
             required: false,
         },
         {
             short: '-r',
             long: '--run',
-            description: 'Run pending migrations',
-            required: false,
-        },
-        {
-            long: '--revert',
-            description: 'Revert the last migration',
+            description: 'Run pending migrations. Same as `vendure migrate run`',
             required: false,
         },
         {
@@ -45,7 +41,7 @@ export const migrateCommandDef: CliCommandDefinition = {
     action: async options => {
         return runCliCommand(async () => {
             const { migrateCommand } = await import('./migrate.js');
-            await migrateCommand(options);
+            return migrateCommand(options);
         });
     },
 };

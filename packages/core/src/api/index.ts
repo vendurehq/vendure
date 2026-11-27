@@ -1,7 +1,9 @@
 export * from './common/extract-session-token';
 export { ApiType } from './common/get-api-type';
+export { IdArgumentDecoder } from './common/id-argument-decoder';
 export * from './common/parse-context';
 export * from './common/request-context';
+export { getRequestId } from './common/request-id';
 export * from './common/set-session-token';
 export * from './common/validate-custom-field-value';
 export * from './config/get-final-vendure-schema';

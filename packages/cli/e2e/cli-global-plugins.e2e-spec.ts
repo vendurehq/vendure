@@ -55,7 +55,7 @@ describe('Globally installed CLI plugins E2E', () => {
 
         const result = await globalInstall.runCliCommand(['project', 'list']);
 
-        expect(result.stdout).toContain('CLOUD_RESULT');
+        expect(result.stdout).toContain('cloud-project');
         expect(result.exitCode).toBe(0);
     });
 
@@ -66,7 +66,7 @@ describe('Globally installed CLI plugins E2E', () => {
             env: { VENDURE_CLI_PLUGINS: '@vendure-e2e/cloud-cli-plugin' },
         });
 
-        expect(result.stdout).toContain('CLOUD_RESULT');
+        expect(result.stdout).toContain('cloud-project');
         expect(result.exitCode).toBe(0);
     });
 

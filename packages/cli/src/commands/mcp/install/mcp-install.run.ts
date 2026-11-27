@@ -1,0 +1,260 @@
+import { CommandContext, ErrorResult, fail, isErrorResult } from '@vendure/common/lib/command';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import {
+    findGitRoot,
+    findMcpProject,
+    McpProject,
+    resolveCliFrom,
+    ResolvedCli,
+} from '../../../command-host/mcp/project.js';
+import { cliNotInstalled, projectAmbiguous, projectNotFound } from '../mcp.errors.js';
+
+import {
+    CLIENT_CONFIG,
+    configBlock,
+    ConfigFileUnreadable,
+    McpClient,
+    SERVER_NAME,
+    updateClientConfig,
+} from './client-config.js';
+import {
+    claudeMcpAddFailed,
+    configUnreadable,
+    rootCannotResolveCli,
+    rootCannotSelectProject,
+    scopeLocalUnsupported,
+} from './mcp-install.errors.js';
+
+interface Input {
+    client: McpClient;
+    scope?: 'project' | 'local';
+    print?: boolean;
+    dir?: string;
+}
+
+type Result = { client: McpClient; scope: 'project' | 'local'; project: string };
+
+/**
+ * Adds the Developer MCP server to a client. By default it writes the client's checked-in project
+ * config at the git root, so every clone and worktree gets it. With `--scope local` it registers
+ * the server with Claude Code for this machine only.
+ */
+export async function run(input: Input, ctx: CommandContext) {
+    const scope = input.scope ?? 'project';
+    const found = findProject(input, ctx.cwd);
+    if (isErrorResult(found)) {
+        return found;
+    }
+    const { project, local } = found;
+    const root = findGitRoot(project);
+    if (!root) {
+        ctx.notice(
+            'info',
+            `"${project}" is not in a git repository, so the config is written to the project itself.`,
+        );
+    }
+    const result: Result = { client: input.client, scope, project };
+    if (scope === 'local') {
+        if (input.client !== 'claude') {
+            return fail(scopeLocalUnsupported, { client: input.client });
+        }
+        return registerLocally(input, ctx, result, local, root ?? project);
+    }
+    return writeProjectConfig(input, ctx, result, local, root ?? project);
+}
+
+/** The project to set up, from `--dir` or the current directory, and the CLI it installs. */
+function findProject(input: Input, cwd: string): { project: string; local: ResolvedCli } | ErrorResult {
+    const start = path.resolve(cwd, input.dir ?? '.');
+    const found = findMcpProject(start);
+    if (found.kind === 'not-found') {
+        return fail(projectNotFound, { dir: start });
+    }
+    if (found.kind === 'ambiguous') {
+        return fail(projectAmbiguous, {
+            root: found.root,
+            candidates: found.candidates,
+            client: input.client,
+        });
+    }
+    const local = resolveCliFrom(found.dir);
+    return local ? { project: found.dir, local } : fail(cliNotInstalled, { project: found.dir });
+}
+
+/**
+ * Writes the client's checked-in project config at `root`, or prints it. The entry has no project
+ * directory, so the server finds the project from where the client starts it, usually `root`.
+ * That has to find this project, and npx there has to run its CLI.
+ */
+function writeProjectConfig(
+    input: Input,
+    ctx: CommandContext,
+    result: Result,
+    local: ResolvedCli,
+    root: string,
+) {
+    const { project } = result;
+    const fromRoot = findMcpProject(root);
+    if (fromRoot.kind !== 'found' || fromRoot.dir !== project) {
+        return fail(rootCannotSelectProject, {
+            root,
+            project,
+            fromRoot: describeFromRoot(fromRoot),
+            client: input.client,
+        });
+    }
+
+    const { file: relativeFile, writes } = CLIENT_CONFIG[input.client];
+    const file = path.join(root, relativeFile);
+    // MCP clients start `npx` from the folder they were opened in, usually the repository root, and
+    // npx runs the `@vendure/cli` installed there. A client whose entry is printed, not written,
+    // gets the same check, because the printed entry is meant to be used as it is. `--print` only
+    // shows the entry, so it skips the check.
+    if (!input.print) {
+        const cliFromRoot = resolveCliAtNpmPrefix(root);
+        if (cliFromRoot?.dir !== local.dir) {
+            return fail(rootCannotResolveCli, {
+                root,
+                project,
+                projectVersion: local.version,
+                rootVersion: cliFromRoot?.version ?? null,
+                client: input.client,
+            });
+        }
+    }
+    if (input.print || !writes) {
+        if (!writes) {
+            ctx.notice(
+                'warning',
+                `${input.client} does not document which folder it starts an MCP server in, so the entry ` +
+                    `is printed rather than written. Add it to ${relativeFile} and check that the server ` +
+                    'starts in the project.',
+            );
+        }
+        return {
+            ...result,
+            action: 'printed' as const,
+            file,
+            config: configBlock(input.client),
+            command: null,
+        };
+    }
+
+    const existing = fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : undefined;
+    let update: ReturnType<typeof updateClientConfig>;
+    try {
+        update = updateClientConfig(input.client, existing);
+    } catch (e) {
+        if (e instanceof ConfigFileUnreadable) {
+            return fail(configUnreadable, { file, reason: e.message, client: input.client });
+        }
+        throw e;
+    }
+    if (update.action !== 'unchanged') {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, update.text);
+    }
+    return { ...result, action: update.action, file, config: null, command: null };
+}
+
+/** What the project search finds at the root, for `mcp.root-cannot-select-project`. */
+function describeFromRoot(fromRoot: McpProject): string {
+    if (fromRoot.kind === 'found') {
+        return `finds the project in "${fromRoot.dir}"`;
+    }
+    if (fromRoot.kind === 'ambiguous') {
+        return `finds more than one project: ${fromRoot.candidates.join(', ')}`;
+    }
+    return 'finds no project';
+}
+
+/**
+ * The `@vendure/cli` that `npx` runs when started in `dir`. npx looks only in the `node_modules` of
+ * the npm prefix, the nearest directory at or above `dir` with a package.json or a node_modules.
+ */
+function resolveCliAtNpmPrefix(dir: string): ResolvedCli | undefined {
+    let prefix = path.resolve(dir);
+    while (
+        !fs.existsSync(path.join(prefix, 'package.json')) &&
+        !fs.existsSync(path.join(prefix, 'node_modules')) &&
+        path.dirname(prefix) !== prefix
+    ) {
+        prefix = path.dirname(prefix);
+    }
+    if (!fs.existsSync(path.join(prefix, 'node_modules', '@vendure', 'cli', 'package.json'))) {
+        return undefined;
+    }
+    return resolveCliFrom(prefix);
+}
+
+/**
+ * Registers the server in Claude Code's local scope, which belongs to this machine and is not
+ * checked in, with absolute paths to Node and the project's own CLI. Claude Code owns its config
+ * file, so this goes through `claude mcp add`. When `claude` is not on the PATH, the command is
+ * returned to run by hand.
+ */
+async function registerLocally(
+    input: Input,
+    ctx: CommandContext,
+    result: Result,
+    local: ResolvedCli,
+    root: string,
+) {
+    const add = [
+        'mcp',
+        'add',
+        '--scope',
+        'local',
+        SERVER_NAME,
+        '--',
+        process.execPath,
+        local.bin,
+        'mcp',
+        '--dir',
+        result.project,
+    ];
+    // Local scope belongs to the folder `claude` is run in, so a printed command starts there.
+    const command = `cd ${shellQuote(root)} && ${['claude', ...add].map(shellQuote).join(' ')}`;
+    const done = (action: 'printed' | 'registered' | 'run-yourself') => ({
+        ...result,
+        action,
+        file: null,
+        config: null,
+        command,
+    });
+    if (input.print) {
+        return done('printed');
+    }
+    try {
+        // Local scope belongs to the folder Claude Code is started in, so it is run from the root.
+        let added = await ctx.spawn('claude', add, { cwd: root });
+        if (added.exitCode !== 0 && /already exists/i.test(added.stderr + added.stdout)) {
+            // Running install again replaces this one entry, and no other.
+            await ctx.spawn('claude', ['mcp', 'remove', '--scope', 'local', SERVER_NAME], { cwd: root });
+            added = await ctx.spawn('claude', add, { cwd: root });
+        }
+        if (added.exitCode !== 0) {
+            return fail(claudeMcpAddFailed, { command, message: (added.stderr || added.stdout).trim() });
+        }
+        return done('registered');
+    } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+            ctx.notice(
+                'warning',
+                'Claude Code is not on the PATH. Run the command below to register the server.',
+            );
+            return done('run-yourself');
+        }
+        throw e;
+    }
+}
+
+function shellQuote(word: string): string {
+    if (/^[\w@%+=:,./-]+$/.test(word)) {
+        return word;
+    }
+    // In single quotes nothing is special, except the quote itself, written as '\''.
+    return "'" + word.split("'").join(String.raw`'\''`) + "'";
+}

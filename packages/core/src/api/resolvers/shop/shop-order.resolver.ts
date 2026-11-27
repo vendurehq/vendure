@@ -32,13 +32,15 @@ import { QueryCountriesArgs } from '@vendure/common/lib/generated-types';
 import { unique } from '@vendure/common/lib/unique';
 
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../../common/error/error-result';
-import { ForbiddenError } from '../../../common/error/errors';
+import { ForbiddenError, UserInputError } from '../../../common/error/errors';
 import { NoActiveOrderError } from '../../../common/error/generated-graphql-shop-errors';
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { ACTIVE_ORDER_INPUT_FIELD_NAME, ConfigService, LogLevel } from '../../../config';
+import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Country } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
+import { Session } from '../../../entity/session/session.entity';
 import { ActiveOrderService, CountryService } from '../../../service';
 import { OrderState } from '../../../service/helpers/order-state-machine/order-state';
 import { CustomerService } from '../../../service/services/customer.service';
@@ -61,6 +63,7 @@ export class ShopOrderResolver {
         private countryService: CountryService,
         private activeOrderService: ActiveOrderService,
         private configService: ConfigService,
+        private connection: TransactionalConnection,
     ) {}
 
     @Query()
@@ -269,7 +272,11 @@ export class ShopOrderResolver {
                 args[ACTIVE_ORDER_INPUT_FIELD_NAME],
             );
             if (sessionOrder) {
-                return this.orderService.setShippingMethod(ctx, sessionOrder.id, args.shippingMethodId);
+                const selections = args.shippingMethods ?? args.shippingMethodId;
+                if (!selections?.length || (args.shippingMethods && args.shippingMethodId)) {
+                    throw new UserInputError('error.set-order-shipping-method-arguments-invalid');
+                }
+                return this.orderService.setShippingMethod(ctx, sessionOrder.id, selections);
             }
         }
         return new NoActiveOrderError();
@@ -487,6 +494,13 @@ export class ShopOrderResolver {
         @Args() args: MutationAddPaymentToOrderArgs & ActiveOrderArgs,
     ): Promise<ErrorResultUnion<AddPaymentToOrderResult, Order>> {
         if (ctx.authorizedAsOwnerOnly) {
+            // The Session is written once the Order is placed, so it is locked before the Order,
+            // in the lock order Session, User, Order. Otherwise a login on the same session, which
+            // deletes the Session and then merges the Orders, could deadlock with this request
+            // after the payment provider has been called.
+            if (ctx.session) {
+                await this.connection.lockRow(ctx, Session, ctx.session.id, { requireReadCommitted: true });
+            }
             const sessionOrder = await this.activeOrderService.getActiveOrder(
                 ctx,
                 args[ACTIVE_ORDER_INPUT_FIELD_NAME],

@@ -1,0 +1,204 @@
+---
+title: 'Self-hosting'
+metaTitle: 'Self-hosting Vendure: Run a Plain VendureConfig on Your Own Infrastructure'
+metaDescription: 'Turn a project created with @vendure/create into a self-hosted Vendure app, with your own entry points, database, cache, worker and Dashboard build.'
+---
+
+`@vendure/create` writes a Vendure Cloud app. Its `src/vendure-config.ts` calls `defineCloudConfig()`, and the project has no entry point: the Cloud runtime starts the server and the worker, and it owns the database, the cache, the job queue and asset storage.
+
+You can run Vendure on your own infrastructure instead. You then write a plain `VendureConfig`, and your own entry points start it. This guide shows the files that takes.
+
+## When you need this
+
+- **You deploy somewhere other than Vendure Cloud.** The Cloud runtime is not published to run elsewhere.
+- **Your development database or cache is on another machine.** `vendure dev` in a Cloud app starts PostgreSQL and Redis in Docker or Podman. You can point it at your own services with `VENDURE_LOCAL_DATABASE_URL` and `VENDURE_LOCAL_CACHE_URL`, but they must listen on a loopback address (`127.0.0.1`, `localhost` or `::1`). The local runtime refuses a connection to another host.
+
+If your services run on your own machine, set those two variables and keep the Cloud app:
+
+```bash
+VENDURE_LOCAL_DATABASE_URL=postgres://vendure:secret@127.0.0.1:5432/vendure \
+VENDURE_LOCAL_CACHE_URL=redis://127.0.0.1:6379 \
+npx vendure dev
+```
+
+## 1. Replace the dependencies
+
+Remove `@vendure/cloud`, and the `vendure.cli` key that lists it as a CLI plugin, from `package.json`. The server now loads the database driver and the Dashboard plugin itself, so `pg` and `@vendure/dashboard` move from `devDependencies` to `dependencies`. Add `dotenv` to read settings from a `.env` file.
+
+```bash
+npm uninstall @vendure/cloud
+npm install --save-prod pg @vendure/dashboard dotenv
+```
+
+A production image that prunes development dependencies, such as the one in [Using Docker](/deployment/using-docker), would otherwise remove packages the server needs.
+
+Create a `.env` file for local development, and keep it out of git. `.gitignore` already ignores `.env`. Production sets the same variables through your hosting platform:
+
+```bash title=".env"
+PORT=3000
+SUPERADMIN_USERNAME=superadmin
+SUPERADMIN_PASSWORD=superadmin
+COOKIE_SECRET=replace-with-a-long-random-string
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=vendure
+DB_USERNAME=vendure
+DB_PASSWORD=secret
+MCP_TOKEN_SECRET=replace-with-another-long-random-string
+# Production only: the server's public https origin, for example https://shop.example.com
+# MCP_ISSUER=
+```
+
+## 2. Write a plain VendureConfig
+
+Replace `defineCloudConfig()` with a `VendureConfig`. Move the plugins of your `store` extension into `plugins`, and the extension's `migrations` glob into `dbConnectionOptions`. The settings that the Cloud runtime owned are now yours: the database connection, the superadmin credentials, the cookie secret, the API port and the job queue.
+
+```ts title="src/vendure-config.ts"
+import { AssetServerPlugin } from '@vendure/asset-server-plugin';
+import {
+    DefaultJobQueuePlugin,
+    DefaultSchedulerPlugin,
+    DefaultSearchPlugin,
+    dummyPaymentHandler,
+    VendureConfig,
+} from '@vendure/core';
+import { DashboardPlugin } from '@vendure/dashboard/plugin';
+import { McpPlugin } from '@vendure/mcp-plugin';
+import 'dotenv/config';
+import path from 'path';
+
+export const config: VendureConfig = {
+    apiOptions: {
+        port: +(process.env.PORT ?? 3000),
+        adminApiPath: 'admin-api',
+        shopApiPath: 'shop-api',
+    },
+    authOptions: {
+        tokenMethod: ['bearer', 'cookie'],
+        superadminCredentials: {
+            identifier: process.env.SUPERADMIN_USERNAME!,
+            password: process.env.SUPERADMIN_PASSWORD!,
+        },
+        cookieOptions: { secret: process.env.COOKIE_SECRET },
+    },
+    dbConnectionOptions: {
+        type: 'postgres',
+        synchronize: false,
+        migrations: [path.join(__dirname, './migrations/*.+(js|ts)')],
+        host: process.env.DB_HOST,
+        port: +(process.env.DB_PORT ?? 5432),
+        database: process.env.DB_NAME,
+        username: process.env.DB_USERNAME,
+        password: process.env.DB_PASSWORD,
+    },
+    paymentOptions: {
+        paymentMethodHandlers: [dummyPaymentHandler],
+    },
+    plugins: [
+        AssetServerPlugin.init({
+            route: 'assets',
+            assetUploadDir: path.join(__dirname, '../static/assets'),
+        }),
+        DefaultSchedulerPlugin.init(),
+        DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
+        DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
+        McpPlugin.init({
+            oauth: {
+                tokenSecret: process.env.MCP_TOKEN_SECRET!,
+                issuer: process.env.MCP_ISSUER,
+            },
+            shopAccess: 'anonymous',
+        }),
+        DashboardPlugin.init({
+            route: 'dashboard',
+            appDir: path.join(__dirname, 'dashboard'),
+        }),
+    ],
+};
+```
+
+The migrations that `vendure dev` wrote into `src/migrations/` stay valid: they describe the same schema.
+
+See [Production configuration](/deployment/production-configuration) for the settings a public server needs, and [Horizontal scaling](/deployment/horizontal-scaling) for the cache and job queue of more than one instance.
+
+## 3. Add the entry points
+
+The server runs the pending migrations, then starts. The worker processes the job queue.
+
+```ts title="src/index.ts"
+import { bootstrap, runMigrations } from '@vendure/core';
+
+import { config } from './vendure-config';
+
+runMigrations(config)
+    .then(() => bootstrap(config))
+    .catch(err => {
+        console.log(err);
+        process.exit(1);
+    });
+```
+
+```ts title="src/index-worker.ts"
+import { bootstrapWorker } from '@vendure/core';
+
+import { config } from './vendure-config';
+
+bootstrapWorker(config)
+    .then(worker => worker.startJobQueue())
+    .catch(err => {
+        console.log(err);
+        process.exit(1);
+    });
+```
+
+## 4. Build the Dashboard
+
+Add a `vite.config.mts` that builds the Dashboard from your config:
+
+```ts title="vite.config.mts"
+import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
+import { join } from 'path';
+import { pathToFileURL } from 'url';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+    base: '/dashboard',
+    build: { outDir: join(import.meta.dirname, 'dist/dashboard') },
+    plugins: [
+        vendureDashboardPlugin({
+            vendureConfigPath: pathToFileURL('./src/vendure-config.ts'),
+            api: { host: 'auto', port: 'auto' },
+            gqlOutputPath: './src/gql',
+        }),
+    ],
+});
+```
+
+See [Deploying the Dashboard](/extending-the-dashboard/deployment) for the options.
+
+## 5. Update the scripts
+
+```json title="package.json"
+{
+    "scripts": {
+        "dev": "vendure dev all",
+        "build": "vendure build all",
+        "start:server": "node ./dist/index.js",
+        "start:worker": "node ./dist/index-worker.js"
+    }
+}
+```
+
+`vendure dev all` runs the server, the worker and the Dashboard against the database in your `.env`. Start your own PostgreSQL first, for example with Docker, using the same credentials:
+
+```bash
+docker run -d --name vendure-db -p 5432:5432 \
+  -e POSTGRES_USER=vendure -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=vendure \
+  postgres:17
+```
+
+## 6. Deploy
+
+Run `npm run build`, then start the server and the worker as separate processes. [Using Docker](/deployment/using-docker) has a Dockerfile, and the hosting guides cover [Northflank](/deployment/deploy-to-northflank), [Railway](/deployment/deploy-to-railway), [Render](/deployment/deploy-to-render), [DigitalOcean](/deployment/deploy-to-digital-ocean-app-platform) and [Google Cloud Run](/deployment/deploy-to-google-cloud-run).
+
+The seed data that `vendure dev` applied on its first run is not part of your migrations. To seed a new production database with a preset, run `npx vendure seed --preset <name>` against it once. See [Getting data into production](/deployment/getting-data-into-production).

@@ -47,10 +47,7 @@ function ProductListPage() {
                 [{ component: DeleteProductVariantsBulkAction }],
             ]}
             customizeColumns={{
-                // With several channels, the Status filter covers `enabled`, so a second filter of the same name is left out.
-                enabled: channelAvailability.facetedFilter
-                    ? { ...channelAvailability.statusColumn, enableColumnFilter: false }
-                    : channelAvailability.statusColumn,
+                enabled: channelAvailability.statusColumn,
                 enabledInChannel: channelAvailability.enabledInChannelColumn,
                 name: {
                     cell: ({ row: { original } }) => (

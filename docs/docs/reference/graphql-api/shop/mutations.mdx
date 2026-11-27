@@ -469,6 +469,7 @@ type Mutation {
   typeLinks={{
     SetOrderShippingMethodResult: '/reference/graphql-api/shop/object-types#setordershippingmethodresult',
     ID: '/reference/graphql-api/shop/object-types#id',
+    ShippingMethodSelectionInput: '/reference/graphql-api/shop/input-types#shippingmethodselectioninput',
   }}
 >
 {`"""
@@ -476,9 +477,12 @@ Sets the shipping method by id, which can be obtained with the \`eligibleShippin
 An Order can have multiple shipping methods, in which case you can pass an array of ids. In this case,
 you should configure a custom ShippingLineAssignmentStrategy in order to know which OrderLines each
 shipping method will apply to.
+
+To choose one of the options of a ShippingMethod which offers several (see \`ShippingMethodQuote.options\`),
+pass \`shippingMethods\` instead of \`shippingMethodId\`. Exactly one of the two must be given.
 """
 type Mutation {
-  setOrderShippingMethod(shippingMethodId: [ID!]!): SetOrderShippingMethodResult!
+  setOrderShippingMethod(shippingMethodId: [ID!], shippingMethods: [ShippingMethodSelectionInput!]): SetOrderShippingMethodResult!
 }`}
 </GraphQLDoc>
 

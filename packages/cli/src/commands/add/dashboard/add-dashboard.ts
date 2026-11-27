@@ -1,73 +1,27 @@
-import { log } from '@clack/prompts';
 import fs from 'fs-extra';
 import path from 'node:path';
+import { SourceFile } from 'ts-morph';
 
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
-import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts.js';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
-import { createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
+import { createFile } from '../../../utilities/ast-utils.js';
 
-export interface AddDashboardOptions {
-    plugin?: VendurePluginRef;
-    pluginName?: string;
-    config?: string;
-    isNonInteractive?: boolean;
-}
-
-export const addDashboardCommand = new CliCommand({
-    id: 'add-dashboard',
-    category: 'Plugin: Dashboard',
-    description: 'Add Dashboard extensions',
-    run: addDashboard,
-});
-
-export async function addDashboard(options?: AddDashboardOptions): Promise<CliCommandReturnVal> {
-    const providedVendurePlugin = options?.plugin;
-    const { project } = await analyzeProject({ providedVendurePlugin, config: options?.config });
-
-    // Detect non-interactive mode
-    const isNonInteractive = options?.isNonInteractive === true;
-
-    let vendurePlugin: VendurePluginRef | undefined = providedVendurePlugin;
-
-    // If a plugin name was provided, try to find it
-    if (!vendurePlugin && options?.pluginName) {
-        const pluginClasses = getPluginClasses(project);
-        const foundPlugin = pluginClasses.find(p => p.getName() === options.pluginName);
-
-        if (!foundPlugin) {
-            // List available plugins if the specified one wasn't found
-            const availablePlugins = pluginClasses.map(p => p.getName()).filter(Boolean);
-            throw new Error(
-                `Plugin "${options.pluginName}" not found. Available plugins:\n` +
-                    availablePlugins.map(name => `  - ${name as string}`).join('\n'),
-            );
-        }
-
-        vendurePlugin = new VendurePluginRef(foundPlugin);
+/**
+ * Adds Dashboard extensions to a plugin: the `dashboard` metadata property, and
+ * `dashboard/index.tsx` when it does not exist yet. It prints nothing and does not save.
+ * It throws when the plugin's `dashboard` property already points somewhere else.
+ */
+export function scaffoldDashboard(plugin: VendurePluginRef): { changed: SourceFile[]; entrypoint: string } {
+    plugin.addMetadataProperty('dashboard', './dashboard/index.tsx');
+    const entrypoint = path.join(plugin.getPluginDir().getPath(), 'dashboard', 'index.tsx');
+    const changed = [plugin.classDeclaration.getSourceFile()];
+    if (!fs.existsSync(entrypoint)) {
+        changed.push(
+            createFile(
+                plugin.getSourceFile().getProject(),
+                path.join(import.meta.dirname, 'templates/index.template.tsx'),
+                entrypoint,
+            ),
+        );
     }
-
-    // In non-interactive mode, we need a plugin specified
-    if (isNonInteractive && !vendurePlugin) {
-        throw new Error('Plugin must be specified when running in non-interactive mode');
-    }
-    vendurePlugin = vendurePlugin ?? (await selectPlugin(project, 'Add Dashboard extensions cancelled'));
-
-    try {
-        vendurePlugin.addMetadataProperty('dashboard', './dashboard/index.tsx');
-        log.success('Updated the plugin class');
-    } catch (e) {
-        log.error(e instanceof Error ? e.message : String(e));
-        return { project, modifiedSourceFiles: [] };
-    }
-
-    const pluginDir = vendurePlugin.getPluginDir().getPath();
-    const dashboardEntrypointFile = path.join(pluginDir, 'dashboard', 'index.tsx');
-    if (!fs.existsSync(dashboardEntrypointFile)) {
-        createFile(project, path.join(import.meta.dirname, 'templates/index.template.tsx'), dashboardEntrypointFile);
-    }
-    log.success('Created Dashboard extension scaffold');
-
-    await project.save();
-    return { project, modifiedSourceFiles: [vendurePlugin.classDeclaration.getSourceFile()] };
+    return { changed, entrypoint };
 }

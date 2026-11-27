@@ -14,6 +14,7 @@ import { Input } from '@/vdb/components/ui/input.js';
 import { Label } from '@/vdb/components/ui/label.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { Separator } from '@/vdb/components/ui/separator.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
@@ -127,7 +128,7 @@ function ProductVariantDetailPage() {
         queryFn: () => api.query(stockLocationsQueryDocument, {}),
     });
 
-    const { data: channelStockSettingsData } = useQuery({
+    const { data: channelStockSettingsData, isPending: isChannelStockSettingsPending } = useQuery({
         queryKey: ['productVariantChannelStockSettings', activeChannel?.id],
         queryFn: () => api.query(productVariantChannelStockSettingsDocument, {}),
     });
@@ -238,17 +239,17 @@ function ProductVariantDetailPage() {
     const optionGroups = entity?.product.optionGroups ?? [];
 
     // Seed the per-group free-text values from the variant's currently assigned options
-    // whenever the entity (re)loads.
-    useEffect(() => {
-        if (!entity) {
-            return;
-        }
+    // whenever the entity (re)loads. This happens during render, not in an effect, so the
+    // first paint shows the options and not empty, invalid inputs.
+    const [seededEntity, setSeededEntity] = useState<typeof entity>(undefined);
+    if (entity && entity !== seededEntity) {
+        setSeededEntity(entity);
         const initial: Record<string, string> = {};
         for (const group of entity.product.optionGroups) {
             initial[group.id] = entity.options.find(o => o.group.id === group.id)?.name ?? '';
         }
         setOptionTextByGroup(initial);
-    }, [entity]);
+    }
 
     // Resolves a group's free text to an existing option, a to-be-created new option, or empty.
     const resolveGroupOption = (
@@ -440,9 +441,21 @@ function ProductVariantDetailPage() {
         channelOutOfStockThreshold: channelStockSettingsData?.activeChannel.outOfStockThreshold,
     });
 
+    // Until the Channel's setting loads, an inherited value shows as a skeleton in its place,
+    // not as a shorter label that then grows.
+    const withPendingChannelValue = (label: string) =>
+        isChannelStockSettingsPending ? (
+            <>
+                {label} <Skeleton className="inline-block h-[0.8lh] w-24 align-middle" aria-hidden="true" />
+                <span className="sr-only">{t`Loading…`}</span>
+            </>
+        ) : (
+            label
+        );
+
     const inheritTrackInventoryLabel =
         effectiveStock.inheritedTrackInventory === undefined
-            ? t`Inherit from channel`
+            ? withPendingChannelValue(t`Inherit from channel`)
             : effectiveStock.inheritedTrackInventory
               ? t`Inherit from channel (Track)`
               : t`Inherit from channel (Do not track)`;
@@ -451,7 +464,7 @@ function ProductVariantDetailPage() {
     // Channel.
     const inheritStockLevelLabel =
         effectiveStock.effectiveTrackInventory === undefined
-            ? t`Inherit from variant`
+            ? withPendingChannelValue(t`Inherit from variant`)
             : effectiveStock.effectiveTrackInventory
               ? t`Inherit from variant (Track)`
               : t`Inherit from variant (Do not track)`;
@@ -777,18 +790,23 @@ function ProductVariantDetailPage() {
                                     stock. Using a negative value enables backorder support.
                                 </Trans>
                             }
-                            render={({ field }) => (
-                                <Input
-                                    type="number"
-                                    disabled={effectiveStock.thresholdDisabled}
-                                    value={
-                                        effectiveStock.thresholdDisabled
-                                            ? effectiveStock.displayedThreshold
-                                            : field.value
-                                    }
-                                    onChange={e => field.onChange(e.target.valueAsNumber)}
-                                />
-                            )}
+                            render={({ field }) =>
+                                // The Channel's threshold is unknown until its settings load
+                                effectiveStock.thresholdDisabled && isChannelStockSettingsPending ? (
+                                    <Skeleton className="h-8.5 w-full" aria-hidden="true" />
+                                ) : (
+                                    <Input
+                                        type="number"
+                                        disabled={effectiveStock.thresholdDisabled}
+                                        value={
+                                            effectiveStock.thresholdDisabled
+                                                ? effectiveStock.displayedThreshold
+                                                : field.value
+                                        }
+                                        onChange={e => field.onChange(e.target.valueAsNumber)}
+                                    />
+                                )
+                            }
                         />
                     </DetailFormGrid>
                     {stockLevels?.map((stockLevel, index) => {

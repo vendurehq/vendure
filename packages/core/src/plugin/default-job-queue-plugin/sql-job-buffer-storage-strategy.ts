@@ -85,6 +85,7 @@ export class SqlJobBufferStorageStrategy implements JobBufferStorageStrategy {
             startedAt: job.startedAt,
             settledAt: job.settledAt,
             id: job.id ?? undefined,
+            requestId: job.requestId,
         };
     }
 }

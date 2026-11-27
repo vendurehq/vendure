@@ -1,3 +1,4 @@
+import { CliMadeError } from '../shared/cli-made-error.js';
 import {
     NotLoggedInError,
     ReauthenticationRequiredError,
@@ -29,6 +30,7 @@ import {
 import { FileLockOptions, withFileLock } from './file-lock.js';
 import {
     DeviceAuthorization,
+    PollOptions,
     WORKOS_REQUEST_TIMEOUT_MS,
     WorkosAuthentication,
     WorkosClient,
@@ -293,13 +295,69 @@ function discardIfStillSpent(spentRefreshToken: string, options: AuthOptions): v
  * @since 3.8.0
  */
 export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise<AuthStatus> {
+    const login = await startDeviceLogin(options);
+    await options.onDeviceAuthorization?.(login.device);
+    return completeDeviceLogin(login, options);
+}
+
+/**
+ * A device login that {@link startDeviceLogin} started: the Console it signs in
+ * to, the WorkOS client that Console publishes, and the code to approve.
+ *
+ * @since 4.0.0
+ */
+export interface StartedDeviceLogin {
+    consoleApiUrl: string;
+    client: WorkosClient;
+    device: DeviceAuthorization;
+}
+
+/** @since 4.0.0 */
+export interface CompleteDeviceLoginOptions
+    extends
+        Omit<DeviceLoginOptions, 'onDeviceAuthorization'>,
+        Pick<PollOptions, 'until' | 'sleep' | 'stillWanted'> {
+    /**
+     * Called once the code is approved and the tokens arrived. From then on the
+     * code is spent, even if scoping or storing the login fails.
+     */
+    onAuthorized?: () => void;
+}
+
+/**
+ * Starts a device login and returns at once, without waiting for approval.
+ * The WorkOS client is the one the selected Vendure Console publishes, so
+ * Console accepts the tokens. Finish the login with {@link completeDeviceLogin}.
+ *
+ * @since 4.0.0
+ */
+export async function startDeviceLogin(options: AuthOptions = {}): Promise<StartedDeviceLogin> {
     const consoleApiUrl = resolveConsoleApiUrl(options);
     // Before the browser step, so a Console that cannot be reached fails before
     // the user approves anything.
     const client = await fetchWorkosClient(consoleApiUrl, options);
     const device = await startDeviceAuthorization(client, options);
-    await options.onDeviceAuthorization?.(device);
+    return { consoleApiUrl, client, device };
+}
+
+/**
+ * Waits until the code of a {@link startDeviceLogin} is approved, scopes the
+ * session to the organization, and stores it, replacing any login already on
+ * this machine.
+ *
+ * @throws DeviceLoginPendingError when `until` passes before the code is approved. Nothing is stored.
+ * @throws DeviceLoginDeniedError when the code was denied in the browser.
+ * @throws DeviceLoginExpiredError when the code expired.
+ * @throws SessionLockUnavailableError when the login's lock cannot be taken.
+ * @since 4.0.0
+ */
+export async function completeDeviceLogin(
+    login: StartedDeviceLogin,
+    options: CompleteDeviceLoginOptions = {},
+): Promise<AuthStatus> {
+    const { consoleApiUrl, client, device } = login;
     let authentication = await pollDeviceAuthorization(client, device, options);
+    options.onAuthorized?.();
     const toSession = (scope: StoredOrganization | null): StoredAuth => ({
         version: 1,
         consoleApiUrl,
@@ -319,7 +377,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
             authentication = await scopeToOrganization(client, authentication.refreshToken, target, options);
         }
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
-            throw new Error(`The authentication service did not scope the login to ${target.name}.`);
+            throw new CliMadeError(`The authentication service did not scope the login to ${target.name}.`);
         }
         return scoped;
     };
@@ -422,7 +480,7 @@ export function scopeStoredLogin(
             const current = tokenOrganization
                 ? `is now scoped to ${tokenOrganization.name ?? tokenOrganization.workosOrganizationId}`
                 : 'has no organization';
-            throw new Error(
+            throw new CliMadeError(
                 `The authentication service did not scope the login to ${organization.name}. ` +
                     `The stored login ${current}. ` +
                     'Run vendure auth login --organization <Account identifier> to choose the account.',
@@ -446,7 +504,7 @@ async function scopeToOrganization(
         return await exchangeRefreshToken(client, refreshToken, target.workosOrganizationId, options);
     } catch (error) {
         if (error instanceof ReauthenticationRequiredError) {
-            throw new Error(
+            throw new CliMadeError(
                 `${target.name} requires a new sign-in (${error.code}). Run ` +
                     `\`vendure auth login\` without --organization and choose ${target.name} in the browser.`,
             );
