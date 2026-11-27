@@ -427,7 +427,12 @@ export class IndexerController {
                 }
                 productMap.set(variant.productId, product);
             }
-            const availableLanguageCodes = unique(ctx.channel.availableLanguageCodes);
+            // Include the languages of every channel of the variant, so an update made from a channel
+            // that lacks a language still refreshes that language in the channels that offer it.
+            const availableLanguageCodes = unique([
+                ...ctx.channel.availableLanguageCodes,
+                ...variant.channels.flatMap(c => c.availableLanguageCodes),
+            ]);
             for (const languageCode of availableLanguageCodes) {
                 const productTranslation = this.getTranslation(product, languageCode);
                 const variantTranslation = this.getTranslation(variant, languageCode);
@@ -447,6 +452,14 @@ export class IndexerController {
                 channelIds = unique(channelIds);
 
                 for (const channel of variant.channels) {
+                    // Write a channel only in its own languages and those of the request channel,
+                    // so it does not get rows in languages that only another channel offers.
+                    if (
+                        !originalChannel.availableLanguageCodes.includes(languageCode) &&
+                        !channel.availableLanguageCodes.includes(languageCode)
+                    ) {
+                        continue;
+                    }
                     const availableCurrencyCodes = this.options.indexCurrencyCode
                         ? unique(channel.availableCurrencyCodes)
                         : [channel.defaultCurrencyCode];
