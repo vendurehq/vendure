@@ -4,7 +4,7 @@ import { Input } from '../ui/input.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isReadonlyField } from '@/vdb/framework/form-engine/utils.js';
 
-export type AffixedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> &
+export type AffixedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'size'> &
     DashboardFormComponentProps & {
         prefix?: ReactNode;
         suffix?: ReactNode;
