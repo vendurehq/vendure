@@ -1802,6 +1802,49 @@ describe('McpToolRegistryService', () => {
                 error.mockRestore();
             });
 
+            it('keeps the tool result when the thrown value cannot be converted to text', async () => {
+                const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+                const handler = { handleServerError: vi.fn() };
+                const { result, toolCallLog } = await callFailing(Object.create(null), [handler]);
+                expect(result.isError).toBe(true);
+                expect((result.content as any)[0].text).toMatch(/^The tool failed unexpectedly\./);
+                expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'error' }),
+                );
+                const [passed] = handler.handleServerError.mock.calls[0];
+                expect(passed).toBeInstanceOf(Error);
+                expect(passed.message).toBe('A value that could not be converted to text was thrown');
+                error.mockRestore();
+            });
+
+            it('keeps going when a handler rejects with a value that cannot be converted to text', async () => {
+                const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+                const throwing = {
+                    handleServerError: vi.fn(() => {
+                        throw Object.create(null);
+                    }),
+                };
+                const rejecting = {
+                    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                    handleServerError: vi.fn(() => Promise.reject(Object.create(null))),
+                };
+                const last = { handleServerError: vi.fn() };
+                const unhandled = vi.fn();
+                process.on('unhandledRejection', unhandled);
+                const { result } = await callFailing(new Error('tool broke'), [throwing, rejecting, last]);
+                await new Promise(resolve => setImmediate(resolve));
+                process.off('unhandledRejection', unhandled);
+                expect(result.isError).toBe(true);
+                expect((result.content as any)[0].text).toMatch(/^The tool failed unexpectedly\./);
+                expect(last.handleServerError).toHaveBeenCalledTimes(1);
+                expect(unhandled).not.toHaveBeenCalled();
+                expect(error).toHaveBeenCalledWith(
+                    expect.stringContaining('could not be converted to text'),
+                    expect.anything(),
+                );
+                error.mockRestore();
+            });
+
             it('does not call the handlers for an error meant for the caller', async () => {
                 const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
                 const handler = { handleServerError: vi.fn() };
