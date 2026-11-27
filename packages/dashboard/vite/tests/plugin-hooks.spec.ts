@@ -186,7 +186,8 @@ describe('themeVariablesPlugin', () => {
         expect(result).toContain('@theme inline');
         expect(result).toContain('--color-background: var(--background);');
         expect(result).toContain('--radius-sm:');
-        expect(result).toContain('--shadow-sm:');
+        expect(result).toContain('--shadow-*: initial;');
+        expect(result).toContain('--shadow-overlay: var(--shadow-overlay);');
         expect(result).toContain('--font-sans: var(--font-sans);');
         expect(result).toContain('--color-dev-mode: var(--dev-mode);');
         // `brand` is a published design-tokens v2 slot and is mapped automatically
