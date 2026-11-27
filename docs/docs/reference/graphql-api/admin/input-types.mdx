@@ -723,6 +723,8 @@ input BooleanOperators {
   """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: NumberOperators
   pricesIncludeTax: BooleanOperators
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"""
+  taxCountryCode: StringOperators
   _and: [ChannelFilterParameter!]
   _or: [ChannelFilterParameter!]
 }`}
@@ -775,6 +777,8 @@ input BooleanOperators {
   token: SortOrder
   """The stock level below which a ProductVariant with \`useGlobalOutOfStockThreshold\` may not be sold in this Channel. Since 4.0.0"""
   outOfStockThreshold: SortOrder
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"""
+  taxCountryCode: SortOrder
 }`}
 </GraphQLDoc>
 
@@ -1192,6 +1196,8 @@ input CreateApiKeyInput {
   outOfStockThreshold: Int
   defaultTaxZoneId: ID!
   defaultShippingZoneId: ID!
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"""
+  taxCountryCode: String
   sellerId: ID
   customFields: JSON
 }`}
@@ -1763,7 +1769,10 @@ input CreateApiKeyInput {
   enabled: Boolean!
   value: Float!
   categoryId: ID!
-  zoneId: ID!
+  """The Zone the rate applies to. Exactly one of zoneId and regionId must be set."""
+  zoneId: ID
+  """The Country the rate applies to. Exactly one of zoneId and regionId must be set."""
+  regionId: ID
   customerGroupId: ID
   customFields: JSON
 }`}
@@ -2549,6 +2558,7 @@ input IDOperators {
     String: '/reference/graphql-api/admin/object-types#string',
     AdministratorRefundInput: '/reference/graphql-api/admin/input-types#administratorrefundinput',
     ModifyOrderOptions: '/reference/graphql-api/admin/input-types#modifyorderoptions',
+    ShippingMethodSelectionInput: '/reference/graphql-api/admin/input-types#shippingmethodselectioninput',
   }}
 >
 {`input ModifyOrderInput {
@@ -2570,6 +2580,8 @@ input IDOperators {
   couponCodes: [String!]
   """Added in v2.2"""
   shippingMethodIds: [ID!]
+  """Like \`shippingMethodIds\`, but can also choose one of each ShippingMethod's options. Cannot be combined with \`shippingMethodIds\`."""
+  shippingMethods: [ShippingMethodSelectionInput!]
 }`}
 </GraphQLDoc>
 
@@ -2585,6 +2597,13 @@ input IDOperators {
   }}
 >
 {`input ModifyOrderOptions {
+  """
+  Whether to keep the discounts the Order was paid with. When true, the Promotions on the
+  Order are not re-tested and their discounts stay as they are; the coupon codes cannot be
+  changed. When false, the Promotions are re-tested against the modified Order. When omitted,
+  the configured PromotionFreezeStrategy decides: by default the Promotions are frozen unless
+  the modification changes the OrderLines, the coupon codes or the shipping methods.
+  """
   freezePromotions: Boolean
   recalculateShipping: Boolean
 }`}
@@ -4292,6 +4311,25 @@ input RoleAssignmentInput {
 }`}
 </GraphQLDoc>
 
+<a name="shippingmethodselectioninput"></a>
+
+## ShippingMethodSelectionInput
+
+<GraphQLDoc
+  type="input"
+  typeName="ShippingMethodSelectionInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`input ShippingMethodSelectionInput {
+  shippingMethodId: ID!
+  """The \`code\` of one of the ShippingMethod's options. If omitted, the cheapest option is used."""
+  shippingOptionCode: String
+}`}
+</GraphQLDoc>
+
 <a name="shippingmethodsortparameter"></a>
 
 ## ShippingMethodSortParameter
@@ -4701,6 +4739,7 @@ input StringOperators {
 >
 {`input TaxRateFilterParameter {
   zoneId: IDOperators
+  regionId: IDOperators
   categoryId: IDOperators
   id: IDOperators
   createdAt: DateOperators
@@ -5011,6 +5050,8 @@ input UpdateAddressInput {
   outOfStockThreshold: Int
   defaultTaxZoneId: ID
   defaultShippingZoneId: ID
+  """The code of the country whose tax rate the Channel's tax-inclusive prices include. Set it to null to clear it. Since 4.0.0"""
+  taxCountryCode: String
   sellerId: ID
   customFields: JSON
 }`}
@@ -5677,7 +5718,10 @@ input UpdateProductVariantPriceInput {
   value: Float
   enabled: Boolean
   categoryId: ID
+  """The Zone the rate applies to. Setting it removes the Country."""
   zoneId: ID
+  """The Country the rate applies to. Setting it removes the Zone."""
+  regionId: ID
   customerGroupId: ID
   customFields: JSON
 }`}

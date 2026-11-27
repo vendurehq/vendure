@@ -1,8 +1,21 @@
-import { ConsoleSession } from './cli-auth.js';
 import { ConsoleOriginEnvironment } from './console-origins.js';
 import { ConsoleReporter } from './console-reporter.js';
 import { ConsoleLinkResultContribution } from './console-result.js';
 import { ProjectLinkManifest } from './project-link-manifest.js';
+
+/**
+ * The session `vendure console link` gives an `afterConsoleLink` hook that requested one: the
+ * stored login's access token and when it expires. The refresh token stays in the login, because
+ * it is single-use. Do not store the token. When a token is needed, call `getAccessToken()` from
+ * `@vendure/cli` with `VENDURE_CONSOLE_API_URL` set to `endpoints.apiUrl`, so the CLI renews it.
+ *
+ * @since 3.8.0
+ */
+export interface ConsoleSession {
+    accessToken: string;
+    /** Epoch milliseconds. */
+    expiresAt: number;
+}
 
 /** The Console origins resolved for this run. @since 3.8.0 */
 export interface ConsoleLinkEndpoints {
@@ -25,14 +38,22 @@ export type ConsoleLinkOutcome = 'linked' | 'repaired';
  *
  * - `'not-signed-in'`: no CLI login for the linked account is stored, and this run does not sign in.
  * - `'account-inaccessible'`: the signed-in user is not a member of the Customer Account the manifest
- *   links to. Signing in again as the same user does not help: `vendure console link --force` links one
- *   of the user's own Projects, an administrator of that account adds the user, or the user runs
+ *   links to. Signing in again as the same user does not help: `vendure console link --project <id|slug>`
+ *   links one of the user's own Projects, an administrator of that account adds the user, or the user runs
  *   `vendure auth login` with another Vendure Console login that is a member. The CLI has said so.
  * - `'sign-in-failed'`: the sign-in failed. The CLI has reported why.
+ * - `'environment-credential'`: `vendure console link` created the link with `VENDURE_CLOUD_TOKEN`,
+ *   such as an agent's delegated key, which is never given to a hook. Do not fall back to
+ *   `getAccessToken()`: a stored login, if any, is not the credential this run uses. A repeated
+ *   link with only the token gives `'not-signed-in'`. Since 4.0.0.
  *
  * @since 3.8.2
  */
-export type ConsoleSessionUnavailableReason = 'not-signed-in' | 'account-inaccessible' | 'sign-in-failed';
+export type ConsoleSessionUnavailableReason =
+    | 'not-signed-in'
+    | 'account-inaccessible'
+    | 'sign-in-failed'
+    | 'environment-credential';
 
 /** Values supplied to an {@link ConsoleLinkHook}. @since 3.8.0 */
 export interface ConsoleLinkContext {
@@ -56,8 +77,9 @@ export interface ConsoleLinkContext {
     session?: ConsoleSession;
     /**
      * Set when this hook requested a session and has none. With
-     * `'account-inaccessible'`, do not fall back to `getAccessToken()`: a stored
-     * login belongs to another account. @since 3.8.2
+     * `'account-inaccessible'` or `'environment-credential'`, do not fall back to
+     * `getAccessToken()`: a stored login belongs to another account, or is not
+     * the credential this run uses. @since 3.8.2
      */
     sessionUnavailable?: ConsoleSessionUnavailableReason;
     /** Aborts on SIGINT or SIGTERM. */
@@ -65,7 +87,16 @@ export interface ConsoleLinkContext {
     reporter: ConsoleReporter;
     /** Requested output format. @since 3.8.0 */
     outputMode: 'human' | 'json';
-    /** Isolated, immutable parsed options, including plugin flags. Never report secret values. @since 3.8.0 */
+    /**
+     * An isolated, immutable copy of the command's input, as given: `dir` (the project directory),
+     * `consoleProject` (the Console Project, which `--project` names) and `organization`. Never
+     * report secret values.
+     *
+     * Since 4.0.0, the project directory is `dir` rather than `project`, which hooks no longer
+     * get, and `force`, `yes`, `json`, `nonInteractive` and plugin flags are gone.
+     *
+     * @since 3.8.0
+     */
     options: Readonly<Record<string, unknown>>;
     /**
      * Adds safe setup data under this plugin's ID in Core's result. Incomplete
@@ -78,7 +109,7 @@ export interface ConsoleLinkContext {
     confirm(message: string): Promise<boolean | undefined>;
     /** Whether non-interactive mode was requested or no terminal is available for {@link confirm}. */
     isNonInteractive: boolean;
-    /** Whether `--force` was given. */
+    /** Whether the caller gave the `replaceLink` consent, so this link replaced another. */
     force: boolean;
 }
 

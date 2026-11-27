@@ -470,6 +470,14 @@ function getColumnType(
     return 'varchar';
 }
 
+/**
+ * Returns false when the database stores no column default for the `defaultValue` of the custom field.
+ * MySQL does not support defaults on TEXT fields, which is what a list field uses ("simple-json").
+ */
+export function isColumnDefaultSupported(customField: CustomFieldConfig, dbEngine: VendureDatabaseType) {
+    return !(customField.list && customField.defaultValue && dbEngine === 'mysql');
+}
+
 function getDefault(
     customField: CustomFieldConfig,
     dbEngine: VendureDatabaseType,
@@ -477,7 +485,7 @@ function getDefault(
 ) {
     const { name, type, list, defaultValue, nullable } = customField;
     if (list && defaultValue) {
-        if (dbEngine === 'mysql') {
+        if (!isColumnDefaultSupported(customField, dbEngine)) {
             // MySQL does not support defaults on TEXT fields, which is what "simple-json" uses
             // internally. See https://stackoverflow.com/q/3466872/772859
             Logger.warn(

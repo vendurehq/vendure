@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "module": "commonjs",
+        "lib": ["es2020"],
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "moduleResolution": "node",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "paths": {
+            "@example/shared-config": ["./libs/shared-config/src/index.ts"],
+            "@example/tenant-settings": ["./libs/tenant-settings/src/index.ts"]
+        }
+    }
+}

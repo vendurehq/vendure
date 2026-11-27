@@ -111,10 +111,11 @@ export class McpToolSchemaService {
         wire.properties = { ...wire.properties };
         if (injectedFields.confirm) {
             wire.properties.confirm = {
-                type: 'boolean',
+                type: 'string',
                 description:
-                    'Omit on the first call to get a preview. Set to true only after the user has ' +
-                    'approved the action.',
+                    'Omit on the first call: it does not run the tool, and returns a preview and a ' +
+                    'consent digest. After the user approves the preview, call again with the same ' +
+                    'arguments and this set to that digest.',
             };
         }
         if (injectedFields.sessionToken) {
@@ -221,8 +222,17 @@ export class McpToolSchemaService {
         const input = { ...((value ?? {}) as Record<string, unknown>) };
         const held: Record<string, unknown> = {};
         if (injectedFields.confirm && input.confirm !== undefined) {
-            if (typeof input.confirm !== 'boolean') {
-                return { issues: [{ message: '"confirm" must be a boolean', path: ['confirm'] }] };
+            if (typeof input.confirm !== 'string') {
+                return {
+                    issues: [
+                        {
+                            message:
+                                '"confirm" must be the consent digest from the preview. Omit it to get ' +
+                                'a preview; true is not accepted',
+                            path: ['confirm'],
+                        },
+                    ],
+                };
             }
             held.confirm = input.confirm;
             delete input.confirm;

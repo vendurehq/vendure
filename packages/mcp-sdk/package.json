@@ -25,13 +25,13 @@
         "access": "public"
     },
     "dependencies": {
+        "@vendure/common": "3.8.2",
         "zod": "^4.2.0"
     },
     "peerDependencies": {
         "@nestjs/core": "^12.0.0"
     },
     "devDependencies": {
-        "@vendure/common": "3.8.2",
         "@vendure/core": "3.8.2"
     },
     "nx": {

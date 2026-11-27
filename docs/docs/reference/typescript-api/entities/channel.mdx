@@ -54,6 +54,8 @@ class Channel extends VendureEntity {
     @Column(type => CustomChannelFields)
     customFields: CustomChannelFields;
     @Column() pricesIncludeTax: boolean;
+    @Column({ type: 'varchar', nullable: true })
+    taxCountryCode: string | null;
     @ManyToMany(type => Product, product => product.channels, {
         onDelete: 'CASCADE',
         onUpdate: 'NO ACTION',
@@ -203,6 +205,21 @@ sold in this Channel. A negative value allows backorders. Variants with
 <MemberInfo kind="property" type={`boolean`}   />
 
 
+### taxCountryCode
+
+<MemberInfo kind="property" type={`string | null`}  since="4.0.0"  />
+
+The code of the country whose tax rate the Channel's tax-inclusive prices include: the
+seller's own country. When it is set, a tax-inclusive price is split into net and tax at the
+country rate of this country, or at the zone rate of the default tax Zone when there is no
+country rate. See [TaxRateService](/reference/typescript-api/services/tax-rate-service#taxrateservice)`.findIncludedTaxRate()`.
+
+It is also the tax country of prices with no shipping country, such as product pages and
+carts before an address is set, when the active tax Zone is the default tax Zone. See
+[defaultTaxCountryCode](/reference/typescript-api/tax/default-tax-country-code#defaulttaxcountrycode).
+
+The country should be a member of the default tax Zone. When it is not set, the default tax
+Zone's zone rate is the included rate.
 ### products
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>[]`}   />

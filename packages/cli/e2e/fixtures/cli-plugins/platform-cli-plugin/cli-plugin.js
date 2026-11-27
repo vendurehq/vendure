@@ -1,5 +1,5 @@
 /**
- * Mirrors what @vendure-platform/cli does to `dev`: add an option and wrap the
+ * Mirrors what @vendure-platform/cli does to `dev`, here on `start`: add an option and wrap the
  * action. The wrapper calls the action it is handed, so another plugin can wrap
  * it in turn.
  */
@@ -7,11 +7,11 @@ const { defineCliPlugin, readCommandContext, readCommandOptions } = require('@ve
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/platform-cli-plugin',
-    commands: [],
+    rootOptions: [{ long: '--token <token>', description: 'Platform API token' }],
     extendCommands: [
         {
-            command: 'dev',
-            description: 'Run Vendure in development mode with linked Platform credentials',
+            command: 'start',
+            description: 'Start a built Vendure project with linked Platform credentials',
             options: [
                 {
                     long: '--rotate-credential',
@@ -27,6 +27,7 @@ module.exports = defineCliPlugin({
                         `PLATFORM_BEFORE ${JSON.stringify({
                             command: context.commandPath,
                             rotate: options.rotateCredential === true,
+                            token: context.inheritedOptions.token ?? null,
                         })}\n`,
                     );
                     try {

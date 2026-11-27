@@ -11,6 +11,7 @@ import { ServiceModule } from '../service/service.module';
 
 import { ConfigurableOperationCodec } from './common/configurable-operation-codec';
 import { CustomFieldRelationResolverService } from './common/custom-field-relation-resolver.service';
+import { IdArgumentDecoder } from './common/id-argument-decoder';
 import { IdCodecService } from './common/id-codec.service';
 import { AdministratorResolver } from './resolvers/admin/administrator.resolver';
 import { ApiKeyResolver } from './resolvers/admin/api-key.resolver';
@@ -41,6 +42,7 @@ import { SettingsStoreAdminResolver } from './resolvers/admin/settings-store.res
 import { ShippingMethodResolver } from './resolvers/admin/shipping-method.resolver';
 import { SlugResolver } from './resolvers/admin/slug.resolver';
 import { StockLocationResolver } from './resolvers/admin/stock-location.resolver';
+import { StoreReadinessResolver } from './resolvers/admin/store-readiness.resolver';
 import { TagResolver } from './resolvers/admin/tag.resolver';
 import { TaxCategoryResolver } from './resolvers/admin/tax-category.resolver';
 import { TaxRateResolver } from './resolvers/admin/tax-rate.resolver';
@@ -130,6 +132,7 @@ const adminResolvers = [
     ShippingMethodResolver,
     SlugResolver,
     StockLocationResolver,
+    StoreReadinessResolver,
     TagResolver,
     TaxCategoryResolver,
     TaxRateResolver,
@@ -197,9 +200,15 @@ export const adminEntityResolvers = [
  */
 @Module({
     imports: [ConfigModule, ServiceModule, CacheModule, ConnectionModule.forRoot()],
-    providers: [IdCodecService, ConfigurableOperationCodec, CustomFieldRelationResolverService],
+    providers: [
+        IdCodecService,
+        IdArgumentDecoder,
+        ConfigurableOperationCodec,
+        CustomFieldRelationResolverService,
+    ],
     exports: [
         IdCodecService,
+        IdArgumentDecoder,
         CacheModule,
         ConfigModule,
         ConfigurableOperationCodec,

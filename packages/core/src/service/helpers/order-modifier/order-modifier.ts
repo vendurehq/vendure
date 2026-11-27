@@ -6,12 +6,15 @@ import {
     ModifyOrderResult,
     OrderLineInput,
     RefundOrderInput,
+    ShippingMethodSelectionInput,
 } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { IsNull } from 'typeorm';
+import { In, IsNull } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
+import { CacheKey } from '../../../common/constants';
 import { isGraphQlErrorResult, JustErrorResults } from '../../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../../common/error/errors';
 import {
@@ -46,6 +49,7 @@ import { OrderModification } from '../../../entity/order-modification/order-modi
 import { Order } from '../../../entity/order/order.entity';
 import { Payment } from '../../../entity/payment/payment.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import { Promotion } from '../../../entity/promotion/promotion.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
 import { Allocation } from '../../../entity/stock-movement/allocation.entity';
 import { Cancellation } from '../../../entity/stock-movement/cancellation.entity';
@@ -65,15 +69,41 @@ import { StockLevelReadOptions, StockLevelService } from '../../services/stock-l
 import { StockMovementService } from '../../services/stock-movement.service';
 import { CustomFieldRelationService } from '../custom-field-relation/custom-field-relation.service';
 import { OrderCalculator } from '../order-calculator/order-calculator';
-import { ShippingCalculator } from '../shipping-calculator/shipping-calculator';
+import {
+    findShippingOption,
+    SelectedShippingLine,
+    setShippingLineOption,
+    ShippingCalculator,
+    shippingSelectionsKept,
+    toShippingMethodSelections,
+} from '../shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../utils/coupon-codes-match';
+import { changesCouponCodes } from '../utils/modify-order-changes';
 import { getOrderChannelContext } from '../utils/order-channel-context';
 import { getOrdersFromLines, orderLinesAreAllCancelled } from '../utils/order-utils';
 import { patchEntity } from '../utils/patch-entity';
 
 import { addShippingCancellationAdjustment } from './add-shipping-cancellation-adjustment';
+
+/**
+ * @description
+ * The result of {@link OrderModifier.setShippingMethods}.
+ *
+ * @docsCategory service-helpers
+ * @since 4.0.0
+ */
+export interface SetShippingMethodsResult {
+    order: Order;
+    /**
+     * @description
+     * Whether each selection is still held by the ShippingLine it was set on, given the ShippingLines
+     * of the Order after it has been recalculated. A ShippingLine to which no OrderLine was assigned,
+     * and which the recalculation therefore removed, does not count as refused.
+     */
+    selectionKept: (pricedShippingLines: ShippingLine[]) => boolean;
+}
 
 /**
  * @description
@@ -107,6 +137,7 @@ export class OrderModifier {
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
         private channelService: ChannelService,
+        private requestCache: RequestContextCacheService,
     ) {}
 
     /**
@@ -406,7 +437,13 @@ export class OrderModifier {
         ctx: RequestContext,
         input: ModifyOrderInput,
         order: Order,
-    ): Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }> {
+    ): Promise<
+        | JustErrorResults<ModifyOrderResult>
+        | { order: Order; modification: OrderModification; promotionsFrozen: boolean }
+    > {
+        if (input.shippingMethods && input.shippingMethodIds) {
+            throw new UserInputError('error.modify-order-shipping-method-arguments-conflict');
+        }
         const { dryRun } = input;
         const modification = new OrderModification({
             order,
@@ -421,7 +458,13 @@ export class OrderModifier {
         if (this.noChangesSpecified(input)) {
             return new NoChangesSpecifiedError();
         }
-        const { orderItemsLimit } = this.configService.orderOptions;
+        const { orderItemsLimit, promotionFreezeStrategy } = this.configService.orderOptions;
+        // Decided on the Order as it was paid for, before anything below changes it
+        const freezePromotions = await promotionFreezeStrategy.shouldFreezePromotions(ctx, order, input);
+        if (freezePromotions && changesCouponCodes(order, input)) {
+            // A coupon code only has an effect through its Promotion, which a freeze does not apply
+            throw new UserInputError('error.modify-order-freeze-promotions-coupon-codes-conflict');
+        }
         const existingOrderLineIds = new Set(order.lines.map(line => String(line.id)));
         let currentItemsCount = summate(order.lines, 'quantity');
         const updatedOrderLineIds: ID[] = [];
@@ -522,7 +565,10 @@ export class OrderModifier {
                         },
                     ];
                     await this.cancelOrderByOrderLines(ctx, { orderId: order.id }, cancelLinesInput);
-                    orderLine.quantity = quantity;
+                    // cancelOrderByOrderLines() rescales the stored PROMOTION adjustments, but on its
+                    // own copy of the line. This copy is saved below, so it must be rescaled too:
+                    // frozen Promotions do not recompute them.
+                    orderLine.setQuantityRescalingAdjustments(quantity);
                 } else {
                     await this.updateOrderLineQuantity(ctx, orderLine, quantity, order);
                 }
@@ -604,9 +650,26 @@ export class OrderModifier {
             modification.billingAddressChange = input.updateBillingAddress;
         }
 
+        if (input.updateShippingAddress || input.updateBillingAddress) {
+            // The lines added above were priced with the tax Zone of the old addresses
+            this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+            this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
+        }
+
         if (input.couponCodes) {
             const canonicalCouponCodes: string[] = [];
             for (const couponCode of input.couponCodes) {
+                const existingCouponCode = order.couponCodes.find(cc => couponCodesMatch(cc, couponCode));
+                if (existingCouponCode) {
+                    // The code is already on the Order, and clients send the Order's codes with every
+                    // modification. Validating it again would reject any modification once its
+                    // Promotion has been disabled or has ended. It would also count this Order
+                    // against the code's per-customer usage limit.
+                    if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, existingCouponCode))) {
+                        canonicalCouponCodes.push(existingCouponCode);
+                    }
+                    continue;
+                }
                 const validationResult = await this.promotionService.validateCouponCode(
                     ctx,
                     couponCode,
@@ -622,15 +685,12 @@ export class OrderModifier {
                 if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, canonicalCode))) {
                     canonicalCouponCodes.push(canonicalCode);
                 }
-                if (!order.couponCodes.some(cc => couponCodesMatch(cc, canonicalCode))) {
-                    // This is a new coupon code that hadn't been applied before
-                    await this.historyService.createHistoryEntryForOrder({
-                        ctx,
-                        orderId: order.id,
-                        type: HistoryEntryType.ORDER_COUPON_APPLIED,
-                        data: { couponCode: canonicalCode, promotionId: validationResult.id },
-                    });
-                }
+                await this.historyService.createHistoryEntryForOrder({
+                    ctx,
+                    orderId: order.id,
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: { couponCode: canonicalCode, promotionId: validationResult.id },
+                });
             }
             for (const existingCouponCode of order.couponCodes) {
                 if (!canonicalCouponCodes.some(cc => couponCodesMatch(cc, existingCouponCode))) {
@@ -647,14 +707,22 @@ export class OrderModifier {
         }
 
         const updatedOrderLines = order.lines.filter(l => updatedOrderLineIds.includes(l.id));
-        const promotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
-        if (input.shippingMethodIds) {
-            const result = await this.setShippingMethods(ctx, order, input.shippingMethodIds);
+        const promotions = await this.getPromotionCandidates(ctx, activePromotionsPre);
+        const shippingMethodSelections = input.shippingMethods ?? input.shippingMethodIds;
+        // An empty list is no shipping change, as noChangesSpecified() treats it
+        let shippingMethodsSet: SetShippingMethodsResult | undefined;
+        if (shippingMethodSelections?.length) {
+            // The ShippingLines are priced below, once the Order's lines and totals are final
+            const result = await this.setShippingMethods(ctx, order, shippingMethodSelections);
             if (isGraphQlErrorResult(result)) {
                 return result;
             }
+            shippingMethodsSet = result;
         }
+        // Unlike an active Order, the lines a modification does not touch keep the prices the Order
+        // was placed with, even when an address change moves the tax Zone or country. They are only
+        // taxed again.
         const { orderItemPriceCalculationStrategy } = this.configService.orderOptions;
         for (const orderLine of updatedOrderLines) {
             const variant = await this.productVariantService.applyChannelPriceAndTax(
@@ -681,9 +749,34 @@ export class OrderModifier {
             orderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
         }
 
+        if (freezePromotions) {
+            // The Promotions recorded on the Order are the ones the customer agreed to when they
+            // paid, so they are carried over verbatim rather than re-tested. These entities come
+            // from a QueryBuilder which does not join the translations, so the whole array is
+            // uniformly untranslated. That is deliberate: the Order entity resolver decides
+            // whether to translate in place or re-read from the database by inspecting the first
+            // element only, so mixing translated and untranslated Promotions here would make it
+            // translate an entity that has no translations, and a dry run would then fail on the
+            // non-nullable `Promotion.name`.
+            order.promotions = activePromotionsPre;
+        }
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,
+            freezePromotions,
         });
+        if (shippingMethodsSet) {
+            const shippingError = await this.priceSelectedShippingLines(
+                ctx,
+                order,
+                promotions,
+                shippingMethodsSet,
+                input.options?.recalculateShipping !== false,
+                freezePromotions,
+            );
+            if (shippingError) {
+                return shippingError;
+            }
+        }
         await this.promotionService.runPromotionSideEffects(ctx, order, activePromotionsPre);
         await this.connection.getRepository(ctx, OrderLine).save(order.lines, { reload: false });
         const orderCustomFields = (input as any).customFields;
@@ -692,7 +785,7 @@ export class OrderModifier {
         }
 
         if (dryRun) {
-            return { order, modification };
+            return { order, modification, promotionsFrozen: freezePromotions };
         }
 
         // Create the actual modification and commit all changes
@@ -737,11 +830,28 @@ export class OrderModifier {
         await this.connection.getRepository(ctx, Order).save(order);
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
         await this.eventBus.publish(new OrderEvent(ctx, order, 'updated', input));
-        return { order, modification: createdModification };
+        return { order, modification: createdModification, promotionsFrozen: freezePromotions };
     }
 
-    async setShippingMethods(ctx: RequestContext, order: Order, shippingMethodIds: ID[]) {
-        for (const [i, shippingMethodId] of shippingMethodIds.entries()) {
+    /**
+     * @description
+     * Sets the ShippingMethods of the Order and assigns its OrderLines to the resulting ShippingLines.
+     * Each selection may name one of the ShippingMethod's options by its `shippingOptionCode`.
+     *
+     * The ShippingLines are not priced here: the next recalculation of the Order prices each with the
+     * option it names, or with the cheapest option when it names none. If the option is not offered,
+     * the recalculation falls back to another option or ShippingMethod. Pass the ShippingLines of the
+     * recalculated Order to the returned `selectionKept()` to find out whether that happened.
+     *
+     * @since 4.0.0 returns a {@link SetShippingMethodsResult} rather than the Order
+     */
+    async setShippingMethods(
+        ctx: RequestContext,
+        order: Order,
+        shippingMethods: Array<ID | ShippingMethodSelectionInput>,
+    ): Promise<SetShippingMethodsResult | IneligibleShippingMethodError> {
+        const selections = toShippingMethodSelections(shippingMethods);
+        for (const [i, { shippingMethodId, shippingOptionCode }] of selections.entries()) {
             const shippingMethod = await this.shippingCalculator.getMethodIfEligible(
                 ctx,
                 order,
@@ -751,32 +861,29 @@ export class OrderModifier {
                 return new IneligibleShippingMethodError();
             }
             let shippingLine: ShippingLine | undefined = order.shippingLines[i];
-            if (shippingLine) {
-                shippingLine.shippingMethod = shippingMethod;
-                shippingLine.shippingMethodId = shippingMethod.id;
-            } else {
-                shippingLine = await this.connection.getRepository(ctx, ShippingLine).save(
-                    new ShippingLine({
-                        shippingMethod,
-                        order,
-                        adjustments: [],
-                        listPrice: 0,
-                        listPriceIncludesTax: ctx.channel.pricesIncludeTax,
-                        taxLines: [],
-                    }),
-                );
+            if (!shippingLine) {
+                shippingLine = new ShippingLine({
+                    order,
+                    adjustments: [],
+                    listPrice: 0,
+                    listPriceIncludesTax: ctx.channel.pricesIncludeTax,
+                    taxLines: [],
+                });
                 if (order.shippingLines) {
                     order.shippingLines.push(shippingLine);
                 } else {
                     order.shippingLines = [shippingLine];
                 }
             }
-
+            shippingLine.shippingMethod = shippingMethod;
+            shippingLine.shippingMethodId = shippingMethod.id;
+            // The requested option, priced when the Order is next recalculated
+            shippingLine.shippingOptionCode = shippingOptionCode ?? null;
             await this.connection.getRepository(ctx, ShippingLine).save(shippingLine);
         }
         // remove any now-unused ShippingLines
-        if (shippingMethodIds.length < order.shippingLines.length) {
-            const shippingLinesToDelete = order.shippingLines.splice(shippingMethodIds.length - 1);
+        const shippingLinesToDelete = order.shippingLines.splice(selections.length);
+        if (shippingLinesToDelete.length) {
             await this.connection.getRepository(ctx, ShippingLine).remove(shippingLinesToDelete);
         }
         // assign the ShippingLines to the OrderLines
@@ -786,7 +893,12 @@ export class OrderModifier {
             .update({ shippingLine: undefined })
             .whereInIds(order.lines.map(l => l.id))
             .execute();
+        for (const line of order.lines) {
+            line.shippingLine = undefined;
+            line.shippingLineId = undefined;
+        }
         const { shippingLineAssignmentStrategy } = this.configService.shippingOptions;
+        const selectedLines: SelectedShippingLine[] = [];
         for (const shippingLine of order.shippingLines) {
             const orderLinesForShippingLine =
                 await shippingLineAssignmentStrategy.assignShippingLineToOrderLines(ctx, shippingLine, order);
@@ -796,11 +908,87 @@ export class OrderModifier {
                 .update({ shippingLineId: shippingLine.id })
                 .whereInIds(orderLinesForShippingLine.map(l => l.id))
                 .execute();
-            orderLinesForShippingLine.forEach(line => {
-                line.shippingLine = shippingLine;
-            });
+            // Matched by id, as the strategy may return other instances than those of order.lines
+            for (const line of order.lines) {
+                if (orderLinesForShippingLine.some(assigned => idsAreEqual(assigned.id, line.id))) {
+                    line.shippingLine = shippingLine;
+                    line.shippingLineId = shippingLine.id;
+                }
+            }
+            selectedLines.push({ id: shippingLine.id, hasOrderLines: orderLinesForShippingLine.length > 0 });
         }
-        return order;
+        return {
+            order,
+            selectionKept: pricedShippingLines =>
+                shippingSelectionsKept(selections, selectedLines, pricedShippingLines),
+        };
+    }
+
+    /**
+     * Prices the ShippingLines just set by modifyOrder. When shipping was recalculated, applyShipping()
+     * has priced them already, but falls back to another option or method when the chosen option is
+     * not offered, which is refused here; the resolver then rolls the modification back. When it was not
+     * recalculated, they are priced now, and their shipping promotions applied again to the new price.
+     */
+    private async priceSelectedShippingLines(
+        ctx: RequestContext,
+        order: Order,
+        promotions: Promotion[],
+        shippingMethodsSet: SetShippingMethodsResult,
+        shippingRecalculated: boolean,
+        freezePromotions: boolean,
+    ): Promise<IneligibleShippingMethodError | undefined> {
+        if (shippingRecalculated) {
+            return shippingMethodsSet.selectionKept(order.shippingLines)
+                ? undefined
+                : new IneligibleShippingMethodError();
+        }
+        for (const shippingLine of order.shippingLines) {
+            // A ShippingLine without OrderLines is removed when the Order is next recalculated, and is not
+            // a refusal, as in shippingSelectionsKept()
+            if (!order.lines.some(line => idsAreEqual(line.shippingLineId, shippingLine.id))) {
+                continue;
+            }
+            // The eligibility was checked on the Order before the modification, so check it again on the
+            // modified Order
+            if (!(await shippingLine.shippingMethod.test(ctx, order))) {
+                return new IneligibleShippingMethodError();
+            }
+            const quotes = await shippingLine.shippingMethod.applyQuotes(ctx, order);
+            const result = findShippingOption(quotes, shippingLine.shippingOptionCode);
+            if (!result) {
+                return new IneligibleShippingMethodError();
+            }
+            setShippingLineOption(shippingLine, shippingLine.shippingMethod, result);
+        }
+        if (freezePromotions) {
+            this.orderCalculator.capShippingDiscounts(order);
+            this.orderCalculator.calculateOrderTotals(order);
+        } else {
+            await this.orderCalculator.reapplyShippingPromotions(ctx, order, promotions);
+        }
+    }
+
+    /**
+     * The Promotions to re-test a modified Order against: those active in the Channel, plus those
+     * already on the Order. The customer paid with the latter, so one which has been disabled since
+     * still applies as long as its conditions pass. Soft-deleted Promotions are left out.
+     */
+    private async getPromotionCandidates(ctx: RequestContext, onOrder: Promotion[]): Promise<Promotion[]> {
+        const activeInChannel = await this.promotionService.getActivePromotionsInChannel(ctx);
+        const missingIds = onOrder
+            .filter(p => !activeInChannel.some(active => idsAreEqual(active.id, p.id)))
+            .map(p => p.id);
+        if (!missingIds.length) {
+            return activeInChannel;
+        }
+        const missing = await this.connection.getRepository(ctx, Promotion).find({
+            where: { id: In(missingIds), deletedAt: IsNull() },
+            relations: { translations: true },
+        });
+        return [...activeInChannel, ...missing.map(p => this.translator.translate(p, ctx))].sort(
+            (a, b) => a.priorityScore - b.priorityScore,
+        );
     }
 
     private noChangesSpecified(input: ModifyOrderInput): boolean {
@@ -812,7 +1000,8 @@ export class OrderModifier {
             !input.updateBillingAddress &&
             !input.couponCodes &&
             !(input as any).customFields &&
-            (!input.shippingMethodIds || input.shippingMethodIds.length === 0);
+            (!input.shippingMethodIds || input.shippingMethodIds.length === 0) &&
+            (!input.shippingMethods || input.shippingMethods.length === 0);
         return noChanges;
     }
 

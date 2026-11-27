@@ -1,14 +1,113 @@
+import { LogLevelName, LogLine } from '@vendure/common/lib/log';
 import pc from 'picocolors';
 
-import { Logger, LogLevel, VendureLogger } from './vendure-logger';
+import { getRequestId } from '../../api/common/request-id';
+import { getProcessContextName } from '../../process-context/process-context';
+
+import { Logger, LogLevel, LogMeta, VendureLogger } from './vendure-logger';
 
 const DEFAULT_CONTEXT = 'Vendure Server';
+
+const LOCALE_STRING_OPTIONS = {
+    year: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    day: 'numeric',
+    month: 'numeric',
+} as const;
+
+const LEVEL_COLORS: Record<LogLevelName, (text: string) => string> = {
+    error: pc.red,
+    warn: pc.yellow,
+    info: pc.blue,
+    verbose: pc.magenta,
+    debug: pc.magenta,
+};
+
+/**
+ * @description
+ * The output format of the {@link DefaultLogger}.
+ *
+ * - `text`: coloured text for a person reading a terminal.
+ * - `json`: one JSON object per line, for tools which read the log. Its type is `LogLine` from
+ *   `@vendure/common/lib/log`.
+ *
+ * @docsCategory Logger
+ * @since 4.0.0
+ */
+export type DefaultLoggerFormat = 'text' | 'json';
+
+/**
+ * @description
+ * Options for the {@link DefaultLogger}.
+ *
+ * @docsCategory Logger
+ */
+export interface DefaultLoggerOptions {
+    /**
+     * @description
+     * The most detailed level which is logged.
+     *
+     * @default LogLevel.Info
+     */
+    level?: LogLevel;
+    /**
+     * @description
+     * Whether the `text` format starts each line with a timestamp. The `json` format always
+     * writes one.
+     *
+     * @default true
+     */
+    timestamp?: boolean;
+    /**
+     * @description
+     * The output format. When it is not set, the `VENDURE_LOG_FORMAT` environment variable
+     * selects it, so that a tool which starts the server can turn on the `json` format without a
+     * change to the config.
+     *
+     * In the `json` format, each line also has the name of the process and the ID of the
+     * current request (see {@link getRequestId}). The process is `server` or `worker`, as set by
+     * `bootstrap()` and `bootstrapWorker()`. The `VENDURE_PROCESS` environment variable
+     * overrides it.
+     *
+     * @default 'text'
+     * @since 4.0.0
+     */
+    format?: DefaultLoggerFormat;
+}
+
+/**
+ * @description
+ * Formats a `LogLine` (from `@vendure/common/lib/log`) as the coloured text which the `text` format of the
+ * {@link DefaultLogger} writes, without the trailing newline.
+ *
+ * @docsCategory Logger
+ * @since 4.0.0
+ */
+export function formatTextLine(line: LogLine, options?: { timestamp?: boolean }): string {
+    const color = LEVEL_COLORS[line.level];
+    const message = line.stack ? `${line.msg}\n${line.stack}` : line.msg;
+    const timestamp =
+        options?.timestamp === false
+            ? ''
+            : pc.gray(new Date(line.ts).toLocaleString(undefined, LOCALE_STRING_OPTIONS) + ' -');
+    const isHighlighted = line.level === 'error' || line.level === 'warn';
+    return [
+        color(line.level),
+        timestamp,
+        pc.cyan(`[${line.ctx ?? DEFAULT_CONTEXT}]`),
+        isHighlighted ? color(message) : message,
+    ]
+        .filter(part => part !== '')
+        .join(' ');
+}
 
 /**
  * @description
  * The default logger, which logs to the console (stdout) with optional timestamps. Since this logger is part of the
  * default Vendure configuration, you do not need to specify it explicitly in your server config. You would only need
- * to specify it if you wish to change the log level (which defaults to `LogLevel.Info`) or remove the timestamp.
+ * to specify it if you wish to change the log level (which defaults to `LogLevel.Info`), remove the timestamp
+ * or change the format.
  *
  * @example
  * ```ts
@@ -26,19 +125,14 @@ export class DefaultLogger implements VendureLogger {
     /** @internal */
     level: LogLevel = LogLevel.Info;
     private readonly timestamp: boolean;
+    private readonly format: DefaultLoggerFormat | undefined;
     private defaultContext = DEFAULT_CONTEXT;
-    private readonly localeStringOptions = {
-        year: '2-digit',
-        hour: 'numeric',
-        minute: 'numeric',
-        day: 'numeric',
-        month: 'numeric',
-    } as const;
     private static originalLogLevel: LogLevel;
 
-    constructor(options?: { level?: LogLevel; timestamp?: boolean }) {
+    constructor(options?: DefaultLoggerOptions) {
         this.level = options && options.level != null ? options.level : LogLevel.Info;
         this.timestamp = options && options.timestamp !== undefined ? options.timestamp : true;
+        this.format = options?.format;
     }
 
     /**
@@ -79,7 +173,7 @@ export class DefaultLogger implements VendureLogger {
         this.defaultContext = defaultContext;
     }
 
-    error(message: string, context?: string, trace?: string | undefined): void {
+    error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
         if (context === 'ExceptionsHandler' && this.level < LogLevel.Verbose) {
             // In Nest v7, there is an ExternalExceptionFilter which catches *all*
             // errors and logs them, no matter the LogLevel attached to the error.
@@ -89,51 +183,55 @@ export class DefaultLogger implements VendureLogger {
             return;
         }
         if (this.level >= LogLevel.Error) {
-            this.logMessage(
-                pc.red('error'),
-                pc.red(this.ensureString(message) + (trace ? `\n${trace}` : '')),
-                context,
-            );
+            this.logMessage('error', message, context, meta, trace);
         }
     }
-    warn(message: string, context?: string): void {
+    warn(message: string, context?: string, meta?: LogMeta): void {
         if (this.level >= LogLevel.Warn) {
-            this.logMessage(pc.yellow('warn'), pc.yellow(this.ensureString(message)), context);
+            this.logMessage('warn', message, context, meta);
         }
     }
-    info(message: string, context?: string): void {
+    info(message: string, context?: string, meta?: LogMeta): void {
         if (this.level >= LogLevel.Info) {
-            this.logMessage(pc.blue('info'), this.ensureString(message), context);
+            this.logMessage('info', message, context, meta);
         }
     }
-    verbose(message: string, context?: string): void {
+    verbose(message: string, context?: string, meta?: LogMeta): void {
         if (this.level >= LogLevel.Verbose) {
-            this.logMessage(pc.magenta('verbose'), this.ensureString(message), context);
+            this.logMessage('verbose', message, context, meta);
         }
     }
-    debug(message: string, context?: string): void {
+    debug(message: string, context?: string, meta?: LogMeta): void {
         if (this.level >= LogLevel.Debug) {
-            this.logMessage(pc.magenta('debug'), this.ensureString(message), context);
+            this.logMessage('debug', message, context, meta);
         }
     }
 
-    private logMessage(prefix: string, message: string, context?: string) {
-        process.stdout.write(
-            [prefix, this.logTimestamp(), this.logContext(context), message, '\n'].join(' '),
-        );
-    }
-
-    private logContext(context?: string) {
-        return pc.cyan(`[${context || this.defaultContext}]`);
-    }
-
-    private logTimestamp() {
-        if (this.timestamp) {
-            const timestamp = new Date(Date.now()).toLocaleString(undefined, this.localeStringOptions);
-            return pc.gray(timestamp + ' -');
-        } else {
-            return '';
-        }
+    private logMessage(
+        level: LogLevelName,
+        message: string,
+        context: string | undefined,
+        meta: LogMeta | undefined,
+        trace?: string,
+    ) {
+        const line: LogLine = {
+            ts: new Date().toISOString(),
+            level,
+            ctx: context || this.defaultContext,
+            msg: this.ensureString(message),
+            // Read for each line, because the logger is created before bootstrap sets the context.
+            process: process.env.VENDURE_PROCESS || getProcessContextName(),
+            requestId: getRequestId(),
+            code: meta?.code,
+            stack: trace || undefined,
+        };
+        // Without the option, the environment variable is read for each line, because the default
+        // logger is created when @vendure/core is imported, which can be before a .env file is loaded.
+        const format = this.format ?? (process.env.VENDURE_LOG_FORMAT === 'json' ? 'json' : 'text');
+        // JSON.stringify() leaves out the fields which are undefined.
+        const output =
+            format === 'json' ? JSON.stringify(line) : formatTextLine(line, { timestamp: this.timestamp });
+        process.stdout.write(output + '\n');
     }
 
     private ensureString(message: string | object | any[]): string {

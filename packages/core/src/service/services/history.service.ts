@@ -112,6 +112,11 @@ export interface OrderHistoryEntryData {
     };
     [HistoryEntryType.ORDER_MODIFIED]: {
         modificationId: ID;
+        /**
+         * Whether the Order's Promotions were frozen by the modification, see
+         * {@link PromotionFreezeStrategy}. Absent on entries created before v4.0.
+         */
+        promotionsFrozen?: boolean;
     };
     [HistoryEntryType.ORDER_CUSTOMER_UPDATED]: {
         previousCustomerId?: ID;

@@ -12,7 +12,7 @@ import {
 } from '../../../config';
 import { manualFulfillmentHandler } from '../../../config/fulfillment/manual-fulfillment-handler';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
-import { Channel, Collection, FacetValue, TaxCategory, User } from '../../../entity';
+import { Channel, Collection, FacetValue, TaxCategory } from '../../../entity';
 import {
     CollectionService,
     FacetValueService,
@@ -27,6 +27,7 @@ import { SearchService } from '../../../service/services/search.service';
 import { TaxCategoryService } from '../../../service/services/tax-category.service';
 import { TaxRateService } from '../../../service/services/tax-rate.service';
 import { ZoneService } from '../../../service/services/zone.service';
+import { findSuperAdminUser } from '../../presets/preset-context';
 import {
     CollectionFilterDefinition,
     CountryDefinition,
@@ -201,12 +202,7 @@ export class Populator {
     }
 
     private async createRequestContext(data: InitialData, channel?: Channel) {
-        const { superadminCredentials } = this.configService.authOptions;
-        const superAdminUser = await this.connection.rawConnection.getRepository(User).findOne({
-            where: {
-                identifier: superadminCredentials.identifier,
-            },
-        });
+        const superAdminUser = await findSuperAdminUser(this.connection, this.configService);
         const ctx = await this.requestContextService.create({
             user: superAdminUser ?? undefined,
             apiType: 'admin',

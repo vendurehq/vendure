@@ -35,6 +35,7 @@ import {
     SettlePaymentResult,
     SettleRefundInput,
     ShippingMethodQuote,
+    ShippingMethodSelectionInput,
     TransitionPaymentToStateResult,
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
@@ -42,7 +43,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { DEFAULT_CHANNEL_CODE, DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { EntityManager, In, IsNull } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -50,7 +51,12 @@ import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { LocalizedStringArray } from '../../common/configurable-operation';
 import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
-import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
+import {
+    ErrorResultUnion,
+    GraphQLErrorResult,
+    isGraphQlErrorResult,
+    JustErrorResults,
+} from '../../common/error/error-result';
 import {
     EntityNotFoundError,
     InternalServerError,
@@ -73,6 +79,7 @@ import {
 } from '../../common/error/generated-graphql-admin-errors';
 import {
     CouponRemovedDuringCheckoutError,
+    IneligibleShippingMethodError,
     InsufficientStockError,
     NegativeQuantityError,
     OrderInterceptorError,
@@ -84,14 +91,14 @@ import {
     PaymentFailedError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
-import { TransactionalConnection } from '../../connection/transactional-connection';
+import { isRetriableTransactionError } from '../../connection/is-retriable-transaction-error';
+import { LockRowOptions, TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
@@ -131,7 +138,10 @@ import { OrderStateMachine } from '../helpers/order-state-machine/order-state-ma
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
-import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
+import {
+    ShippingCalculator,
+    toShippingMethodQuote,
+} from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { calculateOrderLineUnitPrice } from '../helpers/utils/calculate-order-line-unit-price';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
@@ -144,6 +154,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { compareIdsForLockOrder } from '../helpers/utils/stock-lock-order';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -170,11 +181,22 @@ interface AllowedCancelledTransition {
     finalize: () => Promise<any>;
 }
 
-class RefusedCancellation extends Error {
-    constructor(readonly result: OrderStateTransitionError) {
+/**
+ * Thrown inside `withTransaction()` to roll the transaction back, and caught outside it to return
+ * the error result it carries.
+ */
+class RollbackWithResult extends Error {
+    constructor(readonly result: GraphQLErrorResult) {
         super(result.message);
     }
 }
+
+/**
+ * The Order lock which serializes the read-modify-write of an Order. See LockRowOptions: where the
+ * reads after the lock would not see the previous writer's changes, the lock is skipped rather than
+ * making every concurrent write overwrite the one before it.
+ */
+const READ_COMMITTED_LOCK: LockRowOptions = { requireReadCommitted: true };
 
 /**
  * @description
@@ -1225,8 +1247,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed ShippingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1249,8 +1271,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed BillingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1273,8 +1295,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed ShippingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1297,8 +1319,8 @@ export class OrderService implements OnApplicationBootstrap {
         // Since a changed BillingAddress could alter the activeTaxZone,
         // we will remove any cached activeTaxZone, so it can be re-calculated
         // as needed.
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId), undefined);
-        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, order, order.lines);
     }
 
@@ -1313,19 +1335,10 @@ export class OrderService implements OnApplicationBootstrap {
     async getEligibleShippingMethods(ctx: RequestContext, orderId: ID): Promise<ShippingMethodQuote[]> {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const eligibleMethods = await this.shippingCalculator.getEligibleShippingMethods(ctx, order);
-        return eligibleMethods.map(eligible => {
-            const { price, taxRate, priceIncludesTax, metadata } = eligible.result;
-            return {
-                id: eligible.method.id,
-                price: priceIncludesTax ? netPriceOf(price, taxRate) : price,
-                priceWithTax: priceIncludesTax ? price : grossPriceOf(price, taxRate),
-                description: eligible.method.description,
-                name: eligible.method.name,
-                code: eligible.method.code,
-                metadata,
-                customFields: eligible.method.customFields,
-            };
-        });
+        return eligibleMethods.map(eligible => ({
+            ...toShippingMethodQuote(eligible),
+            customFields: eligible.method.customFields,
+        }));
     }
 
     /**
@@ -1339,25 +1352,47 @@ export class OrderService implements OnApplicationBootstrap {
 
     /**
      * @description
-     * Sets the ShippingMethod to be used on this Order.
+     * Sets the ShippingMethod to be used on this Order. Each entry is either a ShippingMethod id, or a
+     * selection which also names one of the ShippingMethod's options by its `shippingOptionCode`.
+     * Without a code, the cheapest option is used.
      */
     async setShippingMethod(
         ctx: RequestContext,
         orderId: ID,
-        shippingMethodIds: ID[],
+        shippingMethods: Array<ID | ShippingMethodSelectionInput>,
     ): Promise<ErrorResultUnion<SetOrderShippingMethodResult, Order>> {
         const order = await this.getOrderOrThrow(ctx, orderId);
         const validationError = this.assertAddingItemsState(order);
         if (validationError) {
             return validationError;
         }
-        const result = await this.orderModifier.setShippingMethods(ctx, order, shippingMethodIds);
-        if (isGraphQlErrorResult(result)) {
-            return result;
+        if (shippingMethods.length === 0) {
+            throw new UserInputError('error.set-order-shipping-method-arguments-invalid');
         }
-        const updatedOrder = await this.getOrderOrThrow(ctx, orderId);
-        await this.applyPriceAdjustments(ctx, updatedOrder);
-        return this.connection.getRepository(ctx, Order).save(updatedOrder);
+        // In its own transaction (a savepoint inside the request's), so that a refused method or option
+        // leaves the Order in the database as it was, rather than with half-written ShippingLines.
+        // Events published by promotion side effects during the pricing are not undone.
+        try {
+            return await this.connection.withTransaction(ctx, async txCtx => {
+                const result = await this.orderModifier.setShippingMethods(txCtx, order, shippingMethods);
+                if (isGraphQlErrorResult(result)) {
+                    throw new RollbackWithResult(result);
+                }
+                const updatedOrder = await this.getOrderOrThrow(txCtx, orderId);
+                // Prices each ShippingLine once, with the option it names, after the promotions and
+                // the assignment of the OrderLines
+                await this.applyPriceAdjustments(txCtx, updatedOrder);
+                if (!result.selectionKept(updatedOrder.shippingLines)) {
+                    throw new RollbackWithResult(new IneligibleShippingMethodError());
+                }
+                return this.connection.getRepository(txCtx, Order).save(updatedOrder);
+            });
+        } catch (e: unknown) {
+            if (e instanceof RollbackWithResult && e.result instanceof IneligibleShippingMethodError) {
+                return e.result;
+            }
+            throw e;
+        }
     }
 
     /**
@@ -1407,6 +1442,7 @@ export class OrderService implements OnApplicationBootstrap {
         fulfillmentId: ID,
         state: FulfillmentState,
     ): Promise<Fulfillment | FulfillmentStateTransitionError> {
+        await this.lockOrders(ctx, await this.getOrderIdsOfFulfillment(ctx, fulfillmentId));
         const result = await this.fulfillmentService.transitionToState(ctx, fulfillmentId, state);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -1487,6 +1523,7 @@ export class OrderService implements OnApplicationBootstrap {
             type: HistoryEntryType.ORDER_MODIFIED,
             data: {
                 modificationId: result.modification.id,
+                promotionsFrozen: result.promotionsFrozen,
             },
         });
         return this.getOrderOrThrow(ctx, input.orderId);
@@ -1501,6 +1538,7 @@ export class OrderService implements OnApplicationBootstrap {
         paymentId: ID,
         state: PaymentState,
     ): Promise<ErrorResultUnion<TransitionPaymentToStateResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         return this.paymentService.transitionToState(ctx, paymentId, state);
     }
 
@@ -1593,7 +1631,8 @@ export class OrderService implements OnApplicationBootstrap {
      * The exact resolution under contention depends on the database's
      * transaction-isolation default:
      *
-     *   - Postgres (READ COMMITTED): each non-locking SELECT sees the
+     *   - READ COMMITTED (Postgres, and MySQL/MariaDB, which Vendure runs at
+     *     READ COMMITTED by default): each non-locking SELECT sees the
      *     latest committed data. The first lock holder observes N-1 other
      *     orders associated with the promotion (because `countPromotionUsages`
      *     joins through `order.promotions` and counts `ArrangingPayment`
@@ -1602,20 +1641,14 @@ export class OrderService implements OnApplicationBootstrap {
      *     final lock holder sees zero and succeeds. Net: exactly one winner,
      *     specifically whichever order acquires the lock last ("last-wins").
      *
-     *   - MySQL/MariaDB (REPEATABLE READ): the consistent-read snapshot is
-     *     established by the very first non-locking SELECT in the resolver's
-     *     transaction (the order lookup at the top of `addPaymentToOrder`),
-     *     before this lock is acquired. Every subsequent non-locking SELECT
-     *     in the same transaction reads from that fixed snapshot, so each
+     *   - REPEATABLE READ, if configured on MySQL/MariaDB through
+     *     `entityOptions.transactionIsolationLevel`: the consistent-read
+     *     snapshot is established by the very first non-locking SELECT in the
+     *     resolver's transaction, before this lock is acquired, so each
      *     concurrent transaction's count query still sees the *other* orders
-     *     as holding the coupon. Result: every contender sees `count >= 1`
-     *     and strips, yielding zero winners. This is over-protective rather
-     *     than buggy — the over-application invariant still holds — but it
-     *     is a worse outcome than Postgres's last-wins. Closing this gap
-     *     properly requires either bypassing the snapshot for the count
-     *     query (`SELECT ... FOR UPDATE`) or restructuring so the lock
-     *     query is the very first read in the transaction; both come with
-     *     trade-offs (gap locks, broader scope) and are deferred.
+     *     as holding the coupon. Every contender strips, yielding zero
+     *     winners. Over-protective rather than buggy: the over-application
+     *     invariant still holds.
      *
      * Do not "fix" the resolution into first-wins without re-deriving the
      * count semantics from scratch.
@@ -1645,19 +1678,7 @@ export class OrderService implements OnApplicationBootstrap {
                 // until the resolver's @Transaction() commits. On SQLite the
                 // lock is not supported; SQLite serializes writes at the
                 // engine level instead.
-                try {
-                    await this.connection
-                        .getRepository(ctx, Promotion)
-                        .createQueryBuilder('promotion')
-                        .setLock('pessimistic_write')
-                        .where('promotion.id = :id', { id: promotion.id })
-                        .getOne();
-                } catch (e) {
-                    if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                        throw e;
-                    }
-                    // Lock not supported (e.g. SQLite) — continue without it
-                }
+                await this.connection.lockRow(ctx, Promotion, promotion.id);
             }
             const validationResult = await this.promotionService.validateCouponCode(
                 ctx,
@@ -1786,6 +1807,7 @@ export class OrderService implements OnApplicationBootstrap {
         ctx: RequestContext,
         paymentId: ID,
     ): Promise<ErrorResultUnion<SettlePaymentResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         const payment = await this.paymentService.settlePayment(ctx, paymentId);
         if (!isGraphQlErrorResult(payment)) {
             if (payment.state !== 'Settled') {
@@ -1804,6 +1826,7 @@ export class OrderService implements OnApplicationBootstrap {
         ctx: RequestContext,
         paymentId: ID,
     ): Promise<ErrorResultUnion<CancelPaymentResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         const payment = await this.paymentService.cancelPayment(ctx, paymentId);
         if (!isGraphQlErrorResult(payment)) {
             if (payment.state !== 'Cancelled') {
@@ -1824,6 +1847,12 @@ export class OrderService implements OnApplicationBootstrap {
         if (!input.lines || input.lines.length === 0 || summate(input.lines, 'quantity') === 0) {
             return new EmptyOrderLineSelectionError();
         }
+        // Lock the Orders before checking what is left to fulfil, then read them again: a
+        // concurrent fulfillment of the same lines may have committed while this one waited.
+        await this.lockOrders(
+            ctx,
+            (await getOrdersFromLines(ctx, this.connection, input.lines)).map(order => order.id),
+        );
         const orders = await getOrdersFromLines(ctx, this.connection, input.lines);
 
         if (await this.requestedFulfillmentQuantityExceedsLineQuantity(ctx, input)) {
@@ -1988,6 +2017,7 @@ export class OrderService implements OnApplicationBootstrap {
     ): Promise<ErrorResultUnion<CancelOrderResult, Order>> {
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
+                await this.connection.lockRow(txCtx, Order, input.orderId, READ_COMMITTED_LOCK);
                 // Cancelling lines publishes events (OrderLineEvent, StockMovementEvent, HistoryEntryEvent)
                 // which subscribers receive once the outermost transaction commits, even when a savepoint
                 // inside it was rolled back. So a refusal must be known before the lines are cancelled.
@@ -2022,10 +2052,10 @@ export class OrderService implements OnApplicationBootstrap {
                             'Cancelled',
                         );
                         if (isGraphQlErrorResult(transitionResult)) {
-                            throw new RefusedCancellation(transitionResult);
+                            throw new RollbackWithResult(transitionResult);
                         }
                         if (transitionResult.state !== 'Cancelled') {
-                            throw new RefusedCancellation(
+                            throw new RollbackWithResult(
                                 this.createCancelledTransitionError(txCtx, transitionResult.state),
                             );
                         }
@@ -2034,7 +2064,7 @@ export class OrderService implements OnApplicationBootstrap {
                 return assertFound(this.findOne(txCtx, input.orderId));
             });
         } catch (e: unknown) {
-            if (e instanceof RefusedCancellation) {
+            if (e instanceof RollbackWithResult && e.result instanceof OrderStateTransitionError) {
                 return e.result;
             }
             throw e;
@@ -2162,6 +2192,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (!input.amount && !input.targets?.length) {
             return new NothingToRefundError();
         }
+        // The refundable amount is computed from the Refunds already recorded, so a concurrent
+        // refund of the same Payment has to have committed before it is read.
+        await this.lockOrderOfPayment(ctx, input.paymentId);
         const orders = await getOrdersFromLines(ctx, this.connection, input.lines ?? []);
         if (1 < orders.length) {
             return new MultipleOrderError();
@@ -2427,27 +2460,18 @@ export class OrderService implements OnApplicationBootstrap {
         }
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
-                // Acquire a pessimistic lock on the existing order to prevent concurrent merges
-                // from interleaving their DB operations. See https://github.com/vendurehq/vendure/issues/4481
-                // Note: SQLite does not support pessimistic locks — the try-catch ensures we
-                // degrade gracefully (SQLite serializes writes at the engine level anyway).
+                // Lock the existing order to prevent concurrent merges from interleaving their DB
+                // operations. See https://github.com/vendurehq/vendure/issues/4481. lockRow() is a
+                // no-op on SQLite, which runs every write on a single connection anyway.
                 if (existingOrder) {
-                    try {
-                        await this.connection
-                            .getRepository(txCtx, Order)
-                            .createQueryBuilder('order')
-                            .setLock('pessimistic_write')
-                            .where('order.id = :id', { id: existingOrder.id })
-                            .getOne();
-                    } catch {
-                        // Lock not supported (e.g. SQLite) — continue without it
-                    }
+                    await this.connection.lockRow(txCtx, Order, existingOrder.id);
                 }
 
                 // Re-read the guest order after acquiring the lock. A concurrent merge may have
-                // already deleted it, in which case there is nothing left to merge.
+                // already deleted it, in which case there is nothing left to merge. A concurrent
+                // payment may have placed it, in which case it is no longer a cart to merge.
                 const freshGuestOrder = guestOrder ? await this.findOne(txCtx, guestOrder.id) : undefined;
-                if (!freshGuestOrder && guestOrder) {
+                if (guestOrder && (!freshGuestOrder || !freshGuestOrder.active)) {
                     return existingOrder;
                 }
                 const relationFields = this.configService.customFields.OrderLine.filter(
@@ -2560,7 +2584,12 @@ export class OrderService implements OnApplicationBootstrap {
                 return order;
             });
         } catch (e: unknown) {
-            // If the merge fails for any reason, log the error and return the existing order
+            // A deadlock has ended the transaction on MySQL and MariaDB, so login cannot carry on
+            // without it. Let it through so that the login is retried as a whole.
+            if (isRetriableTransactionError(e)) {
+                throw e;
+            }
+            // If the merge fails for any other reason, log the error and return the existing order
             // unchanged rather than failing the entire login flow.
             const error = e instanceof Error ? e : new Error(String(e));
             Logger.error(`Failed to merge orders: ${error.message}`, undefined, error.stack);
@@ -2581,6 +2610,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (!fullOrder.lines.length) {
             return order;
         }
+        // The tax Zone can depend on the Customer, as for a B2B reverse charge
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone(ctx.channelId, order.id), undefined);
+        this.requestCache.set(ctx, CacheKey.ActiveTaxZone_PPA(ctx.channelId, order.id), undefined);
         return this.applyPriceAdjustments(ctx, fullOrder, fullOrder.lines);
     }
 
@@ -2600,11 +2632,59 @@ export class OrderService implements OnApplicationBootstrap {
         return getOrderChannelContext(ctx, this.connection, this.channelService, orderId);
     }
 
+    /**
+     * Locks the given Orders for the rest of the transaction, in ascending id order. Two requests
+     * which lock the same set of Orders then take the locks in the same order and cannot deadlock.
+     * See {@link TransactionalConnection.lockRow}.
+     */
+    private async lockOrders(ctx: RequestContext, orderIds: ID[]): Promise<void> {
+        const unique = [...new Map(orderIds.map(id => [String(id), id])).values()];
+        unique.sort(compareIdsForLockOrder);
+        for (const id of unique) {
+            await this.connection.lockRow(ctx, Order, id, READ_COMMITTED_LOCK);
+        }
+    }
+
+    /** Locks the Order which the given Payment belongs to. */
+    private async lockOrderOfPayment(ctx: RequestContext, paymentId: ID): Promise<void> {
+        const row = await this.connection
+            .getRepository(ctx, Payment)
+            .createQueryBuilder('payment')
+            .innerJoin('payment.order', 'order')
+            .select('order.id', 'orderId')
+            .where('payment.id = :paymentId', { paymentId })
+            .getRawOne<{ orderId: ID }>();
+        if (row) {
+            await this.connection.lockRow(ctx, Order, row.orderId, READ_COMMITTED_LOCK);
+        }
+    }
+
+    /** Returns the ids of the Orders which the given Fulfillment fulfils. */
+    private async getOrderIdsOfFulfillment(ctx: RequestContext, fulfillmentId: ID): Promise<ID[]> {
+        const orders = await this.connection
+            .getRepository(ctx, Order)
+            .createQueryBuilder('order')
+            .innerJoin('order.fulfillments', 'fulfillment', 'fulfillment.id = :fulfillmentId', {
+                fulfillmentId,
+            })
+            .select('order.id')
+            .getMany();
+        return orders.map(order => order.id);
+    }
+
     private async getOrderOrThrow(
         ctx: RequestContext,
         orderId: ID,
         relations?: RelationPaths<Order>,
     ): Promise<Order> {
+        // Most methods which modify an Order read it through here first, so the write lock which
+        // serializes concurrent modifications of the same order is taken here. The writers which do
+        // not read through here (fulfillments, refunds, payments, cancellation, shipping method
+        // removal, merging, recalculation) take it themselves, and a new writer must do the same.
+        // It is taken before the read, so that what is read is what the lock protects.
+        // No-op outside a transaction and on databases without row locking, which is what keeps
+        // read-only requests from locking anything. See TransactionalConnection.lockRow.
+        await this.connection.lockRow(ctx, Order, orderId, READ_COMMITTED_LOCK);
         const order = await this.findOne(
             ctx,
             orderId,
@@ -2722,6 +2802,14 @@ export class OrderService implements OnApplicationBootstrap {
             updatedOrderLines = order.lines;
             order.currencyCode = ctx.currencyCode;
         }
+        // In a Channel whose prices include tax, the net price of a line depends on the tax Zone and
+        // country, so when either changes, every OrderLine is priced again, not only the edited ones.
+        const taxTargetChanged =
+            ctx.channel.pricesIncludeTax &&
+            (await this.orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order));
+        if (taxTargetChanged) {
+            updatedOrderLines = order.lines;
+        }
 
         if (updatedOrderLines?.length) {
             const { orderItemPriceCalculationStrategy, changedPriceHandlingStrategy } =
@@ -2744,6 +2832,12 @@ export class OrderService implements OnApplicationBootstrap {
                 if (!priceResult) {
                     // No price for the buyer now: the line keeps its current price
                     continue;
+                }
+                if (taxTargetChanged && !currencyChanged) {
+                    // The new tax target can turn a gross price into a net one, or back. The price
+                    // the line was added at is converted the same way, so that only a change by the
+                    // merchant reaches the ChangedPriceHandlingStrategy.
+                    await this.orderCalculator.convertInitialListPrice(ctx, updatedOrderLine, priceResult);
                 }
                 const initialListPrice = updatedOrderLine.initialListPrice ?? priceResult.price;
                 if (initialListPrice !== priceResult.price) {
@@ -2836,25 +2930,11 @@ export class OrderService implements OnApplicationBootstrap {
             return order;
         }
         return this.connection.withTransaction(ctx, async txCtx => {
-            // Acquire a pessimistic write lock on the Order row to serialize concurrent reads.
-            // On SQLite the lock is not supported; SQLite serializes writes at the engine level.
-            let lockedOrder: Order | null = null;
-            try {
-                lockedOrder = await this.connection
-                    .getRepository(txCtx, Order)
-                    .createQueryBuilder('order')
-                    .setLock('pessimistic_write')
-                    .where('order.id = :id', { id: order.id })
-                    .getOne();
-            } catch (e) {
-                if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                    throw e;
-                }
-                // Lock not supported (e.g. SQLite) — continue without it
-                lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
-                    where: { id: order.id },
-                });
-            }
+            // Lock the Order row to serialize concurrent reads, then read it.
+            await this.connection.lockRow(txCtx, Order, order.id);
+            const lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
+                where: { id: order.id },
+            });
             if (!lockedOrder) {
                 return order;
             }
@@ -2944,9 +3024,16 @@ export class OrderService implements OnApplicationBootstrap {
             if (affectedOrders.length === 0) {
                 continue;
             }
+            // A shopper may be changing one of these carts at the same time.
+            await this.lockOrders(
+                orderCtx,
+                affectedOrders.map(o => o.id),
+            );
 
             const orders = await this.connection.getRepository(orderCtx, Order).find({
-                where: { id: In(affectedOrders.map(o => o.id)) },
+                // Read again after the lock, and only the Orders which are still carts: one may
+                // have been paid while this waited for it.
+                where: { id: In(affectedOrders.map(o => o.id)), active: true },
                 relations: {
                     lines: { productVariant: true },
                     shippingLines: true,
