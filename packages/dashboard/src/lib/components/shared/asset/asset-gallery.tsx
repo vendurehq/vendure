@@ -32,6 +32,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
+import { useRememberedListTotal } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import { SkeletonLine } from '@vendure-io/ui/components/molecules/state-views/skeleton-parts';
 import { ChevronRight, LayoutGrid, LayoutList, Search, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -407,6 +408,16 @@ export function AssetGallery({
     };
 
     const hasActiveFilters = search.trim().length > 0 || assetType !== AssetType.ALL || gridSelectedTags.length > 0;
+    // The unfiltered total of the last visit, so the first load draws as many skeleton
+    // cards as this page will have. A filtered load keeps the unfiltered total.
+    const rememberedTotal = useRememberedListTotal(
+        hasActiveFilters ? undefined : 'asset-gallery',
+        isLoading || hasActiveFilters ? null : (data?.assets.totalItems ?? null),
+    );
+    const skeletonCount =
+        rememberedTotal == null
+            ? itemsPerPage
+            : Math.min(itemsPerPage, Math.max(0, rememberedTotal - (page - 1) * itemsPerPage));
     const isAssetDropActive = viewMode === 'grid' ? isDragActive : isListDragActive;
 
     // Go to specific page
@@ -621,7 +632,7 @@ export function AssetGallery({
                     <AssetGridView
                         assets={assets}
                         isLoading={isLoading}
-                        itemsPerPage={itemsPerPage}
+                        skeletonCount={skeletonCount}
                         isError={isError}
                         error={error}
                         retry={refetch}
@@ -808,7 +819,8 @@ export function AssetGallery({
 interface AssetViewProps {
     assets: Asset[];
     isLoading: boolean;
-    itemsPerPage: number;
+    /** The number of skeleton cards while the page loads. */
+    skeletonCount: number;
     isError: boolean;
     error: Error | null;
     retry: () => void;
@@ -857,7 +869,7 @@ function AssetEmptyState({
 function AssetGridView({
     assets,
     isLoading,
-    itemsPerPage,
+    skeletonCount,
     isError,
     error,
     retry,
@@ -870,7 +882,7 @@ function AssetGridView({
     onToggleAsset,
 }: Readonly<AssetViewProps>) {
     if (isLoading) {
-        return <AssetGridSkeleton count={itemsPerPage} />;
+        return <AssetGridSkeleton count={skeletonCount} />;
     }
 
     if (isError) {
