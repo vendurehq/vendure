@@ -21,9 +21,13 @@ export function ZoneCountriesTable({
     canAddCountries = false,
     title,
 }: Readonly<ZoneCountriesTableProps>) {
-    const { data, refetch } = useQuery({
+    // No placeholder data: the key names one zone, so another zone's countries
+    // must not show while this one loads. `isPending` shows the skeleton on the
+    // first load and on a zone switch, not on the refetch after adding a country.
+    const { data, refetch, isPending } = useQuery({
         queryKey: ['zone', zoneId],
         queryFn: () => api.query(zoneMembersQuery, { zoneId }),
+        placeholderData: undefined,
     });
 
     const { mutate: addCountryToZone } = useMutation({
@@ -60,11 +64,15 @@ export function ZoneCountriesTable({
             code: {
                 header: () => <Trans>Code</Trans>,
                 accessorKey: 'code',
+                meta: { width: '8rem' },
                 cell: ({ getValue }) => <IdentifierDisplay value={getValue() as string} />,
             },
             enabled: {
                 header: () => <Trans>Status</Trans>,
                 accessorKey: 'enabled',
+                // The badge's inset, declared: measured, it would only apply once
+                // the rows arrive and the header text would move 19px.
+                meta: { width: '8rem', contentInset: 'status-badge' },
                 cell: ({ getValue }) => <BooleanDisplayBadge value={getValue() as boolean} />,
             },
         },
@@ -77,11 +85,14 @@ export function ZoneCountriesTable({
         <DataTable
             columns={columns as any}
             data={paginatedItems}
+            isLoading={isPending}
             onPageChange={(table, page, itemsPerPage) => {
                 setPage(page);
                 setPageSize(itemsPerPage);
             }}
             totalItems={data?.zone?.members?.length ?? null}
+            // The skeleton shows as many rows as this zone had last time.
+            rowCountKey={`zone-countries:${zoneId}`}
             bulkActions={bulkActions}
             title={title}
             actions={
