@@ -136,6 +136,16 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          * @since 4.0.0
          */
         minWidth?: DataTableColumnMeta['minWidth'];
+        /**
+         * @description
+         * The inset of a column whose cells start with a badge, such as
+         * `'status-badge'` for a `StatusBadge`. The header text then lines up
+         * with the badge text while the list loads too, not only once the rows
+         * arrive.
+         *
+         * @since 4.0.0
+         */
+        contentInset?: DataTableColumnMeta['contentInset'];
     };
 };
 
