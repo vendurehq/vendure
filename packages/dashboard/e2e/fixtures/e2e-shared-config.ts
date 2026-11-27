@@ -8,6 +8,7 @@ import {
     LanguageCode,
     RefundDestinationStrategy,
     RequestContext,
+    ShippingCalculator,
 } from '@vendure/core';
 
 /**
@@ -296,5 +297,22 @@ export const e2eCollectionFilters = [
         description: [{ languageCode: LanguageCode.en, value: 'Filter by external IDs' }],
         args: { externalIds: { type: 'string', list: true } },
         apply: qb => qb,
+    }),
+];
+
+/**
+ * A calculator which, like a carrier API, returns several priced options for one
+ * ShippingMethod (OSS-1003 / #2649). Its prices are above those of the seeded methods,
+ * so specs which pick the cheapest eligible method never pick it.
+ */
+export const e2eShippingCalculators = [
+    new ShippingCalculator({
+        code: 'e2e-carrier-rates',
+        description: [{ languageCode: LanguageCode.en, value: 'Carrier rates (several options)' }],
+        args: {},
+        calculate: () => [
+            { code: 'ground', name: 'Ground', price: 2000, priceIncludesTax: false, taxRate: 0 },
+            { code: 'next-day', name: 'Next day', price: 4000, priceIncludesTax: false, taxRate: 0 },
+        ],
     }),
 ];

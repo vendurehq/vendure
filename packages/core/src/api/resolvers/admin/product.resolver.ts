@@ -135,7 +135,13 @@ export class ProductResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: MutationUpdateProductsArgs,
     ): Promise<Array<Translated<Product>>> {
-        return await Promise.all(args.input.map(i => this.productService.update(ctx, i)));
+        // One after another: concurrent writes in one transaction share its database connection, and
+        // on Postgres their savepoints then fail with "savepoint does not exist".
+        const products: Array<Translated<Product>> = [];
+        for (const input of args.input) {
+            products.push(await this.productService.update(ctx, input));
+        }
+        return products;
     }
 
     @Transaction()

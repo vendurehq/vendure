@@ -14,7 +14,7 @@ import {
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
-import { DataSource, EntitySubscriberInterface } from 'typeorm';
+import { DataSource, EntitySubscriberInterface, In } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -182,11 +182,26 @@ describe('SqlJobQueueStrategy next()', () => {
         }, TEST_SETUP_TIMEOUT_MS);
 
         it('picks the oldest pending jobs in order', async () => {
-            const tags: string[] = [];
+            const jobs: Array<Job | undefined> = [];
             for (let i = 0; i < 5; i++) {
-                tags.push((await strategy.next(queueName))?.data.tag);
+                jobs.push(await strategy.next(queueName));
             }
-            expect(tags).toEqual(['backlog-0', 'backlog-1', 'backlog-2', 'backlog-3', 'backlog-4']);
+            expect(jobs.map(job => job?.data.tag)).toEqual([
+                'backlog-0',
+                'backlog-1',
+                'backlog-2',
+                'backlog-3',
+                'backlog-4',
+            ]);
+            // next() resolves before its transaction has committed. A job whose pick has not
+            // committed yet still looks PENDING, so the next test would load it and skip it.
+            await pollUntil(
+                async () =>
+                    (await connection.getRepository('JobRecord').countBy({
+                        id: In(jobs.map(job => job?.id)),
+                        state: JobState.RUNNING,
+                    })) === jobs.length,
+            );
         });
 
         // The rows read are counted with MySQL / MariaDB session status counters
@@ -205,7 +220,13 @@ describe('SqlJobQueueStrategy next()', () => {
             try {
                 const StrategyClass = strategy.constructor as new () => PollingJobQueueStrategy;
                 const singleConnectionStrategy = new StrategyClass();
-                singleConnectionStrategy.init({ get: () => ({ rawConnection: singleConnection }) } as any);
+                singleConnectionStrategy.init({
+                    get: () => ({
+                        rawConnection: singleConnection,
+                        withRawTransaction: (work: any) =>
+                            singleConnection.transaction('READ COMMITTED', work),
+                    }),
+                } as any);
                 const handlerReads = async () => {
                     const rows: Array<{ Value: string }> = await singleConnection.query(
                         "SHOW SESSION STATUS LIKE 'Handler_read%'",
@@ -235,7 +256,7 @@ describe('SqlJobQueueStrategy next()', () => {
             const subscriber: EntitySubscriberInterface = {
                 afterLoad(entity, event) {
                     // Only the records of this queue: the server's own job queue workers poll the
-                    // other queues on the same connection meanwhile, which made this test flaky
+                    // other queues on the same connection meanwhile
                     if (event?.metadata.name === 'JobRecord' && entity.queueName === queueName) {
                         loadedCount++;
                     }

@@ -119,6 +119,13 @@ export const testEligibleShippingMethodsDocument = graphql(`
             price
             priceWithTax
             metadata
+            options {
+                code
+                name
+                price
+                priceWithTax
+                metadata
+            }
         }
     }
 `);
@@ -128,6 +135,13 @@ export const testShippingMethodDocument = graphql(`
         testShippingMethod(input: $input) {
             eligible
             quote {
+                price
+                priceWithTax
+                metadata
+            }
+            options {
+                code
+                name
                 price
                 priceWithTax
                 metadata

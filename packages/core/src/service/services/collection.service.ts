@@ -20,7 +20,7 @@ import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { merge } from 'rxjs';
 import { debounceTime, filter } from 'rxjs/operators';
-import { In, InsertQueryBuilder, IsNull, ObjectLiteral, QueryRunner } from 'typeorm';
+import { EntityManager, In, InsertQueryBuilder, IsNull, ObjectLiteral, QueryRunner } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -914,9 +914,7 @@ export class CollectionService implements OnModuleInit {
                     ? `collections ${options.collectionIds.join(', ')}`
                     : 'all collections';
                 const message = err instanceof Error ? err.message : String(err);
-                Logger.error(
-                    `Could not enqueue the apply-collection-filters job for ${target}: ${message}`,
-                );
+                Logger.error(`Could not enqueue the apply-collection-filters job for ${target}: ${message}`);
             });
     }
 
@@ -1048,7 +1046,7 @@ export class CollectionService implements OnModuleInit {
         // whose membership has been written, and goes on to reindex them and publish events for
         // them. Reporting success for a write which did not happen leaves the Collection contents
         // permanently out of sync with the search index and the storefront.
-        await this.connection.rawConnection.transaction(async transactionalEntityManager => {
+        const writeMembership = async (transactionalEntityManager: EntityManager) => {
             const chunkedDeleteIds = this.chunkArray(toRemoveIds, 5000);
             const chunkedAddIds = this.chunkArray(toAddIds, 5000);
             await Promise.all([
@@ -1086,7 +1084,8 @@ export class CollectionService implements OnModuleInit {
                     ).execute(),
                 ),
             ]);
-        });
+        };
+        await this.connection.withRawTransaction(writeMembership);
 
         if (applyToChangedVariantsOnly) {
             return [...toAddIds, ...toRemoveIds];

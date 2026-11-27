@@ -82,6 +82,10 @@ export const defaultFulfillmentProcess: FulfillmentProcess<FulfillmentState> = {
         const { fulfillmentHandlers } = configService.shippingOptions;
         const fulfillmentHandler = fulfillmentHandlers.find(h => h.code === data.fulfillment.handlerCode);
         if (fulfillmentHandler) {
+            if (fulfillmentHandler.hasOnFulfillmentTransition) {
+                // The hook may call a carrier, which a retry of the transaction would call again.
+                connection.preventTransactionRetry(data.ctx);
+            }
             const result = await awaitPromiseOrObservable(
                 fulfillmentHandler.onFulfillmentTransition(fromState, toState, data),
             );

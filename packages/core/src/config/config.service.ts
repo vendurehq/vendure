@@ -56,7 +56,7 @@ export class ConfigService implements VendureConfig {
         return this.activeConfig.defaultLanguageCode;
     }
 
-    get entityOptions(): Required<EntityOptions> {
+    get entityOptions(): Required<Omit<EntityOptions, 'transactionIsolationLevel'>> & EntityOptions {
         return this.activeConfig.entityOptions;
     }
 

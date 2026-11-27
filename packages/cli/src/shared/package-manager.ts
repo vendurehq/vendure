@@ -1,9 +1,11 @@
+import type { CreateRecordPackageManager } from '@vendure/common/lib/create-record';
 import fs from 'fs-extra';
 import path from 'node:path';
 
 import { walkUp } from './project-validation.js';
 
-export type PackageManager = 'bun' | 'yarn' | 'pnpm' | 'npm';
+/** The package managers the CLI knows. It is the list `.vendure/create.json` can record. */
+export type PackageManager = CreateRecordPackageManager;
 
 /**
  * The package manager whose lockfile is in `dir`, or `undefined` when there is

@@ -18,7 +18,7 @@ export interface McpRegisteredTool extends McpToolMetadata {
     /** Decided once at discovery, so the advertised schema and the call-time session exchange cannot disagree. */
     acceptsSessionToken: boolean;
     compiledInputSchema: StandardSchemaWithJSON;
-    /** The author's schema, with optional `confirm` or `sessionToken` fields added when required. */
+    /** The author's schema, with the optional string `confirm` or `sessionToken` fields added when required. */
     wireJsonSchema: McpJsonSchema;
     /** Compiled validator for the declared output schema, if any. */
     compiledOutputSchema?: StandardSchemaWithJSON;
@@ -33,5 +33,5 @@ export interface McpRegisteredTool extends McpToolMetadata {
  */
 export type McpExposedTool = Pick<
     McpRegisteredTool,
-    'name' | 'title' | 'description' | 'compiledInputSchema' | 'annotations'
+    'name' | 'title' | 'description' | 'compiledInputSchema' | 'annotations' | 'keywords'
 >;

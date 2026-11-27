@@ -25,6 +25,15 @@ const allowedOpenObjectPaths = new Set([
     'update_product.input.customFields',
     'create_variant.input.customFields',
     'update_variant.input.customFields',
+    // A configurable operation's arguments are named by the operation, and core validates them.
+    'create_shipping_method.input.checker.args',
+    'create_shipping_method.input.calculator.args',
+    'update_shipping_method.input.checker.args',
+    'update_shipping_method.input.calculator.args',
+    'create_payment_method.input.handler.args',
+    'create_payment_method.input.checker.anyOf[0].args',
+    'update_payment_method.input.handler.args',
+    'update_payment_method.input.checker.anyOf[0].args',
 ]);
 
 function assertStrictObjectSchemas(schema: unknown, path: string): void {

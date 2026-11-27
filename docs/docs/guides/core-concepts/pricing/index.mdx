@@ -124,7 +124,7 @@ A layer that changes other arguments and calls `inner` with its own argument lis
 `data` is pricing input that your strategy defines, for example the code of a packaging unit. Vendure does not validate or interpret it.
 
 - In the cart, `data` is a copy of the order line custom fields that the `OrderItemPriceCalculationStrategy` chain passes down.
-- For the `buyerPrice` and `buyerPrices` queries, `data` is a copy of the `customFields` of the input.
+- For the `buyerPrice` and `buyerPrices` queries, `data` is a copy of the `customFields` of the input. Vendure validates these custom fields as it does for `addItemToOrder`. A field that has a default value gets the default when the input leaves it out or sets it to null, as a new order line does.
 
 To get the same price in both places, the storefront passes the same values to `buyerPrice` or `buyerPrices` that it passes as `customFields` to `addItemToOrder`.
 

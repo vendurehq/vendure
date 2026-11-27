@@ -1,8 +1,14 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
-import { getConfigurationFunction, I18nService, Logger, ProcessContext } from '@vendure/core';
+import { LOCAL_TRUST_SECRET_ENV_VAR, localTrustStatePath } from '@vendure/common/lib/local-trust';
+import { ConfigService, getConfigurationFunction, I18nService, Logger, ProcessContext } from '@vendure/core';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResolvedMcpPluginOptions } from './internal-types';
+import { LOCAL_TRUST_OFF } from './local-trust/local-trust-activation';
+import { LocalTrustService } from './local-trust/local-trust.service';
 import { McpPlugin } from './plugin';
 import { resolveMcpPluginOptions } from './resolve-options';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
@@ -51,7 +57,7 @@ describe('McpPlugin production config guard', () => {
 
     function createPlugin(isServer: boolean): McpPlugin {
         const processContext = { isServer } as ProcessContext;
-        return new McpPlugin(processContext, {} as I18nService);
+        return new McpPlugin(processContext, {} as I18nService, {} as ConfigService, {} as LocalTrustService);
     }
 
     function setOauth(oauth: McpPluginOptions['oauth']): void {
@@ -443,5 +449,81 @@ describe('McpPlugin OAuth retention task', () => {
         McpPlugin.init({});
         expect(McpPlugin.options.oauth).toBeUndefined();
         expect(oauthTask(await runConfiguration())).toBeDefined();
+    });
+});
+
+describe.skipIf(process.getuid === undefined)('McpPlugin local trust activation', () => {
+    const secret = 'dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LW9mLTMyLWJ5dGVz';
+    let savedOptions: ResolvedMcpPluginOptions;
+    let projectDir: string;
+
+    beforeEach(() => {
+        savedOptions = McpPlugin.options;
+        McpPlugin.localTrustState.processRead = LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.activation = LOCAL_TRUST_OFF;
+        projectDir = mkdtempSync(path.join(tmpdir(), 'mcp-plugin-spec-'));
+        const file = localTrustStatePath(projectDir);
+        mkdirSync(path.dirname(file));
+        writeFileSync(file, JSON.stringify({ secret }));
+        chmodSync(file, 0o600);
+        vi.spyOn(process, 'cwd').mockReturnValue(projectDir);
+    });
+
+    afterEach(() => {
+        McpPlugin.options = savedOptions;
+        McpPlugin.localTrustState.processRead = LOCAL_TRUST_OFF;
+        McpPlugin.localTrustState.activation = LOCAL_TRUST_OFF;
+        delete process.env[LOCAL_TRUST_SECRET_ENV_VAR];
+        vi.restoreAllMocks();
+        rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    async function configure(options: McpPluginOptions, tokenMethod?: unknown) {
+        McpPlugin.options = resolveMcpPluginOptions(options);
+        const config = {
+            apiOptions: { port: 3000 },
+            authOptions: { customPermissions: [], tokenMethod },
+            settingsStoreFields: {},
+            schedulerOptions: { tasks: [] },
+        } as any;
+        await getConfigurationFunction(McpPlugin)?.(config);
+        return config;
+    }
+
+    it("adds 'bearer' to the token method when local trust turns on", async () => {
+        process.env[LOCAL_TRUST_SECRET_ENV_VAR] = secret;
+        const config = await configure({}, 'cookie');
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(true);
+        expect(config.authOptions.tokenMethod).toEqual(['cookie', 'bearer']);
+    });
+
+    it('leaves a token method that already includes bearer as it is', async () => {
+        process.env[LOCAL_TRUST_SECRET_ENV_VAR] = secret;
+        const config = await configure({}, ['bearer', 'api-key']);
+        expect(config.authOptions.tokenMethod).toEqual(['bearer', 'api-key']);
+    });
+
+    it('changes nothing when local trust stays off', async () => {
+        const config = await configure({}, 'cookie');
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(false);
+        expect(config.authOptions.tokenMethod).toBe('cookie');
+    });
+
+    // runMigrations() and then bootstrap() both run the configuration hooks, and the first run
+    // deletes the secret from the environment.
+    it('keeps what the first run read for later runs in the same process', async () => {
+        process.env[LOCAL_TRUST_SECRET_ENV_VAR] = secret;
+        await configure({});
+        expect(process.env[LOCAL_TRUST_SECRET_ENV_VAR]).toBeUndefined();
+        const config = await configure({}, 'cookie');
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(true);
+        expect(config.authOptions.tokenMethod).toEqual(['cookie', 'bearer']);
+    });
+
+    it('turns local trust off for a later run configured with localTrust: false', async () => {
+        process.env[LOCAL_TRUST_SECRET_ENV_VAR] = secret;
+        await configure({});
+        await configure({ localTrust: false });
+        expect(McpPlugin.localTrustState.activation.enabled).toBe(false);
     });
 });

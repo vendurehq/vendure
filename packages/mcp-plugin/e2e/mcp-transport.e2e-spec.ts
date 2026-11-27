@@ -8,7 +8,15 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { callTool, expectRateLimitRefusal, initializeParams, postMcp, rpc } from './utils/mcp-http-client';
+import {
+    callTool,
+    consentDigestOf,
+    expectRateLimitRefusal,
+    initializeParams,
+    postMcp,
+    rpc,
+    withConsent,
+} from './utils/mcp-http-client';
 import {
     PLACEHOLDER_CODE_CHALLENGE,
     registerClient,
@@ -166,18 +174,18 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
         expect(german.body.result.structuredContent.languageCode).toBe('de');
     });
 
-    it('gates a destructive tool behind confirmation, then runs it with confirm:true', async () => {
+    it('gates a destructive tool behind consent, then runs it with the digest', async () => {
         const preview = await postMcp(baseUrl(), 'shop', callTool('shop_delete', { id: 'abc' }, 1));
         expect(preview.body.result.isError).toBeUndefined();
         expect(preview.body.result.structuredContent).toMatchObject({
-            status: 'confirmation_required',
-            confirmed: false,
+            status: 'incomplete',
+            needs: [{ kind: 'consent', consent: 'confirm' }],
         });
 
         const confirmed = await postMcp(
             baseUrl(),
             'shop',
-            callTool('shop_delete', { id: 'abc', confirm: true }, 2),
+            withConsent(callTool('shop_delete', { id: 'abc' }, 2), consentDigestOf(preview) ?? ''),
         );
         // This mutation does not use the active order, so it creates no anonymous session.
         expect(confirmed.body.result.structuredContent).toEqual({ deleted: 'abc' });

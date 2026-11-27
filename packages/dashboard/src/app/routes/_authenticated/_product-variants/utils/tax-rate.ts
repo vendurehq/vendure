@@ -1,4 +1,4 @@
-export type TaxRateForVariant = { value: number; zone: { id: string }; category: { id: string } };
+export type TaxRateForVariant = { value: number; zone?: { id: string } | null; category: { id: string } };
 
 /**
  * The tax rate the variant page shows for a tax category: the rate of the category in the
@@ -17,5 +17,5 @@ export function getTaxRate(
     if (!zoneId) {
         return 0;
     }
-    return taxRates.find(rate => rate.zone.id === zoneId && rate.category.id === taxCategoryId)?.value ?? 0;
+    return taxRates.find(rate => rate.zone?.id === zoneId && rate.category.id === taxCategoryId)?.value ?? 0;
 }

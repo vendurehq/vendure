@@ -98,6 +98,174 @@ describe('OrderCalculator', () => {
             expect(order.subTotalWithTax).toBe(443);
         });
 
+        it('re-taxes every line when the shipping country changes, with no updated lines', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(20);
+            expect(order.taxCountryCode).toBe('');
+
+            order.shippingAddress = { countryCode: 'XC' };
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(19);
+            expect(order.taxCountryCode).toBe('XC');
+
+            order.shippingAddress = {};
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(20);
+        });
+
+        it('keeps the taxes of an Order not calculated since taxCountryCode was added', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            // An Order placed before the column existed: tax Zone set, no tax country.
+            order.taxCountryCode = null;
+            order.shippingAddress = { countryCode: 'XC' };
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(order.lines[0].taxRate).toBe(20);
+            expect(order.taxCountryCode).toBe('XC');
+        });
+
+        it('reports no tax change for an Order not calculated yet, such as a new seller Order', async () => {
+            const ctx = createRequestContext({ pricesIncludeTax: false });
+            const order = createOrder({
+                ctx,
+                lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+            });
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(false);
+            await orderCalculator.applyPriceAdjustments(ctx, order, []);
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(false);
+            order.shippingAddress = { countryCode: 'XC' };
+            expect(await orderCalculator.taxTargetChangedSinceLastCalculation(ctx, order)).toBe(true);
+        });
+
+        describe('convertInitialListPrice()', () => {
+            // The default Zone's standard rate is 20%: 9.99 gross is 8.33 net (8.325 rounded).
+            function lineAddedAt(initialListPrice: number, listPriceIncludesTax: boolean) {
+                const ctx = createRequestContext({ pricesIncludeTax: true });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: initialListPrice, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                const line = order.lines[0];
+                line.initialListPrice = initialListPrice;
+                line.listPriceIncludesTax = listPriceIncludesTax;
+                return { ctx, line };
+            }
+
+            it('converts a gross price to net', async () => {
+                const { ctx, line } = lineAddedAt(999, true);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 833,
+                    priceIncludesTax: false,
+                });
+                expect(line.initialListPrice).toBe(833);
+            });
+
+            it('converts an unchanged net price back to the exact gross price', async () => {
+                const { ctx, line } = lineAddedAt(833, false);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 999,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(999);
+            });
+
+            it('converts a net price to gross when the price changed, within one unit', async () => {
+                const { ctx, line } = lineAddedAt(833, false);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 1200,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(1000);
+            });
+
+            it('leaves a price in the same form unchanged', async () => {
+                const { ctx, line } = lineAddedAt(999, true);
+                await orderCalculator.convertInitialListPrice(ctx, line, {
+                    price: 1200,
+                    priceIncludesTax: true,
+                });
+                expect(line.initialListPrice).toBe(999);
+            });
+        });
+
+        describe('TaxZoneStrategy.determineTaxCountryCode()', () => {
+            const defaultTaxOptions = () => ({
+                taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
+                orderTaxCalculationStrategy: new DefaultOrderTaxCalculationStrategy(),
+            });
+
+            afterEach(() => {
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new DefaultTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+            });
+
+            it('applies no country rate when it returns undefined', async () => {
+                class NoCountryTaxZoneStrategy extends DefaultTaxZoneStrategy {
+                    determineTaxCountryCode() {
+                        return undefined;
+                    }
+                }
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new NoCountryTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                order.shippingAddress = { countryCode: 'XC' };
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+
+                // The zone rate, not the 19% country rate for XC
+                expect(order.lines[0].taxRate).toBe(20);
+                expect(order.taxCountryCode).toBe('');
+            });
+
+            it('applies the country rate of the country it returns', async () => {
+                class BillingCountryTaxZoneStrategy extends DefaultTaxZoneStrategy {
+                    determineTaxCountryCode(
+                        _ctx: RequestContext,
+                        _channel: unknown,
+                        _zone: unknown,
+                        o?: Order,
+                    ) {
+                        return o?.billingAddress?.countryCode;
+                    }
+                }
+                mockConfigService.taxOptions = {
+                    taxZoneStrategy: new BillingCountryTaxZoneStrategy(),
+                    ...defaultTaxOptions(),
+                };
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                });
+                order.shippingAddress = {};
+                order.billingAddress = { countryCode: 'XC' };
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines[0].taxRate).toBe(19);
+                expect(order.taxCountryCode).toBe('XC');
+
+                order.billingAddress = {};
+                await orderCalculator.applyPriceAdjustments(ctx, order, []);
+                expect(order.lines[0].taxRate).toBe(20);
+                expect(order.taxCountryCode).toBe('');
+            });
+        });
+
         it('resets totals when lines array is empty', async () => {
             const ctx = createRequestContext({ pricesIncludeTax: false });
             const order = createOrder({
@@ -215,12 +383,14 @@ describe('OrderCalculator', () => {
                                 return {
                                     id: mockShippingMethodId,
                                     test: () => true,
-                                    apply() {
-                                        return {
-                                            price: 500,
-                                            priceIncludesTax: requestCtx.channel.pricesIncludeTax,
-                                            taxRate: 20,
-                                        };
+                                    applyQuotes() {
+                                        return [
+                                            {
+                                                price: 500,
+                                                priceIncludesTax: requestCtx.channel.pricesIncludeTax,
+                                                taxRate: 20,
+                                            },
+                                        ];
                                     },
                                 };
                             },
@@ -1595,6 +1765,206 @@ describe('OrderCalculator', () => {
             });
         });
 
+        describe('freezePromotions', () => {
+            describe('capShippingDiscounts()', () => {
+                function promotionAdjustment(source: string, amount: number) {
+                    return {
+                        adjustmentSource: source,
+                        type: AdjustmentType.PROMOTION,
+                        description: source,
+                        amount,
+                        data: {},
+                    };
+                }
+
+                it('scales several discounts down to the shipping price, and leaves other adjustments', () => {
+                    const shippingLine = new ShippingLine({
+                        listPrice: 500,
+                        listPriceIncludesTax: false,
+                        taxLines: [],
+                        adjustments: [
+                            promotionAdjustment('PROMOTION:1', -300),
+                            {
+                                adjustmentSource: 'CANCEL_ORDER',
+                                type: AdjustmentType.OTHER,
+                                description: 'other',
+                                amount: -10,
+                                data: {},
+                            },
+                            promotionAdjustment('PROMOTION:2', -400),
+                        ],
+                    });
+                    const order = new Order({ shippingLines: [shippingLine] });
+
+                    orderCalculator.capShippingDiscounts(order);
+
+                    // 300 and 400 scaled by 500/700; the last takes the rounding remainder
+                    expect(shippingLine.adjustments.map(a => a.amount)).toEqual([-214, -10, -286]);
+                });
+
+                it('leaves a discount within the shipping price untouched', () => {
+                    const shippingLine = new ShippingLine({
+                        listPrice: 500,
+                        listPriceIncludesTax: false,
+                        taxLines: [],
+                        adjustments: [promotionAdjustment('PROMOTION:1', -500)],
+                    });
+                    const order = new Order({ shippingLines: [shippingLine] });
+
+                    orderCalculator.capShippingDiscounts(order);
+
+                    expect(shippingLine.adjustments.map(a => a.amount)).toEqual([-500]);
+                });
+            });
+
+            let conditionPasses = true;
+            const toggleableCondition = new PromotionCondition({
+                args: {},
+                code: 'toggleable_condition',
+                description: [{ languageCode: LanguageCode.en, value: '' }],
+                check() {
+                    return conditionPasses;
+                },
+            });
+            const tenPercentOffOrder = new Promotion({
+                id: 1,
+                name: '10% off order',
+                conditions: [{ code: toggleableCondition.code, args: [] }],
+                promotionConditions: [toggleableCondition],
+                actions: [
+                    {
+                        code: percentageOrderAction.code,
+                        args: [{ name: 'discount', value: '10' }],
+                    },
+                ],
+                promotionActions: [percentageOrderAction],
+            });
+
+            function createDiscountedOrder(ctx: RequestContext) {
+                return createOrder({
+                    ctx,
+                    lines: [
+                        {
+                            listPrice: 1000,
+                            taxCategory: taxCategoryStandard,
+                            quantity: 1,
+                        },
+                    ],
+                });
+            }
+
+            afterEach(() => {
+                conditionPasses = true;
+            });
+
+            it('re-tests the conditions by default', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(900);
+
+                conditionPasses = false;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(1000);
+                expect(order.discounts.length).toBe(0);
+                expect(order.promotions.length).toBe(0);
+            });
+
+            it('preserves the discount when a condition no longer passes', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(900);
+
+                conditionPasses = false;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder], [], {
+                    freezePromotions: true,
+                });
+
+                expect(order.subTotal).toBe(900);
+                expect(order.discounts.length).toBe(1);
+                expect(order.discounts[0].description).toBe('10% off order');
+                expect(order.promotions.map(p => p.id)).toEqual([tenPercentOffOrder.id]);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('preserves the discount of a Promotion which is no longer passed in', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(900);
+
+                // A disabled Promotion is not returned by getActivePromotionsInChannel(), so it
+                // never reaches the OrderCalculator at all.
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], [], {
+                    freezePromotions: true,
+                });
+
+                expect(order.subTotal).toBe(900);
+                expect(order.discounts.length).toBe(1);
+                expect(order.promotions.map(p => p.id)).toEqual([tenPercentOffOrder.id]);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('preserves a ShippingLine adjustment', async () => {
+                const couponCode = 'FREE_SHIPPING';
+                const freeShipping = new Promotion({
+                    id: 2,
+                    name: 'Free shipping',
+                    couponCode,
+                    conditions: [],
+                    promotionConditions: [],
+                    actions: [{ code: freeShippingAction.code, args: [] }],
+                    promotionActions: [freeShippingAction],
+                });
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                order.couponCodes = [couponCode];
+                order.shippingLines = [
+                    new ShippingLine({
+                        shippingMethodId: mockShippingMethodId,
+                        adjustments: [],
+                    }),
+                ];
+                await orderCalculator.applyPriceAdjustments(ctx, order, [freeShipping]);
+
+                expect(order.shipping).toBe(0);
+
+                order.couponCodes = [];
+                await orderCalculator.applyPriceAdjustments(ctx, order, [freeShipping], [], {
+                    freezePromotions: true,
+                });
+
+                expect(order.shipping).toBe(0);
+                expect(order.shippingLines[0].adjustments.length).toBe(1);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('still applies taxes and updated line prices', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotalWithTax).toBe(1080);
+
+                conditionPasses = false;
+                order.lines[0].listPrice = 2000;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder], order.lines, {
+                    freezePromotions: true,
+                });
+
+                // The frozen discount of 100 is applied to the new list price, and the tax
+                // is re-calculated from the discounted price.
+                expect(order.subTotal).toBe(1900);
+                expect(order.subTotalWithTax).toBe(2280);
+                assertOrderTotalsAddUp(order);
+            });
+        });
+
         describe('promotions which apply no discount', () => {
             // Models the common "facet exclusions" setup: the conditions pass for the whole Order,
             // but the action discounts only some of the items.
@@ -2343,12 +2713,14 @@ function createTestModule() {
                     findOne: (ctx: RequestContext) => ({
                         id: mockShippingMethodId,
                         test: () => true,
-                        apply() {
-                            return {
-                                price: 500,
-                                priceIncludesTax: ctx.channel.pricesIncludeTax,
-                                taxRate: 20,
-                            };
+                        applyQuotes() {
+                            return [
+                                {
+                                    price: 500,
+                                    priceIncludesTax: ctx.channel.pricesIncludeTax,
+                                    taxRate: 20,
+                                },
+                            ];
                         },
                     }),
                 },
