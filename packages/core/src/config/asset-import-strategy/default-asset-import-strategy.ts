@@ -162,7 +162,22 @@ export class DefaultAssetImportStrategy implements AssetImportStrategy {
 
     private getStreamFromLocalFile(assetPath: string): Readable {
         const { importAssetsDir } = this.configService.importExportOptions;
-        const filename = path.join(importAssetsDir, assetPath);
+        const root = path.resolve(importAssetsDir);
+        // path.join (not path.resolve) keeps the existing behaviour of re-rooting an absolute
+        // CSV path such as `/a.png` under importAssetsDir; only `../` escapes are rejected.
+        const filename = path.resolve(path.join(root, assetPath));
+        const relativePath = path.relative(root, filename);
+
+        // Defense in depth: the asset path comes from the import file, so it must not
+        // be able to point (via `../` segments) outside the
+        // configured `importAssetsDir`.
+        if (
+            relativePath === '..' ||
+            relativePath.startsWith(`..${path.sep}`) ||
+            path.isAbsolute(relativePath)
+        ) {
+            throw new Error(`Asset path "${safeForLog(assetPath)}" is outside the import assets directory`);
+        }
 
         if (fs.existsSync(filename)) {
             const fileStat = fs.statSync(filename);
