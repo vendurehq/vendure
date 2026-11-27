@@ -337,6 +337,7 @@ msgstr "Prodavači"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-option-list.tsx
 msgid "Options"
 msgstr "Opcije"
 
@@ -427,10 +428,15 @@ msgstr "Jeste li sigurni da želite obrisati ovu varijantu?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {Premještanje # kolekcije u odabranu kolekciju} few {Premještanje # kolekcije u odabranu kolekciju} other {Premještanje # kolekcija u odabranu kolekciju}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Svi resursi su aktivni"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -503,6 +509,10 @@ msgstr "Prilagođena polja promijenjena"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "Lokacija zaliha uspješno stvorena"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr ""
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -621,6 +631,10 @@ msgstr "Nova grupa kupaca"
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "Stvori \"{0}\""
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "{count} filters"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Could not load orders"
@@ -976,6 +990,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Molimo dodajte proizvode i dovršite adresu za dostavu kako biste pokrenuli test."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Prebaci redak zaglavlja"
@@ -1160,6 +1178,10 @@ msgstr "Unesite ID transakcije za ovo izvršenje povrata"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Jeste li sigurni da želite obrisati ovu skicu narudžbe?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -1572,6 +1594,10 @@ msgstr "Preuzmi kao .env datoteku"
 msgid "When enabled, a promotion is available in the shop"
 msgstr "Kada je omogućeno, promocija je dostupna u trgovini"
 
+#: src/lib/components/data-table/data-table.tsx
+msgid "Remove {label} filter"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "Go to the pages of all selected jobs first"
 msgstr ""
@@ -1767,6 +1793,10 @@ msgstr ", {0} odabrano"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Nisu pronađene države"
@@ -1946,6 +1976,11 @@ msgstr "Narudžba prevedena"
 msgid "is before"
 msgstr "je prije"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr ""
+
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "This option combination is already used by \"{0}\""
@@ -1981,6 +2016,10 @@ msgstr "{0, plural, one {Prijenos # datoteke nije uspio} few {Prijenos # datotek
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "We couldn't load these metrics"
 msgstr "Nismo mogli učitati ove metrike"
+
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
 
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
@@ -2187,6 +2226,10 @@ msgstr "Ograničenje korištenja"
 msgid "Create your first collection"
 msgstr "Stvorite svoju prvu kolekciju"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Učitavanje globalnih postavki..."
@@ -2351,6 +2394,10 @@ msgstr "Nova porezna kategorija"
 #~ msgid "Partial refund completed"
 #~ msgstr "Djelomični povrat završen"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Column options"
 msgstr ""
@@ -2497,6 +2544,11 @@ msgstr "Zadnjih 30 dana"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Nema vrijednosti svojstava"
+
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3306,6 +3358,8 @@ msgstr "Pregledaj facete"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Zona"
@@ -3350,6 +3404,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0} selected"
 msgstr "{0} odabrano"
@@ -3671,6 +3726,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Popust"
 
@@ -4128,8 +4184,6 @@ msgstr "Odaberite vrijednost"
 #. placeholder {0}: entry.type.replace(/_/g, ' ').toLowerCase()
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
@@ -4302,8 +4356,12 @@ msgstr "Stvaranje porezne kategorije nije uspjelo"
 #~ msgstr "Postavi kriterije filtriranja za stupac {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Država"
@@ -4369,7 +4427,7 @@ msgstr "Poveznice za resetiranje lozinke vrijede samo ograničeno vrijeme. Zatra
 msgid "Authentication methods"
 msgstr "Metode provjere autentičnosti"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "start"
 msgstr "početak"
 
@@ -4388,6 +4446,10 @@ msgstr "Pretraži uloge..."
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
@@ -4448,6 +4510,10 @@ msgstr ""
 msgid "Assign"
 msgstr "Dodijeli"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
 msgstr "Prodavač uspješno stvoren"
@@ -4478,6 +4544,10 @@ msgstr "Pokušaj ponovno"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
 msgstr "Način dostave uspješno ažuriran"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Row options"
@@ -4619,6 +4689,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Odaberite državu"
 
@@ -4660,7 +4731,7 @@ msgstr "URL naziv"
 msgid "Set Focal Point"
 msgstr "Postavi žarišnu točku"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "end"
 msgstr "kraj"
 
@@ -4835,6 +4906,10 @@ msgstr "Lozinke se ne podudaraju"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Odaberite datum i vrijeme"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -5149,6 +5224,10 @@ msgstr "Adresa stvorena"
 #~ msgid "Add an option group to get started with variants."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "API ključ uspješno rotiran"
@@ -5182,6 +5261,10 @@ msgstr "Stavke uključene u ovo izvršenje."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "Otkazivanje plaćanja nije uspjelo"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5664,6 +5747,10 @@ msgstr "Poslano"
 msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "Praćeni resursi"
@@ -5748,6 +5835,10 @@ msgstr "Ako je omogućeno, filteri će se naslijediti iz nadređene kolekcije i 
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Odaberite zonu"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -5863,6 +5954,10 @@ msgstr "Potreban je povrat novca u iznosu {formattedDiff}. Odaberite iznose pla�
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -6045,7 +6140,12 @@ msgstr "Grupne radnje"
 msgid "New seller"
 msgstr "Novi prodavač"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/layout/generated-breadcrumbs.tsx
+#: src/lib/components/layout/route-pending.tsx
+#: src/lib/components/layout/route-pending.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "Učitavanje…"
@@ -6287,6 +6387,10 @@ msgstr "Novi način dostave"
 msgid "Delete stock locations"
 msgstr "Izbriši skladišne lokacije"
 
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr ""
+
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"
 msgstr "veće je ili jednako"
@@ -6403,7 +6507,6 @@ msgstr ""
 #~ msgstr "Isti prozor"
 
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
-#: src/lib/components/data-table/data-table-filter-badge.tsx
 msgid "Remove filter"
 msgstr ""
 
@@ -6818,10 +6921,18 @@ msgstr "Naziv varijante"
 msgid "Remove"
 msgstr "Ukloni"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Ažuriranje kupca nije uspjelo"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
@@ -7094,7 +7205,6 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "Administrator uspješno ažuriran"
 
-#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -7161,6 +7271,10 @@ msgstr "Binarno"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Grupa opcija uspješno ažurirana"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7597,6 +7711,10 @@ msgstr "Globalni jezici"
 msgid "New administrator"
 msgstr "Novi administrator"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Obriši skicu"
@@ -7974,6 +8092,10 @@ msgstr "veće ili jednako"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Postavlja razinu zaliha pri kojoj se ova varijanta smatra rasprodanom. Korištenje negativne vrijednosti omogućuje podršku za prednarudžbe."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Stvori opcije proizvoda"
@@ -8035,6 +8157,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Kupac dodan u grupu"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"
@@ -8154,6 +8280,10 @@ msgstr "Porezna osnovica"
 msgid "Load more"
 msgstr "Učitaj više"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 #~ msgstr ""
@@ -8165,6 +8295,10 @@ msgstr "Povrat izvršen"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #~ msgid "API Key"
 #~ msgstr "API ključ"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -8192,8 +8326,8 @@ msgid "Available Conditions"
 msgstr "Dostupni uvjeti"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
-msgid "Active filters"
-msgstr "Aktivni filteri"
+#~ msgid "Active filters"
+#~ msgstr "Aktivni filteri"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -8218,6 +8352,10 @@ msgstr "Zatvori"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Poveznica"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order..."

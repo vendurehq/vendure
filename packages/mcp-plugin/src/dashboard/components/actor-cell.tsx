@@ -20,6 +20,14 @@ export function ActorCell({
             </span>
         );
     }
+    // A call made with the local dev server's secret, by an agent working through the Vendure CLI.
+    if (actorType === 'local') {
+        return (
+            <span className="text-sm text-muted-foreground">
+                <Trans>Local agent</Trans>
+            </span>
+        );
+    }
     // A missing name means the account was deleted since, not that nobody was signed in.
     if (!actorName) {
         return <EmptyCell />;

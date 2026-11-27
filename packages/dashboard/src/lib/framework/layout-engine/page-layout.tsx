@@ -158,7 +158,7 @@ function PageContent({
     className?: string;
 }) {
     return (
-        <div className={cn('m-4', props.className)} {...props}>
+        <div {...props}>
             <LocationWrapper>
                 <PageContentWithOptionalForm
                     pageHeader={pageHeader}

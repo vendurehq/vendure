@@ -7,6 +7,7 @@ import {
     ConfigService,
     Customer,
     CustomerService,
+    defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     ID,
     Injector,
@@ -22,6 +23,7 @@ import {
     RequestContextService,
     Session,
     SessionService,
+    ShippingCalculator,
     ShippingEligibilityChecker,
     TransactionalConnection,
     TtlOrderRecalculationStrategy,
@@ -43,7 +45,7 @@ import { McpPlugin } from '../src/plugin';
 import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
 import { shopToolProviders } from '../src/tools/built-in/shop';
 
-import { callTool, postMcp, rpc } from './utils/mcp-http-client';
+import { callTool, postMcp, postMcpConfirmed, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { getIdStrategy, testServerInit } from './utils/test-server';
 
@@ -216,6 +218,27 @@ const UK_ADDRESS = {
     postalCode: 'SW1A 2AA',
     countryCode: 'GB',
 };
+const CARRIER_SHIPPING_METHOD_CODE = 'mcp-e2e-carrier';
+const REMOTE_CITY = 'Remote Town';
+/**
+ * Returns two options, as a carrier API does. Both cost more than the other methods, so the
+ * tests which take the cheapest eligible method never take this one, except at REMOTE_CITY.
+ */
+const carrierRatesCalculator = new ShippingCalculator({
+    code: 'mcp-e2e-carrier-rates',
+    description: [{ languageCode: LanguageCode.en, value: 'Carrier rates' }],
+    args: {},
+    calculate: (ctx, order) =>
+        // A remote address only gets Ground, and at a price below every other method, so that the
+        // set_checkout_details test sees the line keep its method but fall back to another option
+        order.shippingAddress?.city === REMOTE_CITY
+            ? [{ code: 'ground', name: 'Ground', price: 100, priceIncludesTax: false, taxRate: 0 }]
+            : [
+                  { code: 'ground', name: 'Ground', price: 5000, priceIncludesTax: false, taxRate: 0 },
+                  { code: 'next-day', name: 'Next day', price: 9000, priceIncludesTax: false, taxRate: 0 },
+              ],
+});
+
 const usOnlyShippingChecker = new ShippingEligibilityChecker({
     code: US_ONLY_SHIPPING_METHOD_CODE,
     description: [{ languageCode: LanguageCode.en, value: 'US addresses only' }],
@@ -237,6 +260,7 @@ describe('MCP built-in shop tools', () => {
         orderOptions: { orderByCodeAccessStrategy },
         shippingOptions: {
             shippingEligibilityCheckers: [defaultShippingEligibilityChecker, usOnlyShippingChecker],
+            shippingCalculators: [defaultShippingCalculator, carrierRatesCalculator],
         },
         paymentOptions: { paymentMethodHandlers: [testPaymentHandler, pendingPaymentHandler] },
         plugins: [
@@ -390,6 +414,25 @@ describe('MCP built-in shop tools', () => {
             },
         );
         expect(usOnly.createShippingMethod.code).toBe(US_ONLY_SHIPPING_METHOD_CODE);
+        // A US-only shipping method with several options, for the set_shipping_method optionCode test.
+        await adminClient.query(
+            gql`
+                mutation CreateCarrierShippingMethod($input: CreateShippingMethodInput!) {
+                    createShippingMethod(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: CARRIER_SHIPPING_METHOD_CODE,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: { code: usOnlyShippingChecker.code, arguments: [] },
+                    calculator: { code: carrierRatesCalculator.code, arguments: [] },
+                    translations: [{ languageCode: LanguageCode.en, name: 'Carrier' }],
+                },
+            },
+        );
         // A second fixture product carrying three variants. add_to_cart must refuse a product ID
         // when the product has more than one variant, and there is nothing to test that against
         // unless such a product exists.
@@ -1823,10 +1866,10 @@ describe('MCP built-in shop tools', () => {
 
     it('place_order reports the missing customer on an anonymous cart', async () => {
         const { sessionToken } = await anonymousCart();
-        const refused = await postMcp(
+        const refused = await postMcpConfirmed(
             baseUrl(),
             'shop',
-            callTool('place_order', { paymentMethodCode: 'not-configured', confirm: true, sessionToken }, 1),
+            callTool('place_order', { paymentMethodCode: 'not-configured', sessionToken }, 1),
         );
 
         expect(refused.body.result.isError).toBe(true);
@@ -1971,7 +2014,7 @@ describe('MCP built-in shop tools', () => {
         it('walks a cart through checkout and places the order', async () => {
             const accessToken = await shopAccessTokenFor(customerEmail, 'test');
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
@@ -1997,11 +2040,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId }, 4);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                5,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 5);
 
             expect(placed.body.result.isError).toBeUndefined();
             expect(placed.body.result.structuredContent.status).toBe('placed');
@@ -2043,11 +2082,7 @@ describe('MCP built-in shop tools', () => {
             expect(orphanAddress.body.result.isError).toBe(true);
             expect(orphanAddress.body.result.content[0].text).toMatch(/There is no active cart/);
 
-            const orphanPlace = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                8,
-            );
+            const orphanPlace = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 8);
             expect(orphanPlace.body.result.isError).toBe(true);
             expect(orphanPlace.body.result.content[0].text).toMatch(/There is no active cart/);
 
@@ -2060,7 +2095,7 @@ describe('MCP built-in shop tools', () => {
         it('places an order for a guest who names themselves in set_checkout_details', async () => {
             const { sessionToken } = await anonymousCart();
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, { ...args, sessionToken }, id));
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, { ...args, sessionToken }, id));
 
             const emptyCart = await call('get_cart', {}, 2);
             expect(emptyCart.body.result.structuredContent.order.customer).toBeNull();
@@ -2098,11 +2133,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId }, 6);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                7,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 7);
 
             expect(placed.body.result.isError).toBeUndefined();
             expect(placed.body.result.structuredContent.status).toBe('placed');
@@ -2151,7 +2182,7 @@ describe('MCP built-in shop tools', () => {
                 PENDING_PAYMENT_CUSTOMER_PASSWORD,
             );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
@@ -2177,11 +2208,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId }, 4);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PENDING_PAYMENT_METHOD_CODE, confirm: true },
-                5,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PENDING_PAYMENT_METHOD_CODE }, 5);
 
             expect(placed.body.result.isError).toBeUndefined();
             const answer = placed.body.result.structuredContent;
@@ -2265,7 +2292,7 @@ describe('MCP built-in shop tools', () => {
                 NO_SHIPPING_CUSTOMER_PASSWORD,
             );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
+                postMcpConfirmed(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
@@ -2273,11 +2300,7 @@ describe('MCP built-in shop tools', () => {
             const address = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 2);
             expect(address.body.result.isError).toBeUndefined();
 
-            const placed = await call(
-                'place_order',
-                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
-                3,
-            );
+            const placed = await call('place_order', { paymentMethodCode: PAYMENT_METHOD_CODE }, 3);
 
             expect(placed.body.result.isError).toBe(true);
             const failure = placed.body.result.structuredContent;
@@ -2618,6 +2641,103 @@ describe('MCP built-in shop tools', () => {
             });
             expect(stored.shippingAddress?.streetLine1).toBeUndefined();
             expect(stored.customer).toBeNull();
+        });
+
+        // #2649 — a shipping method can offer several priced options
+        it('set_shipping_method chooses one of the options listed by get_eligible_shipping_methods', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+            await call(
+                'set_checkout_details',
+                {
+                    shippingAddress: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        postalCode: '94111',
+                        countryCode: 'US',
+                    },
+                },
+                2,
+            );
+
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const carrier = quotes.body.result.structuredContent.methods.find(
+                (method: any) => method.code === CARRIER_SHIPPING_METHOD_CODE,
+            );
+            expect(carrier.options).toEqual([
+                expect.objectContaining({
+                    code: 'ground',
+                    name: 'Ground',
+                    price: 5000,
+                    priceDecimal: '50.00',
+                }),
+                expect.objectContaining({
+                    code: 'next-day',
+                    name: 'Next day',
+                    price: 9000,
+                    priceDecimal: '90.00',
+                }),
+            ]);
+
+            const chosen = await call(
+                'set_shipping_method',
+                { methodId: carrier.id, optionCode: 'next-day' },
+                4,
+            );
+            expect(chosen.body.result.isError).toBeUndefined();
+            expect(chosen.body.result.structuredContent.order.shippingLines).toEqual([
+                expect.objectContaining({
+                    shippingMethodId: carrier.id,
+                    shippingOptionCode: 'next-day',
+                    shippingOptionName: 'Next day',
+                    priceWithTax: 9000,
+                }),
+            ]);
+
+            const unknown = await call(
+                'set_shipping_method',
+                { methodId: carrier.id, optionCode: 'teleport' },
+                5,
+            );
+            expect(unknown.body.result.isError).toBe(true);
+            expect(unknown.body.result.structuredContent.errorCode).toBe('INELIGIBLE_SHIPPING_METHOD_ERROR');
+        });
+
+        // #2649 — keeping the ShippingMethod but falling back to another of its options is a change too
+        it('set_checkout_details reports shippingMethodChanged when the new address withdraws the chosen option', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+            const usAddress = {
+                streetLine1: '451 Sansome Street',
+                city: 'San Francisco',
+                postalCode: '94111',
+                countryCode: 'US',
+            };
+            await call('set_checkout_details', { shippingAddress: usAddress }, 2);
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const carrier = quotes.body.result.structuredContent.methods.find(
+                (method: any) => method.code === CARRIER_SHIPPING_METHOD_CODE,
+            );
+            await call('set_shipping_method', { methodId: carrier.id, optionCode: 'next-day' }, 4);
+
+            const moved = await call(
+                'set_checkout_details',
+                { shippingAddress: { ...usAddress, city: REMOTE_CITY } },
+                5,
+            );
+
+            expect(moved.body.result.isError).toBeUndefined();
+            expect(moved.body.result.structuredContent.shippingMethodChanged).toBe(true);
+            expect(moved.body.result.structuredContent.message).toMatch(/replaced it with the cheapest/);
+            expect(moved.body.result.structuredContent.order.shippingLines).toEqual([
+                expect.objectContaining({ shippingMethodId: carrier.id, shippingOptionCode: 'ground' }),
+            ]);
         });
 
         it('set_checkout_details reports shippingMethodChanged when the new address makes the store swap the method', async () => {

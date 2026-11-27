@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import {
     CollectionBreadcrumb,
     ConfigurableOperation,
@@ -8,6 +8,7 @@ import {
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import DataLoader from 'dataloader';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
@@ -20,6 +21,7 @@ import { CollectionService } from '../../../service/services/collection.service'
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ConfigurableOperationCodec } from '../../common/configurable-operation-codec';
 import { ApiType } from '../../common/get-api-type';
+import { IdArgumentDecoder } from '../../common/id-argument-decoder';
 import { RequestContext } from '../../common/request-context';
 import { Api } from '../../decorators/api.decorator';
 import { RelationPaths, Relations } from '../../decorators/relations.decorator';
@@ -34,6 +36,7 @@ export class CollectionEntityResolver {
         private localeStringHydrator: LocaleStringHydrator,
         private configurableOperationCodec: ConfigurableOperationCodec,
         private requestContextCache: RequestContextCacheService,
+        private idArgumentDecoder: IdArgumentDecoder,
     ) {}
 
     @ResolveField()
@@ -61,16 +64,13 @@ export class CollectionEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() collection: Collection,
         @Args() args: { options: ProductVariantListOptions },
+        @Info() info: GraphQLResolveInfo,
         @Relations({ entity: ProductVariant, omit: ['assets'] }) relations: RelationPaths<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
+        const { options } = this.idArgumentDecoder.decode(info, args);
         // In the Shop API, getVariantsByCollectionId() only returns variants available in the active
         // Channel (see ChannelEnabledChecker)
-        return this.productVariantService.getVariantsByCollectionId(
-            ctx,
-            collection.id,
-            args.options,
-            relations,
-        );
+        return this.productVariantService.getVariantsByCollectionId(ctx, collection.id, options, relations);
     }
 
     @ResolveField()

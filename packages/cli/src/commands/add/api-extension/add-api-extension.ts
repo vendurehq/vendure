@@ -1,4 +1,3 @@
-import { cancel, isCancel, log, spinner, text } from '@clack/prompts';
 import path from 'path';
 import {
     ClassDeclaration,
@@ -12,13 +11,8 @@ import {
     VariableDeclarationKind,
 } from 'ts-morph';
 
-
-import { exitCliCommand } from '../../../shared/cli-command-exit.js';
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
 import { EntityRef } from '../../../shared/entity-ref.js';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
 import { ServiceRef } from '../../../shared/service-ref.js';
-import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts.js';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
 import {
     addImportsToFile,
@@ -26,173 +20,31 @@ import {
     customizeCreateUpdateInputInterfaces,
 } from '../../../utilities/ast-utils.js';
 import { kebabCase } from '../../../utilities/case-utils.js';
-import { pauseForPromptDisplay } from '../../../utilities/utils.js';
-import { addServiceCommand } from '../service/add-service.js';
 
-const cancelledMessage = 'Add API extension cancelled';
-
-export interface AddApiExtensionOptions {
-    plugin?: VendurePluginRef;
-    pluginName?: string;
-    queryName?: string;
-    mutationName?: string;
-    config?: string;
-    isNonInteractive?: boolean;
-    selectedService?: string;
-}
-
-export const addApiExtensionCommand = new CliCommand({
-    id: 'add-api-extension',
-    category: 'Plugin: API',
-    description: 'Adds GraphQL API extensions to a plugin',
-    run: options => addApiExtension(options),
-});
-
-export async function addApiExtension(
-    options?: AddApiExtensionOptions,
-): Promise<CliCommandReturnVal<{ serviceRef: ServiceRef }>> {
-    const providedVendurePlugin = options?.plugin;
-    const { project } = await analyzeProject({
-        providedVendurePlugin,
-        cancelledMessage,
-        config: options?.config,
-    });
-
-    const { plugin: resolvedPlugin, shouldPromptForSelection } = resolvePluginFromOptions(project, {
-        providedPlugin: providedVendurePlugin,
-        pluginName: options?.pluginName,
-        isNonInteractive: options?.isNonInteractive === true,
-    });
-
-    // In non-interactive mode, we need all required values upfront
-    if (options?.isNonInteractive) {
-        const hasValidQueryName = options?.queryName && options.queryName.trim() !== '';
-        const hasValidMutationName = options?.mutationName && options.mutationName.trim() !== '';
-
-        if (!hasValidQueryName && !hasValidMutationName) {
-            throw new Error(
-                'At least one of query-name or mutation-name must be specified as a non-empty string in non-interactive mode.\n' +
-                    'Usage: npx vendure add -a <PluginName> --query-name <name> --mutation-name <name>',
-            );
-        }
-    }
-
-    const plugin = resolvedPlugin ?? (await selectPlugin(project, cancelledMessage));
-
-    // NEW: Retrieve services of the plugin early so they can be used in both interactive and non-interactive flows
-    const services = getServices(project).filter(sr => {
-        return sr.classDeclaration
-            .getSourceFile()
-            .getDirectoryPath()
-            .includes(plugin.getSourceFile().getDirectoryPath());
-    });
-
-    let serviceRef: ServiceRef | undefined;
-    let serviceEntityRef: EntityRef | undefined;
-
-    const scaffoldSpinner = spinner();
-
-    if (options?.isNonInteractive) {
-        // Validate that a service has been specified
-        if (!options.selectedService || options.selectedService.trim() === '') {
-            throw new Error(
-                'Service must be specified in non-interactive mode.\n' +
-                    'Usage: npx vendure add -a <PluginName> --query-name <name> --mutation-name <name> --selected-service <service-name>',
-            );
-        }
-
-        const selectedService = services.find(sr => sr.name === options.selectedService);
-
-        if (!selectedService) {
-            const availableServices = services.map(sr => sr.name);
-            if (availableServices.length === 0) {
-                throw new Error(
-                    `No services found in plugin "${plugin.name}".\n` +
-                        'Please first create a service using: npx vendure add -s <ServiceName>',
-                );
-            }
-            throw new Error(
-                `Service "${options.selectedService}" not found in plugin "${plugin.name}". Available services:\n` +
-                    availableServices.map(name => `  - ${name}`).join('\n'),
-            );
-        }
-        serviceRef = selectedService;
-        log.info(`Using service: ${serviceRef.name}`);
-    }
-
-    // INTERACTIVE FLOW: If not in non-interactive mode, allow the user to select or create a service
-    if (!options?.isNonInteractive) {
-        if (services.length === 0) {
-            log.info("No services found in the selected plugin. Let's create one first!");
-            const result = await addServiceCommand.run({
-                plugin,
-            });
-            serviceRef = result.serviceRef;
-        } else {
-            serviceRef = await selectServiceRef(project, plugin);
-        }
-    }
-
-    if (!serviceRef) {
-        cancel(cancelledMessage);
-        exitCliCommand(0);
-    }
-
-    const modifiedSourceFiles: SourceFile[] = [];
-
-    if (serviceRef.crudEntityRef) {
-        serviceEntityRef = serviceRef.crudEntityRef;
-    }
-
+/**
+ * Adds an Admin API extension to a plugin, with a resolver that calls the service. For a CRUD
+ * service of an entity, the extension has the entity's type, its queries and its mutations. For
+ * any other service, it has the named query and mutation, each with a stub method on the service.
+ * It prints nothing and does not save.
+ */
+export function scaffoldApiExtension(
+    project: Project,
+    plugin: VendurePluginRef,
+    serviceRef: ServiceRef,
+    names: { queryName?: string; mutationName?: string },
+): { resolver: string; organize: SourceFile[]; edited: SourceFile[] } {
+    const serviceEntityRef = serviceRef.crudEntityRef;
+    const queryName = names.queryName ?? '';
+    const mutationName = names.mutationName ?? '';
+    const created: SourceFile[] = [];
     let resolver: ClassDeclaration;
-    let apiExtensions: VariableDeclaration | undefined;
-
-    let queryName = '';
-    let mutationName = '';
-    if (!serviceEntityRef) {
-        if (options?.isNonInteractive) {
-            // Use provided values - we already validated at least one exists and is non-empty
-            queryName = options?.queryName && options.queryName.trim() !== '' ? options.queryName.trim() : '';
-            mutationName =
-                options?.mutationName && options.mutationName.trim() !== ''
-                    ? options.mutationName.trim()
-                    : '';
-        } else {
-            const queryNameResult =
-                options?.queryName ??
-                (await text({
-                    message: 'Enter a name for the new query',
-                    initialValue: 'myNewQuery',
-                }));
-            if (!isCancel(queryNameResult)) {
-                queryName = queryNameResult;
-            }
-            const mutationNameResult =
-                options?.mutationName ??
-                (await text({
-                    message: 'Enter a new name for the new mutation',
-                    initialValue: 'myNewMutation',
-                }));
-            if (!isCancel(mutationNameResult)) {
-                mutationName = mutationNameResult;
-            }
-        }
-    }
-
-    scaffoldSpinner.start('Generating resolver file...');
-    await pauseForPromptDisplay();
     if (serviceEntityRef) {
         resolver = createCrudResolver(project, plugin, serviceRef, serviceEntityRef);
-        modifiedSourceFiles.push(resolver.getSourceFile());
     } else {
-        if (!options?.isNonInteractive && isCancel(queryName)) {
-            cancel(cancelledMessage);
-            exitCliCommand(0);
-        }
         resolver = createSimpleResolver(project, plugin, serviceRef, queryName, mutationName);
-        if (queryName) {
+        for (const method of [queryName, mutationName].filter(Boolean)) {
             serviceRef.classDeclaration.addMethod({
-                name: queryName,
+                name: method,
                 parameters: [
                     { name: 'ctx', type: 'RequestContext' },
                     { name: 'id', type: 'ID' },
@@ -202,45 +54,21 @@ export async function addApiExtension(
                 statements: `return true;`,
             });
         }
-        if (mutationName) {
-            serviceRef.classDeclaration.addMethod({
-                name: mutationName,
-                parameters: [
-                    { name: 'ctx', type: 'RequestContext' },
-                    { name: 'id', type: 'ID' },
-                ],
-                isAsync: true,
-                returnType: 'Promise<boolean>',
-                statements: `return true;`,
-            });
-        }
-
         addImportsToFile(serviceRef.classDeclaration.getSourceFile(), {
             namedImports: ['RequestContext', 'ID'],
             moduleSpecifier: '@vendure/core',
         });
-        modifiedSourceFiles.push(resolver.getSourceFile());
     }
+    created.push(resolver.getSourceFile());
 
-    scaffoldSpinner.message('Generating schema definitions...');
-    await pauseForPromptDisplay();
-
-    if (serviceEntityRef) {
-        apiExtensions = createCrudApiExtension(project, plugin, serviceRef);
-    } else {
-        apiExtensions = createSimpleApiExtension(project, plugin, serviceRef, queryName, mutationName);
-    }
+    const apiExtensions: VariableDeclaration | undefined = serviceEntityRef
+        ? createCrudApiExtension(project, plugin, serviceRef)
+        : createSimpleApiExtension(project, plugin, serviceRef, queryName, mutationName);
     if (apiExtensions) {
-        modifiedSourceFiles.push(apiExtensions.getSourceFile());
+        created.push(apiExtensions.getSourceFile());
     }
 
-    scaffoldSpinner.message('Registering API extension with plugin...');
-    await pauseForPromptDisplay();
-
-    plugin.addAdminApiExtensions({
-        schema: apiExtensions,
-        resolvers: [resolver],
-    });
+    plugin.addAdminApiExtensions({ schema: apiExtensions, resolvers: [resolver] });
     addImportsToFile(plugin.getSourceFile(), {
         namedImports: [resolver.getName() as string],
         moduleSpecifier: resolver.getSourceFile(),
@@ -251,15 +79,10 @@ export async function addApiExtension(
             moduleSpecifier: apiExtensions.getSourceFile(),
         });
     }
-
-    scaffoldSpinner.stop(`API extensions added`);
-
-    await project.save();
-
     return {
-        project,
-        modifiedSourceFiles: [serviceRef.classDeclaration.getSourceFile(), ...modifiedSourceFiles],
-        serviceRef,
+        resolver: resolver.getName() as string,
+        organize: created,
+        edited: [serviceRef.classDeclaration.getSourceFile(), plugin.getSourceFile()],
     };
 }
 
@@ -487,7 +310,9 @@ function createSimpleApiExtension(
             ?.getFirstChildByKind(SyntaxKind.TaggedTemplateExpression)
             ?.getChildren()[1];
         if (!taggedTemplateLiteral) {
-            log.error('Could not update schema automatically');
+            throw new Error(
+                `The schema in ${existingSchemaVariable.getSourceFile().getFilePath()} is not a gql template literal, so it cannot be extended`,
+            );
         } else {
             appendToGqlTemplateLiteral(existingSchemaVariable.getDeclarations()[0], writer => {
                 writer.indent(() => {

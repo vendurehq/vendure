@@ -1,0 +1,44 @@
+---
+title: "vendure doctor"
+generated: true
+---
+
+
+<a name="doctor"></a>
+
+## vendure doctor
+
+Run diagnostic checks on your Vendure project.
+
+```bash
+vendure doctor [options]
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `doctor`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--config <config>` | string | The path to a custom Vendure config file. |
+| `--check <check...>` | array of string | Run these checks only: project, dependencies, config, schema, database. |
+| `--profile <profile>` | string | Run the checks of a profile: production. |
+| `--strict`, `--no-strict` | boolean | Treat warnings as failures, which is useful for CI. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `vendureVersion` (optional) | string |  |
+| `nodeVersion` | string |  |
+| `packageManager` (optional) | string |  |
+| `checks` | array of object |  |
+| `overallStatus` | `"passed"` or `"failed"` |  |
+
+### Examples
+
+```bash
+vendure doctor
+vendure doctor --check config --check database --strict
+```

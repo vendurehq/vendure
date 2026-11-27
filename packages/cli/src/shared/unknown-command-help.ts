@@ -13,7 +13,7 @@ export type PluginFailureStep = 'load' | 'register';
 /**
  * The lines to print for a command no registered plugin or built-in provides.
  *
- * A plugin is named only when its `vendure.cliCommands` declares the command.
+ * A plugin is named only when its command manifest declares the command.
  * `unavailablePackages` maps each enabled package that failed to load or to
  * register in this run, whose error was already printed, to that step.
  *
@@ -34,7 +34,7 @@ export function unknownCommandHelp(
         const failedStep = unavailablePackages.get(enabled.packageName);
         const cause = failedStep
             ? `It failed to ${failedStep}; see the error above.`
-            : `Its vendure.cliCommands lists "${commandName}", but the plugin does not provide it.`;
+            : `Its command manifest lists "${commandName}", but the command was not registered.`;
         lines.push(`${enabled.packageName} is enabled but did not register "${commandName}". ${cause}`);
     }
 

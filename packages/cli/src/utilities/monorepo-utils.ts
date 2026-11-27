@@ -188,12 +188,20 @@ export class AmbiguousVendureProjectError extends Error {}
  * Resolves a Core project from an explicit path, the current package, workspace members or
  * conventional monorepo directories. Rejects ambiguous workspace members.
  */
-export function resolveCoreProjectDirectory(cwd: string, project?: string): string {
+/**
+ * `projectFlag` is the option that selects the project in the command that asks, named in the
+ * errors: `--dir` for `vendure dev`, `--project` for `vendure console`.
+ */
+export function resolveCoreProjectDirectory(
+    cwd: string,
+    project?: string,
+    projectFlag = '--project',
+): string {
     if (project !== undefined) {
         const projectDir = path.resolve(cwd, project);
         if (!hasNamedDependency(path.join(projectDir, 'package.json'), '@vendure/core')) {
             throw new Error(
-                `Invalid --project directory "${projectDir}". Expected a package.json with an @vendure/core dependency.`,
+                `Invalid ${projectFlag} directory "${projectDir}". Expected a package.json with an @vendure/core dependency.`,
             );
         }
         return projectDir;
@@ -206,13 +214,13 @@ export function resolveCoreProjectDirectory(cwd: string, project?: string): stri
     if (workspacePackages.length > 1) {
         const candidates = workspacePackages.map(file => path.relative(cwd, path.dirname(file)));
         throw new AmbiguousVendureProjectError(
-            `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use --project <dir> to select one.`,
+            `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use ${projectFlag} <dir> to select one.`,
         );
     }
     const packageJsonPath = workspacePackages[0] ?? findPackageJsonWithDependency(cwd, '@vendure/core');
     if (!packageJsonPath) {
         throw new Error(
-            `No Vendure project found in "${cwd}". Use --project <dir> to select a project directory.`,
+            `No Vendure project found in "${cwd}". Use ${projectFlag} <dir> to select a project directory.`,
         );
     }
     return path.dirname(packageJsonPath);

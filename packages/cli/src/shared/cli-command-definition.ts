@@ -12,10 +12,12 @@ export interface CliCommandOption {
     required?: boolean;
     defaultValue?: any;
     subOptions?: CliCommandOption[]; // Options that are only valid when this option is used
-    // Interactive mode metadata
-    interactiveId?: string; // ID for interactive selection (e.g., 'add-entity')
-    interactiveCategory?: string; // Category label (e.g., 'Plugin: Entity')
-    interactiveFn?: () => Promise<any>; // Function to execute in interactive mode
+    /**
+     * Leave the option out of `--help`, for example a deprecated alias that still works.
+     *
+     * @since 4.0.0
+     */
+    hidden?: boolean;
 }
 
 /**
@@ -30,12 +32,13 @@ export interface CliCommandArgument {
 }
 
 /**
- * Values of the shared options that are in scope for a command, i.e. the root
- * options registered by a CLI plugin plus the options of every command the
- * command is nested in.
+ * Values of the shared options that are in scope for a built-in command, i.e. the
+ * root options registered by a CLI plugin plus the options of every command the
+ * command is nested in. A decorator reads them from the arguments of the action
+ * it wraps.
  *
  * The CLI host builds this from the parsed command line and passes it to the
- * action as the final argument, so a command never has to read or reparse
+ * action as the final argument, so a decorator never has to read or reparse
  * `process.argv`.
  *
  * Keys are Commander attribute names: the long flag without `--`, camel-cased.
@@ -46,25 +49,27 @@ export interface CliCommandArgument {
 export interface CliCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>> {
     /**
      * Values of the shared options in scope. A shared option is declared at
-     * exactly one level — a flag declared on a command with subcommands that an
-     * ancestor already shares is rejected at registration — so values do not
-     * compete. Where a
-     * command declares the same flag as a shared option, both read the same
-     * value. A value supplied on the command line always beats a default.
-     * Options that were neither supplied nor given a default value are omitted.
+     * exactly one level, so values do not compete. Where a command declares
+     * the same flag as a shared option, both read the same value. A value
+     * supplied on the command line always beats a default. Options that were
+     * neither supplied nor given a default value are omitted.
      */
     inheritedOptions: TInheritedOptions;
     /**
      * The names of the commands leading to this action, e.g.
-     * `['config', 'server', 'set']` for `vendure config server set`.
+     * `['migrate']` for `vendure migrate`. A nested command adds its parents first.
      */
     commandPath: string[];
-    /** Reads plugin contributions registered for a named extension point. */
+    /**
+     * Reads plugin contributions registered for a named extension point. Built-in commands read
+     * them here. Commands declared with `defineCommand` read the same registry through
+     * `shared/plugin-extensions.ts`, because they get a `CommandContext` rather than this context.
+     */
     getPluginExtensions: CliPluginExtensionAccessor;
 }
 
 /**
- * A CLI command that runs an action.
+ * A built-in CLI command that runs an action.
  *
  * @since 3.8.0
  */
@@ -74,24 +79,12 @@ export interface CliCommandDefinition {
     arguments?: CliCommandArgument[];
     options?: CliCommandOption[];
     /**
-     * Set to `true` to deliberately replace a top-level command of the same
-     * name — a built-in, or one registered by an earlier plugin. Without it a
-     * name collision is reported as an error and the plugin is skipped, so a
-     * command can never be replaced by accident.
-     *
-     * @since 3.8.0
-     */
-    replaces?: boolean;
-    /**
-     * Set to `true` for a command that reads or writes a Vendure project, so
-     * the host refuses to run it outside one instead of letting it fail part
-     * way through — after a stack of prompts, or on a `require` of a package
-     * only a project installs.
+     * Set to `true` for a built-in command that reads or writes a Vendure
+     * project, so the host refuses to run it outside one instead of letting it
+     * fail part way through.
      *
      * Declared on a node that has subcommands, it applies to every command
-     * below it, so a group of project commands states it once. A subcommand
-     * sets `requiresProject: false` to opt back out, which is how a group
-     * mixes commands that need a project with ones that do not.
+     * below it. A subcommand sets `requiresProject: false` to opt back out.
      *
      * The host's check is deliberately loose: it looks for a package.json with
      * a Vendure dependency at or above the current directory. A command whose
@@ -109,12 +102,12 @@ export interface CliCommandDefinition {
      *   action(transform, path, options, command, context)
      *
      * May return a numeric process exit code. The CLI host calls
-     * `process.exit` after the action settles so plugins can wrap built-ins
+     * `process.exit` after the action settles so a decorator can wrap a built-in
      * without a premature exit.
      */
     action: CliCommandAction;
     /**
-     * Commands nested under this one, e.g. the `plan` in `vendure deploy plan`.
+     * Commands nested under this one. None of the built-in commands has any yet.
      * Unlike a {@link CliCommandGroupDefinition}, the command keeps an action
      * of its own: running it without a subcommand runs that action rather than
      * printing help. Its `options` are shared with every command below it —
@@ -122,8 +115,8 @@ export interface CliCommandDefinition {
      *
      * A command with subcommands cannot also declare `arguments`: the first word
      * after the command name would be ambiguous, since it could equally name a
-     * subcommand or fill an argument. Declaring both is rejected when the plugin
-     * is registered. Take options instead, which are never ambiguous.
+     * subcommand or fill an argument. The built-in command tree is checked for
+     * this. Take options instead, which are never ambiguous.
      *
      * A word that names no subcommand is therefore always a mistake, and is
      * reported as an unknown command rather than reaching the action, exactly as
@@ -142,10 +135,14 @@ export interface CliCommandDefinition {
 export type CliCommandAction = (...args: any[]) => Promise<void | number>;
 
 /**
- * A command that exists only to group subcommands, e.g. the `config` in
- * `vendure config server set`. A group has no action of its own: running it
+ * A command that exists only to group subcommands. A group has no action of its own: running it
  * without a subcommand prints its help. For a command that has subcommands
  * *and* runs an action, see {@link CliCommandDefinition.subcommands}.
+ *
+ * No built-in command is a group in v4.0.0, and plugins declare no commands.
+ * The tree model is kept, and exported, because the built-in commands are
+ * declared with it: a built-in that gains subcommands, and a decorator that
+ * reads the command it wraps, use the same types and the same checks.
  *
  * @since 3.8.0
  */
@@ -154,9 +151,8 @@ export interface CliCommandGroupDefinition {
     description: string;
     /**
      * Options shared by every command in this group. They are accepted both on
-     * the group itself (`vendure config --profile x server set a b`) and on any
-     * command below it (`vendure config server set a b --profile x`), and their
-     * values reach actions via {@link CliCommandContext.inheritedOptions}.
+     * the group itself and on any command below it, and their values reach
+     * actions via {@link CliCommandContext.inheritedOptions}.
      */
     options?: CliCommandOption[];
     subcommands: CliCommandNode[];
@@ -165,11 +161,6 @@ export interface CliCommandGroupDefinition {
      * applies to every command in it.
      */
     requiresProject?: boolean;
-    /**
-     * See {@link CliCommandDefinition.replaces}. Replacing a group replaces its
-     * whole subtree.
-     */
-    replaces?: boolean;
 }
 
 /**
@@ -292,7 +283,7 @@ export function readCommandOptions<TOptions extends Record<string, any> = Record
 }
 
 /**
- * Adds to a command that is already registered instead of replacing it, so
+ * Adds to a built-in command that is not declared with `defineCommand`, so
  * that several plugins can contribute to the same command.
  *
  * Extensions are applied in `vendure.cli.plugins` order, so the last listed
@@ -307,8 +298,8 @@ export function readCommandOptions<TOptions extends Record<string, any> = Record
  */
 export interface CliCommandExtension {
     /**
-     * The command to extend: `'dev'`, or `['config', 'server', 'set']` for a
-     * nested one.
+     * The built-in command to extend, such as `'start'`, or its path as
+     * an array of names.
      */
     command: string | string[];
     /**
@@ -338,10 +329,9 @@ export interface CliCommandExtension {
 export interface ProjectCliPluginConfig {
     /**
      * Allowlist of packages to load as CLI plugins, in registration order.
-     * A name that is already taken is rejected unless the command sets
-     * `replaces: true`; among plugins that do, the last listed wins. Command
-     * extensions are applied in the same order, and all of them are kept.
-     * Each must be a direct dependency and declare `vendure.cliPlugin`.
+     * Command extensions are applied in this order, and all of them are kept.
+     * Each must be a direct dependency and declare `vendure.cliPlugin` or
+     * `vendure.commandManifest`.
      * When missing or empty, no plugins are loaded — disabling a plugin is
      * simply not listing it.
      */

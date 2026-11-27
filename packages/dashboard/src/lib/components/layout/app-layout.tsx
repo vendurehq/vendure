@@ -3,7 +3,7 @@ import { CommandPaletteProvider, CommandPaletteTrigger } from '@/vdb/components/
 import { DevModeIndicator } from '@/vdb/components/layout/dev-mode-indicator.js';
 import { GeneratedBreadcrumbs } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
-import { AppShellHeader, AppShellMain } from '@/vdb/components/ui/app-shell.js';
+import { AppShellHeader, AppShellMain, pageFrameClassName } from '@/vdb/components/ui/app-shell.js';
 import { Kbd } from '@/vdb/components/ui/kbd.js';
 import { Separator } from '@/vdb/components/ui/separator.js';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/vdb/components/ui/sidebar.js';
@@ -167,7 +167,7 @@ export function AppLayout() {
                         </div>
                     </AppShellHeader>
                     <AppShellMain>
-                        <div className="mx-auto w-full min-w-0 max-w-screen-2xl md:p-4 xl:px-11">
+                        <div className={pageFrameClassName}>
                             <CustomProviders location={'layout'}>
                                 <Outlet />
                             </CustomProviders>

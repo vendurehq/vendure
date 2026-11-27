@@ -7,10 +7,20 @@ import { describe, expect, it } from 'vitest';
 // reflect their live @Allow metadata. If a resolver's permissions drift, this test breaks loudly.
 import { AssetResolver } from '../../../../../core/src/api/resolvers/admin/asset.resolver';
 import { ChannelResolver } from '../../../../../core/src/api/resolvers/admin/channel.resolver';
+import { CountryResolver } from '../../../../../core/src/api/resolvers/admin/country.resolver';
 import { CustomerGroupResolver } from '../../../../../core/src/api/resolvers/admin/customer-group.resolver';
 import { CustomerResolver } from '../../../../../core/src/api/resolvers/admin/customer.resolver';
 import { OrderResolver } from '../../../../../core/src/api/resolvers/admin/order.resolver';
+import { PaymentMethodResolver } from '../../../../../core/src/api/resolvers/admin/payment-method.resolver';
 import { ProductResolver } from '../../../../../core/src/api/resolvers/admin/product.resolver';
+import { RoleResolver } from '../../../../../core/src/api/resolvers/admin/role.resolver';
+import { SettingsStoreAdminResolver } from '../../../../../core/src/api/resolvers/admin/settings-store.resolver';
+import { ShippingMethodResolver } from '../../../../../core/src/api/resolvers/admin/shipping-method.resolver';
+import { StockLocationResolver } from '../../../../../core/src/api/resolvers/admin/stock-location.resolver';
+import { StoreReadinessResolver } from '../../../../../core/src/api/resolvers/admin/store-readiness.resolver';
+import { TaxCategoryResolver } from '../../../../../core/src/api/resolvers/admin/tax-category.resolver';
+import { TaxRateResolver } from '../../../../../core/src/api/resolvers/admin/tax-rate.resolver';
+import { ZoneResolver } from '../../../../../core/src/api/resolvers/admin/zone.resolver';
 import { metadataFor } from '../spec-helpers';
 
 import { adminToolProviders } from './index';
@@ -48,6 +58,50 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     get_stock_levels: { resolver: ProductResolver, method: 'productVariant' },
     adjust_stock: { resolver: ProductResolver, method: 'updateProductVariants' },
     list_channels: { resolver: ChannelResolver, method: 'channels' },
+    get_channel: { resolver: ChannelResolver, method: 'channel' },
+    create_channel: { resolver: ChannelResolver, method: 'createChannel' },
+    update_channel: { resolver: ChannelResolver, method: 'updateChannel' },
+    list_zones: { resolver: ZoneResolver, method: 'zones' },
+    create_zone: { resolver: ZoneResolver, method: 'createZone' },
+    // update_zone changes members with addMembersToZone and removeMembersFromZone, which carry the
+    // same @Allow as updateZone.
+    update_zone: { resolver: ZoneResolver, method: 'updateZone' },
+    list_countries: { resolver: CountryResolver, method: 'countries' },
+    enable_countries: { resolver: CountryResolver, method: 'updateCountry' },
+    list_tax_categories: { resolver: TaxCategoryResolver, method: 'taxCategories' },
+    create_tax_category: { resolver: TaxCategoryResolver, method: 'createTaxCategory' },
+    update_tax_category: { resolver: TaxCategoryResolver, method: 'updateTaxCategory' },
+    list_tax_rates: { resolver: TaxRateResolver, method: 'taxRates' },
+    create_tax_rate: { resolver: TaxRateResolver, method: 'createTaxRate' },
+    update_tax_rate: { resolver: TaxRateResolver, method: 'updateTaxRate' },
+    list_shipping_methods: { resolver: ShippingMethodResolver, method: 'shippingMethods' },
+    create_shipping_method: { resolver: ShippingMethodResolver, method: 'createShippingMethod' },
+    update_shipping_method: { resolver: ShippingMethodResolver, method: 'updateShippingMethod' },
+    // The checkers, calculators and fulfillment handlers queries share one @Allow.
+    list_shipping_options: { resolver: ShippingMethodResolver, method: 'shippingCalculators' },
+    list_payment_methods: { resolver: PaymentMethodResolver, method: 'paymentMethods' },
+    create_payment_method: { resolver: PaymentMethodResolver, method: 'createPaymentMethod' },
+    update_payment_method: { resolver: PaymentMethodResolver, method: 'updatePaymentMethod' },
+    // The handlers and eligibility checkers queries share one @Allow.
+    list_payment_options: { resolver: PaymentMethodResolver, method: 'paymentMethodHandlers' },
+    list_stock_locations: { resolver: StockLocationResolver, method: 'stockLocations' },
+    create_stock_location: { resolver: StockLocationResolver, method: 'createStockLocation' },
+    update_stock_location: { resolver: StockLocationResolver, method: 'updateStockLocation' },
+    list_roles: { resolver: RoleResolver, method: 'roles' },
+    create_role: { resolver: RoleResolver, method: 'createRole' },
+    update_role: { resolver: RoleResolver, method: 'updateRole' },
+    delete_channel: { resolver: ChannelResolver, method: 'deleteChannel' },
+    delete_zone: { resolver: ZoneResolver, method: 'deleteZone' },
+    delete_tax_category: { resolver: TaxCategoryResolver, method: 'deleteTaxCategory' },
+    delete_tax_rate: { resolver: TaxRateResolver, method: 'deleteTaxRate' },
+    delete_shipping_method: { resolver: ShippingMethodResolver, method: 'deleteShippingMethod' },
+    delete_payment_method: { resolver: PaymentMethodResolver, method: 'deletePaymentMethod' },
+    delete_stock_location: { resolver: StockLocationResolver, method: 'deleteStockLocation' },
+    delete_role: { resolver: RoleResolver, method: 'deleteRole' },
+    // The settings store checks each field's own read and write permissions inside the call.
+    get_setting: { resolver: SettingsStoreAdminResolver, method: 'getSettingsStoreValue' },
+    set_setting: { resolver: SettingsStoreAdminResolver, method: 'setSettingsStoreValue' },
+    check_store: { resolver: StoreReadinessResolver, method: 'storeReadiness' },
 };
 
 // Tools with no matching core resolver operation, deliberately guarded by [Authenticated] alone.

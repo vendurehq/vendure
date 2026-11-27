@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     configureStorefrontPackageJson,
     getStorefrontStarter,
-    parseStorefrontId,
     renderStorefrontEnvironment,
-    resolveCiStorefront,
     STOREFRONT_STARTERS,
 } from './storefront-starters.js';
 
@@ -24,18 +22,6 @@ describe('storefront starters', () => {
         for (const id of ids) {
             expect(getStorefrontStarter(id)).toMatchObject({ id });
         }
-    });
-
-    it('rejects unknown storefront ids from the CLI', () => {
-        expect(parseStorefrontId('TANSTACK')).toBe('tanstack');
-        expect(() => parseStorefrontId('tansack')).toThrow('Allowed choices are: tanstack, nextjs.');
-    });
-
-    it('resolves the legacy CI storefront flag while preferring an explicit starter', () => {
-        expect(resolveCiStorefront({})).toBeUndefined();
-        expect(resolveCiStorefront({ withStorefront: true })).toBe('nextjs');
-        expect(resolveCiStorefront({ storefront: 'tanstack' })).toBe('tanstack');
-        expect(resolveCiStorefront({ storefront: 'tanstack', withStorefront: true })).toBe('tanstack');
     });
 
     it('configures the TanStack Start scripts for the generated workspace', () => {

@@ -91,7 +91,8 @@ function TaxRateListPage() {
                     cell: ({ row }) => row.original.category?.name,
                 },
                 zone: {
-                    cell: ({ row }) => row.original.zone?.name,
+                    header: () => <Trans>Target</Trans>,
+                    cell: ({ row }) => row.original.zone?.name ?? row.original.region?.name,
                 },
                 value: {
                     cell: ({ row }) => `${row.original.value}%`,

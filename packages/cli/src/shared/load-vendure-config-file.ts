@@ -37,8 +37,18 @@ function findNearestTsConfig(startPath: string): string | null {
 }
 
 /**
+ * The key of a resolved tsconfig that holds the directory its `paths` are relative to when no
+ * `baseUrl` is set: that of the most derived tsconfig that declares `paths`, as TypeScript does.
+ */
+const PATHS_BASE_DIR = '__pathsBaseDir';
+
+/**
  * Recursively resolves a tsconfig file, following the `extends` chain and merging configurations.
  * This ensures that path mappings and other compiler options from base configs are properly included.
+ *
+ * A `baseUrl` is made absolute against the tsconfig that declares it, and the directory of the
+ * tsconfig that declares `paths` is kept under {@link PATHS_BASE_DIR}, so the mappings of a base
+ * tsconfig in another directory, such as a monorepo's root, resolve from there.
  */
 async function resolveTsConfigWithExtends(tsConfigPath: string): Promise<any> {
     let tsConfigFileContent: string;
@@ -59,6 +69,14 @@ async function resolveTsConfigWithExtends(tsConfigPath: string): Promise<any> {
         throw new Error(
             `Failed to parse TypeScript config file at ${tsConfigPath}: ${getErrorMessage(error)}`,
         );
+    }
+
+    const ownOptions = tsConfigJson.compilerOptions;
+    if (typeof ownOptions?.baseUrl === 'string') {
+        ownOptions.baseUrl = path.resolve(path.dirname(tsConfigPath), ownOptions.baseUrl);
+    }
+    if (ownOptions?.paths) {
+        tsConfigJson[PATHS_BASE_DIR] = path.dirname(tsConfigPath);
     }
 
     // If this config extends another, recursively resolve the base config(s)
@@ -86,7 +104,7 @@ async function resolveTsConfigWithExtends(tsConfigPath: string): Promise<any> {
 }
 
 /**
- * Deep merges two tsconfig objects, with special handling for compilerOptions.paths.
+ * Deep merges two tsconfig objects, as `extends` does.
  * The `current` config takes precedence over the `base` config.
  */
 function deepMergeConfigs(base: any, current: any): any {
@@ -99,13 +117,8 @@ function deepMergeConfigs(base: any, current: any): any {
                 ...current.compilerOptions,
             };
 
-            // Special handling for paths: merge both base and current paths
-            if (base.compilerOptions?.paths || current.compilerOptions?.paths) {
-                result.compilerOptions.paths = {
-                    ...base.compilerOptions?.paths,
-                    ...current.compilerOptions?.paths,
-                };
-            }
+            // As in TypeScript, the `paths` of the derived tsconfig replace those it inherits,
+            // which the spread above already does.
         } else if (key !== 'extends') {
             // Don't include 'extends' in the merged result
             result[key] = current[key];
@@ -119,50 +132,121 @@ export async function loadVendureConfigFile(
     vendureConfig: VendureConfigRef,
     providedTsConfigPath?: string,
 ): Promise<VendureConfig> {
-    await import('dotenv/config');
-    if (!isRunningInTsNode()) {
-        // Find the nearest tsconfig to the actual VendureConfig file.
-        // This is important in monorepos where each package has its own tsconfig
-        // that may extend a base config with path mappings.
-        const configFilePath = vendureConfig.sourceFile.getFilePath();
-        const nearestTsConfig = findNearestTsConfig(configFilePath);
-
-        let tsConfigPath: string;
-        if (nearestTsConfig) {
-            // Prefer the nearest tsconfig (package-level config)
-            tsConfigPath = nearestTsConfig;
-        } else if (providedTsConfigPath) {
-            // Fall back to provided path
-            tsConfigPath = providedTsConfigPath;
-        } else {
-            // Last resort: select from cwd
-            const tsConfigFile = selectTsConfigFile();
-            tsConfigPath = path.join(process.cwd(), tsConfigFile);
-        }
-
-        const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
-        const compilerOptions = tsConfigJson.compilerOptions;
-
-        register({
-            compilerOptions: { ...compilerOptions, moduleResolution: 'NodeNext', module: 'NodeNext' },
-            transpileOnly: true,
-        });
-
-        if (compilerOptions.paths) {
-            const tsConfigPaths = await import('tsconfig-paths');
-            tsConfigPaths.register({
-                baseUrl: './',
-                paths: compilerOptions.paths,
-            });
-        }
-    }
+    const configFilePath = vendureConfig.sourceFile.getFilePath();
+    await prepareToRequireConfig(configFilePath, providedTsConfigPath);
     const exportedVarName = vendureConfig.getConfigObjectVariableName();
     if (!exportedVarName) {
         throw new Error('Could not find the exported variable name in the VendureConfig file');
     }
     // The ts-node hook registered above applies to `require` only, not to `import()`.
-    const configModule = createRequire(import.meta.url)(vendureConfig.sourceFile.getFilePath());
+    const configModule = createRequire(import.meta.url)(configFilePath);
     return configModule[exportedVarName];
+}
+
+/**
+ * Loads `.env`, and registers ts-node with the project's tsconfig and its path mappings, so the
+ * project's TypeScript files, such as its migrations, can be required.
+ */
+export async function prepareToRequireProjectFiles(projectDir: string): Promise<void> {
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    if (!findNearestTsConfig(packageJsonPath)) {
+        // A project with no tsconfig has no TypeScript files to register ts-node for.
+        await import('dotenv/config');
+        return;
+    }
+    await prepareToRequireConfig(packageJsonPath);
+}
+
+/**
+ * Requires a TypeScript or JavaScript module the way a config file is required: it loads `.env`,
+ * and registers ts-node with the tsconfig nearest the file and its path mappings, first. Returns
+ * the module's exports.
+ */
+export async function requireProjectModule(filePath: string): Promise<Record<string, unknown>> {
+    await prepareToRequireConfig(filePath);
+    return createRequire(import.meta.url)(filePath) as Record<string, unknown>;
+}
+
+/**
+ * Loads the Vendure config from a known file, without parsing the project with ts-morph, which
+ * takes seconds. The config is the export named `config`, or else the only export that has
+ * `dbConnectionOptions`. Returns `undefined` when that does not identify one export, so the caller
+ * can fall back to {@link loadVendureConfigFile}.
+ */
+export async function loadVendureConfigFromPath(configFilePath: string): Promise<VendureConfig | undefined> {
+    const configModule = await requireProjectModule(configFilePath);
+    if (isVendureConfig(configModule.config)) {
+        return configModule.config;
+    }
+    const configs = Object.values(configModule).filter(isVendureConfig);
+    return configs.length === 1 ? configs[0] : undefined;
+}
+
+/**
+ * Whether a value is taken to be a `VendureConfig`: an object with a `dbConnectionOptions`
+ * property. Nothing else is checked.
+ */
+export function isVendureConfig(value: unknown): value is VendureConfig {
+    return typeof value === 'object' && value !== null && 'dbConnectionOptions' in value;
+}
+
+/** The tsconfig files whose path mappings, if any, are registered in this process. */
+const preparedTsConfigs = new Set<string>();
+
+/**
+ * Loads `.env`, and prepares the process to require a file under the tsconfig nearest to it. It
+ * registers ts-node with that tsconfig's compiler options, unless ts-node is already registered.
+ * It registers the tsconfig's path mappings once per tsconfig.
+ */
+async function prepareToRequireConfig(configFilePath: string, providedTsConfigPath?: string) {
+    await import('dotenv/config');
+    // Find the nearest tsconfig to the actual VendureConfig file.
+    // This is important in monorepos where each package has its own tsconfig
+    // that may extend a base config with path mappings.
+    const nearestTsConfig = findNearestTsConfig(configFilePath);
+
+    let tsConfigPath: string;
+    if (nearestTsConfig) {
+        // Prefer the nearest tsconfig (package-level config)
+        tsConfigPath = nearestTsConfig;
+    } else if (providedTsConfigPath) {
+        // Fall back to provided path
+        tsConfigPath = providedTsConfigPath;
+    } else {
+        // Last resort: select from cwd
+        const tsConfigFile = selectTsConfigFile();
+        tsConfigPath = path.join(process.cwd(), tsConfigFile);
+    }
+
+    // Each registration of tsconfig-paths wraps the module resolver once more, so a tsconfig is
+    // read and its mappings registered only the first time it is seen.
+    const tsConfigKey = path.resolve(tsConfigPath);
+    if (preparedTsConfigs.has(tsConfigKey)) {
+        return;
+    }
+
+    const tsConfigJson = await resolveTsConfigWithExtends(tsConfigPath);
+    const compilerOptions = tsConfigJson.compilerOptions;
+
+    // ts-node may already be registered, by the CLI itself or for an earlier project. The path
+    // mappings are still registered: they belong to this config file's tsconfig.
+    if (!isRunningInTsNode()) {
+        register({
+            compilerOptions: { ...compilerOptions, moduleResolution: 'NodeNext', module: 'NodeNext' },
+            transpileOnly: true,
+        });
+    }
+
+    if (compilerOptions.paths) {
+        const tsConfigPaths = await import('tsconfig-paths');
+        tsConfigPaths.register({
+            // As TypeScript resolves them: against `baseUrl`, or else the tsconfig that declares them.
+            baseUrl: compilerOptions.baseUrl ?? tsConfigJson[PATHS_BASE_DIR] ?? path.dirname(tsConfigPath),
+            paths: compilerOptions.paths,
+        });
+    }
+    // Recorded last, so a tsconfig that failed to load is read again next time.
+    preparedTsConfigs.add(tsConfigKey);
 }
 
 function getErrorMessage(error: unknown): string {

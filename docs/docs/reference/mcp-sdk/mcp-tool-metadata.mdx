@@ -44,15 +44,16 @@ queries.
 
 A plain description of what the tool does, written for an AI agent to read. It is sent to
 the client with the tool list, and indexed for `search_tools` queries. For a destructive
-tool it is repeated in the confirmation prompt.
+tool without a `describe` method it is the preview the caller is asked to consent to.
 ### keywords
 
 <MemberInfo kind="property" type={`string[]`}   />
 
 Extra search terms for the tool: synonyms and phrasings a user would actually say, e.g.
 `['money back', 'reimburse']` for a refund tool. They are indexed with the name, title and
-description to match `search_tools` queries in discovery mode. They are never shown to the
-agent or returned in a tool result.
+description to match `search_tools` queries in discovery mode. `tools/list` also carries
+them in each tool's `_meta`, under `vendure.io/keywords`, so a client that builds its own
+tool search can use them. They are never returned in a tool result.
 ### toolset
 
 <MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
@@ -81,9 +82,12 @@ How the tool behaves, which decides how it is exposed to the agent:
   annotations are set to true.
 - `mutating`: the tool writes data and runs immediately.
 - `destructive`: the tool writes data and must be confirmed first. Its `destructiveHint`
-  annotation is set to true. An optional `confirm` field is added to the input schema the
-  caller sees. The registry refuses to run the tool unless the call passes `confirm: true`.
-  A destructive tool must not declare a `confirm` property of its own.
+  annotation is set to true. An optional string `confirm` field is added to the input schema
+  the caller sees. A call without a matching `confirm` does not run the tool. It returns an
+  `incomplete` result instead, with a preview of the action and a `consent` need that
+  carries a digest. The caller runs the tool again with `confirm` set to that digest. See
+  `McpToolHandler.describe` for the preview. A destructive tool must not declare a
+  `confirm` property of its own.
 ### usesActiveOrder
 
 <MemberInfo kind="property" type={`boolean`} default={`false`}   />

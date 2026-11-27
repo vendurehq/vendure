@@ -1,0 +1,33 @@
+---
+title: "LockRowOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/transactional-connection.ts" sourceLine="63" packageName="@vendure/core" since="4.0.0" />
+
+Options for [TransactionalConnection](/reference/typescript-api/data-access/transactional-connection#transactionalconnection)`.lockRow()`.
+
+```ts title="Signature"
+interface LockRowOptions {
+    requireReadCommitted?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### requireReadCommitted
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Only take the lock where the reads which follow it see what the previous lock holder
+committed, which needs `READ COMMITTED`. Set this when the lock serializes a
+read-modify-write: there, a writer which waited for the lock but still read its first
+snapshot would overwrite the changes of the writer before it every time, which is worse than
+not serializing at all.
+
+The lock is skipped on Aurora MySQL, whose TypeORM driver never applies an isolation level so
+that it always runs at `REPEATABLE READ`, and in a transaction which runs at
+`REPEATABLE READ`, whether through `entityOptions.transactionIsolationLevel` or the
+`@Transaction()` decorator.
+
+
+</div>

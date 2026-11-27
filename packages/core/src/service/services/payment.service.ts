@@ -23,10 +23,10 @@ import { CreateRefundResult, PaymentMethodHandler } from '../../config/payment/p
 import { RefundDestinationStrategy } from '../../config/payment/refund-destination-strategy';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
-import { Order } from '../../entity/order/order.entity';
 import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
-import { Payment } from '../../entity/payment/payment.entity';
+import { Order } from '../../entity/order/order.entity';
 import { PaymentMethod } from '../../entity/payment-method/payment-method.entity';
+import { Payment } from '../../entity/payment/payment.entity';
 import { Refund } from '../../entity/refund/refund.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { PaymentStateTransitionEvent } from '../../event-bus/events/payment-state-transition-event';
@@ -148,6 +148,7 @@ export class PaymentService {
                 });
             }
         }
+        this.connection.preventTransactionRetry(ctx);
         const result = await handler.createPayment(
             ctx,
             order,
@@ -160,11 +161,12 @@ export class PaymentService {
         // The DB-write sequence below (payment create, state transition, save, relation
         // add, onTransitionEnd hooks) is wrapped in withTransaction so it commits or
         // rolls back atomically — this is what fixes #4686 for this method. Note that
-        // handler.createPayment above is intentionally outside the transaction (it is
-        // a network call to a third-party gateway) and is NOT covered by this wrap.
-        // If the gateway succeeds and a subsequent DB write fails, the resulting
-        // orphaned charge must be reconciled at a higher level. Likewise, the `order`
-        // entity was loaded by the caller outside this transaction.
+        // handler.createPayment above is outside this wrap (it is a network call to a
+        // third-party gateway), although it does run inside the caller's transaction when
+        // there is one, as in the addPaymentToOrder mutations. If the gateway succeeds and a
+        // subsequent DB write fails, the resulting orphaned charge must be reconciled at a
+        // higher level, and the transaction is not retried, so that the gateway is not
+        // charged twice. Likewise, the `order` entity was loaded by the caller.
         return this.connection.withTransaction(ctx, async txCtx => {
             const payment = await this.connection
                 .getRepository(txCtx, Payment)
@@ -204,6 +206,7 @@ export class PaymentService {
             ctx,
             payment.method,
         );
+        this.connection.preventTransactionRetry(ctx);
         const settlePaymentResult = await handler.settlePayment(
             ctx,
             payment.order,
@@ -229,6 +232,7 @@ export class PaymentService {
             ctx,
             payment.method,
         );
+        this.connection.preventTransactionRetry(ctx);
         const cancelPaymentResult = await handler.cancelPayment(
             ctx,
             payment.order,
@@ -324,12 +328,7 @@ export class PaymentService {
                     state: initialState,
                 }),
             );
-            const { finalize } = await this.paymentStateMachine.transition(
-                txCtx,
-                order,
-                payment,
-                endState,
-            );
+            const { finalize } = await this.paymentStateMachine.transition(txCtx, order, payment, endState);
             await this.connection.getRepository(txCtx, Payment).save(payment, { reload: false });
             await this.connection
                 .getRepository(txCtx, Order)
@@ -372,7 +371,11 @@ export class PaymentService {
         selectedPayment: Payment,
         options?: { total?: number },
     ): Promise<
-        Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError
+        | Refund
+        | RefundStateTransitionError
+        | RefundAmountError
+        | RefundDestinationError
+        | RefundIncompleteError
     > {
         const orderWithRefunds = await this.connection.getEntityOrThrow(ctx, Order, order.id, {
             relations: REFUND_ORDER_RELATIONS,
@@ -382,13 +385,7 @@ export class PaymentService {
             ? summate(input.targets ?? [], 'amount')
             : (input.amount ?? options?.total ?? 0);
 
-        const targets = await this.resolveRefundTargets(
-            ctx,
-            input,
-            orderWithRefunds,
-            selectedPayment,
-            total,
-        );
+        const targets = await this.resolveRefundTargets(ctx, input, orderWithRefunds, selectedPayment, total);
         if (targets instanceof RefundAmountError || targets instanceof RefundDestinationError) {
             return targets;
         }
@@ -397,14 +394,7 @@ export class PaymentService {
         for (let i = 0; i < targets.length; i++) {
             let result: { refund: Refund; transitionError?: RefundStateTransitionError };
             try {
-                result = await this.executeRefundTarget(
-                    ctx,
-                    input,
-                    order,
-                    orderWithRefunds,
-                    targets[i],
-                    i,
-                );
+                result = await this.executeRefundTarget(ctx, input, order, orderWithRefunds, targets[i], i);
             } catch (e: any) {
                 if (!useTargets || createdRefunds.length === 0) {
                     throw e;
@@ -664,17 +654,19 @@ export class PaymentService {
                     `when creating a refund for the Payment with method "${payment.method}"`,
             );
         }
-        return paymentMethod && handler
-            ? handler.createRefund(
-                  ctx,
-                  input,
-                  amount,
-                  order,
-                  payment,
-                  paymentMethod.handler.args,
-                  paymentMethod,
-              )
-            : false;
+        if (!paymentMethod || !handler) {
+            return false;
+        }
+        this.connection.preventTransactionRetry(ctx);
+        return handler.createRefund(
+            ctx,
+            input,
+            amount,
+            order,
+            payment,
+            paymentMethod.handler.args,
+            paymentMethod,
+        );
     }
 
     private async createRefundLines(ctx: RequestContext, refund: Refund, input: RefundOrderInput) {

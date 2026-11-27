@@ -1,5 +1,6 @@
 import { classifyConsoleApiOrigin } from '../commands/console/console-origins.js';
 
+import { CliMadeError } from '../shared/cli-made-error.js';
 import { AuthOptions } from './auth-options.js';
 import { WorkosClient } from './workos-client.js';
 
@@ -17,7 +18,7 @@ export interface AuthOrganization {
 }
 
 /** Console answered 401: the token was refused, so the caller may renew it and retry once. */
-export class ConsoleTokenRefusedError extends Error {
+export class ConsoleTokenRefusedError extends CliMadeError {
     constructor() {
         super('Vendure Console did not accept the CLI login.');
         this.name = 'ConsoleTokenRefusedError';
@@ -28,7 +29,7 @@ export class ConsoleTokenRefusedError extends Error {
  * The signed-in user is not an active member of the Customer Account that was
  * asked for. `organizations` are the accounts the user is a member of.
  */
-export class OrganizationNotFoundError extends Error {
+export class OrganizationNotFoundError extends CliMadeError {
     constructor(
         readonly requested: string,
         readonly organizations: AuthOrganization[],
@@ -58,7 +59,7 @@ export async function fetchWorkosClient(
 ): Promise<WorkosClient> {
     const response = await consoleRequest(consoleApiUrl, '/v1', { method: 'GET' }, options);
     if (!response.ok) {
-        throw new Error(
+        throw new CliMadeError(
             `Could not read the sign-in settings from Vendure Console at ${consoleApiUrl} (HTTP ${response.status}).`,
         );
     }
@@ -72,7 +73,7 @@ export async function fetchWorkosClient(
         typeof authentication.apiHostname !== 'string' ||
         !HOSTNAME.test(authentication.apiHostname)
     ) {
-        throw new Error(`Vendure Console at ${consoleApiUrl} returned malformed sign-in settings.`);
+        throw new CliMadeError(`Vendure Console at ${consoleApiUrl} returned malformed sign-in settings.`);
     }
     return { clientId: authentication.clientId, apiHostname: authentication.apiHostname };
 }
@@ -100,7 +101,9 @@ export async function fetchOrganizations(
         throw new ConsoleTokenRefusedError();
     }
     if (!response.ok) {
-        throw new Error(`Vendure Console answered the organization lookup with HTTP ${response.status}.`);
+        throw new CliMadeError(
+            `Vendure Console answered the organization lookup with HTTP ${response.status}.`,
+        );
     }
     return parseMemberships(await readJson(response));
 }
@@ -134,7 +137,7 @@ async function consoleRequest(
     // The URL can come from `auth.json`, so it is checked again here rather than trusted.
     const consoleApi = classifyConsoleApiOrigin(consoleApiUrl);
     if (!consoleApi) {
-        throw new Error(`${consoleApiUrl} is not a Vendure Console API.`);
+        throw new CliMadeError(`${consoleApiUrl} is not a Vendure Console API.`);
     }
     const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
@@ -148,25 +151,25 @@ async function consoleRequest(
         });
     } catch (error) {
         if (options.signal?.aborted) throw error;
-        throw new Error(`Could not reach Vendure Console at ${consoleApi.apiOrigin}.`);
+        throw new CliMadeError(`Could not reach Vendure Console at ${consoleApi.apiOrigin}.`);
     }
 }
 
 async function readJson(response: Response): Promise<unknown> {
     const text = await response.text();
     if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
-        throw new Error('Vendure Console returned an oversized response.');
+        throw new CliMadeError('Vendure Console returned an oversized response.');
     }
     try {
         return JSON.parse(text);
     } catch {
-        throw new Error('Vendure Console returned a response that is not JSON.');
+        throw new CliMadeError('Vendure Console returned a response that is not JSON.');
     }
 }
 
 function parseMemberships(body: unknown): AuthOrganization[] {
     if (!isRecord(body) || !Array.isArray(body.memberships)) {
-        throw new Error('Vendure Console returned a malformed organization list.');
+        throw new CliMadeError('Vendure Console returned a malformed organization list.');
     }
     const organizations: AuthOrganization[] = [];
     for (const membership of body.memberships) {
@@ -205,7 +208,7 @@ export function resolveOrganization(organizations: AuthOrganization[], input: st
         return matches[0];
     }
     if (matches.length > 1) {
-        throw new Error(
+        throw new CliMadeError(
             `More than one of your Customer Accounts is named "${wanted}". ` +
                 `Pass its Account identifier instead:\n${describeOrganizations(matches)}`,
         );

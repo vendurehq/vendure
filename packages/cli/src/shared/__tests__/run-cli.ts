@@ -3,18 +3,9 @@ import { vi } from 'vitest';
 
 import { CliCommandNode, CliCommandOption } from '../cli-command-definition.js';
 import { CliPluginExtensionAccessor } from '../cli-plugin-extension.js';
-import { CommandTreeEntry, RootOptionEntry } from '../command-registry-store.js';
+import { RootOptionEntry } from '../command-registry-store.js';
 import { registerCommands } from '../command-registry.js';
 import { stripAnsi } from '../strip-ansi.js';
-
-/**
- * Accepts either shape so a test can pass a bare fixture when it does not care
- * where a command came from, or an entry when it does. A bare node never has a
- * `node` property, which is what tells the two apart.
- */
-function toCommandEntry(command: CliCommandNode | CommandTreeEntry): CommandTreeEntry {
-    return 'node' in command ? command : { node: command };
-}
 
 function toOptionEntry(option: CliCommandOption | RootOptionEntry): RootOptionEntry {
     return 'option' in option ? option : { option };
@@ -52,7 +43,7 @@ export interface CliRun {
  * capturing everything the host would have written or exited with.
  */
 export async function runCli(
-    commands: Array<CliCommandNode | CommandTreeEntry>,
+    commands: CliCommandNode[],
     sharedOptions: Array<CliCommandOption | RootOptionEntry>,
     argv: string[],
     getPluginExtensions?: CliPluginExtensionAccessor,
@@ -80,7 +71,7 @@ export async function runCli(
             commanderStderr += str;
         },
     });
-    registerCommands(program, commands.map(toCommandEntry), {
+    registerCommands(program, commands, {
         rootOptions: sharedOptions.map(toOptionEntry),
         getPluginExtensions,
         findProjectRoot,

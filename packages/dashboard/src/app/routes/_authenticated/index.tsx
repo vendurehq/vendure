@@ -51,10 +51,17 @@ import { useLingui as useLinguiRuntime } from '@lingui/react';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
 import { endOfDay, startOfMonth } from 'date-fns';
+import { z } from '@/vdb/lib/zod.js';
 import { PlusIcon, RefreshCw, Sparkles, SquarePen, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { SetupChecklist, useSetupChecklist } from './components/setup-checklist.js';
+
 export const Route = createFileRoute('/_authenticated/')({
+    // `?setup=true` opens the setup checklist, as the "Setup" item of the user menu does.
+    validateSearch: z.object({
+        setup: z.boolean().optional().catch(undefined),
+    }),
     component: DashboardPage,
 });
 
@@ -81,6 +88,9 @@ const applyGridLayouts = (
     });
 
 function DashboardPage() {
+    const search = Route.useSearch();
+    const navigate = Route.useNavigate();
+    const setupChecklist = useSetupChecklist(search.setup === true, () => navigate({ to: '/', search: {} }));
     const [widgets, setWidgets] = useState<DashboardWidgetInstance[]>([]);
     // Hidden widgets keep their layout so re-adding restores position/size.
     const [hiddenWidgets, setHiddenWidgets] = useState<DashboardWidgetInstance[]>([]);
@@ -448,6 +458,11 @@ function DashboardPage() {
                 )}
             </PageActionBar>
             <PageLayout>
+                {setupChecklist.visible && (
+                    <FullWidthPageBlock blockId="setup-checklist">
+                        <SetupChecklist state={setupChecklist} />
+                    </FullWidthPageBlock>
+                )}
                 <FullWidthPageBlock blockId="widgets">
                     {/* The mobile action bar shows only its last item, so the filters get their own row. */}
                     {isMobile && <div className="mb-4 flex flex-wrap gap-2">{filterControls}</div>}

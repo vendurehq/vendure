@@ -42,8 +42,8 @@ Do them in this order. Use the context from `context.md`.
    - `Plugin "<name>" is not compatible with this version of Vendure`: go to
      `version-mismatch.md`.
 8. **Production install.** When dev dependencies were pruned, `@vendure/cli`
-   is not installed. Then `vendure start` fails. See the `vendure-cli` skill
-   rule 4 and `skills/vendure-cli/commands/start.md`.
+   is not installed. Then `vendure start` fails. Start the compiled entry
+   files with `node`, or make `@vendure/cli` a production dependency.
 9. **Worker.** The worker runs `bootstrapWorker(config)` and then
    `startJobQueue()` with the same config as the server. Check that the
    worker process runs, that it uses the same config, and that the job queue
@@ -62,7 +62,7 @@ Do them in this order. Use the context from `context.md`.
 | Config does not load                    | Fix the error in the doctor `details`, then run `vendure doctor --check config` again            | `developer-guide/configuration`                              |
 | GraphQL schema does not build           | Fix the plugin's schema extension, then run `vendure doctor --check config schema`               | `developer-guide/extend-graphql-api`                         |
 | Schema does not match the config        | Generate and run a migration                                                                     | `cases/migrations.md`                                        |
-| CLI missing in a production image       | Start the compiled entry files with `node`, or make `@vendure/cli` a production dependency       | `skills/vendure-cli/commands/start.md`                       |
+| CLI missing in a production image       | Start the compiled entry files with `node`, or make `@vendure/cli` a production dependency       | `developer-guide/cli`                                        |
 | Jobs not processed                      | Start the worker; use `DefaultJobQueuePlugin` or `BullMQJobQueuePlugin`, not the in-memory queue | `developer-guide/worker-job-queue#jobqueuestrategy`          |
 | Several instances lose sessions or jobs | Share the job queue and cache, and set one cookie secret for all instances                       | `deployment/horizontal-scaling#multi-instance-configuration` |
 | Worker health check does not answer     | Call `startHealthCheckServer({ port })` after `startJobQueue()`                                  | `deployment/using-docker#healthreadiness-checks`             |
