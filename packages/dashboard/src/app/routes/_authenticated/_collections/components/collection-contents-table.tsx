@@ -42,6 +42,8 @@ export function CollectionContentsTable({ collectionId, title }: Readonly<Collec
         <PaginatedListDataTable
             title={title}
             listQuery={addCustomFields(collectionContentsDocument)}
+            // Draws as many skeleton rows as this Collection had at its last load.
+            rowCountKey={collectionId ? `collection-contents:${collectionId}` : undefined}
             transformVariables={variables => {
                 return {
                     ...variables,
@@ -63,6 +65,9 @@ export function CollectionContentsTable({ collectionId, title }: Readonly<Collec
                     meta: { width: '12rem' },
                 },
                 name: {
+                    // The inset of the ghost name button, so the column keeps its indent
+                    // before the rows arrive.
+                    meta: { contentInset: 'calc(var(--spacing) * 3.25 + 1px)' },
                     header: 'Variant name',
                     cell: ({ row }) => {
                         return (
