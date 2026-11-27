@@ -11,14 +11,28 @@ import { forEachOrder, type LayoutContext, settle } from './harness/scenario.js'
  */
 
 const MAIN = 'main[data-slot="app-shell-main"]';
+const BLOCK_CARD = ':is([data-slot="card"], [data-slot="data-table"])';
 
 const COLLECTION_ANCHORS: AnchorSpec[] = [
     {
         key: 'card',
         display: 'card',
-        selector: `${MAIN} [data-slot="card"]`,
+        // The outermost cards: a loaded DataTable card has the slot `data-table`, its
+        // skeleton is a `card` around a plain `data-table`. The Platform promotion
+        // card is left out: the skeleton leaves it out, and it appears at the
+        // bottom of its column without moving the cards above.
+        selector: `${MAIN} ${BLOCK_CARD}:not(${BLOCK_CARD} *):not(:has([data-testid="platform-promotion-page-card"]))`,
         props: ['x', 'y', 'width', 'height'],
         each: 'index',
+    },
+    {
+        // The header labels of the Contents table: a column indent that arrives with
+        // the rows moves them.
+        key: 'header',
+        display: 'table header label',
+        selector: `${MAIN} ${TABLE} thead th > :first-child`,
+        props: ['x', 'y'],
+        each: 'text',
     },
 ];
 
@@ -38,6 +52,11 @@ async function openFirstCollection(ctx: LayoutContext) {
     await waitForList(ctx.page);
     await ctx.page.locator(`${TABLE} [data-slot="data-table-row-link"]`).first().click();
     await ctx.page.waitForURL(/\/collections\/[^/]+$/);
+    await ctx.page.getByTestId('page-heading').waitFor();
+    await settle(ctx);
+    // Load the page once more: the filter name widths are stored while the page
+    // settles, and the measured reload must find them in storage.
+    await ctx.page.reload();
     await ctx.page.getByTestId('page-heading').waitFor();
     await settle(ctx);
 }
