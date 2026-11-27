@@ -137,7 +137,8 @@ function TableSkeleton({ rows }: Readonly<{ rows: number }>) {
         <Card>
             <UiDataTable
                 frame="plain"
-                rows={[]}
+                // Undefined, not empty: the DataTable draws skeleton rows only before its first load.
+                rows={undefined}
                 columns={tableColumns}
                 isLoading
                 skeletonRowCount={rows}
