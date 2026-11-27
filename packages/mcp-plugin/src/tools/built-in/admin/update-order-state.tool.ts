@@ -3,6 +3,7 @@ import { OrderService, OrderState, Permission, RequestContext } from '@vendure/c
 import { idSchema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { describeOrder, findOrderOrThrow } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { enumString } from '../string-schemas';
 
@@ -41,6 +42,14 @@ export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInpu
         private readonly orderService: OrderService,
         private readonly serializer: McpToolSerializerService,
     ) {}
+
+    async describe(ctx: RequestContext, input: UpdateOrderStateInput) {
+        const order = await findOrderOrThrow(this.orderService, ctx, input.id, []);
+        return (
+            `Move ${describeOrder(order, value => this.serializer.decimal(value))} from ` +
+            `${order.state} to ${input.state}.`
+        );
+    }
 
     async execute(ctx: RequestContext, input: UpdateOrderStateInput) {
         return this.serializer.orderOrError(

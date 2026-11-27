@@ -24,7 +24,7 @@ describe('CLI Doctor Command E2E', () => {
             ]);
 
             expect(result.exitCode).toBe(0);
-            const report = JSON.parse(result.stdout);
+            const report = JSON.parse(result.stdout).output;
             expect(report.overallStatus).toBe('passed');
             expect(report.checks).toHaveLength(1);
             expect(report.checks[0].name).toBe('Project');
@@ -50,9 +50,90 @@ describe('CLI Doctor Command E2E', () => {
             );
 
             expect(result.exitCode).toBe(1);
-            const report = JSON.parse(result.stdout);
+            const report = JSON.parse(result.stdout).output;
             expect(report.overallStatus).toBe('failed');
             expect(report.checks[0].status).toBe('fail');
+        });
+    });
+
+    describe('--json', () => {
+        it('should write one envelope to stdout, with the report as its output', async () => {
+            testProject = createTestProject('doctor-envelope');
+
+            const result = await testProject.runCliCommand(['doctor', '--check', 'project', '--json']);
+
+            const envelope = JSON.parse(result.stdout);
+            expect(envelope).toMatchObject({ schemaVersion: 1, status: 'ok', notices: [] });
+            expect(envelope.output.overallStatus).toBe('passed');
+        });
+
+        it('should return status failed and a non-zero exit code when a check fails', async () => {
+            testProject = createTestProject('doctor-envelope-failed');
+            testProject.writeFile(
+                'package.json',
+                JSON.stringify({ name: 'not-vendure', version: '1.0.0', dependencies: { express: '4.0.0' } }),
+            );
+
+            const result = await testProject.runCliCommand(['doctor', '--check', 'project', '--json'], {
+                expectError: true,
+            });
+
+            expect(result.exitCode).toBe(1);
+            const envelope = JSON.parse(result.stdout);
+            expect(envelope.status).toBe('failed');
+            expect(envelope.output.checks[0].status).toBe('fail');
+        });
+
+        it('should accept the whole input through --input', async () => {
+            testProject = createTestProject('doctor-input');
+
+            const result = await testProject.runCliCommand([
+                'doctor',
+                '--input',
+                '{"check":["project"]}',
+                '--json',
+            ]);
+
+            expect(JSON.parse(result.stdout).output.checks).toHaveLength(1);
+        });
+
+        it('should tag its events on stderr and collect its notices into the envelope', async () => {
+            testProject = createTestProject('doctor-notices');
+
+            const result = await testProject.runCliCommand([
+                'doctor',
+                '--check',
+                'project',
+                '--check',
+                'bogus',
+                '--json',
+            ]);
+
+            const envelope = JSON.parse(result.stdout);
+            expect(envelope.notices).toEqual([
+                { level: 'warning', message: expect.stringContaining('Unknown check(s): bogus') },
+            ]);
+            const events = result.stderr
+                .split('\n')
+                .filter(line => line.startsWith('{'))
+                .map(line => JSON.parse(line));
+            expect(events).toContainEqual(
+                expect.objectContaining({ vendure: 'event', type: 'notice', level: 'warning' }),
+            );
+        });
+
+        it('should report a bad flag as an error envelope', async () => {
+            testProject = createTestProject('doctor-bad-flag');
+
+            const result = await testProject.runCliCommand(['doctor', '--nope', '--json'], {
+                expectError: true,
+            });
+
+            expect(result.exitCode).toBe(1);
+            expect(JSON.parse(result.stdout)).toMatchObject({
+                status: 'error',
+                error: { code: 'cli.usage' },
+            });
         });
     });
 
@@ -69,7 +150,7 @@ describe('CLI Doctor Command E2E', () => {
             ]);
 
             expect(result.exitCode).toBe(0);
-            const report = JSON.parse(result.stdout);
+            const report = JSON.parse(result.stdout).output;
             expect(report).toHaveProperty('nodeVersion');
             expect(report).toHaveProperty('checks');
             expect(report).toHaveProperty('overallStatus');
@@ -101,7 +182,7 @@ describe('CLI Doctor Command E2E', () => {
                 ['doctor', '--check', 'dependencies', '--format', 'json'],
                 { expectError: true },
             );
-            const passReport = JSON.parse(passResult.stdout);
+            const passReport = JSON.parse(passResult.stdout).output;
             expect(passReport.overallStatus).toBe('passed');
             expect(passReport.checks[0].status).toBe('warn');
             expect(passResult.exitCode).toBe(0);
@@ -112,7 +193,7 @@ describe('CLI Doctor Command E2E', () => {
                 { expectError: true },
             );
             expect(failResult.exitCode).toBe(1);
-            const failReport = JSON.parse(failResult.stdout);
+            const failReport = JSON.parse(failResult.stdout).output;
             expect(failReport.overallStatus).toBe('failed');
         });
     });
@@ -127,7 +208,8 @@ describe('CLI Doctor Command E2E', () => {
             expect(result.stdout).toContain('--config');
             expect(result.stdout).toContain('--check');
             expect(result.stdout).toContain('--profile');
-            expect(result.stdout).toContain('--format');
+            expect(result.stdout).toContain('--json');
+            expect(result.stdout).toContain('--input');
             expect(result.stdout).toContain('--strict');
         });
     });
@@ -144,7 +226,7 @@ describe('CLI Doctor Command E2E', () => {
             );
 
             expect(result.exitCode).toBe(1);
-            const report = JSON.parse(result.stdout);
+            const report = JSON.parse(result.stdout).output;
             expect(report.checks[0].status).toBe('fail');
             expect(report.checks[0].message).toContain('node_modules not found');
         });
@@ -164,13 +246,12 @@ describe('CLI Doctor Command E2E', () => {
                 }),
             );
 
-            const result = await testProject.runCliCommand(
-                ['doctor', '--format', 'json'],
-                { expectError: true },
-            );
+            const result = await testProject.runCliCommand(['doctor', '--format', 'json'], {
+                expectError: true,
+            });
 
             expect(result.exitCode).toBe(1);
-            const report = JSON.parse(result.stdout);
+            const report = JSON.parse(result.stdout).output;
 
             // Project should fail
             expect(report.checks[0].name).toBe('Project');

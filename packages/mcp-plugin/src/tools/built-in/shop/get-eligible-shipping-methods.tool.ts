@@ -11,7 +11,10 @@ const getEligibleShippingMethodsInput = z.strictObject({});
 @McpTool({
     name: 'get_eligible_shipping_methods',
     toolset: 'shop',
-    description: 'List shipping methods eligible for the active cart.',
+    description:
+        'List shipping methods eligible for the active cart. Each lists its options, cheapest first; ' +
+        'a method with more than one option (e.g. several carrier services) needs the chosen ' +
+        "option's code passed to set_shipping_method, otherwise the cheapest is used.",
     keywords: [
         'delivery options',
         'how will my order ship',

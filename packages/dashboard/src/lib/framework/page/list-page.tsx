@@ -444,6 +444,26 @@ export interface ListPageProps<
      * scenario illustration such as `NoProductsIllustration` when one matches.
      */
     emptyStateIllustration?: React.ReactNode;
+    /**
+     * @description
+     * Loading cells by column id, for columns whose cells are taller than one
+     * text line (a thumbnail, a two-line cell). The loading rows then have the
+     * height of the loaded rows, and the list does not move when they arrive.
+     *
+     * @since 4.0.0
+     */
+    skeletonCells?: Record<string, React.ReactNode>;
+    /**
+     * @description
+     * Whether the rows open a detail page through a `DetailPageButton`. The
+     * table keeps the row link's slot after the last column while it loads, so
+     * the columns do not move sideways when the rows arrive. Set `false` for a
+     * list whose rows open nothing.
+     *
+     * @default true
+     * @since 4.0.0
+     */
+    rowLinks?: boolean;
 }
 
 /**
@@ -568,6 +588,8 @@ export function ListPage<
     disableDragAndDrop = false,
     emptyStateAction,
     emptyStateIllustration,
+    skeletonCells,
+    rowLinks = true,
 }: Readonly<ListPageProps<T, U, V, AC>>) {
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
@@ -673,6 +695,8 @@ export function ListPage<
         registerRefresher,
         emptyStateAction,
         emptyStateIllustration,
+        skeletonCells,
+        rowLinks,
     };
 
     return (
@@ -685,6 +709,9 @@ export function ListPage<
                         {...commonTableProps}
                         enableViews
                         selectionStorageKey={selectionStorageKey}
+                        // Not scoped by channel: the active channel loads after the list
+                        // mounts, and the count is read once, before the first paint.
+                        rowCountKey={route.id}
                         onReorder={onReorder}
                         disableDragAndDrop={disableDragAndDrop}
                     />

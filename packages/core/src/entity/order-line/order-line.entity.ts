@@ -481,8 +481,11 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     /**
      * @description
      * The quantity that `adjustment.amount` (a line total) should be divided by to get a correct
-     * per-unit share. `PROMOTION` adjustments are always freshly recomputed against the current
-     * `this.quantity`, so that is their basis. Other types (`DISTRIBUTED_ORDER_PROMOTION`, `OTHER`)
+     * per-unit share. `PROMOTION` adjustments are recomputed against the current `this.quantity`
+     * on every recalculation, so that is their basis. The exception is a modification which
+     * freezes the Promotions (see `PromotionFreezeStrategy`): the line keeps its amount, so units
+     * added by the modification share the discount of the units that were paid for, and the line
+     * is discounted by the same total as before. Other types (`DISTRIBUTED_ORDER_PROMOTION`, `OTHER`)
      * are a per-line share of an order-level amount that is redistributed by weight on every
      * recalculation, so their basis is pinned to `orderPlacedQuantity` - otherwise a partially
      * cancelled/refunded line's surviving units could absorb a bigger share than they're due. See

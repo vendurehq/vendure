@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { modifyOrderDocument } from '../orders.graphql.js';
 
 import { AddressFragment, Order } from './order-types.js';
+import type { ShippingMethodSelection } from './order-utils.js';
 
 type ModifyOrderInput = VariablesOf<typeof modifyOrderDocument>['input'];
 
@@ -30,7 +31,7 @@ export interface UseModifyOrderReturn {
         customFields: Record<string, any> | undefined;
     }) => void;
     removeLine: (params: { lineId: string }) => void;
-    setShippingMethod: (params: { shippingMethodId: string }) => void;
+    setShippingMethod: (params: ShippingMethodSelection) => void;
     applyCouponCode: (params: { couponCode: string }) => void;
     removeCouponCode: (params: { couponCode: string }) => void;
     updateShippingAddress: (address: AddressFragment) => void;
@@ -229,12 +230,15 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
     }, []);
 
     // Set shipping method
-    const setShippingMethod = useCallback(({ shippingMethodId }: { shippingMethodId: string }) => {
-        setModifyOrderInput(prev => ({
-            ...prev,
-            shippingMethodIds: [shippingMethodId],
-        }));
-    }, []);
+    const setShippingMethod = useCallback(
+        ({ shippingMethodId, shippingOptionCode }: ShippingMethodSelection) => {
+            setModifyOrderInput(prev => ({
+                ...prev,
+                shippingMethods: [{ shippingMethodId, shippingOptionCode }],
+            }));
+        },
+        [],
+    );
 
     // Apply coupon code
     const applyCouponCode = useCallback(({ couponCode }: { couponCode: string }) => {
@@ -345,7 +349,7 @@ export function useModifyOrder(order: Order | null | undefined): UseModifyOrderR
             (modifyOrderInput.addItems?.length ?? 0) > 0 ||
             (modifyOrderInput.adjustOrderLines?.length ?? 0) > 0 ||
             (modifyOrderInput.couponCodes?.length ?? 0) > 0 ||
-            (modifyOrderInput.shippingMethodIds?.length ?? 0) > 0 ||
+            (modifyOrderInput.shippingMethods?.length ?? 0) > 0 ||
             (modifyOrderInput.surcharges?.length ?? 0) > 0 ||
             !!modifyOrderInput.updateShippingAddress ||
             !!modifyOrderInput.updateBillingAddress

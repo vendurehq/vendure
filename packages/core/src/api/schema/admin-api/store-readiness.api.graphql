@@ -1,0 +1,44 @@
+type Query {
+    """
+    Reports the setup gaps that stop a Channel from taking an order. Checks every Channel on which the
+    active user holds ReadSettings, or only the given ones. It writes nothing.
+    """
+    storeReadiness(channelIds: [ID!]): StoreReadinessReport!
+}
+
+enum StoreReadinessSeverity {
+    ERROR
+    WARNING
+}
+
+type StoreReadinessReport {
+    "True when no finding has the severity ERROR."
+    ready: Boolean!
+    findings: [StoreReadinessFinding!]!
+}
+
+type StoreReadinessFinding {
+    "A namespaced code, such as store.channel.no-default-tax-zone."
+    code: String!
+    severity: StoreReadinessSeverity!
+    message: String!
+    channelId: ID
+    zoneId: ID
+    countryCode: String
+    taxCategoryId: ID
+    fixes: [StoreReadinessFix!]!
+    "A Dashboard path where a person can fix the finding, such as /shipping-methods."
+    dashboardUrl: String
+}
+
+"""
+A way to fix a finding: an MCP admin tool, as the vendure mcp server names it, and the input to call
+it with. Some inputs are templates, and the description says which values to fill in. IDs in the
+input are the database IDs the MCP tools take, which differ from the Admin API's IDs only when an
+EntityIdStrategy encodes them.
+"""
+type StoreReadinessFix {
+    path: [String!]!
+    input: JSON!
+    description: String!
+}

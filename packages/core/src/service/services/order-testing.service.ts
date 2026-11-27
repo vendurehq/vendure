@@ -11,7 +11,6 @@ import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
-import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
@@ -22,7 +21,11 @@ import { ShippingMethod } from '../../entity/shipping-method/shipping-method.ent
 import { ConfigArgService } from '../helpers/config-arg/config-arg.service';
 import { OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { ProductPriceApplicator } from '../helpers/product-price-applicator/product-price-applicator';
-import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
+import {
+    ShippingCalculator,
+    toShippingMethodQuote,
+    toShippingOptionQuote,
+} from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
 
 /**
@@ -55,24 +58,27 @@ export class OrderTestingService {
         input: TestShippingMethodInput,
     ): Promise<TestShippingMethodResult> {
         const shippingMethod = new ShippingMethod({
-            checker: this.configArgService.parseInputForExecution('ShippingEligibilityChecker', input.checker),
+            checker: this.configArgService.parseInputForExecution(
+                'ShippingEligibilityChecker',
+                input.checker,
+            ),
             calculator: this.configArgService.parseInputForExecution('ShippingCalculator', input.calculator),
         });
         const mockOrder = await this.buildMockOrder(ctx, input.shippingAddress, input.lines);
         const eligible = await shippingMethod.test(ctx, mockOrder);
-        const result = eligible ? await shippingMethod.apply(ctx, mockOrder) : undefined;
-        let quote: TestShippingMethodQuote | undefined;
-        if (result) {
-            const { price, priceIncludesTax, taxRate, metadata } = result;
-            quote = {
-                price: priceIncludesTax ? netPriceOf(price, taxRate) : price,
-                priceWithTax: priceIncludesTax ? price : grossPriceOf(price, taxRate),
-                metadata,
-            };
-        }
+        const options = eligible
+            ? (await shippingMethod.applyQuotes(ctx, mockOrder)).map(toShippingOptionQuote)
+            : [];
+        const cheapest = options[0];
+        const quote: TestShippingMethodQuote | undefined = cheapest && {
+            price: cheapest.price,
+            priceWithTax: cheapest.priceWithTax,
+            metadata: cheapest.metadata,
+        };
         return {
             eligible,
             quote,
+            options,
         };
     }
 
@@ -92,18 +98,7 @@ export class OrderTestingService {
                 this.translator.translate(result.method, ctx);
                 return result;
             })
-            .map(result => {
-                const { price, taxRate, priceIncludesTax, metadata } = result.result;
-                return {
-                    id: result.method.id,
-                    price: priceIncludesTax ? netPriceOf(price, taxRate) : price,
-                    priceWithTax: priceIncludesTax ? price : grossPriceOf(price, taxRate),
-                    name: result.method.name,
-                    code: result.method.code,
-                    description: result.method.description,
-                    metadata: result.result.metadata,
-                };
-            });
+            .map(toShippingMethodQuote);
     }
 
     private async buildMockOrder(

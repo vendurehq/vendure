@@ -273,20 +273,19 @@ function ensurePortlessProxy() {
 }
 
 async function buildPrerequisites(env) {
-    const builds = [
-        ['@vendure/common', path.join(repoRoot, 'packages/common')],
-        ['@vendure/core', path.join(repoRoot, 'packages/core')],
-        ['@vendure/cli', path.join(repoRoot, 'packages/cli')],
-        ['@vendure/asset-server-plugin', path.join(repoRoot, 'packages/asset-server-plugin')],
-        ['@vendure/email-plugin', path.join(repoRoot, 'packages/email-plugin')],
+    // Nx builds each package's dependencies first, such as @vendure/mcp-sdk for the MCP plugin, and
+    // infers the build of the plugin packages, which have no `build` script.
+    const projects = [
+        '@vendure/common',
+        '@vendure/core',
+        '@vendure/cli',
+        '@vendure/asset-server-plugin',
+        '@vendure/email-plugin',
+        '@vendure/mcp-plugin',
     ];
 
     console.log('Building dev-server prerequisites...');
-    for (const [label] of builds) {
-        console.log(`\nBuilding ${label}...`);
-        // Plugin packages get their build target from Nx and have no build script.
-        await runForeground(packageManager, ['x', 'nx', 'run', `${label}:build`]);
-    }
+    await runForeground(packageManager, ['x', 'nx', 'run-many', '-t', 'build', '-p', ...projects], env);
 
     console.log('\nBuilding the Dashboard Vite plugin...');
     await runForeground(

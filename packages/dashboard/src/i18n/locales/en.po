@@ -337,6 +337,7 @@ msgstr "Sellers"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-option-list.tsx
 msgid "Options"
 msgstr "Options"
 
@@ -427,10 +428,15 @@ msgstr "Are you sure you want to delete this variant?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr "Dismiss"
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "All resources are up and running"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -503,6 +509,10 @@ msgstr "Custom fields changed"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "Successfully created stock location"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr "Hide for now"
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -621,6 +631,10 @@ msgstr "New customer group"
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "Create \"{0}\""
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "{count} filters"
+msgstr "{count} filters"
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Could not load orders"
@@ -976,6 +990,10 @@ msgstr "{totalCount} channels"
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Please add products and complete the shipping address to run the test."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr "Copy for agent"
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Toggle header row"
@@ -1160,6 +1178,10 @@ msgstr "Enter the transaction ID for this refund settlement"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Are you sure you want to delete this draft order?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr "Store setup"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -1572,6 +1594,10 @@ msgstr "Download as .env file"
 msgid "When enabled, a promotion is available in the shop"
 msgstr "When enabled, a promotion is available in the shop"
 
+#: src/lib/components/data-table/data-table.tsx
+msgid "Remove {label} filter"
+msgstr "Remove {label} filter"
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "Go to the pages of all selected jobs first"
 msgstr "Go to the pages of all selected jobs first"
@@ -1767,6 +1793,10 @@ msgstr ", {0} selected"
 #~ msgid "Scale"
 #~ msgstr "Scale"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr "Re-apply promotions"
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "No countries found"
@@ -1945,6 +1975,11 @@ msgstr "Order transitioned"
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is before"
 msgstr "is before"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr "Tax country"
 
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
@@ -2191,6 +2226,10 @@ msgstr "Usage limit"
 msgid "Create your first collection"
 msgstr "Create your first collection"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr "Select a zone or a country"
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Loading global settings..."
@@ -2355,6 +2394,10 @@ msgstr "New tax category"
 #~ msgid "Partial refund completed"
 #~ msgstr "Partial refund completed"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr "Discounts for the modified order"
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Column options"
 msgstr "Column options"
@@ -2501,6 +2544,11 @@ msgstr "Last 30 days"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "No facet values"
+
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr "None"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3310,6 +3358,8 @@ msgstr "Browse facets"
 #~ msgstr "{0} items"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Zone"
@@ -3354,6 +3404,7 @@ msgstr "In channel"
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0} selected"
 msgstr "{0} selected"
@@ -3675,6 +3726,7 @@ msgid "Available in {channelName}"
 msgstr "Available in {channelName}"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Discount"
 
@@ -4132,8 +4184,6 @@ msgstr "Select value"
 #. placeholder {0}: entry.type.replace(/_/g, ' ').toLowerCase()
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
@@ -4306,8 +4356,12 @@ msgstr "Failed to create tax category"
 #~ msgstr "Set filter criteria for the {columnId} column"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Country"
@@ -4373,7 +4427,7 @@ msgstr "Password reset links are only valid for a limited time. Request a new on
 msgid "Authentication methods"
 msgstr "Authentication methods"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "start"
 msgstr "start"
 
@@ -4392,6 +4446,10 @@ msgstr "Search roles..."
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr "Successfully cancelled {fulfilled} jobs"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr "Checking the store setup…"
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
@@ -4452,6 +4510,10 @@ msgstr "Needed only for a customer who has no password yet, since that account c
 msgid "Assign"
 msgstr "Assign"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr "This server cannot check the store setup."
+
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
 msgstr "Successfully created seller"
@@ -4482,6 +4544,10 @@ msgstr "Try again"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
 msgstr "Successfully updated shipping method"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Row options"
@@ -4623,6 +4689,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Select a country"
 
@@ -4664,7 +4731,7 @@ msgstr "Slug"
 msgid "Set Focal Point"
 msgstr "Set Focal Point"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "end"
 msgstr "end"
 
@@ -4839,6 +4906,10 @@ msgstr "Passwords do not match"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Pick a date and time"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr "Keep the discounts the order was paid with"
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -5153,6 +5224,10 @@ msgstr "Address created"
 #~ msgid "Add an option group to get started with variants."
 #~ msgstr "Add an option group to get started with variants."
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr "This channel can take orders. These items are worth a look."
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "API key rotated successfully"
@@ -5186,6 +5261,10 @@ msgstr "Items included in this fulfillment."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "Failed to cancel payment"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr "No setup gaps found."
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5668,6 +5747,10 @@ msgstr "Shipped"
 msgid "This cannot be saved until the following are fixed:"
 msgstr "This cannot be saved until the following are fixed:"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr "Fix these before this channel can take orders."
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "Monitored Resources"
@@ -5752,6 +5835,10 @@ msgstr "If enabled, the filters will be inherited from the parent collection and
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Select a zone"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr "Applies to"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -5868,6 +5955,10 @@ msgstr "A refund of {formattedDiff} is required. Select payment amounts and ente
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
 msgstr "File exceeds the server upload size limit"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
+msgstr "This channel is ready to take orders."
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
@@ -6049,7 +6140,12 @@ msgstr "Bulk actions"
 msgid "New seller"
 msgstr "New seller"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/layout/generated-breadcrumbs.tsx
+#: src/lib/components/layout/route-pending.tsx
+#: src/lib/components/layout/route-pending.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "Loading…"
@@ -6291,6 +6387,10 @@ msgstr "New Shipping Method"
 msgid "Delete stock locations"
 msgstr "Delete stock locations"
 
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr "Setup"
+
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"
 msgstr "is greater than or equal to"
@@ -6407,7 +6507,6 @@ msgstr "Actions for {0}"
 #~ msgstr "Same window"
 
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
-#: src/lib/components/data-table/data-table-filter-badge.tsx
 msgid "Remove filter"
 msgstr "Remove filter"
 
@@ -6822,10 +6921,18 @@ msgstr "Variant name"
 msgid "Remove"
 msgstr "Remove"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr "Discounts would change"
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Failed to update customer"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr "Copied the error for your agent"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
@@ -7098,7 +7205,6 @@ msgstr "Gross price"
 msgid "Successfully updated administrator"
 msgstr "Successfully updated administrator"
 
-#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -7165,6 +7271,10 @@ msgstr "Binary"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Successfully updated option group"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr "The discounts the order was paid with were kept"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7601,6 +7711,10 @@ msgstr "Global Languages"
 msgid "New administrator"
 msgstr "New administrator"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr "Re-apply the promotions to the modified order"
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Delete draft"
@@ -7978,6 +8092,10 @@ msgstr "greater than or equal"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr "Keep original discounts"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Create product options"
@@ -8039,6 +8157,10 @@ msgstr "Delete {0}"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Customer added to group"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"
@@ -8158,6 +8280,10 @@ msgstr "Tax base"
 msgid "Load more"
 msgstr "Load more"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr "Could not copy. The error is in the browser console."
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 #~ msgstr "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
@@ -8169,6 +8295,10 @@ msgstr "Refund settled"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #~ msgid "API Key"
 #~ msgstr "API Key"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr "Target"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -8196,8 +8326,8 @@ msgid "Available Conditions"
 msgstr "Available Conditions"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
-msgid "Active filters"
-msgstr "Active filters"
+#~ msgid "Active filters"
+#~ msgstr "Active filters"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -8222,6 +8352,10 @@ msgstr "Close"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Link"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr "Order total"
 
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order..."

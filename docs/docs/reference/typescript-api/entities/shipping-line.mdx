@@ -27,6 +27,10 @@ class ShippingLine extends VendureEntity implements HasCustomFields {
     adjustments: Adjustment[];
     @Column('simple-json')
     taxLines: TaxLine[];
+    @Column({ type: 'varchar', nullable: true })
+    shippingOptionCode: string | null;
+    @Column({ type: 'varchar', nullable: true })
+    shippingOptionName: string | null;
     @OneToMany(type => OrderLine, orderLine => orderLine.shippingLine)
     orderLines: OrderLine[];
     @Column(type => CustomShippingLineFields)
@@ -85,6 +89,19 @@ class ShippingLine extends VendureEntity implements HasCustomFields {
 <MemberInfo kind="property" type={`TaxLine[]`}   />
 
 
+### shippingOptionCode
+
+<MemberInfo kind="property" type={`string | null`}  since="4.0.0"  />
+
+The `code` of the ShippingOption chosen from those offered by the [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod),
+if its [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator#shippingcalculator) returns several. `null` when the calculator returns a single
+result without a code.
+### shippingOptionName
+
+<MemberInfo kind="property" type={`string | null`}  since="4.0.0"  />
+
+The `name` of the chosen ShippingOption as returned by the [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator#shippingcalculator), kept so
+the option can be shown, e.g. in order confirmations, without calling the calculator again.
 ### orderLines
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>[]`}   />

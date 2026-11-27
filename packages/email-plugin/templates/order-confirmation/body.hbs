@@ -118,7 +118,7 @@
             </tr>
             {{#each shippingLines }}
             <tr class="order-row">
-                <td colspan="3">Shipping ({{ shippingMethod.name }}):</td>
+                <td colspan="3">Shipping ({{ shippingMethod.name }}{{#if shippingOptionName}}: {{ shippingOptionName }}{{/if}}):</td>
                 <td>{{ formatMoney priceWithTax ../order.currencyCode 'en' }}</td>
             </tr>
             {{/each}}

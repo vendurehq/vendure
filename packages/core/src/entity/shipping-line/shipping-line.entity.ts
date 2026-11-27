@@ -11,8 +11,8 @@ import { VendureEntity } from '../base/base.entity';
 import { CustomShippingLineFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
 import { Money } from '../money.decorator';
-import { Order } from '../order/order.entity';
 import { OrderLine } from '../order-line/order-line.entity';
+import { Order } from '../order/order.entity';
 import { ShippingMethod } from '../shipping-method/shipping-method.entity';
 
 /**
@@ -51,6 +51,27 @@ export class ShippingLine extends VendureEntity implements HasCustomFields {
 
     @Column('simple-json')
     taxLines: TaxLine[];
+
+    /**
+     * @description
+     * The `code` of the ShippingOption chosen from those offered by the {@link ShippingMethod},
+     * if its {@link ShippingCalculator} returns several. `null` when the calculator returns a single
+     * result without a code.
+     *
+     * @since 4.0.0
+     */
+    @Column({ type: 'varchar', nullable: true })
+    shippingOptionCode: string | null;
+
+    /**
+     * @description
+     * The `name` of the chosen ShippingOption as returned by the {@link ShippingCalculator}, kept so
+     * the option can be shown, e.g. in order confirmations, without calling the calculator again.
+     *
+     * @since 4.0.0
+     */
+    @Column({ type: 'varchar', nullable: true })
+    shippingOptionName: string | null;
 
     @OneToMany(type => OrderLine, orderLine => orderLine.shippingLine)
     orderLines: OrderLine[];

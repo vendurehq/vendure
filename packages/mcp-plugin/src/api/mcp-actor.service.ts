@@ -16,6 +16,11 @@ interface McpActorIdentity {
 
 const NO_ACTOR: McpActorIdentity = { name: null, customerId: null };
 
+/** The display name of calls made with local trust, which have no person behind them. */
+export const LOCAL_AGENT_NAME = 'Local agent';
+
+const LOCAL_AGENT: McpActorIdentity = { name: LOCAL_AGENT_NAME, customerId: null };
+
 function fullName(person: { firstName: string; lastName: string }): string {
     return `${person.firstName} ${person.lastName}`.trim();
 }
@@ -51,6 +56,10 @@ export class McpActorService {
         userId: ID | string,
         actorType: McpActorType | McpGrantUserType,
     ): Promise<McpActorIdentity> {
+        // The local agent acts as the superadmin, but it is not that person, so it gets its own name.
+        if (actorType === 'local') {
+            return LOCAL_AGENT;
+        }
         if (actorType === 'customer') {
             const customer = await this.customerService.findOneByUserId(ctx, userId);
             return customer ? { name: fullName(customer), customerId: customer.id } : NO_ACTOR;

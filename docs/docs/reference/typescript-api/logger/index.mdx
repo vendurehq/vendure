@@ -2,7 +2,7 @@
 title: "Logger"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/logger/vendure-logger.ts" sourceLine="136" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/logger/vendure-logger.ts" sourceLine="155" packageName="@vendure/core" />
 
 The Logger is responsible for all logging in a Vendure application.
 
@@ -67,11 +67,11 @@ export const config = {
 ```ts title="Signature"
 class Logger implements LoggerService {
     logger: VendureLogger
-    error(message: string, context?: string, trace?: string) => void;
-    warn(message: string, context?: string) => void;
-    info(message: string, context?: string) => void;
-    verbose(message: string, context?: string) => void;
-    debug(message: string, context?: string) => void;
+    error(message: string, context?: string, trace?: string, meta?: LogMeta) => void;
+    warn(message: string, context?: string, meta?: LogMeta) => void;
+    info(message: string, context?: string, meta?: LogMeta) => void;
+    verbose(message: string, context?: string, meta?: LogMeta) => void;
+    debug(message: string, context?: string, meta?: LogMeta) => void;
 }
 ```
 * Implements: LoggerService
@@ -87,27 +87,27 @@ class Logger implements LoggerService {
 
 ### error
 
-<MemberInfo kind="method" type={`(message: string, context?: string, trace?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, trace?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### warn
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### info
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### verbose
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### debug
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 

@@ -31,6 +31,7 @@ import { Order } from '../utils/order-types.js';
 import {
     getMaxRefundableQuantity,
     getRefundableQuantity,
+    getShippingLineLabel,
     lineCanBeRefunded,
 } from '../utils/order-utils.js';
 import { RefundTarget } from '../utils/refund-utils.js';
@@ -346,7 +347,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                             />
                                             <Label className="font-normal">
                                                 <Trans>Refund shipping</Trans>:{' '}
-                                                {shippingLine.shippingMethod?.name} -{' '}
+                                                {getShippingLineLabel(shippingLine)} -{' '}
                                                 {formatCurrency(
                                                     shippingLine.discountedPriceWithTax,
                                                     order.currencyCode,

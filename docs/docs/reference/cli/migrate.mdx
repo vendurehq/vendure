@@ -1,0 +1,133 @@
+---
+title: "vendure migrate"
+generated: true
+---
+
+
+<a name="migrate-generate"></a>
+
+## vendure migrate generate
+
+Generate a database migration from the changes to your entities.
+
+```bash
+vendure migrate generate [name] [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `migrate_generate`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[name]`, `--name <name>` | string | Required. A name for the migration, for example add-reviews. |
+| `--output-dir <output-dir>` | string | The directory to write the migration to. Defaults to the directory of the migrations the config names, then of an existing migration, then `migrations` next to the config directory. |
+| `--from-empty`, `--no-from-empty` | boolean | Compare against an empty shadow database, which gives a complete baseline migration even when the database already has tables. |
+| `--config <config>` | string | The path to a custom Vendure config file. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `file` | string or null | The migration file that was written, or null when the schema has no changes. |
+| `outputDir` | string |  |
+
+### Errors
+
+- `migrate.config-unreadable` (exit code 1)
+- `config.resolver-failed` (exit code 1)
+- `migrate.generate-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure migrate generate add-reviews
+vendure migrate generate baseline --from-empty --output-dir ./src/migrations
+```
+
+<a name="migrate-revert"></a>
+
+## vendure migrate revert
+
+Revert the last applied database migration.
+
+```bash
+vendure migrate revert [options]
+```
+
+- **Behavior:** `destructive`. Can destroy data. It asks for a named consent first.
+- **Developer MCP tool:** `migrate_revert`
+- Shows a preview of what it will do before it asks for consent.
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--config <config>` | string | The path to a custom Vendure config file. |
+
+### Consents
+
+Without the consent, the command returns `incomplete` with a preview and a digest. Pass the digest as the value of the consent to run it. `--yes` never grants a consent.
+
+- `--revert-migration <digest>`: Revert the last applied migration. This can drop columns and tables, and the data in them.
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `reverted` | boolean | False when the database had applied no migration. |
+| `migration` (optional) | string or null | The migration that was reverted. |
+
+### Errors
+
+- `migrate.config-unreadable` (exit code 1)
+- `config.resolver-failed` (exit code 1)
+- `migrate.database-unreadable` (exit code 1)
+- `migrate.revert-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure migrate revert
+vendure migrate revert --revert-migration <digest>
+```
+
+<a name="migrate-run"></a>
+
+## vendure migrate run
+
+Run the pending database migrations.
+
+```bash
+vendure migrate run [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `migrate_run`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--config <config>` | string | The path to a custom Vendure config file. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `migrationsRan` | array of string | The migrations that ran, in order. |
+| `diagnostics` | array of object | Problems found while running, such as a schema that needs a new migration. |
+
+### Errors
+
+- `migrate.config-unreadable` (exit code 1)
+- `config.resolver-failed` (exit code 1)
+- `migrate.run-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure migrate run
+vendure migrate run --config ./src/vendure-config.ts
+```

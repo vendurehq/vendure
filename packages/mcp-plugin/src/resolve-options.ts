@@ -27,6 +27,10 @@ export function resolveMcpPluginOptions(options: McpPluginOptions = {}): Resolve
     assertOneOf('toolExposure', toolExposure, ['direct', 'discovery']);
     assertOneOf('shopAccess', shopAccess, ['anonymous', 'authenticated', 'disabled']);
     assertOneOf('logging.capture', capture, ['metadata', 'full']);
+    const localTrust = options.localTrust ?? true;
+    if (typeof localTrust !== 'boolean') {
+        throw new Error(`McpPlugin: localTrust must be a boolean, got ${String(localTrust)}.`);
+    }
     if (shopAccess === 'authenticated' && !oauth) {
         throw new Error(
             'McpPlugin: shopAccess "authenticated" needs an oauth block, because the shop endpoint ' +
@@ -36,6 +40,7 @@ export function resolveMcpPluginOptions(options: McpPluginOptions = {}): Resolve
     return {
         toolExposure,
         shopAccess,
+        localTrust,
         oauth,
         rateLimits: resolveRateLimits(options.rateLimits),
         dnsRebinding: options.dnsRebinding,

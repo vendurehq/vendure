@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { IdArgumentDecoder } from '../api/common/id-argument-decoder';
+import { IdCodecService } from '../api/common/id-codec.service';
 import { CacheModule } from '../cache/cache.module';
 import { ConfigModule } from '../config/config.module';
 import { ConnectionModule } from '../connection/connection.module';
@@ -22,6 +24,7 @@ import { ServiceModule } from '../service/service.module';
  * * `ServiceModule` allowing the injection of any of the various entity services such as ProductService, OrderService etc.
  * * `ConfigModule`, allowing the injection of the ConfigService.
  * * `JobQueueModule`, allowing the injection of the {@link JobQueueService}.
+ * * The {@link IdArgumentDecoder}, which a field resolver uses to decode the ID values in its arguments.
  *
  * @docsCategory plugin
  */
@@ -37,6 +40,7 @@ import { ServiceModule } from '../service/service.module';
         ProcessContextModule,
         DataImportModule,
     ],
+    providers: [IdCodecService, IdArgumentDecoder],
     exports: [
         EventBusModule,
         ConfigModule,
@@ -47,6 +51,8 @@ import { ServiceModule } from '../service/service.module';
         I18nModule,
         ProcessContextModule,
         DataImportModule,
+        IdCodecService,
+        IdArgumentDecoder,
     ],
 })
 export class PluginCommonModule {}

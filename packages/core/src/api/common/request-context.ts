@@ -16,6 +16,7 @@ import { CachedSession } from '../../config/session-cache/session-cache-strategy
 import { Channel } from '../../entity/channel/channel.entity';
 
 import { ApiType } from './get-api-type';
+import { getRequestId, getRequestIdOfRequest } from './request-id';
 
 export type SerializedRequestContext = {
     _session: JsonCompatible<Required<Omit<CachedSession, 'token'>>>;
@@ -25,6 +26,7 @@ export type SerializedRequestContext = {
     _acceptedLanguageCodes?: LanguageCode[];
     _isAuthorized: boolean;
     _authorizedAsOwnerOnly: boolean;
+    _requestId?: string;
 };
 
 /**
@@ -197,6 +199,7 @@ export class RequestContext {
     private readonly _translationFn: TFunction;
     private readonly _apiType: ApiType;
     private readonly _req?: Request;
+    private readonly _requestId?: string;
     private _replicationMode?: ReplicationMode;
 
     /**
@@ -213,6 +216,7 @@ export class RequestContext {
         isAuthorized: boolean;
         authorizedAsOwnerOnly: boolean;
         translationFn?: TFunction;
+        requestId?: string;
     }) {
         const { req, apiType, channel, session, languageCode, currencyCode, translationFn } = options;
         this._req = req;
@@ -225,6 +229,7 @@ export class RequestContext {
         this._isAuthorized = options.isAuthorized;
         this._authorizedAsOwnerOnly = options.authorizedAsOwnerOnly;
         this._translationFn = translationFn || (((key: string) => key) as any);
+        this._requestId = options.requestId ?? getRequestIdOfRequest(req) ?? getRequestId();
     }
 
     /**
@@ -278,6 +283,7 @@ export class RequestContext {
             acceptedLanguageCodes: ctxObject._acceptedLanguageCodes,
             isAuthorized: ctxObject._isAuthorized,
             authorizedAsOwnerOnly: ctxObject._authorizedAsOwnerOnly,
+            requestId: ctxObject._requestId,
         };
     }
 
@@ -391,6 +397,7 @@ export class RequestContext {
             _isAuthorized: this._isAuthorized,
             _authorizedAsOwnerOnly: this._authorizedAsOwnerOnly,
             _session: this._session && RequestContext.serializableSession(this._session),
+            _requestId: this._requestId,
         };
         return JSON.parse(JSON.stringify(serializableThis));
     }
@@ -454,6 +461,19 @@ export class RequestContext {
                   }
                 : {},
         );
+    }
+
+    /**
+     * @description
+     * The ID of the API request which this context belongs to. See {@link getRequestId}.
+     *
+     * A context which was rebuilt from a serialized object, e.g. in a job queue worker, keeps the ID
+     * of the request which serialized it. A context built outside any request has no ID.
+     *
+     * @since 4.0.0
+     */
+    get requestId(): string | undefined {
+        return this._requestId;
     }
 
     /**

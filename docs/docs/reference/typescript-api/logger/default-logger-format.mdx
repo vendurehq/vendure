@@ -1,0 +1,15 @@
+---
+title: "DefaultLoggerFormat"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/logger/default-logger.ts" sourceLine="38" packageName="@vendure/core" since="4.0.0" />
+
+The output format of the [DefaultLogger](/reference/typescript-api/logger/default-logger#defaultlogger).
+
+- `text`: coloured text for a person reading a terminal.
+- `json`: one JSON object per line, for tools which read the log. Its type is `LogLine` from
+  `@vendure/common/lib/log`.
+
+```ts title="Signature"
+type DefaultLoggerFormat = 'text' | 'json'
+```

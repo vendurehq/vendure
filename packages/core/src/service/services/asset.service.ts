@@ -430,7 +430,7 @@ export class AssetService {
         }
         const translatedAsset = await this.findOne(ctx, savedAsset.id);
         if (!translatedAsset) {
-            throw new InternalServerError('error.entity-not-found');
+            throw new EntityNotFoundError('Asset', savedAsset.id);
         }
         await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'updated', input));
         return translatedAsset;
