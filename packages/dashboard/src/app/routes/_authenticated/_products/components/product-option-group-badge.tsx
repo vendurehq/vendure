@@ -29,22 +29,25 @@ export function ProductOptionGroupBadge({
     onRemoved,
 }: Readonly<ProductOptionGroupBadgeProps>) {
     const { t } = useLingui();
-    const { hasPermissions } = usePermissions();
+    const { hasPermissions, permissionsLoaded } = usePermissions();
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
     const { remove, forceRemove, inUseGroupId, clearInUseGroup, isPending } = useRemoveOptionGroup(
         productId,
         { onRemoved },
     );
     const canRemove = onRemoved != null && hasPermissions(['UpdateProduct', 'UpdateCatalog']);
+    // Until the permissions load, the remove button keeps its place, disabled, so the
+    // chips do not widen when it appears. It goes only if the permission is missing.
+    const removeShown = canRemove || (onRemoved != null && !permissionsLoaded);
 
     return (
         <>
             <Chip
                 variant="default"
                 className="text-xs"
-                onRemove={canRemove ? () => setRemoveDialogOpen(true) : undefined}
-                removeLabel={canRemove ? t`Remove option group ${name}` : undefined}
-                disabled={canRemove && isPending}
+                onRemove={removeShown ? () => setRemoveDialogOpen(true) : undefined}
+                removeLabel={removeShown ? t`Remove option group ${name}` : undefined}
+                disabled={removeShown && (isPending || !canRemove)}
             >
                 {/* The name and the pencil are one link: a 12px pencil on its own sits too
                     close to the remove button to tap at 390 wide. */}
