@@ -15,7 +15,12 @@ import {
     VendurePlugin,
     mergeConfig,
 } from '@vendure/core';
-import { ErrorResultGuard, createErrorResultGuard, createTestEnvironment } from '@vendure/testing';
+import {
+    ErrorResultGuard,
+    SimpleGraphQLClient,
+    createErrorResultGuard,
+    createTestEnvironment,
+} from '@vendure/testing';
 import path from 'path';
 import { Mock, afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -34,12 +39,15 @@ import {
     addItemToOrderDocument,
     currentUserFragment,
     getActiveCustomerDocument,
+    getActiveOrderDocument,
+    getActiveOrderShippingBillingDocument,
     refreshTokenDocument,
     registerAccountDocument,
     requestPasswordResetDocument,
     requestUpdateEmailAddressDocument,
     resetPasswordDocument,
     setCustomerDocument,
+    setShippingAddressDocument,
     updateEmailAddressDocument,
     verifyEmailDocument,
 } from './graphql/shop-definitions';
@@ -785,6 +793,94 @@ describe('Shop auth & accounts', () => {
                     },
                 },
             ]);
+        });
+    });
+
+    // When the email address on a guest cart is registered later, the cart moves to the new
+    // account and the guest session stops using it.
+    describe('guest cart linked to an email address that registers later', () => {
+        const emailAddress = 'cart-claimed-later@test.com';
+        const password = 'claimed-later-pw';
+        const config = testConfig();
+        const shopApiUrl = `http://localhost:${String(config.apiOptions.port)}/${String(config.apiOptions.shopApiPath)}`;
+        const guestClient = new SimpleGraphQLClient(config, shopApiUrl);
+        const ownerClient = new SimpleGraphQLClient(config, shopApiUrl);
+        let guestOrderId: string;
+
+        beforeEach(() => {
+            sendEmailFn = vi.fn();
+        });
+
+        it('guest links a cart to the unregistered email address', async () => {
+            await guestClient.asAnonymousUser();
+            const { addItemToOrder } = await guestClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            guestOrderId = (addItemToOrder as { id: string }).id;
+            const { setCustomerForOrder } = await guestClient.query(setCustomerDocument, {
+                input: { emailAddress, firstName: 'Guest', lastName: 'Shopper' },
+            });
+            expect((setCustomerForOrder as any).customer.emailAddress).toBe(emailAddress);
+        });
+
+        it('the address owner registers and the cart becomes their active order', async () => {
+            const verificationTokenPromise = getVerificationTokenPromise();
+            const { registerCustomerAccount } = await ownerClient.query(registerAccountDocument, {
+                input: { emailAddress },
+            });
+            successErrorGuard.assertSuccess(registerCustomerAccount);
+            const { verifyCustomerAccount } = await ownerClient.query(verifyEmailDocument, {
+                token: await verificationTokenPromise,
+                password,
+            });
+            currentUserErrorGuard.assertSuccess(verifyCustomerAccount);
+
+            const { activeOrder } = await ownerClient.query(getActiveOrderDocument);
+            expect(activeOrder?.id).toBe(guestOrderId);
+        });
+
+        it("the guest's session no longer has the cart", async () => {
+            const { activeOrder } = await guestClient.query(getActiveOrderDocument);
+            expect(activeOrder).toBeNull();
+        });
+
+        it('the guest session has no cart to update after the owner edits it', async () => {
+            await ownerClient.query(setShippingAddressDocument, {
+                input: {
+                    fullName: 'Account Owner',
+                    streetLine1: '1 Owner Street',
+                    countryCode: 'GB',
+                    phoneNumber: '+44 7700 900123',
+                },
+            });
+
+            const guestView = await guestClient.query(getActiveOrderShippingBillingDocument);
+            expect(guestView.activeOrder).toBeNull();
+
+            const { setOrderShippingAddress } = await guestClient.query(setShippingAddressDocument, {
+                input: { fullName: 'Guest', streetLine1: '2 Guest Road', countryCode: 'GB' },
+            });
+            expect((setOrderShippingAddress as any).errorCode).toBe(ErrorCode.NO_ACTIVE_ORDER_ERROR);
+
+            const ownerView = await ownerClient.query(getActiveOrderShippingBillingDocument);
+            expect(ownerView.activeOrder?.shippingAddress).toEqual(
+                expect.objectContaining({
+                    fullName: 'Account Owner',
+                    streetLine1: '1 Owner Street',
+                    phoneNumber: '+44 7700 900123',
+                }),
+            );
+        });
+
+        it("the owner's other devices keep sharing the cart", async () => {
+            const secondDevice = new SimpleGraphQLClient(config, shopApiUrl);
+            await secondDevice.asUserWithCredentials(emailAddress, password);
+            const { activeOrder: secondDeviceOrder } = await secondDevice.query(getActiveOrderDocument);
+            expect(secondDeviceOrder?.id).toBe(guestOrderId);
+
+            const { activeOrder: firstDeviceOrder } = await ownerClient.query(getActiveOrderDocument);
+            expect(firstDeviceOrder?.id).toBe(guestOrderId);
         });
     });
 
