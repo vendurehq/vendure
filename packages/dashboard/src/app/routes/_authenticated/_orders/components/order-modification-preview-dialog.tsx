@@ -198,7 +198,7 @@ export function OrderModificationPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent size="full" className="max-h-[90vh] p-8 overflow-hidden flex flex-col">
+            <DialogContent size="full" className="max-h-[90vh] [--dialog-padding:--spacing(8)] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Preview order modifications</Trans>
@@ -230,7 +230,7 @@ export function OrderModificationPreviewDialog({
                             {/* Refund/payment UI using Alert */}
                             {priceDifference < 0 && (
                                 <>
-                                    <Alert variant="destructive">
+                                    <Alert tone="critical">
                                         <AlertTitle>
                                             <Trans>Refund required</Trans>
                                         </AlertTitle>
@@ -375,7 +375,7 @@ export function OrderModificationPreviewDialog({
                             <div className="w-full flex justify-end">
                                 <div className="w-full max-w-lg mb-2">
                                     {priceDifference > 0 && (
-                                        <Alert variant="destructive">
+                                        <Alert tone="critical">
                                             <AlertTitle>
                                                 <Trans>Additional payment required</Trans>
                                             </AlertTitle>
@@ -387,7 +387,7 @@ export function OrderModificationPreviewDialog({
                                         </Alert>
                                     )}
                                     {priceDifference === 0 && (
-                                        <Alert variant="default">
+                                        <Alert>
                                             <AlertTitle>
                                                 <Trans>No payment or refund required</Trans>
                                             </AlertTitle>
