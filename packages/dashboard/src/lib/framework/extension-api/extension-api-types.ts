@@ -5,6 +5,7 @@ import { DashboardCustomProviderDefinition } from './custom-providers.js';
 import {
     DashboardActionBarItem,
     DashboardAlertDefinition,
+    DashboardCommandPaletteItemDefinition,
     DashboardCustomFormComponents,
     DashboardDataTableExtensionDefinition,
     DashboardDetailFormExtensionDefinition,
@@ -34,6 +35,7 @@ import {
  * - Alerts
  * - History entries
  * - Toolbar items
+ * - Command palette entries
  *
  * @docsCategory extensions-api
  * @docsPage defineDashboardExtension
@@ -159,6 +161,14 @@ export interface DashboardExtension {
      * @since 3.5.3
      */
     toolbarItems?: DashboardToolbarItemDefinition[];
+    /**
+     * @description
+     * Adds entries to the ⌘K command palette, next to the pages of the nav menu. An entry
+     * opens a page or runs an action, and can be restricted by permission.
+     *
+     * @since 4.0.0
+     */
+    commandPaletteItems?: DashboardCommandPaletteItemDefinition[];
 
     /**
      * @description

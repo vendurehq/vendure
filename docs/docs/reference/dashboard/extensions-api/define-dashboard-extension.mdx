@@ -4,7 +4,7 @@ generated: true
 ---
 ## defineDashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="119" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="122" packageName="@vendure/dashboard" since="3.3.0" />
 
 The main entry point for extensions to the React-based dashboard. Every dashboard extension
 must contain a call to this function, usually in the entry point file that is referenced by
@@ -22,6 +22,7 @@ Every type of customisation of the dashboard can be defined here, including:
 - Custom history entries
 - Toolbar items
 - Refund destinations
+- Command palette entries
 
 *Example*
 
@@ -40,6 +41,7 @@ defineDashboardExtension({
     historyEntries: [],
     toolbarItems: [],
     refundDestinations: [],
+    commandPaletteItems: [],
 });
 ```
 
@@ -54,7 +56,7 @@ Parameters
 
 ## DashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="44" packageName="@vendure/dashboard" since="3.3.0" />
 
 This is the main interface for defining _all_ extensions to the dashboard.
 
@@ -70,6 +72,7 @@ Every type of customisation of the dashboard can be defined here, including:
 - Alerts
 - History entries
 - Toolbar items
+- Command palette entries
 
 ```ts title="Signature"
 interface DashboardExtension {
@@ -86,6 +89,7 @@ interface DashboardExtension {
     historyEntries?: DashboardHistoryEntryComponent[];
     refundDestinations?: DashboardRefundDestinationDefinition[];
     toolbarItems?: DashboardToolbarItemDefinition[];
+    commandPaletteItems?: DashboardCommandPaletteItemDefinition[];
     customProviders?: DashboardCustomProviderDefinition[];
 }
 ```
@@ -207,6 +211,12 @@ defined on the backend by a `RefundDestinationStrategy`.
 Allows you to define custom toolbar items in the app shell header bar.
 Toolbar items appear alongside the breadcrumbs, Dev Mode indicator,
 and alerts icon.
+### commandPaletteItems
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/command-palette#dashboardcommandpaletteitemdefinition'>DashboardCommandPaletteItemDefinition</a>[]`}  since="4.0.0"  />
+
+Adds entries to the ⌘K command palette, next to the pages of the nav menu. An entry
+opens a page or runs an action, and can be restricted by permission.
 ### customProviders
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/custom-providers#dashboardcustomproviderdefinition'>DashboardCustomProviderDefinition</a>[]`}  since="3.7.0"  />

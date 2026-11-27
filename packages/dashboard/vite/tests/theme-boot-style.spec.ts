@@ -5,7 +5,7 @@ import path from 'node:path';
 import { build } from 'vite';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { BOOT_VARIABLES, themeVariablesPlugin } from '../vite-plugin-theme.js';
+import { BOOT_VARIABLES, resolveBootVariables, themeVariablesPlugin } from '../vite-plugin-theme.js';
 import { transformIndexHtmlPlugin } from '../vite-plugin-transform-index.js';
 
 const dashboardIndexHtml = path.join(import.meta.dirname, '../../index.html');
@@ -45,7 +45,11 @@ describe('theme boot style in index.html', () => {
     it('adds the boot colours of the light and dark theme first in the head', async () => {
         const html = await buildIndexHtml({});
 
-        const bootStyle = `:root { --background: ${lightTheme.background}; --muted-foreground: ${lightTheme['muted-foreground']}; } .dark { --background: ${darkTheme.background}; --muted-foreground: ${darkTheme['muted-foreground']}; }`;
+        const declarations = (theme: Record<string, unknown>) =>
+            resolveBootVariables(theme as Parameters<typeof resolveBootVariables>[0])
+                .map(key => `--${key}: ${theme[key] as string};`)
+                .join(' ');
+        const bootStyle = `:root { ${declarations(lightTheme)} } .dark { ${declarations(darkTheme)} }`;
         // First, so the app stylesheet and user stylesheets after it win once they load
         expect(html).toMatch(
             new RegExp(`<head>\\s*<base href="/dashboard/">\\s*<style>${escapeRegExp(bootStyle)}</style>`),
@@ -60,6 +64,19 @@ describe('theme boot style in index.html', () => {
 
         expect(used.length).toBeGreaterThan(0);
         expect(BOOT_VARIABLES).toEqual(expect.arrayContaining(used));
+    });
+
+    // OSS-1508 — the boot shell reads tokens whose values read other tokens
+    it('adds every variable that a boot variable reads, through the overrides', async () => {
+        expect(resolveBootVariables({ card: 'var(--surface-raised)', 'surface-raised': 'white' })).toEqual([
+            'card',
+            'surface-raised',
+        ]);
+
+        const html = await buildIndexHtml({ theme: { light: { card: 'var(--primary)' } } });
+        const root = html.match(/:root \{([^}]*)\}/)?.[1] ?? '';
+        expect(root).toContain('--card: var(--primary);');
+        expect(root).toContain(`--primary: ${lightTheme.primary};`);
     });
 
     it('uses the theme overrides of the Dashboard config', async () => {

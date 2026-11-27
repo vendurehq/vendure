@@ -1,6 +1,7 @@
 import { schemaCurrencyCodes } from '@/vdb/graphql/schema-enums.js';
 
 export {
+    LS_KEY_BOOT_SHELL,
     LS_KEY_SELECTED_CHANNEL_TOKEN,
     LS_KEY_SESSION_TOKEN,
     LS_KEY_SHIPPING_TEST_ADDRESS,

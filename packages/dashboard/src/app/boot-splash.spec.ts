@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { removeBootSplashWhenResolved } from './boot-splash.js';
+import { LS_KEY_BOOT_SHELL } from '../lib/storage-keys.js';
+import { rememberBootShell, removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
 
 type Router = Parameters<typeof removeBootSplashWhenResolved>[0];
 
@@ -68,5 +69,51 @@ describe('removeBootSplashWhenResolved', () => {
 
         expect(listeners.size).toBe(1);
         expect(splash()).not.toBeNull();
+    });
+});
+
+// OSS-1508 — the boot screen shows the app shell only for a signed-in load
+describe('rememberBootShell', () => {
+    const hint = () => JSON.parse(localStorage.getItem(LS_KEY_BOOT_SHELL) ?? 'null');
+
+    afterEach(() => {
+        localStorage.removeItem(LS_KEY_BOOT_SHELL);
+        vi.restoreAllMocks();
+    });
+
+    it('keeps the base path, without its trailing slash, the direction and the filter count while signed in', () => {
+        rememberBootShell('authenticated', '/dashboard/', 'ltr', 0);
+        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr', filters: 0 });
+        rememberBootShell('authenticated', '/', 'rtl', 2);
+        expect(hint()).toEqual({ base: '', dir: 'rtl', filters: 2 });
+    });
+
+    it('removes it on sign-out and keeps it while the session is checked', () => {
+        rememberBootShell('authenticated', '/dashboard', 'ltr', 1);
+        rememberBootShell('initial', '/dashboard', 'ltr', 1);
+        rememberBootShell('verifying', '/dashboard', 'ltr', 1);
+        expect(hint()).toEqual({ base: '/dashboard', dir: 'ltr', filters: 1 });
+        rememberBootShell('unauthenticated', '/dashboard', 'ltr', 1);
+        expect(hint()).toBeNull();
+    });
+
+    it('does not throw when the storage refuses the write', () => {
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new DOMException('full', 'QuotaExceededError');
+        });
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        expect(() => rememberBootShell('authenticated', '/dashboard', 'ltr', 0)).not.toThrow();
+    });
+});
+
+describe('removeBootSplash', () => {
+    it('removes the boot screen and its shell attributes', () => {
+        document.body.innerHTML = '<div id="boot-splash"></div>';
+        document.documentElement.setAttribute('data-boot-shell', 'home');
+        document.documentElement.setAttribute('data-boot-filters', '1');
+        removeBootSplash();
+        expect(document.getElementById('boot-splash')).toBeNull();
+        expect(document.documentElement.hasAttribute('data-boot-shell')).toBe(false);
+        expect(document.documentElement.hasAttribute('data-boot-filters')).toBe(false);
     });
 });
