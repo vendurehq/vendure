@@ -2,7 +2,7 @@
 title: "McpCallerInfo"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="165" packageName="@vendure/mcp-sdk" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="169" packageName="@vendure/mcp-sdk" since="3.8.0" />
 
 Who is calling a tool and how. Passed as the optional third argument to
 `McpToolHandler.execute`.
@@ -11,6 +11,7 @@ Who is calling a tool and how. Passed as the optional third argument to
 interface McpCallerInfo {
     grant?: McpCallerGrant;
     clientIp?: string;
+    localTrust?: boolean;
 }
 ```
 
@@ -28,6 +29,14 @@ undefined for anonymous shop calls and in-process calls.
 
 The client IP resolved by the HTTP transport. It is set for every HTTP call, and undefined
 for in-process calls.
+### localTrust
+
+<MemberInfo kind="property" type={`boolean`}  since="4.0.0"  />
+
+True when the call arrived with the local-trust secret of a dev server that the Vendure CLI
+started, rather than over OAuth. Such a call acts as the superadmin and has no grant, so a
+tool that keeps state on the grant must keep it somewhere else, or hand it back to the
+caller.
 
 
 </div>

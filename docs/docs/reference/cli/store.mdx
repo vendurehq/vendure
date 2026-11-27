@@ -1,0 +1,46 @@
+---
+title: "vendure store"
+generated: true
+---
+
+
+<a name="store-check"></a>
+
+## vendure store check
+
+Check whether each channel of the running dev server can take an order.
+
+```bash
+vendure store check
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** none. This command runs only on the command line.
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `ready` | boolean | False when any finding has the severity ERROR. |
+| `findings` | array of object |  |
+| `dashboard` (optional) | string | The Dashboard URL of the dev server, which the dashboardUrl paths are relative to. |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.state-file-unavailable` (exit code 1)
+- `devserver.not-running` (exit code 1)
+- `devserver.not-ready` (exit code 1)
+- `devserver.endpoint-unknown` (exit code 1)
+- `devserver.endpoint-not-local` (exit code 1)
+- `devserver.unreachable` (exit code 1)
+- `store.check.not-authorized` (exit code 1)
+- `store.check.not-supported` (exit code 1)
+- `store.check.query-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure store check
+vendure store check --json
+```

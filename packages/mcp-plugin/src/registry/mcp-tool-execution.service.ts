@@ -48,7 +48,11 @@ export class McpToolExecutionService {
         return this.registry.getCallableTools(ctx, toolset);
     }
 
-    /** Most failures come back as `isError: true` rather than thrown. Destructive tools require `confirm: true`. */
+    /**
+     * Most failures come back as `isError: true` rather than thrown. A destructive tool first
+     * returns an `incomplete` result ({@link McpConsentRequiredResult}). Call it again with
+     * `confirm` set to that result's digest to run it.
+     */
     async executeTool(
         ctx: RequestContext,
         toolset: McpToolset,

@@ -192,6 +192,79 @@ export const config: VendureConfig = {
 If your ShippingEligibilityChecker or ShippingCalculator needs access to the database or other providers, see the [configurable operation dependency injection guide](/developer-guide/strategies-configurable-operations/#injecting-dependencies).
 :::
 
+### Several options per ShippingMethod
+
+A carrier API such as ShipStation or Shippo usually returns several services, each with its own price. A ShippingCalculator can return all of them as an array of results. Give each result a `code`, unique within the array, and a `name` to show the customer. The code must stay the same from one call to the next, because each recalculation of the Order looks the chosen option up by it: use the carrier's service-level code (Shippo's `servicelevel.token`, for example), not an id the carrier generates for each rate request.
+
+```ts title="src/shipping-methods/carrier-rates-calculator.ts"
+import { LanguageCode, ShippingCalculator } from '@vendure/core';
+import { carrierApi } from './carrier-api';
+
+export const carrierRatesCalculator = new ShippingCalculator({
+    code: 'carrier-rates',
+    description: [{ languageCode: LanguageCode.en, value: 'Live carrier rates' }],
+    args: {},
+    calculate: async (ctx, order) => {
+        const rates = await carrierApi.getRates(order);
+        return rates.map(rate => ({
+            code: rate.serviceCode,
+            name: rate.serviceName,
+            price: rate.amount,
+            priceIncludesTax: false,
+            taxRate: 0,
+            metadata: { estimatedDays: rate.estimatedDays },
+        }));
+    },
+});
+```
+
+`eligibleShippingMethods` still returns the ShippingMethod once, with its `price` set to the cheapest option, and lists every option under `options`, cheapest first:
+
+```graphql title="Shop API"
+query GetEligibleShippingMethods {
+    eligibleShippingMethods {
+        id
+        name
+        options {
+            code
+            name
+            priceWithTax
+            metadata
+        }
+    }
+}
+```
+
+To choose an option, pass `shippingMethods` instead of `shippingMethodId` to `setOrderShippingMethod`:
+
+```graphql title="Shop API"
+mutation {
+    setOrderShippingMethod(shippingMethods: [{ shippingMethodId: "3", shippingOptionCode: "ups_ground" }]) {
+        ... on Order {
+            shippingLines {
+                shippingOptionCode
+                shippingOptionName
+                priceWithTax
+            }
+        }
+    }
+}
+```
+
+Without a `shippingOptionCode`, the cheapest option is used. A storefront that does not know about options therefore keeps working: it shows one entry per ShippingMethod and gets the cheapest option.
+
+The chosen option is stored on the ShippingLine as `shippingOptionCode` and `shippingOptionName`. A FulfillmentHandler can read `shippingOptionCode` to buy a label for the right carrier service.
+
+Each time the Order changes, the calculator runs again and the result with the stored code sets the price. If the calculator no longer returns that code, or returns nothing, the ShippingLine falls back to the cheapest option of any eligible ShippingMethod, as it does when a ShippingMethod becomes ineligible. Show the Order's `shippingLines` at checkout so the customer sees such a change. If the option is withdrawn after the Order last changed, the transition to `ArrangingPayment` is refused.
+
+In the Admin API, `setDraftOrderShippingMethod` takes a `shippingOptionCode`, and `ModifyOrderInput` takes `shippingMethods`. The Dashboard lists the options on draft orders and when modifying an order.
+
+:::note
+Calculators which call a carrier API run on every change to the Order, and each time `eligibleShippingMethods` is queried. Cache the carrier's response for the Order's contents and address to avoid calling the API more often than needed.
+
+When the carrier cannot be reached, return the last rates you got for the Order rather than an empty result. An empty result makes the ShippingLine fall back to the cheapest option of another method, which replaces the customer's choice, and throwing fails the whole recalculation of the Order.
+:::
+
 ### Custom FulfillmentProcess
 
 The fulfillment state machine can be customized by defining a [FulfillmentProcess](/reference/typescript-api/fulfillment/fulfillment-process) and passing it to your VendureConfig:

@@ -16,6 +16,7 @@ type Mutation {
 
 input TaxRateFilterParameter {
     zoneId: IDOperators
+    regionId: IDOperators
     categoryId: IDOperators
 }
 
@@ -27,7 +28,10 @@ input CreateTaxRateInput {
     enabled: Boolean!
     value: Float!
     categoryId: ID!
-    zoneId: ID!
+    "The Zone the rate applies to. Exactly one of zoneId and regionId must be set."
+    zoneId: ID
+    "The Country the rate applies to. Exactly one of zoneId and regionId must be set."
+    regionId: ID
     customerGroupId: ID
 }
 
@@ -37,6 +41,9 @@ input UpdateTaxRateInput {
     value: Float
     enabled: Boolean
     categoryId: ID
+    "The Zone the rate applies to. Setting it removes the Country."
     zoneId: ID
+    "The Country the rate applies to. Setting it removes the Zone."
+    regionId: ID
     customerGroupId: ID
 }

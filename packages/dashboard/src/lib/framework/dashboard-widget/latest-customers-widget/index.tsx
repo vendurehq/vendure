@@ -1,11 +1,11 @@
-import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
+import { EmptyState, ErrorState } from '@/vdb/components/ui/state-views.js';
 import { api } from '@/vdb/graphql/api.js';
-import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { INSIGHTS_WIDGET_QUERY_KEY } from '@/vdb/hooks/use-insights-refresh.js';
+import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
     ListRow,
     ListRowChevron,
@@ -16,6 +16,7 @@ import {
 } from '@vendure-io/ui/components/molecules/list-row';
 import { Users } from 'lucide-react';
 import { DashboardBaseWidget } from '../base-widget.js';
+import { ListRowsSkeleton } from '../widget-skeletons.js';
 import { latestCustomersQuery } from './latest-customers-widget.graphql.js';
 
 const WIDGET_ID = 'latest-customers-widget';
@@ -54,9 +55,7 @@ export function LatestCustomersWidget() {
             description={t`New registrations in the selected period`}
         >
             {isPending ? (
-                <div className="flex h-full w-full items-center justify-center">
-                    <LoadingState variant="spinner" label={<Trans>Loading customers…</Trans>} />
-                </div>
+                <ListRowsSkeleton rows={MAX_ITEMS} meta trailingWidth="w-16" />
             ) : isError ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <ErrorState

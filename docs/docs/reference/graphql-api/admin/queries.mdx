@@ -1257,6 +1257,27 @@ type Query {
 }`}
 </GraphQLDoc>
 
+<a name="storereadiness"></a>
+
+## storeReadiness
+
+<GraphQLDoc
+  type="query"
+  typeName="storeReadiness"
+  typeLinks={{
+    StoreReadinessReport: '/reference/graphql-api/admin/object-types#storereadinessreport',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Reports the setup gaps that stop a Channel from taking an order. Checks every Channel on which the
+active user holds ReadSettings, or only the given ones. It writes nothing.
+"""
+type Query {
+  storeReadiness(channelIds: [ID!]): StoreReadinessReport!
+}`}
+</GraphQLDoc>
+
 <a name="tag"></a>
 
 ## tag

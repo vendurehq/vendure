@@ -7,10 +7,12 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from '@/vdb/components/ui/breadcrumb.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import type { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import { getNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
 import { Link, useRouterState } from '@tanstack/react-router';
 import * as React from 'react';
 import { Fragment } from 'react';
@@ -24,11 +26,42 @@ export type BreadcrumbShorthand = string | React.ReactElement;
 
 export type PageBreadcrumb = BreadcrumbPair | BreadcrumbShorthand;
 
-type SectionCrumb = BreadcrumbPair & { repeatsItem?: boolean };
+type SectionCrumb = BreadcrumbPair & { repeatsItem?: boolean; item?: BreadcrumbPair };
+
+const isBaseRoute = (p: string) => p === '' || p === `/`;
+
+const stripTrailingSlash = (p: string) => (p !== '/' && p.endsWith('/') ? p.slice(0, -1) : p);
+
+/**
+ * The crumb of a page whose loader has not finished, e.g. the entity name of a
+ * detail page.
+ */
+function LoadingCrumb() {
+    return (
+        <>
+            <Skeleton className="inline-block h-4 w-24 align-middle" aria-hidden="true" />
+            <span className="sr-only">
+                <Trans>Loading…</Trans>
+            </span>
+        </>
+    );
+}
 
 export function GeneratedBreadcrumbs() {
     const matches = useRouterState({ select: s => s.matches });
     const currentPath = useRouterState({ select: s => s.location.pathname });
+    // The crumbs come from the loader of the page. Until the page of the location
+    // has loaded, the matches are those of the previous page or have no loader data.
+    const pageLoaded = useRouterState({
+        select: s => {
+            const page = s.matches.at(-1);
+            return (
+                !!page &&
+                stripTrailingSlash(page.pathname) === stripTrailingSlash(s.location.pathname) &&
+                (page.status !== 'pending' || page.loaderData !== undefined)
+            );
+        },
+    });
     const { i18n } = useLingui();
     const navMenuConfig = getNavMenuConfig();
 
@@ -59,8 +92,10 @@ export function GeneratedBreadcrumbs() {
             .flatMap(({ pathname, loaderData }) => normalizeBreadcrumb(loaderData.breadcrumb, pathname));
     }, [matches]);
 
-    const isBaseRoute = (p: string) => p === '' || p === `/`;
-    const pageCrumbs: BreadcrumbPair[] = rawCrumbs.filter(c => !isBaseRoute(c.path));
+    const pageCrumbs: BreadcrumbPair[] = React.useMemo(
+        () => rawCrumbs.filter(c => !isBaseRoute(c.path)),
+        [rawCrumbs],
+    );
 
     const normalizePath = (path: string): string => {
         return path.startsWith('/') ? path : `/${path}`;
@@ -68,9 +103,8 @@ export function GeneratedBreadcrumbs() {
 
     const pathMatches = (cleanPath: string, rawUrl?: string): boolean => {
         if (!rawUrl) return false;
-        const strip = (p: string) => (p !== '/' && p.endsWith('/') ? p.slice(0, -1) : p);
-        const p = strip(cleanPath);
-        const u = strip(rawUrl);
+        const p = stripTrailingSlash(cleanPath);
+        const u = stripTrailingSlash(rawUrl);
         return p === u || p.startsWith(`${u}/`);
     };
 
@@ -97,6 +131,7 @@ export function GeneratedBreadcrumbs() {
                     // A section named like its matched item ("Customers" > "Customers")
                     // would repeat the page's own crumb for the same path.
                     repeatsItem: section.title === item.title,
+                    item: { label: translateSectionTitle(item.title), path: item.url },
                 };
             }
         }
@@ -129,13 +164,32 @@ export function GeneratedBreadcrumbs() {
 
     const sectionCrumb = React.useMemo(() => findSectionCrumb(currentPath), [currentPath, navMenuConfig]);
     const breadcrumbs: BreadcrumbPair[] = React.useMemo(() => {
+        if (!pageLoaded) {
+            // The crumbs of the nav menu item at once, and a placeholder for the
+            // crumb that the loader of a page below that item adds.
+            const crumbs: BreadcrumbPair[] = [];
+            if (sectionCrumb && !(sectionCrumb.repeatsItem && sectionCrumb.item)) {
+                crumbs.push({ label: sectionCrumb.label, path: sectionCrumb.path });
+            }
+            if (sectionCrumb?.item) {
+                crumbs.push(sectionCrumb.item);
+            }
+            const menuPath = sectionCrumb?.item?.path ?? sectionCrumb?.path;
+            if (
+                !menuPath ||
+                stripTrailingSlash(menuPath) !== stripTrailingSlash(normalizePath(currentPath))
+            ) {
+                crumbs.push({ label: <LoadingCrumb />, path: currentPath });
+            }
+            return crumbs;
+        }
         const repeatsPageCrumb =
             sectionCrumb?.repeatsItem && pageCrumbs.some(crumb => crumb.path === sectionCrumb.path);
         const arr = sectionCrumb && !repeatsPageCrumb ? [sectionCrumb, ...pageCrumbs] : pageCrumbs;
         return arr.filter(
             (c, i, self) => self.findIndex(x => x.path === c.path && x.label === c.label) === i,
         );
-    }, [sectionCrumb, pageCrumbs]);
+    }, [pageLoaded, sectionCrumb, pageCrumbs, currentPath]);
     const last = breadcrumbs.length - 1;
     // Below 768px only the parent and the current page fit next to the sidebar
     // toggle. The crumbs before them collapse into the ellipsis.

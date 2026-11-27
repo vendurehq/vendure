@@ -1,0 +1,150 @@
+---
+title: "Seed Sentinels"
+generated: true
+---
+## SEED_SETTINGS_NAMESPACE
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/seed-sentinel/seed-sentinel.service.ts" sourceLine="16" packageName="@vendure/core" since="4.0.0" />
+
+The settings-store namespace of the seed sentinels.
+
+## SEED_PRESET_KEY
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/seed-sentinel/seed-sentinel.service.ts" sourceLine="26" packageName="@vendure/core" since="4.0.0" />
+
+The settings-store key that records the base-data preset a database was seeded with.
+
+## SEED_SCENARIO_KEY
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/seed-sentinel/seed-sentinel.service.ts" sourceLine="36" packageName="@vendure/core" since="4.0.0" />
+
+The settings-store key that records the scenario a database was seeded with.
+
+## SeedPresetSentinel
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/seed-sentinel/seed-sentinel.service.ts" sourceLine="46" packageName="@vendure/core" since="4.0.0" />
+
+The value of the `vendure.seed.preset` sentinel.
+
+```ts title="Signature"
+interface SeedPresetSentinel {
+    name: string;
+    options: Record<string, string>;
+    appliedAt: string;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### options
+
+<MemberInfo kind="property" type={`Record<string, string>`}   />
+
+
+### appliedAt
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>
+## SeedScenarioSentinel
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/seed-sentinel/seed-sentinel.service.ts" sourceLine="61" packageName="@vendure/core" since="4.0.0" />
+
+The value of the `vendure.seed.scenario` sentinel.
+
+```ts title="Signature"
+interface SeedScenarioSentinel {
+    name: string;
+    package: string;
+    version: string;
+    appliedAt: string;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### package
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### version
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### appliedAt
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>
+## SeedSentinelService
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/seed-sentinel/seed-sentinel.service.ts" sourceLine="81" packageName="@vendure/core" since="4.0.0" />
+
+Reads and writes the seed sentinels. A sentinel records that a seed ran against this database. It
+is written in the same transaction as the seeded data, so the data and the sentinel commit
+together or not at all.
+
+The keys are global, read-only over the GraphQL API, and readable by the SuperAdmin only.
+
+```ts title="Signature"
+class SeedSentinelService implements OnModuleInit {
+    constructor(settingsStoreService: SettingsStoreService)
+    onModuleInit() => ;
+    getPresetSentinel(ctx: RequestContext) => Promise<SeedPresetSentinel | undefined>;
+    getScenarioSentinel(ctx: RequestContext) => Promise<SeedScenarioSentinel | undefined>;
+    setPresetSentinel(ctx: RequestContext, value: SeedPresetSentinel) => Promise<void>;
+    setScenarioSentinel(ctx: RequestContext, value: SeedScenarioSentinel) => Promise<void>;
+}
+```
+* Implements: OnModuleInit
+
+
+
+<div className="members-wrapper">
+
+### onModuleInit
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### getPresetSentinel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/import-export/seed-sentinels#seedpresetsentinel'>SeedPresetSentinel</a> | undefined>`}   />
+
+
+### getScenarioSentinel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/import-export/seed-sentinels#seedscenariosentinel'>SeedScenarioSentinel</a> | undefined>`}   />
+
+
+### setPresetSentinel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, value: <a href='/reference/typescript-api/import-export/seed-sentinels#seedpresetsentinel'>SeedPresetSentinel</a>) => Promise<void>`}   />
+
+
+### setScenarioSentinel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, value: <a href='/reference/typescript-api/import-export/seed-sentinels#seedscenariosentinel'>SeedScenarioSentinel</a>) => Promise<void>`}   />
+
+
+
+
+</div>

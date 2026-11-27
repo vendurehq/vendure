@@ -3,13 +3,18 @@ import { ModuleRef } from '@nestjs/core';
 import { SearchReindexResponse } from '@vendure/common/lib/generated-types';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { buffer, debounceTime, delay, filter, map } from 'rxjs/operators';
-import { Column, PrimaryColumn } from 'typeorm';
+import { Column, In, PrimaryColumn } from 'typeorm';
 
 import { Injector } from '../../common';
 import { idsAreEqual } from '../../common/utils';
+import { Logger } from '../../config/logger/vendure-logger';
+import { TransactionalConnection } from '../../connection/transactional-connection';
+import { Channel } from '../../entity/channel/channel.entity';
+import { Region } from '../../entity/region/region.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { AssetEvent } from '../../event-bus/events/asset-event';
 import { ChannelStockSettingsEvent } from '../../event-bus/events/channel-stock-settings-event';
+import { ChannelTaxCountryEvent } from '../../event-bus/events/channel-tax-country-event';
 import { CollectionModificationEvent } from '../../event-bus/events/collection-modification-event';
 import { ProductChannelEvent } from '../../event-bus/events/product-channel-event';
 import { ProductEvent } from '../../event-bus/events/product-event';
@@ -101,9 +106,42 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
     static options: DefaultSearchPluginInitOptions = DefaultSearchPlugin.withDefaults({});
     private static indexColumnsAdded = false;
 
+    /**
+     * TaxRates are global, so a rate edited in one Channel changes the indexed prices of every
+     * Channel whose default tax Zone or tax country it targets, before or after the edit. The index
+     * holds prices with no Order, which get the zone rate of the default tax Zone, or the country
+     * rate of the tax country, and tax-inclusive prices are split at the same rates.
+     */
+    private async reindexChannelsAffectedBy(event: TaxRateEvent) {
+        const { ctx, entity: taxRate, previousTarget } = event;
+        const targets = [
+            { zoneId: taxRate.zone?.id ?? taxRate.zoneId, regionId: taxRate.region?.id ?? taxRate.regionId },
+            ...(previousTarget ? [previousTarget] : []),
+        ];
+        const zoneIds = targets.map(t => t.zoneId).filter((id): id is ID => id != null);
+        const regionIds = targets.map(t => t.regionId).filter((id): id is ID => id != null);
+        const countryCodes = regionIds.length
+            ? (await this.connection.getRepository(ctx, Region).find({ where: { id: In(regionIds) } })).map(
+                  r => r.code,
+              )
+            : [];
+        const channels = await this.connection
+            .getRepository(ctx, Channel)
+            .find({ relations: { defaultTaxZone: true } });
+        for (const channel of channels) {
+            const targetsChannel =
+                zoneIds.some(id => idsAreEqual(channel.defaultTaxZone?.id, id)) ||
+                (channel.taxCountryCode != null && countryCodes.includes(channel.taxCountryCode));
+            if (targetsChannel) {
+                await this.searchIndexService.reindex(ctx.copy(channel));
+            }
+        }
+    }
+
     /** @internal */
     constructor(
         private eventBus: EventBus,
+        private connection: TransactionalConnection,
         private searchIndexService: SearchIndexService,
         private jobQueueService: JobQueueService,
         private moduleRef: ModuleRef,
@@ -207,21 +245,29 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
             // transactions to complete before a new job is added to the queue (assuming the SQL-based
             // JobQueueStrategy).
             // TODO: should be able to remove owing to f0fd6625
-            .pipe(
-                filter(event => event.type !== 'deleted'),
-                delay(1),
-            )
-            .subscribe(event => {
-                const defaultTaxZone = event.ctx.channel.defaultTaxZone;
-                if (defaultTaxZone && idsAreEqual(defaultTaxZone.id, event.entity.zone.id)) {
-                    return this.searchIndexService.reindex(event.ctx);
-                }
-            });
+            .pipe(delay(1))
+            .subscribe(event =>
+                this.reindexChannelsAffectedBy(event).catch(e =>
+                    Logger.error(
+                        `Could not reindex the Channels affected by a TaxRate change: ${e instanceof Error ? e.message : String(e)}`,
+                        'DefaultSearchPlugin',
+                        e instanceof Error ? e.stack : undefined,
+                    ),
+                ),
+            );
 
         // A Channel's trackInventory and outOfStockThreshold decide whether the variants which
         // inherit them are in stock.
         this.eventBus
             .ofType(ChannelStockSettingsEvent)
+            // See the TaxRateEvent subscription above.
+            .pipe(delay(1))
+            .subscribe(event => this.searchIndexService.reindex(event.ctx.copy(event.channel)));
+
+        // The tax country chooses the rate of prices with no shipping country, and the rate that
+        // tax-inclusive prices include.
+        this.eventBus
+            .ofType(ChannelTaxCountryEvent)
             // See the TaxRateEvent subscription above.
             .pipe(delay(1))
             .subscribe(event => this.searchIndexService.reindex(event.ctx.copy(event.channel)));

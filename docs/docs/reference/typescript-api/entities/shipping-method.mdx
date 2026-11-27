@@ -2,7 +2,7 @@
 title: "ShippingMethod"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/shipping-method/shipping-method.entity.ts" sourceLine="38" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/shipping-method/shipping-method.entity.ts" sourceLine="39" packageName="@vendure/core" />
 
 A ShippingMethod is used to apply a shipping price to an [Order](/reference/typescript-api/entities/order#order). It is composed of a
 [ShippingEligibilityChecker](/reference/typescript-api/shipping/shipping-eligibility-checker#shippingeligibilitychecker) and a [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator#shippingcalculator). For a given Order,
@@ -32,6 +32,7 @@ class ShippingMethod extends VendureEntity implements ChannelAware, SoftDeletabl
     customFields: CustomShippingMethodFields;
     getChannelCustomFields(ctx: RequestContext, options?: ChannelCustomFieldsOptions<CustomShippingMethodFields>) => Promise<Partial<CustomShippingMethodFields> | undefined>;
     apply(ctx: RequestContext, order: Order) => Promise<ShippingCalculationResult | undefined>;
+    applyQuotes(ctx: RequestContext, order: Order) => Promise<ShippingCalculationResult[]>;
     test(ctx: RequestContext, order: Order) => Promise<boolean>;
     toJSON() => any;
 }
@@ -106,7 +107,17 @@ values of its Channel on `customFields`: see `ChannelAssignmentService.getChanne
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/shipping/shipping-calculator#shippingcalculationresult'>ShippingCalculationResult</a> | undefined>`}   />
 
+Runs the ShippingCalculator and returns the cheapest of the ShippingOptions it returns, or
+`undefined` if it returns none. Use `ShippingMethod.applyQuotes` to get every option.
+### applyQuotes
 
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/shipping/shipping-calculator#shippingcalculationresult'>ShippingCalculationResult</a>[]>`}  since="4.0.0"  />
+
+Runs the ShippingCalculator and returns every ShippingOption it returns, cheapest first.
+A calculator which returns a single result yields an array of one. If a calculator returns
+several results which do not each have a unique `code`, the chosen option could not be
+identified when the Order is recalculated, so an error is logged and no options are returned:
+the ShippingMethod is then unavailable for the Order, while other ShippingMethods still are.
 ### test
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<boolean>`}   />

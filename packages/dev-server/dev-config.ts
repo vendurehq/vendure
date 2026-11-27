@@ -19,6 +19,7 @@ import {
 } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
+import { McpPlugin } from '@vendure/mcp-plugin';
 import 'dotenv/config';
 import { createRequire } from 'node:module';
 import path from 'path';
@@ -83,6 +84,8 @@ export const devConfig: VendureConfig = {
             origin: true,
             credentials: true,
         },
+        // Local development only: add the project's stack frames to API errors.
+        includeStackInErrors: true,
     },
     authOptions: {
         disableAuth: false,
@@ -98,7 +101,6 @@ export const devConfig: VendureConfig = {
     dbConnectionOptions: {
         synchronize: false,
         logging: false,
-        migrations: [path.join(__dirname, 'migrations/*.ts')],
         ...getDbConfig(),
     },
     paymentOptions: {
@@ -154,6 +156,10 @@ export const devConfig: VendureConfig = {
                 adminPasswordResetUrl: `${dashboardUrl}/reset-password`,
             },
         }),
+        // The Store MCP, which `vendure store check` and the MCP tools use. With no oauth block, the
+        // CLI's local trust gives `vendure mcp` admin access, and `/mcp/shop` takes anonymous callers
+        // by default.
+        McpPlugin.init({}),
         ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
         SERVE_STATIC_DASHBOARD
             ? DashboardPlugin.init({
@@ -200,6 +206,9 @@ function getDbConfig(): DataSourceOptions {
             console.log('Using mysql connection');
             return {
                 synchronize: true,
+                // The files in ./migrations are generated for MySQL/MariaDB and use its syntax.
+                // The other database types are created with `synchronize`, so they load none.
+                migrations: [path.join(__dirname, 'migrations/*.ts')],
                 type: 'mariadb',
                 host: '127.0.0.1',
                 port: 3306,

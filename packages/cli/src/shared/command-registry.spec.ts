@@ -1,7 +1,6 @@
 import { createColors } from 'picocolors';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-
 import { sectionAfter } from './__tests__/help-sections.js';
 import { runCli } from './__tests__/run-cli.js';
 import {
@@ -12,9 +11,9 @@ import {
     readCommandOptions,
 } from './cli-command-definition.js';
 import { exitCliCommand } from './cli-command-exit.js';
-import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
 import { parseOptionFlags } from './cli-command-options.js';
-import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
+import { RootOptionEntry } from './command-registry-store.js';
 import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry.js';
 import { ANSI } from './strip-ansi.js';
 
@@ -128,12 +127,10 @@ describe('registerCommands() with nested commands', () => {
             },
         };
 
-        await runCli(
-            [command],
-            [],
-            ['inspect'],
-            (name => (name === 'example' ? [{ pluginId: '@example/plugin', extension }] : [])) as CliPluginExtensionAccessor,
-        );
+        await runCli([command], [], ['inspect'], (name =>
+            name === 'example'
+                ? [{ pluginId: '@example/plugin', extension }]
+                : []) as CliPluginExtensionAccessor);
 
         expect(received).toEqual({ pluginId: '@example/plugin', extension });
         expect((received as { extension: unknown }).extension).toBe(extension);
@@ -556,16 +553,11 @@ describe('registerCommands() help output', () => {
 });
 
 /**
- * A built-in alongside the plugin commands, so a test can tell the grouped
- * section from the ungrouped one rather than just counting headings.
+ * A built-in alongside other commands, so a test can tell the grouped
+ * options from the ungrouped ones rather than just counting headings.
  */
 function mixedCommands(): CliCommandNode[] {
     return [recordingCommand('dev', 'Run Vendure in development mode'), ...cloudCommands()];
-}
-
-/** Tags the named commands with a source; the rest stay built-ins. */
-function withCommandSources(commands: CliCommandNode[], sources: Record<string, string>): CommandTreeEntry[] {
-    return commands.map(node => ({ node, source: sources[node.name] }));
 }
 
 /** Tags the named options with a source, keyed by Commander attribute name. */
@@ -574,80 +566,6 @@ function withOptionSources(options: CliCommandOption[], sources: Record<string, 
 }
 
 describe('registerCommands() help grouping', () => {
-    it('lists a plugin command under a heading naming its package', async () => {
-        const result = await runCli(
-            withCommandSources(mixedCommands(), { project: '@vendure/cloud', config: '@vendure/cloud' }),
-            rootOptions,
-            ['--help'],
-        );
-
-        expect(result.stdout).toContain('Commands from @vendure/cloud:');
-        expect(result.stdout).toMatch(/^\s+project\s+Manage projects$/m);
-        expect(result.stdout).toMatch(/^\s+config \[options\]\s+Manage configuration$/m);
-    });
-
-    it('leaves commands with no source under the default heading', async () => {
-        const result = await runCli(
-            withCommandSources(mixedCommands(), { project: '@vendure/cloud' }),
-            rootOptions,
-            ['--help'],
-        );
-
-        const defaultSection = sectionAfter(result.stdout, 'Commands:');
-        expect(defaultSection).toMatch(/^\s+dev\s+Run Vendure in development mode$/m);
-        expect(defaultSection).toMatch(/^\s+backup\s+Manage backups$/m);
-        expect(defaultSection).not.toContain('Manage projects');
-    });
-
-    it('puts every command from one package in a single section', async () => {
-        const result = await runCli(
-            withCommandSources(mixedCommands(), {
-                project: '@vendure/cloud',
-                config: '@vendure/cloud',
-                backup: '@vendure/cloud',
-            }),
-            rootOptions,
-            ['--help'],
-        );
-
-        const headings = result.stdout.match(/^Commands from @vendure\/cloud:$/gm) ?? [];
-        expect(headings).toHaveLength(1);
-
-        const pluginSection = sectionAfter(result.stdout, 'Commands from @vendure/cloud:');
-        expect(pluginSection).toMatch(/^\s+project\s+Manage projects$/m);
-        expect(pluginSection).toMatch(/^\s+backup\s+Manage backups$/m);
-    });
-
-    it('gives two packages a section each', async () => {
-        const result = await runCli(
-            withCommandSources(mixedCommands(), {
-                project: '@vendure/cloud',
-                backup: 'vendure-plugin-backups',
-            }),
-            rootOptions,
-            ['--help'],
-        );
-
-        expect(sectionAfter(result.stdout, 'Commands from @vendure/cloud:')).toMatch(
-            /^\s+project\s+Manage projects$/m,
-        );
-        expect(sectionAfter(result.stdout, 'Commands from vendure-plugin-backups:')).toMatch(
-            /^\s+backup\s+Manage backups$/m,
-        );
-    });
-
-    it('lists the built-ins first', async () => {
-        const result = await runCli(
-            withCommandSources(mixedCommands(), { project: '@vendure/cloud' }),
-            rootOptions,
-            ['--help'],
-        );
-
-        expect(result.stdout.indexOf('\nCommands:')).toBeLessThan(
-            result.stdout.indexOf('Commands from @vendure/cloud:'),
-        );
-    });
-
     it('lists a shared option under a heading naming its package', async () => {
         const result = await runCli(
             mixedCommands(),
@@ -702,27 +620,6 @@ describe('registerCommands() help grouping', () => {
         expect(result.stdout).not.toContain('Options from');
         expect(sectionAfter(result.stdout, 'Options:')).toMatch(/^\s+--token /m);
     });
-
-    it('groups nothing when no sources are given', async () => {
-        const result = await runCli(mixedCommands(), rootOptions, ['--help']);
-
-        expect(result.stdout).not.toContain('Commands from');
-        expect(sectionAfter(result.stdout, 'Commands:')).toMatch(/^\s+project\s+Manage projects$/m);
-    });
-
-    it('does not group a subcommand of a plugin command', async () => {
-        const result = await runCli(
-            withCommandSources(mixedCommands(), { project: '@vendure/cloud', list: '@vendure/cloud' }),
-            rootOptions,
-            ['project', '--help'],
-        );
-
-        // `list` is a subcommand of `project`, so the source map's top-level
-        // `list` entry must not reach it: its parent's help already says which
-        // package it came from.
-        expect(result.stdout).not.toContain('Commands from');
-        expect(result.stdout).toMatch(/^\s+list\s+List projects$/m);
-    });
 });
 
 describe('styleHelpTitle()', () => {
@@ -763,15 +660,14 @@ describe('styleHelpTitle()', () => {
     // change to either format has to keep the other working.
     it('recognises the headings the registry actually builds', async () => {
         const result = await runCli(
-            withCommandSources(mixedCommands(), { project: '@vendure/cloud' }),
+            mixedCommands(),
             withOptionSources(rootOptions, { token: '@vendure/cloud' }),
             ['--help'],
         );
 
-        for (const heading of ['Commands from @vendure/cloud:', 'Options from @vendure/cloud:']) {
-            expect(result.stdout).toContain(heading);
-            expect(style(heading)).toContain(CYAN_ON);
-        }
+        const heading = 'Options from @vendure/cloud:';
+        expect(result.stdout).toContain(heading);
+        expect(style(heading)).toContain(CYAN_ON);
     });
 
     it('leaves a heading it does not recognise merely bold', () => {

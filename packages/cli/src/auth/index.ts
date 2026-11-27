@@ -1,4 +1,8 @@
 export {
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     NotLoggedInError,
     ReauthenticationRequiredError,
     SessionLockUnavailableError,
@@ -11,14 +15,27 @@ export type { RenewalFailureDetails } from './auth-errors.js';
 export type { AuthOptions } from './auth-options.js';
 export {
     checkAuthStatus,
+    completeDeviceLogin,
     getAccessToken,
     listOrganizations,
     loginWithDevice,
     logout,
     readAuthStatus,
     refreshAccessToken,
+    startDeviceLogin,
 } from './auth-session.js';
-export type { AuthStatus, DeviceLoginOptions, LogoutResult, RenewalError } from './auth-session.js';
+export type {
+    AuthStatus,
+    CompleteDeviceLoginOptions,
+    DeviceLoginOptions,
+    LogoutResult,
+    RenewalError,
+    StartedDeviceLogin,
+} from './auth-session.js';
 export type { AuthUser, StoredOrganization } from './auth-store.js';
 export type { AuthOrganization } from './console-api.js';
-export type { DeviceAuthorization } from './workos-client.js';
+export { CLOUD_TOKEN_ENV, credentialNeed, readCloudTokenEnv, requireCredential } from './credential.js';
+export type { CloudCredential, CredentialSource, RequireCredentialOptions } from './credential.js';
+export { PERSON_REQUIRED_CODE, personNeedFromApiError } from './person-need.js';
+export type { PersonNeedContext } from './person-need.js';
+export type { DeviceAuthorization, WorkosClient } from './workos-client.js';

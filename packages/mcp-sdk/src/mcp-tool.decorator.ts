@@ -63,15 +63,16 @@ export interface McpToolMetadata {
      * @description
      * A plain description of what the tool does, written for an AI agent to read. It is sent to
      * the client with the tool list, and indexed for `search_tools` queries. For a destructive
-     * tool it is repeated in the confirmation prompt.
+     * tool without a `describe` method it is the preview the caller is asked to consent to.
      */
     description: string;
     /**
      * @description
      * Extra search terms for the tool: synonyms and phrasings a user would actually say, e.g.
      * `['money back', 'reimburse']` for a refund tool. They are indexed with the name, title and
-     * description to match `search_tools` queries in discovery mode. They are never shown to the
-     * agent or returned in a tool result.
+     * description to match `search_tools` queries in discovery mode. `tools/list` also carries
+     * them in each tool's `_meta`, under `vendure.io/keywords`, so a client that builds its own
+     * tool search can use them. They are never returned in a tool result.
      */
     keywords?: string[];
     /**
@@ -100,9 +101,12 @@ export interface McpToolMetadata {
      *   annotations are set to true.
      * - `mutating`: the tool writes data and runs immediately.
      * - `destructive`: the tool writes data and must be confirmed first. Its `destructiveHint`
-     *   annotation is set to true. An optional `confirm` field is added to the input schema the
-     *   caller sees. The registry refuses to run the tool unless the call passes `confirm: true`.
-     *   A destructive tool must not declare a `confirm` property of its own.
+     *   annotation is set to true. An optional string `confirm` field is added to the input schema
+     *   the caller sees. A call without a matching `confirm` does not run the tool. It returns an
+     *   `incomplete` result instead, with a preview of the action and a `consent` need that
+     *   carries a digest. The caller runs the tool again with `confirm` set to that digest. See
+     *   {@link McpToolHandler.describe} for the preview. A destructive tool must not declare a
+     *   `confirm` property of its own.
      *
      * @default 'mutating'
      */
@@ -175,6 +179,16 @@ export interface McpCallerInfo {
      * for in-process calls.
      */
     clientIp?: string;
+    /**
+     * @description
+     * True when the call arrived with the local-trust secret of a dev server that the Vendure CLI
+     * started, rather than over OAuth. Such a call acts as the superadmin and has no grant, so a
+     * tool that keeps state on the grant must keep it somewhere else, or hand it back to the
+     * caller.
+     *
+     * @since 4.0.0
+     */
+    localTrust?: boolean;
 }
 
 /**
@@ -195,6 +209,23 @@ export interface McpToolHandler<I = unknown, O = unknown> {
      * returns becomes the tool's result.
      */
     execute(ctx: RequestContext, input: I, caller?: McpCallerInfo): Promise<O> | O;
+    /**
+     * @description
+     * Describes what a `destructive` tool would do with this input, as a short plain-text summary
+     * that names the resolved target, for example `Cancel order AB123 (id 42), 3 lines, 120.00 EUR`.
+     * The server calls it before the tool runs and returns the text as the preview of the
+     * `incomplete` result that asks the caller for consent. It must not change any data.
+     *
+     * The consent digest covers the preview, so when the target changes between the preview and
+     * the confirming call, the digest no longer matches and the caller is asked again. Throw a
+     * caller-safe error, such as `UserInputError`, when the target does not exist.
+     *
+     * Optional. Without it, the preview is the tool's description and the input as JSON. It is
+     * never called for a tool that is not `destructive`.
+     *
+     * @since 4.0.0
+     */
+    describe?(ctx: RequestContext, input: I, caller?: McpCallerInfo): Promise<string> | string;
 }
 
 /**

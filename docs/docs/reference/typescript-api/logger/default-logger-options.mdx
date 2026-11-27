@@ -1,0 +1,44 @@
+---
+title: "DefaultLoggerOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/logger/default-logger.ts" sourceLine="46" packageName="@vendure/core" />
+
+Options for the [DefaultLogger](/reference/typescript-api/logger/default-logger#defaultlogger).
+
+```ts title="Signature"
+interface DefaultLoggerOptions {
+    level?: LogLevel;
+    timestamp?: boolean;
+    format?: DefaultLoggerFormat;
+}
+```
+
+<div className="members-wrapper">
+
+### level
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/logger/log-level#loglevel'>LogLevel</a>`} default={`<a href='/reference/typescript-api/logger/log-level#loglevel'>LogLevel</a>.Info`}   />
+
+The most detailed level which is logged.
+### timestamp
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+Whether the `text` format starts each line with a timestamp. The `json` format always
+writes one.
+### format
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/logger/default-logger-format#defaultloggerformat'>DefaultLoggerFormat</a>`} default={`'text'`}  since="4.0.0"  />
+
+The output format. When it is not set, the `VENDURE_LOG_FORMAT` environment variable
+selects it, so that a tool which starts the server can turn on the `json` format without a
+change to the config.
+
+In the `json` format, each line also has the name of the process and the ID of the
+current request (see [getRequestId](/reference/typescript-api/logger/get-request-id#getrequestid)). The process is `server` or `worker`, as set by
+`bootstrap()` and `bootstrapWorker()`. The `VENDURE_PROCESS` environment variable
+overrides it.
+
+
+</div>

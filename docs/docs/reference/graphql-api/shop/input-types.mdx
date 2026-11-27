@@ -1149,6 +1149,25 @@ input PaymentInput {
 }`}
 </GraphQLDoc>
 
+<a name="shippingmethodselectioninput"></a>
+
+## ShippingMethodSelectionInput
+
+<GraphQLDoc
+  type="input"
+  typeName="ShippingMethodSelectionInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`input ShippingMethodSelectionInput {
+  shippingMethodId: ID!
+  """The \`code\` of one of the ShippingMethod's options. If omitted, the cheapest option is used."""
+  shippingOptionCode: String
+}`}
+</GraphQLDoc>
+
 <a name="stringlistoperators"></a>
 
 ## StringListOperators

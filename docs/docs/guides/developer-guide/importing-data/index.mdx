@@ -233,44 +233,17 @@ In the Dashboard, this can be done by navigating to the product list view and cl
 ![Rebuild search index](./reindex.webp)
 :::
 
-### Populating test data
+### Populating base data
 
-When installing with @vendure/create, you have the option of populating test data (products, payment methods, countries, zones, tax rates etc).
+`vendure seed` applies a base-data preset to an empty database: the currency, tax rates, zones and shipping for a market. Run it once, after the migrations have created the schema:
 
-This guide illustrates how to populate that test data again on an existing Vendure installation, without needing to re-install from scratch.
-
-1. `npm install --save-dev @vendure/create`. This installs the "create" package, which contains the test data we will need.
-2. drop all tables from your database, but leave the actual database there.
-3. create a script that looks like this:
-
-```ts title="src/populate-test-data.ts"
-import { populate } from '@vendure/core/cli';
-import { bootstrap, VendureConfig } from '@vendure/core';
-import path from 'path';
-import { config } from './vendure-config';
-
-populate(
-    () => bootstrap({
-        ...config,
-        importExportOptions: {
-            importAssetsDir: path.join(
-                require.resolve('@vendure/create/assets/products.csv'),
-                '../images'
-            ),
-        },
-        dbConnectionOptions: {...config.dbConnectionOptions, synchronize: true}
-    }),
-    require('@vendure/create/assets/initial-data.json'),
-    require.resolve('@vendure/create/assets/products.csv')
-)
-    .then(app => app.close())
-    .catch(err => {
-        console.log(err);
-        process.exit(1);
-    });
+```bash
+npx vendure seed --preset uk
 ```
 
-Running this script will populate the database with the test data like when you first installed Vendure.
+Run `npx vendure seed` without a preset to list the presets. A project created with `@vendure/create` records the preset you chose in `.vendure/create.json`, and `vendure seed --first-run` applies it once per database.
+
+To import products, use the CSV import described above.
 
 ### Custom populate scripts
 

@@ -6,9 +6,572 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Vendure Admin Dashboard" />
     <meta name="author" content="Vendure" />
+    <!--
+        The saved theme before the first paint: the theme in the user settings, else the system
+        setting. ThemeProvider sets the same class once the app runs. Without it a dark-theme
+        reload paints light first. The key is LS_KEY_USER_SETTINGS in src/lib/storage-keys.ts.
+    -->
+    <script>
+        (function () {
+            var theme;
+            try {
+                theme = JSON.parse(localStorage.getItem('vendure-user-settings') || '{}').theme;
+            } catch (e) {}
+            var dark =
+                theme === 'dark' ||
+                (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.add(dark ? 'dark' : 'light');
+        })();
+        /*
+            The app shell for the boot screen, when an administrator was signed in at the last load:
+            src/app/boot-splash.ts keeps the base path and the text direction under this key while
+            signed in. The page skeleton follows the address: the home page, a list, or a form (a
+            page below a list, or one of FORM_PAGES). A load without the key keeps the spinner, and
+            so do the pages outside the shell: the route files next to _authenticated.tsx in
+            src/app/routes. Extension routes outside the shell are not known here. The home page
+            also gets one select per Insights filter that extensions register, up to three.
+        */
+        (function () {
+            var SIGN_IN_PAGES = ['login', 'forgot-password', 'reset-password'];
+            var FORM_PAGES = ['global-settings', 'profile', 'settings-store'];
+            try {
+                var hint = JSON.parse(localStorage.getItem('vendure-boot-shell') || 'null');
+                var pathname = location.pathname;
+                if (!hint || typeof hint.base !== 'string' || (pathname + '/').indexOf(hint.base + '/') !== 0) {
+                    return;
+                }
+                var path = pathname.slice(hint.base.length).replace(/^\/+|\/+$/g, '');
+                if (SIGN_IN_PAGES.indexOf(path) !== -1) {
+                    return;
+                }
+                var depth = path ? path.split('/').length : 0;
+                var html = document.documentElement;
+                html.setAttribute('dir', hint.dir === 'rtl' ? 'rtl' : 'ltr');
+                html.setAttribute(
+                    'data-boot-shell',
+                    depth === 0 ? 'home' : depth === 1 && FORM_PAGES.indexOf(path) === -1 ? 'list' : 'detail',
+                );
+                var filters = Math.min(Math.floor(Number(hint.filters)) || 0, 3);
+                if (depth === 0 && filters > 0) {
+                    html.setAttribute('data-boot-filters', String(filters));
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <!--
+        The boot screen shows until the router has rendered the first page (src/app/boot-splash.ts
+        removes it). The stylesheet loads with the app, so the colours come from a style that the
+        theme Vite plugin adds to this head. Every variable used here must be in BOOT_VARIABLES in
+        vite/vite-plugin-theme.ts. The icon is the one that Spinner of @vendure-io/ui renders.
+        With data-boot-shell, the boot screen is the app shell instead: the sizes below are those
+        of AppLayout, the Sidebar and AppShellHeader of @vendure-io/ui, and the page frame, so the
+        app replaces it without a shift. The bones are the Skeleton atom.
+    -->
+    <style>
+        html {
+            background-color: var(--background);
+        }
+        #boot-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--background);
+            color: var(--muted-foreground);
+        }
+        #boot-splash svg {
+            width: 16px;
+            height: 16px;
+            animation: boot-splash-spin 1s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #boot-splash svg {
+                animation: none;
+            }
+        }
+        @keyframes boot-splash-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        #boot-splash .boot-shell,
+        [data-boot-shell] #boot-splash > svg {
+            display: none;
+        }
+        [data-boot-shell] #boot-splash .boot-shell {
+            display: flex;
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            text-align: start;
+        }
+        .boot-shell,
+        .boot-shell * {
+            box-sizing: border-box;
+        }
+        /* The Skeleton atom of @vendure-io/ui: its colours, gradient and animate-shimmer timing. */
+        .boot-bone {
+            display: block;
+            flex-shrink: 0;
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 50%, var(--muted) 75%) 0 0 /
+                200% 100%;
+            animation: boot-shimmer 1.75s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .boot-bone {
+                animation: none;
+                background: var(--muted);
+            }
+        }
+        @keyframes boot-shimmer {
+            from {
+                background-position: 200% 0;
+            }
+            to {
+                background-position: -200% 0;
+            }
+        }
+        .boot-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .boot-avatar {
+            width: 32px;
+            height: 32px;
+        }
+        .boot-avatar-round {
+            border-radius: 9999px;
+        }
+        .boot-sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 14.5rem;
+            flex-shrink: 0;
+            background-color: var(--sidebar);
+            border-inline-end: 1px solid var(--sidebar-border);
+        }
+        .boot-identity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 48px;
+            margin: 8px;
+            padding: 0 8px;
+        }
+        .boot-sidebar > .boot-identity:first-child {
+            margin-top: 0;
+        }
+        .boot-identity-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .boot-identity-title {
+            width: 96px;
+            height: 10px;
+        }
+        .boot-identity-caption {
+            width: 72px;
+            height: 8px;
+        }
+        .boot-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            padding: 8px 10px;
+        }
+        .boot-nav-bottom {
+            margin-top: auto;
+        }
+        .boot-nav-label {
+            display: flex;
+            align-items: center;
+            height: 22px;
+            padding: 0 8px;
+        }
+        .boot-nav-label > .boot-bone {
+            width: 80px;
+            height: 8px;
+        }
+        .boot-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 32px;
+            padding: 0 10px;
+        }
+        /* Labels of different lengths, so the items read as a menu. */
+        .boot-nav-text {
+            width: 64px;
+            height: 10px;
+        }
+        .boot-nav-item:nth-child(3n + 2) .boot-nav-text {
+            width: 84px;
+        }
+        .boot-nav-item:nth-child(3n) .boot-nav-text {
+            width: 100px;
+        }
+        .boot-inset {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+        .boot-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 52px;
+            flex-shrink: 0;
+            padding-inline: 18px 20px;
+            box-shadow: inset 0 -1px 0 var(--border);
+        }
+        .boot-separator {
+            width: 1px;
+            height: 16px;
+            margin-inline: 12px 8px;
+            background-color: var(--border);
+        }
+        .boot-breadcrumb {
+            width: 120px;
+            height: 10px;
+        }
+        .boot-header-end {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-inline-start: auto;
+        }
+        .boot-search {
+            width: 220px;
+            height: 28px;
+        }
+        .boot-icon-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+        }
+        /* The page frame of AppShellPage: content at most 1180px wide, a 32px
+           gutter on every side (16px below 768px), centred. */
+        .boot-main {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            max-width: calc(1180px + 2 * 32px);
+            margin: 0 auto;
+            padding: 32px;
+        }
+        .boot-page {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+        }
+        .boot-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 34px;
+            flex-shrink: 0;
+        }
+        .boot-heading {
+            width: 128px;
+            height: 18px;
+        }
+        .boot-action {
+            width: 128px;
+            height: 34px;
+            border-radius: 8px;
+        }
+        .boot-page-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /*
+            The Insights filters: the DateRangePicker, then a select per extension filter. They sit in
+            the action bar, and below 768px (useIsMobile) in their own wrapping row above the widgets.
+        */
+        .boot-filters {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .boot-date,
+        .boot-select {
+            height: 34px;
+            border-radius: 8px;
+        }
+        .boot-date {
+            width: 280px;
+        }
+        .boot-select {
+            display: none;
+            width: 176px;
+        }
+        [data-boot-shell='home'] .boot-page-actions > .boot-filters {
+            display: flex;
+        }
+        [data-boot-filters='1'] .boot-select:nth-child(-n + 2),
+        [data-boot-filters='2'] .boot-select:nth-child(-n + 3),
+        [data-boot-filters='3'] .boot-select {
+            display: block;
+        }
+        .boot-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background-color: var(--card);
+            overflow: hidden;
+        }
+        .boot-list,
+        .boot-detail,
+        .boot-home {
+            display: none;
+        }
+        [data-boot-shell='list'] .boot-list,
+        [data-boot-shell='home'] .boot-home {
+            display: flex;
+        }
+        [data-boot-shell='detail'] .boot-detail {
+            display: grid;
+        }
+        .boot-list {
+            flex-direction: column;
+        }
+        .boot-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 70px;
+            flex-shrink: 0;
+            padding: 0 16px;
+        }
+        .boot-tabs {
+            width: 40px;
+            height: 14px;
+            margin-inline-end: auto;
+        }
+        .boot-input {
+            width: 256px;
+            height: 34px;
+        }
+        .boot-button {
+            width: 80px;
+            height: 34px;
+        }
+        .boot-row {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            height: 48px;
+            flex-shrink: 0;
+            padding: 0 16px;
+            border-top: 1px solid var(--border);
+        }
+        .boot-cell {
+            flex: 1;
+            height: 12px;
+        }
+        .boot-cell:last-child {
+            flex: 0 0 80px;
+        }
+        .boot-row-head {
+            height: 40px;
+        }
+        .boot-row-head > .boot-cell {
+            height: 10px;
+        }
+        .boot-footer {
+            justify-content: space-between;
+            height: 67px;
+        }
+        .boot-count {
+            width: 48px;
+            height: 12px;
+        }
+        .boot-pager {
+            width: 200px;
+            height: 34px;
+        }
+        .boot-detail {
+            grid-template-columns: 3fr 1fr;
+            align-items: start;
+            gap: 16px;
+        }
+        .boot-side {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .boot-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding: 24px;
+        }
+        .boot-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .boot-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .boot-field-label {
+            width: 96px;
+            height: 12px;
+        }
+        .boot-field-input {
+            width: 100%;
+            height: 36px;
+        }
+        .boot-field-area {
+            height: 112px;
+        }
+        .boot-card-heading {
+            width: 112px;
+            height: 12px;
+        }
+        .boot-card-line {
+            width: 100%;
+            height: 24px;
+        }
+        .boot-home {
+            flex-direction: column;
+            gap: 16px;
+        }
+        .boot-home-chart {
+            height: 650px;
+        }
+        .boot-home-row {
+            display: flex;
+            gap: 16px;
+        }
+        .boot-home-row > .boot-card {
+            flex: 1;
+            height: 320px;
+        }
+        @media (max-width: 1023px) {
+            .boot-detail {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 767px) {
+            .boot-sidebar,
+            .boot-separator,
+            .boot-hide-narrow {
+                display: none;
+            }
+            .boot-search {
+                width: 28px;
+            }
+            .boot-main {
+                padding: 16px;
+            }
+            .boot-fields {
+                grid-template-columns: 1fr;
+            }
+            .boot-home-row {
+                flex-direction: column;
+            }
+            .boot-home-row > .boot-card {
+                flex: none;
+            }
+            [data-boot-shell='home'] .boot-page-actions > .boot-filters {
+                display: none;
+            }
+            [data-boot-shell='home'] .boot-home > .boot-filters {
+                display: flex;
+            }
+        }
+    </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="boot-splash" role="status" aria-label="Loading">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+    <div class="boot-shell" aria-hidden="true">
+        <div class="boot-sidebar">
+            <div class="boot-identity"><span class="boot-bone boot-avatar"></span><div class="boot-identity-lines"><span class="boot-bone boot-identity-title"></span><span class="boot-bone boot-identity-caption"></span></div></div>
+            <div class="boot-nav">
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+            </div>
+            <div class="boot-nav boot-nav-bottom">
+                <div class="boot-nav-label"><span class="boot-bone"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+                <div class="boot-nav-item"><span class="boot-bone boot-icon"></span><span class="boot-bone boot-nav-text"></span></div>
+            </div>
+            <div class="boot-identity"><span class="boot-bone boot-avatar boot-avatar-round"></span><div class="boot-identity-lines"><span class="boot-bone boot-identity-title"></span><span class="boot-bone boot-identity-caption"></span></div></div>
+        </div>
+        <div class="boot-inset">
+            <div class="boot-header">
+                <span class="boot-bone boot-icon"></span>
+                <span class="boot-separator"></span>
+                <span class="boot-bone boot-breadcrumb"></span>
+                <div class="boot-header-end">
+                    <span class="boot-bone boot-search"></span>
+                    <span class="boot-icon-button"><span class="boot-bone boot-icon"></span></span>
+                </div>
+            </div>
+            <div class="boot-main">
+                <div class="boot-page">
+                    <div class="boot-page-header"><span class="boot-bone boot-heading"></span><div class="boot-page-actions"><div class="boot-filters"><span class="boot-bone boot-date"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span></div><span class="boot-bone boot-action"></span></div></div>
+                    <div class="boot-list boot-card">
+                        <div class="boot-toolbar"><span class="boot-bone boot-tabs"></span><span class="boot-bone boot-input boot-hide-narrow"></span><span class="boot-bone boot-button"></span></div>
+                        <div class="boot-row boot-row-head"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row"><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell"></span><span class="boot-bone boot-cell boot-hide-narrow"></span><span class="boot-bone boot-cell"></span></div>
+                        <div class="boot-row boot-footer"><span class="boot-bone boot-count"></span><span class="boot-bone boot-pager"></span></div>
+                    </div>
+                    <div class="boot-detail">
+                        <div class="boot-card">
+                            <div class="boot-card-body">
+                                <div class="boot-fields"><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div></div>
+                                <div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input boot-field-area"></span></div>
+                                <div class="boot-fields"><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div><div class="boot-field"><span class="boot-bone boot-field-label"></span><span class="boot-bone boot-field-input"></span></div></div>
+                            </div>
+                        </div>
+                        <div class="boot-side">
+                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone boot-card-heading"></span><span class="boot-bone boot-card-line"></span><span class="boot-bone boot-card-line"></span></div></div>
+                            <div class="boot-card"><div class="boot-card-body"><span class="boot-bone boot-card-heading"></span><span class="boot-bone boot-card-line"></span><span class="boot-bone boot-card-line"></span><span class="boot-bone boot-card-line"></span></div></div>
+                        </div>
+                    </div>
+                    <div class="boot-home">
+                        <div class="boot-filters"><span class="boot-bone boot-date"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span><span class="boot-bone boot-select"></span></div>
+                        <div class="boot-card boot-home-chart"></div>
+                        <div class="boot-home-row"><div class="boot-card"></div><div class="boot-card"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <script type="module" src="/src/app/main.tsx"></script>
 </body>
 </html>

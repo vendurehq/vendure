@@ -25,14 +25,14 @@ To create the initial migration:
 3. Generate an initial migration:
 
 ```bash
-npx vendure migrate -g initial-schema
+npx vendure migrate generate initial-schema
 ```
 
 4. Review the generated migration file and commit it to source control.
 5. Run pending migrations in production as part of your deployment process:
 
 ```bash
-npx vendure migrate -r
+npx vendure migrate run
 ```
 
 If your server entry point already calls `runMigrations(config)` before `bootstrap(config)`, the committed initial migration will be applied automatically when the server starts.

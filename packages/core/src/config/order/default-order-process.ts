@@ -346,12 +346,19 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
                 });
                 if (options.arrangingPaymentRequiresShipping !== false && order.shippingLines?.length) {
                     const eligibleMethods = await orderService.getEligibleShippingMethods(ctx, order.id);
-                    const eligibleIds = eligibleMethods.map(m => m.id);
-                    const hasIneligible = order.shippingLines.some(
-                        line =>
-                            line.shippingMethodId != null &&
-                            !eligibleIds.some(id => idsAreEqual(id, line.shippingMethodId)),
-                    );
+                    // A line is ineligible if its ShippingMethod is, or if the chosen
+                    // ShippingOption is no longer offered
+                    const hasIneligible = order.shippingLines.some(line => {
+                        if (line.shippingMethodId == null) {
+                            return false;
+                        }
+                        const method = eligibleMethods.find(m => idsAreEqual(m.id, line.shippingMethodId));
+                        return (
+                            !method ||
+                            (line.shippingOptionCode != null &&
+                                !method.options.some(option => option.code === line.shippingOptionCode))
+                        );
+                    });
                     if (hasIneligible) {
                         return 'message.cannot-transition-to-payment-with-ineligible-shipping-method';
                     }

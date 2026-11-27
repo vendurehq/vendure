@@ -272,7 +272,7 @@ describe('MCP admin API', () => {
             ['McpToolset', ['shop', 'admin']],
             ['McpToolBehavior', ['readonly', 'mutating', 'destructive']],
             ['McpGrantUserType', ['customer', 'admin']],
-            ['McpActorType', ['customer', 'admin', 'anonymous']],
+            ['McpActorType', ['customer', 'admin', 'anonymous', 'local']],
             ['McpOauthGrantStatus', ['active', 'expired', 'revoked']],
             ['McpToolCallStatus', ['success', 'error']],
         ])('%s lists the stored strings as its values', async (enumName, expectedValues) => {

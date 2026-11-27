@@ -34,6 +34,20 @@ openssl rand -base64 32
 Store it in an environment variable or secret manager, not in source control. **Rotating the secret invalidates
 every stored MCP OAuth token**, so all agents must re-authorize.
 
+## Turn off local trust
+
+Local trust lets the Vendure CLI act as the superadmin on a dev server it started (see
+[Local trust in development](/mcp-server/quick-start/#local-trust-in-development)). It needs a secret from the
+CLI and the CLI's state file in the project directory, so it does not turn on by accident. Turn it off anyway on
+every server that runs outside a developer's machine:
+
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    // ...
+    localTrust: false,
+}),
+```
+
 ## Set the issuer
 
 In production, `oauth.issuer` must be a public HTTPS origin.
@@ -161,6 +175,11 @@ For multi-instance deployments, use a shared cache such as Redis or SQL to ensur
 propagated across all instances.
 
 See [Horizontal scaling](/deployment/horizontal-scaling/) for configuration details.
+
+The consent digests of destructive tools are signed with a key derived from `oauth.tokenSecret`, so a digest that
+one instance issues is accepted by every instance with the same secret. Without OAuth, each instance makes a
+random key at startup and refuses the digests of the others. A caller whose confirming call reaches another
+instance then gets a new preview instead of running the tool.
 
 ### When the boot guard runs
 

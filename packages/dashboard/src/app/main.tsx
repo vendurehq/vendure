@@ -1,5 +1,7 @@
+import { RoutePending } from '@/vdb/components/layout/route-pending.js';
 import { Toaster } from '@/vdb/components/ui/sonner.js';
 import { Spinner } from '@/vdb/components/ui/spinner.js';
+import { getDashboardWidgetFilters } from '@/vdb/framework/dashboard-widget/widget-extensions.js';
 import { registerDefaults } from '@/vdb/framework/defaults.js';
 import {
     clearCustomFieldsMap,
@@ -8,6 +10,7 @@ import {
 import { executeDashboardExtensionCallbacks } from '@/vdb/framework/extension-api/define-dashboard-extension.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { useExtendedRouter } from '@/vdb/framework/page/use-extended-router.js';
+import { installCopyForAgentToasts } from '@/vdb/graphql/copy-for-agent.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
 import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { defaultLocale, dynamicActivate } from '@/vdb/providers/i18n-provider.js';
@@ -22,10 +25,13 @@ import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProviders, queryClient } from './app-providers.js';
+import { rememberBootShell, removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
 import { setDocumentDirection } from './common/set-document-direction.js';
 import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
 import './styles.css';
+
+installCopyForAgentToasts();
 
 const processedBaseUrl = deriveBaseUrl(
     typeof import.meta?.url === 'string' ? import.meta.url : '',
@@ -37,19 +43,11 @@ const routerOptions: RouterOptions<AnyRoute, any> = {
     scrollRestoration: true,
     basepath: processedBaseUrl,
     // Wait a short moment before showing the pending UI on navigation, so
-    // fast transitions (cached / preloaded routes) don't flash a spinner.
-    // After 200ms the route hasn't resolved → show a non-jumpy fallback.
+    // fast transitions (cached / preloaded routes) show nothing.
+    // After 200ms the route hasn't resolved → show a skeleton of the next page.
     defaultPendingMs: 200,
     defaultPendingMinMs: 300,
-    defaultPendingComponent: () => (
-        <div
-            className="flex items-center justify-center w-full text-muted-foreground"
-            style={{ minHeight: '60vh' }}
-            aria-busy="true"
-        >
-            <Spinner />
-        </div>
-    ),
+    defaultPendingComponent: RoutePending,
     context: {
         auth: undefined!, // This will be set after we wrap the app in an AuthProvider
         queryClient,
@@ -104,7 +102,24 @@ function InnerApp() {
         setDocumentDirection(isRTL ? 'rtl' : 'ltr');
     }, [isRTL]);
 
+    useEffect(() => {
+        rememberBootShell(
+            auth.status,
+            router.basepath,
+            isRTL ? 'rtl' : 'ltr',
+            getDashboardWidgetFilters().length,
+        );
+    }, [auth.status, router, isRTL]);
+
     const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
+
+    useEffect(() => {
+        if (!isReady) {
+            return;
+        }
+        return removeBootSplashWhenResolved(router);
+    }, [isReady, router]);
+
     return (
         <>
             <DirectionProvider direction={isRTL ? 'rtl' : 'ltr'}>
@@ -121,8 +136,8 @@ function InnerApp() {
 
 /**
  * Lightweight full-screen splash shown while auth + server config are still
- * resolving on cold load. Without this we render an empty document, which
- * makes the dashboard feel laggy on first paint.
+ * resolving, e.g. after a sign-in. It looks like the boot screen of
+ * `index.html`, which covers it on a cold load.
  */
 function BootSplash() {
     return (
@@ -154,10 +169,9 @@ function App() {
     }, [extensionsLoaded]);
 
     if (!i18nLoaded || !extensionsRegistered) {
-        // Show a minimal full-screen splash so the user sees that the app is
-        // loading rather than a white screen while i18n catalogs and dashboard
-        // extensions resolve.
-        return <BootSplash />;
+        // The boot screen of index.html covers the app until the first page
+        // has rendered, while the i18n catalogs and dashboard extensions resolve.
+        return null;
     }
     return (
         <AppProviders>
@@ -170,6 +184,9 @@ function App() {
 const rootElement = document.getElementById('app')!;
 
 if (!rootElement.innerHTML) {
+    // An error that unmounts the app before the first page would leave the boot
+    // screen spinning. React reports uncaught errors to the window.
+    window.addEventListener('error', removeBootSplash, { once: true });
     const root = createRoot(rootElement);
     root.render(
         <React.StrictMode>

@@ -39,17 +39,36 @@ export enum LogLevel {
 
 /**
  * @description
+ * Structured data about a log message, passed as the last argument of the {@link VendureLogger}
+ * methods. A logger which has no use for it can ignore it.
+ *
+ * @docsCategory Logger
+ * @since 4.0.0
+ */
+export interface LogMeta {
+    /**
+     * @description
+     * The code of the error which the message reports.
+     */
+    code?: string;
+}
+
+/**
+ * @description
  * The VendureLogger interface defines the shape of a logger service which may be provided in
  * the config.
+ *
+ * Each method takes an optional {@link LogMeta} object as its last argument. To find the request
+ * which a message belongs to, a logger can call {@link getRequestId}.
  *
  * @docsCategory Logger
  */
 export interface VendureLogger {
-    error(message: string, context?: string, trace?: string): void;
-    warn(message: string, context?: string): void;
-    info(message: string, context?: string): void;
-    verbose(message: string, context?: string): void;
-    debug(message: string, context?: string): void;
+    error(message: string, context?: string, trace?: string, meta?: LogMeta): void;
+    warn(message: string, context?: string, meta?: LogMeta): void;
+    info(message: string, context?: string, meta?: LogMeta): void;
+    verbose(message: string, context?: string, meta?: LogMeta): void;
+    debug(message: string, context?: string, meta?: LogMeta): void;
     setDefaultContext?(defaultContext: string): void;
 }
 
@@ -182,23 +201,46 @@ export class Logger implements LoggerService {
         this.instance.debug(message, context);
     }
 
-    static error(message: string, context?: string, trace?: string): void {
-        Logger.logger.error(message, context, trace);
+    // `meta` is passed on only when it is given, so that a logger which was called with
+    // `(message, context)` before `meta` existed is still called with exactly those arguments.
+
+    static error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
+        if (meta === undefined) {
+            Logger.logger.error(message, context, trace);
+        } else {
+            Logger.logger.error(message, context, trace, meta);
+        }
     }
 
-    static warn(message: string, context?: string): void {
-        Logger.logger.warn(message, context);
+    static warn(message: string, context?: string, meta?: LogMeta): void {
+        if (meta === undefined) {
+            Logger.logger.warn(message, context);
+        } else {
+            Logger.logger.warn(message, context, meta);
+        }
     }
 
-    static info(message: string, context?: string): void {
-        Logger.logger.info(message, context);
+    static info(message: string, context?: string, meta?: LogMeta): void {
+        if (meta === undefined) {
+            Logger.logger.info(message, context);
+        } else {
+            Logger.logger.info(message, context, meta);
+        }
     }
 
-    static verbose(message: string, context?: string): void {
-        Logger.logger.verbose(message, context);
+    static verbose(message: string, context?: string, meta?: LogMeta): void {
+        if (meta === undefined) {
+            Logger.logger.verbose(message, context);
+        } else {
+            Logger.logger.verbose(message, context, meta);
+        }
     }
 
-    static debug(message: string, context?: string): void {
-        Logger.logger.debug(message, context);
+    static debug(message: string, context?: string, meta?: LogMeta): void {
+        if (meta === undefined) {
+            Logger.logger.debug(message, context);
+        } else {
+            Logger.logger.debug(message, context, meta);
+        }
     }
 }

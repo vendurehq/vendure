@@ -7,11 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getConsoleHint } from '../../shared/console-hint.js';
 
 const { infoMock, spawnMock } = vi.hoisted(() => ({ infoMock: vi.fn(), spawnMock: vi.fn() }));
-
-vi.mock('@clack/prompts', async importOriginal => {
-    const actual = await importOriginal<typeof import('@clack/prompts')>();
-    return { ...actual, log: Object.assign({}, actual.log, { info: infoMock }) };
-});
 vi.mock('node:child_process', async importOriginal => ({
     ...(await importOriginal<typeof import('node:child_process')>()),
     spawn: spawnMock,
@@ -21,11 +16,11 @@ vi.mock('../../shared/cli-process-utils.js', async importOriginal => ({
     resolvePackageBin: () => '/fake/bin.js',
 }));
 
-vi.mock('../../shared/star-prompt.js', () => ({ showStarPromptOnce: () => false }));
+import { DevIo, runDev } from './dev.js';
 
-import { devCommand } from './dev.js';
+const io: DevIo = { write: () => undefined, info: infoMock, warn: () => undefined, error: () => undefined };
 
-describe('devCommand() Console hint', () => {
+describe('runDev() Console hint', () => {
     let projectDir: string;
 
     beforeEach(() => {
@@ -59,7 +54,7 @@ describe('devCommand() Console hint', () => {
 
     // OSS-882 - an unlinked project sees the hint once per process start.
     it('prints the hint once for an unlinked project', async () => {
-        const exitCode = await devCommand('server', { project: projectDir, reload: false });
+        const { exitCode } = await runDev('server', { project: projectDir, reload: false }, { io });
 
         expect(exitCode).toBe(0);
         expect(infoMock.mock.calls.filter(([message]) => message === getConsoleHint(false))).toHaveLength(1);
@@ -70,7 +65,7 @@ describe('devCommand() Console hint', () => {
         mkdirSync(path.join(projectDir, '.vendure'));
         writeFileSync(path.join(projectDir, '.vendure', 'project.json'), '{}');
 
-        await devCommand('server', { project: projectDir, reload: false });
+        await runDev('server', { project: projectDir, reload: false }, { io });
 
         expect(infoMock).not.toHaveBeenCalledWith(getConsoleHint(false));
     });
@@ -90,7 +85,8 @@ describe('devCommand() Console hint', () => {
             });
             return child;
         });
-        const run = devCommand('server', { project: projectDir });
+        const controller = new AbortController();
+        const run = runDev('server', { project: projectDir }, { io, signal: controller.signal });
         const configPath = path.join(projectDir, 'src', 'vendure-config.ts');
 
         // The save is repeated because chokidar reports nothing for a file that appeared before
@@ -102,7 +98,7 @@ describe('devCommand() Console hint', () => {
             },
             { timeout: 15000, interval: 300 },
         );
-        process.emit('SIGINT');
+        controller.abort();
         await run;
 
         expect(infoMock.mock.calls.filter(([message]) => message === getConsoleHint(false))).toHaveLength(1);
