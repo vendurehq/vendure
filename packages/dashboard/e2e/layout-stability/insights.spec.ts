@@ -36,16 +36,23 @@ const INSIGHTS_ANCHORS: AnchorSpec[] = [
 ];
 
 async function openInsights(ctx: LayoutContext) {
+    // The setup checklist appears above the widgets once its own query has loaded, and it cannot
+    // be dismissed. It is measured on its own; here the check reports no findings, so it stays
+    // hidden.
+    await ctx.page.route('**/admin-api**', async route => {
+        if ((route.request().postData() ?? '').includes('StoreReadinessForSetupChecklist')) {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ data: { storeReadiness: { ready: true, findings: [] } } }),
+            });
+        } else {
+            await route.fallback();
+        }
+    });
     await ctx.page.goto('/');
     await ctx.page.locator(`${MAIN} [data-slot="card"]`).first().waitFor();
     await settle(ctx);
-    // The setup checklist appears above the widgets once its own query has loaded.
-    // It is measured on its own; here it is dismissed, so it stays hidden on reload.
-    const dismiss = ctx.page.getByTestId('setup-checklist-dismiss');
-    if (await dismiss.isVisible()) {
-        await dismiss.click();
-        await settle(ctx);
-    }
 }
 
 test.describe('Insights layout at 1440', () => {
