@@ -409,4 +409,134 @@ describe('UserSettingsProvider with AuthProvider', () => {
             }),
         );
     });
+
+    // DataPromptTest/vendure#1 — changes made after a failed read are kept and saved once a read succeeds
+    describe('failed read and initialization signal', () => {
+        let container: HTMLDivElement;
+        let root: Root;
+        let queryClient: QueryClient;
+        let context: UserSettingsContextType;
+
+        function Probe() {
+            context = useContext(UserSettingsContext)!;
+            return null;
+        }
+
+        async function flush() {
+            for (let i = 0; i < 5; i++) {
+                await act(async () => {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                });
+            }
+        }
+
+        async function render() {
+            await act(async () => {
+                root.render(
+                    <QueryClientProvider client={queryClient}>
+                        <UserSettingsProvider queryClient={queryClient}>
+                            <Probe />
+                        </UserSettingsProvider>
+                    </QueryClientProvider>,
+                );
+            });
+            await flush();
+        }
+
+        function savedValues() {
+            return apiMock.mutate.mock.calls.map(([, variables]) => variables.input.value);
+        }
+
+        beforeEach(() => {
+            localStorage.clear();
+            apiMock.query.mockReset();
+            apiMock.mutate.mockReset();
+            apiMock.mutate.mockResolvedValue({ setSettingsStoreValue: { result: true } });
+            queryClient = new QueryClient({ defaultOptions: { queries: { placeholderData: keepPreviousData } } });
+            container = document.createElement('div');
+            root = createRoot(container);
+        });
+
+        afterEach(() => {
+            act(() => root.unmount());
+            queryClient.clear();
+        });
+
+    it('merges changes made after a failed read over the stored value and saves them', async () => {
+        apiMock.query.mockRejectedValueOnce(graphQLError('Network request failed'));
+        await render();
+        expect(context.settingsReady).toBe(true);
+        expect(savedValues()).toEqual([]);
+
+        await act(async () => context.setTheme('dark'));
+        await flush();
+
+        apiMock.query.mockResolvedValue({
+            getSettingsStoreValue: { displayLanguage: 'de', theme: 'light' },
+        });
+        await act(async () => {
+            await queryClient.invalidateQueries();
+        });
+        await flush();
+
+        expect(context.settings.displayLanguage).toBe('de');
+        expect(context.settings.theme).toBe('dark');
+        expect(savedValues()).toEqual([
+            expect.objectContaining({ displayLanguage: 'de', theme: 'dark' }),
+        ]);
+    });
+
+    // DataPromptTest/vendure#1 — table settings are merged per table and per key after a failed read
+    it('keeps the other stored keys of a table when only one key changed after a failed read', async () => {
+        apiMock.query.mockRejectedValueOnce(graphQLError('Network request failed'));
+        await render();
+
+        await act(async () => context.setTableSettings('products', 'pageSize', 37));
+        await flush();
+
+        apiMock.query.mockResolvedValue({
+            getSettingsStoreValue: {
+                tableSettings: {
+                    products: { pageSize: 10, columnOrder: ['name'] },
+                    orders: { pageSize: 5 },
+                },
+            },
+        });
+        await act(async () => {
+            await queryClient.invalidateQueries();
+        });
+        await flush();
+
+        expect(context.settings.tableSettings).toEqual({
+            products: { pageSize: 37, columnOrder: ['name'] },
+            orders: { pageSize: 5 },
+        });
+        expect(savedValues()).toEqual([
+            expect.objectContaining({
+                tableSettings: {
+                    products: { pageSize: 37, columnOrder: ['name'] },
+                    orders: { pageSize: 5 },
+                },
+            }),
+        ]);
+    });
+
+    // DataPromptTest/vendure#1 — settingsInitializedAt signals every initialization, settingsReady only turns true
+    it('changes settingsInitializedAt when settings are initialized after a late successful read', async () => {
+        apiMock.query.mockRejectedValueOnce(graphQLError('Network request failed'));
+        await render();
+        const afterFailure = context.settingsInitializedAt;
+        expect(context.settingsReady).toBe(true);
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: { displayLanguage: 'de' } });
+        await act(async () => {
+            await queryClient.invalidateQueries();
+        });
+        await flush();
+
+        expect(context.settingsInitializedAt).toBeGreaterThan(afterFailure);
+        expect(context.settingsReady).toBe(true);
+        expect(context.settings.displayLanguage).toBe('de');
+    });
+    });
 });
