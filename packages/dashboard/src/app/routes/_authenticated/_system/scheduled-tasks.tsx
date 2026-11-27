@@ -17,6 +17,7 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { RelativeTime } from '@/vdb/components/ui/relative-time.js';
 import { ScrollArea } from '@/vdb/components/ui/scroll-area.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import {
@@ -127,14 +128,18 @@ function ScheduledTasksPage() {
         minute: 'numeric',
     } as const;
 
+    // Every column but Schedule has a width, so the columns stand where the rows
+    // will put them while the list loads. Schedule takes the rest of the row.
     const columnHelper = createColumnHelper<ScheduledTask>();
     const columns = [
         columnHelper.accessor('id', {
             header: t`ID`,
+            meta: { width: '16.25rem' },
             cell: ({ getValue }) => <IdentifierDisplay value={getValue()} />,
         }),
         columnHelper.accessor('description', {
             header: t`Description`,
+            meta: { width: '13rem' },
             // A long description is cut to one line, so the table fits its card.
             cell: ({ getValue }) => (
                 <Tooltip>
@@ -145,6 +150,7 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('enabled', {
             header: t`Status`,
+            meta: { width: '6rem', contentInset: 'status-badge' },
             cell: ({ row }) => {
                 // A running task and a disabled task are the exceptions and always show.
                 // Enabled is the normal state: it shows only while the row is hovered or focused.
@@ -183,6 +189,7 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('lastExecutedAt', {
             header: t`Last Executed`,
+            meta: { width: '6.5rem' },
             cell: ({ row }) => {
                 return row.original.lastExecutedAt ? (
                     <RelativeTime value={row.original.lastExecutedAt} className="whitespace-nowrap" />
@@ -193,6 +200,7 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('nextExecutionAt', {
             header: t`Next Execution`,
+            meta: { width: '9rem' },
             cell: ({ row }) => {
                 return row.original.nextExecutionAt ? (
                     <DateTime
@@ -208,6 +216,7 @@ function ScheduledTasksPage() {
         columnHelper.display({
             id: 'actions',
             header: t`Actions`,
+            meta: { width: '4rem' },
             cell: ({ row }) => {
                 return (
                     <DropdownMenu>
@@ -266,6 +275,8 @@ function ScheduledTasksPage() {
                         totalItems={data?.scheduledTasks?.length ?? null}
                         // The skeleton shows as many rows as the list had last time.
                         rowCountKey="scheduled-tasks"
+                        // As high as the actions button, so a row keeps its 50px.
+                        skeletonCells={{ actions: <Skeleton className="size-8.5" /> }}
                         defaultColumnVisibility={{
                             schedule: false,
                         }}

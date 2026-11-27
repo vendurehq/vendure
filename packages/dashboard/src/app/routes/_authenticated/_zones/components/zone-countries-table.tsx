@@ -70,7 +70,9 @@ export function ZoneCountriesTable({
             enabled: {
                 header: () => <Trans>Status</Trans>,
                 accessorKey: 'enabled',
-                meta: { width: '8rem' },
+                // The badge's inset, declared: measured, it would only apply once
+                // the rows arrive and the header text would move 19px.
+                meta: { width: '8rem', contentInset: 'status-badge' },
                 cell: ({ getValue }) => <BooleanDisplayBadge value={getValue() as boolean} />,
             },
         },
