@@ -2,7 +2,6 @@ import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Trans } from '@lingui/react/macro';
-import { TriangleAlert } from 'lucide-react';
 import { CustomerHistory } from './customer-history.js';
 import { useCustomerHistory } from './use-customer-history.js';
 
@@ -40,8 +39,7 @@ export function CustomerHistoryContainer({ customerId }: Readonly<CustomerHistor
 
     if (error) {
         return (
-            <Alert variant="destructive">
-                <TriangleAlert className="h-4 w-4" />
+            <Alert tone="critical">
                 <AlertDescription>
                     <Trans>Error loading customer history: {error.message}</Trans>
                 </AlertDescription>

@@ -64,7 +64,7 @@ export function ShippingMethodTestResultWrapper({
                 )}
 
                 {okToRun && testDataUpdated && hasTestedOnce && (
-                    <Alert variant="destructive">
+                    <Alert tone="critical">
                         <AlertDescription>
                             <Trans>
                                 Test data has been updated. Click "Run Test" to see updated results.

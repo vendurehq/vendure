@@ -84,8 +84,7 @@ export function CollectionContentsPreviewTable({
     return (
         <div>
             {applying ? (
-                <Alert className="mb-4">
-                    <Spinner />
+                <Alert className="mb-4" icon={<Spinner />}>
                     <AlertTitle>
                         <Trans>Applying filters…</Trans>
                     </AlertTitle>
@@ -94,8 +93,7 @@ export function CollectionContentsPreviewTable({
                     </AlertDescription>
                 </Alert>
             ) : hasFilters ? (
-                <Alert className="mb-4">
-                    <Eye className="h-4 w-4" />
+                <Alert className="mb-4" icon={<Eye />}>
                     <AlertTitle>
                         <Trans>Preview</Trans>
                     </AlertTitle>
@@ -108,8 +106,7 @@ export function CollectionContentsPreviewTable({
                     </AlertDescription>
                 </Alert>
             ) : (
-                <Alert className="mb-4">
-                    <Eye className="h-4 w-4" />
+                <Alert className="mb-4" icon={<Eye />}>
                     <AlertTitle>
                         <Trans>Preview</Trans>
                     </AlertTitle>

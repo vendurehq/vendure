@@ -1,6 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.js';
 import { Trans } from '@lingui/react/macro';
-import { AlertCircle } from 'lucide-react';
 import { FieldErrors, UseFormReturn, useFormState } from 'react-hook-form';
 
 interface FlatError {
@@ -83,8 +82,7 @@ export function FormErrorSummary({ form }: Readonly<{ form: UseFormReturn<any> }
         return null;
     }
     return (
-        <Alert variant="destructive">
-            <AlertCircle />
+        <Alert tone="critical">
             <AlertTitle>
                 <Trans>This cannot be saved until the following are fixed:</Trans>
             </AlertTitle>

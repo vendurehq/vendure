@@ -1,6 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { CheckCircle } from 'lucide-react';
 
 export type DraftOrderStatusProps = Readonly<{
     hasCustomer: boolean;
@@ -36,11 +35,8 @@ export function DraftOrderStatus({
     );
 
     return (
-        <Alert
-            variant={isCompleteDraftDisabled ? 'destructive' : 'default'}
-            icon={isCompleteDraftDisabled ? undefined : <CheckCircle className="stroke-success" />}
-        >
-            <AlertTitle className={isCompleteDraftDisabled ? '' : 'text-success'}>{title}</AlertTitle>
+        <Alert tone={isCompleteDraftDisabled ? 'critical' : 'success'}>
+            <AlertTitle>{title}</AlertTitle>
             {completeDraftDisabledReason ? (
                 <AlertDescription>{completeDraftDisabledReason}</AlertDescription>
             ) : null}

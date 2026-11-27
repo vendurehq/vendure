@@ -22,7 +22,6 @@ import {
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { AlertCircle } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { uiConfig } from 'virtual:vendure-ui-config';
 
@@ -473,8 +472,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                         {refund.validationErrors.length > 0 && (
                             <div className="space-y-2">
                                 {refund.validationErrors.map(error => (
-                                    <Alert key={error} variant="destructive">
-                                        <AlertCircle className="h-4 w-4" />
+                                    <Alert key={error} tone="critical">
                                         <AlertDescription>{error}</AlertDescription>
                                     </Alert>
                                 ))}
