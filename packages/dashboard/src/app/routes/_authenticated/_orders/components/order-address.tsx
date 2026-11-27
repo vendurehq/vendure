@@ -29,7 +29,7 @@ export function OrderAddress({ address }: Readonly<{ address?: OrderAddress }>) 
     if (!address || Object.values(address).every(value => !value)) {
         return (
             <EmptyState
-                size="compact"
+                size="sm"
                 icon={<MapPin />}
                 title={<Trans>No address</Trans>}
                 description={<Trans>The address appears here once the customer or an admin adds it to the order.</Trans>}

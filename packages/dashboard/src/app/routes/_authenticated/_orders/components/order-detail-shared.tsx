@@ -311,7 +311,7 @@ export function OrderDetailShared({
                             ))}
                         </div>
                     ) : (
-                        <EmptyState size="compact" title={<Trans>No payments</Trans>} />
+                        <EmptyState size="sm" title={<Trans>No payments</Trans>} />
                     )}
                 </PageBlock>
                 <PageBlock
@@ -335,7 +335,7 @@ export function OrderDetailShared({
                         </div>
                     ) : (
                         <EmptyState
-                            size="compact"
+                            size="sm"
                             icon={<Truck />}
                             title={<Trans>No fulfillments</Trans>}
                             description={<Trans>Fulfillments appear here once items are shipped.</Trans>}
@@ -353,7 +353,7 @@ export function OrderDetailShared({
                             {entity.customer.firstName} {entity.customer.lastName}
                         </Button>
                     ) : (
-                        <EmptyState size="compact" title={<Trans>No customer</Trans>} />
+                        <EmptyState size="sm" title={<Trans>No customer</Trans>} />
                     )}
                     <div className="mt-4 divide-y">
                         {entity?.shippingAddress && (

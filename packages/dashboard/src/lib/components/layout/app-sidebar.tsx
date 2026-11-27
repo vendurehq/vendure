@@ -9,18 +9,16 @@ import {
 } from '@/vdb/components/ui/sidebar.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { getNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
-import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
 import * as React from 'react';
 import { ChannelSwitcher } from './channel-switcher.js';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { extensionsLoaded } = useDashboardExtensions();
-    const { isRTL } = useDisplayLocale();
     const { sections } = getNavMenuConfig();
 
     return (
         extensionsLoaded && (
-            <Sidebar collapsible="icon" variant="sidebar" {...props} side={isRTL ? 'right' : 'left'}>
+            <Sidebar collapsible="icon" variant="sidebar" {...props} side="start">
                 <SidebarHeader className="md:pt-0">
                     <ChannelSwitcher />
                 </SidebarHeader>

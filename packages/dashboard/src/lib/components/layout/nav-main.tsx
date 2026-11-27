@@ -331,7 +331,7 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
                         <SidebarMenuButton
                             tooltip={i18n.t(item.title)}
                             render={<Link to={item.url} />}
-                            isActive={isPathActive(item.url)}
+                            active={isPathActive(item.url)}
                         >
                             {item.icon && <item.icon />}
                             <span>{i18n.t(item.title)}</span>
@@ -385,7 +385,7 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
                                     <SidebarMenuSubItem>
                                         <SidebarMenuSubButton
                                             render={<Link to={subItem.url} />}
-                                            isActive={isPathActive(subItem.url)}
+                                            active={isPathActive(subItem.url)}
                                         >
                                             <span className="min-w-0 flex-1 truncate">
                                                 {i18n.t(subItem.title)}
