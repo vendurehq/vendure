@@ -17,6 +17,7 @@ import { ApiType } from '../../api/common/get-api-type';
 import { DeserializedCachedSession, RequestContext } from '../../api/common/request-context';
 import { TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { Instrument } from '../../common/instrument-decorator';
+import { idsAreEqual } from '../../common/utils';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/session-cache-strategy';
@@ -152,7 +153,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         }
     }
 
-    private deferActiveOrderCacheInvalidation(ctx: RequestContext, session: CachedSession): boolean {
+    private deferActiveOrderCacheInvalidation(ctx: RequestContext, session: { token: string }): boolean {
         const queryRunner: QueryRunner | undefined = (ctx as any)[TRANSACTION_MANAGER_KEY]?.queryRunner;
         if (!queryRunner?.isTransactionActive) {
             return false;
@@ -241,6 +242,9 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             }),
         );
         await this.withTimeout(this.sessionCacheStrategy.set(this.serializeSession(authenticatedSession)));
+        if (activeOrder) {
+            await this.releaseOrderFromOtherSessions(ctx, activeOrder.id, user.id, authenticatedSession.id);
+        }
         return authenticatedSession;
     }
 
@@ -374,11 +378,16 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             relations: this.userRelations,
         });
         if (session) {
+            const isNewActiveOrder = !idsAreEqual(session.activeOrderId, order.id);
             session.activeOrder = order;
             await this.connection.getRepository(ctx, Session).save(session, { reload: false });
             const updatedSerializedSession = this.serializeSession(session);
             if (!this.deferActiveOrderCacheInvalidation(ctx, updatedSerializedSession)) {
                 await this.withTimeout(this.sessionCacheStrategy.set(updatedSerializedSession));
+            }
+            const userId = this.isAuthenticatedSession(session) ? session.user.id : undefined;
+            if (isNewActiveOrder && userId != null) {
+                await this.releaseOrderFromOtherSessions(ctx, order.id, userId, session.id);
             }
             return updatedSerializedSession;
         }
@@ -411,6 +420,43 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             }
         }
         return serializedSession;
+    }
+
+    /**
+     * @description
+     * Called when a session of the given User takes the Order as its active Order. Clears the Order
+     * from every other session that holds it, unless that session belongs to the same User, so that
+     * the User's other devices keep sharing the cart.
+     *
+     * An Order started in a guest session can come to belong to a Customer account, for example when
+     * the guest used an email address that is registered later. From then on it is that account's
+     * active Order, and sessions outside the account should stop using it as their cart.
+     */
+    private async releaseOrderFromOtherSessions(
+        ctx: RequestContext,
+        orderId: ID,
+        userId: ID,
+        keepSessionId: ID,
+    ): Promise<void> {
+        const sessions = await this.connection.getRepository(ctx, Session).find({
+            where: { activeOrderId: orderId },
+            relations: findOptionsArrayToObject<Session>(['user']),
+        });
+        for (const session of sessions) {
+            if (idsAreEqual(session.id, keepSessionId)) {
+                continue;
+            }
+            if (this.isAuthenticatedSession(session) && idsAreEqual(session.user.id, userId)) {
+                continue;
+            }
+            // Only the active Order is cleared. The session itself stays valid, which matters for
+            // API-key sessions: deleting one would make the key unusable.
+            session.activeOrder = null;
+            await this.connection.getRepository(ctx, Session).save(session, { reload: false });
+            if (!this.deferActiveOrderCacheInvalidation(ctx, session)) {
+                await this.withTimeout(this.sessionCacheStrategy.delete(session.token));
+            }
+        }
     }
 
     /**
