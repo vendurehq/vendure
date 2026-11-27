@@ -67,9 +67,14 @@ export function getUiConfig(
                   ],
     };
 
+    const navigation = {
+        singleOpenSection: pluginOptions.navigation?.singleOpenSection ?? true,
+    };
+
     return {
         api,
         i18n,
         orders,
+        navigation,
     };
 }
