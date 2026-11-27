@@ -7,8 +7,7 @@ export function SharedOptionGroupWarning({ productCount }: Readonly<{ productCou
         return null;
     }
     return (
-        <Alert>
-            <TriangleAlert className="h-4 w-4" />
+        <Alert icon={<TriangleAlert />}>
             <AlertDescription>
                 <Plural
                     value={productCount}

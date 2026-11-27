@@ -2,10 +2,15 @@ export {
     PageHeader,
     PageHeaderActions,
     PageHeaderBack,
-    // Deprecated alias of PageHeaderBackRow, kept so existing extensions compile.
-    PageHeaderBackLink,
     PageHeaderBackRow,
     PageHeaderContent,
     PageHeaderDescription,
     PageHeaderTitle,
 } from '@vendure-io/ui/components/molecules/page-header';
+
+import { PageHeaderBackRow } from '@vendure-io/ui/components/molecules/page-header';
+
+/**
+ * @deprecated Use `PageHeaderBackRow`. Kept so existing extensions compile.
+ */
+export const PageHeaderBackLink = PageHeaderBackRow;

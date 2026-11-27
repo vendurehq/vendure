@@ -110,7 +110,7 @@ function SortableItem({
                 ref={setNodeRef}
                 style={style}
                 className={`group relative flex items-center gap-2 p-2 border rounded-lg bg-card hover:bg-accent/50 transition-colors ${
-                    isDragging ? 'opacity-50 shadow-lg' : ''
+                    isDragging ? 'opacity-50 shadow-overlay' : ''
                 }`}
             >
                 {DragHandle}
@@ -134,7 +134,7 @@ function SortableItem({
             ref={setNodeRef}
             style={style}
             className={`group relative border rounded-lg bg-card hover:bg-accent/50 transition-colors ${
-                isDragging ? 'opacity-50 shadow-lg' : ''
+                isDragging ? 'opacity-50 shadow-overlay' : ''
             }`}
         >
             <div className="flex items-center justify-between px-3 py-2 border-b">

@@ -133,7 +133,7 @@ function CustomerSearch({
             onInputValueChange={setSearchTerm}
             itemToStringLabel={(customer: Customer) => `${customer.firstName} ${customer.lastName}`}
             isItemEqualToValue={(a: Customer, b: Customer) => a.id === b.id}
-            loading={isFetching || searchTerm !== debouncedSearchTerm}
+            isLoading={isFetching || searchTerm !== debouncedSearchTerm}
             disabled={disabled}
         >
             {trigger ? (

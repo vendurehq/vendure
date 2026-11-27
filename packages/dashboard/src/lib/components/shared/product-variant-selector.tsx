@@ -106,7 +106,7 @@ export function ProductVariantSelector({ onProductVariantSelect }: Readonly<Prod
             onInputValueChange={setSearch}
             itemToStringLabel={(variant: Variant) => variant.name}
             isItemEqualToValue={(a: Variant, b: Variant) => a.id === b.id}
-            loading={isFetching || search !== debouncedSearch}
+            isLoading={isFetching || search !== debouncedSearch}
         >
             <ComboboxPrimitive.Trigger
                 ref={anchor}

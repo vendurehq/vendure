@@ -214,7 +214,7 @@ export function FacetValueFacetedFilter<TData, TValue>({
             isItemEqualToValue={(a: Entry, b: Entry) => a.id === b.id}
             onLoadMore={loadMore}
             hasMore={expandedFacetId ? hasNextPage : browseMode && hasNextFacetsPage}
-            loading={
+            isLoading={
                 isLoading || isFetchingNextPage || isFetchingNextFacetsPage || searchTerm !== debouncedSearch
             }
             loadingLabel={t`Loading facet values`}

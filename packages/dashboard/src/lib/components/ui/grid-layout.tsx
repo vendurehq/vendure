@@ -337,7 +337,7 @@ function GridItem({
             className={cn(
                 'transition-shadow',
                 isDraggable && !isResizing && 'cursor-move',
-                (isDragging || isResizing) && 'shadow-lg',
+                (isDragging || isResizing) && 'shadow-overlay',
             )}
             onMouseDown={handleMouseDown}
         >

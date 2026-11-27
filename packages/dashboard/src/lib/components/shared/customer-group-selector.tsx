@@ -63,7 +63,7 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
             onOpenChange={setOpen}
             itemToStringLabel={(group: CustomerGroup) => group.name}
             isItemEqualToValue={(a: CustomerGroup, b: CustomerGroup) => a.id === b.id}
-            loading={isLoading}
+            isLoading={isLoading}
             disabled={props.readOnly}
         >
             <ComboboxPrimitive.Trigger

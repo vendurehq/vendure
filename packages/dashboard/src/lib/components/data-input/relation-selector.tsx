@@ -1,5 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { Chip } from '@/vdb/components/ui/chip.js';
+import { Chip, type ChipRemoveProps } from '@/vdb/components/ui/chip.js';
 import {
     Combobox,
     ComboboxContent,
@@ -363,13 +363,12 @@ export function RelationSelector<T>({
                         const name = String(item[config.labelKey]);
                         const label = config.label ? config.label(item) : name;
                         const removeLabel = t`Remove ${name}`;
+                        const removeProps: ChipRemoveProps = disabled
+                            ? {}
+                            : { onRemove: () => handleRemove(itemId), removeLabel };
                         if (typeof label === 'string') {
                             return (
-                                <Chip
-                                    key={itemId}
-                                    onRemove={disabled ? undefined : () => handleRemove(itemId)}
-                                    removeLabel={removeLabel}
-                                >
+                                <Chip key={itemId} {...removeProps}>
                                     {label}
                                 </Chip>
                             );
@@ -425,7 +424,7 @@ export function RelationSelector<T>({
                 isItemEqualToValue={(a: T, b: T) => String(a[config.idKey]) === String(b[config.idKey])}
                 onLoadMore={() => void fetchNextPage()}
                 hasMore={hasNextPage}
-                loading={isLoading || isFetchingNextPage || searchTerm !== debouncedSearch}
+                isLoading={isLoading || isFetchingNextPage || searchTerm !== debouncedSearch}
                 loadingLabel={t`Loading…`}
                 disabled={disabled}
             >

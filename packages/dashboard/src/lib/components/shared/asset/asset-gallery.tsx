@@ -678,7 +678,7 @@ export function AssetGallery({
                                 setPage(1); // Reset to first page when changing page size
                             }}
                         >
-                            <SelectTrigger className="h-8 w-[70px]">
+                            <SelectTrigger size="sm" className="w-[70px]">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent side="top">
@@ -747,7 +747,7 @@ export function AssetGallery({
 
                             {/* Current page */}
                             <PaginationItem>
-                                <PaginationLink href="#" isActive>
+                                <PaginationLink href="#" active>
                                     {page}
                                 </PaginationLink>
                             </PaginationItem>

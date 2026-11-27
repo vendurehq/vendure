@@ -1,7 +1,7 @@
 import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { Chip } from '@vendure-io/ui/components/molecules/chip';
+import { Chip, type ChipRemoveProps } from '@vendure-io/ui/components/molecules/chip';
 import { ConfirmDialog } from '@vendure-io/ui/components/molecules/confirm-dialog';
 import { Edit2 } from 'lucide-react';
 import { useState } from 'react';
@@ -36,16 +36,13 @@ export function ProductOptionGroupBadge({
         { onRemoved },
     );
     const canRemove = onRemoved != null && hasPermissions(['UpdateProduct', 'UpdateCatalog']);
+    const removeProps: ChipRemoveProps = canRemove
+        ? { onRemove: () => setRemoveDialogOpen(true), removeLabel: t`Remove option group ${name}` }
+        : {};
 
     return (
         <>
-            <Chip
-                variant="default"
-                className="text-xs"
-                onRemove={canRemove ? () => setRemoveDialogOpen(true) : undefined}
-                removeLabel={canRemove ? t`Remove option group ${name}` : undefined}
-                disabled={canRemove && isPending}
-            >
+            <Chip variant="default" className="text-xs" {...removeProps} disabled={canRemove && isPending}>
                 {/* The name and the pencil are one link: a 12px pencil on its own sits too
                     close to the remove button to tap at 390 wide. */}
                 <Link

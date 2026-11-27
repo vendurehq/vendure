@@ -1,4 +1,4 @@
-import { Chip } from '@/vdb/components/ui/chip.js';
+import { Chip, type ChipRemoveProps } from '@/vdb/components/ui/chip.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 
 // Interface for facet value type
@@ -33,16 +33,16 @@ export function FacetValueChip({
     onRemove,
     displayFacetName = true,
 }: FacetValueChipProps) {
+    const removeProps: ChipRemoveProps =
+        removable && onRemove
+            ? {
+                  onRemove: () => onRemove(facetValue.id),
+                  removeLabel: `Remove ${facetValue.name} from ${facetValue.facet.name}`,
+              }
+            : {};
     return (
         <Tooltip>
-            <TooltipTrigger
-                render={
-                    <Chip
-                        onRemove={removable && onRemove ? () => onRemove(facetValue.id) : undefined}
-                        removeLabel={`Remove ${facetValue.name} from ${facetValue.facet.name}`}
-                    />
-                }
-            >
+            <TooltipTrigger render={<Chip {...removeProps} />}>
                 {facetValue.name}
                 {displayFacetName && (
                     <span className="text-muted-foreground"> in {facetValue.facet.name}</span>

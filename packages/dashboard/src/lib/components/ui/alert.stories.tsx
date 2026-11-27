@@ -10,10 +10,10 @@ const meta = {
     },
     tags: ['autodocs'],
     argTypes: {
-        variant: {
+        tone: {
             control: 'select',
-            options: ['default', 'destructive'],
-            description: 'Alert variant',
+            options: [undefined, 'neutral', 'info', 'success', 'warning', 'critical', 'progress'],
+            description: 'Alert tone',
         },
     },
 } satisfies Meta<typeof Alert>;
@@ -23,8 +23,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
     render: args => (
-        <Alert {...args} className="w-[400px]">
-            <AlertCircle className="h-4 w-4" />
+        <Alert {...args} className="w-[400px]" icon={<AlertCircle />}>
             <AlertTitle>Heads up!</AlertTitle>
             <AlertDescription>You can add components to your app using the cli.</AlertDescription>
         </Alert>

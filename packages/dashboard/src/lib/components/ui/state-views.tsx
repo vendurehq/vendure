@@ -9,7 +9,7 @@ export type { ErrorStateProps } from '@vendure-io/ui/components/molecules/state-
 export { loadingStateVariants } from '@vendure-io/ui/components/molecules/state-views/loading-state';
 export type { LoadingStateProps } from '@vendure-io/ui/components/molecules/state-views/loading-state';
 
-export function LoadingState({ srLabel, ...props }: Readonly<LoadingStateProps>) {
+export function LoadingState({ loadingLabel, ...props }: Readonly<LoadingStateProps>) {
     const { t } = useLingui();
-    return <BaseLoadingState srLabel={srLabel ?? t`Loading…`} {...props} />;
+    return <BaseLoadingState loadingLabel={loadingLabel ?? t`Loading…`} {...props} />;
 }

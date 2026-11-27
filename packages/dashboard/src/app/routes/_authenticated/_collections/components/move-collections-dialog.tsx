@@ -83,8 +83,10 @@ function TargetAlert({
 }: Readonly<TargetAlertProps>) {
     const destination = selectedCollectionId && collectionNameCache.current.get(selectedCollectionId);
     return (
-        <Alert className={selectedCollectionId ? 'border-primary/30 bg-primary/10' : 'opacity-50'}>
-            <Folder className="h-4 w-4" />
+        <Alert
+            className={selectedCollectionId ? 'border-primary/30 bg-primary/10' : 'opacity-50'}
+            icon={<Folder />}
+        >
             <AlertDescription>
                 {!selectedCollectionId ? (
                     <Trans>Select a destination collection</Trans>
@@ -384,7 +386,7 @@ export function MoveCollectionsDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 size="xl"
-                className="h-[90vh] flex flex-col p-0 gap-0"
+                className="h-[90vh] flex flex-col [--dialog-padding:0px] gap-0"
                 // The "Move" menu item keeps its DropdownMenu open (closeOnClick={false}) so
                 // this dialog can open on top of it. React bubbles synthetic keyboard events
                 // through the component tree, not the DOM tree. Without stopping propagation

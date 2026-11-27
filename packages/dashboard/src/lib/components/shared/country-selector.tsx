@@ -83,7 +83,7 @@ export function CountrySelector(props: CountrySelectorProps) {
             onInputValueChange={setSearchTerm}
             itemToStringLabel={(country: Country) => country.name}
             isItemEqualToValue={(a: Country, b: Country) => a.id === b.id}
-            loading={isFetching || searchTerm !== debouncedSearchTerm}
+            isLoading={isFetching || searchTerm !== debouncedSearchTerm}
             disabled={props.readOnly}
         >
             <ComboboxPrimitive.Trigger

@@ -195,7 +195,7 @@ export function FacetValueSelector({
             isItemEqualToValue={(a: Entry, b: Entry) => a.id === b.id}
             onLoadMore={loadMore}
             hasMore={expandedFacetId ? hasNextPage : browseMode && hasNextFacetsPage}
-            loading={
+            isLoading={
                 isLoading ||
                 isFetchingNextPage ||
                 isFetchingNextFacetsPage ||

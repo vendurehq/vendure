@@ -214,7 +214,7 @@ export function DataTableFacetedFilter<TData, TValue>({
             defaultOpen={defaultOpen}
             {...(externalAnchor ? { open: !!open } : {})}
             onOpenChange={next => onOpenChange?.(next)}
-            loading={isLoading}
+            isLoading={isLoading}
         >
             {!externalAnchor && (
                 <span ref={ownAnchor} className="inline-flex">

@@ -2,7 +2,7 @@ import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js'
 import { ChannelSelector } from '@/vdb/components/shared/channel-selector.js';
 import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { Chip } from '@/vdb/components/ui/chip.js';
+import { Chip, type ChipRemoveProps } from '@/vdb/components/ui/chip.js';
 import { ConfirmDialog } from '@/vdb/components/ui/confirm-dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
@@ -241,50 +241,49 @@ export function RoleAssignmentsTable({
                                         </span>
                                     ) : (
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            {shownChannels.map(channel => (
-                                                <Chip
-                                                    key={channel.channelId}
-                                                    variant="default"
-                                                    className="text-xs"
-                                                    onRemove={
-                                                        canEdit
-                                                            ? () =>
-                                                                  removePairs(group.roleId, [
-                                                                      channel.channelId,
-                                                                  ])
-                                                            : undefined
-                                                    }
-                                                    removeLabel={
-                                                        canEdit
-                                                            ? t`Remove ${roleLabel(group.role)} on ${channelLabel(channel.code)}`
-                                                            : undefined
-                                                    }
-                                                    disabled={removing}
-                                                >
-                                                    {onChannelSelect ? (
-                                                        <Tooltip>
-                                                            <TooltipTrigger
-                                                                render={
-                                                                    <button
-                                                                        type="button"
-                                                                        className="hover:underline"
-                                                                        onClick={() =>
-                                                                            onChannelSelect(channel.channelId)
-                                                                        }
-                                                                    />
-                                                                }
-                                                            >
-                                                                <ChannelCodeLabel code={channel.code} />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <Trans>Show permissions</Trans>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    ) : (
-                                                        <ChannelCodeLabel code={channel.code} />
-                                                    )}
-                                                </Chip>
-                                            ))}
+                                            {shownChannels.map(channel => {
+                                                const removeProps: ChipRemoveProps = canEdit
+                                                    ? {
+                                                          onRemove: () =>
+                                                              removePairs(group.roleId, [channel.channelId]),
+                                                          removeLabel: t`Remove ${roleLabel(group.role)} on ${channelLabel(channel.code)}`,
+                                                      }
+                                                    : {};
+                                                return (
+                                                    <Chip
+                                                        key={channel.channelId}
+                                                        variant="default"
+                                                        className="text-xs"
+                                                        {...removeProps}
+                                                        disabled={removing}
+                                                    >
+                                                        {onChannelSelect ? (
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    render={
+                                                                        <button
+                                                                            type="button"
+                                                                            className="hover:underline"
+                                                                            onClick={() =>
+                                                                                onChannelSelect(
+                                                                                    channel.channelId,
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                    }
+                                                                >
+                                                                    <ChannelCodeLabel code={channel.code} />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <Trans>Show permissions</Trans>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        ) : (
+                                                            <ChannelCodeLabel code={channel.code} />
+                                                        )}
+                                                    </Chip>
+                                                );
+                                            })}
                                             {(hiddenCount > 0 ||
                                                 (expandedRoleIds.has(group.roleId) &&
                                                     group.channels.length > VISIBLE_CHANNELS &&

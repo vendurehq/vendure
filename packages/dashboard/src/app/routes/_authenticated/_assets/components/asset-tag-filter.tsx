@@ -147,7 +147,7 @@ function AssetTagCombobox({
             onInputValueChange={setSearchValue}
             onLoadMore={() => void fetchNextPage()}
             hasMore={hasNextPage}
-            loading={isFetching || searchValue !== debouncedSearch}
+            isLoading={isFetching || searchValue !== debouncedSearch}
             loadingLabel={t`Loading tags...`}
             defaultOpen={defaultOpen}
             onOpenChange={open => onOpenChange?.(open)}

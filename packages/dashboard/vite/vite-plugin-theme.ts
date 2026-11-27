@@ -18,7 +18,6 @@ import {
     lightTheme,
     neutral,
     radii,
-    shadows,
     success,
     textStyles,
     viz,
@@ -184,8 +183,9 @@ function generateThemeInlineBlock(): string {
     // Radius — direct values from token definitions (not calc-based)
     const radiusLines = Object.entries(radii).map(([key, value]) => `    --radius-${key}: ${value};`);
 
-    // Shadows — direct values from token definitions
-    const shadowLines = Object.entries(shadows).map(([key, value]) => `    --shadow-${key}: ${value};`);
+    // Namespace resets — drop Tailwind's default radius and shadow steps, as the
+    // design tokens do, so rounded-xs, rounded-4xl and shadow-sm … shadow-2xl do not compile
+    const resetLines = ['    --radius-*: initial;', '    --shadow-*: initial;'];
 
     // Themed shadows — var() indirection to the :root/.dark variables, so the
     // `shadow-overlay`, `shadow-control` and `shadow-scrolled` utilities follow
@@ -246,9 +246,9 @@ function generateThemeInlineBlock(): string {
     ];
 
     const allLines = [
+        ...resetLines,
         ...colorLines,
         ...radiusLines,
-        ...shadowLines,
         ...themedShadowLines,
         ...fontLines,
         ...fontFeatureLines,

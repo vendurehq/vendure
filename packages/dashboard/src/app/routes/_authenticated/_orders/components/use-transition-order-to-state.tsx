@@ -120,7 +120,7 @@ export function useTransitionOrderToState(orderId: string | undefined) {
                         </SelectContent>
                     </Select>
                     {transitionError && (
-                        <Alert variant="destructive">
+                        <Alert tone="critical">
                             <AlertDescription>
                                 <Trans>Error transitioning to state</Trans>: {transitionError}
                             </AlertDescription>

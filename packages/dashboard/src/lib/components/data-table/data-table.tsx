@@ -394,7 +394,6 @@ export function DataTable<TData>({
     // The list's total from the last visit sets the skeleton rows of the first load.
     const expectedTotal = useRememberedListTotal(rowCountKey, isLoading ? null : totalItems);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-    const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
     // The faceted filter picked from the unified Filter menu, while its popup
     // is open. Once it has a value, its chip opens it again.
@@ -421,14 +420,10 @@ export function DataTable<TData>({
             selectedItemsCache.current.set(getRowItemId(item), item);
         });
         const nextSelection = Object.fromEntries(selectedItems.map(item => [getRowItemId(item), true]));
-        rowSelectionRef.current = nextSelection;
         setRowSelection(nextSelection);
     }, [selectedItemIds]);
 
-    const handleRowSelectionChange = (
-        updater: RowSelectionState | ((previous: RowSelectionState) => RowSelectionState),
-    ) => {
-        const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
+    const handleRowSelectionChange = (nextSelection: RowSelectionState) => {
 
         items.forEach(item => {
             const id = getRowItemId(item);
@@ -441,7 +436,6 @@ export function DataTable<TData>({
                 selectedItemsCache.current.delete(id);
             }
         }
-        rowSelectionRef.current = nextSelection;
         setRowSelection(nextSelection);
         onSelectionChange?.(
             Object.keys(nextSelection)
@@ -835,7 +829,7 @@ export function DataTable<TData>({
                             hasSelectionColumn
                                 ? {
                                       value: rowSelection,
-                                      onChange: handleRowSelectionChange,
+                                      onValueChange: handleRowSelectionChange,
                                       selectColumnId: 'selection',
                                   }
                                 : undefined
@@ -851,7 +845,7 @@ export function DataTable<TData>({
                         toolbar={hasToolbarContent ? renderToolbar : undefined}
                         filters={{
                             value: columnFilters,
-                            onChange: setColumnFilters,
+                            onValueChange: setColumnFilters,
                             columns: filterColumns,
                             // The dashboard's own Filter menu adds filters.
                             showAddFilter: false,

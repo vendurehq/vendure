@@ -52,7 +52,7 @@ export function SelectionBubbleMenu({ editor, onRequestLinkEdit }: Readonly<Sele
             pluginKey="selectionBubbleMenu"
             shouldShow={shouldShow}
             options={{ placement: 'top', offset: 6 }}
-            className="flex items-center gap-0.5 rounded-xl bg-popover p-1.25 text-popover-foreground shadow-overlay"
+            className="flex items-center gap-0.5 rounded-2xl bg-popover p-1.25 text-popover-foreground shadow-overlay"
             data-testid="selection-bubble-menu"
         >
             <ToolbarButton
