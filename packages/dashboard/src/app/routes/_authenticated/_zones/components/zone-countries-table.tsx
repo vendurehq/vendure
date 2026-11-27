@@ -64,11 +64,13 @@ export function ZoneCountriesTable({
             code: {
                 header: () => <Trans>Code</Trans>,
                 accessorKey: 'code',
+                meta: { width: '8rem' },
                 cell: ({ getValue }) => <IdentifierDisplay value={getValue() as string} />,
             },
             enabled: {
                 header: () => <Trans>Status</Trans>,
                 accessorKey: 'enabled',
+                meta: { width: '8rem' },
                 cell: ({ getValue }) => <BooleanDisplayBadge value={getValue() as boolean} />,
             },
         },
@@ -87,6 +89,8 @@ export function ZoneCountriesTable({
                 setPageSize(itemsPerPage);
             }}
             totalItems={data?.zone?.members?.length ?? null}
+            // The skeleton shows as many rows as this zone had last time.
+            rowCountKey={`zone-countries:${zoneId}`}
             bulkActions={bulkActions}
             title={title}
             actions={

@@ -264,6 +264,8 @@ function ScheduledTasksPage() {
                         data={data?.scheduledTasks}
                         isLoading={isFetching}
                         totalItems={data?.scheduledTasks?.length ?? null}
+                        // The skeleton shows as many rows as the list had last time.
+                        rowCountKey="scheduled-tasks"
                         defaultColumnVisibility={{
                             schedule: false,
                         }}
