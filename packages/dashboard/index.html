@@ -257,20 +257,21 @@
             width: 34px;
             height: 34px;
         }
+        /* The page frame of AppShellPage: content at most 1180px wide, a 32px
+           gutter on every side (16px below 768px), centred. */
         .boot-main {
             flex: 1;
             min-height: 0;
             width: 100%;
-            max-width: 96rem;
+            max-width: calc(1180px + 2 * 32px);
             margin: 0 auto;
-            padding: 16px;
+            padding: 32px;
         }
         .boot-page {
             display: flex;
             flex-direction: column;
             gap: 16px;
             height: 100%;
-            margin: 16px;
         }
         .boot-page-header {
             display: flex;
@@ -458,11 +459,6 @@
             flex: 1;
             height: 320px;
         }
-        @media (min-width: 1280px) {
-            .boot-main {
-                padding-inline: 44px;
-            }
-        }
         @media (max-width: 1023px) {
             .boot-detail {
                 grid-template-columns: 1fr;
@@ -478,7 +474,7 @@
                 width: 28px;
             }
             .boot-main {
-                padding: 0;
+                padding: 16px;
             }
             .boot-fields {
                 grid-template-columns: 1fr;
