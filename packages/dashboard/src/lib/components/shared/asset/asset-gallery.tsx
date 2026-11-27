@@ -17,6 +17,7 @@ import {
     PaginationPrevious,
 } from '@/vdb/components/ui/pagination.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { ToggleGroup, ToggleGroupItem } from '@/vdb/components/ui/toggle-group.js';
@@ -31,6 +32,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
+import { useRememberedListTotal } from '@vendure-io/ui/components/molecules/data-table/data-table';
+import { SkeletonLine } from '@vendure-io/ui/components/molecules/state-views/skeleton-parts';
 import { ChevronRight, LayoutGrid, LayoutList, Search, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { DragEvent, memo, useCallback, useMemo, useRef, useState } from 'react';
@@ -405,6 +408,16 @@ export function AssetGallery({
     };
 
     const hasActiveFilters = search.trim().length > 0 || assetType !== AssetType.ALL || gridSelectedTags.length > 0;
+    // The unfiltered total of the last visit, so the first load draws as many skeleton
+    // cards as this page will have. A filtered load keeps the unfiltered total.
+    const rememberedTotal = useRememberedListTotal(
+        hasActiveFilters ? undefined : 'asset-gallery',
+        isLoading || hasActiveFilters ? null : (data?.assets.totalItems ?? null),
+    );
+    const skeletonCount =
+        rememberedTotal == null
+            ? itemsPerPage
+            : Math.min(itemsPerPage, Math.max(0, rememberedTotal - (page - 1) * itemsPerPage));
     const isAssetDropActive = viewMode === 'grid' ? isDragActive : isListDragActive;
 
     // Go to specific page
@@ -619,6 +632,7 @@ export function AssetGallery({
                     <AssetGridView
                         assets={assets}
                         isLoading={isLoading}
+                        skeletonCount={skeletonCount}
                         isError={isError}
                         error={error}
                         retry={refetch}
@@ -636,9 +650,16 @@ export function AssetGallery({
             {viewMode === 'grid' && (
                 <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    <Plural value={totalItems} one="# asset found" other="# assets found" />
-                    {selected.length > 0 && (
-                        <Trans>, {selected.length} selected</Trans>
+                    {isLoading || isError ? (
+                        // No count until the page has loaded, not "0 assets found". The empty line keeps the row's height.
+                        <span className="block h-lh" aria-hidden="true" />
+                    ) : (
+                        <>
+                            <Plural value={totalItems} one="# asset found" other="# assets found" />
+                            {selected.length > 0 && (
+                                <Trans>, {selected.length} selected</Trans>
+                            )}
+                        </>
                     )}
                 </div>
                 <div className="flex-1"></div>
@@ -798,6 +819,8 @@ export function AssetGallery({
 interface AssetViewProps {
     assets: Asset[];
     isLoading: boolean;
+    /** The number of skeleton cards while the page loads. */
+    skeletonCount: number;
     isError: boolean;
     error: Error | null;
     retry: () => void;
@@ -846,6 +869,7 @@ function AssetEmptyState({
 function AssetGridView({
     assets,
     isLoading,
+    skeletonCount,
     isError,
     error,
     retry,
@@ -858,11 +882,7 @@ function AssetGridView({
     onToggleAsset,
 }: Readonly<AssetViewProps>) {
     if (isLoading) {
-        return (
-            <div data-asset-gallery className="py-12">
-                <LoadingState variant="spinner" />
-            </div>
-        );
+        return <AssetGridSkeleton count={skeletonCount} />;
     }
 
     if (isError) {
@@ -892,10 +912,7 @@ function AssetGridView({
     }
 
     return (
-        <div
-            data-asset-gallery
-            className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-1"
-        >
+        <div data-asset-gallery className={ASSET_GRID_CLASS}>
             {assets.map(asset => (
                 <AssetCard
                     key={asset.id}
@@ -907,6 +924,41 @@ function AssetGridView({
                 />
             ))}
         </div>
+    );
+}
+
+// Shared by AssetCard and AssetGridSkeleton, so the skeleton keeps the card's shape.
+const ASSET_GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-1';
+const ASSET_CARD_FRAME_CLASS = 'overflow-hidden rounded-lg bg-card ring-1';
+const ASSET_CARD_BODY_CLASS = 'px-2 py-1.5';
+const ASSET_CARD_META_CLASS = 'mt-0.5 flex items-center justify-between';
+const ASSET_CARD_OPEN_BOX_CLASS = '-my-0.5 -me-0.5 inline-flex h-6 items-center px-1.5';
+
+/**
+ * One page of the grid while it loads: cards in the grid's own columns, each in
+ * the shape of `AssetCard` (the square thumbnail, the name, the size and Open).
+ */
+function AssetGridSkeleton({ count }: Readonly<{ count: number }>) {
+    return (
+        <LoadingState data-asset-gallery>
+            <div className={ASSET_GRID_CLASS} aria-hidden="true">
+                {Array.from({ length: count }, (_, index) => (
+                    <div key={index} className={`${ASSET_CARD_FRAME_CLASS} ring-foreground/10`}>
+                        <Skeleton className="aspect-square rounded-none" />
+                        <div className={ASSET_CARD_BODY_CLASS}>
+                            <SkeletonLine className="w-3/4 text-sm leading-tight" />
+                            <div className={ASSET_CARD_META_CLASS}>
+                                <SkeletonLine className="w-10 text-xs" />
+                                {/* In the box of the Open link, which sets the row's height. */}
+                                <div className={ASSET_CARD_OPEN_BOX_CLASS}>
+                                    <SkeletonLine className="w-10 text-xs" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </LoadingState>
     );
 }
 
@@ -933,8 +985,8 @@ const AssetCard = memo(function AssetCard({
     return (
         <div
             className={`
-                group relative overflow-hidden rounded-lg transition-[box-shadow] duration-fast ease-default
-                bg-card text-card-foreground ring-1 text-left
+                group relative ${ASSET_CARD_FRAME_CLASS} transition-[box-shadow] duration-fast ease-default
+                text-card-foreground text-left
                 hover:ring-primary/40
                 has-[>button:focus-visible]:outline-solid has-[>button:focus-visible]:outline-2
                 has-[>button:focus-visible]:outline-offset-2 has-[>button:focus-visible]:outline-ring
@@ -976,11 +1028,11 @@ const AssetCard = memo(function AssetCard({
                     </div>
                 )}
             </div>
-            <div className="px-2 py-1.5">
+            <div className={ASSET_CARD_BODY_CLASS}>
                 <p ref={name} className="text-sm font-medium leading-tight line-clamp-1">
                     {asset.name}
                 </p>
-                <div className="flex items-center justify-between mt-0.5">
+                <div className={ASSET_CARD_META_CLASS}>
                     <span className="text-xs text-muted-foreground">
                         {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
                     </span>
@@ -988,7 +1040,7 @@ const AssetCard = memo(function AssetCard({
                         to={`/assets/${asset.id}`}
                         onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         aria-label={t`Open ${asset.name}`}
-                        className="relative z-20 -my-0.5 -me-0.5 inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className={`relative z-20 ${ASSET_CARD_OPEN_BOX_CLASS} gap-1 rounded-sm text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
                     >
                         <Trans>Open</Trans>
                         <ChevronRight className="h-3 w-3" />

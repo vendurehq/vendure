@@ -42,7 +42,14 @@ import { McpPlugin } from '../src/plugin';
 import { adminToolProviders } from '../src/tools/built-in/admin';
 import { McpPluginOptions } from '../src/types';
 
-import { callTool, postMcp, rpc } from './utils/mcp-http-client';
+import {
+    callTool,
+    consentDigestOf,
+    postMcp,
+    postMcpConfirmed,
+    rpc,
+    withConsent,
+} from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { getIdStrategy, testServerInit } from './utils/test-server';
 
@@ -208,10 +215,12 @@ describe('MCP built-in admin tools (direct mode)', () => {
     // Every test that needs a grant spends three requests of the 60-per-minute OAuth-IP budget
     // (register, authorize, token). This file runs enough of them that the budget would be spent
     // mid-run and later tests would fail on a 429 raised during their setup, not on anything they
-    // test. Neither describe in this file tests OAuth rate limiting, so the budget is off.
+    // test. Neither describe in this file tests OAuth rate limiting, so the budget is off. The
+    // per-user budget is off too: each destructive call is a preview and a confirming call, so on a
+    // fast database the superadmin spends its 120 requests per minute before the suite ends.
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        rateLimits: { oauthIp: false },
+        rateLimits: { oauthIp: false, perUser: { rpm: 0 } },
     };
     const config = mergeConfig(testConfig(), {
         // Two Product custom fields no tool may write: one internal, one read-only.
@@ -668,6 +677,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 properties?: Record<string, { type?: string; description?: string }>;
                 required?: string[];
             };
+            outputSchema?: unknown;
+            _meta?: Record<string, unknown>;
         }>;
 
         const withConfirm = tools
@@ -677,17 +688,31 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(withConfirm).toEqual(destructiveToolNames);
 
         for (const tool of tools.filter(candidate => destructiveToolNames.includes(candidate.name))) {
-            expect(tool.inputSchema.properties?.confirm?.type).toBe('boolean');
+            expect(tool.inputSchema.properties?.confirm?.type).toBe('string');
             expect(tool.inputSchema.required ?? []).not.toContain('confirm');
             // The registry injects this field, so the input schema snapshot does not cover it.
             expect(tool.inputSchema.properties?.confirm?.description).toBe(
-                'Omit on the first call to get a preview. Set to true only after the user has ' +
-                    'approved the action.',
+                'Omit on the first call: it does not run the tool, and returns a preview and a ' +
+                    'consent digest. After the user approves the preview, call again with the same ' +
+                    'arguments and this set to that digest.',
             );
+            // Its first result is `incomplete`, which a declared output schema would not describe.
+            expect(tool.outputSchema).toBeUndefined();
         }
 
         const listOrders = tools.find(tool => tool.name === 'list_orders');
         expect(listOrders?.inputSchema.properties?.confirm).toBeUndefined();
+    });
+
+    it("carries each tool's search keywords in its _meta", async () => {
+        const token = await adminAccessToken();
+        const response = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token });
+        const cancelOrder = (response.body.result.tools as Array<{ name: string; _meta?: any }>).find(
+            tool => tool.name === 'cancel_order',
+        );
+        const declared = adminToolMetadata.find(metadata => metadata.name === 'cancel_order')?.keywords;
+        expect(declared?.length).toBeGreaterThan(0);
+        expect(cancelOrder?._meta?.['vendure.io/keywords']).toEqual(declared);
     });
 
     it('get_order returns the same order shape as the order list', async () => {
@@ -1035,10 +1060,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
     it('set_active_channel refuses a channel the caller holds no role in', async () => {
         const token = await adminAccessToken(channelAdminToken);
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
+            callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
             { token },
         );
 
@@ -1059,10 +1084,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
         expect(before.body.result.structuredContent.product).toMatchObject({ id: productId });
 
-        const switched = await postMcp(
+        const switched = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 2),
+            callTool('set_active_channel', { channelToken: secondChannelToken }, 2),
             { token },
         );
         expect(switched.body.result.isError).toBeUndefined();
@@ -1314,10 +1339,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             .count({ where: { productVariant: { id: variantId } } });
         const delta = 7;
 
-        const adjusted = await postMcp(
+        const adjusted = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('adjust_stock', { variantId, locationId: stockLocationId, delta, confirm: true }, 2),
+            callTool('adjust_stock', { variantId, locationId: stockLocationId, delta }, 2),
             { token },
         );
         expect(adjusted.body.result.isError).toBeUndefined();
@@ -1370,14 +1395,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         try {
             const responses = await Promise.all(
                 Array.from({ length: calls }, (_, i) =>
-                    postMcp(
+                    postMcpConfirmed(
                         baseUrl(),
                         'admin',
-                        callTool(
-                            'adjust_stock',
-                            { variantId, locationId: stockLocationId, delta: 1, confirm: true },
-                            i + 1,
-                        ),
+                        callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: 1 }, i + 1),
                         { token },
                     ),
                 ),
@@ -1391,14 +1412,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             // Put the stock back, so the adjustments do not leak into later tests.
             const delta = before - (await stockOnHand());
             if (delta !== 0) {
-                await postMcp(
+                await postMcpConfirmed(
                     baseUrl(),
                     'admin',
-                    callTool(
-                        'adjust_stock',
-                        { variantId, locationId: stockLocationId, delta, confirm: true },
-                        calls + 1,
-                    ),
+                    callTool('adjust_stock', { variantId, locationId: stockLocationId, delta }, calls + 1),
                     { token },
                 );
             }
@@ -1448,14 +1465,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 );
                 await fulfilled.promise;
 
-                const adjusted = postMcp(
+                const adjusted = postMcpConfirmed(
                     baseUrl(),
                     'admin',
-                    callTool(
-                        'adjust_stock',
-                        { variantId, locationId: stockLocationId, delta: 5, confirm: true },
-                        1,
-                    ),
+                    callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: 5 }, 1),
                     { token },
                 );
                 // There is no signal for "blocked inside the database", so a fixed wait gives the call
@@ -1474,14 +1487,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 expect(after.stockOnHand).toBe(before.stockOnHand - 2 + 5);
 
                 // Undo the adjustment, so the changed stock does not leak into later tests.
-                await postMcp(
+                await postMcpConfirmed(
                     baseUrl(),
                     'admin',
-                    callTool(
-                        'adjust_stock',
-                        { variantId, locationId: stockLocationId, delta: -5, confirm: true },
-                        2,
-                    ),
+                    callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: -5 }, 2),
                     { token },
                 );
             } finally {
@@ -1515,28 +1524,22 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 const elsewhere = connection.withTransaction(
                     await server.app.get(RequestContextService).create({ apiType: 'admin' }),
                     async txCtx => {
-                        await server.app
-                            .get(ProductVariantService)
-                            .update(txCtx, [
-                                {
-                                    id: variantId,
-                                    stockLevels: [{ stockLocationId: newLocationId, stockOnHand: 3 }],
-                                },
-                            ]);
+                        await server.app.get(ProductVariantService).update(txCtx, [
+                            {
+                                id: variantId,
+                                stockLevels: [{ stockLocationId: newLocationId, stockOnHand: 3 }],
+                            },
+                        ]);
                         adjustedElsewhere.resolve();
                         await elsewhereMayCommit.promise;
                     },
                 );
                 await adjustedElsewhere.promise;
 
-                const adjusted = postMcp(
+                const adjusted = postMcpConfirmed(
                     baseUrl(),
                     'admin',
-                    callTool(
-                        'adjust_stock',
-                        { variantId, locationId: newLocationId, delta: 1, confirm: true },
-                        1,
-                    ),
+                    callTool('adjust_stock', { variantId, locationId: newLocationId, delta: 1 }, 1),
                     { token },
                 );
                 // See the fulfilment test above for why a fixed wait.
@@ -1546,11 +1549,9 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 const response = await adjusted;
 
                 expect(response.body.result.isError).toBeUndefined();
-                const level = await connection
-                    .getRepository(adminCtx, StockLevel)
-                    .findOneOrFail({
-                        where: { productVariantId: variantId, stockLocationId: newLocationId },
-                    });
+                const level = await connection.getRepository(adminCtx, StockLevel).findOneOrFail({
+                    where: { productVariantId: variantId, stockLocationId: newLocationId },
+                });
                 // On Postgres the call otherwise started from 0 and set the stock to 1, losing the 3. On
                 // MySQL and MariaDB core otherwise tried to insert the row again and the call failed.
                 expect(level.stockOnHand).toBe(4);
@@ -1574,10 +1575,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const token = await adminAccessToken();
         // The seeded variant belongs to the default channel only, so once this grant is switched to the
         // second channel the variant is out of scope for it.
-        const switched = await postMcp(
+        const switched = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
+            callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
             { token },
         );
         expect(switched.body.result.isError).toBeUndefined();
@@ -1601,7 +1602,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
         const before = await stockLevel();
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
             callTool(
@@ -1610,7 +1611,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     variantId: String(variantId),
                     locationId: String(stockLocationId),
                     delta: 2,
-                    confirm: true,
                 },
                 1,
             ),
@@ -1622,14 +1622,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         } finally {
             // Undo the adjustment, so the changed stock does not leak into later tests.
             if (response.body.result && !response.body.result.isError) {
-                await postMcp(
+                await postMcpConfirmed(
                     baseUrl(),
                     'admin',
-                    callTool(
-                        'adjust_stock',
-                        { variantId, locationId: stockLocationId, delta: -2, confirm: true },
-                        2,
-                    ),
+                    callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: -2 }, 2),
                     { token },
                 );
             }
@@ -1673,10 +1669,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
         const before = await stockLevel();
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('adjust_stock', { variantId, locationId: 99999, delta: -5, confirm: true }, 1),
+            callTool('adjust_stock', { variantId, locationId: 99999, delta: -5 }, 1),
             { token },
         );
 
@@ -1696,10 +1692,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             .getRepository(adminCtx, Payment)
             .findOneOrFail({ where: { id: paymentId } });
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, confirm: true }, 1),
+            callTool('refund_order', { id: orderId }, 1),
             { token },
         );
 
@@ -1727,10 +1723,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             .findOneOrFail({ where: { id: paymentId } });
         const partialAmount = Math.floor(paymentBefore.amount / 2);
 
-        const partial = await postMcp(
+        const partial = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, paymentId, amount: partialAmount, confirm: true }, 1),
+            callTool('refund_order', { id: orderId, paymentId, amount: partialAmount }, 1),
             { token },
         );
         expect(partial.body.result.isError).toBeUndefined();
@@ -1739,10 +1735,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         // Calling again with only the order id must default to the REMAINDER. Before the fix, the
         // default fell back to the order total, which now exceeds what's left on the payment, so
         // core would reject the call instead of refunding the rest.
-        const remainder = await postMcp(
+        const remainder = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, confirm: true }, 2),
+            callTool('refund_order', { id: orderId }, 2),
             { token },
         );
         expect(remainder.body.result.isError).toBeUndefined();
@@ -1760,10 +1756,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const token = await adminAccessToken();
         const { orderId, paymentId } = await createSettledOrder();
 
-        const first = await postMcp(
+        const first = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, reason: 'Damaged in transit', confirm: true }, 1),
+            callTool('refund_order', { id: orderId, reason: 'Damaged in transit' }, 1),
             { token },
         );
         expect(first.body.result.isError).toBeUndefined();
@@ -1784,10 +1780,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             },
         ]);
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, confirm: true }, 3),
+            callTool('refund_order', { id: orderId }, 3),
             { token },
         );
         expect(response.body.result.isError).toBe(true);
@@ -1805,10 +1801,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const { orderId, graphqlId } = await createSettledOrder(1, secondVariantGraphqlId);
         const lines = await orderLines(graphqlId);
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 1),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier' }, 1),
             { token },
         );
 
@@ -1835,7 +1831,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const orderB = await createSettledOrder();
         const [lineOfB] = await orderLines(orderB.graphqlId);
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
             callTool(
@@ -1844,7 +1840,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     id: orderA.orderId,
                     method: 'Test Carrier',
                     lines: [{ orderLineId: lineOfB.id, quantity: 1 }],
-                    confirm: true,
                 },
                 1,
             ),
@@ -1865,7 +1860,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const salesBefore = await connection.getRepository(adminCtx, Sale).count();
 
         for (const quantity of [-1, 0]) {
-            const response = await postMcp(
+            const response = await postMcpConfirmed(
                 baseUrl(),
                 'admin',
                 callTool(
@@ -1874,7 +1869,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                         id: orderId,
                         method: 'Test Carrier',
                         lines: [{ orderLineId: line.id, quantity }],
-                        confirm: true,
                     },
                     1,
                 ),
@@ -1895,7 +1889,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const [line] = await orderLines(graphqlId);
         expect(line.quantity).toBe(2);
 
-        const half = await postMcp(
+        const half = await postMcpConfirmed(
             baseUrl(),
             'admin',
             callTool(
@@ -1904,7 +1898,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     id: orderId,
                     method: 'Test Carrier',
                     lines: [{ orderLineId: line.id, quantity: 1 }],
-                    confirm: true,
                 },
                 1,
             ),
@@ -1915,10 +1908,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { orderLineId: line.id, quantity: 1 },
         ]);
 
-        const rest = await postMcp(
+        const rest = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 2),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier' }, 2),
             { token },
         );
         expect(rest.body.result.isError).toBeUndefined();
@@ -1926,10 +1919,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { orderLineId: line.id, quantity: 1 },
         ]);
         // Nothing is left, so the default line selection is empty and core says so.
-        const nothingLeft = await postMcp(
+        const nothingLeft = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 3),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier' }, 3),
             { token },
         );
         expect(nothingLeft.body.result.isError).toBe(true);
@@ -1943,14 +1936,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const token = await adminAccessToken();
         const { orderId, graphqlId } = await createSettledOrder();
 
-        const response = await postMcp(
+        const response = await postMcpConfirmed(
             baseUrl(),
             'admin',
-            callTool(
-                'create_fulfillment',
-                { id: orderId, method: 'Test Carrier', state: 'Shipped', confirm: true },
-                1,
-            ),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', state: 'Shipped' }, 1),
             { token },
         );
 
@@ -1966,12 +1955,12 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const { orderId, graphqlId } = await createSettledOrder();
         const [line] = await orderLines(graphqlId);
 
-        const created = await postMcp(
+        const created = await postMcpConfirmed(
             baseUrl(),
             'admin',
             callTool(
                 'create_fulfillment',
-                { id: orderId, method: 'Test Carrier', trackingCode: 'TRACK-002', confirm: true },
+                { id: orderId, method: 'Test Carrier', trackingCode: 'TRACK-002' },
                 1,
             ),
             { token },
@@ -2396,12 +2385,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             );
 
             expect(updated.body.result.isError).toBeUndefined();
-            const stored = await connection
-                .getRepository(adminCtx, Product)
-                .findOneOrFail({
-                    where: { id: productId },
-                    relations: { assets: true, featuredAsset: true },
-                });
+            const stored = await connection.getRepository(adminCtx, Product).findOneOrFail({
+                where: { id: productId },
+                relations: { assets: true, featuredAsset: true },
+            });
             expect(stored.assets.map(entry => String(entry.assetId)).sort()).toEqual(
                 assetIds.map(String).sort(),
             );
@@ -2539,16 +2526,49 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 { token },
             );
             expect(preview.body.result.isError).toBeUndefined();
-            expect(preview.body.result.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
+            const digest = consentDigestOf(preview);
+            expect(preview.body.result.structuredContent).toEqual({
+                status: 'incomplete',
+                preview: expect.stringMatching(
+                    new RegExp(
+                        `^Move order \\S+ \\(id ${order.id}, state Draft, .*\\) from Draft to Cancelled\\.$`,
+                    ),
+                ),
+                needs: [
+                    {
+                        kind: 'consent',
+                        consent: 'confirm',
+                        description: expect.stringMatching(/^Approve this destructive action: Move order /),
+                        digest,
+                        preview: preview.body.result.structuredContent.preview,
+                    },
+                ],
             });
+            expect(await orderState(order.graphqlId)).toBe('Draft');
+
+            // The old boolean confirmation is refused.
+            const legacy = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_order_state', { id: order.id, state: 'Cancelled', confirm: true }, 2),
+                { token },
+            );
+            expect(legacy.body.result.isError).toBe(true);
+            expect(legacy.body.result.content[0].text).toMatch(/"confirm" must be the consent digest/);
+            // So is the digest for another target.
+            const otherTarget = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_order_state', { id: order.id, state: 'AddingItems', confirm: digest }, 3),
+                { token },
+            );
+            expect(otherTarget.body.result.structuredContent.status).toBe('incomplete');
             expect(await orderState(order.graphqlId)).toBe('Draft');
 
             const confirmed = await postMcp(
                 baseUrl(),
                 'admin',
-                callTool('update_order_state', { id: order.id, state: 'Cancelled', confirm: true }, 2),
+                callTool('update_order_state', { id: order.id, state: 'Cancelled', confirm: digest }, 4),
                 { token },
             );
             expect(confirmed.body.result.isError).toBeUndefined();
@@ -2713,7 +2733,8 @@ describe('MCP built-in admin tools (discovery mode)', () => {
     const options: McpPluginOptions = {
         toolExposure: 'discovery',
         oauth: { tokenSecret: TOKEN_SECRET },
-        rateLimits: { oauthIp: false },
+        // The per-user budget is off for the reason given in the direct-mode suite above.
+        rateLimits: { oauthIp: false, perUser: { rpm: 0 } },
     };
     const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(options)] });
     const { server, adminClient } = createTestEnvironment(config);
@@ -2775,7 +2796,7 @@ describe('MCP built-in admin tools (discovery mode)', () => {
         ]);
     });
 
-    it('gates a destructive tool via execute_tool, then runs it with confirm:true', async () => {
+    it('gates a destructive tool via execute_tool, then runs it with the consent digest', async () => {
         const token = await adminAccessToken();
         const orderId = await createDraftOrder();
 
@@ -2786,16 +2807,20 @@ describe('MCP built-in admin tools (discovery mode)', () => {
             { token },
         );
         expect(preview.body.result.isError).toBeUndefined();
-        expect(preview.body.result.structuredContent).toMatchObject({ status: 'confirmation_required' });
+        expect(preview.body.result.structuredContent).toMatchObject({ status: 'incomplete' });
+        expect(preview.body.result.content[0].text).toContain('call "execute_tool" again for "cancel_order"');
 
         const confirmed = await postMcp(
             baseUrl(),
             'admin',
-            callTool('execute_tool', { name: 'cancel_order', arguments: { id: orderId, confirm: true } }, 2),
+            withConsent(
+                callTool('execute_tool', { name: 'cancel_order', arguments: { id: orderId } }, 2),
+                consentDigestOf(preview) ?? '',
+            ),
             { token },
         );
         expect(confirmed.body.result.isError).toBe(true);
-        // Through the discovery funnel too, confirm:true reaches the real cancelOrder: an empty draft
+        // Through the discovery funnel too, the digest reaches the real cancelOrder: an empty draft
         // has no lines to cancel, so the concrete EmptyOrderLineSelectionError union comes back — not
         // the confirmation gate.
         expect(confirmed.body.result.structuredContent).toMatchObject({
@@ -2903,7 +2928,8 @@ describe('MCP built-in admin tools (entity access control strategy)', () => {
     const strategy = new HideOneCustomerStrategy();
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        rateLimits: { oauthIp: false },
+        // The per-user budget is off for the reason given in the direct-mode suite above.
+        rateLimits: { oauthIp: false, perUser: { rpm: 0 } },
     };
     const config = mergeConfig(testConfig(), {
         authOptions: { entityAccessControlStrategy: strategy },

@@ -1,0 +1,43 @@
+{
+    "manifestVersion": 1,
+    "package": "@vendure-e2e/cloud-cli-plugin",
+    "version": "1.0.0",
+    "commands": [
+        {
+            "path": ["project", "list"],
+            "description": "List the projects you can access",
+            "keywords": [],
+            "behavior": "readonly",
+            "requires": {},
+            "consents": {},
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "projects": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": ["projects"],
+                "additionalProperties": false
+            },
+            "cli": {
+                "fields": {}
+            },
+            "errors": [],
+            "examples": [],
+            "expose": {
+                "mcp": true
+            },
+            "hasPlan": false
+        }
+    ]
+}

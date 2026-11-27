@@ -1,4 +1,3 @@
-import fs from 'fs-extra';
 import path from 'node:path';
 import {
     Node,
@@ -8,6 +7,14 @@ import {
     SyntaxKind,
     VariableDeclaration,
 } from 'ts-morph';
+
+/** Thrown by {@link VendureConfigRef} when no file of the project declares a `VendureConfig`. */
+export class VendureConfigNotDeclaredError extends Error {
+    constructor() {
+        super('Could not find the VendureConfig declaration in your project.');
+        this.name = 'VendureConfigNotDeclaredError';
+    }
+}
 
 export class VendureConfigRef {
     readonly sourceFile: SourceFile;
@@ -34,7 +41,7 @@ export class VendureConfigRef {
                 );
             }
             if (sourceFiles.length === 0) {
-                throw new Error('Could not find the VendureConfig declaration in your project.');
+                throw new VendureConfigNotDeclaredError();
             }
             this.sourceFile = sourceFiles[0];
         }
@@ -70,10 +77,7 @@ export class VendureConfigRef {
         this.getPluginsArray()?.addElement(text).formatText();
     }
 
-    private isVendureConfigFile(
-        sourceFile: SourceFile,
-        options: { checkFileName?: boolean } = {},
-    ): boolean {
+    private isVendureConfigFile(sourceFile: SourceFile, options: { checkFileName?: boolean } = {}): boolean {
         const checkFileName = options.checkFileName ?? true;
         return (
             (checkFileName ? sourceFile.getFilePath().endsWith('vendure-config.ts') : true) &&

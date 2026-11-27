@@ -30,9 +30,10 @@ import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService } from '../rate-limit/mcp-rate-limiter.service';
 import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
-import { McpToolSummary } from '../types';
+import { McpConsentRequiredResult, McpToolSummary } from '../types';
 
 import { Bm25Index } from './bm25';
+import { canonicalJson, consentCallerKey, ConsentSubject, McpConsentService } from './mcp-consent.service';
 import { McpToolSchemaService } from './mcp-tool-schema.service';
 import { McpExposedTool, McpRegisteredTool } from './registry-types';
 
@@ -111,6 +112,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private readonly shopSession: McpShopSessionService,
         private readonly configService: ConfigService,
         private readonly connection: TransactionalConnection,
+        private readonly consent: McpConsentService,
         @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
@@ -135,10 +137,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         executionContext: McpExecutionContext,
         toolset: McpToolset,
     ): Promise<McpExposedTool[]> {
-        if (this.options.toolExposure === 'discovery') {
+        // The Developer MCP proxies each tool by name, so a local-trust caller always sees them all.
+        if (this.usesDiscovery(executionContext)) {
             return this.discoveryMetaTools;
         }
         return this.visibleTools(executionContext.ctx, toolset);
+    }
+
+    private usesDiscovery(executionContext: McpExecutionContext): boolean {
+        return this.options.toolExposure === 'discovery' && !executionContext.localTrust;
     }
 
     async callTool(
@@ -355,29 +362,35 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             return admission.result;
         }
         const { tool } = admission;
-        // A destructive tool called without `confirm: true` only describes what it would do.
-        const isConfirmationPreview =
-            tool.resolvedBehavior === 'destructive' && admission.input.confirm !== true;
+        const isDestructive = tool.resolvedBehavior === 'destructive';
+        // Only a destructive tool has the registry's `confirm` field; any other tool may declare its own.
+        const { confirm, ...withoutConfirm } = admission.input;
+        const ownInput = isDestructive ? withoutConfirm : admission.input;
 
-        const session = await this.resolveShopSession(
-            executionContext,
-            tool,
-            admission.input,
-            isConfirmationPreview,
-        );
+        // A destructive call is checked for consent before it may start a cart. Otherwise the
+        // confirming call would start a session the preview did not have, and its caller would no
+        // longer match the digest. A made-up digest starts no session either.
+        let session = await this.resolveShopSession(executionContext, tool, ownInput, isDestructive);
         if (session.kind === 'refused') {
             return session.result;
         }
+        if (isDestructive) {
+            const consent = await this.checkConsent(session.callContext, tool, session.input, confirm);
+            if (consent.kind !== 'given') {
+                // The result carries the token too, so the confirming call can act on the same cart.
+                return consent.kind === 'needed'
+                    ? this.consentRequiredResult(session.callContext, tool, consent, session.sessionToken)
+                    : this.errorResult(consent.message, session.sessionToken);
+            }
+            if (tool.acceptsSessionToken && !session.callContext.ctx.session) {
+                session = await this.resolveShopSession(executionContext, tool, ownInput, false);
+                if (session.kind === 'refused') {
+                    return session.result;
+                }
+            }
+        }
         const { callContext, sessionToken } = session;
-        // The preview carries the token too, so the confirming call can act on the same cart.
-        if (isConfirmationPreview) {
-            return this.confirmationRequiredResult(tool, sessionToken);
-        }
-        let toolInput = session.input;
-        if (tool.resolvedBehavior === 'destructive') {
-            const { confirm, ...rest } = toolInput;
-            toolInput = rest;
-        }
+        const toolInput = session.input;
 
         const startedAt = Date.now();
         try {
@@ -401,6 +414,72 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 sessionToken,
             });
         }
+    }
+
+    /**
+     * Decides whether a destructive call may run. It works out the preview first, since the digest
+     * covers it: a digest only counts when it was issued for this caller, this input and this
+     * preview, so a consent never applies to a target the caller did not see.
+     */
+    private async checkConsent(
+        callContext: McpExecutionContext,
+        tool: McpRegisteredTool,
+        input: Record<string, unknown>,
+        confirm: unknown,
+    ): Promise<
+        | { kind: 'given' }
+        | { kind: 'needed'; preview: string; digest: string }
+        | { kind: 'refused'; message: string }
+    > {
+        let preview: string;
+        try {
+            preview = await this.describeToolCall(tool, callContext, input);
+        } catch (e) {
+            return { kind: 'refused', message: this.describeErrorMessage(tool, callContext, e) };
+        }
+        const subject: ConsentSubject = {
+            toolKey: this.toolKey(tool.toolset, tool.name),
+            caller: consentCallerKey(callContext),
+            input,
+            preview,
+        };
+        if (this.consent.verify(confirm, subject)) {
+            return { kind: 'given' };
+        }
+        return { kind: 'needed', preview, digest: this.consent.issue(subject) };
+    }
+
+    /** The tool's own `describe`, or else its description and the input. It runs like a read-only tool. */
+    private async describeToolCall(
+        tool: McpRegisteredTool,
+        callContext: McpExecutionContext,
+        input: Record<string, unknown>,
+    ): Promise<string> {
+        if (!tool.handler.describe) {
+            // Canonical, so the same arguments sent in another key order give the same preview and digest.
+            return `${tool.description} Input: ${canonicalJson(input)}`;
+        }
+        const { ctx } = await this.inCartCurrency(tool, callContext);
+        await this.configService.authOptions.entityAccessControlStrategy.prepareAccessControl?.(ctx);
+        const preview = await tool.handler.describe(ctx, input, this.toCallerInfo(callContext));
+        if (typeof preview !== 'string' || preview.length === 0) {
+            throw new Error(`MCP tool "${tool.name}" describe() must return a non-empty string`);
+        }
+        return preview;
+    }
+
+    // A failed preview ran nothing, so like any other refusal before the tool runs it leaves no log row.
+    private describeErrorMessage(tool: McpRegisteredTool, callContext: McpExecutionContext, error: unknown) {
+        if (error instanceof I18nError && error.logLevel !== LogLevel.Error) {
+            this.logCallerSafeError(tool.name, error);
+            return callContext.ctx.translate(error.message, error.variables);
+        }
+        Logger.error(
+            `MCP tool "${tool.name}" failed to describe the call: ${error instanceof Error ? error.message : String(error)}`,
+            loggerCtx,
+            error instanceof Error ? error.stack : undefined,
+        );
+        return GENERIC_TOOL_ERROR_MESSAGE;
     }
 
     // The prepared input no longer contains the sessionToken credential, so logs do not either.
@@ -874,6 +953,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return {
             grant: state.grant ? { id: state.grant.id, oauthClientId: state.grant.oauthClientId } : undefined,
             clientIp: state.clientIp,
+            ...(state.localTrust ? { localTrust: true } : {}),
         };
     }
 
@@ -951,25 +1031,43 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    private confirmationRequiredResult(tool: McpRegisteredTool, sessionToken?: string): CallToolResult {
+    private consentRequiredResult(
+        callContext: McpExecutionContext,
+        tool: McpRegisteredTool,
+        consent: { preview: string; digest: string },
+        sessionToken?: string,
+    ): CallToolResult {
         // Discovery mode never exposes the tool by name, so the retry has to go through the meta-tool instead.
-        const howToConfirm =
-            this.options.toolExposure === 'discovery'
-                ? `Ask the user to approve it, then call "${EXECUTE_TOOL}" again for "${tool.name}" ` +
-                  `with "confirm": true added to its arguments.`
-                : `Ask the user to approve it, then re-call "${tool.name}" with "confirm": true.`;
+        const howToConfirm = this.usesDiscovery(callContext)
+            ? `call "${EXECUTE_TOOL}" again for "${tool.name}" with the same arguments plus ` +
+              `"confirm": "${consent.digest}".`
+            : `call "${tool.name}" again with the same arguments plus "confirm": "${consent.digest}".`;
+        const structuredContent: McpConsentRequiredResult = {
+            status: 'incomplete',
+            preview: consent.preview,
+            needs: [
+                {
+                    kind: 'consent',
+                    consent: 'confirm',
+                    description: `Approve this destructive action: ${consent.preview}`,
+                    digest: consent.digest,
+                    // On the need too, where a client written against the shared ConsentNeed type reads it.
+                    preview: consent.preview,
+                },
+            ],
+            ...(sessionToken !== undefined ? { sessionToken } : {}),
+        };
         return {
             content: [
                 {
                     type: 'text',
-                    text: `This is a destructive action: ${tool.description} ${howToConfirm}`,
+                    text:
+                        `This is a destructive action and it has not run. ${consent.preview}\n` +
+                        `Show this to the user. Once they approve it, ${howToConfirm} The digest ` +
+                        `expires after a few minutes, and a changed target needs a new approval.`,
                 },
             ],
-            structuredContent: {
-                status: 'confirmation_required',
-                confirmed: false,
-                ...(sessionToken !== undefined ? { sessionToken } : {}),
-            },
+            structuredContent,
         };
     }
 }

@@ -4,7 +4,7 @@ generated: true
 ---
 ## Transaction
 
-<GenerationInfo sourceFile="packages/core/src/api/decorators/transaction.decorator.ts" sourceLine="81" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/api/decorators/transaction.decorator.ts" sourceLine="82" packageName="@vendure/core" />
 
 Runs the decorated method in a TypeORM transaction. It works by creating a transactional
 QueryRunner which gets attached to the RequestContext object. When the RequestContext
@@ -61,11 +61,12 @@ type TransactionMode = 'auto' | 'manual'
 ```
 ## TransactionIsolationLevel
 
-<GenerationInfo sourceFile="packages/core/src/api/decorators/transaction.decorator.ts" sourceLine="45" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/api/decorators/transaction.decorator.ts" sourceLine="46" packageName="@vendure/core" />
 
-Transactions can be run at different isolation levels. The default is undefined, which
-falls back to the default of your database. See the documentation of your database for more
-information on available isolation levels.
+Transactions can be run at different isolation levels. When none is given, Vendure uses
+`entityOptions.transactionIsolationLevel` if set, otherwise `READ COMMITTED` on MySQL and
+MariaDB, and otherwise the default of your database. See the documentation of your database for
+more information on available isolation levels.
 
 ```ts title="Signature"
 type TransactionIsolationLevel = | 'READ UNCOMMITTED'

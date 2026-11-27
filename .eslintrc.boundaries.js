@@ -48,11 +48,53 @@ const testFiles = ['**/*.spec.ts', '**/*.spec.tsx', '**/*.spec-d.ts'];
  */
 const publicEntryPointOnlyFiles = ['packages/*-plugin/**/*.ts', 'packages/*-plugin/**/*.tsx'];
 
+/**
+ * Browser code: the Dashboard app, and the browser code of the plugin packages, which is their
+ * Dashboard extensions and the GraphiQL UI. The Dashboard's `vite` and `plugin` folders run in
+ * Node and are not included.
+ */
+const dashboardAppFiles = ['packages/dashboard/src/**/*.ts', 'packages/dashboard/src/**/*.tsx'];
+const pluginBrowserFiles = [
+    'packages/*-plugin/src/dashboard/**/*.ts',
+    'packages/*-plugin/src/dashboard/**/*.tsx',
+    'packages/graphiql-plugin/src/ui/**/*.ts',
+    'packages/graphiql-plugin/src/ui/**/*.tsx',
+];
+
 /** Existing deep imports into `@vendure/core/dist`. Remove an entry when its import is fixed. */
 const distImportExceptions = [
     'packages/email-plugin/src/plugin.spec.ts',
     'packages/telemetry-plugin/src/instrumentation.ts',
 ];
+
+/** The CLI uses the command contract from `@vendure/common`, never the MCP SDK. */
+const cliOnlyImportBan = {
+    name: '@vendure/mcp-sdk',
+    message: 'Import the command contract from `@vendure/common/lib/command`.',
+};
+const cliOnlyPatternBan = {
+    group: ['@vendure/mcp-sdk/*'],
+    message: 'Import the command contract from `@vendure/common/lib/command`.',
+};
+
+const distImportBan = {
+    group: ['@vendure/*/dist/**'],
+    message: 'Import from the public entry point of the package, not from its dist folder.',
+};
+
+/**
+ * `@vendure/common/lib/command/manifest` and `@vendure/common/lib/local-trust` use Node built-ins,
+ * so only Node code imports them.
+ */
+const nodeOnlyMessage =
+    '`@vendure/common/lib/command/manifest` uses `node:fs` and runs only in Node. Import the command contract from `@vendure/common/lib/command`.';
+const localTrustNodeOnlyMessage =
+    '`@vendure/common/lib/local-trust` uses Node built-ins and runs only in Node, in the server and the CLI.';
+const nodeOnlyImportBans = [
+    { name: '@vendure/common/lib/command/manifest', message: nodeOnlyMessage },
+    { name: '@vendure/common/lib/local-trust', message: localTrustNodeOnlyMessage },
+];
+const nodeOnlyPatternBan = { group: ['@vendure/common/lib/command/manifest/*'], message: nodeOnlyMessage };
 
 const moduleBoundaries = (allow = []) => ['error', { allow, depConstraints }];
 
@@ -75,16 +117,75 @@ const overrides = [
         files: publicEntryPointOnlyFiles,
         excludedFiles: distImportExceptions,
         rules: {
+            'no-restricted-imports': ['error', { patterns: [distImportBan] }],
+        },
+    },
+    {
+        files: dashboardAppFiles,
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { paths: nodeOnlyImportBans, patterns: [nodeOnlyPatternBan] },
+            ],
+        },
+    },
+    {
+        // ESLint applies the options of the last override that matches a file, so this one repeats
+        // the dist ban of `publicEntryPointOnlyFiles` for the browser code of the plugins.
+        files: pluginBrowserFiles,
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { paths: nodeOnlyImportBans, patterns: [nodeOnlyPatternBan, distImportBan] },
+            ],
+        },
+    },
+    {
+        // The command contract lives in `@vendure/common/lib/command`, so the CLI never loads the
+        // MCP SDK, which pulls in NestJS.
+        files: ['packages/cli/src/**/*.ts'],
+        rules: {
+            'no-restricted-imports': ['error', { paths: [cliOnlyImportBan], patterns: [cliOnlyPatternBan] }],
+        },
+    },
+    {
+        // Command implementations report through `ctx` and start processes through `ctx.spawn`.
+        // The host owns stdout, the prompts and the process, so that `--json` and MCP get a clean
+        // document. Renderers (`*.render.ts`) and the host are exempt.
+        files: ['packages/cli/src/**/*.run.ts', 'packages/cli/src/**/*.plan.ts'],
+        rules: {
+            'no-console': 'error',
             'no-restricted-imports': [
                 'error',
                 {
-                    patterns: [
+                    paths: [
+                        cliOnlyImportBan,
                         {
-                            group: ['@vendure/*/dist/**'],
-                            message:
-                                'Import from the public entry point of the package, not from its dist folder.',
+                            name: '@clack/prompts',
+                            message: 'A command never prompts. Return `incomplete()`.',
                         },
+                        { name: 'picocolors', message: 'A command never prints. Use a `render()` module.' },
+                        ...['child_process', 'node:child_process', 'cross-spawn', 'execa'].map(name => ({
+                            name,
+                            message: 'Start processes through `ctx.spawn`.',
+                        })),
                     ],
+                    patterns: [cliOnlyPatternBan],
+                },
+            ],
+            'no-restricted-properties': [
+                'error',
+                ...['stdout', 'stderr', 'stdin'].map(property => ({
+                    object: 'process',
+                    property,
+                    message: 'A command never reads or writes the process streams. Use `ctx`.',
+                })),
+            ],
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: "Property[key.name='stdio'][value.value='inherit']",
+                    message: 'Start processes through `ctx.spawn`, which keeps stdout clean.',
                 },
             ],
         },

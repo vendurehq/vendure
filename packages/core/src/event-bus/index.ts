@@ -15,6 +15,7 @@ export * from './events/bootstrapped-event';
 export * from './events/change-channel-event';
 export * from './events/channel-event';
 export * from './events/channel-stock-settings-event';
+export * from './events/channel-tax-country-event';
 export * from './events/collection-event';
 export * from './events/collection-modification-event';
 export * from './events/country-event';

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { createProjectTree as makeTree, removeProjectTrees } from './__tests__/project-tree.js';
-import { requireFromProject, requireFromProjectCore } from './project-core.js';
+import { requireFromProject, requireFromProjectCore, withCoreRunningInCli } from './project-core.js';
 
 describe('requireFromProjectCore()', () => {
     afterEach(() => {
@@ -91,5 +91,51 @@ describe('requireFromProjectCore()', () => {
         expect(() => requireFromProjectCore('typeorm', root)).toThrow(
             `Could not load "@vendure/core" from ${root}`,
         );
+    });
+});
+
+describe('withCoreRunningInCli()', () => {
+    afterEach(() => {
+        delete process.env.VENDURE_RUNNING_IN_CLI;
+    });
+
+    it('sets the variable while the function runs, and removes it afterwards', async () => {
+        const seen = await withCoreRunningInCli(() => Promise.resolve(process.env.VENDURE_RUNNING_IN_CLI));
+
+        expect(seen).toBe('true');
+        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
+    });
+
+    it('restores the value a caller set before', async () => {
+        process.env.VENDURE_RUNNING_IN_CLI = 'outer';
+
+        await withCoreRunningInCli(() => Promise.resolve());
+
+        expect(process.env.VENDURE_RUNNING_IN_CLI).toBe('outer');
+    });
+
+    // The first call to end must not turn core's logging back on for one still running.
+    it('keeps the variable set until the last of overlapping calls ends', async () => {
+        let finishFirst = () => undefined as void;
+        const first = withCoreRunningInCli(() => new Promise<void>(resolve => (finishFirst = resolve)));
+        let seenBySecond: string | undefined;
+        const second = withCoreRunningInCli(async () => {
+            finishFirst();
+            await first;
+            seenBySecond = process.env.VENDURE_RUNNING_IN_CLI;
+        });
+
+        await second;
+
+        expect(seenBySecond).toBe('true');
+        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
+    });
+
+    it('restores the variable when the function throws', async () => {
+        await expect(withCoreRunningInCli(() => Promise.reject(new Error('failed')))).rejects.toThrow(
+            'failed',
+        );
+
+        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
     });
 });

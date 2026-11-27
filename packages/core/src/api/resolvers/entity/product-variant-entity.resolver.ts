@@ -133,20 +133,15 @@ export class ProductVariantEntityResolver {
         }
         let facetValues: Array<Translated<FacetValue>>;
         if (productVariant.facetValues?.[0]?.channels) {
-            facetValues = productVariant.facetValues as Array<Translated<FacetValue>>;
+            // Loaded with the variant, with all their Channels.
+            facetValues = (productVariant.facetValues as Array<Translated<FacetValue>>).filter(fv =>
+                fv.channels.some(c => idsAreEqual(c.id, ctx.channelId)),
+            );
         } else {
+            // Already limited to the active Channel.
             facetValues = await this.productVariantService.getFacetValuesForVariant(ctx, productVariant.id);
         }
-
-        return facetValues.filter(fv => {
-            if (!fv.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
-                return false;
-            }
-            if (apiType === 'shop' && fv.facet.isPrivate) {
-                return false;
-            }
-            return true;
-        });
+        return facetValues.filter(fv => !(apiType === 'shop' && fv.facet.isPrivate));
     }
 
     @ResolveField()

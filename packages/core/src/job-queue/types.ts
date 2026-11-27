@@ -56,10 +56,17 @@ export interface JobConfig<T extends JobData<T>> {
     createdAt?: Date;
     startedAt?: Date;
     settledAt?: Date;
+    /**
+     * @description
+     * The ID of the API request which added the job. See {@link getRequestId}.
+     *
+     * @since 4.0.0
+     */
+    requestId?: string;
 }
 
-export type JobOptions<Data extends JsonCompatible<Data>> = Pick<JobConfig<Data>, 'retries'>  & {
-    ctx?: RequestContext
+export type JobOptions<Data extends JsonCompatible<Data>> = Pick<JobConfig<Data>, 'retries'> & {
+    ctx?: RequestContext;
 };
 
-export type JobQueueStrategyJobOptions<Data extends JsonCompatible<Data>> = Omit<JobOptions<Data>, "retries">
+export type JobQueueStrategyJobOptions<Data extends JsonCompatible<Data>> = Omit<JobOptions<Data>, 'retries'>;

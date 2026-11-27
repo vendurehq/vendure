@@ -62,11 +62,11 @@ class TestingLogger<Spy extends (...args: any[]) => any> implements VendureLogge
     infoSpy: Spy;
     verboseSpy: Spy;
     warnSpy: Spy;
-    debug(message: string, context?: string) => void;
-    error(message: string, context?: string, trace?: string) => void;
-    info(message: string, context?: string) => void;
-    verbose(message: string, context?: string) => void;
-    warn(message: string, context?: string) => void;
+    debug(message: string, context?: string, meta?: LogMeta) => void;
+    error(message: string, context?: string, trace?: string, meta?: LogMeta) => void;
+    info(message: string, context?: string, meta?: LogMeta) => void;
+    verbose(message: string, context?: string, meta?: LogMeta) => void;
+    warn(message: string, context?: string, meta?: LogMeta) => void;
 }
 ```
 * Implements: [`VendureLogger`](/reference/typescript-api/logger/vendure-logger#vendurelogger)
@@ -102,27 +102,27 @@ class TestingLogger<Spy extends (...args: any[]) => any> implements VendureLogge
 
 ### debug
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### error
 
-<MemberInfo kind="method" type={`(message: string, context?: string, trace?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, trace?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### info
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### verbose
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 ### warn
 
-<MemberInfo kind="method" type={`(message: string, context?: string) => void`}   />
+<MemberInfo kind="method" type={`(message: string, context?: string, meta?: <a href='/reference/typescript-api/logger/log-meta#logmeta'>LogMeta</a>) => void`}   />
 
 
 

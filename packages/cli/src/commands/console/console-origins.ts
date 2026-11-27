@@ -1,3 +1,5 @@
+import { ConsoleCliError } from './console-cli-error.js';
+
 /**
  * The official Vendure Console origins, and the check that recognises them.
  *
@@ -68,7 +70,7 @@ export function assertOfficialConsoleOriginPair(endpoints: { consoleUrl: string;
             isOfficialOrigin(endpoints.apiUrl, pair.apiUrl),
     );
     if (includesOfficialOrigin) {
-        throw new Error('Official Console app and API origins must be used as a matching pair.');
+        throw new ConsoleCliError('Official Console app and API origins must be used as a matching pair.');
     }
 }
 
@@ -99,9 +101,30 @@ export function trustedConsoleOrigins(
         officialConsoleEnvironment(endpoints) === undefined &&
         ![appOrigin, apiOrigin].every(value => isLoopbackHostname(new URL(value).hostname))
     ) {
-        throw new Error('Vendure Console app and API origins must be a trusted pair.');
+        throw new ConsoleCliError('Vendure Console app and API origins must be a trusted pair.');
     }
     return { appOrigin, apiOrigin };
+}
+
+/**
+ * The Console app that belongs to a Console API origin: the official pair, or for a loopback API
+ * the loopback `VENDURE_CONSOLE_APP_URL` when it is set and pairs with it. `undefined` otherwise:
+ * the CLI does not know where a loopback Console app runs.
+ */
+export function consoleUrlForApi(apiOrigin: string, env: NodeJS.ProcessEnv): string | undefined {
+    const official = OFFICIAL_CONSOLE_ORIGINS.find(pair => pair.apiUrl === apiOrigin);
+    if (official) {
+        return official.consoleUrl;
+    }
+    const appOrigin = env.VENDURE_CONSOLE_APP_URL?.trim();
+    if (appOrigin) {
+        try {
+            return trustedConsoleOrigins({ appOrigin, apiOrigin }).appOrigin;
+        } catch {
+            // Not a trusted pair with this API.
+        }
+    }
+    return undefined;
 }
 
 /**
@@ -134,20 +157,20 @@ function trustedOrigin(value: string, label: string, trustedHosts: string[]): st
     try {
         url = new URL(value);
     } catch {
-        throw new Error(`${label} must be an absolute HTTP or HTTPS URL.`);
+        throw new ConsoleCliError(`${label} must be an absolute HTTP or HTTPS URL.`);
     }
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-        throw new Error(`${label} must be an absolute HTTP or HTTPS URL without credentials.`);
+        throw new ConsoleCliError(`${label} must be an absolute HTTP or HTTPS URL without credentials.`);
     }
     if (url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
-        throw new Error(`${label} must contain only an origin without a path, query, or fragment.`);
+        throw new ConsoleCliError(`${label} must contain only an origin without a path, query, or fragment.`);
     }
     const loopback = isLoopbackHostname(url.hostname);
     if (url.protocol === 'http:' && !loopback) {
-        throw new Error(`${label} must use HTTPS unless it is a loopback URL.`);
+        throw new ConsoleCliError(`${label} must use HTTPS unless it is a loopback URL.`);
     }
     if (!loopback && !trustedHosts.includes(url.hostname)) {
-        throw new Error(`${label} is not trusted.`);
+        throw new ConsoleCliError(`${label} is not trusted.`);
     }
     return url.origin;
 }

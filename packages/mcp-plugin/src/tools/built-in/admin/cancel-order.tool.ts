@@ -3,6 +3,7 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { idSchema, longText, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { describeOrder, findOrderOrThrow } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const cancelOrderInput = z.strictObject({
@@ -35,6 +36,16 @@ export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {
         private readonly orderService: OrderService,
         private readonly serializer: McpToolSerializerService,
     ) {}
+
+    async describe(ctx: RequestContext, input: CancelOrderToolInput) {
+        const order = await findOrderOrThrow(this.orderService, ctx, input.id, ['lines']);
+        const shipping = input.cancelShipping === false ? 'Shipping charges stay.' : 'Shipping is cancelled too.';
+        const reason = input.reason ? ` Reason: ${input.reason}.` : '';
+        return (
+            `Cancel ${describeOrder(order, value => this.serializer.decimal(value))}, ` +
+            `${order.lines.length} line(s), and restock the cancelled lines. ${shipping}${reason}`
+        );
+    }
 
     async execute(ctx: RequestContext, input: CancelOrderToolInput) {
         return this.serializer.orderOrError(

@@ -71,7 +71,10 @@ input TestShippingMethodOrderLineInput {
 
 type TestShippingMethodResult {
     eligible: Boolean!
+    "The cheapest option"
     quote: TestShippingMethodQuote
+    "Every option returned by the ShippingCalculator, cheapest first"
+    options: [ShippingOptionQuote!]!
 }
 
 type TestShippingMethodQuote {

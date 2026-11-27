@@ -1,0 +1,406 @@
+import {
+    applyCommandExtensions,
+    CommandContext,
+    defineCommand,
+    defineCommandExtension,
+    defineError,
+    fail,
+    incomplete,
+} from '@vendure/common/lib/command';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+
+import { executeWithCancellation } from './commander-adapter.js';
+import { consentDigest } from './digest.js';
+import { executeCommand, HostEnvironment } from './host.js';
+import { createSpawn } from './spawn.js';
+import { runInTestHost, testCommand } from './test-command.js';
+
+const received: Array<Record<string, unknown>> = [];
+
+const deploy = defineCommand({
+    path: ['acme', 'deploy'],
+    description: 'Deploy',
+    behavior: 'mutating',
+    cli: { fields: { trace: { internal: true } } },
+    schemas: async () => ({
+        input: z.object({ environment: z.string().default('staging'), trace: z.string().optional() }),
+        output: z.object({ deployed: z.string() }),
+    }),
+    run: async () => ({
+        run: async (input: Record<string, unknown>) => {
+            received.push(input);
+            return { deployed: String(input.environment) };
+        },
+    }),
+});
+
+const notLinked = defineError<Record<string, never>>({
+    code: 'cloud.not-linked',
+    exit: 1,
+    message: () => 'This project is not linked',
+});
+
+function cloud(run: (input: any, ctx: CommandContext, next: any) => Promise<any>) {
+    return defineCommandExtension({
+        path: ['acme', 'deploy'],
+        consents: { deployProduction: 'Deploy to production' },
+        errors: [notLinked],
+        schemas: async () => ({
+            input: z.object({ project: z.string().describe('The Console Project') }),
+            output: z.object({ previewUrl: z.string().optional() }),
+        }),
+        run: async () => ({ run }),
+    });
+}
+
+describe('an extended command through the host', () => {
+    afterEach(() => {
+        received.length = 0;
+    });
+
+    it("asks for an extension's missing field, as for the command's own", async () => {
+        const extended = applyCommandExtensions(deploy, [cloud((_input, _ctx, next) => next())]);
+
+        const result = await testCommand(extended, {});
+
+        expect(result.envelope).toMatchObject({
+            status: 'incomplete',
+            needs: [{ kind: 'input', field: 'project' }],
+        });
+    });
+
+    it('reports a declared error of the extension', async () => {
+        const extended = applyCommandExtensions(deploy, [cloud(async () => fail(notLinked, {}))]);
+
+        const result = await testCommand(extended, { project: 'storefront' });
+
+        expect(result.envelope.error?.code).toBe('cloud.not-linked');
+    });
+
+    it("asks for an extension's consent through ctx.consent, also when it calls next() again", async () => {
+        const extended = applyCommandExtensions(deploy, [
+            cloud(async (_input, ctx, next) => {
+                // Two tries, as a retry loop does, each asking for the same consent and preview.
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    const answer = await ctx.consent('deployProduction', { environment: 'production' });
+                    if (answer !== true) {
+                        return incomplete([answer]);
+                    }
+                    await next({ environment: 'production' });
+                }
+                return next({ environment: 'production' });
+            }),
+        ]);
+
+        const first = await testCommand(extended, { project: 'storefront' });
+        expect(first.envelope).toMatchObject({
+            status: 'incomplete',
+            needs: [{ kind: 'consent', consent: 'deployProduction' }],
+        });
+
+        const digest = consentDigest('deployProduction', { environment: 'production' });
+        const second = await testCommand(extended, { project: 'storefront', deployProduction: digest });
+        expect(second.envelope).toMatchObject({ status: 'ok', output: { deployed: 'production' } });
+        expect(received).toHaveLength(3);
+    });
+
+    it('removes an internal field from what a caller passes, and lets the extension set it', async () => {
+        const extended = applyCommandExtensions(deploy, [
+            cloud((input, _ctx, next) => next(input.project === 'traced' ? { trace: 'cloud' } : undefined)),
+        ]);
+
+        await testCommand(extended, { project: 'plain', trace: 'from the caller' });
+        await testCommand(extended, { project: 'traced', trace: 'from the caller' });
+
+        expect(received).toEqual([{ environment: 'staging' }, { environment: 'staging', trace: 'cloud' }]);
+    });
+
+    it("runs the command's transforms once, on the caller's values, with and without changes", async () => {
+        const ran: Array<Record<string, unknown>> = [];
+        const tag = defineCommand({
+            path: ['acme', 'tag'],
+            description: 'Tag',
+            behavior: 'readonly',
+            schemas: async () => ({
+                input: z.object({
+                    name: z.string().transform(name => `${name}!`),
+                    note: z.string().optional(),
+                }),
+            }),
+            run: async () => ({
+                run: async (input: Record<string, unknown>) => {
+                    ran.push(input);
+                    return {};
+                },
+            }),
+        });
+        const noted = defineCommandExtension({
+            path: ['acme', 'tag'],
+            schemas: async () => ({ input: z.object({ addNote: z.boolean().default(false) }) }),
+            run: async () => ({
+                run: async (input, _ctx, next) =>
+                    input.addNote ? next({ note: 'from the extension' }) : next(),
+            }),
+        });
+        const extended = applyCommandExtensions(tag, [noted]);
+
+        await testCommand(extended, { name: 'release' });
+        await testCommand(extended, { name: 'release', addNote: true });
+
+        expect(ran).toEqual([{ name: 'release!' }, { name: 'release!', note: 'from the extension' }]);
+    });
+
+    it('ends the run with cli.internal when the changes an extension gives next() are not valid', async () => {
+        const extended = applyCommandExtensions(deploy, [
+            cloud((_input, _ctx, next) => next({ environment: 42 })),
+        ]);
+
+        const result = await testCommand(extended, { project: 'storefront' });
+
+        expect(result.envelope.error).toMatchObject({
+            code: 'cli.internal',
+            message: expect.stringContaining('gave next() is not valid'),
+        });
+    });
+});
+
+describe('an extended command with processes and notices', () => {
+    it('stops a process that ctx.spawn started when the signal of next() fires, and next() resolves', async () => {
+        let exitCode: number | null | undefined;
+        const serve = defineCommand({
+            path: ['acme', 'serve'],
+            description: 'Serve',
+            behavior: 'service',
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: unknown, ctx: CommandContext) => {
+                    const child = await ctx.spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], {
+                        quiet: true,
+                    });
+                    exitCode = child.exitCode;
+                    return { stopped: true };
+                },
+            }),
+        });
+        const stopsSoon = defineCommandExtension({
+            path: ['acme', 'serve'],
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input, _ctx, next) => {
+                    const controller = new AbortController();
+                    setTimeout(() => controller.abort(), 200);
+                    return next(undefined, { signal: controller.signal });
+                },
+            }),
+        });
+        const runSignal = new AbortController().signal;
+        const env: HostEnvironment = {
+            cwd: process.cwd(),
+            signal: runSignal,
+            mcp: false,
+            emit: () => undefined,
+            spawn: createSpawn(process.cwd(), runSignal, () => undefined),
+            findProjectRoot: () => undefined,
+        };
+        const started = Date.now();
+
+        const result = await executeCommand(applyCommandExtensions(serve, [stopsSoon]), {}, env);
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { stopped: true } });
+        // Stopped by the signal, long before the child's own 60 seconds.
+        expect(exitCode).not.toBe(0);
+        expect(Date.now() - started).toBeLessThan(10_000);
+    });
+
+    it('keeps ctx.credential and ctx.account current after a renewal inside a signalled next()', async () => {
+        const call = defineCommand({
+            path: ['acme', 'call'],
+            description: 'Call',
+            behavior: 'readonly',
+            requires: { auth: 'cloud' },
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: object, ctx: CommandContext) => {
+                    await ctx.refreshCredential?.();
+                    return { token: ctx.credential?.token, apiUrl: ctx.account?.apiUrl };
+                },
+            }),
+        });
+        const signalled = defineCommandExtension({
+            path: ['acme', 'call'],
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input, _ctx, next) => next(undefined, { signal: new AbortController().signal }),
+            }),
+        });
+
+        const result = await runInTestHost(
+            applyCommandExtensions(call, [signalled]),
+            {},
+            { credential: { source: 'stored-login', token: 'first' } },
+            {
+                requireCredential: async () => ({ credential: { source: 'stored-login', token: 'first' } }),
+                refreshCredential: async () => ({ source: 'stored-login', token: 'second' }),
+                describeAccount: (_kind, credential) => ({ apiUrl: `https://${credential.token}.example` }),
+            },
+        );
+
+        expect(result.envelope.output).toEqual({ token: 'second', apiUrl: 'https://second.example' });
+    });
+
+    it("lists the host's notices once when a person is asked and the command runs again", async () => {
+        const named = defineCommand({
+            path: ['acme', 'named'],
+            description: 'Named',
+            behavior: 'readonly',
+            schemas: async () => ({ input: z.object({ name: z.string().optional() }) }),
+            run: async () => ({
+                run: async (input: { name?: string }) =>
+                    input.name
+                        ? { name: input.name }
+                        : incomplete([{ kind: 'input', field: 'name', description: 'A name' }]),
+            }),
+        });
+        const warning = {
+            level: 'warning' as const,
+            message: '[plugin.extension-failed] The extension failed to load',
+        };
+        const env: HostEnvironment = {
+            cwd: process.cwd(),
+            signal: new AbortController().signal,
+            mcp: false,
+            emit: () => undefined,
+            spawn: () => Promise.reject(new Error('no processes')),
+            findProjectRoot: () => undefined,
+            notices: [warning],
+            prompter: {
+                askInput: async () => 'storefront',
+                askConsent: async () => true,
+                confirm: async () => undefined,
+                select: async () => undefined,
+                text: async () => undefined,
+            },
+        };
+
+        const result = await executeCommand(named, {}, env);
+
+        expect(result.envelope).toMatchObject({ status: 'ok', output: { name: 'storefront' } });
+        expect(result.envelope.notices).toEqual([warning]);
+    });
+
+    it("starts a run with the host's notices, in its envelope and as events", async () => {
+        const events: unknown[] = [];
+        const env: HostEnvironment = {
+            cwd: process.cwd(),
+            signal: new AbortController().signal,
+            mcp: false,
+            emit: event => events.push(event),
+            spawn: () => Promise.reject(new Error('no processes')),
+            findProjectRoot: () => undefined,
+            notices: [
+                { level: 'warning', message: '[plugin.extension-failed] The extension failed to load' },
+            ],
+        };
+
+        const result = await executeCommand(
+            applyCommandExtensions(deploy, [cloud((_input, _ctx, next) => next())]),
+            { project: 'storefront' },
+            env,
+        );
+
+        expect(result.envelope.notices).toEqual([
+            { level: 'warning', message: '[plugin.extension-failed] The extension failed to load' },
+        ]);
+        expect(events).toContainEqual({
+            vendure: 'event',
+            type: 'notice',
+            level: 'warning',
+            message: '[plugin.extension-failed] The extension failed to load',
+        });
+    });
+});
+
+describe('executeWithCancellation', () => {
+    afterEach(() => vi.useRealTimers());
+
+    function environment(controller: AbortController): HostEnvironment {
+        return {
+            cwd: '/project',
+            signal: controller.signal,
+            mcp: false,
+            emit: () => undefined,
+            spawn: () => Promise.reject(new Error('no processes')),
+            findProjectRoot: () => '/project',
+        };
+    }
+
+    /** A command that stops 20 seconds after it is cancelled, as a service that winds down does. */
+    function slowToStop(behavior: 'service' | 'mutating', stopsAfter = 20_000) {
+        return defineCommand({
+            path: ['acme', 'serve'],
+            description: 'Serve',
+            behavior,
+            schemas: async () => ({ input: z.object({}) }),
+            run: async () => ({
+                run: async (_input: unknown, ctx: CommandContext) => {
+                    await new Promise<void>(resolve =>
+                        ctx.signal.addEventListener('abort', () => setTimeout(resolve, stopsAfter)),
+                    );
+                    return { stopped: true };
+                },
+            }),
+        });
+    }
+
+    it('gives a service command up to 30 seconds to stop, so its finally blocks run', async () => {
+        vi.useFakeTimers();
+        const controller = new AbortController();
+        const running = executeWithCancellation(
+            slowToStop('service'),
+            {},
+            environment(controller),
+            controller,
+        );
+        await vi.advanceTimersByTimeAsync(0);
+
+        controller.abort();
+        await vi.advanceTimersByTimeAsync(20_000);
+
+        expect((await running).envelope).toMatchObject({ status: 'ok', output: { stopped: true } });
+    });
+
+    it('gives up on any other command after the grace period', async () => {
+        vi.useFakeTimers();
+        const controller = new AbortController();
+        const running = executeWithCancellation(
+            slowToStop('mutating'),
+            {},
+            environment(controller),
+            controller,
+        );
+        await vi.advanceTimersByTimeAsync(0);
+
+        controller.abort();
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        expect((await running).envelope.error?.code).toBe('cli.cancelled');
+    });
+
+    it('gives up on a service command that has not stopped after 30 seconds', async () => {
+        vi.useFakeTimers();
+        const controller = new AbortController();
+        const running = executeWithCancellation(
+            slowToStop('service', 60_000),
+            {},
+            environment(controller),
+            controller,
+        );
+        await vi.advanceTimersByTimeAsync(0);
+
+        controller.abort();
+        await vi.advanceTimersByTimeAsync(30_000);
+
+        expect((await running).envelope.error?.code).toBe('cli.cancelled');
+    });
+});

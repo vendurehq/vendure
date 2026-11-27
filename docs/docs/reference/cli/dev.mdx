@@ -1,0 +1,51 @@
+---
+title: "vendure dev"
+generated: true
+---
+
+
+<a name="dev"></a>
+
+## vendure dev
+
+Run Vendure in development mode.
+
+```bash
+vendure dev [target] [options]
+```
+
+- **Behavior:** `service`. Keeps running until it is stopped.
+- **Developer MCP tool:** none. This command runs only on the command line.
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[target]`, `--target <target>` | `"all"` or `"server"` or `"worker"` or `"dashboard"` | What to run: all, server, worker or dashboard. Default: `"all"`. |
+| `--dir <dir>` | string | The Vendure project directory, resolved against the working directory. Needed when a workspace holds more than one. |
+| `--server-entry <server-entry>` | string | The TypeScript server entry file that calls bootstrap() (default: ./src/index.ts). |
+| `--worker-entry <worker-entry>` | string | The TypeScript worker entry file that calls bootstrapWorker() (default: ./src/index-worker.ts). |
+| `--vite-config <vite-config>` | string | The Vite config file the Dashboard uses (default: Vite config discovery). |
+| `--inspect [host:port]` | boolean or string | Enable the Node.js inspector for the server and worker (dev all uses ports 9229 and 9230). |
+| `--inspect-brk [host:port]` | boolean or string | Enable the Node.js inspector, and break before user code starts (dev all uses ports 9229 and 9230). |
+| `--reload`, `--no-reload` | boolean | Restart the server and worker when a backend source file changes. Default: `true`. |
+| `--reload-ignored-paths <reload-ignored-paths...>` | array of string | Paths whose changes never restart the server or the worker, resolved against the project directory. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `processExitCode` | number | The exit code the dev processes ended with, such as 130 after Ctrl+C. The CLI itself exits 0 for a stopped run, and 1 for one a process ended with an error. |
+| `stopped` | boolean | The run was stopped, by Ctrl+C or a signal, rather than ending by itself. |
+
+### Errors
+
+- `dev.start-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure dev
+vendure dev server --dir apps/server
+vendure dev --inspect
+```

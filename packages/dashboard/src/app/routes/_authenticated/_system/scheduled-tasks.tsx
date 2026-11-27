@@ -261,8 +261,8 @@ function ScheduledTasksPage() {
                     <DataTable
                         onRefresh={refreshScheduledTasks}
                         columns={columns}
-                        data={data?.scheduledTasks ?? []}
-                        totalItems={data?.scheduledTasks?.length ?? 0}
+                        data={data?.scheduledTasks}
+                        totalItems={data?.scheduledTasks?.length ?? null}
                         defaultColumnVisibility={{
                             schedule: false,
                         }}

@@ -308,7 +308,8 @@ import {
 @VendurePlugin({
     imports: [PluginCommonModule],
     providers: [{ provide: EMAIL_PLUGIN_OPTIONS, useFactory: () => EmailPlugin.options }, EmailProcessor],
-    compatibility: '^3.0.0',
+    // TODO(v4.0.0): '^4.0.0' once the workspace version is 4.x.
+    compatibility: '>=3.8.0 <5.0.0-0',
 })
 export class EmailPlugin implements OnApplicationBootstrap, OnApplicationShutdown, NestModule {
     private static options: InitializedEmailPluginOptions;

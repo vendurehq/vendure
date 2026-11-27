@@ -4,12 +4,22 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import pc from 'picocolors';
 
+import type { CommandManifest, MergedManifestCommand } from '@vendure/common/lib/command/manifest';
+import { recordStartupEnvironment } from './auth/startup-environment.js';
+import { registerManifestCommands } from './command-host/commander-adapter.js';
+import {
+    CORE_SOURCE,
+    describeRefusal,
+    loadCoreManifest,
+    loadProjectCommands,
+    setCommanderPaths,
+    TakenCommandPath,
+} from './command-host/manifest.js';
 import { builtinCommandDefs } from './commands/builtins.js';
-import { consoleCommandDef } from './commands/console/command.js';
-import { devCommandDef } from './commands/dev/command.js';
-import { buildOptionFlags } from './shared/cli-command-options.js';
 import { CommandRegistry } from './shared/command-registry-store.js';
 import { registerCommands, styleHelpTitle } from './shared/command-registry.js';
+import { setPluginExtensionAccessor, setPluginProjectRoot } from './shared/plugin-extensions.js';
+import { PROJECT_DIR_FLAG, selectsPluginProject } from './shared/project-dir-flag.js';
 import {
     CliPluginScopeError,
     CliPluginScopeKind,
@@ -21,6 +31,8 @@ import {
 import { PluginFailureStep, unknownCommandHelp } from './shared/unknown-command-help.js';
 
 async function main(): Promise<void> {
+    // Before anything can load a project's `.env` file into the environment.
+    recordStartupEnvironment();
     const program = new Command();
 
     const version = createRequire(import.meta.url)('../package.json').version;
@@ -49,27 +61,46 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // complete. Commander copies the help configuration into each subcommand as
     // it is created, so this must be set first.
     program.configureHelp({ showGlobalOptions: true, styleTitle: styleHelpTitle });
+    // Only on the top-level help, which is where an agent looks first.
+    program.addHelpText(
+        'after',
+        '\nAgents: run "vendure guide" for how to use this CLI, --json and the Developer MCP.',
+    );
 
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
+    // Loaded once: the registry needs its paths, and so does the merge below.
+    let coreManifest: CommandManifest | undefined;
+    try {
+        coreManifest = await loadCoreManifest();
+        registry.setHostDeclaredCommands(
+            coreManifest.commands.map(command => command.path),
+            process.argv.slice(2),
+        );
+    } catch {
+        // Without the manifest, an extension of a host command is a registration conflict, which
+        // refuses the whole plugin.
+    }
 
     // A broken plugin must not take down the CLI: built-ins (including the
     // `plugins` command needed to disable it) stay available.
-    // Select the dev project before loading plugins that extend its options and action.
-    // Parse the full command only after those plugins have been registered.
+    // `vendure dev` and `vendure console` select a project directory, whose plugins are the ones
+    // loaded, such as a plugin that extends `dev`. Read it before loading plugins, and parse the
+    // full command only after they have been registered.
     const pluginOptions: ResolveCliPluginsOptions = {};
-    const projectSelectingCommand = [devCommandDef, consoleCommandDef].find(
-        def => def.name === process.argv[2],
-    );
-    if (projectSelectingCommand) {
-        const selection = new Command().allowUnknownOption().exitOverride();
-        for (const option of projectSelectingCommand.options ?? []) {
-            selection.option(buildOptionFlags(option), option.description);
-        }
+    const selection = new Command().allowUnknownOption().exitOverride();
+    if (selectsPluginProject(process.argv.slice(2))) {
+        // Only the flag selects the plugins' project. A `dir` inside `--input` is read once the
+        // plugins are loaded, so a caller that passes the input that way passes the flag too, as
+        // the Developer MCP does.
+        selection.option(`${PROJECT_DIR_FLAG} <dir>`);
         selection.parseOptions(process.argv.slice(3));
-        pluginOptions.project = selection.opts<{ project?: string }>().project;
+        pluginOptions.project = selection.opts<{ dir?: string }>().dir;
+        pluginOptions.projectFlag = PROJECT_DIR_FLAG;
     }
-    const { loaded, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
+    const { loaded, manifests, failures, scopeErrors, projectRoot } = resolveCliPlugins(pluginOptions);
+    // The project the plugins came from, so a command that works on another one can say so.
+    setPluginProjectRoot(projectRoot);
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
@@ -85,7 +116,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         reportedFailures.map(failure => [failure.packageName, 'load']),
     );
     for (const failure of reportedFailures) {
-        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
+        const headline =
+            failure.failedPart === 'manifest-missing' || failure.failedPart === 'manifest-invalid'
+                ? 'Failed to load the defineCommand commands of CLI plugin'
+                : 'Failed to load CLI plugin';
+        writePluginSkipped(failure.packageName, headline, failure.reason, failure.scope);
     }
     for (const { packageName, plugin, scope } of loaded) {
         try {
@@ -101,6 +136,60 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         rootOptions: registry.getRootOptions(),
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
     });
+    // For the commands declared with `defineCommand`, such as `vendure console link`, which runs
+    // the plugins' `afterConsoleLink` hooks.
+    setPluginExtensionAccessor(extensionPoint => registry.getPluginExtensions(extensionPoint));
+
+    // Commands declared with `defineCommand` are built from the manifests alone: the CLI's own and
+    // those of the enabled plugins. Their declarations load only when one of them runs.
+    try {
+        setCommanderPaths(commanderPaths(program));
+        const projectCommands = await loadProjectCommands({ plugins: manifests, core: coreManifest });
+        for (const refusal of projectCommands.refused) {
+            const { package: packageName, error } = refusal;
+            const { headline, skipped } = describeRefusal(refusal);
+            if (!skipped) {
+                // Only its extensions were left out: its own commands still work.
+                process.stderr.write(
+                    pc.red(`${headline} "${packageName}": [${error.code}] ${error.message}\n`),
+                );
+                continue;
+            }
+            unavailablePackages.set(packageName, 'register');
+            const scope =
+                manifests.find(manifest => manifest.packageName === packageName)?.scope ?? 'project';
+            writePluginSkipped(packageName, headline, `[${error.code}] ${error.message}`, scope);
+        }
+        const loadDefinitions = (source: string) => projectCommands.loadDefinitions(source);
+        const loadCommand = (command: MergedManifestCommand) => projectCommands.loadCommand(command);
+        // The CLI's own commands first, then each plugin's on its own, so that a plugin whose
+        // commands Commander refuses cannot take the rest of the command line with it. The merge has
+        // already checked them, so this is a last resort.
+        const sources = [...new Set(projectCommands.commands.map(command => command.source))];
+        for (const source of sources) {
+            const commands = projectCommands.commands.filter(command => command.source === source);
+            try {
+                registerManifestCommands(program, commands, { loadDefinitions, loadCommand });
+            } catch (e) {
+                if (source === CORE_SOURCE) {
+                    throw e;
+                }
+                unavailablePackages.set(source, 'register');
+                const scope = manifests.find(manifest => manifest.packageName === source)?.scope ?? 'project';
+                const reason = e instanceof Error ? e.message : String(e);
+                writePluginSkipped(
+                    source,
+                    'Failed to register the defineCommand commands of CLI plugin',
+                    reason,
+                    scope,
+                );
+            }
+        }
+    } catch (e) {
+        process.stderr.write(
+            `Could not load the command manifest: ${e instanceof Error ? e.message : String(e)}\n`,
+        );
+    }
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';
@@ -121,6 +210,28 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 }
 
 /**
+ * The paths of the commands registered with Commander so far, which are the built-in commands. A
+ * command with subcommands is a group, which a plugin's manifest may add to. So is a command that
+ * the CLI's own manifest adds to, such as `add`, which the merge decides.
+ */
+function commanderPaths(program: Command): TakenCommandPath[] {
+    const paths: TakenCommandPath[] = [];
+    const visit = (command: Command, parent: string[]) => {
+        for (const child of command.commands) {
+            const path = [...parent, child.name()];
+            paths.push({
+                path,
+                owner: `the built-in command "${path.join(' ')}"`,
+                leaf: child.commands.length === 0,
+            });
+            visit(child, path);
+        }
+    };
+    visit(program, []);
+    return paths;
+}
+
+/**
  * Reports a plugin scope the CLI could not use. An ambiguous project never
  * supplies a member allowlist.
  */
@@ -128,7 +239,7 @@ function writeScopeError({ scope, origin, reason }: CliPluginScopeError): void {
     process.stderr.write(pc.red(`${reason}\n`));
     if (scope === 'project') {
         process.stderr.write(
-            'No project CLI plugins were loaded. Run from a project directory or use dev --project <dir>.\n',
+            'No project CLI plugins were loaded. Run from a project directory or use dev --dir <dir>.\n',
         );
     } else {
         process.stderr.write(

@@ -130,7 +130,7 @@ describe('addPlatform', () => {
         expect(deps.run).toHaveBeenCalledTimes(1);
         expect(deps.openUrl).not.toHaveBeenCalled();
         expect(cancel).toHaveBeenCalledWith(expect.stringContaining('The file is not valid JSON.'));
-        expect(cancel).toHaveBeenCalledWith(expect.stringContaining('vendure console link --force'));
+        expect(cancel).toHaveBeenCalledWith(expect.stringContaining('vendure console unlink'));
     });
 
     it.each([

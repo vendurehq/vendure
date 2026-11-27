@@ -619,6 +619,10 @@ export const taxRateFragment = graphql(`
             id
             name
         }
+        region {
+            id
+            code
+        }
         customerGroup {
             id
             name

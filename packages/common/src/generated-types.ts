@@ -530,6 +530,8 @@ export type Channel = Node & {
   outOfStockThreshold?: Maybe<Scalars['Int']['output']>;
   pricesIncludeTax: Scalars['Boolean']['output'];
   seller?: Maybe<Seller>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: Maybe<Scalars['String']['output']>;
   token: Scalars['String']['output'];
   /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: Maybe<Scalars['Boolean']['output']>;
@@ -559,6 +561,8 @@ export type ChannelFilterParameter = {
   /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<StringOperators>;
   token?: InputMaybe<StringOperators>;
   /** Whether inventory is tracked for the ProductVariants and StockLevels of this Channel whose `trackInventory` is `INHERIT`. Since 4.0.0 */
   trackInventory?: InputMaybe<BooleanOperators>;
@@ -590,6 +594,8 @@ export type ChannelSortParameter = {
   id?: InputMaybe<SortOrder>;
   /** The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0 */
   outOfStockThreshold?: InputMaybe<SortOrder>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -947,6 +953,8 @@ export type CreateChannelInput = {
   outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
   pricesIncludeTax: Scalars['Boolean']['input'];
   sellerId?: InputMaybe<Scalars['ID']['input']>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<Scalars['String']['input']>;
   token: Scalars['String']['input'];
   trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -1163,8 +1171,11 @@ export type CreateTaxRateInput = {
   customerGroupId?: InputMaybe<Scalars['ID']['input']>;
   enabled: Scalars['Boolean']['input'];
   name: Scalars['String']['input'];
+  /** The Country the rate applies to. Exactly one of zoneId and regionId must be set. */
+  regionId?: InputMaybe<Scalars['ID']['input']>;
   value: Scalars['Float']['input'];
-  zoneId: Scalars['ID']['input'];
+  /** The Zone the rate applies to. Exactly one of zoneId and regionId must be set. */
+  zoneId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type CreateZoneInput = {
@@ -2907,12 +2918,21 @@ export type ModifyOrderInput = {
   refunds?: InputMaybe<Array<AdministratorRefundInput>>;
   /** Added in v2.2 */
   shippingMethodIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Cannot be combined with `shippingMethodIds`. */
+  shippingMethods?: InputMaybe<Array<ShippingMethodSelectionInput>>;
   surcharges?: InputMaybe<Array<SurchargeInput>>;
   updateBillingAddress?: InputMaybe<UpdateOrderAddressInput>;
   updateShippingAddress?: InputMaybe<UpdateOrderAddressInput>;
 };
 
 export type ModifyOrderOptions = {
+  /**
+   * Whether to keep the discounts the Order was paid with. When true, the Promotions on the
+   * Order are not re-tested and their discounts stay as they are; the coupon codes cannot be
+   * changed. When false, the Promotions are re-tested against the modified Order. When omitted,
+   * the configured PromotionFreezeStrategy decides: by default the Promotions are frozen unless
+   * the modification changes the OrderLines, the coupon codes or the shipping methods.
+   */
   freezePromotions?: InputMaybe<Scalars['Boolean']['input']>;
   recalculateShipping?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -4065,6 +4085,7 @@ export type MutationSetDraftOrderShippingAddressArgs = {
 export type MutationSetDraftOrderShippingMethodArgs = {
   orderId: Scalars['ID']['input'];
   shippingMethodId: Scalars['ID']['input'];
+  shippingOptionCode?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -5813,6 +5834,11 @@ export type Query = {
   slugForEntity: Scalars['String']['output'];
   stockLocation?: Maybe<StockLocation>;
   stockLocations: StockLocationList;
+  /**
+   * Reports the setup gaps that stop a Channel from taking an order. Checks every Channel on which the
+   * active user holds ReadSettings, or only the given ones. It writes nothing.
+   */
+  storeReadiness: StoreReadinessReport;
   tag: Tag;
   tags: TagList;
   taxCategories: TaxCategoryList;
@@ -6108,6 +6134,11 @@ export type QueryStockLocationArgs = {
 
 export type QueryStockLocationsArgs = {
   options?: InputMaybe<StockLocationListOptions>;
+};
+
+
+export type QueryStoreReadinessArgs = {
+  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 
@@ -6816,6 +6847,10 @@ export type ShippingLine = {
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
   shippingMethod: ShippingMethod;
+  /** The code of the chosen ShippingOption, as returned by the ShippingCalculator. Null when the calculator returns a single result without a code. */
+  shippingOptionCode?: Maybe<Scalars['String']['output']>;
+  /** The name of the chosen ShippingOption, as returned by the ShippingCalculator the last time the ShippingLine was priced */
+  shippingOptionName?: Maybe<Scalars['String']['output']>;
 };
 
 export type ShippingMethod = Node & {
@@ -6875,8 +6910,20 @@ export type ShippingMethodQuote = {
   /** Any optional metadata returned by the ShippingCalculator in the ShippingCalculationResult */
   metadata?: Maybe<Scalars['JSON']['output']>;
   name: Scalars['String']['output'];
+  /**
+   * Every ShippingOption offered by this ShippingMethod, cheapest first. A ShippingCalculator which
+   * returns a single result yields one option, with the `code` the calculator gave it, or null if it
+   * gave none. The `price`, `priceWithTax` and `metadata` fields above are those of the cheapest option.
+   */
+  options: Array<ShippingOptionQuote>;
   price: Scalars['Money']['output'];
   priceWithTax: Scalars['Money']['output'];
+};
+
+export type ShippingMethodSelectionInput = {
+  shippingMethodId: Scalars['ID']['input'];
+  /** The `code` of one of the ShippingMethod's options. If omitted, the cheapest option is used. */
+  shippingOptionCode?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ShippingMethodSortParameter = {
@@ -6905,6 +6952,20 @@ export type ShippingMethodTranslationInput = {
   id?: InputMaybe<Scalars['ID']['input']>;
   languageCode: LanguageCode;
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/**
+ * One priced option offered by a ShippingMethod, such as a carrier service ("UPS Ground",
+ * "UPS Next Day Air") returned by a carrier API.
+ */
+export type ShippingOptionQuote = {
+  __typename?: 'ShippingOptionQuote';
+  /** Identifies the option within its ShippingMethod. Pass it as `shippingOptionCode` to select this option. */
+  code?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  name?: Maybe<Scalars['String']['output']>;
+  price: Scalars['Money']['output'];
+  priceWithTax: Scalars['Money']['output'];
 };
 
 /** The price value where the result has a single price */
@@ -7045,6 +7106,46 @@ export enum StockMovementType {
   RELEASE = 'RELEASE',
   RETURN = 'RETURN',
   SALE = 'SALE'
+}
+
+export type StoreReadinessFinding = {
+  __typename?: 'StoreReadinessFinding';
+  channelId?: Maybe<Scalars['ID']['output']>;
+  /** A namespaced code, such as store.channel.no-default-tax-zone. */
+  code: Scalars['String']['output'];
+  countryCode?: Maybe<Scalars['String']['output']>;
+  /** A Dashboard path where a person can fix the finding, such as /shipping-methods. */
+  dashboardUrl?: Maybe<Scalars['String']['output']>;
+  fixes: Array<StoreReadinessFix>;
+  message: Scalars['String']['output'];
+  severity: StoreReadinessSeverity;
+  taxCategoryId?: Maybe<Scalars['ID']['output']>;
+  zoneId?: Maybe<Scalars['ID']['output']>;
+};
+
+/**
+ * A way to fix a finding: an MCP admin tool, as the vendure mcp server names it, and the input to call
+ * it with. Some inputs are templates, and the description says which values to fill in. IDs in the
+ * input are the database IDs the MCP tools take, which differ from the Admin API's IDs only when an
+ * EntityIdStrategy encodes them.
+ */
+export type StoreReadinessFix = {
+  __typename?: 'StoreReadinessFix';
+  description: Scalars['String']['output'];
+  input: Scalars['JSON']['output'];
+  path: Array<Scalars['String']['output']>;
+};
+
+export type StoreReadinessReport = {
+  __typename?: 'StoreReadinessReport';
+  findings: Array<StoreReadinessFinding>;
+  /** True when no finding has the severity ERROR. */
+  ready: Scalars['Boolean']['output'];
+};
+
+export enum StoreReadinessSeverity {
+  ERROR = 'ERROR',
+  WARNING = 'WARNING'
 }
 
 export type StringCustomFieldConfig = CustomField & {
@@ -7266,9 +7367,10 @@ export type TaxRate = Node & {
   enabled: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  region?: Maybe<Region>;
   updatedAt: Scalars['DateTime']['output'];
   value: Scalars['Float']['output'];
-  zone: Zone;
+  zone?: Maybe<Zone>;
 };
 
 export type TaxRateFilterParameter = {
@@ -7279,6 +7381,7 @@ export type TaxRateFilterParameter = {
   enabled?: InputMaybe<BooleanOperators>;
   id?: InputMaybe<IdOperators>;
   name?: InputMaybe<StringOperators>;
+  regionId?: InputMaybe<IdOperators>;
   updatedAt?: InputMaybe<DateOperators>;
   value?: InputMaybe<NumberOperators>;
   zoneId?: InputMaybe<IdOperators>;
@@ -7338,6 +7441,9 @@ export type TestShippingMethodQuote = {
 export type TestShippingMethodResult = {
   __typename?: 'TestShippingMethodResult';
   eligible: Scalars['Boolean']['output'];
+  /** Every option returned by the ShippingCalculator, cheapest first */
+  options: Array<ShippingOptionQuote>;
+  /** The cheapest option */
   quote?: Maybe<TestShippingMethodQuote>;
 };
 
@@ -7466,6 +7572,8 @@ export type UpdateChannelInput = {
   outOfStockThreshold?: InputMaybe<Scalars['Int']['input']>;
   pricesIncludeTax?: InputMaybe<Scalars['Boolean']['input']>;
   sellerId?: InputMaybe<Scalars['ID']['input']>;
+  /** The code of the country whose tax rate the Channel's tax-inclusive prices include. Set it to null to clear it. Since 4.0.0 */
+  taxCountryCode?: InputMaybe<Scalars['String']['input']>;
   token?: InputMaybe<Scalars['String']['input']>;
   trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -7725,7 +7833,10 @@ export type UpdateTaxRateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  /** The Country the rate applies to. Setting it removes the Zone. */
+  regionId?: InputMaybe<Scalars['ID']['input']>;
   value?: InputMaybe<Scalars['Float']['input']>;
+  /** The Zone the rate applies to. Setting it removes the Country. */
   zoneId?: InputMaybe<Scalars['ID']['input']>;
 };
 
